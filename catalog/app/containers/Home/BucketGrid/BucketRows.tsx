@@ -27,10 +27,10 @@ const useStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.action.hover,
     },
   },
-  // Only rows that actually render the access readout reserve the right
-  // gutter ListItemSecondaryAction needs; the rest keep their full width.
-  rowWithSecondary: {
-    paddingRight: t.spacing(14),
+  access: {
+    flexShrink: 0,
+    marginLeft: t.spacing(2),
+    whiteSpace: 'nowrap',
   },
   avatar: {
     minWidth: t.spacing(6),
@@ -126,7 +126,7 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
 
   return (
     <M.ListItem
-      className={cx(classes.row, hasCollaborators && classes.rowWithSecondary)}
+      className={classes.row}
       divider={divider}
       data-testid="bucket-grid--bucket"
       data-bucket={bucket.name}
@@ -186,12 +186,12 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
         </div>
       )}
       {hasCollaborators && (
-        <M.ListItemSecondaryAction>
+        <div className={classes.access}>
           <Collaborators
             bucket={bucket.name}
             collaborators={bucket.collaborators ?? null}
           />
-        </M.ListItemSecondaryAction>
+        </div>
       )}
     </M.ListItem>
   )
@@ -214,7 +214,7 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
 
   return (
     <M.ListItem
-      className={cx(classes.row, classes.rowWithSecondary)}
+      className={classes.row}
       divider={divider}
       data-testid="bucket-grid--data-product"
       data-data-product={product.id}
@@ -252,11 +252,11 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
           ) : null
         }
       />
-      <M.ListItemSecondaryAction>
+      <div className={classes.access}>
         <M.Typography variant="caption" color="textSecondary">
           {DP.accessSummary(product)}
         </M.Typography>
-      </M.ListItemSecondaryAction>
+      </div>
     </M.ListItem>
   )
 }
