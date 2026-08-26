@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Removed] The data-products GraphQL contract — 32 schema definitions plus 6 fields on `Query`/`Mutation`/`AdminMutations`, added in [#5203](https://github.com/quiltdata/quilt/pull/5203) and never resolved by anything — is out of `shared/graphql/schema.graphql` before it ships in a release, since a published schema is a promise that then has to be kept or deprecated. Nothing user-visible changes: the `data-products` preview feature and its screens are untouched and keep reading fixture data, having never called GraphQL in the first place ([#5223](https://github.com/quiltdata/quilt/pull/5223))
 - [Changed] Search sidebar: the package metadata list is sorted from one "Sort by" control, sitting directly above the list ([#5222](https://github.com/quiltdata/quilt/pull/5222))
 - [Fixed] Volumes list: the "Shared with" readout no longer overlaps a bucket's tags, and the extra space inside it is gone ([#5220](https://github.com/quiltdata/quilt/pull/5220))
 - [Fixed] Front door: the example-query chips show real package handles, a mix of prompts rather than five recent packages, and icons that match the rest of the app ([#5219](https://github.com/quiltdata/quilt/pull/5219))
