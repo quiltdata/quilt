@@ -105,6 +105,10 @@ function usePerspective(
     }
   }, [attrs, config, container, data, onRender])
 
+  // NOTE: rethrow during render, because errors raised inside the async effect
+  //       above never reach the enclosing `ErrorBoundary` on their own
+  if (state instanceof Error) throw state
+
   return state
 }
 

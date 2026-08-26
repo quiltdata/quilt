@@ -19,7 +19,10 @@ type SearchPackages = Extract<
   { __typename: 'PackagesSearchResultSet' }
 >
 
-type Package = SearchPackages['firstPage']['hits'][0]
+type Package = Extract<
+  SearchPackages['firstPage'],
+  { __typename: 'PackagesSearchResultSetPage' }
+>['hits'][0]
 
 const usePackageCardStyles = M.makeStyles((t) => ({
   root: {
@@ -130,10 +133,12 @@ function Packages({ bucket, workflow }: PackagesProps) {
           return <M.Typography>No packages found for this workflow</M.Typography>
         case 'PackagesSearchResultSet':
           const { firstPage, total } = d.searchPackages
+          const hits =
+            firstPage.__typename === 'PackagesSearchResultSetPage' ? firstPage.hits : []
           return (
             <>
               <div className={classes.grid}>
-                {firstPage.hits.map((pkg) => (
+                {hits.map((pkg) => (
                   <PackageCard key={pkg.id} bucket={bucket} pkg={pkg} />
                 ))}
               </div>

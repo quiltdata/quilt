@@ -38,6 +38,62 @@ export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
 export const DEFAULT_VIEW = View.List
 
+// The two axes the `mo` param carries. They stay separate here because the param
+// falls back per axis; the panel offers their combinations as one list
+// (FACET_ORDERINGS).
+export const FACET_ORDER_BY = ['name', 'type'] as const
+
+export type FacetOrderBy = (typeof FACET_ORDER_BY)[number]
+
+export const FACET_ORDER_DIRECTIONS = ['asc', 'desc'] as const
+
+export type FacetOrderDirection = (typeof FACET_ORDER_DIRECTIONS)[number]
+
+export interface FacetOrdering {
+  by: FacetOrderBy
+  direction: FacetOrderDirection
+}
+
+export const DEFAULT_FACET_ORDERING: FacetOrdering = { by: 'name', direction: 'asc' }
+
+// One control, the way the result list's "Sort by" is one control -- and named
+// with its arrows (PRESET_ORDERINGS), so a direction means the same thing in
+// both places.
+export const FACET_ORDERINGS: { label: string; ordering: FacetOrdering }[] = [
+  { label: 'Name A → Z', ordering: { by: 'name', direction: 'asc' } },
+  { label: 'Name Z → A', ordering: { by: 'name', direction: 'desc' } },
+  { label: 'Type A → Z', ordering: { by: 'type', direction: 'asc' } },
+  { label: 'Type Z → A', ordering: { by: 'type', direction: 'desc' } },
+]
+
+/** `<by>:<direction>` in the querystring: one param for two axes. */
+export function serializeFacetOrdering(ordering: FacetOrdering): string {
+  return `${ordering.by}:${ordering.direction}`
+}
+
+/**
+ * Parse the `mo` param, falling back per axis.
+ *
+ * A hand-edited or stale URL is untrusted input, and a panel's display preference
+ * is never worth failing a search over: an unrecognized half falls back to the
+ * default for that axis alone, so `mo=type:sideways` still orders by type.
+ */
+export function parseFacetOrdering(
+  input: string | null,
+  fallback: FacetOrdering = DEFAULT_FACET_ORDERING,
+): FacetOrdering {
+  if (!input) return fallback
+  const [by, direction] = input.split(':')
+  return {
+    by: (FACET_ORDER_BY as readonly string[]).includes(by)
+      ? (by as FacetOrderBy)
+      : fallback.by,
+    direction: (FACET_ORDER_DIRECTIONS as readonly string[]).includes(direction)
+      ? (direction as FacetOrderDirection)
+      : fallback.direction,
+  }
+}
+
 type Defaults = Omit<SearchUrlState, 'filter' | 'userMetaFilters'>
 
 const createFallbacks = (defaults?: Partial<Defaults>): Defaults => ({
@@ -45,18 +101,42 @@ const createFallbacks = (defaults?: Partial<Defaults>): Defaults => ({
   resultType: defaults?.resultType || DEFAULT_RESULT_TYPE,
   view: defaults?.view || DEFAULT_VIEW,
   buckets: defaults?.buckets || [],
-  order: defaults?.order || DEFAULT_ORDER,
+  // `??` (not `||`): an explicit `null` ordering (relevance) is a real choice
+  // that must survive as-is rather than falling back to DEFAULT_ORDERING.
+  ordering: defaults?.ordering ?? DEFAULT_ORDERING,
+  facetOrdering: defaults?.facetOrdering || DEFAULT_FACET_ORDERING,
 })
 
-export const ResultOrder = Model.GQLTypes.SearchResultOrder
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type ResultOrder = Model.GQLTypes.SearchResultOrder
+// The single ordering vocabulary (Wave 2): a `PackageOrdering` wire expression —
+// `sys:<field>:<dir>` | `usr:<json-pointer>:<type>:<dir>` | null (relevance).
+// It replaces the former flat `order` enum + structured `sort` pair: one string
+// carries both the global "Sort by" preset AND a per-column field sort, and it
+// rides straight through to the packages `firstPage(ordering:)` arg. Object
+// search has no field/pointer sorts, so it maps this expression back to the
+// legacy `SearchResultOrder` enum at the query boundary (orderingToResultOrder,
+// lossy: unmappable → BEST_MATCH). null = relevance/best-match everywhere.
+export type Ordering = string | null
 
-export const DEFAULT_ORDER = ResultOrder.BEST_MATCH
+export const DEFAULT_ORDERING: Ordering = null
+
+// The dropdown presets, as ordering expressions. These five map cleanly onto the
+// object-search `SearchResultOrder` enum too (see orderingToResultOrder), so the
+// same option list serves both result types; a package column sort produces a
+// non-preset expression, surfaced as the "Column" option.
+export const PRESET_ORDERINGS: { label: string; ordering: Ordering }[] = [
+  { label: 'Best match', ordering: null },
+  { label: 'Most recent first', ordering: 'sys:modified:desc' },
+  { label: 'Least recent first', ordering: 'sys:modified:asc' },
+  { label: 'A → Z', ordering: 'sys:name:asc' },
+  { label: 'Z → A', ordering: 'sys:name:desc' },
+]
 
 const FACETS_VISIBLE = 5
 // don't show facet filter if under this threshold
 const FACETS_FILTER_THRESHOLD = 10
+// don't offer the ordering switcher below this: at a handful of fields the order
+// is self-evident and the control could not change anything a reader would notice.
+export const FACET_ORDERING_THRESHOLD = 8
 
 const parseDate = (x: unknown) => {
   if (typeof x !== 'string') return null
@@ -82,8 +162,16 @@ export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 interface SearchUrlStateBase {
   searchString: string | null
   buckets: readonly string[]
-  order: ResultOrder
+  // The single ordering expression (see `Ordering`). Shared by both result
+  // types so it lives in the base and is defaultable per mount; packages send it
+  // to `firstPage(ordering:)` verbatim, objects map it to the enum boundary.
+  ordering: Ordering
   view: View
+  // How the metadata filter panel is ordered. Display state, like `view`: it
+  // rides the querystring so a shared link reproduces what the sender saw, but it
+  // deliberately stays out of `Route.ts`'s schema, which is the Assistant's JSON
+  // API and describes the *search*, not one panel's presentation.
+  facetOrdering: FacetOrdering
 }
 
 interface ObjectsSearchUrlState extends SearchUrlStateBase {
@@ -100,10 +188,119 @@ interface PackagesSearchUrlState extends SearchUrlStateBase {
 
 export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
 
-function parseOrder(input: string | null, fallback: ResultOrder): ResultOrder {
-  return Object.values(ResultOrder).includes(input as any)
-    ? (input as ResultOrder)
-    : fallback
+// The legacy `SearchResultOrder` enum, still the wire vocabulary for the objects
+// `firstPage(order:)` arg and the legacy `o=` querystring. Not part of the model
+// state anymore — only the boundary codecs below touch it. Re-exported as
+// `GQLResultOrder` for the boundary tests.
+type ResultOrder = Model.GQLTypes.SearchResultOrder
+const ResultOrderEnum = Model.GQLTypes.SearchResultOrder
+export const GQLResultOrder = Model.GQLTypes.SearchResultOrder
+
+// The legacy system-field tokens as they appeared in the old `o=`/`s=` forms,
+// mapped to their Wave-2 ordering expression. Kept only so old URLs (produced
+// in-tree before Wave 2) keep working. New URLs use expressions directly.
+const LEGACY_ORDER_TO_ORDERING: Record<string, Ordering> = {
+  [ResultOrderEnum.BEST_MATCH]: null,
+  [ResultOrderEnum.NEWEST]: 'sys:modified:desc',
+  [ResultOrderEnum.OLDEST]: 'sys:modified:asc',
+  [ResultOrderEnum.LEX_ASC]: 'sys:name:asc',
+  [ResultOrderEnum.LEX_DESC]: 'sys:name:desc',
+}
+
+// Legacy `s=` structured forms (pre-Wave-2): `s=<PRESET>`, `s=<DIR><SYSTEM>`
+// (e.g. `-MODIFIED`), `s=<DIR>meta:<pointer>` (e.g. `+meta:/x`). Mapped to a
+// Wave-2 ordering expression. Returns undefined when the input is not a legacy
+// form (so the caller can fall through to other sources).
+const LEGACY_SORT_META_PREFIX = 'meta:'
+const LEGACY_SYSTEM_FIELDS = new Set([
+  'NAME',
+  'MODIFIED',
+  'SIZE',
+  'HASH',
+  'WORKFLOW',
+  'ENTRIES',
+])
+
+function parseLegacySort(input: string): Ordering | undefined {
+  // preset: bare SearchResultOrder value, no direction prefix
+  if (input in LEGACY_ORDER_TO_ORDERING) return LEGACY_ORDER_TO_ORDERING[input]
+
+  const dirChar = input.slice(0, 1)
+  const dir = dirChar === '+' ? 'asc' : dirChar === '-' ? 'desc' : null
+  if (dir === null) return undefined
+  const rest = input.slice(1)
+
+  // user-meta field: `meta:<json-pointer>` → `usr:<pointer>:keyword:<dir>`.
+  // The legacy form carried no facet type; keyword is the safe default (the
+  // server resolves the actual stored subfield).
+  if (rest.startsWith(LEGACY_SORT_META_PREFIX)) {
+    const pointer = rest.slice(LEGACY_SORT_META_PREFIX.length)
+    if (!pointer) return undefined
+    return `usr:${pointer}:keyword:${dir}`
+  }
+
+  // system field: bare PackageSystemField value → `sys:<field>:<dir>`
+  if (LEGACY_SYSTEM_FIELDS.has(rest)) return `sys:${rest.toLowerCase()}:${dir}`
+
+  return undefined
+}
+
+// A Wave-2 ordering expression as it appears in the new `s=` querystring. It is
+// stored verbatim (the server is the grammar authority — the catalog does not
+// re-validate the expression, only recognizes the two structural prefixes to
+// distinguish it from a legacy form).
+function isOrderingExpression(input: string): boolean {
+  return input.startsWith('sys:') || input.startsWith('usr:')
+}
+
+// URL sentinel for an EXPLICIT relevance (null) ordering that differs from a
+// non-null mount default (e.g. picking "Best match" on the bucket list, whose
+// default is `sys:modified:desc`). Without it, a null ordering would serialize
+// absent and re-parse back to the mount default, silently discarding the
+// choice. Not a valid ordering expression, so it never collides with one.
+const ORDERING_RELEVANCE_SENTINEL = 'relevance'
+
+// Resolve the ordering from the querystring, honoring the precedence
+// (d-order-precedence): new-vocabulary `s` wins → legacy-form `s` maps → else
+// legacy `o` maps → else the mount default. `s` is always the ordering param;
+// `o` is read only as a legacy fallback.
+export function parseOrdering(
+  s: string | null,
+  o: string | null,
+  fallback: Ordering,
+): Ordering {
+  if (s) {
+    if (s === ORDERING_RELEVANCE_SENTINEL) return null
+    if (isOrderingExpression(s)) return s
+    const legacy = parseLegacySort(s)
+    if (legacy !== undefined) return legacy
+  }
+  if (o && o in LEGACY_ORDER_TO_ORDERING) return LEGACY_ORDER_TO_ORDERING[o]
+  return fallback
+}
+
+// Serialize the ordering to the `s=` param. Called only when the ordering
+// differs from the mount default; a null ordering that differs from the default
+// is an explicit relevance choice and serializes to the sentinel so it round-
+// trips. The legacy `o=` param is never written anymore.
+export function serializeOrdering(ordering: Ordering): string {
+  return ordering ?? ORDERING_RELEVANCE_SENTINEL
+}
+
+// Objects search has no field/pointer sorts — map the ordering expression back
+// to the legacy `SearchResultOrder` enum for its `firstPage(order:)` arg. Lossy
+// by design: only the five presets map; anything else (a `usr:` pointer sort, or
+// a system field objects can't honor) falls back to BEST_MATCH.
+const ORDERING_TO_RESULT_ORDER: Record<string, ResultOrder> = {
+  'sys:modified:desc': ResultOrderEnum.NEWEST,
+  'sys:modified:asc': ResultOrderEnum.OLDEST,
+  'sys:name:asc': ResultOrderEnum.LEX_ASC,
+  'sys:name:desc': ResultOrderEnum.LEX_DESC,
+}
+
+export function orderingToResultOrder(ordering: Ordering): ResultOrder {
+  if (!ordering) return ResultOrderEnum.BEST_MATCH
+  return ORDERING_TO_RESULT_ORDER[ordering] ?? ResultOrderEnum.BEST_MATCH
 }
 
 type Tagged<Tag extends string, T> = T & { _tag: Tag }
@@ -589,12 +786,14 @@ export function parseSearchParams(
 
   const view = parseView(params.get('v'), fallbacks.view)
 
+  const facetOrdering = parseFacetOrdering(params.get('mo'), fallbacks.facetOrdering)
+
   const bucketsInput = params.get('buckets') || params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : fallbacks.buckets
 
-  const order = parseOrder(params.get('o'), fallbacks.order)
+  const ordering = parseOrdering(params.get('s'), params.get('o'), fallbacks.ordering)
 
-  const base = { searchString, buckets, order, view }
+  const base = { searchString, buckets, ordering, view, facetOrdering }
   switch (resultType) {
     case ResultType.S3Object:
       return {
@@ -626,7 +825,9 @@ function areBucketsEqual(left: readonly string[], right: readonly string[]) {
 }
 
 // XXX: return string?
-function serializeSearchUrlState(
+// Exported for the round-trip spec: parse/serialize is the URL contract that
+// catalog, registry and MCP all share, so it's guarded directly.
+export function serializeSearchUrlState(
   state: SearchUrlState,
   defaults?: Partial<Defaults>,
 ): URLSearchParams {
@@ -641,11 +842,25 @@ function serializeSearchUrlState(
 
   if (state.view !== fallbacks.view) params.set('v', state.view)
 
+  // Omitted at the default, like every other param here, so a plain search URL
+  // stays clean and only a deliberate reorder shows up in the link.
+  if (
+    state.facetOrdering.by !== fallbacks.facetOrdering.by ||
+    state.facetOrdering.direction !== fallbacks.facetOrdering.direction
+  ) {
+    params.set('mo', serializeFacetOrdering(state.facetOrdering))
+  }
+
   if (!areBucketsEqual(state.buckets, fallbacks.buckets)) {
     params.set('b', state.buckets.join(','))
   }
 
-  if (state.order !== fallbacks.order) params.set('o', state.order)
+  // The ordering serializes to `s=` (both result types), absent when it equals
+  // the mount default. A non-default null (explicit relevance) round-trips via
+  // the sentinel that serializeOrdering emits.
+  if (state.ordering !== fallbacks.ordering) {
+    params.set('s', serializeOrdering(state.ordering))
+  }
 
   function appendParams(pairs: [string, string][]) {
     pairs.forEach(([k, v]) => params.append(k, v))
@@ -722,7 +937,7 @@ function useBaseSearchQuery({ searchString: s, buckets }: SearchUrlState) {
 function useFirstPageObjectsQuery({
   searchString: s,
   buckets,
-  order,
+  ordering,
   resultType,
   filter,
 }: SearchUrlState) {
@@ -733,7 +948,7 @@ function useFirstPageObjectsQuery({
   const pause = resultType !== ResultType.S3Object
   return GQL.useQuery(
     FIRST_PAGE_OBJECTS_QUERY,
-    { searchString, buckets, order, filter: gqlFilter },
+    { searchString, buckets, order: orderingToResultOrder(ordering), filter: gqlFilter },
     { pause },
   )
 }
@@ -745,7 +960,7 @@ function useFirstPagePackagesQuery(state: SearchUrlState) {
     {
       searchString,
       buckets: state.buckets,
-      order: state.order,
+      ordering: state.ordering,
       filter: PackagesSearchFilterIO.toGQL(
         state.resultType === ResultType.QuiltPackage
           ? state.filter
@@ -855,6 +1070,19 @@ export const AvailableFiltersState = tagged.create(
         visible: FacetTree
         hidden: FacetTree
       }
+      // How the tree above is ordered, plus the setter the panel's switcher
+      // drives. Lives here rather than in the panel because the ordering decides
+      // the visible/hidden split, which happens in the model.
+      ordering: {
+        value: FacetOrdering
+        set: (value: FacetOrdering) => void
+        // Whether to offer the control at all. Decided here because it turns on how
+        // many fields *exist*, not how many currently match the filter box --
+        // `facets.available` is the post-filter list on the client-filter path, so
+        // gating on it would unmount the control mid-search, exactly while a reader
+        // is hunting for a field.
+        offered: boolean
+      }
       fetching: boolean
     }) => x,
   },
@@ -946,6 +1174,7 @@ function AvailablePackagesMetaFiltersReady({
 
   // no filtering required
   return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    totalAvailable: available.length,
     state: AvailableFiltersState.Ready({
       filtering: FacetsFilteringState.Disabled(),
       facets: {
@@ -953,6 +1182,7 @@ function AvailablePackagesMetaFiltersReady({
         visible: EMPTY_FACET_TREE,
         hidden: EMPTY_FACET_TREE,
       },
+      ordering: PLACEHOLDER_ORDERING,
       fetching: false,
     }),
     children,
@@ -994,10 +1224,15 @@ function AvailablePackagesMetaFiltersServerFilter({
       visible: EMPTY_FACET_TREE,
       hidden: EMPTY_FACET_TREE,
     },
+    ordering: PLACEHOLDER_ORDERING,
     fetching: false,
   })
 
-  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+  return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    state,
+    children,
+    totalAvailable: available.length,
+  })
 }
 
 function AvailablePackagesMetaFiltersServerFilterQuery({
@@ -1057,10 +1292,15 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
       visible: EMPTY_FACET_TREE,
       hidden: EMPTY_FACET_TREE,
     },
+    ordering: PLACEHOLDER_ORDERING,
     fetching: query.fetching,
   })
 
-  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+  return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    state,
+    children,
+    totalAvailable: available.length,
+  })
 }
 
 function AvailablePackagesMetaFiltersClientFilter({
@@ -1096,26 +1336,50 @@ function AvailablePackagesMetaFiltersClientFilter({
       visible: EMPTY_FACET_TREE,
       hidden: EMPTY_FACET_TREE,
     },
+    ordering: PLACEHOLDER_ORDERING,
     fetching: false,
   })
 
-  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+  return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    state,
+    children,
+    totalAvailable: available.length,
+  })
 }
 
+// Every `Ready` path funnels through here before the tree reaches the panel, so
+// this is the one place the ordering can own both the sort and the split.
 function AvailablePackagesMetaFiltersGroup({
   children,
   state,
+  totalAvailable,
 }: RenderProps<AvailableFiltersStateInstance> & {
   state: AvailableFiltersStateInstance
+  // The count *before* any filtering, which the caller still has. `state.facets
+  // .available` is already narrowed on the client-filter path.
+  totalAvailable: number
 }) {
+  // From the URL, not local state, so a shared link reproduces the panel the
+  // sender was looking at and a reload does not silently reorder it.
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+  const ordering = model.state.facetOrdering
+  const setOrdering = model.actions.setFacetOrdering
+
   const available = AvailableFiltersState.match({
     Ready: (r) => r.facets.available,
     _: () => null,
   })(state)
 
   const grouped = React.useMemo(
-    () => (available ? groupFacets(available, FACETS_VISIBLE) : null),
-    [available],
+    () => (available ? groupFacets(available, FACETS_VISIBLE, ordering) : null),
+    [available, ordering],
+  )
+
+  const offered = totalAvailable >= FACET_ORDERING_THRESHOLD
+
+  const orderingState = React.useMemo(
+    () => ({ value: ordering, set: setOrdering, offered }),
+    [ordering, setOrdering, offered],
   )
 
   const stateOut = React.useMemo(
@@ -1131,11 +1395,12 @@ function AvailablePackagesMetaFiltersGroup({
               visible,
               hidden,
             },
+            ordering: orderingState,
           })
         },
         _: (s) => s,
       })(state),
-    [state, grouped],
+    [state, grouped, orderingState],
   )
 
   return children(stateOut)
@@ -1146,10 +1411,16 @@ export type SearchHitObject = Extract<
   { __typename: 'ObjectsSearchResultSet' }
 >['firstPage']['hits'][number]
 
+// `firstPage` is a union now (PackagesFirstPageResult): extract the success
+// page arm before reaching for `hits` (see change package-metadata-sort,
+// d-unsupported-error / d-typed-value).
 export type SearchHitPackage = Extract<
-  GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
-  { __typename: 'PackagesSearchResultSet' }
->['firstPage']['hits'][number]
+  Extract<
+    GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
+    { __typename: 'PackagesSearchResultSet' }
+  >['firstPage'],
+  { __typename: 'PackagesSearchResultSetPage' }
+>['hits'][number]
 
 export type SearchHit = SearchHitObject | SearchHitPackage
 
@@ -1158,7 +1429,10 @@ type PackageUserMetaFacetFull = Extract<
   { __typename: 'PackagesSearchResultSet' }
 >['stats']['userMeta'][number]
 
-export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
+export type PackageUserMetaFacet = Pick<
+  PackageUserMetaFacetFull,
+  'path' | '__typename' | 'sortable'
+>
 
 const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,
@@ -1172,6 +1446,19 @@ export type FacetTree = KTree.Tree<PackageUserMetaFacet, string>
 type FacetNode = KTree.Node<PackageUserMetaFacet, string>
 
 export const EMPTY_FACET_TREE = KTree.Tree<PackageUserMetaFacet, string>([])
+
+/**
+ * The `visible`, `hidden` and `ordering` fields of a `Ready` state are all filled
+ * in by `AvailablePackagesMetaFiltersGroup`, which every path funnels through
+ * before the panel renders. Upstream constructors carry placeholders until it
+ * does; this setter is unreachable rather than inert, since the real one always
+ * replaces it.
+ */
+const PLACEHOLDER_ORDERING = {
+  value: DEFAULT_FACET_ORDERING,
+  set: () => {},
+  offered: false,
+}
 
 function normalizeFacetNode(node: FacetNode): FacetTree {
   return node._tag === 'Tree'
@@ -1209,11 +1496,80 @@ function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNo
   )
 }
 
+const FACET_KEY_COLLATOR = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+})
+
+// Fields of one kind sit together, in the order a reader is likeliest to want
+// them: the bounded, pickable types first (a keyword has a value list; a date and
+// a number have a range), then free text, which can only be matched. A subtree is
+// not one type, so it sorts after every leaf rather than claiming a bucket.
+const FACET_TYPE_RANK: Record<PackageUserMetaFacet['__typename'], number> = {
+  KeywordPackageUserMetaFacet: 0,
+  DatetimePackageUserMetaFacet: 1,
+  NumberPackageUserMetaFacet: 2,
+  BooleanPackageUserMetaFacet: 3,
+  TextPackageUserMetaFacet: 4,
+}
+
+const SUBTREE_RANK = 5
+
+/**
+ * Order sibling entries.
+ *
+ * By name: the key alone, so the level reads alphabetically.
+ *
+ * By type: the *leaf's own data type* first, then name within each type. It has to
+ * read the node rather than the key -- a flat scalar field's key is `path:<name>`
+ * with no type in it, so comparing keys made "by type" identical to "by name" on
+ * exactly the common case (a package whose metadata is all top-level scalars).
+ */
+function compareFacetEntries(
+  ordering: FacetOrdering,
+  [aKey, aNode]: [string, FacetNode],
+  [bKey, bNode]: [string, FacetNode],
+): number {
+  // The direction turns the names around, never the type buckets: "Type, Z → A"
+  // means the names run backwards inside a type, not that free text now outranks a
+  // keyword. Reversing the buckets too would make one pair of controls read as two
+  // unrelated axes.
+  if (ordering.by === 'type') {
+    const rank = (n: FacetNode) =>
+      n._tag === 'Leaf' ? FACET_TYPE_RANK[n.value.__typename] : SUBTREE_RANK
+    const byType = rank(aNode) - rank(bNode)
+    if (byType !== 0) return byType
+  }
+  const byName = FACET_KEY_COLLATOR.compare(aKey, bKey)
+  return ordering.direction === 'desc' ? -byName : byName
+}
+
+/**
+ * Sort every level of the tree, not just the top.
+ *
+ * The facets arrive in the aggregation's own order -- roughly the order fields
+ * were first encountered while scanning documents -- which reads as arbitrary to
+ * anyone looking for a field by name. Sorting here rather than at the render site
+ * is what makes the *visible/hidden split* meaningful too: `groupFacets` promotes
+ * the first `visible` children, so without a sort the five promoted filters are
+ * whichever five the index happened to see first.
+ */
+function sortFacetTree(tree: FacetTree, ordering: FacetOrdering): FacetTree {
+  const sorted = Array.from(tree.children)
+    .map(([k, node]): [string, FacetNode] => [
+      k,
+      node._tag === 'Tree' ? sortFacetTree(node, ordering) : node,
+    ])
+    .sort((a, b) => compareFacetEntries(ordering, a, b))
+  return KTree.Tree(sorted)
+}
+
 export function groupFacets(
   facets: readonly PackageUserMetaFacet[],
   visible?: number,
+  ordering: FacetOrdering = DEFAULT_FACET_ORDERING,
 ): [FacetTree, FacetTree] {
-  const grouped = facets.reduce(
+  const merged = facets.reduce(
     (acc, f) =>
       KTree.merge(
         acc,
@@ -1225,6 +1581,7 @@ export function groupFacets(
       ),
     EMPTY_FACET_TREE,
   )
+  const grouped = sortFacetTree(merged, ordering)
   if (!visible || grouped.children.size <= visible) return [grouped, EMPTY_FACET_TREE]
   const [head, tail] = R.splitAt(visible, Array.from(grouped.children))
   return [KTree.Tree(head), KTree.Tree(tail)]
@@ -1386,9 +1743,14 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
     [updateUrlState],
   )
 
-  const setOrder = React.useCallback(
-    (order: ResultOrder) => {
-      updateUrlState((s) => ({ ...s, order }))
+  // Set the ordering expression (null = relevance). One setter for both the
+  // global "Sort by" dropdown and the per-column header sorts — they are one
+  // logical "sort by" surfaced in two places, and now share one state field, so
+  // whichever acts last wins with no reconciliation needed. Works for both
+  // result types (objects map it to the enum at the query boundary).
+  const setOrdering = React.useCallback(
+    (ordering: Ordering) => {
+      updateUrlState((s) => ({ ...s, ordering }))
     },
     [updateUrlState],
   )
@@ -1424,6 +1786,13 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
   const setView = React.useCallback(
     (view: View) => {
       updateUrlState((s) => ({ ...s, view }))
+    },
+    [updateUrlState],
+  )
+
+  const setFacetOrdering = React.useCallback(
+    (facetOrdering: FacetOrdering) => {
+      updateUrlState((s) => ({ ...s, facetOrdering }))
     },
     [updateUrlState],
   )
@@ -1562,12 +1931,15 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
   }, [updateUrlState])
 
   const reset = React.useCallback(() => {
-    updateUrlState(({ resultType, order, view }) => {
+    // `facetOrdering` survives a reset for the same reason `view` and `ordering`
+    // do: reset clears what you searched for, not how you like the panel arranged.
+    updateUrlState(({ resultType, ordering, view, facetOrdering }) => {
       const base = {
         searchString: null,
         buckets: [],
-        order,
+        ordering,
         view,
+        facetOrdering,
       }
       switch (resultType) {
         case ResultType.QuiltPackage:
@@ -1597,10 +1969,11 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
       },
       actions: {
         setSearchString,
-        setOrder,
+        setOrdering,
         setResultType,
         setBuckets,
         setView,
+        setFacetOrdering,
 
         activateObjectsFilter,
         deactivateObjectsFilter,

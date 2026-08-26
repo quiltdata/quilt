@@ -1,0 +1,114 @@
+name: Back-merge master into dev
+
+# `dev` is long-lived, and the merge queue squashes. A squash means dev's commits
+# never become ancestors of master, so the merge base freezes at whatever it was
+# when dev last received master — and every later dev->master merge conflicts on
+# files both branches "independently invented". Merging master back into dev after
+# each landing keeps master an ancestor, which keeps those merges trivial.
+#
+# Runs on every push to master because every squash refreezes the base. When dev
+# already contains master the merge is a no-op and nothing is pushed.
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Serialized: two overlapping runs would both merge from the same `dev` tip, and
+# whichever pushed second would be rejected as non-fast-forward, leaving the newer
+# master revision outside `dev`. `cancel-in-progress: false` lets the in-flight
+# merge finish; a superseded *pending* run is safe to drop, because the run that
+# replaces it merges a newer master that already contains the one it would have.
+concurrency:
+  group: back-merge-dev
+  cancel-in-progress: false
+
+jobs:
+  back-merge:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to a SHA, unlike the `@v7` the other workflows here use: this is the
+      # first workflow in this repo with `contents: write`, so a moved tag would
+      # execute new code against a token that can push branches.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: a shallow clone cannot compute the merge.
+          fetch-depth: 0
+
+      - name: Merge master into dev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          # Retried, because `dev` can move under us between the merge and the push
+          # from something this workflow does not serialize with -- a PR merging into
+          # dev, or a direct push. A rejected push would otherwise leave the newest
+          # master revision outside dev until the next landing.
+          conflicted=no
+
+          for attempt in 1 2 3; do
+            git fetch --quiet origin master dev
+            git checkout --quiet -B dev origin/dev
+
+            if git merge-base --is-ancestor origin/master HEAD; then
+              echo "dev already contains master; nothing to do."
+              exit 0
+            fi
+
+            if ! git merge --no-edit -m "Merge master into dev
+
+          Automated: keeps master an ancestor of dev so the next dev->master merge
+          stays trivial. See .github/workflows/back-merge-dev.yaml." origin/master; then
+              # Conflicts need a person: stop retrying and raise a PR below.
+              git merge --abort
+              conflicted=yes
+              break
+            fi
+
+            if git push origin dev; then
+              echo "Back-merged and pushed."
+              exit 0
+            fi
+
+            echo "Push rejected (dev moved); retrying (attempt $attempt)."
+          done
+
+          # Exhausting the retries without conflicting is a different failure: the
+          # merge works, something just keeps winning the race. Fail loudly rather
+          # than opening a PR that blames conflicts which never happened.
+          if [ "$conflicted" = no ]; then
+            echo "::error::Could not push dev after 3 attempts; it kept moving. Re-run this workflow."
+            exit 1
+          fi
+
+          if [ -n "$(gh pr list --base dev --head master --state open --json number --jq '.[].number')" ]; then
+            echo "A master->dev PR is already open; leaving it to the existing one."
+            exit 0
+          fi
+
+          gh pr create \
+            --base dev \
+            --head master \
+            --title 'Back-merge master into dev (conflicts need resolving)' \
+            --body 'Automated back-merge hit conflicts, so `dev` was left untouched.
+
+          Resolve locally and merge:
+
+          ```
+          git fetch origin master dev
+          git checkout dev
+          git merge origin/master
+          ```
+
+          Until this lands, `master` is not an ancestor of `dev` and the next
+          `dev` -> `master` merge will conflict on every file the two branches
+          have both touched. See `.github/workflows/back-merge-dev.yaml`.'

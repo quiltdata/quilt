@@ -1,12 +1,11 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Suggestions from 'components/SearchBar/Suggestions'
+import useState from 'components/SearchBar/State'
 import img2x from 'utils/img2x'
 
 import Dots from 'website/components/Backgrounds/Dots'
-
-import Suggestions from './Suggestions'
-import useState from './State'
 
 import bg from './search-bg.png'
 import bg2x from './search-bg@2x.png'
@@ -113,7 +112,7 @@ export default function Search() {
   const helpClasses = useHelpStyles()
   const inputClasses = useInputStyles()
 
-  const { helpOpen, input, onClickAway, suggestions } = useState()
+  const { helpOpen, input, onAsk, onClickAway, suggestions } = useState()
   const ref = React.useRef<HTMLInputElement>(null)
   const focus = React.useCallback(() => ref.current?.focus(), [])
 
@@ -139,6 +138,7 @@ export default function Search() {
               />
               <Suggestions
                 classes={helpClasses}
+                onAsk={onAsk}
                 open={helpOpen}
                 suggestions={suggestions}
               />

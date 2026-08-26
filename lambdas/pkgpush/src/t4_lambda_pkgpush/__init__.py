@@ -681,8 +681,10 @@ def _push_pkg_to_successor(
             force=True,
             copy_file_list_fn=copy_file_list(checksum_algorithm),
         )
-        assert result._origin is not None
-        return PackagePushResult(top_hash=result._origin.top_hash)
+        # `_push()` returns the package it published, so its top hash is the published revision.
+        # Read it off the package rather than off private push bookkeeping, whose shape differs
+        # between quilt3 versions.
+        return PackagePushResult(top_hash=result.top_hash)
     except quilt3.util.QuiltException as qe:
         raise PkgpushException.from_quilt_exception(qe)
     except botocore.exceptions.ClientError as boto_error:

@@ -188,6 +188,7 @@ describe('containers/Search/List/index', () => {
           __typename: 'PackagesSearchResultSet',
           total: -1, // secure search
           firstPage: {
+            __typename: 'PackagesSearchResultSetPage',
             cursor: null,
             hits: [], // We show Secure search "error", only if no results
           },
@@ -210,6 +211,7 @@ describe('containers/Search/List/index', () => {
           __typename: 'PackagesSearchResultSet',
           total: 2,
           firstPage: {
+            __typename: 'PackagesSearchResultSetPage',
             cursor: null,
             hits: [
               {
@@ -243,6 +245,7 @@ describe('containers/Search/List/index', () => {
           __typename: 'ObjectsSearchResultSet',
           total: 2,
           firstPage: {
+            __typename: 'ObjectsSearchResultSetPage',
             cursor: null,
             hits: [
               {

@@ -46,11 +46,13 @@ const useRowStyles = M.makeStyles((t) => ({
     marginLeft: 'auto',
     minWidth: 0,
   },
+  // A compact mono readout in a dense row: Caption is the ramp's step for this,
+  // and it keeps the mono face from crowding the row it annotates.
   source: {
     color: t.palette.text.secondary,
     cursor: 'help',
     fontFamily: t.typography.monospace.fontFamily,
-    fontSize: '0.8rem',
+    fontSize: t.typography.caption.fontSize,
     textDecoration: 'underline dotted',
     whiteSpace: 'nowrap',
   },
@@ -212,8 +214,9 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const { prefs } = BucketPreferences.use()
   const tablesResult = useTabulatorTables(bucket)
 
-  // The whole section links into the Queries tab, so respect a bucket that has
-  // disabled it via `ui.nav.queries`.
+  // The whole section links into the global Athena console (scoped to this
+  // bucket), so respect a bucket that de-emphasized queries via
+  // `ui.nav.queries`.
   const queriesEnabled = BucketPreferences.Result.match(
     { Ok: ({ ui: { nav } }) => nav.queries, _: () => false },
     prefs,
@@ -234,7 +237,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
   const { tables } = tablesResult
   if (tables.length === 0) return null
 
-  const queryUrl = urls.bucketQueries(bucket)
+  const queryUrl = urls.queriesAthena({ bucket })
   return (
     <M.Paper className={classes.root}>
       <div className={classes.head}>
@@ -251,7 +254,7 @@ export default function TabulatorTables({ bucket }: TabulatorTablesProps) {
           <TableRow
             key={table.name}
             table={table}
-            queryUrl={urls.bucketAthena(bucket, { table: table.name })}
+            queryUrl={urls.queriesAthena({ bucket, table: table.name })}
           />
         ))}
       </div>
