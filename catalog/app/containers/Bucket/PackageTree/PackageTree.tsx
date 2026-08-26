@@ -999,13 +999,45 @@ type RevisionData = NonNullable<
   GQL.DataForDoc<typeof REVISION_QUERY>['package']
 >['revision']
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   alertMsg: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-})
+  // Two explicit tiers instead of emergent inline wrapping. Wide: one line
+  // (name @ revision + shortcuts) where the package name truncates first and
+  // the revision control never separates from its shortcuts. Stacked (≤640px):
+  // the name gets its own full-width line — wrapping instead of truncating, so
+  // identity stays readable — with the revision cluster grouped beneath.
+  revisionLine: {
+    ...t.typography.body1,
+    alignItems: 'baseline',
+    columnGap: t.spacing(0.5),
+    display: 'grid',
+    gridTemplateAreas: '"name revision"',
+    gridTemplateColumns: 'minmax(0, max-content) max-content',
+    justifyContent: 'start',
+    '@media (max-width: 640px)': {
+      gridTemplateAreas: '"name" "revision"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    },
+  },
+  packageName: {
+    gridArea: 'name',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    '@media (max-width: 640px)': {
+      whiteSpace: 'normal',
+    },
+  },
+  revision: {
+    gridArea: 'revision',
+    whiteSpace: 'nowrap',
+  },
+}))
 
 interface PackageRevisionProps {
   packageHandle: PackageHandle
@@ -1143,11 +1175,15 @@ function PackageTree({
           </Lab.Alert>
         </M.Box>
       )}
-      <M.Typography variant="body1">
-        <PackageLink {...{ bucket, name }} />
-        {' @ '}
-        <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
-      </M.Typography>
+      <div className={classes.revisionLine}>
+        <span className={classes.packageName} title={name}>
+          <PackageLink {...{ bucket, name }} />
+        </span>
+        <span className={classes.revision}>
+          {'@ '}
+          <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
+        </span>
+      </div>
       {packageHandle ? (
         <PackageRevision
           packageHandle={packageHandle}
