@@ -103,9 +103,11 @@ function TabulatorItemWrapper({ bucket }: { bucket: string }) {
 const useStatsStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
+    columnGap: t.spacing(3),
     display: 'flex',
-    gap: t.spacing(4),
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
+    rowGap: t.spacing(1),
   },
 }))
 
@@ -181,23 +183,68 @@ function CreatePackage({ bucket }: CreatePackageProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  // Three explicit tiers instead of emergent wrapping. Wide: one calm grid row
+  // (title | readouts | settings) where the readout strip never wraps — the
+  // title truncates instead. Medium (≤1000px): title + settings on row one, the
+  // readout strip full-width beneath. Narrow (≤640px): readouts in a compact
+  // two-column grid, the action full-width below.
   root: {
     alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    [t.breakpoints.up('sm')]: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+    columnGap: t.spacing(3),
+    display: 'grid',
+    gridTemplateAreas: '"title stats settings"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
+    '@media (max-width: 1000px)': {
+      gridTemplateAreas: '"title settings" "stats stats"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      rowGap: t.spacing(1),
     },
   },
   title: {
-    alignItems: 'center',
-    display: 'flex',
-    flexShrink: 1,
+    gridArea: 'title',
     minWidth: 0,
+    overflow: 'hidden',
   },
+  stats: {
+    gridArea: 'stats',
+    minWidth: 0,
+    // Reaches into Stats' own row to retune its distribution per tier:
+    // one line when wide, left-aligned wrap with the action pushed to the
+    // row's end at medium, a two-column readout grid when narrow.
+    '& > div': {
+      flexWrap: 'nowrap',
+      '@media (max-width: 1000px)': {
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
+        '& > button': {
+          marginLeft: 'auto',
+        },
+      },
+      '@media (max-width: 640px)': {
+        columnGap: t.spacing(3),
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        rowGap: t.spacing(1),
+        '& > button': {
+          gridColumn: '1 / -1',
+          marginLeft: 0,
+        },
+      },
+    },
+  },
+  // Settings sits at the card's far edge behind a hairline divider — config
+  // set apart from the bucket's readout, muted until hovered.
   settings: {
-    marginLeft: t.spacing(1),
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    borderLeft: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    gridArea: 'settings',
+    paddingLeft: t.spacing(2),
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
   },
 }))
 
@@ -215,16 +262,22 @@ export default function Header({ bucket }: HeaderProps) {
   return (
     <div className={classes.root}>
       <div className={classes.title}>
-        <M.Typography variant="h5">{bucket}</M.Typography>
-        {isAdmin && (
-          <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-            <M.IconButton size="small" color="inherit">
-              <M.Icon>settings</M.Icon>
-            </M.IconButton>
-          </RRDom.Link>
-        )}
+        <M.Typography variant="h5" noWrap title={bucket}>
+          {bucket}
+        </M.Typography>
       </div>
-      <Stats bucket={bucket} stats={stats} />
+      <div className={classes.stats}>
+        <Stats bucket={bucket} stats={stats} />
+      </div>
+      {isAdmin && (
+        <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
+          <M.Tooltip arrow title="Bucket settings">
+            <M.IconButton size="small" color="inherit">
+              <M.Icon fontSize="small">settings</M.Icon>
+            </M.IconButton>
+          </M.Tooltip>
+        </RRDom.Link>
+      )}
     </div>
   )
 }
