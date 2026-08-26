@@ -680,10 +680,10 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
             <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelect.Value> name="roles" validate={RoleSelect.validate}>
                 {(props) => (
-                  // `|| isService` locally, not via the registry's coupling of the
-                  // two flags: a registry that reports isService without
-                  // isRoleAssignmentDisabled would otherwise offer a Save the
-                  // registry then refuses.
+                  // The registry couples these: isService implies
+                  // isRoleAssignmentDisabled. `|| isService` keeps the selector
+                  // read-only even if that stops holding — and only the selector:
+                  // the title and actions still read isRoleAssignmentDisabled.
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
