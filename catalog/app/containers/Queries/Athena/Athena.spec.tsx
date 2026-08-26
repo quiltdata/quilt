@@ -3,6 +3,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { render, cleanup, screen } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
+import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
+
 import Athena from './Athena'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -63,14 +65,16 @@ describe('containers/Queries/Athena/Athena', () => {
     })
 
     it('threads ui.athena from the ?bucket= scope into the model', async () => {
-      // The regression this pins: every legacy /b/:bucket/queries URL redirects
-      // here with ?bucket= set, and ui.athena.defaultWorkgroup must keep
-      // applying for those — it silently stopped when the console went global.
+      // The regression this pins: a legacy /b/:bucket/queries URL redirects here
+      // with ?bucket= set, and ui.athena.defaultWorkgroup must keep applying for
+      // those — it silently stopped when the console went global.
       const { Result } = await vi.importActual<typeof import('utils/BucketPreferences')>(
         'utils/BucketPreferences',
       )
       const athena = { defaultWorkgroup: 'analytics-prod' }
-      prefsResult.mockReturnValue(Result.Ok({ ui: { athena } } as never))
+      // Through the real parse pipeline, so a change to how `ui.athena` is
+      // parsed shows up here rather than being mocked away.
+      prefsResult.mockReturnValue(Result.Ok(extendDefaults({ ui: { athena } })))
       renderAthena('/queries/athena?bucket=my-bucket')
       expect(screen.getByTestId('prefs-provider').dataset.bucket).toBe('my-bucket')
       expect(providerProps).toHaveBeenCalledTimes(1)
