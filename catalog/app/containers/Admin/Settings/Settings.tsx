@@ -2,17 +2,22 @@ import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as Sentry from '@sentry/react'
 import * as M from '@material-ui/core'
 
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import { useFeature } from 'utils/features'
 import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
+import DataProductConnections from './DataProductConnections'
+import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
 import PackagerSettings from './PackagerSettings'
 import SearchSettings from './SearchSettings'
+import SupportDiagnostics from './SupportDiagnostics'
 import TabulatorSettings from './TabulatorSettings'
 import ThemeEditor from './ThemeEditor'
 
@@ -21,29 +26,59 @@ function useBeta(): [boolean, (b: boolean) => Promise<void>] {
   const writeSettings = CatalogSettings.useWriteSettings()
   const onChange = React.useCallback(
     (beta: boolean) =>
-      writeSettings({
-        ...settings,
-        beta,
-      }),
+      writeSettings(
+        {
+          ...settings,
+          beta,
+        },
+        settings,
+      ),
     [settings, writeSettings],
   )
   return [settings?.beta || false, onChange]
 }
 
-function BetaSwitch() {
+/**
+ * The global beta switch.
+ *
+ * `pending` holds the in-flight value and is cleared in `finally`, so a failed
+ * write snaps the switch back to what is actually stored rather than leaving it
+ * displaying a value that never persisted. Same shape as the preview-feature
+ * switches in `FeatureSettings`, deliberately: a toggle is the one control where
+ * showing an unsaved value reads as saved.
+ */
+export function BetaSwitch() {
   const [beta, setBeta] = useBeta()
-  const [value, setValue] = React.useState(beta)
-  const [disabled, setDisabled] = React.useState(false)
+  const { push: notify } = Notifications.use()
+  const [pending, setPending] = React.useState<boolean | null>(null)
   const handleChange = React.useCallback(
-    async (event, checked) => {
-      setDisabled(true)
-      setValue(checked)
-      await setBeta(checked)
-      setDisabled(false)
+    async (_event: React.ChangeEvent<{}>, checked: boolean) => {
+      if (pending !== null) return
+      setPending(checked)
+      try {
+        await setBeta(checked)
+      } catch (e) {
+        Sentry.captureException(e)
+        notify(
+          e instanceof CatalogSettings.SettingsConflictError
+            ? e.message
+            : "Couldn't save settings, see console for details",
+        )
+        // eslint-disable-next-line no-console
+        console.error(e)
+      } finally {
+        setPending(null)
+      }
     },
-    [setBeta],
+    [notify, pending, setBeta],
   )
-  return <M.Switch checked={value} onChange={handleChange} disabled={disabled} />
+  return (
+    <M.Switch
+      checked={pending ?? beta}
+      onChange={handleChange}
+      disabled={pending !== null}
+    />
+  )
 }
 
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
@@ -109,13 +144,17 @@ function NavLinkEditor() {
     if (!window.confirm('You are about to remove custom link')) return
     setRemoving(true)
     try {
-      await writeSettings(R.dissoc('customNavLink', settings))
+      await writeSettings(R.dissoc('customNavLink', settings), settings)
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('Error saving settings:')
       // eslint-disable-next-line no-console
       console.error(e)
-      push("Couldn't save settings, see console for details")
+      push(
+        e instanceof CatalogSettings.SettingsConflictError
+          ? e.message
+          : "Couldn't save settings, see console for details",
+      )
     } finally {
       setRemoving(false)
     }
@@ -124,10 +163,13 @@ function NavLinkEditor() {
   const onSubmit = React.useCallback(
     async (values: { url: string; label: string }) => {
       try {
-        await writeSettings({
-          ...settings,
-          customNavLink: { url: values.url, label: values.label },
-        })
+        await writeSettings(
+          {
+            ...settings,
+            customNavLink: { url: values.url, label: values.label },
+          },
+          settings,
+        )
         setEditing(false)
         return undefined
       } catch (e) {
@@ -135,7 +177,12 @@ function NavLinkEditor() {
         console.warn('Error saving settings:')
         // eslint-disable-next-line no-console
         console.error(e)
-        return { [FF.FORM_ERROR]: "Couldn't save settings, see console for details" }
+        return {
+          [FF.FORM_ERROR]:
+            e instanceof CatalogSettings.SettingsConflictError
+              ? e.message
+              : "Couldn't save settings, see console for details",
+        }
       }
     },
     [settings, writeSettings],
@@ -282,6 +329,30 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// Gated on the `data-products` preview feature, matching how `FeatureSettings` is
+// gated above: with the capability off, an admin offered a catalog-connection form
+// would be configuring something no reader can reach.
+//
+// Its own component because `useFeature` suspends and `Settings` does not,
+// so the read has to sit under a boundary of its own.
+export function DataProductCatalogs() {
+  const classes = useStyles()
+  const enabled = useFeature('data-products')
+  if (!enabled) return null
+  return (
+    <>
+      {/* Its own section rather than a cell in the grid above: a connection list
+          grows, and the add form needs the full width. */}
+      <M.Typography variant="h5" className={classes.title}>
+        Data Product Catalogs
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <DataProductConnections />
+      </M.Paper>
+    </>
+  )
+}
+
 export default function Settings() {
   const classes = useStyles()
   return (
@@ -294,7 +365,7 @@ export default function Settings() {
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
             <M.Typography variant="h6" className={classes.sectionHeading}>
-              Navbar link
+              Navigation link
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
               <NavLinkEditor />
@@ -329,7 +400,25 @@ export default function Settings() {
             <BetaSwitch />
           </M.Paper>
         </M.Grid>
+        {/* Absent entirely when this build declares no preview capabilities,
+            rather than rendering an empty card. */}
+        {HAS_PREVIEW_FEATURES && (
+          <M.Grid item xs={6}>
+            <M.Paper className={classes.group}>
+              <M.Typography variant="h6" className={classes.sectionHeading}>
+                Preview features
+              </M.Typography>
+              <React.Suspense fallback={<M.CircularProgress />}>
+                <FeatureSettings />
+              </React.Suspense>
+            </M.Paper>
+          </M.Grid>
+        )}
       </M.Grid>
+
+      <React.Suspense fallback={null}>
+        <DataProductCatalogs />
+      </React.Suspense>
 
       <M.Typography variant="h5" className={classes.title}>
         Packaging Engine Settings
@@ -343,6 +432,13 @@ export default function Settings() {
       </M.Typography>
       <M.Paper className={classes.group}>
         <TabulatorSettings />
+      </M.Paper>
+
+      <M.Typography variant="h5" className={classes.title}>
+        Support Diagnostics
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <SupportDiagnostics />
       </M.Paper>
     </div>
   )

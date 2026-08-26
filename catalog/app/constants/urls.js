@@ -9,6 +9,7 @@ export const jobs = 'https://quilt-data.breezy.hr/'
 export const linkedin = 'https://www.linkedin.com/company/quilt-data'
 export const slackInvite = 'https://slack.quilt.bio'
 export const icon256 = 'https://d1zvn9rasera71.cloudfront.net/q-256-square.png'
+export const install = `${docs}/references/technical-reference#before-you-install-quilt`
 export const tutorial =
   'https://github.com/quiltdata/quilt/blob/master/README.md#tutorial'
 export const twitter = 'https://twitter.com/quiltdata'

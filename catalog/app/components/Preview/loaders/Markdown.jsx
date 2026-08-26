@@ -65,9 +65,13 @@ function useLinkProcessor(handle) {
 
 // result: AsyncResult<{Ok: {contents: string}>,
 // handle: Model.S3ObjectLocation
-export function useMarkdownRenderer(contentsResult, handle) {
+// options: { processLink }: optional override for the default (bucket-route)
+// link processing — consumers rendering outside the bucket UI (e.g. data
+// products) map link hrefs themselves
+export function useMarkdownRenderer(contentsResult, handle, options) {
   const processImg = useImgProcessor(handle)
-  const processLink = useLinkProcessor(handle)
+  const defaultProcessLink = useLinkProcessor(handle)
+  const processLink = options?.processLink ?? defaultProcessLink
   return utils.useProcessing(contentsResult, getRenderer({ processImg, processLink }), [
     processImg,
     processLink,
@@ -76,7 +80,7 @@ export function useMarkdownRenderer(contentsResult, handle) {
 
 export const detect = utils.extIn(['.md', '.rmd'])
 
-function MarkdownLoader({ gated, handle, children }) {
+function MarkdownLoader({ gated, handle, options, children }) {
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
   const contents = React.useMemo(
     () =>
@@ -85,7 +89,7 @@ function MarkdownLoader({ gated, handle, children }) {
       })(data.result),
     [data.result],
   )
-  const markdowned = useMarkdownRenderer(contents, handle)
+  const markdowned = useMarkdownRenderer(contents, handle, options)
   const processed = React.useMemo(
     () =>
       AsyncResult.mapCase({
@@ -106,14 +110,14 @@ const SIZE_THRESHOLDS = {
   neverFetch: 3 * 1024 * 1024,
 }
 
-export const Loader = function GatedMarkdownLoader({ handle, children }) {
+export const Loader = function GatedMarkdownLoader({ handle, options, children }) {
   const data = useGate(handle, SIZE_THRESHOLDS)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({
     _: children,
     Ok: (gated) => (
       <HljsBoundary fallback={children(AsyncResult.Pending())}>
-        <MarkdownLoader {...{ gated, handle, children }} />
+        <MarkdownLoader {...{ gated, handle, options, children }} />
       </HljsBoundary>
     ),
   })(handled)

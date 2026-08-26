@@ -21,7 +21,7 @@ import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
 
-from . import checksums, util, workflows
+from . import checksums, context as quilt_context, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     FileChecksumTask,
@@ -377,15 +377,6 @@ class PackageEntry:
         return self.__class__(key, self.size, self.hash, self._meta)
 
 
-class PackageRevInfo:
-    __slots__ = ('registry', 'name', 'top_hash')
-
-    def __init__(self, registry, name, top_hash):
-        self.registry = registry
-        self.name = name
-        self.top_hash = top_hash
-
-
 class ManifestJSONDecoder(json.JSONDecoder):
     """
     Standard json.JSONDecoder reuses same `str` objects for JSON properties, while doing
@@ -410,7 +401,15 @@ class Package:
     def __init__(self):
         self._children = {}
         self._meta = {'version': 'v0'}
-        self._origin = None
+        # Per package name, the top hashes this object is a valid successor to: the revision it was
+        # read from, plus every revision it has published under that name. A push is accepted when
+        # the destination's latest revision is one of these, so the destination is known to be an
+        # ancestor of what is being pushed rather than an unrelated write.
+        self._parent_top_hashes = {}
+
+    def _record_revision(self, name, top_hash):
+        """Remember `top_hash` as a revision of `name` that this package is a valid successor to."""
+        self._parent_top_hashes.setdefault(name, set()).add(top_hash)
 
     @ApiTelemetry("package.__repr__")
     def __repr__(self, max_lines=20):
@@ -631,26 +630,34 @@ class Package:
             copy_file(pkg_manifest, PhysicalKey.from_path(dst), message="Downloading manifest")
 
         with contextlib.ExitStack() as stack:
+            cache_path = None
             if pkg_manifest.is_local():
-                local_pkg_manifest = pkg_manifest.path
+                local_pkg_manifest = pathlib.Path(pkg_manifest.path)
             elif util.IS_CACHE_ENABLED:
-                local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
-                if not local_pkg_manifest.exists():
-                    # Copy to a temporary file first, to make sure we don't cache a truncated file
-                    # if the download gets interrupted.
-                    tmp_path = local_pkg_manifest.with_suffix('.tmp')
-                    download_manifest(tmp_path)
-                    tmp_path.rename(local_pkg_manifest)
+                cache_path = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
+                local_pkg_manifest = cache_path
+                if not cache_path.exists():
+                    # Use a unique temporary file so concurrent downloads cannot interfere with one another.
+                    local_pkg_manifest = cache_path.with_name(f'{cache_path.name}.{uuid.uuid4().hex}.tmp')
+                    stack.callback(local_pkg_manifest.unlink, missing_ok=True)
+                    download_manifest(local_pkg_manifest)
             else:
                 # This tmp file has to closed before downloading, because on Windows it can't be
                 # opened for concurrent access.
                 with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                    local_pkg_manifest = tmp_file.name
+                    local_pkg_manifest = pathlib.Path(tmp_file.name)
                     stack.callback(os.unlink, local_pkg_manifest)
                 download_manifest(local_pkg_manifest)
 
             pkg = cls._from_path(local_pkg_manifest)
-            pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+            actual_top_hash = pkg.top_hash
+            if actual_top_hash != top_hash:
+                if cache_path == local_pkg_manifest:
+                    cache_path.unlink(missing_ok=True)
+                raise PackageException(f"Manifest top hash mismatch: expected {top_hash!r}, got {actual_top_hash!r}")
+            if cache_path is not None and local_pkg_manifest != cache_path:
+                local_pkg_manifest.replace(cache_path)
+            pkg._record_revision(name, top_hash)
             return pkg
 
     @classmethod
@@ -974,10 +981,75 @@ class Package:
 
         return self["README.md"]
 
-    def set_meta(self, meta):
+    def set_meta(self, meta, *, agent_context=False):
         """
         Sets user metadata on this Package.
+
+        With `agent_context=False` (the default) this is a plain assignment,
+        exactly as before the keyword existed.
+
+        With `agent_context=True` (experimental, pre-release; the keyword and
+        its behavior may change), the stored metadata is a copy of `meta`
+        with Quilt-observed commit context — the effective AWS principal
+        (from STS `get_caller_identity()`), the authentication path
+        (`quilt-catalog` or `aws`), the quilt3 client version, and a UTC
+        timestamp — embedded at `agent_context.quilt`. Context is resolved
+        exactly once, at this call, and frozen into the manifest, so workflow
+        validation, top-hash calculation, and publication all observe
+        identical bytes. Call it before `push` to include the context in the
+        published revision.
+
+        Every top-level key in `meta` and every sibling inside
+        `agent_context` (such as `agent_context.agent` and
+        `agent_context.inputs`) is preserved; the caller's object is never
+        mutated, and on any failure the package's metadata is left untouched.
+        Like every `set_meta` call, this replaces what is stored (last write
+        wins): metadata set earlier — for example via
+        `set_dir(".", path, meta=...)` — is not merged in, so pass it back:
+        `set_meta(pkg.meta, agent_context=True)`.
+        Passing back metadata that already carries a previous embed — from
+        the package `push()` returns, or one read back via
+        `Package.browse()` — replaces the previously embedded context with
+        freshly observed values; only an `agent_context.quilt` value that
+        Quilt itself did not write is refused.
+
+        Note: account IDs and principal ARNs become durable, queryable
+        package metadata; nothing is collected unless the keyword is passed.
+        Two operational consequences follow from embedding before validation
+        and hashing:
+
+        - The embedded timestamp is part of the manifest, so every push gets
+          a new top hash even when payload bytes are identical — `dedupe`
+          (CLI `--dedupe`) will no longer skip.
+        - Any workflow's package-metadata schema must allow the
+          `agent_context` key; a schema with `additionalProperties: false`
+          that does not model it will reject the push until the schema is
+          updated.
+
+        The embedded object is self-asserted client metadata, not an
+        attestation: other metadata channels can write arbitrary content at
+        the same key, so consumers must not treat its presence alone as
+        proof that Quilt produced it.
+
+        Args:
+            meta: user metadata to store, or None.
+            agent_context: experimental — when True, embed Quilt-observed
+                commit context at `agent_context.quilt` in a copy of `meta`.
+
+        Returns:
+            self
+
+        Raises:
+            QuiltException: only with `agent_context=True` — before any AWS
+                call, when `meta` is not an object or None, the
+                `agent_context` value is not an object, or
+                `agent_context.quilt` already exists and was not written by
+                Quilt; also when the STS identity cannot be resolved.
         """
+        if agent_context:
+            # Experimental (pre-release): merge first so a failure leaves the
+            # package's metadata untouched.
+            meta = quilt_context.merge_quilt_context(meta)
         self._meta['user_meta'] = meta
         return self
 
@@ -1441,6 +1513,11 @@ class Package:
         By default, push will not overwrite an existing package if its top hash does not match
         the parent hash of the package being pushed. Use `force=True` to skip the check.
 
+        A successful push records the revision it published on the package it was called on, in
+        addition to the package it returns. Either object can therefore push again -- as the next
+        revision at the same destination, or as the same revision to another registry holding the
+        parent -- without an intervening `browse()` and without `force=True`.
+
         Args:
             name: name for package in registry
             dest: where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
@@ -1552,6 +1629,15 @@ class Package:
                     )
 
         registry = get_package_registry(registry)
+        destination_registry = str(registry.base)
+        # Acceptable parent revisions are identified by package name alone, never by the registry a
+        # hash was learned from. `quilt3 push` deliberately bases a remote push on a parent taken
+        # from the local registry (see #2722), and one object mirrored to several buckets pushes to
+        # destinations it has never read. Top hashes are content-derived, so a hash remembered for a
+        # name identifies the same revision wherever it is found. Snapshot it: this call adds to the
+        # set once it publishes, and every check below must judge against the pre-push state.
+        expected_hashes = frozenset(self._parent_top_hashes.get(name, ()))
+
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
         def get_latest_hash():
@@ -1567,11 +1653,14 @@ class Package:
             if latest_hash is None:
                 return
 
-            if self._origin is None or latest_hash != self._origin.top_hash:
+            if latest_hash not in expected_hashes:
+                expectation = ' or '.join(map(repr, sorted(expected_hashes))) if expected_hashes else 'no revision'
                 raise QuiltConflictException(
-                    f"Package with hash {latest_hash!r} already exists at the destination; "
-                    f"expected {None if self._origin is None else self._origin.top_hash!r}. "
-                    "Use force=True (Python) or --force (CLI) to overwrite."
+                    f"Package {name!r} already exists at {destination_registry} "
+                    f"with hash {latest_hash!r}; expected {expectation}. "
+                    "To build on that revision, re-use the package returned by the previous push(), "
+                    "or call Package.browse() (CLI: quilt3 install) first. "
+                    "Use force=True (Python) or --force (CLI) to overwrite it instead."
                 )
 
         # Get the latest hash if we're either checking for conflicts or deduping.
@@ -1625,14 +1714,22 @@ class Package:
         top_hash = pkg._calculate_top_hash(pkg._meta, pkg.walk())
 
         if dedupe and top_hash == latest_hash:
-            if print_info:
-                print(
-                    f"Skipping since package with hash {latest_hash} already exists "
-                    "at the destination and dedupe parameter is true."
-                )
-            return self
+            # Hashing and transfer may take long enough for another writer to update latest.
+            # Re-read before accepting the dedupe result so we do not return stale success.
+            latest_hash = get_latest_hash()
+            if not force:
+                check_hash_conficts(latest_hash)
 
-        pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+            if top_hash == latest_hash:
+                # Record before displaying anything, as the publication path below does: the match
+                # is confirmed at this point, so a failing output stream must not lose it.
+                self._record_revision(name, latest_hash)
+                if print_info:
+                    print(
+                        f"Skipping since package with hash {latest_hash} already exists "
+                        "at the destination and dedupe parameter is true."
+                    )
+                return self
 
         def physical_key_is_temp_file(pk):
             if not pk.is_local():
@@ -1659,6 +1756,12 @@ class Package:
             check_hash_conficts(latest_hash)
 
         pkg._push_manifest(name, registry, top_hash)
+
+        self._record_revision(name, top_hash)
+        # The returned package continues this object's history, so a caller who keeps it can push on
+        # to further destinations exactly as the initiating object can. Copied, not shared: later
+        # pushes from either object must not silently widen what the other will accept.
+        pkg._parent_top_hashes = {pkg_name: set(hashes) for pkg_name, hashes in self._parent_top_hashes.items()}
 
         if print_info:
             shorthash = registry.shorten_top_hash(name, top_hash)

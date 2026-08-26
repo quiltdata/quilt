@@ -20,6 +20,12 @@ export const home = route(
   (params?: { q?: string }) => `/${mkSearch({ q: params?.q })}`,
 )
 
+// The volume list. It lives at its own path rather than at `/` because `/` is
+// the front door, which is a different page whenever the `front-door` preview
+// feature is on; with it off the two render the same thing. Link here -- not to
+// `home()` -- for anything that means "the list of buckets".
+export const buckets = route('/buckets', () => '/buckets')
+
 export const install = route('/install', () => '/install')
 
 // Auth
@@ -64,8 +70,79 @@ interface SearchOpts {
 export const search = route(
   '/search',
   // TODO: these params are outdated -- sync with actual search params
-  ({ q, buckets, p, mode, retry }: SearchOpts) =>
-    `/search${mkSearch({ q, buckets, p, mode, retry })}`,
+  // (`buckets` is aliased here only to keep the search param distinct from the
+  // `buckets` route above.)
+  ({ q, buckets: bucketsParam, p, mode, retry }: SearchOpts) =>
+    `/search${mkSearch({ q, buckets: bucketsParam, p, mode, retry })}`,
+)
+
+// Queries (workspace-global query consoles; the bucket is a parameter of the
+// console, never part of the mount point)
+export const queries = route('/queries')
+
+export type QueriesArgs = Parameters<typeof queries.url>
+
+export const queriesAthena = route(
+  '/queries/athena',
+  // `table` (together with the `bucket` hosting it) deep-links a Tabulator
+  // table to autofill the query editor.
+  ({ bucket, table }: { bucket?: string; table?: string } = {}) =>
+    `/queries/athena${mkSearch({ bucket, table })}`,
+)
+
+export type QueriesAthenaArgs = Parameters<typeof queriesAthena.url>
+
+export const queriesAthenaWorkgroup = route(
+  '/queries/athena/:workgroup',
+  (workgroup: string) => `/queries/athena/${workgroup}`,
+)
+
+export type QueriesAthenaWorkgroupArgs = Parameters<typeof queriesAthenaWorkgroup.url>
+
+export const queriesAthenaExecution = route(
+  '/queries/athena/:workgroup/:queryExecutionId',
+  (workgroup: string, queryExecutionId: string) =>
+    `/queries/athena/${workgroup}/${queryExecutionId}`,
+)
+
+export type QueriesAthenaExecutionArgs = Parameters<typeof queriesAthenaExecution.url>
+
+export const queriesEs = route('/queries/es')
+
+export type QueriesEsArgs = Parameters<typeof queriesEs.url>
+
+// Data products are defined in an enterprise catalog (DataZone / Unity /
+// Snowflake), not in Quilt, so the id is a Quilt-side synthetic composed from
+// the platform binding rather than a platform-native identifier.
+export const dataProducts = route('/data-products')
+
+export type DataProductsArgs = Parameters<typeof dataProducts.url>
+
+// NOT `encode` from utils/s3paths: that one splits on `/` and encodes each
+// segment separately, deliberately preserving slashes as path separators for S3
+// keys. Product ids embed the binding and contain slashes of their own
+// (`uc:metastore/catalog/schema`), which would spill into extra path segments
+// and stop this route matching at all. `encodeURIComponent` keeps the whole id
+// in one segment, so `decodeURIComponent` on the way out is its exact inverse.
+export const dataProduct = route(
+  '/data-products/:dataProductId',
+  (dataProductId: string) => `/data-products/${encodeURIComponent(dataProductId)}`,
+)
+
+export type DataProductArgs = Parameters<typeof dataProduct.url>
+
+// Sections are their own routes rather than local state, matching the in-bucket
+// and Quilt-owned-DP vocabulary: a tab is addressable, survives reload, and can
+// be linked to. Same `encodeURIComponent` reasoning as above.
+export const dataProductContents = route(
+  '/data-products/:dataProductId/contents',
+  (dataProductId: string) =>
+    `/data-products/${encodeURIComponent(dataProductId)}/contents`,
+)
+
+export const dataProductAccess = route(
+  '/data-products/:dataProductId/access',
+  (dataProductId: string) => `/data-products/${encodeURIComponent(dataProductId)}/access`,
 )
 
 // Immutable URI resolver
@@ -194,6 +271,9 @@ export const bucketPackageCompare = route(
 
 export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>
 
+// Legacy bucket-scoped query console routes — the console now lives at the
+// workspace-global `queries*` routes above; these paths are kept only so old
+// links redirect there (see App.jsx). Don't link to them.
 export const bucketQueries = route(
   '/b/:bucket/queries',
   (bucket: string) => `/b/${bucket}/queries`,
@@ -210,7 +290,6 @@ export type BucketESQueriesArgs = Parameters<typeof bucketESQueries.url>
 
 export const bucketAthena = route(
   '/b/:bucket/queries/athena',
-  // `table` deep-links a Tabulator table to autofill the query editor.
   (bucket: string, { table }: { table?: string } = {}) =>
     `/b/${bucket}/queries/athena${mkSearch({ table })}`,
 )

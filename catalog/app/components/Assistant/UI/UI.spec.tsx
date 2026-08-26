@@ -2,7 +2,7 @@ import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { WithAssistantUI } from './UI'
+import { WithAssistantUI, Trigger } from './UI'
 
 const useAssistantAPI = vi.fn()
 
@@ -33,24 +33,40 @@ function makeAPI() {
   }
 }
 
-describe('components/Assistant/UI', () => {
+describe('components/Assistant/UI Trigger', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
     inlined = false
   })
 
-  it('shows the Fab when no inline chat is active', () => {
+  it('shows the trigger button when no inline chat is active and assistant is not visible', () => {
     useAssistantAPI.mockReturnValue(makeAPI())
-    const { queryByRole } = render(<WithAssistantUI />)
+    const { queryByRole } = render(<Trigger />)
     expect(queryByRole('button')).toBeTruthy()
   })
 
-  it('hides the Fab while an inline chat is active', () => {
+  it('hides the trigger button while an inline chat is active', () => {
     inlined = true
     useAssistantAPI.mockReturnValue(makeAPI())
-    const { queryByRole } = render(<WithAssistantUI />)
+    const { queryByRole } = render(<Trigger />)
     expect(queryByRole('button')).toBeFalsy()
+  })
+
+  it('hides the trigger button when assistant is already visible', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    const { queryByRole } = render(<Trigger />)
+    expect(queryByRole('button')).toBeFalsy()
+  })
+})
+
+describe('components/Assistant/UI WithAssistantUI', () => {
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+    inlined = false
   })
 
   it('keeps the sidebar closed while an inline chat is active, even when visible', () => {
@@ -68,5 +84,11 @@ describe('components/Assistant/UI', () => {
     useAssistantAPI.mockReturnValue(api)
     const { baseElement } = render(<WithAssistantUI />)
     expect(baseElement.querySelector('.MuiDrawer-root')).toBeTruthy()
+  })
+
+  it('does not render a trigger button (trigger is now inline in the top bar)', () => {
+    useAssistantAPI.mockReturnValue(makeAPI())
+    const { queryByRole } = render(<WithAssistantUI />)
+    expect(queryByRole('button')).toBeFalsy()
   })
 })
