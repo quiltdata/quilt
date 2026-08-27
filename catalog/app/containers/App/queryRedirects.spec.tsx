@@ -90,9 +90,24 @@ describe('containers/App/queryRedirects', () => {
     )
   })
 
-  it('preserves other params alongside the bucket on an execution redirect', () => {
+  // An execution route shows the results of one query and populates the editor from
+  // that execution's own SQL. Forwarding `?table=` would fire TabulatorTables'
+  // autofill and overwrite it with a SELECT unrelated to the results on screen.
+  it('drops ?table= on an execution redirect, keeping the bucket scope', () => {
     expect(landingAt('/b/my-bucket/queries/athena/primary/exec-1?table=drugs')).toBe(
-      '/queries/athena/primary/exec-1?bucket=my-bucket&table=drugs',
+      '/queries/athena/primary/exec-1?bucket=my-bucket',
+    )
+  })
+
+  it('lets the path segment win over a stale ?bucket= in the search', () => {
+    expect(landingAt('/b/my-bucket/queries/athena/primary?bucket=other-bucket')).toBe(
+      '/queries/athena/primary?bucket=my-bucket',
+    )
+  })
+
+  it('lets the path segment win over a stale ?bucket= on the bare console too', () => {
+    expect(landingAt('/b/my-bucket/queries/athena?bucket=other-bucket')).toBe(
+      '/queries/athena?bucket=my-bucket',
     )
   })
 })

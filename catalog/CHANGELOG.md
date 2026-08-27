@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] A legacy `/b/<bucket>/queries/athena/<workgroup>` link keeps its bucket scope across the redirect to the workspace-global console, instead of arriving with no bucket selected — the bare-console redirect already promoted the bucket to `?bucket=`, its two workgroup/execution siblings did not, and both also dropped any other params (a `?table=` Tabulator deep link among them) ([#5234](https://github.com/quiltdata/quilt/pull/5234))
+- [Fixed] A legacy `/b/<bucket>/queries/athena/<workgroup>` or `.../<execution>` link keeps its bucket scope across the redirect to the workspace-global console, instead of arriving with no bucket selected. The bare-console redirect already promoted the bucket to `?bucket=`; its two siblings did not. The `?bucket=` and `?table=` params now belong to the `queriesAthena*` url builders rather than being assembled at each redirect, so the three routes cannot disagree about which params survive, and a bucket named in the path wins over a stale `?bucket=` in the query string. An execution route deliberately does not take `?table=`: its editor is populated from the execution's own SQL, which the Tabulator autofill would overwrite ([#5234](https://github.com/quiltdata/quilt/pull/5234))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
