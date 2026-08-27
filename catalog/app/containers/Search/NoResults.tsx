@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Empty from 'components/Empty'
@@ -53,6 +54,23 @@ export enum Refine {
   Search,
   New,
   Network,
+}
+
+// For fallbacks rendering above SearchUIModel.Provider, where the model's own
+// refine actions don't exist. Navigating to `base` is the reset: the bad state
+// is the location, above the boundary, so clearing the error alone re-throws.
+export function useErrorRefine(base: string) {
+  const history = RRDom.useHistory()
+  return React.useCallback(
+    (action: Refine) => {
+      if (action === Refine.Network) {
+        window.location.reload()
+        return
+      }
+      history.push(base)
+    },
+    [base, history],
+  )
 }
 
 interface EmptyWrapperProps {

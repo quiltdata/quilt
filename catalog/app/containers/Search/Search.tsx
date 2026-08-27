@@ -1,8 +1,12 @@
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
+import * as RRDom from 'react-router-dom'
+import * as Sentry from '@sentry/react'
 
 import Layout, { Container, useSearchInput } from 'components/Layout'
 import assertNever from 'utils/assertNever'
 import MetaTitle from 'utils/MetaTitle'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
@@ -78,11 +82,32 @@ function SearchLayout() {
   )
 }
 
-export default function Search() {
+// The provider parses the URL in its own render, so a filter param that won't
+// parse escapes every boundary below and unwinds to app.tsx.
+function SearchErrorFallback({ error }: FallbackProps) {
+  const { urls } = NamedRoutes.use()
+  const onRefine = NoResults.useErrorRefine(urls.search({}))
   return (
-    <SearchUIModel.Provider>
-      <AssistantContext />
-      <Layout pre={<SearchLayout />} />
-    </SearchUIModel.Provider>
+    <Layout>
+      <NoResults.Error onRefine={onRefine}>{error.message}</NoResults.Error>
+    </Layout>
+  )
+}
+
+const onError = (error: Error) => Sentry.captureException(error)
+
+export default function Search() {
+  const { search } = RRDom.useLocation()
+  return (
+    <ErrorBoundary
+      FallbackComponent={SearchErrorFallback}
+      onError={onError}
+      resetKeys={[search]}
+    >
+      <SearchUIModel.Provider>
+        <AssistantContext />
+        <Layout pre={<SearchLayout />} />
+      </SearchUIModel.Provider>
+    </ErrorBoundary>
   )
 }
