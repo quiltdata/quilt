@@ -45,10 +45,15 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     maxWidth: '100%',
   },
   contentArea: {
-    borderRadius: `${t.spacing(1)}px`,
+    borderRadius: t.shape.borderRadius,
     '$color_intense &': {
       background: BG.intense,
       color: M.fade(t.palette.common.white, 0.8),
+      // The light theme's divider is 12% black — invisible on this dark
+      // ground. Rendered-markdown table borders get a white-alpha stroke.
+      '& table, & th, & td': {
+        borderColor: M.fade(t.palette.common.white, 0.25),
+      },
     },
     '$color_normal &': {
       background: BG.normal,

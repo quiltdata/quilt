@@ -232,7 +232,7 @@ const useContainerStyles = M.makeStyles((t) => ({
       maxWidth: '100%',
       width: '100%',
 
-      'th, td': {
+      '& th, & td': {
         lineHeight: '1.5em',
         padding: '8px',
         textAlign: 'left',
