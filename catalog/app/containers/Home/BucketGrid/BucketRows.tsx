@@ -78,9 +78,8 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(0.5),
     marginLeft: t.spacing(2),
   },
-  // Mirrors BucketCard's chip vocabulary (focus ring on the hashed
-  // `Mui-focusVisible` hook; a matching chip washed in the Indicator amber
-  // rather than filled) so a tag reads the same in either view.
+  // Mirrors BucketCard's chip vocabulary -- outlined, focus ring on the hashed
+  // `Mui-focusVisible` hook -- so a tag reads the same in either view.
   tag: {
     '&.Mui-focusVisible': {
       outline: `2px solid ${t.palette.primary.main}`,
@@ -178,6 +177,7 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
               className={cx(classes.tag, { [classes.matching]: tagIsMatching(tg) })}
               label={tg}
               size="small"
+              variant="outlined"
               clickable
               color="default"
               onClick={handleTagClick(tg)}
