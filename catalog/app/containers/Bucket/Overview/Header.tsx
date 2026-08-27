@@ -149,7 +149,6 @@ const useStyles = M.makeStyles((t) => ({
     paddingLeft: t.spacing(2),
     paddingRight: t.spacing(2),
     paddingTop: t.spacing(4),
-    position: 'relative',
     [t.breakpoints.up('sm')]: {
       padding: t.spacing(4),
     },
@@ -180,9 +179,8 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
   const statsData = useData(requests.bucketStats, { req, s3, bucket })
   return (
     <M.Paper className={classes.root}>
-      {/* The bucket name and its admin-settings link live above the tabs
-          (containers/Bucket/Header), so this hero carries the description and
-          stats only — same split the v2 header already made. */}
+      {/* Do not re-add the bucket name or its admin-settings link here: both live
+          above the tabs (containers/Bucket/Header) so they show on every tab. */}
       <M.Box className={classes.top}>
         {!!description && <M.Typography variant="body1">{description}</M.Typography>}
         {/* The margin separates the stats from the description; with the name gone

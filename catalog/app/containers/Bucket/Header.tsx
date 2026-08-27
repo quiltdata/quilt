@@ -197,8 +197,10 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 0,
   },
   // A 63-char bucket name with no hyphen or dot has no break opportunity, so
-  // without this it overflows the card rather than wrapping.
+  // without this it overflows the card rather than wrapping. `minWidth: 0` is
+  // what lets the flex item shrink past min-content for the clip to happen.
   name: {
+    minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
