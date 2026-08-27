@@ -9,23 +9,25 @@ on:
 env:
   UV_LOCKED: 1
 jobs:
+  # Package context: https://nightly.quilttest.com/b/quilt-dev/packages/proj/260827-quilt3-acl
   changes:
     runs-on: ubuntu-latest
     outputs:
-      quilt3: ${{ steps.filter.outputs.quilt3 }}
+      quilt3: ${{ github.ref_type == 'tag' || steps.filter.outputs.quilt3 }}
       docs: ${{ steps.filter.outputs.docs }}
       rest: ${{ steps.filter.outputs.rest }}
       lambdas: ${{ steps.filter.outputs.lambdas }}
       py-shared: ${{ steps.filter.outputs.py-shared }}
     steps:
       - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590
         id: filter
         with:
           filters: |
             quilt3:
               - '.github/workflows/py-ci.yml'
               - 'api/python/**'
+              - 'ruff.toml'
             docs:
               - '.github/workflows/py-ci.yml'
               - 'api/python/**'
@@ -35,6 +37,7 @@ jobs:
             rest:
               - '.github/workflows/py-ci.yml'
               - 'catalog/**'
+              - 'gendocs/**'
               - 'lambdas/**'
               - 'py-shared/**'
               - 's3-proxy/**'
