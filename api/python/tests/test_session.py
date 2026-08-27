@@ -446,6 +446,32 @@ class TestRegistryUrlOverride(QuiltTestCase):
         with quilt3.session.use_registry_url('https://other.example.com'):
             assert BaseClient().url == 'https://other.example.com/graphql'
 
+    def test_sessions_are_scoped_to_registry_url(self):
+        def create_auth(timeout=None, registry_url=None):
+            return {'access_token': f'token-for-{registry_url}'}
+
+        quilt3.session.clear_session()
+        try:
+            with (
+                patch('quilt3.session._api_key', None),
+                patch('quilt3.session._create_auth', side_effect=create_auth) as mock_create_auth,
+            ):
+                with quilt3.session.use_registry_url('https://first.example.com'):
+                    first_session = quilt3.session.get_session()
+
+                with quilt3.session.use_registry_url('https://second.example.com'):
+                    second_session = quilt3.session.get_session()
+
+                with quilt3.session.use_registry_url('https://first.example.com'):
+                    assert quilt3.session.get_session() is first_session
+
+            assert first_session is not second_session
+            assert first_session.headers['Authorization'] == 'Bearer token-for-https://first.example.com'
+            assert second_session.headers['Authorization'] == 'Bearer token-for-https://second.example.com'
+            assert mock_create_auth.call_count == 2
+        finally:
+            quilt3.session.clear_session()
+
     def test_override_is_isolated_per_thread(self):
         import threading
 

@@ -134,10 +134,12 @@ def get_registry_url():
     return get_from_config('registryUrl')
 
 
-def _update_auth(refresh_token, timeout=None):
+def _update_auth(refresh_token, timeout=None, registry_url=None):
+    if registry_url is None:
+        registry_url = get_registry_url()
     try:
         response = requests.post(
-            "%s/api/token" % get_registry_url(),
+            "%s/api/token" % registry_url,
             timeout=timeout,
             data=dict(
                 refresh_token=refresh_token,
@@ -172,11 +174,11 @@ def _handle_response(resp, **kwargs):
             raise QuiltException("Unexpected failure: error %s" % resp.status_code)
 
 
-def _create_auth(timeout=None):
+def _create_auth(timeout=None, registry_url=None):
     """
     Reads the credentials, updates the access token if necessary, and returns it.
     """
-    url = get_registry_url()
+    url = registry_url if registry_url is not None else get_registry_url()
     contents = _load_auth()
     auth = contents.get(url)
 
@@ -184,7 +186,7 @@ def _create_auth(timeout=None):
         # If the access token expires within a minute, update it.
         if auth['expires_at'] < time.time() + 60:
             try:
-                auth = _update_auth(auth['refresh_token'], timeout)
+                auth = _update_auth(auth['refresh_token'], timeout, registry_url=url)
             except QuiltException as ex:
                 raise QuiltException("Failed to update the access token (%s). Run `quilt3 login` again." % ex)
             contents[url] = auth
@@ -219,37 +221,39 @@ def _create_session(auth):
     return session
 
 
-_session = None
+_sessions = {}
 _api_key = None
 
 
 def get_session(timeout=None):
     """
-    Creates a session or returns an existing session.
+    Creates a session or returns an existing session for the current registry.
 
     If an API key is set via login_with_api_key(), uses that for authentication.
     Otherwise, uses the interactive session with refresh token logic.
+
+    Sessions are cached separately by resolved registry URL so an authorization
+    header created for one registry is never reused for another registry.
     """
-    global _session
-    if _session is None:
+    registry_url = get_registry_url()
+    session = _sessions.get(registry_url)
+    if session is None:
         if _api_key is not None:
             # API key auth: no refresh logic, use key directly
-            _session = _create_session({'access_token': _api_key})
+            session = _create_session({'access_token': _api_key})
         else:
             # Interactive session: refresh token logic
-            auth = _create_auth(timeout)
-            _session = _create_session(auth)
+            auth = _create_auth(timeout, registry_url=registry_url)
+            session = _create_session(auth)
+        _sessions[registry_url] = session
 
-    assert _session is not None
-
-    return _session
+    return session
 
 
 def clear_session():
-    global _session
-    if _session is not None:
-        _session.close()
-        _session = None
+    for session in _sessions.values():
+        session.close()
+    _sessions.clear()
 
 
 def login_with_api_key(key: str):
