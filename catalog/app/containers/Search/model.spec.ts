@@ -317,8 +317,6 @@ describe('containers/Search/model', () => {
     })
   })
 
-  // A filter param comes off a URL anyone can hand-edit, so the JSON in it is
-  // not trustworthy input.
   describe('Predicates: malformed filter JSON', () => {
     const silenced = (f: () => void) => {
       const level = Log.getLevel()
@@ -354,8 +352,7 @@ describe('containers/Search/model', () => {
       )
     })
 
-    // The filter's URL param is its key, unprefixed, so these are the strings
-    // that actually reach JSON.parse from a real link.
+    // The filter's URL param is its key, unprefixed.
     it('reports the filter when parsing a whole search URL', () => {
       silenced(() => {
         expect(() => model.parseSearchParams('modified={')).toThrow(
@@ -370,8 +367,6 @@ describe('containers/Search/model', () => {
       })
     })
 
-    // The character offset in the original SyntaxError is meaningless without
-    // the string it indexes into, so the log has to carry that string.
     it('logs the value that failed to parse, not just the SyntaxError', () => {
       const level = Log.getLevel()
       Log.setLevel('error')

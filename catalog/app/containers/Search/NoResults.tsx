@@ -56,15 +56,9 @@ export enum Refine {
   Network,
 }
 
-// Shared by the error boundaries that wrap SearchUIModel.Provider (the search
-// page, a bucket's package list). Their fallbacks render *above* the model,
-// because the model is what threw, so the two exits this offers are the only
-// ones available: reload, or leave for a URL that parses.
-//
-// `base` is that clean URL. Navigating is the reset rather than
-// `resetErrorBoundary`, because the bad state lives in the location -- above
-// the boundary -- so clearing the error alone re-renders the same throw. Pair
-// this with `resetKeys` on the location's search string.
+// For fallbacks rendering above SearchUIModel.Provider, where the model's own
+// refine actions don't exist. Navigating to `base` is the reset: the bad state
+// is the location, above the boundary, so clearing the error alone re-throws.
 export function useErrorRefine(base: string) {
   const history = RRDom.useHistory()
   return React.useCallback(

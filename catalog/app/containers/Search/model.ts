@@ -342,11 +342,8 @@ function Predicate<Tag extends string, State, GQLType>(input: {
   }
 }
 
-// A filter's URL param is user-editable, so JSON.parse can throw on anything a
-// hand-edited or truncated link carries. The raw SyntaxError names a character
-// offset in a string the reader never sees, so the throw carries a message
-// naming the filter instead, and the console gets the offending value verbatim
-// alongside the original error -- the offset means nothing without it.
+// The SyntaxError names an offset into a string nobody printed, so the throw
+// names the filter and the log carries the value.
 function parseFilterJson(input: string, message: string) {
   try {
     return JSON.parse(input)

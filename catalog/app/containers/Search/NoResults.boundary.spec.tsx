@@ -9,8 +9,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 vi.mock('constants/config', () => ({ default: {}, registryUrl: '' }))
 
-// Skeletons only, and they drag in notebook CSS through the renderer tree.
-// Irrelevant to what this spec guards.
+// Unrelated to this spec, and they drag in notebook CSS.
 vi.mock('./List/Hit', () => ({
   PackageSkeleton: () => null,
   ObjectSkeleton: () => null,
@@ -19,11 +18,8 @@ vi.mock('./Table/Skeleton', () => ({ Table: () => null }))
 
 import * as NoResults from './NoResults'
 
-// What the search error boundaries in Search/Search.tsx and
-// Bucket/PackageList.tsx depend on: their fallback renders *outside*
-// SearchUIModel.Provider, because the Provider is what threw. A boundary does
-// not catch what its own fallback throws, so the moment this screen reads the
-// model the containment silently becomes a blank page again.
+// The search boundaries' fallbacks render outside SearchUIModel.Provider. If
+// this screen ever reads the model, containment silently becomes a blank page.
 const Boundary = ({ children }: React.PropsWithChildren<{}>) => (
   <ErrorBoundary
     FallbackComponent={({ error }: FallbackProps) => (

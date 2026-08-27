@@ -116,13 +116,8 @@ const useErrorFallbackStyles = M.makeStyles((t) => ({
   },
 }))
 
-// Same containment as the global search page: the model parses the URL in its
-// own render, so a filter param that won't parse escapes every boundary below
-// and takes the whole catalog down with it. See Search/Search.tsx.
-//
-// Deliberately not wrapped in `Search/Layout/Main` the way the loaded page is:
-// Main reads the search model, so it would throw here -- and a boundary does
-// not catch what its own fallback throws.
+// Not wrapped in Search/Layout/Main like the loaded page: Main reads the model,
+// and a boundary does not catch what its own fallback throws.
 function PackageListErrorFallback({ error }: FallbackProps) {
   const classes = useErrorFallbackStyles()
   const bucket = useBucketStrict()

@@ -82,12 +82,8 @@ function SearchLayout() {
   )
 }
 
-// The URL is parsed in `SearchUIModel.Provider`'s own render, so a filter param
-// that won't parse throws above every boundary search has -- all the way to
-// `Errors.ErrorBoundary` in app.tsx, which replaces the whole catalog with the
-// app-level error screen. The search UI is entirely reconstructable from the
-// URL, so that page is recoverable in place: keep the chrome and offer the two
-// exits that work.
+// The provider parses the URL in its own render, so a filter param that won't
+// parse escapes every boundary below and unwinds to app.tsx.
 function SearchErrorFallback({ error }: FallbackProps) {
   const { urls } = NamedRoutes.use()
   const onRefine = NoResults.useErrorRefine(urls.search({}))
