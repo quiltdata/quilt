@@ -9,6 +9,7 @@ import platform
 import stat
 import subprocess
 import sys
+import threading
 import time
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -222,10 +223,11 @@ def _create_session(auth):
 
 
 _sessions = {}
+_sessions_lock = threading.RLock()
 _api_key = None
 
 
-def get_session(timeout=None):
+def get_session(timeout=None, registry_url=None):
     """
     Creates a session or returns an existing session for the current registry.
 
@@ -234,26 +236,33 @@ def get_session(timeout=None):
 
     Sessions are cached separately by resolved registry URL so an authorization
     header created for one registry is never reused for another registry.
+
+    Args:
+        timeout: optional timeout for refreshing authentication.
+        registry_url: optional URL snapshot supplied by a caller that has
+            already resolved the registry for its operation.
     """
-    registry_url = get_registry_url()
-    session = _sessions.get(registry_url)
-    if session is None:
-        if _api_key is not None:
-            # API key auth: no refresh logic, use key directly
-            session = _create_session({'access_token': _api_key})
-        else:
-            # Interactive session: refresh token logic
-            auth = _create_auth(timeout, registry_url=registry_url)
-            session = _create_session(auth)
-        _sessions[registry_url] = session
+    registry_url = registry_url if registry_url is not None else get_registry_url()
+    with _sessions_lock:
+        session = _sessions.get(registry_url)
+        if session is None:
+            if _api_key is not None:
+                # API key auth: no refresh logic, use key directly
+                session = _create_session({'access_token': _api_key})
+            else:
+                # Interactive session: refresh token logic
+                auth = _create_auth(timeout, registry_url=registry_url)
+                session = _create_session(auth)
+            _sessions[registry_url] = session
 
     return session
 
 
 def clear_session():
-    for session in _sessions.values():
-        session.close()
-    _sessions.clear()
+    with _sessions_lock:
+        for session in _sessions.values():
+            session.close()
+        _sessions.clear()
 
 
 def login_with_api_key(key: str):
@@ -273,8 +282,9 @@ def login_with_api_key(key: str):
     if not key.startswith("qk_"):
         raise ValueError("API key must start with 'qk_' prefix")
     global _api_key
-    _api_key = key
-    clear_session()  # Force session recreation with new auth
+    with _sessions_lock:
+        _api_key = key
+        clear_session()  # Force session recreation with new auth
 
 
 def clear_api_key():
@@ -282,8 +292,9 @@ def clear_api_key():
     Clear the API key and fall back to interactive session (if available).
     """
     global _api_key
-    _api_key = None
-    clear_session()  # Force session recreation with interactive auth
+    with _sessions_lock:
+        _api_key = None
+        clear_session()  # Force session recreation with interactive auth
 
 
 def open_url(url):
@@ -315,7 +326,7 @@ def login():
             "\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
         )
 
-    login_url = "%s/login" % get_registry_url()
+    login_url = "%s/login" % registry_url
 
     print("Launching a web browser...")
     print("If that didn't work, please visit the following URL: %s" % login_url)
@@ -325,25 +336,30 @@ def login():
     print()
     refresh_token = getpass.getpass("Enter the code from the webpage: ")
 
-    login_with_token(refresh_token)
+    login_with_token(refresh_token, registry_url=registry_url)
 
 
-def login_with_token(refresh_token):
+def login_with_token(refresh_token, registry_url=None):
     """
     Authenticate using an existing token.
+
+    Args:
+        refresh_token: token to exchange for registry authentication.
+        registry_url: optional URL snapshot supplied by `login()`.
     """
+    url = registry_url if registry_url is not None else get_registry_url()
+
     # Get an access token and a new refresh token.
-    auth = _update_auth(refresh_token)
+    auth = _update_auth(refresh_token, registry_url=url)
 
-    url = get_registry_url()
-    contents = _load_auth()
-    contents[url] = auth
-    _save_auth(contents)
-
-    clear_session()
+    with _sessions_lock:
+        contents = _load_auth()
+        contents[url] = auth
+        _save_auth(contents)
+        clear_session()
 
     # use registry-provided credentials
-    _refresh_credentials()
+    _refresh_credentials(registry_url=url)
 
 
 def logout():
@@ -352,19 +368,21 @@ def logout():
     """
     global _api_key
     # TODO revoke refresh token (without logging out of web sessions)
-    if _load_auth() or _load_credentials() or _api_key is not None:
-        _save_auth({})
-        _save_credentials({})
-        _api_key = None
-    else:
-        print("Already logged out.")
+    with _sessions_lock:
+        if _load_auth() or _load_credentials() or _api_key is not None:
+            _save_auth({})
+            _save_credentials({})
+            _api_key = None
+        else:
+            print("Already logged out.")
 
-    clear_session()
+        clear_session()
 
 
-def _refresh_credentials():
-    session = get_session()
-    creds = session.get("{url}/api/auth/get_credentials".format(url=get_registry_url())).json()
+def _refresh_credentials(registry_url=None):
+    url = registry_url if registry_url is not None else get_registry_url()
+    session = get_session(registry_url=url)
+    creds = session.get("{url}/api/auth/get_credentials".format(url=url)).json()
     result = {
         'access_key': creds['AccessKeyId'],
         'secret_key': creds['SecretAccessKey'],

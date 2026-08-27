@@ -29,7 +29,7 @@ class TestSession(QuiltTestCase):
         url = quilt3.session.get_registry_url()
 
         mock_open_url.assert_called_with(f'{url}/login')
-        mock_login_with_token.assert_called_with('123456')
+        mock_login_with_token.assert_called_with('123456', registry_url=url)
 
     @patch('quilt3.session._save_auth')
     @patch('quilt3.session._save_credentials')
@@ -446,6 +446,87 @@ class TestRegistryUrlOverride(QuiltTestCase):
         with quilt3.session.use_registry_url('https://other.example.com'):
             assert BaseClient().url == 'https://other.example.com/graphql'
 
+    def test_graphql_client_uses_single_registry_snapshot(self):
+        from quilt3._graphql_client.base_client import BaseClient
+
+        registry_url = 'https://first.example.com'
+        resolver_results = iter([registry_url])
+        token = quilt3.session.set_registry_url_resolver(lambda: next(resolver_results))
+        try:
+            with patch('quilt3.session.get_session') as mock_get_session:
+                client = BaseClient()
+
+            assert client.url == f'{registry_url}/graphql'
+            mock_get_session.assert_called_once_with(registry_url=registry_url)
+        finally:
+            quilt3.session.reset_registry_url_resolver(token)
+
+    def test_search_uses_single_registry_snapshot(self):
+        from quilt3.search_util import search_api
+
+        registry_url = 'https://first.example.com'
+        resolver_results = iter([registry_url])
+        token = quilt3.session.set_registry_url_resolver(lambda: next(resolver_results))
+        try:
+            with patch('quilt3.session.get_session') as mock_get_session:
+                mock_get_session.return_value.get.return_value.json.return_value = {'hits': []}
+                assert search_api('query', '_all') == {'hits': []}
+
+            mock_get_session.assert_called_once_with(registry_url=registry_url)
+            mock_get_session.return_value.get.assert_called_once_with(
+                f'{registry_url}/api/search',
+                params={'index': '_all', 'action': 'search', 'query': 'query', 'size': 10},
+            )
+        finally:
+            quilt3.session.reset_registry_url_resolver(token)
+
+    def test_login_with_token_uses_single_registry_snapshot(self):
+        registry_url = 'https://first.example.com'
+        auth = {
+            'access_token': 'access-token',
+            'refresh_token': 'refresh-token',
+            'expires_at': float('inf'),
+        }
+        resolver_results = iter([registry_url])
+        token = quilt3.session.set_registry_url_resolver(lambda: next(resolver_results))
+        try:
+            with (
+                patch('quilt3.session._update_auth', return_value=auth) as mock_update_auth,
+                patch('quilt3.session._load_auth', return_value={}),
+                patch('quilt3.session._save_auth') as mock_save_auth,
+                patch('quilt3.session._refresh_credentials') as mock_refresh_credentials,
+            ):
+                quilt3.session.login_with_token('initial-refresh-token')
+
+            mock_update_auth.assert_called_once_with('initial-refresh-token', registry_url=registry_url)
+            mock_save_auth.assert_called_once_with({registry_url: auth})
+            mock_refresh_credentials.assert_called_once_with(registry_url=registry_url)
+        finally:
+            quilt3.session.reset_registry_url_resolver(token)
+
+    def test_refresh_credentials_uses_single_registry_snapshot(self):
+        registry_url = 'https://first.example.com'
+        credentials = {
+            'AccessKeyId': 'access-key',
+            'SecretAccessKey': 'secret-key',
+            'SessionToken': 'session-token',
+            'Expiration': 'expiration',
+        }
+        resolver_results = iter([registry_url])
+        token = quilt3.session.set_registry_url_resolver(lambda: next(resolver_results))
+        try:
+            with (
+                patch('quilt3.session.get_session') as mock_get_session,
+                patch('quilt3.session._save_credentials'),
+            ):
+                mock_get_session.return_value.get.return_value.json.return_value = credentials
+                quilt3.session._refresh_credentials()
+
+            mock_get_session.assert_called_once_with(registry_url=registry_url)
+            mock_get_session.return_value.get.assert_called_once_with(f'{registry_url}/api/auth/get_credentials')
+        finally:
+            quilt3.session.reset_registry_url_resolver(token)
+
     def test_sessions_are_scoped_to_registry_url(self):
         def create_auth(timeout=None, registry_url=None):
             return {'access_token': f'token-for-{registry_url}'}
@@ -499,6 +580,37 @@ class TestRegistryUrlOverride(QuiltTestCase):
             assert session.headers['Authorization'] == 'Bearer refreshed-token'
             mock_update_auth.assert_called_once_with('refresh-token', None, registry_url=registry_url)
             mock_save_auth.assert_called_once_with({registry_url: refreshed_auth})
+        finally:
+            quilt3.session.clear_session()
+
+    def test_session_creation_is_atomic_per_registry(self):
+        import concurrent.futures
+        import threading
+        import time
+
+        registry_url = 'https://other.example.com'
+        start = threading.Barrier(2)
+
+        def create_auth(timeout=None, registry_url=None):
+            time.sleep(0.05)
+            return {'access_token': f'token-for-{registry_url}'}
+
+        def get_session():
+            with quilt3.session.use_registry_url(registry_url):
+                start.wait()
+                return quilt3.session.get_session()
+
+        quilt3.session.clear_session()
+        try:
+            with (
+                patch('quilt3.session._api_key', None),
+                patch('quilt3.session._create_auth', side_effect=create_auth) as mock_create_auth,
+                concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor,
+            ):
+                sessions = list(executor.map(lambda _: get_session(), range(2)))
+
+            assert sessions[0] is sessions[1]
+            assert mock_create_auth.call_count == 1
         finally:
             quilt3.session.clear_session()
 
