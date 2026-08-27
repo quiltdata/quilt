@@ -73,8 +73,6 @@ describe('containers/Search/Table/CellValue', () => {
     expect(container.textContent).toBe('a real commit message')
   })
 
-  // The registry serializes a package with no commit message as the string
-  // 'None', which must read as absent rather than as that literal text.
   it('renders a "None" commit message as no value', () => {
     const { container } = renderComment('None')
 
