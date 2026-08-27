@@ -7,7 +7,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import Header from './Header'
+import Header, { BucketTitle } from './Header'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -180,5 +180,42 @@ describe('containers/Bucket/Header', () => {
   it('renders the Create package button', () => {
     const { getByText } = renderHeader()
     expect(getByText('Create package')).toBeTruthy()
+  })
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderHeader()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+})
+
+// BucketTitle is what a stack without the `beta` setting renders — the bucket name is
+// wayfinding, so it must not depend on the stats row or pay for its queries.
+describe('containers/Bucket/Header BucketTitle', () => {
+  afterEach(cleanup)
+
+  function renderTitle() {
+    return render(
+      <MemoryRouter>
+        <NamedRoutes.Provider routes={routes}>
+          <BucketTitle bucket="test-bucket" />
+        </NamedRoutes.Provider>
+      </MemoryRouter>,
+    )
+  }
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderTitle()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+
+  it('renders no stats and issues no stats queries', () => {
+    statsResult.mockClear()
+    useTabulatorTables.mockClear()
+    const { queryByText } = renderTitle()
+    expect(queryByText(/objects?$/)).toBeNull()
+    expect(queryByText(/packages?$/)).toBeNull()
+    expect(queryByText('Create package')).toBeNull()
+    expect(statsResult).not.toHaveBeenCalled()
+    expect(useTabulatorTables).not.toHaveBeenCalled()
   })
 })

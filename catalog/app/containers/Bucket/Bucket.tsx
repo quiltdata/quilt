@@ -15,7 +15,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import * as AssistantContext from './AssistantContext'
-import Header from './Header'
+import Header, { BucketTitle } from './Header'
 import type { RouteMap } from './Routes'
 import * as Selection from './Selection'
 import { displayError } from './errors'
@@ -69,14 +69,16 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
       pre={
         <Container className={classes.content}>
           <M.Paper className={classes.headerCard}>
-            {settings?.beta && (
-              <>
-                <div className={classes.headerTop}>
-                  <Header bucket={bucket} />
-                </div>
-                <M.Divider />
-              </>
-            )}
+            {/* The name is wayfinding and shows on every stack; the stats row and
+                its queries stay behind `beta`. */}
+            <div className={classes.headerTop}>
+              {settings?.beta ? (
+                <Header bucket={bucket} />
+              ) : (
+                <BucketTitle bucket={bucket} />
+              )}
+            </div>
+            <M.Divider />
             <div className={classes.tabsRow}>
               <BucketNav.Tabs bucket={bucket} />
             </div>

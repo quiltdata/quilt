@@ -201,6 +201,31 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface BucketTitleProps {
+  bucket: string
+}
+
+// Which bucket you are looking at — wayfinding, so it renders on every stack.
+// Kept free of `useStats`/`useTabulatorTables` so it costs no queries: the stats
+// row it sits next to is still behind the `beta` setting.
+export function BucketTitle({ bucket }: BucketTitleProps) {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const isAdmin = redux.useSelector(authSelectors.isAdmin)
+  return (
+    <div className={classes.title}>
+      <M.Typography variant="h5">{bucket}</M.Typography>
+      {isAdmin && (
+        <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
+          <M.IconButton size="small" color="inherit">
+            <M.Icon>settings</M.Icon>
+          </M.IconButton>
+        </RRDom.Link>
+      )}
+    </div>
+  )
+}
+
 interface HeaderProps {
   bucket: string
 }
@@ -209,21 +234,10 @@ interface HeaderProps {
 // bucket tabs, so it stays visible across all tabs (not just Overview).
 export default function Header({ bucket }: HeaderProps) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
-  const isAdmin = redux.useSelector(authSelectors.isAdmin)
   const stats = useStats(bucket)
   return (
     <div className={classes.root}>
-      <div className={classes.title}>
-        <M.Typography variant="h5">{bucket}</M.Typography>
-        {isAdmin && (
-          <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-            <M.IconButton size="small" color="inherit">
-              <M.Icon>settings</M.Icon>
-            </M.IconButton>
-          </RRDom.Link>
-        )}
-      </div>
+      <BucketTitle bucket={bucket} />
       <Stats bucket={bucket} stats={stats} />
     </div>
   )
