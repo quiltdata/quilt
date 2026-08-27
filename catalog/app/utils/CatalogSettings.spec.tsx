@@ -49,6 +49,7 @@ vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
 
 import type { CatalogSettings } from './CatalogSettings'
 import {
+  isBetaEnabled,
   SettingsConflictError,
   useUploadFile,
   useWriteSettings,
@@ -288,6 +289,39 @@ describe('utils/CatalogSettings', () => {
         await result.current(makeFile('my.company.logo.gif', 'image/png'))
       })
       expect(putObjectMock.mock.calls[0][0].Key).toBe('catalog/logo.png')
+    })
+  })
+
+  // The settings document is `JSON.parse`d straight to a cast with no schema, so
+  // this reader is the only thing standing between a hand-edited value and the
+  // surfaces it gates. Absent means ON; anything present that is not literally
+  // `true` is read as someone opting out.
+  describe('isBetaEnabled', () => {
+    it('is on when the flag is absent', () => {
+      expect(isBetaEnabled({})).toBe(true)
+    })
+
+    it('is on when there is no settings document', () => {
+      expect(isBetaEnabled(null)).toBe(true)
+    })
+
+    it('is on for a literal true', () => {
+      expect(isBetaEnabled({ beta: true })).toBe(true)
+    })
+
+    it('is off for a literal false', () => {
+      expect(isBetaEnabled({ beta: false })).toBe(false)
+    })
+
+    // A hand-edited opt-out must not read as on just because it is not `false`.
+    it.each([
+      ['the string "false"', 'false'],
+      ['the string "true"', 'true'],
+      ['zero', 0],
+      ['null', null],
+      ['an empty string', ''],
+    ])('is off for %s', (_label, value) => {
+      expect(isBetaEnabled({ beta: value } as unknown as CatalogSettings)).toBe(false)
     })
   })
 })

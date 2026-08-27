@@ -238,14 +238,21 @@ export { useCatalogSettings as use }
 /**
  * Whether the global beta switch is on, given an already-loaded document.
  *
- * Only a stored literal `false` opts out. `null` settings — LOCAL mode, no
- * settings file, or an `AccessDenied` on the service bucket — read as ON, which
- * is the opposite of the preview-feature registry's rule in `utils/features`:
- * a preview nobody asked for stays off, whereas these surfaces ship by default
- * and a catalog has to ask for the old ones.
+ * Absent means ON; a present key must be a literal `true` to stay on. The
+ * asymmetry is the point: settings are `JSON.parse`d straight to a cast with no
+ * schema, so a hand-edited `"false"` or `0` under this key is someone trying to
+ * opt out, and anything but `true` therefore lands on the legacy surfaces
+ * rather than overriding their intent. Same `=== true` discipline as
+ * `utils/features`, with the default inverted — a preview nobody asked for
+ * stays off, whereas these surfaces ship unless a catalog asks otherwise.
+ *
+ * Known gap: `fetchSettings` maps `AccessDenied` to `null` alongside a genuinely
+ * absent file, so a catalog that stored `beta: false` still reads as ON for a
+ * principal that cannot read the settings object. Closing that needs the fetch
+ * to distinguish the two, which is more than a default flip.
  */
 export function isBetaEnabled(settings: CatalogSettings | null): boolean {
-  return settings?.beta !== false
+  return settings?.beta === undefined ? true : settings.beta === true
 }
 
 export function useBetaEnabled(): boolean {

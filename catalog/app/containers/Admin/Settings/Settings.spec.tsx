@@ -14,7 +14,14 @@ const writeSettings = vi.fn<
 
 // Declared inside the factory: `vi.mock` is hoisted above any top-level binding
 // this file could otherwise reference.
-vi.mock('utils/CatalogSettings', () => {
+// Declared inside the factory: `vi.mock` is hoisted above any top-level binding
+// this file could otherwise reference. `isBetaEnabled` delegates to the real
+// implementation rather than restating the default rule -- otherwise these tests
+// assert the mock's opinion of the default, not the module's.
+vi.mock('utils/CatalogSettings', async () => {
+  const actual = await vi.importActual<typeof import('utils/CatalogSettings')>(
+    'utils/CatalogSettings',
+  )
   class SettingsConflictError extends Error {
     constructor() {
       super('Catalog settings were changed by someone else.')
@@ -24,9 +31,7 @@ vi.mock('utils/CatalogSettings', () => {
   return {
     use: () => settings,
     useWriteSettings: () => writeSettings,
-    // Mirrors the real reader: only a stored literal `false` opts out, so an
-    // unset flag reads as on.
-    isBetaEnabled: (s: { beta?: boolean } | null) => s?.beta !== false,
+    isBetaEnabled: actual.isBetaEnabled,
     SettingsConflictError,
   }
 })
@@ -116,6 +121,21 @@ describe('containers/Admin/Settings', () => {
 
     it('reports the stored value', () => {
       settings = { beta: true }
+      const { container } = renderSwitch()
+      expect(checkbox(container).checked).toBe(true)
+    })
+
+    // The switch is the opt-out the release notes point at, so it has to agree
+    // with what the gated surfaces do. These pin the default: unset reads ON,
+    // matching `isBetaEnabled`, rather than showing "off" while the surfaces render.
+    it('reports ON when the flag is unset', () => {
+      settings = {}
+      const { container } = renderSwitch()
+      expect(checkbox(container).checked).toBe(true)
+    })
+
+    it('reports ON when there is no settings document at all', () => {
+      settings = null
       const { container } = renderSwitch()
       expect(checkbox(container).checked).toBe(true)
     })
