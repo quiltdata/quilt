@@ -42,6 +42,8 @@ export default defineConfig({
 
   resolve: {
     alias: {
+      // webpack resolves these via `modules: ['app', ...]`; vitest needs them spelled out
+      assets: path.resolve(__dirname, './app/assets'),
       utils: path.resolve(__dirname, './app/utils'),
       components: path.resolve(__dirname, './app/components'),
       containers: path.resolve(__dirname, './app/containers'),

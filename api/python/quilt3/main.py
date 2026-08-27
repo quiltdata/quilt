@@ -208,7 +208,7 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, agent_context=False):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
@@ -217,8 +217,7 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     except FileNotFoundError:
         pkg = Package()
 
-    pkg.set_dir('.', dir)
-    pkg.set_meta(meta, agent_context=agent_context)
+    pkg.set_dir('.', dir, meta=meta)
     pkg.push(
         name,
         registry=registry,
@@ -467,18 +466,6 @@ def create_parser():
         type=parse_arg_json,
     )
     optional_args.add_argument(
-        "--agent-context",
-        action="store_true",
-        help="""
-            Experimental: record Quilt-observed commit context (STS
-            principal, authentication path, client version, UTC timestamp)
-            at agent_context.quilt in package metadata, before validation and
-            top-hash calculation. The embedded timestamp gives every push a
-            new top hash, so --dedupe no longer skips, and any workflow
-            metadata schema must allow the agent_context key.
-            """,
-    )
-    optional_args.add_argument(
         "--workflow",
         help="""
             Workflow ID or empty string to skip workflow validation.
@@ -511,9 +498,8 @@ def create_parser():
 
 
 def main(args=None):
-    argv = sys.argv[1:] if args is None else list(args)
     parser = create_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(args)
 
     kwargs = vars(args)
     func = kwargs.pop('func')
