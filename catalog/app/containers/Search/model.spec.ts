@@ -354,6 +354,22 @@ describe('containers/Search/model', () => {
       )
     })
 
+    // The filter's URL param is its key, unprefixed, so these are the strings
+    // that actually reach JSON.parse from a real link.
+    it('reports the filter when parsing a whole search URL', () => {
+      silenced(() => {
+        expect(() => model.parseSearchParams('modified={')).toThrow(
+          'Invalid date range in the search URL',
+        )
+        expect(() => model.parseSearchParams('size={oops}')).toThrow(
+          'Invalid number range in the search URL',
+        )
+        expect(() => model.parseSearchParams('workflow="a",,')).toThrow(
+          'Invalid keyword list in the search URL',
+        )
+      })
+    })
+
     it('leaves well-formed filter params parsing as before', () => {
       expect(
         model.Predicates.Datetime.fromString('{"gte":"2020-01-02T00:00:00.000Z"}'),
