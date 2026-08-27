@@ -527,7 +527,6 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     left: 0,
     opacity: 1,
     position: 'absolute',
-    transition: 'opacity 0.2s',
     width: '100%',
     zIndex: 1,
 

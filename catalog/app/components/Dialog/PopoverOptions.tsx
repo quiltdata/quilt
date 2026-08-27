@@ -27,6 +27,16 @@ const useTabStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.secondary.main,
     },
   },
+  // JSS resolves $keyframe refs per sheet, so these must live in the same
+  // makeStyles call as the $activate reference above.
+  '@keyframes activate': {
+    '0%': {
+      transform: 'scaleX(0.5)',
+    },
+    '100%': {
+      transform: 'scaleX(1)',
+    },
+  },
 }))
 
 interface TabProps {
@@ -98,17 +108,11 @@ function TabPanel({ children, className }: TabPanelProps) {
 const useStyles = M.makeStyles(() => ({
   // Tab widths differ (via the per-tab className), but a container width
   // can't animate off the main thread -- the switch relies on the panel's
-  // opacity fade instead of a width transition.
+  // opacity fade instead of a width transition (the panel is keyed so the
+  // fade replays on every switch). The clip guards the popover edge while
+  // the container snaps between per-tab widths.
   root: {
     overflow: 'hidden',
-  },
-  '@keyframes activate': {
-    '0%': {
-      transform: 'scaleX(0.5)',
-    },
-    '100%': {
-      transform: 'scaleX(1)',
-    },
   },
 }))
 
@@ -141,7 +145,7 @@ export function Tabs({ tabs }: TabsProps) {
           ))}
         </TabsContainer>
       )}
-      <TabPanel>{activeTab.panel}</TabPanel>
+      <TabPanel key={activeIndex}>{activeTab.panel}</TabPanel>
     </div>
   )
 }

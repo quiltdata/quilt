@@ -12,7 +12,7 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: t.palette.divider,
     height: t.spacing(0.5),
     position: 'relative',
-    transition: '.3s ease background-color',
+    transition: t.transitions.create('background-color'),
     '&:after': {
       bottom: 0,
       content: '""',
@@ -22,11 +22,14 @@ const useStyles = M.makeStyles((t) => ({
       top: 0,
       transform: 'scaleX(0)',
       transformOrigin: 'left',
-      transition: '.3s ease background-color, .3s ease transform',
+      transition: t.transitions.create(['background-color', 'transform']),
     },
+    // Keep the color cross-fade (in sync with the track's own) and drop only
+    // the movement — otherwise the fill snaps while the track still fades and
+    // the two halves of the meter disagree mid-transition.
     '@media (prefers-reduced-motion: reduce)': {
       '&:after': {
-        transition: 'none',
+        transition: t.transitions.create('background-color'),
       },
     },
     '&$tooGuessable': {
