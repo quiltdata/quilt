@@ -90,8 +90,9 @@ In addition to the columns defined in the schema, Tabulator will add:
 ### Using Athena to Access Tabulator
 
 The primary way of accessing Tabulator is using the Quilt stack to query those
-tables. This can be done by users via the per-bucket "Queries" tab in the Quilt
-Catalog, or programmatically via `quilt3`. See "Usage" below for more details.
+tables. This can be done by users via the Queries page in the Quilt Catalog
+(**Queries** in the left sidebar), or programmatically via `quilt3`. See "Usage"
+below for more details.
 
 As of Quilt Platform version 1.57, admins can enable [open query](#open-query)
 (below) to allow external users to access Tabulator tables directly from the AWS
@@ -143,8 +144,9 @@ returns an error. As of Quilt Platform version 1.58:
 
 ## Usage
 
-Once the configuration is set, users can query the tables using the Athena tab
-from the Quilt Catalog. Note that because Tabulator runs with elevated
+Once the configuration is set, users can query the tables using the Athena
+console on the Quilt Catalog's [Queries page](../Catalog/Query.md), which is
+Athena-only by default. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console by default
 (unless [open query](#open-query) is enabled).
 
@@ -181,7 +183,7 @@ JOIN "<IcebergDatabase>"."udp-spec_package_manifest" m
 
 ### From Outside the Quilt Catalog
 
-To call Tabulator from outside the Queries tab, you must use `quilt3` to
+To call Tabulator from outside the Queries page, you must use `quilt3` to
 authenticate against the stack using `config()` and `login()`, which opens a web
 page from which you must paste in the appropriate access token. Use
 `get_boto3_session()` to get a session with the same permissions as your Quilt

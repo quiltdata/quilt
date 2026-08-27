@@ -29,7 +29,12 @@ queries:
 ```
 
 The Quilt catalog displays your saved queries in a drop-down for your users to
-select, edit, and execute.
+select, edit, and execute. That drop-down lives on the legacy [ElasticSearch
+query console](../Catalog/Search.md#elasticsearch-query-console-legacy), which
+is no longer enabled by default: an administrator must turn on the
+**ElasticSearch query console** toggle under **Admin > Settings > Preview
+features**, and the user must pick this bucket in the console's **Bucket (index
+scope)** selector before its saved queries load.
 
 ## Managing Elasticsearch
 

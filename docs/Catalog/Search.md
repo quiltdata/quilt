@@ -29,7 +29,9 @@ indexing for the following file extensions:
 
 ### Search page
 
-The search page in the catalog, accessible from the search button in the top menu bar, provides a convenient
+The search page in the catalog, reachable from **Search** in the left sidebar
+or by submitting a query in the always-on search bar at the top of every page
+(`/` or Cmd/Ctrl+K focuses it), provides a convenient
 way for searching objects and packages in an Amazon S3
 bucket.
 
@@ -109,14 +111,27 @@ match the search query.
 | `?` | Exactly one character | `ext:React.?sx` |
 | `//` | Regular expression (slows performance) | `content:/lmnb[12]/` |
 
-### ELASTICSEARCH tab
+### ElasticSearch query console (legacy)
 
-When you click into a specific bucket, you can access the Elasticsearch tab to
-run more complex queries. The Elasticsearch tab provides a more powerful search
-interface than the search bar, allowing you to specify the Elasticsearch index
-and query parameters.
+The ElasticSearch query console exposes the raw Elasticsearch Search API,
+letting you specify the Elasticsearch index and query parameters directly
+rather than going through the search page above.
 
-![catalog-es-queries-default](../imgs/catalog-es-queries-default.png)
+**The console is no longer enabled by default.** It is retained for existing
+workflows: an administrator can keep it available by turning on the
+**ElasticSearch query console** toggle under **Admin > Settings > Preview
+features**. With that toggle off, the [Queries](Query.md) page is Athena-only
+and `/queries/es` redirects to the Athena console. For new work, prefer the
+search page above or Athena on the [Queries](Query.md) page.
+
+Once enabled, the console appears as an **ElasticSearch** tab on the
+[Queries](Query.md) page. It offers a **Bucket (index scope)** selector — a
+single bucket, or *All readable indexes* — and a **Select query** drop-down
+listing the [saved
+queries](../walkthrough/working-with-elasticsearch.md#configuring-saved-queries)
+configured for the selected bucket.
+
+![ElasticSearch query console](../imgs/catalog-es-queries-default.png)
 
 Quilt Elasticsearch queries support the following keys:
 

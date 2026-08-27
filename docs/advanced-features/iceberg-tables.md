@@ -42,11 +42,11 @@ have stack-wide access by design.
 > other things) breaks. Leave the parameter off only on accounts that do not
 > enforce Lake Formation.
 
-## Finding the tables in the Queries tab
+## Finding the tables on the Queries page
 
 As of Quilt Platform 1.71.0, managed users can select the Iceberg package-index
-database directly from the **Database** dropdown in the catalog's **Queries**
-tab, instead of typing its fully-qualified name.
+database directly from the **Database** dropdown on the catalog's **Queries**
+page, instead of typing its fully-qualified name.
 
 ## Example: Get entries and metadata for the latest version of a package
 
@@ -94,6 +94,6 @@ WHERE tag_name = 'latest'
 
 ## See also
 
-- [Query](../Catalog/Query.md): Use the Catalog's Queries tab
+- [Query](../Catalog/Query.md): Use the Catalog's Queries page
 - [Athena](athena.md): Query package manifests using AWS Athena
 - [Tabulator](tabulator.md): Query tabular data within packages
