@@ -30,6 +30,8 @@ vi.mock('@finos/perspective', () => ({
 
 vi.mock('utils/perspective-pollution', () => ({ themes: ['material'] }))
 
+import log from 'utils/Logging'
+
 import * as perspective from './perspective'
 
 const size = vi.fn(async () => 2)
@@ -76,9 +78,11 @@ const settle = () => waitFor(() => expect(true).toBe(true))
 
 describe('utils/perspective', () => {
   let consoleError: ReturnType<typeof vi.spyOn>
+  let logError: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    logError = vi.spyOn(log, 'error').mockImplementation(() => {})
     tableCalls.length = 0
     restore.mockReset()
     restore.mockImplementation(async () => {})
@@ -94,6 +98,7 @@ describe('utils/perspective', () => {
   afterEach(() => {
     cleanup()
     consoleError.mockRestore()
+    logError.mockRestore()
   })
 
   it('loads the table', async () => {
@@ -119,6 +124,9 @@ describe('utils/perspective', () => {
 
     await waitFor(() => expect(getByTestId('root').textContent).toBe('loaded'))
     expect(queryByTestId('fallback')).toBeNull()
+    expect(logError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Unkown plugin 'No Such Plugin'" }),
+    )
   })
 
   it('surfaces a rejected size()', async () => {
