@@ -1,5 +1,8 @@
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import * as RR from 'react-router-dom'
+import * as M from '@material-ui/core'
+import * as Sentry from '@sentry/react'
 
 import { useSearchInput } from 'components/Layout'
 import * as SearchUIModel from 'containers/Search/model'
@@ -9,7 +12,7 @@ import assertNever from 'utils/assertNever'
 
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import Main from 'containers/Search/Layout/Main'
-import { Refine } from 'containers/Search/NoResults'
+import { Error as SearchErrorScreen, Refine } from 'containers/Search/NoResults'
 import ListResults from 'containers/Search/List'
 import TableResults from 'containers/Search/Table'
 
@@ -103,8 +106,49 @@ function PackageList({ bucket }: PackageListProps) {
   )
 }
 
+const useErrorFallbackStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(3, 0),
+  },
+}))
+
+// Same containment as the global search page: the model parses the URL in its
+// own render, so a filter param that won't parse escapes every boundary below
+// and takes the whole catalog down with it. See Search/Search.tsx.
+//
+// Deliberately not wrapped in `Search/Layout/Main` the way the loaded page is:
+// Main reads the search model, so it would throw here -- and a boundary does
+// not catch what its own fallback throws.
+function PackageListErrorFallback({ error }: FallbackProps) {
+  const classes = useErrorFallbackStyles()
+  const bucket = useBucketStrict()
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const history = RR.useHistory()
+  // The bad state lives in the location, i.e. *above* this boundary, so
+  // `resetErrorBoundary` would re-render the same throw. Navigating is the
+  // reset -- `resetKeys` below clears the boundary when the URL changes.
+  const handleRefine = React.useCallback(
+    (action: Refine) => {
+      if (action === Refine.Network) {
+        window.location.reload()
+        return
+      }
+      history.push(urls.bucketPackageList(bucket))
+    },
+    [bucket, history, urls],
+  )
+  return (
+    <SearchErrorScreen className={classes.root} onRefine={handleRefine}>
+      {error.message}
+    </SearchErrorScreen>
+  )
+}
+
+const onError = (error: Error) => Sentry.captureException(error)
+
 export default function PackageListWrapper() {
   const bucket = useBucketStrict()
+  const { search } = RR.useLocation()
   const { urls } = NamedRoutes.use<RouteMap>()
   const defaults = React.useMemo(
     () => ({
@@ -115,8 +159,14 @@ export default function PackageListWrapper() {
     [bucket],
   )
   return (
-    <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
-      <PackageList bucket={bucket} />
-    </SearchUIModel.Provider>
+    <ErrorBoundary
+      FallbackComponent={PackageListErrorFallback}
+      onError={onError}
+      resetKeys={[search]}
+    >
+      <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
+        <PackageList bucket={bucket} />
+      </SearchUIModel.Provider>
+    </ErrorBoundary>
   )
 }

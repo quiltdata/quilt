@@ -1,8 +1,12 @@
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
+import * as RRDom from 'react-router-dom'
+import * as Sentry from '@sentry/react'
 
 import Layout, { Container, useSearchInput } from 'components/Layout'
 import assertNever from 'utils/assertNever'
 import MetaTitle from 'utils/MetaTitle'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
@@ -78,11 +82,49 @@ function SearchLayout() {
   )
 }
 
-export default function Search() {
+// The URL is parsed in `SearchUIModel.Provider`'s own render, so a filter param
+// that won't parse throws above every boundary search has -- all the way to
+// `Errors.ErrorBoundary` in app.tsx, which replaces the whole catalog with the
+// app-level error screen. The search UI is entirely reconstructable from the
+// URL, so that page is recoverable in place: keep the chrome and offer the two
+// exits that work.
+function SearchErrorFallback({ error }: FallbackProps) {
+  const { urls } = NamedRoutes.use()
+  const history = RRDom.useHistory()
+  // The bad state lives in the location, i.e. *above* this boundary, so
+  // `resetErrorBoundary` would re-render the same throw. Navigating is the
+  // reset -- `resetKeys` below clears the boundary when the URL changes.
+  const handleRefine = React.useCallback(
+    (action: NoResults.Refine) => {
+      if (action === NoResults.Refine.Network) {
+        window.location.reload()
+        return
+      }
+      history.push(urls.search({}))
+    },
+    [history, urls],
+  )
   return (
-    <SearchUIModel.Provider>
-      <AssistantContext />
-      <Layout pre={<SearchLayout />} />
-    </SearchUIModel.Provider>
+    <Layout>
+      <NoResults.Error onRefine={handleRefine}>{error.message}</NoResults.Error>
+    </Layout>
+  )
+}
+
+const onError = (error: Error) => Sentry.captureException(error)
+
+export default function Search() {
+  const { search } = RRDom.useLocation()
+  return (
+    <ErrorBoundary
+      FallbackComponent={SearchErrorFallback}
+      onError={onError}
+      resetKeys={[search]}
+    >
+      <SearchUIModel.Provider>
+        <AssistantContext />
+        <Layout pre={<SearchLayout />} />
+      </SearchUIModel.Provider>
+    </ErrorBoundary>
   )
 }
