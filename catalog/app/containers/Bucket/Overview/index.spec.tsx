@@ -18,9 +18,17 @@ vi.mock('./v2/Overview', () => ({
 
 const settingsHook: Mock<() => CatalogSettings.CatalogSettings | null> = vi.fn(() => null)
 
-vi.mock('utils/CatalogSettings', () => ({
-  use: () => settingsHook(),
-}))
+// `useBetaEnabled` carries the unset-means-on default, so the mock delegates to
+// the real `isBetaEnabled` rather than restating it — otherwise these tests
+// assert the mock's opinion of the default, not the module's.
+vi.mock('utils/CatalogSettings', async () => {
+  const actual = await vi.importActual<typeof CatalogSettings>('utils/CatalogSettings')
+  return {
+    use: () => settingsHook(),
+    isBetaEnabled: actual.isBetaEnabled,
+    useBetaEnabled: () => actual.isBetaEnabled(settingsHook()),
+  }
+})
 
 describe('Bucket/Overview', () => {
   afterEach(cleanup)
@@ -32,17 +40,24 @@ describe('Bucket/Overview', () => {
     expect(queryByText('LEGACY')).toBeFalsy()
   })
 
-  it('renders legacy Overview when the beta flag is off', () => {
+  it('renders legacy Overview when the beta flag is explicitly off', () => {
     settingsHook.mockReturnValue({ beta: false })
     const { queryByText } = render(<Overview />)
     expect(queryByText('LEGACY')).toBeTruthy()
     expect(queryByText('V2')).toBeFalsy()
   })
 
-  it('renders legacy Overview when there are no catalog settings', () => {
+  it('renders v2 Overview when the beta flag is unset', () => {
+    settingsHook.mockReturnValue({})
+    const { queryByText } = render(<Overview />)
+    expect(queryByText('V2')).toBeTruthy()
+    expect(queryByText('LEGACY')).toBeFalsy()
+  })
+
+  it('renders v2 Overview when there are no catalog settings', () => {
     settingsHook.mockReturnValue(null)
     const { queryByText } = render(<Overview />)
-    expect(queryByText('LEGACY')).toBeTruthy()
-    expect(queryByText('V2')).toBeFalsy()
+    expect(queryByText('V2')).toBeTruthy()
+    expect(queryByText('LEGACY')).toBeFalsy()
   })
 })

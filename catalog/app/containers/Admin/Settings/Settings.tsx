@@ -35,7 +35,10 @@ function useBeta(): [boolean, (b: boolean) => Promise<void>] {
       ),
     [settings, writeSettings],
   )
-  return [settings?.beta || false, onChange]
+  // Unset reads as on, matching what the gated surfaces do — otherwise the
+  // switch shows "off" on a catalog that has never stored a value while the
+  // surfaces it gates are all rendering.
+  return [CatalogSettings.isBetaEnabled(settings), onChange]
 }
 
 /**

@@ -62,14 +62,14 @@ interface BucketLayoutProps {
 
 function BucketLayout({ bucket, children }: BucketLayoutProps) {
   const classes = useStyles()
-  const settings = CatalogSettings.use()
+  const beta = CatalogSettings.useBetaEnabled()
   const bucketExistenceData = useBucketExistence(bucket)
   return (
     <Layout
       pre={
         <Container className={classes.content}>
           <M.Paper className={classes.headerCard}>
-            {settings?.beta && (
+            {beta && (
               <>
                 <div className={classes.headerTop}>
                   <Header bucket={bucket} />

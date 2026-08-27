@@ -24,6 +24,9 @@ vi.mock('utils/CatalogSettings', () => {
   return {
     use: () => settings,
     useWriteSettings: () => writeSettings,
+    // Mirrors the real reader: only a stored literal `false` opts out, so an
+    // unset flag reads as on.
+    isBetaEnabled: (s: { beta?: boolean } | null) => s?.beta !== false,
     SettingsConflictError,
   }
 })

@@ -6,6 +6,6 @@ import Overview from './Overview'
 import OverviewV2 from './v2/Overview'
 
 export default function OverviewSelector() {
-  const settings = CatalogSettings.use()
-  return settings?.beta ? <OverviewV2 /> : <Overview />
+  const beta = CatalogSettings.useBetaEnabled()
+  return beta ? <OverviewV2 /> : <Overview />
 }

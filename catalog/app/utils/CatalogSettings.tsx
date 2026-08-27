@@ -29,6 +29,13 @@ export class UnsupportedLogoTypeError extends Error {
 }
 
 export interface CatalogSettings {
+  /**
+   * The global beta switch. Absent means ON: the surfaces it gates (bucket
+   * header, current Overview, Athena's Tabulator tables) ship by default, and
+   * a catalog opts out by storing `false`. Read through `isBetaEnabled` rather
+   * than directly, so the default lives in one place — a missing settings file
+   * or an `AccessDenied` on the service bucket must not read as opted out.
+   */
   beta?: boolean
   customNavLink?: {
     url: string
@@ -227,3 +234,20 @@ export function useCatalogSettings() {
 }
 
 export { useCatalogSettings as use }
+
+/**
+ * Whether the global beta switch is on, given an already-loaded document.
+ *
+ * Only a stored literal `false` opts out. `null` settings — LOCAL mode, no
+ * settings file, or an `AccessDenied` on the service bucket — read as ON, which
+ * is the opposite of the preview-feature registry's rule in `utils/features`:
+ * a preview nobody asked for stays off, whereas these surfaces ship by default
+ * and a catalog has to ask for the old ones.
+ */
+export function isBetaEnabled(settings: CatalogSettings | null): boolean {
+  return settings?.beta !== false
+}
+
+export function useBetaEnabled(): boolean {
+  return isBetaEnabled(useCatalogSettings())
+}
