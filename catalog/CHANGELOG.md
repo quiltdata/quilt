@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Search: a malformed filter value in a search URL reports which filter could not be read, rather than a raw JSON parser offset ([#5233](https://github.com/quiltdata/quilt/pull/5233))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
