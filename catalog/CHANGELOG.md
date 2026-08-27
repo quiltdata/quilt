@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Removed] The unbaked data-products GraphQL contract (added in [#5203](https://github.com/quiltdata/quilt/pull/5203), never served by a registry) is out of the schema; the `data-products` preview UI is unaffected and keeps reading fixture data ([#5223](https://github.com/quiltdata/quilt/pull/5223))
