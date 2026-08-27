@@ -6,9 +6,8 @@ import mkSearch from 'utils/mkSearch'
 import parseSearch from 'utils/parseSearch'
 
 // Legacy bucket-scoped query console routes redirect to the workspace-global
-// /queries screens (the bucket is not a home for the consoles anymore). These
-// components are extracted from App.jsx unchanged so their redirect targets are
-// unit-testable; App.jsx wires them at `paths.bucketQueries` exactly as before.
+// /queries screens (the bucket is not a home for the consoles anymore), so the
+// bucket segment has to survive as the console's `?bucket=` scope param.
 
 // The workgroup/execution targets take their path segments positionally, so the
 // bucket scope and any other params ride along as `search` on the redirect
