@@ -21,6 +21,11 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Search: error states are separate, more strictly typed components, safer to extend than one component behind a `kind` prop ([#5238](https://github.com/quiltdata/quilt/pull/5238))
+- [Fixed] Search: a malformed filter value in the URL no longer breaks the page ([#5233](https://github.com/quiltdata/quilt/pull/5233))
+- [Fixed] Search results table: a package with no commit message shows the no-value marker instead of the literal text `None` ([#5232](https://github.com/quiltdata/quilt/pull/5232))
+- [Fixed] Tabular preview: a preview abandoned mid-load no longer leaves its table in the perspective worker ([#5215](https://github.com/quiltdata/quilt/pull/5215))
+- [Fixed] Tabular preview: a perspective config that cannot be applied no longer costs the preview its toolbar ([#5215](https://github.com/quiltdata/quilt/pull/5215))
 - [Fixed] A legacy `/b/<bucket>/queries/athena/<workgroup>` or `.../<execution>` link keeps its bucket scope across the redirect to the workspace-global console, instead of arriving with no bucket selected. The bare-console redirect already promoted the bucket to `?bucket=`; its two siblings did not. The `?bucket=` and `?table=` params now belong to the `queriesAthena*` url builders rather than being assembled at each redirect, so the three routes cannot disagree about which params survive, and a bucket named in the path wins over a stale `?bucket=` in the query string. An execution route deliberately does not take `?table=`: its editor is populated from the execution's own SQL, which the Tabulator autofill would overwrite ([#5234](https://github.com/quiltdata/quilt/pull/5234))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
