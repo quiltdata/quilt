@@ -184,10 +184,10 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
           (containers/Bucket/Header), so this hero carries the description and
           stats only — same split the v2 header already made. */}
       <M.Box className={classes.top}>
-        {!!description && (
-          <M.Typography variant="body1">{description}</M.Typography>
-        )}
-        <Stats className={classes.stats} bucket={bucket} />
+        {!!description && <M.Typography variant="body1">{description}</M.Typography>}
+        {/* The margin separates the stats from the description; with the name gone
+            there is nothing above them when a bucket has no description. */}
+        <Stats className={description ? classes.stats : ''} bucket={bucket} />
       </M.Box>
       <M.Box
         p={{ xs: 2, sm: 4 }}
