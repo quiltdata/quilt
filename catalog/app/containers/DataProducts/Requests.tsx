@@ -23,13 +23,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
-  datazone: 'AWS DataZone',
-  'unity-schema': 'Databricks Unity',
-  'unity-share': 'Databricks Unity',
-  'snowflake-listing': 'Snowflake',
-}
-
 const STATUS_LABEL: Record<DP.RequestStatus, string> = {
   SUBMITTED: 'Submitted',
   PENDING: 'Awaiting decision',
@@ -86,8 +79,8 @@ function RequestRow({
   product: DP.DataProduct
 }) {
   const classes = useStyles()
-  const caps = DP.CAPABILITIES[product.binding.kind]
-  const platform = PLATFORM_LABEL[product.binding.kind]
+  const caps = DP.capabilitiesFor(product.binding.kind)
+  const platform = DP.platformLabelFor(product.binding.kind)
   const collective = widening(request.beneficiary)
 
   return (
@@ -156,8 +149,8 @@ function RequestDialog({
   open: boolean
   onClose: () => void
 }) {
-  const caps = DP.CAPABILITIES[product.binding.kind]
-  const platform = PLATFORM_LABEL[product.binding.kind]
+  const caps = DP.capabilitiesFor(product.binding.kind)
+  const platform = DP.platformLabelFor(product.binding.kind)
   const toProject = product.binding.kind === 'datazone'
 
   return (
@@ -220,7 +213,7 @@ function RequestDialog({
 export default function Requests({ product }: { product: DP.DataProduct }) {
   const classes = useStyles()
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  const caps = DP.CAPABILITIES[product.binding.kind]
+  const caps = DP.capabilitiesFor(product.binding.kind)
   const requests = DP.useRequests(product.id)
 
   // Partial access counts. Gating on *nothing* readable would hide the
@@ -261,8 +254,8 @@ export default function Requests({ product }: { product: DP.DataProduct }) {
           there is nothing to offer and saying why beats an absent control. */}
       {wantsMoreAccess && !caps.initiableRequests && (
         <M.Typography className={classes.note} variant="body2" color="textSecondary">
-          {PLATFORM_LABEL[product.binding.kind]} has no request flow Quilt can start for
-          this product. Ask a catalog administrator directly.
+          {DP.platformLabelFor(product.binding.kind)} has no request flow Quilt can start
+          for this product. Ask a catalog administrator directly.
         </M.Typography>
       )}
 

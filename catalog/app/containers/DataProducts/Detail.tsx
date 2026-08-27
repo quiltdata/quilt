@@ -57,13 +57,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
-  datazone: 'AWS DataZone',
-  'unity-schema': 'Databricks Unity',
-  'unity-share': 'Databricks Unity',
-  'snowflake-listing': 'Snowflake',
-}
-
 const pluralize = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'}`
 
 function NavTab(
@@ -89,7 +82,7 @@ function Stat({ label, children }: React.PropsWithChildren<{ label: string }>) {
 
 function Header({ product }: { product: DP.DataProduct }) {
   const classes = useStyles()
-  const platform = PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
   const summary = [
     platform,
     product.owningEntity?.label,
@@ -148,8 +141,8 @@ function Tabs({ id, section }: { id: string; section: string }) {
  */
 function OverviewTab({ product }: { product: DP.DataProduct }) {
   const classes = useStyles()
-  const caps = DP.CAPABILITIES[product.binding.kind]
-  const platform = PLATFORM_LABEL[product.binding.kind]
+  const caps = DP.capabilitiesFor(product.binding.kind)
+  const platform = DP.platformLabelFor(product.binding.kind)
   const readable = product.members.filter((m) => m.readable).length
 
   return (
@@ -221,7 +214,7 @@ function OverviewTab({ product }: { product: DP.DataProduct }) {
  */
 function AccessTab({ product }: { product: DP.DataProduct }) {
   const classes = useStyles()
-  const caps = DP.CAPABILITIES[product.binding.kind]
+  const caps = DP.capabilitiesFor(product.binding.kind)
   const showOrigin = caps.effectivePermissions
 
   return (

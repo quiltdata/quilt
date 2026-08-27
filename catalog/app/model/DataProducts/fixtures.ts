@@ -20,7 +20,7 @@ import type { Capabilities, DataProduct, Member, PackageHandle } from './types'
 import type { Connection } from './connections'
 import type { ContentEntry } from './contents'
 import type { AccessRequest } from './requests'
-import { CAPABILITIES } from './capabilities'
+import { capabilitiesFor as capabilitiesForKind } from './capabilities'
 
 const token = (s: string) => ({ token: s })
 
@@ -656,7 +656,7 @@ export const ENTRY_TEXT: Record<string, string> = {
 
 /** Capabilities that go with a fixture, so UI wiring stays consistent. */
 export function capabilitiesFor(product: DataProduct): Capabilities {
-  return CAPABILITIES[product.binding.kind]
+  return capabilitiesForKind(product.binding.kind)
 }
 
 /** Members the current user can actually read. */

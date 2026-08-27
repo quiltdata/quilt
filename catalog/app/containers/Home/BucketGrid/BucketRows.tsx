@@ -6,7 +6,7 @@ import { fade } from '@material-ui/core/styles'
 
 import BucketIcon from 'components/BucketIcon'
 import cfg from 'constants/config'
-import type * as DP from 'model/DataProducts'
+import * as DP from 'model/DataProducts'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
@@ -27,10 +27,10 @@ const useStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.action.hover,
     },
   },
-  // Only rows that actually render the access readout reserve the right
-  // gutter ListItemSecondaryAction needs; the rest keep their full width.
-  rowWithSecondary: {
-    paddingRight: t.spacing(14),
+  access: {
+    flexShrink: 0,
+    marginLeft: t.spacing(2),
+    whiteSpace: 'nowrap',
   },
   avatar: {
     minWidth: t.spacing(6),
@@ -78,9 +78,8 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(0.5),
     marginLeft: t.spacing(2),
   },
-  // Mirrors BucketCard's chip vocabulary (focus ring on the hashed
-  // `Mui-focusVisible` hook; a matching chip washed in the Indicator amber
-  // rather than filled) so a tag reads the same in either view.
+  // Mirrors BucketCard's chip vocabulary -- outlined, focus ring on the hashed
+  // `Mui-focusVisible` hook -- so a tag reads the same in either view.
   tag: {
     '&.Mui-focusVisible': {
       outline: `2px solid ${t.palette.primary.main}`,
@@ -126,7 +125,7 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
 
   return (
     <M.ListItem
-      className={cx(classes.row, hasCollaborators && classes.rowWithSecondary)}
+      className={classes.row}
       divider={divider}
       data-testid="bucket-grid--bucket"
       data-bucket={bucket.name}
@@ -178,6 +177,7 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
               className={cx(classes.tag, { [classes.matching]: tagIsMatching(tg) })}
               label={tg}
               size="small"
+              variant="outlined"
               clickable
               color="default"
               onClick={handleTagClick(tg)}
@@ -186,38 +186,15 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
         </div>
       )}
       {hasCollaborators && (
-        <M.ListItemSecondaryAction>
+        <div className={classes.access}>
           <Collaborators
             bucket={bucket.name}
             collaborators={bucket.collaborators ?? null}
           />
-        </M.ListItemSecondaryAction>
+        </div>
       )}
     </M.ListItem>
   )
-}
-
-const PLATFORM_LABEL: Record<DP.PlatformKind, string> = {
-  datazone: 'AWS DataZone',
-  'unity-schema': 'Databricks Unity',
-  'unity-share': 'Databricks Unity',
-  'snowflake-listing': 'Snowflake',
-}
-
-/**
- * How much of this product you can read, in the slot a bucket row gives its
- * access readout.
- *
- * Zero members is the case worth wording carefully: on a discovery-only product
- * (Unity `BROWSE`) that is a permission boundary, not an empty product, and
- * "0 members" would misreport it as no data.
- */
-function accessSummary(product: DP.DataProduct): string {
-  const total = product.members.length
-  if (!total) return 'Contents not visible to you'
-  const readable = product.members.filter((m) => m.readable).length
-  if (readable === total) return `${total} member${total === 1 ? '' : 's'}`
-  return `${readable} of ${total} members readable`
 }
 
 interface DataProductRowProps {
@@ -233,11 +210,11 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const to = urls.dataProduct(product.id)
-  const platform = PLATFORM_LABEL[product.binding.kind]
+  const platform = DP.platformLabelFor(product.binding.kind)
 
   return (
     <M.ListItem
-      className={cx(classes.row, classes.rowWithSecondary)}
+      className={classes.row}
       divider={divider}
       data-testid="bucket-grid--data-product"
       data-data-product={product.id}
@@ -275,11 +252,11 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
           ) : null
         }
       />
-      <M.ListItemSecondaryAction>
+      <div className={classes.access}>
         <M.Typography variant="caption" color="textSecondary">
-          {accessSummary(product)}
+          {DP.accessSummary(product)}
         </M.Typography>
-      </M.ListItemSecondaryAction>
+      </div>
     </M.ListItem>
   )
 }

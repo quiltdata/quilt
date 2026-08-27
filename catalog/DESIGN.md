@@ -179,30 +179,46 @@ white at fixed alphas, not theme grays:
 
 ### Identity Tints (categorical)
 
-A closed set of six muted pairs used to tell *objects apart* on a browse
+A closed set of fifteen muted pairs used to tell *objects apart* on a browse
 surface — the ground and ink of an identity avatar when an object has no
 image of its own. Each pair is a pale ground with its own dark ink, so the
-initials clear AA on the disc:
+initials clear AA on the disc. Two tiers of one scheme, so a hue family can
+contribute twice without introducing a second visual language:
 
-| Tint | Ground | Ink |
-| --- | --- | --- |
-| Indigo | #e8eaf6 | #283593 |
-| Teal | #e0f2f1 | #00695c |
-| Green | #e8f5e9 | #2e7d32 |
-| Purple | #f3e5f5 | #6a1b9a |
-| Pink | #fce4ec | #ad1457 |
-| Brown | #efebe9 | #4e342e |
+| Tint | Ground | Ink | Tier |
+| --- | --- | --- | --- |
+| Indigo | #e8eaf6 | #283593 | 50/800 |
+| Indigo Deep | #c5cae9 | #1a237e | 100/900 |
+| Teal | #e0f2f1 | #00695c | 50/800 |
+| Teal Deep | #b2dfdb | #004d40 | 100/900 |
+| Green | #e8f5e9 | #2e7d32 | 50/800 |
+| Light Green | #dcedc8 | #33691e | 100/900 |
+| Purple | #f3e5f5 | #6a1b9a | 50/800 |
+| Deep Purple | #d1c4e9 | #4527a0 | 100/900 |
+| Pink | #fce4ec | #ad1457 | 50/800 |
+| Pink Deep | #f8bbd0 | #880e4f | 100/900 |
+| Brown | #efebe9 | #4e342e | 50/800 |
+| Brown Deep | #d7ccc8 | #3e2723 | 100/900 |
+| Blue | #bbdefb | #0d47a1 | 100/900 |
+| Cyan Deep | #b2ebf2 | #006064 | 100/900 |
+| Blue Grey | #cfd8dc | #37474f | 100/800 |
 
 The tint is chosen by hashing the object's stable identifier (the bucket
 name), so an object wears the same tint in every view and every session,
-independent of what else is on screen.
+independent of what else is on screen. Table size is what bounds collisions:
+at six entries a `quilt-*` wall of a dozen buckets resolved to five distinct
+tints, which read as "a few colors repeating" rather than as identity.
 
 **The Identity Tint Rule.** Identity tints encode *which object*, never *what
 state*. They are categorical — never semantic, never an accent, never
 emphasis, and never a page or panel surface. They appear only as the ground of
 an identity avatar, and they never carry meaning a label could not. The set is
-closed: it deliberately excludes the Amber Indicator's hue (an identity must
-never read as a selection) and the semantic Info/Warning pairs.
+closed, and the exclusions are the load-bearing part: the Amber Indicator's hue
+(an identity must never read as a selection), the semantic Info/Warning pairs —
+note Light Blue 50 *is* the Info Blue wash — the error register (red, deep
+orange), and lime, which cannot clear AA against any ink of its own hue. Adding
+a tint means adding a pale ground with a dark same-hue ink that clears AA and
+sits visibly apart from every ground already here.
 
 ### Retired
 

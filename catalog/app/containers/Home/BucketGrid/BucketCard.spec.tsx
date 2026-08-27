@@ -155,6 +155,11 @@ describe('containers/Home/BucketGrid/BucketCard', () => {
     const access = container.querySelector('[class*="access"]') as HTMLElement
     expect(raised(ruleFor(classOf(access, 'access')))).toBe(true)
 
+    // The description too: not a control, but text a reader selects and copies, so
+    // it has to sit above the card-wide navigation overlay.
+    const description = container.querySelector('[class*="description"]') as HTMLElement
+    expect(raised(ruleFor(classOf(description, 'description')))).toBe(true)
+
     // The containers are not. Their gaps belong to the card-wide link.
     let row: HTMLElement | null = getByText('rna')
     while (row && !/bottomRow/.test(row.className)) row = row.parentElement

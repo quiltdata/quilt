@@ -1,12 +1,5 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    background: t.palette.background.paper,
-  },
-}))
 
 interface SelectFilterProps<T> {
   className?: string
@@ -27,10 +20,9 @@ export default function Select<T extends string>({
   value,
   ...props
 }: SelectProps<T>) {
-  const classes = useStyles()
   return (
     <M.Select
-      className={cx(classes.root, className)}
+      className={className}
       value={value}
       onChange={(event) => onChange(event.target.value as T)}
       {...props}

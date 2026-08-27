@@ -104,10 +104,8 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
+    gap: t.spacing(1),
     padding: t.spacing(2),
-  },
-  bodySpacer: {
-    flexGrow: 1,
   },
   // Not raised above the navigation overlay: raising the row lifts its
   // `space-between` gap too, and clicks in that whitespace stop navigating. Only
@@ -117,6 +115,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'space-between',
+    // Absorbs the slack that row-height equalization leaves; `body`'s gap is
+    // the floor when there is none.
+    marginTop: 'auto',
   },
   // The icon is a fixed-size disc: without this it inherits `flex-shrink: 1`
   // and a long title squashes the circle into an ellipse.
@@ -144,9 +145,14 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  // Raised above the navigation overlay so the blurb stays selectable: as
+  // non-positioned content it painted under the overlay, and a drag to select it
+  // navigated instead. Costs the click-to-navigate area over these two lines.
   description: {
     ...(t.mixins as $TSFixMe).lineClamp(2),
     color: t.palette.text.secondary,
+    position: 'relative',
+    zIndex: 1,
   },
   tags: {
     display: 'flex',
@@ -166,9 +172,9 @@ const useStyles = M.makeStyles((t) => ({
       outlineOffset: -2,
     },
   },
-  // A matching tag reads as "selected" via the Indicator Rule's amber, never
-  // a solid fill: a wash + a matching border, layered on top of the chip's
-  // own `color="default"` ground rather than replacing it with a fill.
+  // A matching tag reads as "selected" via the Indicator Rule's amber, never a
+  // solid fill: an amber wash and border on the outlined chip. Both states
+  // carry a border, so selecting a tag does not resize it.
   matching: {
     backgroundColor: fade(t.palette.secondary.main, 0.15),
     border: `1px solid ${t.palette.secondary.main}`,
@@ -247,11 +253,10 @@ export default function BucketCard({
       </Link>
       <div className={classes.body}>
         {!!bucket.description && (
-          <M.Typography className={classes.description} component="p" variant="caption">
+          <M.Typography className={classes.description} component="p" variant="body2">
             {bucket.description}
           </M.Typography>
         )}
-        <div className={classes.bodySpacer} />
         <div className={classes.bottomRow}>
           <div className={classes.tags}>
             {visibleTags.map((tg) => (
@@ -260,6 +265,7 @@ export default function BucketCard({
                 className={cx(classes.tag, { [classes.matching]: tagIsMatching(tg) })}
                 label={tg}
                 size="small"
+                variant="outlined"
                 clickable
                 color="default"
                 onClick={handleTagClick(tg)}

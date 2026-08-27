@@ -470,16 +470,22 @@ function NoMatch({ filter, terms, total, onDropTerm, onClear }) {
   // Only worth offering per-term drops when there is a choice to make; with a
   // single term "drop it" and "clear the filter" are the same action, and two
   // buttons that do one thing is a worse state than one that does.
-  const droppable = terms.length > 1 ? terms : []
+  // One chip per distinct term: chips key on the term, and `onDropTerm` strips
+  // every occurrence of the word it names.
+  const unique = React.useMemo(() => R.uniq(terms), [terms])
+  const droppable = unique.length > 1 ? unique : []
   return (
     <M.Paper elevation={0} className={classes.empty}>
       <M.Typography color="textPrimary" variant="body1">
         No volumes matching <b>&quot;{filter}&quot;</b>
       </M.Typography>
       <M.Typography className={classes.emptyLine} color="textSecondary" variant="body2">
+        {/* Names what is actually matched, for both kinds. Buckets carry tags and a
+            product carries labels, and claiming only "tags" left a product matched
+            on a label looking like a match on nothing. */}
         {total === 1
-          ? 'Searched the 1 volume you can reach, across name, description, and tags.'
-          : `Searched all ${total} volumes you can reach, across name, description, and tags.`}
+          ? 'Searched the 1 volume you can reach, across name, description, and tags or labels.'
+          : `Searched all ${total} volumes you can reach, across name, description, and tags or labels.`}
       </M.Typography>
       <div className={classes.emptyActions}>
         {droppable.map((tg) => (
@@ -615,9 +621,17 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
 
   const pages = Math.ceil(sorted.length / PER_PAGE)
 
+  // Clamped during render: `page` is the reader's request, `currentPage` is what the
+  // list can honor. The reset effect below runs post-paint, too late to keep a
+  // shrunk list from slicing past its end.
+  const currentPage = Math.min(page, Math.max(pages, 1))
+
   const paginated = React.useMemo(
-    () => (pages <= 1 ? sorted : sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE)),
-    [sorted, pages, page],
+    () =>
+      pages <= 1
+        ? sorted
+        : sorted.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE),
+    [sorted, pages, currentPage],
   )
 
   usePrevious(page, (prev) => {
@@ -674,7 +688,7 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
         </M.Box>
         {pages > 1 && (
           <Pagination
-            {...{ pages, page, onChange: setPage }}
+            {...{ pages, page: currentPage, onChange: setPage }}
             mt={0}
             mb={0}
             classes={{ button: classes.pgBtn, current: classes.pgCurrent }}
