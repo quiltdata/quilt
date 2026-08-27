@@ -21,6 +21,8 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
+- [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Removed] The unbaked data-products GraphQL contract (added in [#5203](https://github.com/quiltdata/quilt/pull/5203), never served by a registry) is out of the schema; the `data-products` preview UI is unaffected and keeps reading fixture data ([#5223](https://github.com/quiltdata/quilt/pull/5223))
 - [Changed] Search sidebar: the package metadata list is sorted from one "Sort by" control, sitting directly above the list ([#5222](https://github.com/quiltdata/quilt/pull/5222))
 - [Fixed] Volumes list: the "Shared with" readout no longer overlaps a bucket's tags, and the extra space inside it is gone ([#5220](https://github.com/quiltdata/quilt/pull/5220))
