@@ -194,6 +194,10 @@ describe('containers/Bucket/Header withStats=false', () => {
   afterEach(() => {
     cleanup()
     isAdmin = false
+    // The no-queries test clears these; restore them so a block appended below
+    // does not inherit an implementation-less mock.
+    statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
+    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
   })
 
   function renderTitle() {
