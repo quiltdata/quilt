@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -21,7 +22,7 @@ interface FixtureNoticeProps {
 export default function FixtureNotice({ children, className }: FixtureNoticeProps) {
   const classes = useStyles()
   return (
-    <Lab.Alert severity="info" className={className ?? classes.root}>
+    <Lab.Alert severity="info" className={cx(classes.root, className)}>
       {children}
     </Lab.Alert>
   )

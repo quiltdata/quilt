@@ -431,23 +431,6 @@ describe('website/pages/Landing/Buckets', () => {
       ).toBeTruthy()
     })
 
-    // The fixture rows sit inline among real buckets, so this list is the first
-    // place a reader meets invented data — and the surface most likely to be
-    // mistaken for their own.
-    it('says the data products in the list are illustrative', () => {
-      mockBuckets = [mkBucket('bucket-one')]
-      dataProductsEnabled = true
-      const { queryByText } = renderBuckets('')
-      expect(queryByText(/Example data/)).toBeTruthy()
-    })
-
-    it('says nothing about example data when no products are present', () => {
-      mockBuckets = [mkBucket('bucket-one')]
-      dataProductsEnabled = false
-      const { queryByText } = renderBuckets('')
-      expect(queryByText(/Example data/)).toBeNull()
-    })
-
     it('offers to drop each term when more than one narrowed it', () => {
       const { queryByText } = renderBuckets('?q=alpha+beta')
       expect(queryByText('Without "alpha"')).toBeTruthy()
@@ -580,6 +563,33 @@ describe('website/pages/Landing/Buckets', () => {
       const { getByLabelText, getByTestId } = renderBuckets('?view=list')
       fireEvent.click(getByLabelText('Card view'))
       expect(getByTestId('search').textContent).toBe('')
+    })
+  })
+  // The fixture rows sit inline among real buckets, so this list is the first place
+  // a reader meets invented data — and the surface most likely to be mistaken for
+  // their own.
+  describe('the example-data notice', () => {
+    it('appears when a product is on the page', () => {
+      mockBuckets = [mkBucket('bucket-one')]
+      dataProductsEnabled = true
+      const { queryByText } = renderBuckets('')
+      expect(queryByText(/Example data/)).toBeTruthy()
+    })
+
+    it('stays away when there are no products at all', () => {
+      mockBuckets = [mkBucket('bucket-one')]
+      dataProductsEnabled = false
+      const { queryByText } = renderBuckets('')
+      expect(queryByText(/Example data/)).toBeNull()
+    })
+
+    // The guard has to read the rendered page, not the fixture array: a notice on a
+    // page showing only buckets is itself a false claim.
+    it('stays away when products exist but the filter shows only buckets', () => {
+      mockBuckets = [mkBucket('zzz-unique-bucket')]
+      dataProductsEnabled = true
+      const { queryByText } = renderBuckets('?q=zzz-unique-bucket')
+      expect(queryByText(/Example data/)).toBeNull()
     })
   })
 })
