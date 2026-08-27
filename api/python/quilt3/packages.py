@@ -21,7 +21,7 @@ import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
 
-from . import checksums, context as quilt_context, util, workflows
+from . import checksums, util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     FileChecksumTask,
@@ -981,75 +981,10 @@ class Package:
 
         return self["README.md"]
 
-    def set_meta(self, meta, *, agent_context=False):
+    def set_meta(self, meta):
         """
         Sets user metadata on this Package.
-
-        With `agent_context=False` (the default) this is a plain assignment,
-        exactly as before the keyword existed.
-
-        With `agent_context=True` (experimental, pre-release; the keyword and
-        its behavior may change), the stored metadata is a copy of `meta`
-        with Quilt-observed commit context — the effective AWS principal
-        (from STS `get_caller_identity()`), the authentication path
-        (`quilt-catalog` or `aws`), the quilt3 client version, and a UTC
-        timestamp — embedded at `agent_context.quilt`. Context is resolved
-        exactly once, at this call, and frozen into the manifest, so workflow
-        validation, top-hash calculation, and publication all observe
-        identical bytes. Call it before `push` to include the context in the
-        published revision.
-
-        Every top-level key in `meta` and every sibling inside
-        `agent_context` (such as `agent_context.agent` and
-        `agent_context.inputs`) is preserved; the caller's object is never
-        mutated, and on any failure the package's metadata is left untouched.
-        Like every `set_meta` call, this replaces what is stored (last write
-        wins): metadata set earlier — for example via
-        `set_dir(".", path, meta=...)` — is not merged in, so pass it back:
-        `set_meta(pkg.meta, agent_context=True)`.
-        Passing back metadata that already carries a previous embed — from
-        the package `push()` returns, or one read back via
-        `Package.browse()` — replaces the previously embedded context with
-        freshly observed values; only an `agent_context.quilt` value that
-        Quilt itself did not write is refused.
-
-        Note: account IDs and principal ARNs become durable, queryable
-        package metadata; nothing is collected unless the keyword is passed.
-        Two operational consequences follow from embedding before validation
-        and hashing:
-
-        - The embedded timestamp is part of the manifest, so every push gets
-          a new top hash even when payload bytes are identical — `dedupe`
-          (CLI `--dedupe`) will no longer skip.
-        - Any workflow's package-metadata schema must allow the
-          `agent_context` key; a schema with `additionalProperties: false`
-          that does not model it will reject the push until the schema is
-          updated.
-
-        The embedded object is self-asserted client metadata, not an
-        attestation: other metadata channels can write arbitrary content at
-        the same key, so consumers must not treat its presence alone as
-        proof that Quilt produced it.
-
-        Args:
-            meta: user metadata to store, or None.
-            agent_context: experimental — when True, embed Quilt-observed
-                commit context at `agent_context.quilt` in a copy of `meta`.
-
-        Returns:
-            self
-
-        Raises:
-            QuiltException: only with `agent_context=True` — before any AWS
-                call, when `meta` is not an object or None, the
-                `agent_context` value is not an object, or
-                `agent_context.quilt` already exists and was not written by
-                Quilt; also when the STS identity cannot be resolved.
         """
-        if agent_context:
-            # Experimental (pre-release): merge first so a failure leaves the
-            # package's metadata untouched.
-            meta = quilt_context.merge_quilt_context(meta)
         self._meta['user_meta'] = meta
         return self
 
