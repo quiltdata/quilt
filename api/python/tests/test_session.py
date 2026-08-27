@@ -504,6 +504,28 @@ class TestRegistryUrlOverride(QuiltTestCase):
         finally:
             quilt3.session.reset_registry_url_resolver(token)
 
+    def test_update_auth_resolves_registry_without_snapshot(self):
+        registry_url = 'https://first.example.com'
+        auth = {
+            'access_token': 'access-token',
+            'refresh_token': 'refresh-token',
+            'expires_at': float('inf'),
+        }
+
+        with (
+            quilt3.session.use_registry_url(registry_url),
+            patch('quilt3.session.requests.post') as mock_post,
+        ):
+            mock_post.return_value.status_code = 200
+            mock_post.return_value.json.return_value = auth
+            assert quilt3.session._update_auth('initial-refresh-token') == auth
+
+        mock_post.assert_called_once_with(
+            f'{registry_url}/api/token',
+            timeout=None,
+            data={'refresh_token': 'initial-refresh-token'},
+        )
+
     def test_refresh_credentials_uses_single_registry_snapshot(self):
         registry_url = 'https://first.example.com'
         credentials = {
@@ -613,6 +635,17 @@ class TestRegistryUrlOverride(QuiltTestCase):
             assert mock_create_auth.call_count == 1
         finally:
             quilt3.session.clear_session()
+
+    def test_logout_when_already_logged_out(self):
+        with (
+            patch('quilt3.session._load_auth', return_value={}),
+            patch('quilt3.session._load_credentials', return_value={}),
+            patch('quilt3.session._api_key', None),
+            patch('builtins.print') as mock_print,
+        ):
+            quilt3.session.logout()
+
+        mock_print.assert_called_once_with('Already logged out.')
 
     def test_override_is_isolated_per_thread(self):
         import threading
