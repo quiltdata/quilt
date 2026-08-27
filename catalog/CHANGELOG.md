@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Changed] The bucket header above the tabs, the current bucket Overview, and Athena's Tabulator tables are on for everyone, no longer behind the global `beta` switch. A new `legacy-ui` preview feature (Admin > Settings) restores the previous Overview and its full-bleed header for a catalog that needs it; the `beta` switch stays in place, now gating nothing ([#PRNUM](https://github.com/quiltdata/quilt/pull/PRNUM))
+- [Changed] The bucket header above the tabs, the current bucket Overview, and Athena's Tabulator tables are on for everyone, no longer behind the global `beta` switch. A new `legacy-ui` preview feature (Admin > Settings) restores the previous Overview and its full-bleed header for a catalog that needs it; the `beta` switch stays in place, now gating nothing ([#5243](https://github.com/quiltdata/quilt/pull/5243))
 - [Changed] Search: error states are separate, more strictly typed components, safer to extend than one component behind a `kind` prop ([#5238](https://github.com/quiltdata/quilt/pull/5238))
 - [Fixed] Search: a malformed filter value in the URL no longer breaks the page ([#5233](https://github.com/quiltdata/quilt/pull/5233))
 - [Fixed] Search results table: a package with no commit message shows the no-value marker instead of the literal text `None` ([#5232](https://github.com/quiltdata/quilt/pull/5232))
