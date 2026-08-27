@@ -18,6 +18,10 @@ Entries inside each section should be ordered by type:
 
 ## unreleased - YYYY-MM-DD
 
+### CI
+
+* [Changed] Path-filtered Python CI keeps required check contexts successful while skipping jobs unrelated to the changed paths.
+
 ### Python API
 
 * [Changed] The parent-revision check in `Package.push()` is keyed on package name rather than on the registry a revision was read from, and accepts every revision the package object knows for that name. Pushing one object to several registries that hold the shared parent — mirroring, or promoting between environments — no longer conflicts after the first destination ([#5180](https://github.com/quiltdata/quilt/pull/5180))
