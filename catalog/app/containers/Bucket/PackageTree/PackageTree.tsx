@@ -122,13 +122,8 @@ const isStillBrowsingPackage = (
 }
 
 const useTopBarStyles = M.makeStyles((t) => ({
-  // Two explicit tiers instead of emergent flex crush. Wide: one grid row
-  // (crumbs | actions) — crumbs truncate/wrap first, the action cluster never
-  // squashes. Stacked (≤1100px viewport): the cluster moves to its own
-  // full-width row below the crumbs, keeping the wide tier's right anchor so
-  // the (often icon-collapsed) strip doesn't sit parked at the left edge; it
-  // wraps with even 8px gaps so it never overflows, and crumbs get the full
-  // width.
+  // The stacked tier keeps the wide tier's right anchor so the (often
+  // icon-collapsed) action strip doesn't sit parked at the left edge.
   topBar: {
     alignItems: 'end',
     columnGap: t.spacing(2),
@@ -137,7 +132,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     gridTemplateColumns: 'minmax(0, 1fr) auto',
     marginBottom: t.spacing(2),
     marginTop: t.spacing(0.5),
-    '@media (max-width: 1100px)': {
+    [t.breakpoints.down(1100)]: {
       gridTemplateAreas: '"crumbs" "actions"',
       gridTemplateColumns: 'minmax(0, 1fr)',
     },
@@ -158,13 +153,20 @@ const useTopBarStyles = M.makeStyles((t) => ({
     '&:empty': {
       display: 'none',
     },
-    '@media (max-width: 1100px)': {
+    // Children carry their own marginLeft for intra-cluster gaps; the grid's
+    // columnGap already provides the crumbs seam, so the first child's margin
+    // is zeroed. Doubled selectors (&&) outrank the children's single-class
+    // margin rules regardless of JSS sheet insertion order.
+    '&& > :first-child': {
+      marginLeft: 0,
+    },
+    [t.breakpoints.down(1100)]: {
       flexWrap: 'wrap',
       gap: t.spacing(1),
       justifyContent: 'flex-end',
       marginBottom: 0,
       marginTop: t.spacing(1),
-      '& > *': {
+      '&& > *': {
         margin: 0,
       },
     },
