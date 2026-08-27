@@ -8,7 +8,7 @@ import * as BucketNav from 'containers/Bucket/Nav'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import { NotFoundInTabs } from 'containers/NotFound'
 import { useBucketExistence } from 'utils/BucketCache'
-import * as CatalogSettings from 'utils/CatalogSettings'
+import { useFeature } from 'utils/features'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
@@ -62,14 +62,16 @@ interface BucketLayoutProps {
 
 function BucketLayout({ bucket, children }: BucketLayoutProps) {
   const classes = useStyles()
-  const settings = CatalogSettings.use()
+  // The legacy Overview carries its own full-bleed header, so this one stands
+  // down for it rather than stacking a second bucket name above the tabs.
+  const legacy = useFeature('legacy-ui')
   const bucketExistenceData = useBucketExistence(bucket)
   return (
     <Layout
       pre={
         <Container className={classes.content}>
           <M.Paper className={classes.headerCard}>
-            {settings?.beta && (
+            {!legacy && (
               <>
                 <div className={classes.headerTop}>
                   <Header bucket={bucket} />

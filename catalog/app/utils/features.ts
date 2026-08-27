@@ -43,6 +43,11 @@ export const FEATURES = {
     description:
       'Browse data products defined in an enterprise catalog (AWS DataZone, Databricks Unity, Snowflake). Off, no data-product route or nav entry exists. Reads fixture data until catalog adapters land.',
   },
+  'legacy-ui': {
+    label: 'Legacy UI',
+    description:
+      "Restore the previous bucket Overview and its full-bleed header. Off, buckets use the current Overview and the header above the tabs. Doesn't affect any other surface.",
+  },
 } satisfies Record<string, Feature>
 
 export type FeatureId = keyof typeof FEATURES

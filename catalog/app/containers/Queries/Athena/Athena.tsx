@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
-import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -372,7 +371,6 @@ const useStyles = M.makeStyles((t) => ({
 
 function AthenaContainer() {
   const { queryExecutionId, workgroup } = Model.use()
-  const settings = CatalogSettings.use()
 
   const classes = useStyles()
   return (
@@ -398,7 +396,7 @@ function AthenaContainer() {
       {Model.hasData(workgroup.data) && (
         <div className={classes.content}>
           <div className={classes.section}>
-            {settings?.beta && <TabulatorTables />}
+            <TabulatorTables />
             <QueryEditor.Form className={classes.form} />
           </div>
           {queryExecutionId ? (
