@@ -23,7 +23,6 @@ complete sentence without it.
 
 - [Fixed] Tabular preview: a preview abandoned mid-load no longer leaves its table in the perspective worker ([#5215](https://github.com/quiltdata/quilt/pull/5215))
 - [Fixed] Tabular preview: a perspective config that cannot be applied no longer costs the preview its toolbar ([#5215](https://github.com/quiltdata/quilt/pull/5215))
-- [Changed] Tabular preview: a failure after the table loads shows a message instead of a blank panel ([#5215](https://github.com/quiltdata/quilt/pull/5215))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
