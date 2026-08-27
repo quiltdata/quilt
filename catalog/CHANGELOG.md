@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Data products (preview): the example data behind the screens is labelled as such, and no longer carries internal email addresses or a real AWS account id ([#5236](https://github.com/quiltdata/quilt/pull/5236))
+- [Fixed] Data products (preview): the fixture data is labelled as example data on all three surfaces that render it — the volume grid, a product's own screens, and Admin Settings' catalog connections, where the invented states include an auth failure that could otherwise be read as a real one. The fixtures no longer carry internal email addresses or a real AWS account id ([#5236](https://github.com/quiltdata/quilt/pull/5236))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))

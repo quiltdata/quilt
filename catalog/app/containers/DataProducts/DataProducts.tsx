@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { Redirect, Route, Switch } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import Layout, { Container } from 'components/Layout'
 import MetaTitle from 'utils/MetaTitle'
@@ -9,13 +8,11 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { useFeature } from 'utils/features'
 
 import Detail from './Detail'
+import FixtureNotice from './FixtureNotice'
 
 const useStyles = M.makeStyles((t) => ({
   content: {
     marginTop: t.spacing(3),
-  },
-  notice: {
-    marginBottom: t.spacing(2),
   },
   section: {
     backgroundColor: t.palette.common.white,
@@ -37,15 +34,10 @@ export function DataProductsScreen() {
     <Container className={classes.content}>
       <MetaTitle>Data products</MetaTitle>
 
-      {/* Every screen below reads the fixture adapter, so products, members,
-          requests and connections are all invented. Say so on the screen: the
-          rows are shaped exactly like real ones, and a reader who assumes a
-          catalog is connected would take an access request or a connection
-          error at face value. Remove this with the fixture adapter. */}
-      <Lab.Alert severity="info" className={classes.notice}>
-        Example data. No catalog is connected yet, so the products, members, access
-        requests and connection states below are illustrative.
-      </Lab.Alert>
+      <FixtureNotice>
+        Example data — this product, its members and its access requests are illustrative,
+        not a connected catalog.
+      </FixtureNotice>
 
       <Switch>
         {/* Detail carries its own header and section tabs. `exact` is
