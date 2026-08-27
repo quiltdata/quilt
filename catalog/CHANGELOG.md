@@ -22,6 +22,9 @@ complete sentence without it.
 ## Changes
 
 - [Fixed] Search: a malformed filter value in the URL no longer breaks the page ([#5233](https://github.com/quiltdata/quilt/pull/5233))
+- [Fixed] Search results table: a package with no commit message shows the no-value marker instead of the literal text `None` ([#5232](https://github.com/quiltdata/quilt/pull/5232))
+- [Fixed] Tabular preview: a preview abandoned mid-load no longer leaves its table in the perspective worker ([#5215](https://github.com/quiltdata/quilt/pull/5215))
+- [Fixed] Tabular preview: a perspective config that cannot be applied no longer costs the preview its toolbar ([#5215](https://github.com/quiltdata/quilt/pull/5215))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))

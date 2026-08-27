@@ -152,7 +152,8 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
         </StyledLink>
       )
     case 'comment':
-      return hit.comment ? (
+      // FIXME: the registry sends 'None', not null, for no commit message.
+      return hit.comment && hit.comment !== 'None' ? (
         <OverflowTextTooltip title={hit.comment}>
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
         </OverflowTextTooltip>
