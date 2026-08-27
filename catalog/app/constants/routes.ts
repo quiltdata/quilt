@@ -99,10 +99,8 @@ export const queriesAthena = route(
 
 export type QueriesAthenaArgs = Parameters<typeof queriesAthena.url>
 
-// `params` carries the same console-level search as `queriesAthena` above (the
-// `bucket` scope, a `table` deep link): these routes only differ from it by
-// which execution is on screen, so a caller must not have to hand-build search
-// to keep the scope across one.
+// These take the same console search as `queriesAthena` above, so a caller does
+// not have to hand-build a search string to keep the bucket scope across one.
 export const queriesAthenaWorkgroup = route(
   '/queries/athena/:workgroup',
   (workgroup: string, { bucket, table }: AthenaConsoleOpts = {}) =>
@@ -113,7 +111,11 @@ export type QueriesAthenaWorkgroupArgs = Parameters<typeof queriesAthenaWorkgrou
 
 export const queriesAthenaExecution = route(
   '/queries/athena/:workgroup/:queryExecutionId',
-  (workgroup: string, queryExecutionId: string, { bucket }: AthenaConsoleOpts = {}) =>
+  (
+    workgroup: string,
+    queryExecutionId: string,
+    { bucket }: Omit<AthenaConsoleOpts, 'table'> = {},
+  ) =>
     // No `table` here: the editor on an execution route is populated from the
     // execution's own SQL, and TabulatorTables' `?table=` autofill would
     // overwrite it with a SELECT unrelated to the results on screen.
