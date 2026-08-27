@@ -89,7 +89,9 @@ function SearchErrorFallback({ error }: FallbackProps) {
   const onRefine = NoResults.useErrorRefine(urls.search({}))
   return (
     <Layout>
-      <NoResults.Error onRefine={onRefine}>{error.message}</NoResults.Error>
+      <NoResults.UnexpectedError onRefine={onRefine}>
+        {error.message}
+      </NoResults.UnexpectedError>
     </Layout>
   )
 }

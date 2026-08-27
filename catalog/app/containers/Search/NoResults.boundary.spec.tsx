@@ -30,7 +30,7 @@ const Boundary = ({ children }: React.PropsWithChildren<{}>) => (
   </ErrorBoundary>
 )
 
-describe('containers/Search/NoResults.Error outside the model provider', () => {
+describe('containers/Search/NoResults.UnexpectedError outside the model provider', () => {
   afterEach(cleanup)
 
   it('renders with no SearchUIModel.Provider above it', () => {
@@ -38,9 +38,9 @@ describe('containers/Search/NoResults.Error outside the model provider', () => {
       <MemoryRouter>
         <NamedRoutes.Provider routes={{ search }}>
           <Boundary>
-            <NoResults.Error onRefine={() => {}}>
+            <NoResults.UnexpectedError onRefine={() => {}}>
               Invalid date range in the search URL
-            </NoResults.Error>
+            </NoResults.UnexpectedError>
           </Boundary>
         </NamedRoutes.Provider>
       </MemoryRouter>,

@@ -13,7 +13,7 @@ import assertNever from 'utils/assertNever'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import Main from 'containers/Search/Layout/Main'
 import {
-  Error as SearchErrorScreen,
+  UnexpectedError as SearchErrorScreen,
   Refine,
   useErrorRefine,
 } from 'containers/Search/NoResults'

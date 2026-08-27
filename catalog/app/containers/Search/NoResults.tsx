@@ -7,7 +7,6 @@ import Empty from 'components/Empty'
 import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
-import assertNever from 'utils/assertNever'
 
 import * as Hit from './List/Hit'
 import { Table as TableSkeleton } from './Table/Skeleton'
@@ -75,7 +74,7 @@ export function useErrorRefine(base: string) {
 
 interface EmptyWrapperProps {
   className?: string
-  onRefine: (action: Refine) => void
+  onRefine: (action: Exclude<Refine, Refine.Network>) => void
 }
 
 function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
@@ -154,8 +153,10 @@ function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
 
 export { EmptyWrapper as Empty }
 
-interface SecureSearchProps extends EmptyWrapperProps {
+interface SecureSearchProps {
+  className?: string
   onLoadMore: () => void
+  onRefine: (action: Refine.New) => void
 }
 
 export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchProps) {
@@ -194,80 +195,15 @@ const useErrorStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ErrorProps {
+interface ErrorScreenProps {
   className?: string
-  kind?: 'unexpected' | 'syntax' | 'timeout'
+  heading: string
+  body: React.ReactNode
   children?: React.ReactNode
-  onRefine: (action: Refine) => void
 }
 
-export function Error({
-  className,
-  kind = 'unexpected',
-  children,
-  onRefine,
-}: ErrorProps) {
+function ErrorScreen({ className, heading, body, children }: ErrorScreenProps) {
   const classes = useErrorStyles()
-  const heading = React.useMemo(() => {
-    switch (kind) {
-      case 'syntax':
-        return 'Query syntax error'
-      case 'timeout':
-        return 'Search timed out'
-      case 'unexpected':
-        return 'Unexpected error'
-      default:
-        assertNever(kind)
-    }
-  }, [kind])
-
-  const body = React.useMemo(() => {
-    switch (kind) {
-      case 'syntax':
-        return (
-          <>
-            The search cluster couldn&apos;t parse that query.
-            <br />
-            Try quoting{' '}
-            <StyledLink onClick={() => onRefine(Refine.Search)}>
-              your query
-            </StyledLink> or
-            read about{' '}
-            <StyledLink href={ES_REF_SYNTAX} target="_blank">
-              supported query syntax
-            </StyledLink>
-            .
-          </>
-        )
-      case 'timeout':
-        return (
-          <>
-            The search cluster is under load and didn&apos;t answer in time.
-            <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>
-              Try again
-            </StyledLink> or
-            start a{' '}
-            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
-          </>
-        )
-      case 'unexpected':
-        return (
-          <>
-            The search request failed for an unexpected reason.
-            <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>
-              Try again
-            </StyledLink> or
-            start a{' '}
-            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
-          </>
-        )
-      default:
-        assertNever(kind)
-    }
-  }, [kind, onRefine])
-
   return (
     <div className={cx(classes.root, className)}>
       {/* Headline, not Display (No-Display-Font Rule) -- matches Empty. */}
@@ -286,5 +222,84 @@ export function Error({
         </>
       )}
     </div>
+  )
+}
+
+interface UnexpectedErrorProps {
+  className?: string
+  children?: React.ReactNode
+  onRefine: (action: Refine.Network | Refine.New) => void
+}
+
+export function UnexpectedError({ className, children, onRefine }: UnexpectedErrorProps) {
+  return (
+    <ErrorScreen
+      className={className}
+      heading="Unexpected error"
+      body={
+        <>
+          The search request failed for an unexpected reason.
+          <br />
+          <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+          start a <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>
+          .
+        </>
+      }
+    >
+      {children}
+    </ErrorScreen>
+  )
+}
+
+interface SyntaxErrorProps {
+  className?: string
+  children?: React.ReactNode
+  onRefine: (action: Refine.Search) => void
+}
+
+export function SyntaxError({ className, children, onRefine }: SyntaxErrorProps) {
+  return (
+    <ErrorScreen
+      className={className}
+      heading="Query syntax error"
+      body={
+        <>
+          The search cluster couldn&apos;t parse that query.
+          <br />
+          Try quoting{' '}
+          <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+          read about{' '}
+          <StyledLink href={ES_REF_SYNTAX} target="_blank">
+            supported query syntax
+          </StyledLink>
+          .
+        </>
+      }
+    >
+      {children}
+    </ErrorScreen>
+  )
+}
+
+interface TimeoutErrorProps {
+  className?: string
+  onRefine: (action: Refine.Network | Refine.New) => void
+}
+
+export function TimeoutError({ className, onRefine }: TimeoutErrorProps) {
+  return (
+    <ErrorScreen
+      className={className}
+      heading="Search timed out"
+      body={
+        <>
+          The search cluster is under load and didn&apos;t answer in time.
+          <br />
+          <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+          start a <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>
+          .
+        </>
+      }
+    />
   )
 }
