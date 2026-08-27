@@ -90,23 +90,10 @@ function SearchLayout() {
 // exits that work.
 function SearchErrorFallback({ error }: FallbackProps) {
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
-  // The bad state lives in the location, i.e. *above* this boundary, so
-  // `resetErrorBoundary` would re-render the same throw. Navigating is the
-  // reset -- `resetKeys` below clears the boundary when the URL changes.
-  const handleRefine = React.useCallback(
-    (action: NoResults.Refine) => {
-      if (action === NoResults.Refine.Network) {
-        window.location.reload()
-        return
-      }
-      history.push(urls.search({}))
-    },
-    [history, urls],
-  )
+  const onRefine = NoResults.useErrorRefine(urls.search({}))
   return (
     <Layout>
-      <NoResults.Error onRefine={handleRefine}>{error.message}</NoResults.Error>
+      <NoResults.Error onRefine={onRefine}>{error.message}</NoResults.Error>
     </Layout>
   )
 }

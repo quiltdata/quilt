@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Empty from 'components/Empty'
@@ -53,6 +54,29 @@ export enum Refine {
   Search,
   New,
   Network,
+}
+
+// Shared by the error boundaries that wrap SearchUIModel.Provider (the search
+// page, a bucket's package list). Their fallbacks render *above* the model,
+// because the model is what threw, so the two exits this offers are the only
+// ones available: reload, or leave for a URL that parses.
+//
+// `base` is that clean URL. Navigating is the reset rather than
+// `resetErrorBoundary`, because the bad state lives in the location -- above
+// the boundary -- so clearing the error alone re-renders the same throw. Pair
+// this with `resetKeys` on the location's search string.
+export function useErrorRefine(base: string) {
+  const history = RRDom.useHistory()
+  return React.useCallback(
+    (action: Refine) => {
+      if (action === Refine.Network) {
+        window.location.reload()
+        return
+      }
+      history.push(base)
+    },
+    [base, history],
+  )
 }
 
 interface EmptyWrapperProps {

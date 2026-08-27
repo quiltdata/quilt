@@ -12,7 +12,11 @@ import assertNever from 'utils/assertNever'
 
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import Main from 'containers/Search/Layout/Main'
-import { Error as SearchErrorScreen, Refine } from 'containers/Search/NoResults'
+import {
+  Error as SearchErrorScreen,
+  Refine,
+  useErrorRefine,
+} from 'containers/Search/NoResults'
 import ListResults from 'containers/Search/List'
 import TableResults from 'containers/Search/Table'
 
@@ -123,22 +127,9 @@ function PackageListErrorFallback({ error }: FallbackProps) {
   const classes = useErrorFallbackStyles()
   const bucket = useBucketStrict()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const history = RR.useHistory()
-  // The bad state lives in the location, i.e. *above* this boundary, so
-  // `resetErrorBoundary` would re-render the same throw. Navigating is the
-  // reset -- `resetKeys` below clears the boundary when the URL changes.
-  const handleRefine = React.useCallback(
-    (action: Refine) => {
-      if (action === Refine.Network) {
-        window.location.reload()
-        return
-      }
-      history.push(urls.bucketPackageList(bucket))
-    },
-    [bucket, history, urls],
-  )
+  const onRefine = useErrorRefine(urls.bucketPackageList(bucket))
   return (
-    <SearchErrorScreen className={classes.root} onRefine={handleRefine}>
+    <SearchErrorScreen className={classes.root} onRefine={onRefine}>
       {error.message}
     </SearchErrorScreen>
   )
