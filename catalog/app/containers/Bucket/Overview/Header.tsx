@@ -1,16 +1,12 @@
 import type AWSSDK from 'aws-sdk'
 import cx from 'classnames'
 import * as React from 'react'
-import { Link as RRLink } from 'react-router-dom'
-import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
-import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import useConst from 'utils/useConstant'
 
 import * as requests from '../requests'
@@ -161,12 +157,6 @@ const useStyles = M.makeStyles((t) => ({
       borderRadius: 0,
     },
   },
-  settings: {
-    color: t.palette.common.white,
-    position: 'absolute',
-    right: t.spacing(2),
-    top: t.spacing(2),
-  },
   stats: {
     [t.breakpoints.down('xs')]: {
       marginTop: t.spacing(2),
@@ -188,25 +178,16 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
   const req = APIConnector.use()
   const colorPool = useConst(() => makeColorPool(COLOR_MAP))
   const statsData = useData(requests.bucketStats, { req, s3, bucket })
-  const { urls } = NamedRoutes.use()
-  const isAdmin = redux.useSelector(authSelectors.isAdmin)
   return (
     <M.Paper className={classes.root}>
+      {/* The bucket name and its admin-settings link live above the tabs
+          (containers/Bucket/Header), so this hero carries the description and
+          stats only — same split the v2 header already made. */}
       <M.Box className={classes.top}>
-        <M.Typography variant="h5">{bucket}</M.Typography>
         {!!description && (
-          <M.Box mt={1}>
-            <M.Typography variant="body1">{description}</M.Typography>
-          </M.Box>
+          <M.Typography variant="body1">{description}</M.Typography>
         )}
         <Stats className={classes.stats} bucket={bucket} />
-        {isAdmin && (
-          <RRLink className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-            <M.IconButton color="inherit">
-              <M.Icon>settings</M.Icon>
-            </M.IconButton>
-          </RRLink>
-        )}
       </M.Box>
       <M.Box
         p={{ xs: 2, sm: 4 }}

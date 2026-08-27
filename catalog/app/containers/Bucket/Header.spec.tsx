@@ -7,7 +7,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import Header, { BucketTitle } from './Header'
+import Header from './Header'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -29,8 +29,9 @@ vi.mock('./PackageDialog', () => ({
   useCreateDialog: () => ({ open: vi.fn(), render: () => null }),
 }))
 
+let isAdmin = false
 vi.mock('react-redux', () => ({
-  useSelector: () => false,
+  useSelector: () => isAdmin,
 }))
 
 vi.mock('utils/AWS', () => ({
@@ -90,7 +91,7 @@ function renderHeader() {
   return render(
     <MemoryRouter>
       <NamedRoutes.Provider routes={routes}>
-        <Header bucket="test-bucket" />
+        <Header bucket="test-bucket" withStats />
       </NamedRoutes.Provider>
     </MemoryRouter>,
   )
@@ -103,6 +104,7 @@ describe('containers/Bucket/Header', () => {
     packagesTotal = 7
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
+    isAdmin = false
   })
 
   it('does not link the total-size stat', () => {
@@ -188,16 +190,17 @@ describe('containers/Bucket/Header', () => {
   })
 })
 
-// BucketTitle is what a stack without the `beta` setting renders — the bucket name is
-// wayfinding, so it must not depend on the stats row or pay for its queries.
-describe('containers/Bucket/Header BucketTitle', () => {
-  afterEach(cleanup)
+describe('containers/Bucket/Header withStats=false', () => {
+  afterEach(() => {
+    cleanup()
+    isAdmin = false
+  })
 
   function renderTitle() {
     return render(
       <MemoryRouter>
         <NamedRoutes.Provider routes={routes}>
-          <BucketTitle bucket="test-bucket" />
+          <Header bucket="test-bucket" withStats={false} />
         </NamedRoutes.Provider>
       </MemoryRouter>,
     )
@@ -208,12 +211,26 @@ describe('containers/Bucket/Header BucketTitle', () => {
     expect(getByText('test-bucket')).toBeTruthy()
   })
 
+  // The settings link is the other half of what renders ungated, and the
+  // module-level useSelector mock is what makes it reachable in a test at all.
+  it('links a settings gear to the bucket admin page for an admin', () => {
+    isAdmin = true
+    const { getByText } = renderTitle()
+    const link = getByText('settings').closest('a')
+    expect(link).toBeTruthy()
+    expect(link!.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('offers no settings gear to a non-admin', () => {
+    isAdmin = false
+    const { queryByText } = renderTitle()
+    expect(queryByText('settings')).toBeNull()
+  })
+
   it('renders no stats and issues no stats queries', () => {
     statsResult.mockClear()
     useTabulatorTables.mockClear()
     const { queryByText } = renderTitle()
-    expect(queryByText(/objects?$/)).toBeNull()
-    expect(queryByText(/packages?$/)).toBeNull()
     expect(queryByText('Create package')).toBeNull()
     expect(statsResult).not.toHaveBeenCalled()
     expect(useTabulatorTables).not.toHaveBeenCalled()

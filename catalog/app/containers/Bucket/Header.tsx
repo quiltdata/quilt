@@ -196,25 +196,30 @@ const useStyles = M.makeStyles((t) => ({
     flexShrink: 1,
     minWidth: 0,
   },
+  // A 63-char bucket name with no hyphen or dot has no break opportunity, so
+  // without this it overflows the card rather than wrapping.
+  name: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
   settings: {
     marginLeft: t.spacing(1),
   },
 }))
 
-interface BucketTitleProps {
-  bucket: string
-}
-
 // Which bucket you are looking at — wayfinding, so it renders on every stack.
-// Kept free of `useStats`/`useTabulatorTables` so it costs no queries: the stats
-// row it sits next to is still behind the `beta` setting.
-export function BucketTitle({ bucket }: BucketTitleProps) {
+// Keep `useStats`/`useTabulatorTables` out of it: those are what the `beta` gate
+// on the stats row below is holding back, and this renders ungated.
+function BucketTitle({ bucket }: { bucket: string }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   return (
     <div className={classes.title}>
-      <M.Typography variant="h5">{bucket}</M.Typography>
+      <M.Typography variant="h5" className={classes.name} title={bucket}>
+        {bucket}
+      </M.Typography>
       {isAdmin && (
         <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
           <M.IconButton size="small" color="inherit">
@@ -226,19 +231,25 @@ export function BucketTitle({ bucket }: BucketTitleProps) {
   )
 }
 
+// Wraps the stats row so `useStats` is only reached when the row is rendered —
+// a hook cannot be called conditionally in Header itself.
+function StatsSection({ bucket }: { bucket: string }) {
+  return <Stats bucket={bucket} stats={useStats(bucket)} />
+}
+
 interface HeaderProps {
   bucket: string
+  withStats: boolean
 }
 
 // The bucket header (name + settings + stats + create-package) shown above the
 // bucket tabs, so it stays visible across all tabs (not just Overview).
-export default function Header({ bucket }: HeaderProps) {
+export default function Header({ bucket, withStats }: HeaderProps) {
   const classes = useStyles()
-  const stats = useStats(bucket)
   return (
     <div className={classes.root}>
       <BucketTitle bucket={bucket} />
-      <Stats bucket={bucket} stats={stats} />
+      {withStats && <StatsSection bucket={bucket} />}
     </div>
   )
 }

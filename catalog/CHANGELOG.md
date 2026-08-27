@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] A bucket's name is back in the chrome on every stack. The shell re-home moved it from the old nav bar into a header card gated behind the `beta` setting, so on a default stack the Packages and Workflows tabs identified the bucket nowhere on the page. The name (and the admin settings link beside it) is now ungated; the stats row and its queries stay behind `beta` ([#5235](https://github.com/quiltdata/quilt/pull/5235))
+- [Fixed] A bucket's name is back in the chrome on every stack. The shell re-home moved it from the old nav bar into a header card gated behind the `beta` setting, so on a default stack the Packages and Workflows tabs identified the bucket nowhere on the page. The name and the admin settings link beside it now render ungated, with only the stats row behind `beta`. The Overview hero drops its own copy of both — the same split the beta Overview already made — so the name appears once per page rather than twice, and a long name ellipsizes instead of overflowing the card ([#5235](https://github.com/quiltdata/quilt/pull/5235))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
