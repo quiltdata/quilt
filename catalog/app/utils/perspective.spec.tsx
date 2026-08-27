@@ -155,6 +155,30 @@ describe('utils/perspective', () => {
     await waitFor(() => expect(fakeTable.delete).toHaveBeenCalled())
   })
 
+  it('releases a table that arrived after the cleanup exactly once', async () => {
+    // `viewer.delete()` settles after the abandoned run's table arrives, so
+    // both release paths hold it -- the second `delete()` rejects
+    let releaseViewerDelete = () => {}
+    viewerDelete.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseViewerDelete = () => resolve()
+        }),
+    )
+
+    const { unmount } = render(subject('a,b\n1,2\n'))
+    await waitFor(() => expect(tableCalls).toHaveLength(1))
+
+    unmount()
+    tableCalls[0].resolve(fakeTable)
+    await waitFor(() => expect(fakeTable.delete).toHaveBeenCalled())
+
+    releaseViewerDelete()
+    await settle()
+
+    expect(fakeTable.delete).toHaveBeenCalledTimes(1)
+  })
+
   it('releases the table even when the viewer delete rejects', async () => {
     viewerDelete.mockImplementation(async () => {
       throw new Error('View is not initialized')

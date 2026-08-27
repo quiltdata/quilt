@@ -57,6 +57,14 @@ function usePerspective(
     //       it -- an error over a preview that is loading fine.
     let cancelled = false
 
+    // The abandoned run and the cleanup both reach a loaded table; taking the
+    // reference keeps the release single -- a second `delete()` rejects
+    async function releaseTable() {
+      const released = table
+      table = null
+      await released?.delete()
+    }
+
     async function renderData() {
       if (!container) return
 
@@ -65,7 +73,7 @@ function usePerspective(
       // NOTE: a cleanup that ran during the load saw `table` as null and had
       //       nothing to release, so release it here -- the viewer is gone
       if (cancelled) {
-        await table.delete()
+        await releaseTable()
         return
       }
 
@@ -103,7 +111,7 @@ function usePerspective(
       try {
         await viewer?.delete()
       } finally {
-        await table?.delete()
+        await releaseTable()
       }
     }
 
