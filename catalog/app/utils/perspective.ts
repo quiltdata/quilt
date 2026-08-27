@@ -35,7 +35,13 @@ export async function renderTable(
   viewer: HTMLPerspectiveViewerElement,
 ) {
   const table = await worker.table(data)
-  await viewer.load(table)
+  // Until this returns, the table has no other reference to release it by
+  try {
+    await viewer.load(table)
+  } catch (e) {
+    await table.delete()
+    throw e
+  }
   return table
 }
 

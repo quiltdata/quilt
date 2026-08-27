@@ -38,12 +38,13 @@ const fakeTable = { size, delete: vi.fn(async () => {}) }
 // `renderViewer` does `document.createElement('perspective-viewer')`, so the
 // element has to exist for the code under test to have anything to call.
 const restore = vi.fn(async () => {})
+const viewerLoad = vi.fn(async () => {})
 const viewerDelete = vi.fn(async () => {})
 
 class FakeViewer extends HTMLElement {
   restore = restore
 
-  load = vi.fn(async () => {})
+  load = viewerLoad
 
   save = vi.fn(async () => ({}))
 
@@ -83,6 +84,8 @@ describe('utils/perspective', () => {
     restore.mockImplementation(async () => {})
     size.mockReset()
     size.mockImplementation(async () => 2)
+    viewerLoad.mockReset()
+    viewerLoad.mockImplementation(async () => {})
     viewerDelete.mockReset()
     viewerDelete.mockImplementation(async () => {})
     fakeTable.delete.mockClear()
@@ -140,6 +143,20 @@ describe('utils/perspective', () => {
 
     tableCalls[1].resolve(fakeTable)
     await waitFor(() => expect(getByTestId('root').textContent).toBe('loaded'))
+  })
+
+  it('releases a table whose load rejected', async () => {
+    // The table exists before the load, so a rejection loses its only reference
+    viewerLoad.mockImplementation(async () => {
+      throw new Error('Failed to load table')
+    })
+
+    const { getByTestId } = render(subject('a,b\n1,2\n'))
+    await waitFor(() => expect(tableCalls).toHaveLength(1))
+    tableCalls[0].resolve(fakeTable)
+
+    await waitFor(() => expect(getByTestId('fallback')).toBeTruthy())
+    expect(fakeTable.delete).toHaveBeenCalledTimes(1)
   })
 
   it('releases a table that arrived after the cleanup', async () => {
