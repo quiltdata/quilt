@@ -370,6 +370,24 @@ describe('containers/Search/model', () => {
       })
     })
 
+    // The character offset in the original SyntaxError is meaningless without
+    // the string it indexes into, so the log has to carry that string.
+    it('logs the value that failed to parse, not just the SyntaxError', () => {
+      const level = Log.getLevel()
+      Log.setLevel('error')
+      const spy = vi.spyOn(Log, 'error').mockImplementation(() => {})
+      try {
+        expect(() => model.parseSearchParams('modified={')).toThrow()
+        expect(spy).toHaveBeenCalledWith(
+          expect.stringContaining('JSON.parse failed on "{"'),
+          expect.any(SyntaxError),
+        )
+      } finally {
+        spy.mockRestore()
+        Log.setLevel(level)
+      }
+    })
+
     it('leaves well-formed filter params parsing as before', () => {
       expect(
         model.Predicates.Datetime.fromString('{"gte":"2020-01-02T00:00:00.000Z"}'),
