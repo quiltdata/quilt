@@ -18,6 +18,10 @@ Entries inside each section should be ordered by type:
 
 ## unreleased - YYYY-MM-DD
 
+### CI
+
+* [Changed] Path-filtered Python CI keeps required check contexts successful while skipping jobs unrelated to the changed paths.
+
 ### Python API
 
 * [Added] `quilt3.session.use_registry_url()`, `set_registry_url_resolver()`, and `reset_registry_url_resolver()` for overriding the registry URL in-process without writing `~/.quilt/config.yml`, so a host application can drive a registry chosen at runtime or several registries in one process; each operation uses one URL snapshot, and authenticated HTTP-session creation is synchronized and isolated per resolved registry URL ([#5240](https://github.com/quiltdata/quilt/pull/5240))
