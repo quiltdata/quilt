@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import * as KTree from 'utils/KeyedTree'
+import Log from 'utils/Logging'
 
 import * as model from './model'
 
@@ -312,6 +313,57 @@ describe('containers/Search/model', () => {
         expect(model.orderingToResultOrder('sys:size:asc')).toBe(
           model.GQLResultOrder.BEST_MATCH,
         )
+      })
+    })
+  })
+
+  // A filter param comes off a URL anyone can hand-edit, so the JSON in it is
+  // not trustworthy input.
+  describe('Predicates: malformed filter JSON', () => {
+    const silenced = (f: () => void) => {
+      const level = Log.getLevel()
+      Log.setLevel('silent')
+      try {
+        f()
+      } finally {
+        Log.setLevel(level)
+      }
+    }
+
+    it('names the filter when a date range will not parse', () => {
+      silenced(() =>
+        expect(() => model.Predicates.Datetime.fromString('{"gte":')).toThrow(
+          'Invalid date range in the search URL',
+        ),
+      )
+    })
+
+    it('names the filter when a number range will not parse', () => {
+      silenced(() =>
+        expect(() => model.Predicates.Number.fromString('{oops}')).toThrow(
+          'Invalid number range in the search URL',
+        ),
+      )
+    })
+
+    it('names the filter when a keyword list will not parse', () => {
+      silenced(() =>
+        expect(() => model.Predicates.KeywordEnum.fromString('"a",,')).toThrow(
+          'Invalid keyword list in the search URL',
+        ),
+      )
+    })
+
+    it('leaves well-formed filter params parsing as before', () => {
+      expect(
+        model.Predicates.Datetime.fromString('{"gte":"2020-01-02T00:00:00.000Z"}'),
+      ).toMatchObject({ gte: new Date('2020-01-02T00:00:00.000Z'), lte: null })
+      expect(model.Predicates.Number.fromString('{"gte":1,"lte":5}')).toMatchObject({
+        gte: 1,
+        lte: 5,
+      })
+      expect(model.Predicates.KeywordEnum.fromString('"a","b"')).toMatchObject({
+        terms: ['a', 'b'],
       })
     })
   })

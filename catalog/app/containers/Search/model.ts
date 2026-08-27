@@ -10,6 +10,7 @@ import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as KTree from 'utils/KeyedTree'
+import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
@@ -341,6 +342,19 @@ function Predicate<Tag extends string, State, GQLType>(input: {
   }
 }
 
+// A filter's URL param is user-editable, so JSON.parse can throw on anything a
+// hand-edited or truncated link carries. The raw SyntaxError names a character
+// offset in a string the reader never sees, so it goes to the console and the
+// throw carries a message naming the filter that could not be read.
+function parseFilterJson(input: string, message: string) {
+  try {
+    return JSON.parse(input)
+  } catch (e) {
+    Log.error(e)
+    throw new Error(message)
+  }
+}
+
 const STRICT_MARKER = '$s$:'
 
 export const Predicates = {
@@ -351,7 +365,7 @@ export const Predicates = {
       lte: null as Date | null,
     },
     fromString: (input: string) => {
-      const json = JSON.parse(input)
+      const json = parseFilterJson(input, 'Invalid date range in the search URL')
       return {
         gte: parseDate(json.gte),
         lte: parseDate(json.lte),
@@ -371,7 +385,7 @@ export const Predicates = {
       lte: null as number | null,
     },
     fromString: (input: string) => {
-      const json = JSON.parse(input)
+      const json = parseFilterJson(input, 'Invalid number range in the search URL')
       return {
         gte: (json.gte as number) ?? null,
         lte: (json.lte as number) ?? null,
@@ -398,7 +412,12 @@ export const Predicates = {
   KeywordEnum: Predicate({
     tag: 'KeywordEnum',
     init: { terms: [] as string[] },
-    fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
+    fromString: (input: string) => ({
+      terms: parseFilterJson(
+        `[${input}]`,
+        'Invalid keyword list in the search URL',
+      ) as string[],
+    }),
     toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
     toGQL: ({ terms }) =>
       terms.length
