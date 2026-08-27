@@ -120,6 +120,7 @@ export function useState(
     meta,
     metadataSchema,
     name,
+    src,
     workflow,
   })
 
