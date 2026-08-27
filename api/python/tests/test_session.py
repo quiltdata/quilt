@@ -472,6 +472,36 @@ class TestRegistryUrlOverride(QuiltTestCase):
         finally:
             quilt3.session.clear_session()
 
+    def test_session_refresh_uses_same_registry_url(self):
+        registry_url = 'https://other.example.com'
+        expired_auth = {
+            'access_token': 'expired-token',
+            'refresh_token': 'refresh-token',
+            'expires_at': 0,
+        }
+        refreshed_auth = {
+            'access_token': 'refreshed-token',
+            'refresh_token': 'new-refresh-token',
+            'expires_at': float('inf'),
+        }
+
+        quilt3.session.clear_session()
+        try:
+            with (
+                patch('quilt3.session._api_key', None),
+                patch('quilt3.session._load_auth', return_value={registry_url: expired_auth}),
+                patch('quilt3.session._update_auth', return_value=refreshed_auth) as mock_update_auth,
+                patch('quilt3.session._save_auth') as mock_save_auth,
+            ):
+                with quilt3.session.use_registry_url(registry_url):
+                    session = quilt3.session.get_session()
+
+            assert session.headers['Authorization'] == 'Bearer refreshed-token'
+            mock_update_auth.assert_called_once_with('refresh-token', None, registry_url=registry_url)
+            mock_save_auth.assert_called_once_with({registry_url: refreshed_auth})
+        finally:
+            quilt3.session.clear_session()
+
     def test_override_is_isolated_per_thread(self):
         import threading
 
