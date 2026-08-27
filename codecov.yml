@@ -15,6 +15,7 @@ flag_management:
       - name_prefix: 'auto-'
         type: project
         threshold: 0.1
+        informational: true
       - name_prefix: 'auto-'
         type: patch
   individual_flags:
