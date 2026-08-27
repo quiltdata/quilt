@@ -122,27 +122,54 @@ const isStillBrowsingPackage = (
 }
 
 const useTopBarStyles = M.makeStyles((t) => ({
+  // The stacked tier keeps the wide tier's right anchor so the (often
+  // icon-collapsed) action strip doesn't sit parked at the left edge.
   topBar: {
-    alignItems: 'flex-end',
-    display: 'flex',
+    alignItems: 'end',
+    columnGap: t.spacing(2),
+    display: 'grid',
+    gridTemplateAreas: '"crumbs actions"',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
     marginBottom: t.spacing(2),
     marginTop: t.spacing(0.5),
+    [t.breakpoints.down(1100)]: {
+      gridTemplateAreas: '"crumbs" "actions"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    },
   },
   crumbs: {
     ...t.typography.body1,
-    maxWidth: 'calc(100% - 160px)',
+    gridArea: 'crumbs',
+    minWidth: 0,
     overflowWrap: 'break-word',
-    [t.breakpoints.down('xs')]: {
-      maxWidth: 'calc(100% - 40px)',
-    },
   },
   content: {
     alignItems: 'center',
     display: 'flex',
-    flexShrink: 0,
+    flexWrap: 'nowrap',
+    gridArea: 'actions',
     marginBottom: -3,
-    marginLeft: 'auto',
     marginTop: -3,
+    '&:empty': {
+      display: 'none',
+    },
+    // Children carry their own marginLeft for intra-cluster gaps; the grid's
+    // columnGap already provides the crumbs seam, so the first child's margin
+    // is zeroed. Doubled selectors (&&) outrank the children's single-class
+    // margin rules regardless of JSS sheet insertion order.
+    '&& > :first-child': {
+      marginLeft: 0,
+    },
+    [t.breakpoints.down(1100)]: {
+      flexWrap: 'wrap',
+      gap: t.spacing(1),
+      justifyContent: 'flex-end',
+      marginBottom: 0,
+      marginTop: t.spacing(1),
+      '&& > *': {
+        margin: 0,
+      },
+    },
   },
 }))
 
@@ -974,13 +1001,50 @@ type RevisionData = NonNullable<
   GQL.DataForDoc<typeof REVISION_QUERY>['package']
 >['revision']
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   alertMsg: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-})
+  revisionLine: {
+    ...t.typography.body1,
+    alignItems: 'baseline',
+    display: 'grid',
+    gridTemplateAreas: '"name revision"',
+    gridTemplateColumns: 'minmax(0, max-content) max-content',
+    justifyContent: 'start',
+    [t.breakpoints.down(640)]: {
+      gridTemplateAreas: '"name" "revision"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: t.spacing(0.5),
+    },
+  },
+  // Truncation's escape hatches: the title tooltip for the mouse, and
+  // keyboard focus landing inside unfolds the name for the sighted
+  // keyboard user (the links inside stay tabbable when clipped).
+  packageName: {
+    gridArea: 'name',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    '&:focus-within': {
+      overflowWrap: 'anywhere',
+      whiteSpace: 'normal',
+    },
+    [t.breakpoints.down(640)]: {
+      overflowWrap: 'anywhere',
+      whiteSpace: 'normal',
+    },
+  },
+  // `pre` keeps the leading " @ " separator rendered and copyable, so
+  // selecting the line still yields "name @ revision" like the old markup.
+  revision: {
+    gridArea: 'revision',
+    whiteSpace: 'pre',
+  },
+}))
 
 interface PackageRevisionProps {
   packageHandle: PackageHandle
@@ -1118,11 +1182,15 @@ function PackageTree({
           </Lab.Alert>
         </M.Box>
       )}
-      <M.Typography variant="body1">
-        <PackageLink {...{ bucket, name }} />
-        {' @ '}
-        <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
-      </M.Typography>
+      <div className={classes.revisionLine}>
+        <span className={classes.packageName} title={name}>
+          <PackageLink {...{ bucket, name }} />
+        </span>
+        <span className={classes.revision}>
+          {' @ '}
+          <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
+        </span>
+      </div>
       {packageHandle ? (
         <PackageRevision
           packageHandle={packageHandle}
