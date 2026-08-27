@@ -429,7 +429,7 @@ export const PACKAGE_PRODUCT: DataProduct = {
       kind: 'FILESET',
       schema: null,
       locator: token(
-        'quilt+s3://raja-poc-registry-712023778557-us-east-1#package=alpha/home@bee98d06',
+        'quilt+s3://raja-poc-registry-000000000000-us-east-1#package=alpha/home@bee98d06',
       ),
       readable: true,
       contentsSource: 'PACKAGE',
@@ -437,7 +437,7 @@ export const PACKAGE_PRODUCT: DataProduct = {
       // S3 -- unlike DIRECT_S3, where the catalog carries only a bucket ARN.
       sizeBytes: 369,
       packageHandle: {
-        registry: 'raja-poc-registry-712023778557-us-east-1',
+        registry: 'raja-poc-registry-000000000000-us-east-1',
         name: 'alpha/home',
         topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
       },
@@ -472,7 +472,7 @@ export const PACKAGE_PRODUCT: DataProduct = {
     listingId: '46g5jnuhfnucyv',
     entityId: 'brga0b06ujf3tz',
     packageHandle: {
-      registry: 'raja-poc-registry-712023778557-us-east-1',
+      registry: 'raja-poc-registry-000000000000-us-east-1',
       name: 'alpha/home',
       topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
     },
@@ -507,7 +507,7 @@ export const DANGLING_PACKAGE_PRODUCT: DataProduct = {
       kind: 'FILESET',
       schema: null,
       locator: token(
-        'quilt+s3://raja-poc-registry-712023778557-us-east-1#package=scale/1k@0000000',
+        'quilt+s3://raja-poc-registry-000000000000-us-east-1#package=scale/1k@0000000',
       ),
       // `readable: true` is deliberate and is the point of this fixture. The
       // catalog authorized us; the package is simply not where it says. Setting
@@ -517,7 +517,7 @@ export const DANGLING_PACKAGE_PRODUCT: DataProduct = {
       contentsSource: 'UNAVAILABLE',
       unavailableReason: 'NOT_FOUND',
       packageHandle: {
-        registry: 'raja-poc-registry-712023778557-us-east-1',
+        registry: 'raja-poc-registry-000000000000-us-east-1',
         name: 'scale/1k',
         topHash: '0000000000000000000000000000000000000000000000000000000000000000',
       },
@@ -538,7 +538,7 @@ export const DANGLING_PACKAGE_PRODUCT: DataProduct = {
     domainId: 'dzd-61b4n7ubllnqlj',
     listingId: '5i2yhfmdd9nbqf',
     packageHandle: {
-      registry: 'raja-poc-registry-712023778557-us-east-1',
+      registry: 'raja-poc-registry-000000000000-us-east-1',
       name: 'scale/1k',
       topHash: '0000000000000000000000000000000000000000000000000000000000000000',
     },
@@ -581,7 +581,7 @@ const usl = (handle: PackageHandle, logicalKey: string) =>
   `quilt+s3://${handle.registry}#package=${handle.name}@${handle.topHash}&path=${logicalKey}`
 
 const ALPHA_HOME: PackageHandle = {
-  registry: 'raja-poc-registry-712023778557-us-east-1',
+  registry: 'raja-poc-registry-000000000000-us-east-1',
   name: 'alpha/home',
   topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
 }
@@ -683,8 +683,8 @@ export function readableMembers(product: DataProduct): Member[] {
 export const UNITY_SUBMITTED_REQUEST: AccessRequest = {
   id: 'dpr_01hq8x',
   dataProductId: DISCOVERY_ONLY_PRODUCT.id,
-  requestedBy: 'simon@quiltdata.io',
-  beneficiary: { type: 'USER', label: 'simon@quiltdata.io' },
+  requestedBy: 'a.researcher@example.com',
+  beneficiary: { type: 'USER', label: 'a.researcher@example.com' },
   reason: 'Cohort reconciliation for the Q3 assay comparison.',
   createdAt: new Date('2026-08-15T09:20:00.000Z'),
   status: 'SUBMITTED',
@@ -702,7 +702,7 @@ export const UNITY_SUBMITTED_REQUEST: AccessRequest = {
 export const DATAZONE_PENDING_REQUEST: AccessRequest = {
   id: 'dpr_01hq9m',
   dataProductId: DATAZONE_PRODUCT.id,
-  requestedBy: 'rita@quiltdata.io',
+  requestedBy: 'r.chen@example.com',
   beneficiary: { type: 'PROJECT', label: 'Clinical Data Platform' },
   reason: 'Linking assay outputs to enrolment records for the 2024 cohort.',
   createdAt: new Date('2026-08-16T14:05:00.000Z'),
@@ -725,7 +725,7 @@ export const DATAZONE_PENDING_REQUEST: AccessRequest = {
 export const DATAZONE_REVOKED_RETAINED_REQUEST: AccessRequest = {
   id: 'dpr_01hq4c',
   dataProductId: DATAZONE_PRODUCT.id,
-  requestedBy: 'former-contractor@example.com',
+  requestedBy: 'past.contractor@example.com',
   beneficiary: { type: 'PROJECT', label: 'Assay Ops' },
   reason: 'Temporary access for the migration audit.',
   createdAt: new Date('2026-06-02T11:00:00.000Z'),
@@ -753,7 +753,7 @@ export const DATAZONE_REVOKED_RETAINED_REQUEST: AccessRequest = {
 export const UNITY_SHARE_RECIPIENT_REQUEST: AccessRequest = {
   id: 'dpr_01hqb2',
   dataProductId: UNITY_SHARE_PRODUCT.id,
-  requestedBy: 'priya@quiltdata.io',
+  requestedBy: 'p.nair@example.com',
   beneficiary: { type: 'RECIPIENT', label: 'acme_analytics' },
   reason: 'Acme needs the site-level breakdown for their Q3 readout.',
   createdAt: new Date('2026-08-17T08:40:00.000Z'),
@@ -773,7 +773,7 @@ export const UNITY_SHARE_RECIPIENT_REQUEST: AccessRequest = {
 export const UNITY_APPROVED_REQUEST: AccessRequest = {
   id: 'dpr_01hq7a',
   dataProductId: UNITY_PRODUCT.id,
-  requestedBy: 'dana@quiltdata.io',
+  requestedBy: 'd.okafor@example.com',
   beneficiary: { type: 'GROUP', label: 'quilt-consumers' },
   reason: 'Joining package metadata against the assay manifest.',
   createdAt: new Date('2026-08-10T13:15:00.000Z'),
