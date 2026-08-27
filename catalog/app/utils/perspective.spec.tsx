@@ -103,17 +103,22 @@ describe('utils/perspective', () => {
     await waitFor(() => expect(getByTestId('root').textContent).toBe('loaded'))
   })
 
-  it('surfaces a rejected restore(config)', async () => {
-    // what a quilt_summarize.json naming a column the file lacks produces
+  it('keeps the table when restore(config) rejects', async () => {
+    // A plugin or theme the build does not ship. Perspective's own answer to a
+    // config it cannot use is to log and fall back to the default view, so an
+    // author's typo must not cost the reader a table that loaded fine.
     restore.mockImplementation(async () => {
-      throw new Error("Invalid column 'nonexistent' found in View group_by")
+      throw new Error("Unkown plugin 'No Such Plugin'")
     })
 
-    const { getByTestId } = render(subject('a,b\n1,2\n', { group_by: ['nonexistent'] }))
+    const { getByTestId, queryByTestId } = render(
+      subject('a,b\n1,2\n', { plugin: 'No Such Plugin' }),
+    )
     await waitFor(() => expect(tableCalls).toHaveLength(1))
     tableCalls[0].resolve(fakeTable)
 
-    await waitFor(() => expect(getByTestId('fallback')).toBeTruthy())
+    await waitFor(() => expect(getByTestId('root').textContent).toBe('loaded'))
+    expect(queryByTestId('fallback')).toBeNull()
   })
 
   it('surfaces a rejected size()', async () => {

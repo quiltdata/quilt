@@ -91,7 +91,14 @@ function usePerspective(
       }
 
       if (config) {
-        await viewer.restore(config)
+        // Perspective resets a config it can validate away; one that rejects
+        // instead -- a plugin or theme the build lacks -- gets the same
+        // fallback rather than costing the reader a table that loaded fine
+        try {
+          await viewer.restore(config)
+        } catch (e) {
+          log.error(e)
+        }
       }
 
       const size = await table.size()
@@ -121,9 +128,9 @@ function usePerspective(
       }
     }
 
-    // NOTE: catch the whole thing, not just the load: `restore(config)`,
-    //       `size()` and `onRender` reject too, and an unhandled rejection here
-    //       leaves the preview blank with nothing to show for it
+    // NOTE: catch the whole thing, not just the load: `size()` and `onRender`
+    //       reject too, and an unhandled rejection here leaves the preview
+    //       blank with nothing to show for it
     renderData().catch((e) => {
       if (cancelled) return
       const error = e instanceof Error ? e : new Error((e as any)?.message || `${e}`)

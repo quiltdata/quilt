@@ -21,7 +21,8 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Tabular preview: when a `quilt_summarize.json` perspective config names a column the file does not have, the preview now says it could not render the table instead of showing an empty panel with no explanation ([#5215](https://github.com/quiltdata/quilt/pull/5215))
+- [Fixed] Tabular preview: a preview abandoned while it was still loading -- navigated away from, or replaced by a larger fetch -- no longer leaves its dataset in the perspective worker for the lifetime of the tab ([#5215](https://github.com/quiltdata/quilt/pull/5215))
+- [Changed] Tabular preview: a failure after the table has loaded (`size()`, the render callback) reaches the error boundary instead of vanishing as an unhandled rejection, and a `quilt_summarize.json` perspective config that cannot be applied is logged and falls back to the default view ([#5215](https://github.com/quiltdata/quilt/pull/5215))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
