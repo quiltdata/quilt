@@ -1007,37 +1007,42 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  // Two explicit tiers instead of emergent inline wrapping. Wide: one line
-  // (name @ revision + shortcuts) where the package name truncates first and
-  // the revision control never separates from its shortcuts. Stacked (≤640px):
-  // the name gets its own full-width line — wrapping instead of truncating, so
-  // identity stays readable — with the revision cluster grouped beneath.
   revisionLine: {
     ...t.typography.body1,
     alignItems: 'baseline',
-    columnGap: t.spacing(0.5),
     display: 'grid',
     gridTemplateAreas: '"name revision"',
     gridTemplateColumns: 'minmax(0, max-content) max-content',
     justifyContent: 'start',
-    '@media (max-width: 640px)': {
+    [t.breakpoints.down(640)]: {
       gridTemplateAreas: '"name" "revision"',
       gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: t.spacing(0.5),
     },
   },
+  // Truncation's escape hatches: the title tooltip for the mouse, and
+  // keyboard focus landing inside unfolds the name for the sighted
+  // keyboard user (the links inside stay tabbable when clipped).
   packageName: {
     gridArea: 'name',
     minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    '@media (max-width: 640px)': {
+    '&:focus-within': {
+      overflowWrap: 'anywhere',
+      whiteSpace: 'normal',
+    },
+    [t.breakpoints.down(640)]: {
+      overflowWrap: 'anywhere',
       whiteSpace: 'normal',
     },
   },
+  // `pre` keeps the leading " @ " separator rendered and copyable, so
+  // selecting the line still yields "name @ revision" like the old markup.
   revision: {
     gridArea: 'revision',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'pre',
   },
 }))
 
@@ -1182,7 +1187,7 @@ function PackageTree({
           <PackageLink {...{ bucket, name }} />
         </span>
         <span className={classes.revision}>
-          {'@ '}
+          {' @ '}
           <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
         </span>
       </div>
