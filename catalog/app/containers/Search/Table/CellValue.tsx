@@ -152,7 +152,9 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
         </StyledLink>
       )
     case 'comment':
-      return hit.comment ? (
+      // The registry serializes a package with no commit message as the string
+      // 'None', not null. FIXME: drop the check once the backend sends null.
+      return hit.comment && hit.comment !== 'None' ? (
         <OverflowTextTooltip title={hit.comment}>
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
         </OverflowTextTooltip>
