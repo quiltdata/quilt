@@ -1,5 +1,5 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-Every S3 bucket attached to Quilt has a "Bucket" tab in the Catalog
+Every S3 bucket attached to Quilt has a "Files" tab in the Catalog
 that displays all files in the bucket.
 
 ![Files browser tab](../imgs/catalog-filesbrowser-tab.png)
@@ -51,7 +51,7 @@ an individual file by clicking "Add to bookmarks".
 
 ![Add selected files to bookmarks](../imgs/catalog-filesbrowser-addtobookmarks.png)
 
-Open the Bookmarks pane (listed in the User account menu) and
+Open the Bookmarks pane (**Bookmarks** in the left sidebar) and
 optionally create a new package from the bookmarked files.
 
 ![Open bookmarks](../imgs/catalog-filesbrowser-bookmarksmenu.png)
@@ -92,7 +92,7 @@ There are currently three types of S3 object archive storage class that
 work differently with the Quilt Catalog, `quilt3` CLI and Python API.
 
 1. **S3 Glacier Instant Retrieval:** Objects in this storage class are
-available as normal in the Bucket and Packages tabs in the Quilt
+available as normal in the Files and Packages tabs in the Quilt
 Catalog.
 1. **S3 Glacier Flexible Retrieval (formerly S3 Glacier):** Objects are
 not immediately available and appear "grayed out" in the Catalog.

@@ -10,24 +10,37 @@ but they are designed to work together.
 
 ## Brief tour
 
-The Quilt Catalog provides a homepage for your data catalog, based on a `README.md`
-file that you can optionally create at the top of your bucket.
+The Catalog opens on **Volumes**: the list of S3 buckets attached to your
+stack, with a text filter and a cards/list toggle. A persistent left sidebar
+carries Volumes, Search, Queries, Bookmarks, Ask Qurator and — for
+administrators — Admin, and an always-on search bar runs across the top of
+every page.
 
 ### Browse
 
+Clicking a volume opens its **Overview** tab, which renders a `README.md` file
+that you can optionally create at the top of the bucket.
+
 ![Homepage](../imgs/catalog_homepage.png)
+
+Each volume has four tabs: **Overview**, **Files**, **Packages** and
+**Workflows**. Queries are not among them — the Athena console (and the legacy
+ElasticSearch console, where an administrator has kept it enabled) lives on the
+workspace-global [Queries](../Catalog/Query.md) page, reachable from the
+sidebar.
 
 The Catalog lets you navigate packages in the registry using the "Packages" tab.
 
 ![Packages tab](../imgs/catalog_packages_tab.png)
 
-You can also browse the underlying S3 objects using the "Bucket" tab.
+You can also browse the underlying S3 objects using the "Files" tab.
 
 ![Files tab](../imgs/catalog_bucket_tab.png)
 
 ### Search
 
-Catalogs also enable you to search the contents of your bucket. We support both
+Catalogs also enable you to search the contents of your bucket, from the search
+bar at the top of the page or from **Search** in the sidebar. We support both
 unstructured (e.g. "`San Francisco`") and structured with
 [Query String Queries](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html#query-string-syntax)
 (e.g. "`metadata_key: metadata_value`") search. Hits are previewed right in the
