@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] A legacy `/b/<bucket>/queries/athena/<workgroup>` link keeps its bucket scope across the redirect to the workspace-global console, instead of arriving with no bucket selected — the bare-console redirect already promoted the bucket to `?bucket=`, its two workgroup/execution siblings did not, and both also dropped any other params (a `?table=` Tabulator deep link among them) ([#5226](https://github.com/quiltdata/quilt/pull/5226))
 - [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
 - [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))

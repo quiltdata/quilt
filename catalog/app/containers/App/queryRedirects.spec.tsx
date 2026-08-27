@@ -72,15 +72,27 @@ describe('containers/App/queryRedirects', () => {
     expect(landingAt('/b/my-bucket/queries/es')).toBe('/queries/es')
   })
 
-  it('redirects an athena workgroup, dropping the bucket', () => {
+  it('redirects an athena workgroup, carrying the bucket scope', () => {
     expect(landingAt('/b/my-bucket/queries/athena/primary')).toBe(
-      '/queries/athena/primary',
+      '/queries/athena/primary?bucket=my-bucket',
     )
   })
 
-  it('redirects an athena query execution', () => {
+  it('redirects an athena query execution, carrying the bucket scope', () => {
     expect(landingAt('/b/my-bucket/queries/athena/primary/exec-1')).toBe(
-      '/queries/athena/primary/exec-1',
+      '/queries/athena/primary/exec-1?bucket=my-bucket',
+    )
+  })
+
+  it('preserves other params alongside the bucket on a workgroup redirect', () => {
+    expect(landingAt('/b/my-bucket/queries/athena/primary?table=drugs')).toBe(
+      '/queries/athena/primary?bucket=my-bucket&table=drugs',
+    )
+  })
+
+  it('preserves other params alongside the bucket on an execution redirect', () => {
+    expect(landingAt('/b/my-bucket/queries/athena/primary/exec-1?table=drugs')).toBe(
+      '/queries/athena/primary/exec-1?bucket=my-bucket&table=drugs',
     )
   })
 })

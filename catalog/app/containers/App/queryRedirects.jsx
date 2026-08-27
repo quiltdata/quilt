@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Switch, Route, Redirect, useLocation, useParams } from 'react-router-dom'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
+import mkSearch from 'utils/mkSearch'
 import parseSearch from 'utils/parseSearch'
 
 // Legacy bucket-scoped query console routes redirect to the workspace-global
@@ -9,16 +10,37 @@ import parseSearch from 'utils/parseSearch'
 // components are extracted from App.jsx unchanged so their redirect targets are
 // unit-testable; App.jsx wires them at `paths.bucketQueries` exactly as before.
 
+// The workgroup/execution targets take their path segments positionally, so the
+// bucket scope and any other params ride along as `search` on the redirect
+// descriptor rather than through the url builder.
+function withBucketScope(pathname, bucket, search) {
+  return { pathname, search: mkSearch({ bucket, ...parseSearch(search, true) }) }
+}
+
 export function AthenaWorkgroupRedirect() {
-  const { workgroup } = useParams()
+  const { bucket, workgroup } = useParams()
+  const { search } = useLocation()
   const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaWorkgroup(workgroup)} />
+  return (
+    <Redirect
+      to={withBucketScope(urls.queriesAthenaWorkgroup(workgroup), bucket, search)}
+    />
+  )
 }
 
 export function AthenaExecutionRedirect() {
-  const { workgroup, queryExecutionId } = useParams()
+  const { bucket, workgroup, queryExecutionId } = useParams()
+  const { search } = useLocation()
   const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaExecution(workgroup, queryExecutionId)} />
+  return (
+    <Redirect
+      to={withBucketScope(
+        urls.queriesAthenaExecution(workgroup, queryExecutionId),
+        bucket,
+        search,
+      )}
+    />
+  )
 }
 
 export function AthenaRootRedirect() {
