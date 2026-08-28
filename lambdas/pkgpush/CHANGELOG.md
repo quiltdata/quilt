@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Fixed] Surface exceptions raised while hashing package entries (e.g. an AccessDenied writing to a cross-region scratch bucket) instead of silently swallowing them and falling back to download-and-hash ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+- [Fixed] Surface exceptions raised while hashing package entries (e.g. an AccessDenied writing to a cross-region scratch bucket) instead of silently swallowing them and falling back to download-and-hash ([#5249](https://github.com/quiltdata/quilt/pull/5249))
 - [Fixed] Read the published revision off the package `_push()` returns instead of its private `_origin` bookkeeping, which quilt3 8 removes ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 - [Changed] Switch to uv ([#4649](https://github.com/quiltdata/quilt/pull/4649))
 - [Changed] Upgrade to Python 3.13 ([#4649](https://github.com/quiltdata/quilt/pull/4649))
