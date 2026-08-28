@@ -112,6 +112,7 @@ Create a `.env` file in your project directory:
 
 ```bash
 # .env
+QUILT_CATALOG_URL=https://example.quiltdata.com
 QUILT_API_KEY=qk_your_secret_here
 ```
 
@@ -139,7 +140,8 @@ import quilt3
 
 # Load from environment
 api_key = os.environ["QUILT_API_KEY"]
-quilt3.login_with_api_key(api_key)
+catalog_url = os.environ["QUILT_CATALOG_URL"]
+quilt3.login_with_api_key(api_key, registry_url=catalog_url)
 
 # Now use Quilt normally
 pkg = quilt3.Package.browse("mypackage", "s3://mybucket")
@@ -406,9 +408,13 @@ for key in keys:
 
 <!-- pytest.mark.skip -->
 ```python
+import os
 import quilt3
+
+api_key = os.environ["QUILT_API_KEY"]
+catalog_url = os.environ["QUILT_CATALOG_URL"]
 quilt3.logout()  # Clear all credentials
-quilt3.login_with_api_key(api_key)  # Try again
+quilt3.login_with_api_key(api_key, registry_url=catalog_url)  # Try again
 ```
 
 ### API Key Prefix Error
@@ -524,7 +530,10 @@ api_key = os.environ.get("QUILT_API_KEY")
 if not api_key:
     raise ValueError("QUILT_API_KEY environment variable required")
 
-quilt3.login_with_api_key(api_key)
+quilt3.login_with_api_key(
+    api_key,
+    registry_url=os.environ["QUILT_CATALOG_URL"],
+)
 
 pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
 ```
