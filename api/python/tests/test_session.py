@@ -381,6 +381,25 @@ def test_login_with_api_key_validates_prefix(api_key_session):
     assert quilt3.session._api_keys == {quilt3.session.get_registry_url(): 'qk_valid_key'}
 
 
+def test_login_with_api_key_requires_registry_url(api_key_session):
+    with (
+        patch('quilt3.session.get_registry_url', return_value=None),
+        pytest.raises(quilt3.util.QuiltException, match='No registry URL is configured'),
+    ):
+        quilt3.login_with_api_key('qk_valid_key')
+
+    assert quilt3.session._api_keys == {}
+
+
+def test_login_with_api_key_accepts_registry_url(api_key_session):
+    registry_url = 'https://first.example.com'
+
+    with patch('quilt3.session.get_registry_url', return_value=None):
+        quilt3.login_with_api_key('qk_first_key', registry_url=registry_url)
+
+    assert quilt3.session._api_keys == {registry_url: 'qk_first_key'}
+
+
 def test_api_key_is_scoped_to_registry_url(api_key_session):
     """An API key is never sent to a registry other than the one it belongs to."""
     first_registry = 'https://first.example.com'
@@ -438,34 +457,28 @@ def test_each_registry_can_have_its_own_api_key(api_key_session):
         quilt3.session.clear_session()
 
 
-def test_clear_api_key_only_affects_current_registry(api_key_session):
+def test_clear_api_key_removes_keys_for_all_registries(api_key_session):
     first_registry = 'https://first.example.com'
     second_registry = 'https://second.example.com'
 
     quilt3.session.clear_session()
     try:
-        with (
-            patch.dict(
-                'quilt3.session._api_keys',
-                {first_registry: 'qk_first_key', second_registry: 'qk_second_key'},
-                clear=True,
-            ),
-            patch(
-                'quilt3.session._create_auth',
-                return_value={'access_token': 'second-interactive-token'},
-            ),
+        with patch.dict(
+            'quilt3.session._api_keys',
+            {first_registry: 'qk_first_key', second_registry: 'qk_second_key'},
+            clear=True,
         ):
-            with quilt3.session.use_registry_url(second_registry):
-                quilt3.clear_api_key()
-                second_session = quilt3.session.get_session()
-
             with quilt3.session.use_registry_url(first_registry):
-                first_session = quilt3.session.get_session()
+                quilt3.session.get_session()
+            with quilt3.session.use_registry_url(second_registry):
+                quilt3.session.get_session()
 
-            assert quilt3.session._api_keys == {first_registry: 'qk_first_key'}
+            assert set(quilt3.session._sessions) == {first_registry, second_registry}
 
-        assert first_session.headers['Authorization'] == 'Bearer qk_first_key'
-        assert second_session.headers['Authorization'] == 'Bearer second-interactive-token'
+            quilt3.clear_api_key()
+
+            assert quilt3.session._api_keys == {}
+            assert quilt3.session._sessions == {}
     finally:
         quilt3.session.clear_session()
 
@@ -495,6 +508,27 @@ def test_logged_in_only_reports_api_key_for_current_registry(api_key_session):
             assert quilt3.logged_in() == 'https://example.com'
         with quilt3.session.use_registry_url(second_registry):
             assert quilt3.logged_in() is None
+
+
+def test_logged_in_does_not_wait_for_session_lock(api_key_session):
+    import threading
+
+    completed = threading.Event()
+
+    def check_logged_in():
+        with (
+            patch('quilt3.session._load_auth', return_value={}),
+            patch('quilt3.session.get_from_config', return_value='https://example.com'),
+        ):
+            quilt3.logged_in()
+        completed.set()
+
+    with quilt3.session._sessions_lock:
+        thread = threading.Thread(target=check_logged_in)
+        thread.start()
+        assert completed.wait(timeout=1)
+
+    thread.join()
 
 
 class TestRegistryUrlOverride(QuiltTestCase):

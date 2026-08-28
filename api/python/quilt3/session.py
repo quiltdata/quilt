@@ -267,24 +267,32 @@ def clear_session():
         _sessions.clear()
 
 
-def login_with_api_key(key: str):
+def login_with_api_key(key: str, registry_url=None):
     """
     Authenticate using an API key.
 
     The API key is stored in memory only (no disk persistence) and scoped to
-    the currently resolved registry. While set, it overrides any interactive
-    session for that registry. Use clear_api_key() to revert that registry to
-    its interactive session.
+    the supplied or currently resolved registry. While set, it overrides any
+    interactive session for that registry. Use clear_api_key() to remove all
+    in-memory API keys and revert to interactive sessions.
 
     Args:
         key: API key string (starts with 'qk_')
+        registry_url: optional URL snapshot. If omitted, uses the currently
+            resolved registry URL.
 
     Raises:
         ValueError: If the key doesn't start with 'qk_' prefix.
+        QuiltException: If no registry URL is supplied or configured.
     """
     if not key.startswith("qk_"):
         raise ValueError("API key must start with 'qk_' prefix")
-    registry_url = get_registry_url()
+    registry_url = registry_url if registry_url is not None else get_registry_url()
+    if registry_url is None:
+        raise QuiltException(
+            "No registry URL is configured for API-key authentication. "
+            "Call quilt3.config(url) first or pass registry_url=url."
+        )
     with _sessions_lock:
         _api_keys[registry_url] = key
         session = _sessions.pop(registry_url, None)
@@ -294,14 +302,11 @@ def login_with_api_key(key: str):
 
 def clear_api_key():
     """
-    Clear the current registry's API key and fall back to its interactive session.
+    Clear all in-memory API keys and fall back to interactive sessions.
     """
-    registry_url = get_registry_url()
     with _sessions_lock:
-        _api_keys.pop(registry_url, None)
-        session = _sessions.pop(registry_url, None)
-        if session is not None:
-            session.close()
+        _api_keys.clear()
+        clear_session()
 
 
 def open_url(url):
@@ -404,9 +409,7 @@ def logged_in():
     Return catalog URL if Quilt client is authenticated, `None` otherwise.
     """
     registry_url = get_registry_url()
-    with _sessions_lock:
-        has_api_key = registry_url in _api_keys
-    if has_api_key or registry_url in _load_auth():
+    if registry_url in _api_keys or registry_url in _load_auth():
         return get_from_config('navigator_url')
 
 
