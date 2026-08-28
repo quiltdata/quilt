@@ -4,7 +4,7 @@ Quilt API
 
 ## clear\_api\_key()  {#clear\_api\_key}
 
-Clear the API key and fall back to interactive session (if available).
+Clear the current registry's API key and fall back to its interactive session.
 
 
 ## config(\*catalog\_url, \*\*config\_values)  {#config}
@@ -106,9 +106,10 @@ Launches a web browser and asks the user for a token.
 
 Authenticate using an API key.
 
-The API key is stored in memory only (no disk persistence).
-While set, the API key overrides any interactive session.
-Use clear_api_key() to revert to interactive session.
+The API key is stored in memory only (no disk persistence) and scoped to
+the currently resolved registry. While set, it overrides any interactive
+session for that registry. Use clear_api_key() to revert that registry to
+its interactive session.
 
 __Arguments__
 

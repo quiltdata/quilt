@@ -224,15 +224,16 @@ def _create_session(auth):
 
 _sessions = {}
 _sessions_lock = threading.RLock()
-_api_key = None
+_api_keys = {}
 
 
 def get_session(timeout=None, registry_url=None):
     """
     Creates a session or returns an existing session for the current registry.
 
-    If an API key is set via login_with_api_key(), uses that for authentication.
-    Otherwise, uses the interactive session with refresh token logic.
+    If an API key is set for the resolved registry via login_with_api_key(),
+    uses that for authentication. Otherwise, uses the interactive session with
+    refresh token logic.
 
     Sessions are cached separately by resolved registry URL so an authorization
     header created for one registry is never reused for another registry.
@@ -246,9 +247,10 @@ def get_session(timeout=None, registry_url=None):
     with _sessions_lock:
         session = _sessions.get(registry_url)
         if session is None:
-            if _api_key is not None:
+            api_key = _api_keys.get(registry_url)
+            if api_key is not None:
                 # API key auth: no refresh logic, use key directly
-                session = _create_session({'access_token': _api_key})
+                session = _create_session({'access_token': api_key})
             else:
                 # Interactive session: refresh token logic
                 auth = _create_auth(timeout, registry_url=registry_url)
@@ -269,9 +271,10 @@ def login_with_api_key(key: str):
     """
     Authenticate using an API key.
 
-    The API key is stored in memory only (no disk persistence).
-    While set, the API key overrides any interactive session.
-    Use clear_api_key() to revert to interactive session.
+    The API key is stored in memory only (no disk persistence) and scoped to
+    the currently resolved registry. While set, it overrides any interactive
+    session for that registry. Use clear_api_key() to revert that registry to
+    its interactive session.
 
     Args:
         key: API key string (starts with 'qk_')
@@ -281,20 +284,24 @@ def login_with_api_key(key: str):
     """
     if not key.startswith("qk_"):
         raise ValueError("API key must start with 'qk_' prefix")
-    global _api_key
+    registry_url = get_registry_url()
     with _sessions_lock:
-        _api_key = key
-        clear_session()  # Force session recreation with new auth
+        _api_keys[registry_url] = key
+        session = _sessions.pop(registry_url, None)
+        if session is not None:
+            session.close()
 
 
 def clear_api_key():
     """
-    Clear the API key and fall back to interactive session (if available).
+    Clear the current registry's API key and fall back to its interactive session.
     """
-    global _api_key
+    registry_url = get_registry_url()
     with _sessions_lock:
-        _api_key = None
-        clear_session()  # Force session recreation with interactive auth
+        _api_keys.pop(registry_url, None)
+        session = _sessions.pop(registry_url, None)
+        if session is not None:
+            session.close()
 
 
 def open_url(url):
@@ -366,13 +373,12 @@ def logout():
     """
     Do not use Quilt credentials. Useful if you have existing AWS credentials.
     """
-    global _api_key
     # TODO revoke refresh token (without logging out of web sessions)
     with _sessions_lock:
-        if _load_auth() or _load_credentials() or _api_key is not None:
+        if _load_auth() or _load_credentials() or _api_keys:
             _save_auth({})
             _save_credentials({})
-            _api_key = None
+            _api_keys.clear()
         else:
             print("Already logged out.")
 
@@ -397,7 +403,10 @@ def logged_in():
     """
     Return catalog URL if Quilt client is authenticated, `None` otherwise.
     """
-    if _api_key is not None or get_registry_url() in _load_auth():
+    registry_url = get_registry_url()
+    with _sessions_lock:
+        has_api_key = registry_url in _api_keys
+    if has_api_key or registry_url in _load_auth():
         return get_from_config('navigator_url')
 
 
