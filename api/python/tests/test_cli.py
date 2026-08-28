@@ -41,8 +41,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
             )
@@ -59,8 +58,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=True, dedupe=False
             )
@@ -77,8 +75,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=True
             )
@@ -93,8 +90,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_not_called()
             mocked_package = mocked_package_class.browse.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
             )
@@ -130,8 +126,7 @@ def test_push_with_meta_data(
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
-        mocked_package.set_dir.assert_called_once_with('.', dir_path)
-        mocked_package.set_meta.assert_called_once_with(expected_meta, agent_context=False)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
         mocked_package.push.assert_called_once_with(
             name, dest=None, message=None, registry=None, workflow=..., force=False, dedupe=False
         )
@@ -184,8 +179,7 @@ def test_push_workflow(workflow_input, expected_workflow):
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
         mocked_package_class.browse.assert_called_once_with(name, None)
-        mocked_package.set_dir.assert_called_once_with('.', dir_path)
-        mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
         mocked_package.push.assert_called_once_with(
             name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False, dedupe=False
         )
@@ -203,67 +197,6 @@ def test_list_packages(capsys):
         assert captured.out.split() == pkg_names
 
 
-def test_push_without_agent_context():
-    # Without the flag, the metadata write is forwarded with
-    # agent_context=False — behavior and package identity unchanged.
-    name = 'test/name'
-    dir_path = 'test/dir/path'
-
-    with patch_package_class as mocked_package_class:
-        mocked_package_class.browse.side_effect = FileNotFoundError()
-
-        main.main(('push', '--dir', dir_path, name))
-
-        mocked_package = mocked_package_class.return_value
-        mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
-        mocked_package.push.assert_called_once_with(
-            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
-        )
-
-
-@pytest.mark.parametrize(
-    'argv',
-    [
-        # store_true parses in any position relative to the package name.
-        ('push', '--dir', 'test/dir/path', 'test/name', '--agent-context'),
-        ('push', '--dir', 'test/dir/path', '--agent-context', 'test/name'),
-        ('push', '--agent-context', '--dir', 'test/dir/path', 'test/name'),
-    ],
-)
-def test_push_agent_context(argv):
-    name = 'test/name'
-    dir_path = 'test/dir/path'
-
-    with patch_package_class as mocked_package_class:
-        mocked_package_class.browse.side_effect = FileNotFoundError()
-
-        main.main(argv)
-
-        mocked_package = mocked_package_class.return_value
-        # Forwarded through the single metadata write, between set_dir and push.
-        mocked_package.assert_has_calls(
-            [
-                mock.call.set_dir('.', dir_path),
-                mock.call.set_meta(None, agent_context=True),
-                mock.call.push(name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False),
-            ]
-        )
-
-
-def test_push_agent_context_with_meta():
-    # --meta and --agent-context compose into one set_meta call.
-    name = 'test/name'
-    dir_path = 'test/dir/path'
-
-    with patch_package_class as mocked_package_class:
-        mocked_package_class.browse.side_effect = FileNotFoundError()
-
-        main.main(('push', '--dir', dir_path, name, '--meta', '{"agent_context": {"agent": {}}}', '--agent-context'))
-
-        mocked_package = mocked_package_class.return_value
-        mocked_package.set_meta.assert_called_once_with({"agent_context": {"agent": {}}}, agent_context=True)
-
-
 def test_push_no_copy():
     name = 'test/name'
     dir_path = 's3://test/dir/path'
@@ -274,8 +207,7 @@ def test_push_no_copy():
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package_class.assert_not_called()
         mocked_package = mocked_package_class.browse.return_value
-        mocked_package.set_dir.assert_called_once_with('.', dir_path)
-        mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
         mocked_package.push.assert_called_once_with(
             name,
             registry=None,

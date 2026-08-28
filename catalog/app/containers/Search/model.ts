@@ -10,6 +10,7 @@ import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as KTree from 'utils/KeyedTree'
+import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
@@ -38,28 +39,16 @@ export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
 export const DEFAULT_VIEW = View.List
 
-// What the list is ordered by, and which way: two axes, so two controls. Folded
-// into one four-entry list they read as four unrelated modes rather than a choice
-// plus a direction.
+// The two axes the `mo` param carries. They stay separate here because the param
+// falls back per axis; the panel offers their combinations as one list
+// (FACET_ORDERINGS).
 export const FACET_ORDER_BY = ['name', 'type'] as const
 
 export type FacetOrderBy = (typeof FACET_ORDER_BY)[number]
 
-export const FACET_ORDER_BY_LABELS: Record<FacetOrderBy, string> = {
-  name: 'Name',
-  type: 'Type',
-}
-
 export const FACET_ORDER_DIRECTIONS = ['asc', 'desc'] as const
 
 export type FacetOrderDirection = (typeof FACET_ORDER_DIRECTIONS)[number]
-
-// The result list's "Sort by" already names these directions this way
-// (PRESET_ORDERINGS), so the same arrows mean the same thing in both places.
-export const FACET_ORDER_DIRECTION_LABELS: Record<FacetOrderDirection, string> = {
-  asc: 'A → Z',
-  desc: 'Z → A',
-}
 
 export interface FacetOrdering {
   by: FacetOrderBy
@@ -67,6 +56,16 @@ export interface FacetOrdering {
 }
 
 export const DEFAULT_FACET_ORDERING: FacetOrdering = { by: 'name', direction: 'asc' }
+
+// One control, the way the result list's "Sort by" is one control -- and named
+// with its arrows (PRESET_ORDERINGS), so a direction means the same thing in
+// both places.
+export const FACET_ORDERINGS: { label: string; ordering: FacetOrdering }[] = [
+  { label: 'Name A → Z', ordering: { by: 'name', direction: 'asc' } },
+  { label: 'Name Z → A', ordering: { by: 'name', direction: 'desc' } },
+  { label: 'Type A → Z', ordering: { by: 'type', direction: 'asc' } },
+  { label: 'Type Z → A', ordering: { by: 'type', direction: 'desc' } },
+]
 
 /** `<by>:<direction>` in the querystring: one param for two axes. */
 export function serializeFacetOrdering(ordering: FacetOrdering): string {
@@ -343,6 +342,17 @@ function Predicate<Tag extends string, State, GQLType>(input: {
   }
 }
 
+// The SyntaxError names an offset into a string nobody printed, so the throw
+// names the filter and the log carries the value.
+function parseFilterJson(input: string, message: string) {
+  try {
+    return JSON.parse(input)
+  } catch (e) {
+    Log.error(`${message}; JSON.parse failed on ${JSON.stringify(input)}`, e)
+    throw new Error(message)
+  }
+}
+
 const STRICT_MARKER = '$s$:'
 
 export const Predicates = {
@@ -353,7 +363,7 @@ export const Predicates = {
       lte: null as Date | null,
     },
     fromString: (input: string) => {
-      const json = JSON.parse(input)
+      const json = parseFilterJson(input, 'Invalid date range in the search URL')
       return {
         gte: parseDate(json.gte),
         lte: parseDate(json.lte),
@@ -373,7 +383,7 @@ export const Predicates = {
       lte: null as number | null,
     },
     fromString: (input: string) => {
-      const json = JSON.parse(input)
+      const json = parseFilterJson(input, 'Invalid number range in the search URL')
       return {
         gte: (json.gte as number) ?? null,
         lte: (json.lte as number) ?? null,
@@ -400,7 +410,12 @@ export const Predicates = {
   KeywordEnum: Predicate({
     tag: 'KeywordEnum',
     init: { terms: [] as string[] },
-    fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
+    fromString: (input: string) => ({
+      terms: parseFilterJson(
+        `[${input}]`,
+        'Invalid keyword list in the search URL',
+      ) as string[],
+    }),
     toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
     toGQL: ({ terms }) =>
       terms.length

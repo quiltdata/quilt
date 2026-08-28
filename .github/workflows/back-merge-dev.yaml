@@ -43,6 +43,10 @@ jobs:
       - name: Merge master into dev
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # How far dev may fall behind while a back-merge PR sits open before this
+          # workflow starts failing instead of warning. Low enough that the drift is
+          # still cheap to resolve by hand.
+          MAX_BEHIND: 5
         run: |
           set -euo pipefail
 
@@ -90,8 +94,25 @@ jobs:
             exit 1
           fi
 
-          if [ -n "$(gh pr list --base dev --head master --state open --json number --jq '.[].number')" ]; then
-            echo "A master->dev PR is already open; leaving it to the existing one."
+          # An already-open PR is the idempotent case, but exiting 0 silently makes
+          # this workflow report success on every later landing while dev keeps
+          # drifting — a green check that means "someone else's problem", not "done".
+          # Escalate to a failure once dev is far enough behind that the next
+          # promotion is going to hurt.
+          # Guarded because `set -e` aborts on a failing assignment: a transient API
+          # error would otherwise kill the run here rather than at `gh pr create`
+          # below, which is where an outage should surface.
+          open_pr="$(gh pr list --base dev --head master --state open --json number --jq '.[].number')" || open_pr=''
+          if [ -n "$open_pr" ]; then
+            behind="$(git rev-list --count origin/dev..origin/master)"
+            if [ "$behind" -ge "$MAX_BEHIND" ]; then
+              echo "::error::dev is $behind commits behind master and PR #$open_pr has been" \
+                   "open since before this landing. The next dev->master promotion will" \
+                   "conflict on every file both branches touched. Resolve #$open_pr."
+              exit 1
+            fi
+            echo "::warning::dev is $behind commits behind master; PR #$open_pr is already" \
+                 "open to resolve it. Not opening another."
             exit 0
           fi
 
