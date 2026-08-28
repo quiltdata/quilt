@@ -112,9 +112,12 @@ Create a `.env` file in your project directory:
 
 ```bash
 # .env
-QUILT_CATALOG_URL=https://example.quiltdata.com
+QUILT_REGISTRY_URL=https://example-registry.quiltdata.com
 QUILT_API_KEY=qk_your_secret_here
 ```
+
+Use the `registryUrl` value from your catalog's `/config.json`, not the catalog
+homepage URL. These URLs can differ.
 
 Load it in your Python code:
 
@@ -140,8 +143,8 @@ import quilt3
 
 # Load from environment
 api_key = os.environ["QUILT_API_KEY"]
-catalog_url = os.environ["QUILT_CATALOG_URL"]
-quilt3.login_with_api_key(api_key, registry_url=catalog_url)
+registry_url = os.environ["QUILT_REGISTRY_URL"]
+quilt3.login_with_api_key(api_key, registry_url=registry_url)
 
 # Now use Quilt normally
 pkg = quilt3.Package.browse("mypackage", "s3://mybucket")
@@ -412,9 +415,9 @@ import os
 import quilt3
 
 api_key = os.environ["QUILT_API_KEY"]
-catalog_url = os.environ["QUILT_CATALOG_URL"]
+registry_url = os.environ["QUILT_REGISTRY_URL"]
 quilt3.logout()  # Clear all credentials
-quilt3.login_with_api_key(api_key, registry_url=catalog_url)  # Try again
+quilt3.login_with_api_key(api_key, registry_url=registry_url)  # Try again
 ```
 
 ### API Key Prefix Error
@@ -532,7 +535,7 @@ if not api_key:
 
 quilt3.login_with_api_key(
     api_key,
-    registry_url=os.environ["QUILT_CATALOG_URL"],
+    registry_url=os.environ["QUILT_REGISTRY_URL"],
 )
 
 pkg = quilt3.Package.browse("data/latest", "s3://mybucket")
