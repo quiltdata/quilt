@@ -46,7 +46,13 @@ class PackageUri:
         if parsed.path or parsed.query:
             raise PackageUriError("non-bucket-root registries are not supported currently.", uri)
 
-        params = parse_qs(parsed.fragment, keep_blank_values=True)
+        try:
+            params = parse_qs(parsed.fragment, keep_blank_values=True, errors="strict")
+        except UnicodeDecodeError as ex:
+            # A well-formed escape whose bytes are not valid UTF-8, e.g. "%FF". The
+            # default errors="replace" would substitute U+FFFD, yielding a path that
+            # cannot match any entry; the catalog rejects these too.
+            raise PackageUriError("malformed percent-encoding.", uri) from ex
         package_values = params.get("package")
         if package_values and len(package_values) > 1:
             raise PackageUriError('"package=" specified multiple times.', uri)

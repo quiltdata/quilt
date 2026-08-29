@@ -176,6 +176,11 @@
       "name": "mixed tag and hash delimiters",
       "uri": "quilt+s3://bucket-name#package=quilt/test:latest@abc1",
       "error": "\"package=\" part may either contain \":\" or \"@\""
+    },
+    {
+      "name": "undecodable percent-encoding in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=%FF",
+      "error": "malformed percent-encoding."
     }
   ]
 }

@@ -120,7 +120,9 @@ producers that do not encode their paths readable:
 A directory path may carry a trailing slash (`path=subdir%2F`); consumers must
 accept it.
 
-Note that leniency covers malformed escapes, not undecodable ones: a
-well-formed escape that is not valid UTF-8 (e.g. `%FF`) is currently a decode
-error in the catalog, while Python substitutes the Unicode replacement
-character.
+Leniency covers malformed escapes, not undecodable ones. A *well-formed* escape
+whose bytes are not valid UTF-8 (e.g. `%FF`) is rejected as a malformed URI,
+because unlike a stray `%` it has no correct reading — substituting the Unicode
+replacement character would produce a path that cannot match any entry. Paths
+are UTF-8, so an S3 key holding bytes that are not valid UTF-8 cannot be
+addressed by a Quilt+ URI.
