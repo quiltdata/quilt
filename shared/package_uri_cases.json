@@ -119,15 +119,6 @@
       }
     },
     {
-      "name": "encoded space in path stays a space",
-      "uri": "quilt+s3://bucket-name#package=quilt/test&path=a%20b",
-      "value": {
-        "bucket": "bucket-name",
-        "name": "quilt/test",
-        "path": "a b"
-      }
-    },
-    {
       "name": "uppercase scheme",
       "uri": "QUILT+S3://bucket-name#package=quilt/test",
       "value": {

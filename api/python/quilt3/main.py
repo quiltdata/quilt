@@ -14,6 +14,7 @@ import requests
 from . import Package, __version__ as quilt3_version, api, session, util
 from .backends import get_package_registry
 from .session import open_url
+from .uri import is_package_uri
 from .util import (
     QuiltException,
     catalog_package_url,
@@ -235,7 +236,9 @@ def cmd_install(name, uri, registry, top_hash, dest, dest_registry, path):
         raise QuiltException("Exactly one package source is required: USER/PACKAGE or --uri.")
     if name is not None and uri is not None:
         raise QuiltException("USER/PACKAGE and --uri cannot be used together.")
-    if name is not None and name.startswith("quilt+"):
+    # Share the predicate with Package.install's routing; a case-sensitive check here
+    # would let "QUILT+S3://..." past the guard and then be installed as a URI anyway.
+    if name is not None and is_package_uri(name):
         raise QuiltException("Pass Quilt+ package URIs with --uri, not as USER/PACKAGE.")
     if uri is not None:
         conflicts = [

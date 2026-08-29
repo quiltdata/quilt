@@ -264,6 +264,10 @@ def test_install_uri_source():
         (('install',), 'Exactly one package source is required'),
         (('install', 'user/package', '--uri', 'quilt+s3://bucket#package=user/package'), 'cannot be used together'),
         (('install', 'quilt+s3://bucket#package=user/package'), 'with --uri'),
+        # Schemes are case-insensitive, so an uppercase one must not slip past the
+        # positional guard and get installed as a URI anyway.
+        (('install', 'QUILT+S3://bucket#package=user/package'), 'with --uri'),
+        (('install', 'Quilt+S3://bucket#package=user/package'), 'with --uri'),
         (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--registry', 's3://other'), '--registry'),
         (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--top-hash', 'abcdef'), '--top-hash'),
         (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--path', 'data'), '--path'),
