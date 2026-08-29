@@ -1233,6 +1233,34 @@ class PackageTest(QuiltTestCase):
         assert isinstance(short_hash_entry, PackageEntry)
 
     @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_package_uri_directory_trailing_slash(self):
+        # The catalog points at a directory with a trailing slash, e.g. `&path=baz%2F`.
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            'Quilt/test',
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        subpackage = Package.browse('quilt+s3://test-bucket#package=Quilt/test&path=baz%2F')
+
+        assert isinstance(subpackage, Package)
+        assert 'bat' in subpackage
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_package_uri_path_through_entry(self):
+        # Descending through an entry reaches for _children on a PackageEntry.
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            'Quilt/test',
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        with pytest.raises(QuiltException, match="doesn't contain 'baz/bat/nope'"):
+            Package.browse('quilt+s3://test-bucket#package=Quilt/test&path=baz%2Fbat%2Fnope')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
     def test_remote_browse_package_uri_missing_tag(self):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
         self.setup_s3_stubber_resolve_pointer_not_found(pkg_registry, 'Quilt/test', pointer='missing')
@@ -2777,6 +2805,13 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.packages.ObjectPathCache.set')
     def test_install_package_uri_directory(self, mocked_cache_set):
         self._assert_install_package_uri_path(mocked_cache_set, 'baz')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_package_uri_directory_trailing_slash(self, mocked_cache_set):
+        # The catalog points at a directory with a trailing slash, e.g. `&path=baz%2F`.
+        self._assert_install_package_uri_path(mocked_cache_set, 'baz%2F')
 
     @pytest.mark.usefixtures('isolate_packages_cache')
     @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
