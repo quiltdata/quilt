@@ -184,6 +184,11 @@
       "error": "\"package=\" part: tag must not be empty"
     },
     {
+      "name": "empty tag before another delimiter",
+      "uri": "quilt+s3://bucket-name#package=quilt/test::sup",
+      "error": "\"package=\" part: tag must not be empty"
+    },
+    {
       "name": "multiple tag delimiters",
       "uri": "quilt+s3://bucket-name#package=quilt/test:latest:sup",
       "error": "\"package=\" part may contain only one \":\""
@@ -191,6 +196,11 @@
     {
       "name": "empty hash",
       "uri": "quilt+s3://bucket-name#package=quilt/test@",
+      "error": "\"package=\" part: hash must not be empty"
+    },
+    {
+      "name": "empty hash before another delimiter",
+      "uri": "quilt+s3://bucket-name#package=quilt/test@@abc",
       "error": "\"package=\" part: hash must not be empty"
     },
     {

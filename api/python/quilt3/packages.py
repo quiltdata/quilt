@@ -578,11 +578,7 @@ class Package:
         else:
             subpkg_key = None
 
-        pkg = (
-            cls._browse(name=name, registry=registry, top_hash=top_hash)
-            if pointer is None
-            else cls._browse(name=name, registry=registry, top_hash=top_hash, pointer=pointer)
-        )
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash, pointer=pointer)
         message = pkg._meta.get('message', None)  # propagate the package message
 
         file_list = []
@@ -618,8 +614,7 @@ class Package:
             message="Copying objects",
         )
 
-        pkg._build(name, registry=dest_registry, message=message)
-        installed_top_hash = pkg.top_hash
+        installed_top_hash = pkg._build(name, registry=dest_registry, message=message)
         short_top_hash = dest_registry.shorten_top_hash(name, installed_top_hash)
         print(f"Successfully installed package '{name}', tophash={short_top_hash} from {registry}")
 
@@ -667,11 +662,7 @@ class Package:
             pointer = package_uri.tag
             path = _uri_subpath(package_uri.path)
 
-        pkg = (
-            cls._browse(name=name, registry=registry, top_hash=top_hash)
-            if pointer is None
-            else cls._browse(name=name, registry=registry, top_hash=top_hash, pointer=pointer)
-        )
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash, pointer=pointer)
         if path is None:
             return pkg
 

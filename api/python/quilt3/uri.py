@@ -102,19 +102,19 @@ class PackageUri:
             parts = spec.split(":")
             if not parts[0]:
                 raise PackageUriError('"package=" part must contain non-empty package name.', uri)
-            if len(parts) > 2:
-                raise PackageUriError('"package=" part may contain only one ":".', uri)
             if not parts[1]:
                 raise PackageUriError('"package=" part: tag must not be empty.', uri)
+            if len(parts) > 2:
+                raise PackageUriError('"package=" part may contain only one ":".', uri)
             return parts[0], parts[1], None
         if "@" in spec:
             parts = spec.split("@")
             if not parts[0]:
                 raise PackageUriError('"package=" part must contain non-empty package name.', uri)
-            if len(parts) > 2:
-                raise PackageUriError('"package=" part may contain only one "@".', uri)
             if not parts[1]:
                 raise PackageUriError('"package=" part: hash must not be empty.', uri)
+            if len(parts) > 2:
+                raise PackageUriError('"package=" part may contain only one "@".', uri)
             return parts[0], None, parts[1]
         return spec, None, None
 

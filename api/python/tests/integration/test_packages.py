@@ -1106,11 +1106,11 @@ class PackageTest(QuiltTestCase):
                 # Verify latest points to the new location.
                 assert Path(local_registry.pointer_latest_pk(pkg_name).path).read_text() == top_hash
 
-    @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
+    @patch('quilt3.Package._browse', lambda name, registry, top_hash, pointer=None: Package())
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
-        self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.Package._build') as build_mock:
+        shorten_top_hash = self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
+        with patch('quilt3.Package._build', return_value='installed-top-hash') as build_mock:
             pkg_name = 'Quilt/nice-name'
             Package.install(pkg_name, registry='s3://my-test-bucket')
 
@@ -1119,6 +1119,7 @@ class PackageTest(QuiltTestCase):
                 registry=self.LocalPackageRegistryDefault(PhysicalKey.from_url(quilt3.util.get_install_location())),
                 message=None,
             )
+            shorten_top_hash.assert_called_once_with(pkg_name, 'installed-top-hash')
 
     def test_read_manifest(self):
         """Verify reading serialized manifest from disk."""
