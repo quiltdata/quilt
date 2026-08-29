@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Quilt+ URIs: a package path containing a literal `%` no longer breaks the URI, and one containing a literal `%20` no longer decodes to a space and points at the wrong entry ([#5256](https://github.com/quiltdata/quilt/pull/5256))
+- [Fixed] Quilt+ URIs: a package path containing a literal `%` no longer breaks the URI, and one containing a literal `%20` no longer decodes to a space and points at the wrong entry. Paths from producers that do not percent-encode now resolve instead of failing, and a path that genuinely cannot be decoded reports a real error rather than the literal text `unknown error: ${e}` ([#5256](https://github.com/quiltdata/quilt/pull/5256))
 - [Changed] Search: error states are separate, more strictly typed components, safer to extend than one component behind a `kind` prop ([#5238](https://github.com/quiltdata/quilt/pull/5238))
 - [Fixed] Search: a malformed filter value in the URL no longer breaks the page ([#5233](https://github.com/quiltdata/quilt/pull/5233))
 - [Fixed] Search results table: a package with no commit message shows the no-value marker instead of the literal text `None` ([#5232](https://github.com/quiltdata/quilt/pull/5232))

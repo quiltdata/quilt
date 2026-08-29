@@ -34,24 +34,32 @@ describe('utils/PackageUri', () => {
       })
     })
 
-    it('should decode a path containing a literal "%" exactly once', () => {
-      expect(
-        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test&path=50%25_sample'),
-      ).toEqual({
-        bucket: 'bucket-name',
-        name: 'quilt/test',
-        path: '50%_sample',
+    // These mirror `urllib.parse.unquote`, so that quilt3's parser can agree with
+    // this one on paths the producers actually emit.
+    const lenientCases = [
+      ['an unencoded "%"', '50%_sample.csv', '50%_sample.csv'],
+      ['an encoded "%"', '50%25_sample.csv', '50%_sample.csv'],
+      ['a truncated escape', 'abc%', 'abc%'],
+      ['a non-hex escape', 'a%2zb', 'a%2zb'],
+      ['an encoded space', 'a%20b', 'a b'],
+      ['an encoded "%20"', 'a%2520b', 'a%20b'],
+    ]
+    lenientCases.forEach(([label, raw, expected]) => {
+      it(`should decode a path with ${label} the way unquote does`, () => {
+        expect(
+          PackageUri.parse(`quilt+s3://bucket-name#package=quilt/test&path=${raw}`),
+        ).toEqual({
+          bucket: 'bucket-name',
+          name: 'quilt/test',
+          path: expected,
+        })
       })
     })
 
-    it('should decode a path containing a literal "%20" exactly once', () => {
-      expect(
-        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test&path=a%2520b'),
-      ).toEqual({
-        bucket: 'bucket-name',
-        name: 'quilt/test',
-        path: 'a%20b',
-      })
+    it('should raise PackageUriError, not URIError, on undecodable input', () => {
+      expect(() =>
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test&path=%FF'),
+      ).toThrowError(PackageUri.PackageUriError)
     })
 
     it('should throw on invalid protocol', () => {

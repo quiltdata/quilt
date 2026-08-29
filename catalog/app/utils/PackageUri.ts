@@ -61,6 +61,24 @@ function parsePackageSpec(spec: string, uri: string) {
   return { name: spec }
 }
 
+// `querystring.parse` percent-decodes via `decodeURIComponent`, which throws on a
+// "%" not followed by two hex digits. Producers emit unencoded paths (quilt_uri.py
+// builds `&path=${logicalKey}` verbatim), so a key like "50%_sample.csv" would
+// otherwise blow up the whole parse. Re-escaping the stray "%" lets it survive
+// decoding as a literal, matching `urllib.parse.unquote`, which leaves malformed
+// escapes alone.
+const escapeStrayPercents = (qs: string) => qs.replace(/%(?![0-9A-Fa-f]{2})/g, '%25')
+
+function parseFragment(hash: string, uri: string) {
+  try {
+    return parseQs(escapeStrayPercents(hash))
+  } catch {
+    // `decodeURIComponent` still rejects well-formed escapes that aren't valid
+    // UTF-8 (e.g. "%FF"). Surface a PackageUriError rather than a raw URIError.
+    throw new PackageUriError('malformed percent-encoding.', uri)
+  }
+}
+
 // TODO: do we need strict parsing here (throw on extra parameters)?
 // TODO: do we need extra validation for each part (package name, path, registry, etc)?
 export function parse(uri: string): PackageUri {
@@ -81,7 +99,7 @@ export function parse(uri: string): PackageUri {
     )
   }
   const bucket = url.host
-  const params = parseQs((url.hash || '').replace('#', ''))
+  const params = parseFragment((url.hash || '').replace('#', ''), uri)
   if (!params.package) {
     throw new PackageUriError('missing "package=" part.', uri)
   }

@@ -67,3 +67,32 @@ A Quilt+ URI contains the following components:
 - `&catalog=<catalog>`: An optional fragment specifying the DNS name of the
   catalog that generated the URI. This is used to help clients generate the
   human-readable URL for that package.
+
+#### Percent-encoding
+
+Fragment values are percent-encoded **exactly once**. A producer encodes the
+value once (`50%_sample.csv` is written as `path=50%25_sample.csv`), and a
+consumer decodes it once. Encoding is required for any character that would
+otherwise be read as structure — `&`, `=`, `#` — and recommended for `%` and
+any character outside the unreserved set.
+
+Consumers are lenient about malformed input, following the same rules as
+Python's `urllib.parse.unquote`: a `%` that is not followed by two hexadecimal
+digits is treated as a literal `%` rather than an error. This keeps URIs from
+producers that do not encode their paths readable:
+
+| `path=` value       | decodes to       |
+| ------------------- | ---------------- |
+| `50%25_sample.csv`  | `50%_sample.csv` |
+| `50%_sample.csv`    | `50%_sample.csv` |
+| `a%2zb`             | `a%2zb`          |
+| `a%20b`             | `a b`            |
+| `a%2520b`           | `a%20b`          |
+
+A directory path may carry a trailing slash (`path=subdir%2F`); consumers must
+accept it.
+
+Note that leniency covers malformed escapes, not undecodable ones: a
+well-formed escape that is not valid UTF-8 (e.g. `%FF`) is currently a decode
+error in the catalog, while Python substitutes the Unicode replacement
+character.
