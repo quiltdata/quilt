@@ -39,6 +39,7 @@ from .data_transfer import (
 from .exceptions import PackageException
 from .formats import CompressionRegistry, FormatRegistry
 from .telemetry import ApiTelemetry
+from .uri import PackageUri, is_package_uri
 from .util import (
     CACHE_PATH,
     DISABLE_TQDM,
@@ -503,14 +504,33 @@ class Package:
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install.
+            name(str): Package name or ``quilt+s3://`` package URI to install.
             registry(str): Registry where package is located.
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
             dest(str): Local path to download files to.
             dest_registry(str): Registry to install package to. Defaults to local registry.
             path(str): If specified, downloads only `path` or its children.
+
+        A package URI cannot be combined with ``registry``, ``top_hash``, or ``path``.
+        Its optional path uses the same selective-install behavior as ``path``.
         """
+        pointer = None
+        if is_package_uri(name):
+            conflicts = [
+                option
+                for option, value in (("registry", registry), ("top_hash", top_hash), ("path", path))
+                if value is not None
+            ]
+            if conflicts:
+                raise QuiltException(f"Package URI cannot be combined with {', '.join(conflicts)}.")
+            package_uri = PackageUri.parse(name)
+            name = package_uri.name
+            registry = package_uri.registry
+            top_hash = package_uri.hash
+            path = package_uri.path
+            pointer = package_uri.tag
+
         if registry is None:
             registry = get_from_config('default_remote_registry')
             if registry is None:
@@ -545,7 +565,11 @@ class Package:
         else:
             subpkg_key = None
 
-        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
+        pkg = (
+            cls._browse(name=name, registry=registry, top_hash=top_hash)
+            if pointer is None
+            else cls._browse(name=name, registry=registry, top_hash=top_hash, pointer=pointer)
+        )
         message = pkg._meta.get('message', None)  # propagate the package message
 
         file_list = []
@@ -582,9 +606,8 @@ class Package:
         )
 
         pkg._build(name, registry=dest_registry, message=message)
-        if top_hash is None:
-            top_hash = pkg.top_hash
-        short_top_hash = dest_registry.shorten_top_hash(name, top_hash)
+        installed_top_hash = pkg.top_hash
+        short_top_hash = dest_registry.shorten_top_hash(name, installed_top_hash)
         print(f"Successfully installed package '{name}', tophash={short_top_hash} from {registry}")
 
     @classmethod
@@ -608,22 +631,58 @@ class Package:
         the manifest.
 
         Args:
-            name(string): name of package to load
+            name(string): Package name or ``quilt+s3://`` package URI to load.
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
+
+        A package URI cannot be combined with ``registry`` or ``top_hash``. If
+        the URI selects a path, return that entry or subpackage instead of the
+        full package.
         """
-        return cls._browse(name=name, registry=registry, top_hash=top_hash)
+        pointer = None
+        path = None
+        if is_package_uri(name):
+            conflicts = [
+                option for option, value in (("registry", registry), ("top_hash", top_hash)) if value is not None
+            ]
+            if conflicts:
+                raise QuiltException(f"Package URI cannot be combined with {', '.join(conflicts)}.")
+            package_uri = PackageUri.parse(name)
+            name = package_uri.name
+            registry = package_uri.registry
+            top_hash = package_uri.hash
+            pointer = package_uri.tag
+            path = package_uri.path
+
+        pkg = (
+            cls._browse(name=name, registry=registry, top_hash=top_hash)
+            if pointer is None
+            else cls._browse(name=name, registry=registry, top_hash=top_hash, pointer=pointer)
+        )
+        if path is None:
+            return pkg
+
+        validate_key(path)
+        try:
+            return pkg[path]
+        except KeyError as ex:
+            raise QuiltException(f"Package {name!r} doesn't contain {path!r}.") from ex
 
     @classmethod
-    def _browse(cls, name, registry=None, top_hash=None):
+    def _browse(cls, name, registry=None, top_hash=None, *, pointer=None):
         validate_package_name(name)
         registry = get_package_registry(registry)
 
-        top_hash = (
-            get_bytes(registry.pointer_latest_pk(name)).decode()
-            if top_hash is None
-            else registry.resolve_top_hash(name, top_hash)
-        )
+        if top_hash is not None and pointer is not None:
+            raise QuiltException("Expected either a package hash or pointer, but got both.")
+        if top_hash is None:
+            top_hash = (
+                get_bytes(registry.pointer_latest_pk(name)).decode()
+                if pointer is None
+                else registry.resolve_pointer(name, pointer)
+            )
+        else:
+            top_hash = registry.resolve_top_hash(name, top_hash)
         pkg_manifest = registry.manifest_pk(name, top_hash)
 
         def download_manifest(dst):

@@ -106,14 +106,28 @@ export function parse(uri: string): PackageUri {
   if (Array.isArray(params.package)) {
     throw new PackageUriError('"package=" specified multiple times.', uri)
   }
+  if (!bucket) {
+    throw new PackageUriError('missing bucket.', uri)
+  }
   const { name, hash, tag } = parsePackageSpec(params.package, uri)
   if (Array.isArray(params.path)) {
     throw new PackageUriError('"path=" specified multiple times.', uri)
   }
-  // `parseQs` has already percent-decoded the value; decoding it a second time
+  if (Array.isArray(params.catalog)) {
+    throw new PackageUriError('"catalog=" specified multiple times.', uri)
+  }
+  // `parseFragment` has already percent-decoded these; decoding a second time
   // would throw on a literal "%" and silently mangle a literal "%20".
   const path = params.path || undefined
-  return R.reject(R.isNil, { bucket, name, hash, tag, path }) as unknown as PackageUri
+  const catalog = params.catalog || undefined
+  return R.reject(R.isNil, {
+    bucket,
+    name,
+    hash,
+    tag,
+    path,
+    catalog,
+  }) as unknown as PackageUri
 }
 
 export function stringify({ bucket, name, hash, tag, path, catalog }: PackageUri) {

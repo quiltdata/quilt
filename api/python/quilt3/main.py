@@ -230,6 +230,32 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     )
 
 
+def cmd_install(name, uri, registry, top_hash, dest, dest_registry, path):
+    if name is None and uri is None:
+        raise QuiltException("Exactly one package source is required: USER/PACKAGE or --uri.")
+    if name is not None and uri is not None:
+        raise QuiltException("USER/PACKAGE and --uri cannot be used together.")
+    if name is not None and name.startswith("quilt+"):
+        raise QuiltException("Pass Quilt+ package URIs with --uri, not as USER/PACKAGE.")
+    if uri is not None:
+        conflicts = [
+            option
+            for option, value in (("--registry", registry), ("--top-hash", top_hash), ("--path", path))
+            if value is not None
+        ]
+        if conflicts:
+            raise QuiltException(f"--uri cannot be combined with {', '.join(conflicts)}.")
+
+    return Package.install(
+        uri if uri is not None else name,
+        registry=registry,
+        top_hash=top_hash,
+        dest=dest,
+        dest_registry=dest_registry,
+        path=path,
+    )
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -341,8 +367,17 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help="Name of package, in the USER/PKG format",
+        help="Name of package, in the USER/PKG format. Required unless --uri is supplied.",
         type=str,
+        nargs="?",
+    )
+    install_p.add_argument(
+        "--uri",
+        help=(
+            "Quilt+ package URI copied from Catalog. Quote the URI in the shell because its fragment may contain '&'."
+        ),
+        type=str,
+        required=False,
     )
     install_p.add_argument(
         "--registry",
@@ -374,7 +409,7 @@ def create_parser():
         type=str,
         required=False,
     )
-    install_p.set_defaults(func=Package.install)
+    install_p.set_defaults(func=cmd_install)
 
     # list-packages
     shorthelp = "List all packages in a registry"

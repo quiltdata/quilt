@@ -30,6 +30,34 @@ folder or entry) in the Quilt catalog, relative to an S3 bucket. For example:
 The URI above references a specific version of the `CORD19.ipynb` notebook in
 the `akarve/cord19` package of the `quilt-example` bucket.
 
+### Python and CLI Usage
+
+Pass a Quilt+ URI directly to `Package.browse()` or `Package.install()`:
+
+<!--pytest.mark.skip-->
+
+```python
+import quilt3
+
+uri = "quilt+s3://quilt-example#package=akarve/cord19:latest&path=CORD19.ipynb"
+entry = quilt3.Package.browse(uri)
+quilt3.Package.install(uri, dest="download")
+```
+
+For the CLI, use `--uri` and quote the entire URI. Quoting is required because
+URI fragments can contain `&`, which shells otherwise interpret as an operator:
+
+<!--pytest.mark.skip-->
+
+```bash
+quilt3 install --uri \
+  'quilt+s3://quilt-example#package=akarve/cord19:latest&path=CORD19.ipynb' \
+  --dest download
+```
+
+The bucket selects the package registry. The optional `catalog` parameter is
+informational and does not change credentials or endpoints.
+
 ### Catalog Usage
 
 URIs can be used to quickly navigate to a specific package or object from the
