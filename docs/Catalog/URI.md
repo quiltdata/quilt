@@ -80,7 +80,8 @@ you can use a redirect page from the Quilt catalog. For example:
 A Quilt+ URI contains the following components:
 
 - `quilt+<protocol>`: The scheme of the URI. This always begins with `quilt+`.
-  Currently the only supported protocol is `s3`.
+  Currently the only supported protocol is `s3`. Schemes are case-insensitive,
+  so `QUILT+S3://` is equivalent to `quilt+s3://`.
 - `<bucket>`: The name of the bucket containing the package, e.g.
   `quilt-example`.
 - `#package=<package_name[specifier]>`: A fragment for the name of the package,
@@ -104,10 +105,11 @@ consumer decodes it once. Encoding is required for any character that would
 otherwise be read as structure — `&`, `=`, `#` — and recommended for `%` and
 any character outside the unreserved set.
 
-Consumers are lenient about malformed input, following the same rules as
-Python's `urllib.parse.unquote`: a `%` that is not followed by two hexadecimal
-digits is treated as a literal `%` rather than an error. This keeps URIs from
-producers that do not encode their paths readable:
+Consumers are lenient about unencoded input, so that URIs from producers that
+do not encode their paths stay readable. A `%` not followed by two hexadecimal
+digits is a literal `%`, following `urllib.parse.unquote`. A raw `+` is a
+literal `+`, **not** a space — the fragment is not a form query, and a space is
+written `%20`:
 
 | `path=` value       | decodes to       |
 | ------------------- | ---------------- |
@@ -116,6 +118,12 @@ producers that do not encode their paths readable:
 | `a%2zb`             | `a%2zb`          |
 | `a%20b`             | `a b`            |
 | `a%2520b`           | `a%20b`          |
+| `C%2B%2B.csv`       | `C++.csv`        |
+| `C++.csv`           | `C++.csv`        |
+
+Leniency never changes how a well-formed URI reads: `encodeURIComponent` (and
+`urllib.parse.quote`) escape both `%` and `+`, so neither appears raw in an
+encoded value, and the rules above apply only to input that is not encoded.
 
 A directory path may carry a trailing slash (`path=subdir%2F`); consumers must
 accept it.

@@ -41,13 +41,23 @@ class PackageUri:
                 f'unsupported protocol "{protocol}". "quilt+s3:" is currently the only supported protocol.',
                 uri,
             )
-        if not uri.startswith("quilt+s3://"):
+        # URI schemes are case-insensitive and `urlsplit` normalizes them, so test the
+        # separator against the raw string by offset rather than matching a lowercase
+        # prefix -- otherwise "QUILT+S3://..." reads as though it had no slashes.
+        if not uri[len(parsed.scheme) + 1 :].startswith("//"):
             raise PackageUriError("missing slashes between protocol and registry.", uri)
         if parsed.path or parsed.query:
             raise PackageUriError("non-bucket-root registries are not supported currently.", uri)
 
+        # `parse_qs` reads the fragment as a form query, taking a raw "+" to mean a
+        # space. Producers emit unencoded paths (quilt_uri.py builds
+        # `&path=${logicalKey}` verbatim), so "C++.csv" would silently become
+        # "C  .csv" -- pointing at another entry. Escaping it keeps it literal;
+        # `encodeURIComponent` escapes "+", so well-formed URIs are unaffected. A
+        # stray "%" needs no such help: `unquote` already leaves it alone.
+        fragment = parsed.fragment.replace("+", "%2B")
         try:
-            params = parse_qs(parsed.fragment, keep_blank_values=True, errors="strict")
+            params = parse_qs(fragment, keep_blank_values=True, errors="strict")
         except UnicodeDecodeError as ex:
             # A well-formed escape whose bytes are not valid UTF-8, e.g. "%FF". The
             # default errors="replace" would substitute U+FFFD, yielding a path that
@@ -112,4 +122,6 @@ class PackageUri:
 def is_package_uri(value: object) -> bool:
     """Return whether a value should be parsed as a logical Quilt package URI."""
 
-    return isinstance(value, str) and value.startswith("quilt+")
+    # URI schemes are case-insensitive, so route "QUILT+S3://..." as a URI too rather
+    # than letting it fall through to legacy package-name handling.
+    return isinstance(value, str) and value.lower().startswith("quilt+")

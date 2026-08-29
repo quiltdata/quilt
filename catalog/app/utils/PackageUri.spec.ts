@@ -103,4 +103,37 @@ describe('utils/PackageUri', () => {
       )
     })
   })
+
+  // The shared corpus pins parsing only. These cover the encoding half of the
+  // contract: every character `stringify` escapes, `parse` must give back intact.
+  describe('parse(stringify(x))', () => {
+    const paths = [
+      'sub/path',
+      'sub/dir/',
+      '50%_sample.csv',
+      'a%20b',
+      'a b',
+      'a+b',
+      'C++.csv',
+      'a&b=c',
+      'a#b',
+      'ünïcödé.csv',
+    ]
+    paths.forEach((path) => {
+      it(`should round-trip the path ${JSON.stringify(path)}`, () => {
+        const uri = { bucket: 'bucket-name', name: 'quilt/test', path }
+        expect(PackageUri.parse(PackageUri.stringify(uri))).toEqual(uri)
+      })
+    })
+
+    it('should round-trip a catalog', () => {
+      const uri = {
+        bucket: 'bucket-name',
+        name: 'quilt/test',
+        path: 'a+b/c%20d',
+        catalog: 'https://example.com',
+      }
+      expect(PackageUri.parse(PackageUri.stringify(uri))).toEqual(uri)
+    })
+  })
 })

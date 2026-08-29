@@ -99,6 +99,41 @@
         "name": "quilt/test",
         "path": "baz/"
       }
+    },
+    {
+      "name": "raw plus in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=C++.csv",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "C++.csv"
+      }
+    },
+    {
+      "name": "encoded plus in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=C%2B%2B.csv",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "C++.csv"
+      }
+    },
+    {
+      "name": "encoded space in path stays a space",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=a%20b",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "a b"
+      }
+    },
+    {
+      "name": "uppercase scheme",
+      "uri": "QUILT+S3://bucket-name#package=quilt/test",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test"
+      }
     }
   ],
   "invalid": [
