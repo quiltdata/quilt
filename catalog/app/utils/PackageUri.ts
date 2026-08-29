@@ -92,7 +92,9 @@ export function parse(uri: string): PackageUri {
   if (Array.isArray(params.path)) {
     throw new PackageUriError('"path=" specified multiple times.', uri)
   }
-  const path = params.path ? decodeURIComponent(params.path) : undefined
+  // `parseQs` has already percent-decoded the value; decoding it a second time
+  // would throw on a literal "%" and silently mangle a literal "%20".
+  const path = params.path || undefined
   return R.reject(R.isNil, { bucket, name, hash, tag, path }) as unknown as PackageUri
 }
 

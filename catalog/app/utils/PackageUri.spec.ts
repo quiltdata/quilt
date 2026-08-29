@@ -34,6 +34,26 @@ describe('utils/PackageUri', () => {
       })
     })
 
+    it('should decode a path containing a literal "%" exactly once', () => {
+      expect(
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test&path=50%25_sample'),
+      ).toEqual({
+        bucket: 'bucket-name',
+        name: 'quilt/test',
+        path: '50%_sample',
+      })
+    })
+
+    it('should decode a path containing a literal "%20" exactly once', () => {
+      expect(
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test&path=a%2520b'),
+      ).toEqual({
+        bucket: 'bucket-name',
+        name: 'quilt/test',
+        path: 'a%20b',
+      })
+    })
+
     it('should throw on invalid protocol', () => {
       expect(() =>
         PackageUri.parse('quilt+http://bucket-name#package=quilt/test'),
@@ -192,6 +212,25 @@ describe('utils/PackageUri', () => {
       ).toBe(
         'quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath&catalog=quilt-test',
       )
+    })
+  })
+
+  describe('parse(stringify(x))', () => {
+    const paths = [
+      'sub/path',
+      'sub/dir/',
+      '50%_sample.csv',
+      'a%20b',
+      'a b',
+      'a+b',
+      'a&b=c',
+      'ünïcödé.csv',
+    ]
+    paths.forEach((path) => {
+      it(`should round-trip the path ${JSON.stringify(path)}`, () => {
+        const uri = { bucket: 'bucket-name', name: 'quilt/test', path }
+        expect(PackageUri.parse(PackageUri.stringify(uri))).toEqual(uri)
+      })
     })
   })
 })
