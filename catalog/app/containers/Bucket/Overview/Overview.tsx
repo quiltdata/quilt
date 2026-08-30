@@ -104,18 +104,9 @@ export default function Overview() {
   const { prefs } = BucketPreferences.use()
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
-      {bucketData ? (
-        <Header {...{ s3, bucket, description }} />
-      ) : (
-        <M.Box
-          pt={2}
-          pb={{ xs: 2, sm: 0 }}
-          px={{ xs: 2, sm: 0 }}
-          textAlign={{ xs: 'center', sm: 'left' }}
-        >
-          <M.Typography variant="h5">{bucket}</M.Typography>
-        </M.Box>
-      )}
+      {/* No name fallback for a bucket outside the stack: the header above the
+          tabs names it either way. */}
+      {bucketData && <Header {...{ s3, bucket, description }} />}
       <Readmes {...{ s3, bucket }} />
       {BucketPreferences.Result.match(
         {

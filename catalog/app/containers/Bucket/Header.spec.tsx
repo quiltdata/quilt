@@ -29,8 +29,9 @@ vi.mock('./PackageDialog', () => ({
   useCreateDialog: () => ({ open: vi.fn(), render: () => null }),
 }))
 
+let isAdmin = false
 vi.mock('react-redux', () => ({
-  useSelector: () => false,
+  useSelector: () => isAdmin,
 }))
 
 vi.mock('utils/AWS', () => ({
@@ -90,7 +91,7 @@ function renderHeader() {
   return render(
     <MemoryRouter>
       <NamedRoutes.Provider routes={routes}>
-        <Header bucket="test-bucket" />
+        <Header bucket="test-bucket" withStats />
       </NamedRoutes.Provider>
     </MemoryRouter>,
   )
@@ -103,6 +104,7 @@ describe('containers/Bucket/Header', () => {
     packagesTotal = 7
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
+    isAdmin = false
   })
 
   it('does not link the total-size stat', () => {
@@ -180,5 +182,61 @@ describe('containers/Bucket/Header', () => {
   it('renders the Create package button', () => {
     const { getByText } = renderHeader()
     expect(getByText('Create package')).toBeTruthy()
+  })
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderHeader()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+})
+
+describe('containers/Bucket/Header withStats=false', () => {
+  afterEach(() => {
+    cleanup()
+    isAdmin = false
+    // The no-queries test clears these; restore them so a block appended below
+    // does not inherit an implementation-less mock.
+    statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
+    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
+  })
+
+  function renderTitle() {
+    return render(
+      <MemoryRouter>
+        <NamedRoutes.Provider routes={routes}>
+          <Header bucket="test-bucket" withStats={false} />
+        </NamedRoutes.Provider>
+      </MemoryRouter>,
+    )
+  }
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderTitle()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+
+  // The settings link is the other half of what renders ungated, and the
+  // module-level useSelector mock is what makes it reachable in a test at all.
+  it('links a settings gear to the bucket admin page for an admin', () => {
+    isAdmin = true
+    const { getByText } = renderTitle()
+    const link = getByText('settings').closest('a')
+    expect(link).toBeTruthy()
+    expect(link!.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('offers no settings gear to a non-admin', () => {
+    isAdmin = false
+    const { queryByText } = renderTitle()
+    expect(queryByText('settings')).toBeNull()
+  })
+
+  it('renders no stats and issues no stats queries', () => {
+    statsResult.mockClear()
+    useTabulatorTables.mockClear()
+    const { queryByText } = renderTitle()
+    expect(queryByText('Create package')).toBeNull()
+    expect(statsResult).not.toHaveBeenCalled()
+    expect(useTabulatorTables).not.toHaveBeenCalled()
   })
 })
