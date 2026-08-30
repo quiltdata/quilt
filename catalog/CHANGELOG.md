@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Bucket: the header card's beta gate is covered by tests, so the bucket name cannot silently disappear from the tabs again ([#5246](https://github.com/quiltdata/quilt/pull/5246))
 - [Fixed] Quilt+ URI parsing retains the informational `catalog` field, reads a raw `+` in an unencoded path as a `+` rather than a space, and shares its compatibility corpus with quilt3 ([#5255](https://github.com/quiltdata/quilt/pull/5255))
 - [Fixed] Quilt+ URIs: a package path containing a literal `%` no longer breaks the URI, and one containing a literal `%20` no longer decodes to a space and points at the wrong entry. Paths from producers that do not percent-encode now resolve instead of failing, and a path that genuinely cannot be decoded reports a real error rather than the literal text `unknown error: ${e}` ([#5256](https://github.com/quiltdata/quilt/pull/5256))
 - [Changed] Search: error states are separate, more strictly typed components, safer to extend than one component behind a `kind` prop ([#5238](https://github.com/quiltdata/quilt/pull/5238))
