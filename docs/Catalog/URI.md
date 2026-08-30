@@ -30,6 +30,34 @@ folder or entry) in the Quilt catalog, relative to an S3 bucket. For example:
 The URI above references a specific version of the `CORD19.ipynb` notebook in
 the `akarve/cord19` package of the `quilt-example` bucket.
 
+### Python and CLI Usage
+
+Pass a Quilt+ URI directly to `Package.browse()` or `Package.install()`:
+
+<!--pytest.mark.skip-->
+
+```python
+import quilt3
+
+uri = "quilt+s3://quilt-example#package=akarve/cord19:latest&path=CORD19.ipynb"
+entry = quilt3.Package.browse(uri)
+quilt3.Package.install(uri, dest="download")
+```
+
+For the CLI, use `--uri` and quote the entire URI. Quoting is required because
+URI fragments can contain `&`, which shells otherwise interpret as an operator:
+
+<!--pytest.mark.skip-->
+
+```bash
+quilt3 install --uri \
+  'quilt+s3://quilt-example#package=akarve/cord19:latest&path=CORD19.ipynb' \
+  --dest download
+```
+
+The bucket selects the package registry. The optional `catalog` parameter is
+informational and does not change credentials or endpoints.
+
 ### Catalog Usage
 
 URIs can be used to quickly navigate to a specific package or object from the
@@ -52,7 +80,8 @@ you can use a redirect page from the Quilt catalog. For example:
 A Quilt+ URI contains the following components:
 
 - `quilt+<protocol>`: The scheme of the URI. This always begins with `quilt+`.
-  Currently the only supported protocol is `s3`.
+  Currently the only supported protocol is `s3`. Schemes are case-insensitive,
+  so `QUILT+S3://` is equivalent to `quilt+s3://`.
 - `<bucket>`: The name of the bucket containing the package, e.g.
   `quilt-example`.
 - `#package=<package_name[specifier]>`: A fragment for the name of the package,
@@ -76,10 +105,11 @@ consumer decodes it once. Encoding is required for any character that would
 otherwise be read as structure — `&`, `=`, `#` — and recommended for `%` and
 any character outside the unreserved set.
 
-Consumers are lenient about malformed input, following the same rules as
-Python's `urllib.parse.unquote`: a `%` that is not followed by two hexadecimal
-digits is treated as a literal `%` rather than an error. This keeps URIs from
-producers that do not encode their paths readable:
+Consumers are lenient about unencoded input, so that URIs from producers that
+do not encode their paths stay readable. A `%` not followed by two hexadecimal
+digits is a literal `%`, following `urllib.parse.unquote`. A raw `+` is a
+literal `+`, **not** a space — the fragment is not a form query, and a space is
+written `%20`:
 
 | `path=` value       | decodes to       |
 | ------------------- | ---------------- |
@@ -88,11 +118,19 @@ producers that do not encode their paths readable:
 | `a%2zb`             | `a%2zb`          |
 | `a%20b`             | `a b`            |
 | `a%2520b`           | `a%20b`          |
+| `C%2B%2B.csv`       | `C++.csv`        |
+| `C++.csv`           | `C++.csv`        |
+
+Leniency never changes how a well-formed URI reads: `encodeURIComponent` (and
+`urllib.parse.quote`) escape both `%` and `+`, so neither appears raw in an
+encoded value, and the rules above apply only to input that is not encoded.
 
 A directory path may carry a trailing slash (`path=subdir%2F`); consumers must
 accept it.
 
-Note that leniency covers malformed escapes, not undecodable ones: a
-well-formed escape that is not valid UTF-8 (e.g. `%FF`) is currently a decode
-error in the catalog, while Python substitutes the Unicode replacement
-character.
+Leniency covers malformed escapes, not undecodable ones. A *well-formed* escape
+whose bytes are not valid UTF-8 (e.g. `%FF`) is rejected as a malformed URI,
+because unlike a stray `%` it has no correct reading — substituting the Unicode
+replacement character would produce a path that cannot match any entry. Paths
+are UTF-8, so an S3 key holding bytes that are not valid UTF-8 cannot be
+addressed by a Quilt+ URI.

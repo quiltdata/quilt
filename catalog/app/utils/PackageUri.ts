@@ -61,17 +61,19 @@ function parsePackageSpec(spec: string, uri: string) {
   return { name: spec }
 }
 
-// `querystring.parse` percent-decodes via `decodeURIComponent`, which throws on a
-// "%" not followed by two hex digits. Producers emit unencoded paths (quilt_uri.py
-// builds `&path=${logicalKey}` verbatim), so a key like "50%_sample.csv" would
-// otherwise blow up the whole parse. Re-escaping the stray "%" lets it survive
-// decoding as a literal, matching `urllib.parse.unquote`, which leaves malformed
-// escapes alone.
-const escapeStrayPercents = (qs: string) => qs.replace(/%(?![0-9A-Fa-f]{2})/g, '%25')
+// `querystring.parse` reads the fragment as a form query: it decodes with
+// `decodeURIComponent`, which throws on a "%" not followed by two hex digits, and it
+// takes a raw "+" to mean a space. Producers emit unencoded paths (quilt_uri.py
+// builds `&path=${logicalKey}` verbatim), so "50%_sample.csv" would blow up the whole
+// parse and "C++.csv" would silently become "C  .csv" — pointing at another entry.
+// Escaping both lets them survive as literals. `encodeURIComponent` escapes "%" and
+// "+" alike, so this is a no-op on any well-formed URI.
+const escapeLiterals = (qs: string) =>
+  qs.replace(/%(?![0-9A-Fa-f]{2})/g, '%25').replace(/\+/g, '%2B')
 
 function parseFragment(hash: string, uri: string) {
   try {
-    return parseQs(escapeStrayPercents(hash))
+    return parseQs(escapeLiterals(hash))
   } catch {
     // `decodeURIComponent` still rejects well-formed escapes that aren't valid
     // UTF-8 (e.g. "%FF"). Surface a PackageUriError rather than a raw URIError.
@@ -106,14 +108,28 @@ export function parse(uri: string): PackageUri {
   if (Array.isArray(params.package)) {
     throw new PackageUriError('"package=" specified multiple times.', uri)
   }
+  if (!bucket) {
+    throw new PackageUriError('missing bucket.', uri)
+  }
   const { name, hash, tag } = parsePackageSpec(params.package, uri)
   if (Array.isArray(params.path)) {
     throw new PackageUriError('"path=" specified multiple times.', uri)
   }
-  // `parseQs` has already percent-decoded the value; decoding it a second time
+  if (Array.isArray(params.catalog)) {
+    throw new PackageUriError('"catalog=" specified multiple times.', uri)
+  }
+  // `parseFragment` has already percent-decoded these; decoding a second time
   // would throw on a literal "%" and silently mangle a literal "%20".
   const path = params.path || undefined
-  return R.reject(R.isNil, { bucket, name, hash, tag, path }) as unknown as PackageUri
+  const catalog = params.catalog || undefined
+  return R.reject(R.isNil, {
+    bucket,
+    name,
+    hash,
+    tag,
+    path,
+    catalog,
+  }) as unknown as PackageUri
 }
 
 export function stringify({ bucket, name, hash, tag, path, catalog }: PackageUri) {
