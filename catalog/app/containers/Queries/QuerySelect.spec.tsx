@@ -6,10 +6,15 @@ import noop from 'utils/noop'
 
 import QuerySelect from './QuerySelect'
 
-// The label id now renders unconditionally, and the real useId is
-// Math.random-based -- snapshots need it deterministic.
+// `useId` is Math.random-based and its ids reach the snapshots, so generation
+// has to be deterministic. Delegate to the real hook through its `makeId` seam
+// instead of replacing it: an id has to stay stable across re-renders, and a
+// bare counter hands out a fresh one on every render.
 const ids = vi.hoisted(() => ({ n: 0 }))
-vi.mock('utils/useId', () => ({ default: () => `test-id-${(ids.n += 1)}` }))
+vi.mock('utils/useId', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('utils/useId')>()
+  return { default: () => actual.default(() => `test-id-${(ids.n += 1)}`) }
+})
 beforeEach(() => {
   ids.n = 0
 })
