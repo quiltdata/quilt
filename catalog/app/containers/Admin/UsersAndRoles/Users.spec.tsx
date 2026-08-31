@@ -196,4 +196,47 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
       expect(container.querySelector('input')?.disabled).toBe(false)
     })
   })
+  describe('the Role column', () => {
+    afterEach(cleanup)
+
+    const column = columns.find((c) => c.id === 'role')!
+
+    function renderRole(user: object) {
+      return render(
+        <>
+          {column.getDisplay!(
+            undefined,
+            { extraRoles: [], ...user } as never,
+            {
+              roles: [],
+              defaultRole: null,
+              openDialog: vi.fn(),
+            } as never,
+          )}
+        </>,
+      )
+    }
+
+    // The dialog this opens is read-only for both flags, so the invitation to
+    // edit must be gated on the same pair.
+    it.each([
+      ['an SSO-managed user', { isRoleAssignmentDisabled: true, isService: false }],
+      ['a service user', { isRoleAssignmentDisabled: false, isService: true }],
+    ])('offers only viewing for %s', (_label, user) => {
+      const { container } = renderRole(user)
+      expect(container.querySelector('[title]')?.getAttribute('title')).toBe(
+        'Click to view',
+      )
+    })
+
+    it('offers editing for an ordinary user', () => {
+      const { container } = renderRole({
+        isRoleAssignmentDisabled: false,
+        isService: false,
+      })
+      expect(container.querySelector('[title]')?.getAttribute('title')).toBe(
+        'Click to edit',
+      )
+    })
+  })
 })

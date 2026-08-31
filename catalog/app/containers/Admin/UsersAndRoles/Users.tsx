@@ -654,6 +654,11 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
     [user.extraRoles, user.role],
   )
 
+  // One expression for the whole dialog. The registry couples these (isService
+  // implies isRoleAssignmentDisabled), but nothing here may depend on that: a
+  // live Save the registry refuses submits unchanged values and reports success.
+  const readOnly = user.isRoleAssignmentDisabled || user.isService
+
   return (
     <RF.Form<FormValues>
       onSubmit={onSubmit}
@@ -672,7 +677,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
       }) => (
         <>
           <M.DialogTitle>
-            {user.isRoleAssignmentDisabled
+            {readOnly
               ? `Roles assigned to "${user.name}"`
               : `Assign roles to "${user.name}"`}
           </M.DialogTitle>
@@ -683,7 +688,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
-                    nonAssignable={user.isRoleAssignmentDisabled}
+                    nonAssignable={readOnly}
                     nonAssignableReason={user.isService ? 'service' : 'sso'}
                     {...props}
                   />
@@ -694,7 +699,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
               </Form.FormErrorAuto>
             </DialogForm>
           </M.DialogContent>
-          {user.isRoleAssignmentDisabled ? (
+          {readOnly ? (
             <M.DialogActions>
               <M.Button color="primary" onClick={close} variant="contained">
                 Close
@@ -878,8 +883,12 @@ function RoleDisplay({ user, roles, defaultRole, openDialog }: RoleDisplayProps)
       fullWidth: true,
     })
 
+  // Same pair as the dialog this opens and the switch columns: the registry
+  // couples the flags, but nothing here may depend on that holding.
+  const readOnly = user.isRoleAssignmentDisabled || user.isService
+
   return (
-    <M.Tooltip title={user.isRoleAssignmentDisabled ? 'Click to view' : 'Click to edit'}>
+    <M.Tooltip title={readOnly ? 'Click to view' : 'Click to edit'}>
       <Clickable onClick={edit}>
         {user.role?.name ?? emptyRole}
         {user.extraRoles.length > 0 && <Hint> +{user.extraRoles.length}</Hint>}
