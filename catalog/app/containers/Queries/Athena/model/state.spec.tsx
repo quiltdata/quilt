@@ -104,14 +104,9 @@ describe('app/containers/Queries/Athena/model/state', () => {
   })
 
   it('threads the bucket default workgroup through to the model', async () => {
-    // The seam this branch exists to restore: `Provider` takes `ui.athena` from
-    // the `?bucket=` scope's preferences and hands the default workgroup to
-    // `useWorkgroup`. Nothing crossed it, so the prop could have been dropped on
-    // the floor and every test here would still have passed.
-    // A workgroup *is* named, but it is one this user cannot reach — a bookmark
-    // from before access changed. Without a named workgroup the provider
-    // redirects instead of rendering, so this is also the shape that lets the
-    // default be observed at all.
+    // The workgroup named in the URL is deliberately one this user cannot reach:
+    // without a named workgroup the provider redirects instead of rendering, so
+    // this is the only shape in which the default can be observed.
     useParams.mockImplementation(() => ({ workgroup: 'gone' }) as Record<string, string>)
     listWorkGroups.mockImplementation(() => ({
       promise: () =>
@@ -146,14 +141,17 @@ describe('app/containers/Queries/Athena/model/state', () => {
         {children}
       </Model.Provider>
     )
-    const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
-    await act(async () => {
-      await waitFor(() => typeof result.current.workgroup.data === 'string')
-    })
-    // 'alpha' is first in the list, so this is the default being honored rather
-    // than the fallback happening to agree.
-    expect(result.current.workgroup.data).toBe('team')
-    unmount()
-    useParams.mockImplementation(() => ({ workgroup: 'w' }) as Record<string, string>)
+    try {
+      const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
+      await act(async () => {
+        await waitFor(() => typeof result.current.workgroup.data === 'string')
+      })
+      // 'alpha' is first in the list, so this is the default being honored rather
+      // than the fallback happening to agree.
+      expect(result.current.workgroup.data).toBe('team')
+      unmount()
+    } finally {
+      useParams.mockImplementation(() => ({ workgroup: 'w' }) as Record<string, string>)
+    }
   })
 })

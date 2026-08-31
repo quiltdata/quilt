@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Athena Queries: a workgroup named in `ui.athena.defaultWorkgroup` or in the URL is honored whatever its capitalisation — a mis-cased name used to match and then have every AWS call rejected — and a stored workgroup that has been deleted or lost access no longer hides a valid bucket default ([#5265](https://github.com/quiltdata/quilt/pull/5265))
+- [Fixed] Athena Queries: a workgroup named in the URL is honored whatever its capitalisation, instead of matching a workgroup you can see and then having every AWS call rejected ([#5265](https://github.com/quiltdata/quilt/pull/5265))
 - [Fixed] Admin Users: the roles dialog and the Role column are read-only for service users, rather than offering a Save the registry refuses ([#5264](https://github.com/quiltdata/quilt/pull/5264))
 - [Fixed] Admin Users: a disabled Enabled or Admin switch says why on hover and on keyboard focus — your own account, a service user managed by the stack, or admin capabilities managed by the SSO configuration — instead of rendering as the same unexplained dead control; the Admin switch now also refuses service users ([#5263](https://github.com/quiltdata/quilt/pull/5263))
 - [Fixed] Search sidebar: the facet "Sort by" control no longer disappears while you type in "Find metadata" on stacks with truncated facet lists, and it is withheld when the query matches nothing rather than offering to sort an empty list ([#5262](https://github.com/quiltdata/quilt/pull/5262))

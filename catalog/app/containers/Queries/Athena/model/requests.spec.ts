@@ -1279,11 +1279,6 @@ describe('containers/Queries/Athena/model/requests', () => {
     })
 
     it('stores the workgroup as AWS spells it, not as the caller did', async () => {
-      // The match is case-insensitive, but `listNamedQueries` and
-      // `startQueryExecution` send this value verbatim: an admin writing
-      // `ui.athena.defaultWorkgroup: Analytics-Prod` against a workgroup named
-      // `analytics-prod` used to match here and then have AWS reject every call,
-      // so the console errored instead of honoring the default.
       const workgroups = {
         data: { list: ['foo', 'analytics-prod'] },
         loadMore: noop,
@@ -1358,10 +1353,6 @@ describe('containers/Queries/Athena/model/requests', () => {
     })
 
     it('falls through to the bucket default when the stored workgroup is gone', async () => {
-      // A stored workgroup that has been deleted, or whose access was revoked,
-      // used to be picked by `stored || default`, fail the availability check,
-      // and drop through to the first workgroup in the list -- masking a bucket
-      // default that was perfectly valid.
       const storageMock = getStorageKey.getMockImplementation()
       getStorageKey.mockImplementation(() => 'deleted')
       const workgroups = {
@@ -1369,23 +1360,24 @@ describe('containers/Queries/Athena/model/requests', () => {
         loadMore: noop,
       }
 
-      const { result, waitFor, unmount } = renderHook(() =>
-        useWrapper([workgroups, undefined, 'team']),
-      )
+      try {
+        const { result, waitFor, unmount } = renderHook(() =>
+          useWrapper([workgroups, undefined, 'team']),
+        )
 
-      await act(async () => {
-        await waitFor(() => typeof result.current.data === 'string')
-        expect(result.current.data).toBe('team')
-      })
-      getStorageKey.mockImplementation(storageMock!)
-      unmount()
+        await act(async () => {
+          await waitFor(() => typeof result.current.data === 'string')
+          expect(result.current.data).toBe('team')
+        })
+        unmount()
+      } finally {
+        getStorageKey.mockImplementation(storageMock!)
+      }
     })
 
     it('keeps the stored workgroup ahead of the bucket default', async () => {
-      // Pinned in whichever direction it is set: nothing tested this precedence
-      // either way, and the two candidates are read in one expression. Storage
-      // first predates this code path, and reordering it is a product decision
-      // rather than a bug fix -- so it is asserted here rather than changed.
+      // Precedence pinned, not chosen here: storage-before-default predates this
+      // code path, so changing it is a product decision.
       const storageMock = getStorageKey.getMockImplementation()
       getStorageKey.mockImplementation(() => 'alpha')
       const workgroups = {
@@ -1393,16 +1385,19 @@ describe('containers/Queries/Athena/model/requests', () => {
         loadMore: noop,
       }
 
-      const { result, waitFor, unmount } = renderHook(() =>
-        useWrapper([workgroups, undefined, 'team']),
-      )
+      try {
+        const { result, waitFor, unmount } = renderHook(() =>
+          useWrapper([workgroups, undefined, 'team']),
+        )
 
-      await act(async () => {
-        await waitFor(() => typeof result.current.data === 'string')
-        expect(result.current.data).toBe('alpha')
-      })
-      getStorageKey.mockImplementation(storageMock!)
-      unmount()
+        await act(async () => {
+          await waitFor(() => typeof result.current.data === 'string')
+          expect(result.current.data).toBe('alpha')
+        })
+        unmount()
+      } finally {
+        getStorageKey.mockImplementation(storageMock!)
+      }
     })
 
     it('select the first available workgroup if no requested or default', async () => {

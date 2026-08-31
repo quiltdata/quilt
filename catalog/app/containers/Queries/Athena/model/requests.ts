@@ -29,16 +29,13 @@ function parseNamedQuery(query: Athena.NamedQuery): Query {
 }
 
 /**
- * The list's own spelling of `value`, matched case-insensitively.
+ * The list's own spelling of `value`, preferring an exact match.
  *
- * Returns the entry rather than a boolean, because the caller must go on to use
- * the *canonical* name: the match ignores case, but every AWS call downstream
- * sends the workgroup name verbatim and rejects a mis-cased one with
- * `InvalidRequestException`.
- *
- * Names are case-sensitive, so `alpha` and `Alpha` can both exist -- an exact
- * hit has to win over the case-insensitive one, which the sorted list would
- * otherwise resolve to whichever sorts first.
+ * Callers must use the spelling this returns: AWS calls send the workgroup name
+ * verbatim and reject a mis-cased one with `InvalidRequestException`. Names are
+ * case-sensitive, so `alpha` and `Alpha` can both exist -- an exact hit has to
+ * win over the case-insensitive one, which the sorted list would otherwise
+ * resolve to whichever sorts first.
  */
 function canonical(list: string[], value: string): string | undefined {
   return (
@@ -208,9 +205,9 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
 export function useWorkgroup(
   workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
-  // The one preference this needs, as a string rather than the `ui.athena`
-  // object: the parsed preferences are rebuilt on every provider render, so an
-  // object here would re-fire this effect throughout the workgroup probe.
+  // A string rather than the `ui.athena` object: the parsed preferences are
+  // rebuilt on every provider render, so an object would re-fire this effect
+  // throughout the workgroup probe.
   defaultWorkgroup?: string,
 ): Model.DataController<Workgroup> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
@@ -218,18 +215,6 @@ export function useWorkgroup(
     if (!Model.hasData(workgroups.data)) return
     const { list } = workgroups.data
 
-    // Each candidate is resolved to the list's own spelling before it is stored:
-    // the match is case-insensitive, but `listNamedQueries` and
-    // `startQueryExecution` send this value verbatim and AWS rejects a mis-cased
-    // workgroup outright.
-    //
-    // Tried in turn rather than `stored || default`: an unavailable stored
-    // workgroup -- deleted, or access revoked -- used to be picked by the `||`,
-    // fail the availability check, and drop through to the first workgroup in the
-    // list, masking a bucket default that was perfectly valid.
-    //
-    // Storage still outranks the bucket default. That precedence predates this
-    // code path and reordering it is a product decision, not a bug fix.
     // `unknown`, not `string`: `defaultWorkgroup` comes from a user-authored YAML
     // document, and the bucket-config schema does not constrain `ui.athena`.
     const pick = (candidate: unknown): boolean => {
@@ -240,9 +225,6 @@ export function useWorkgroup(
       return true
     }
 
-    // URL parameter workgroup (user navigation), then the stored one, then the
-    // bucket default. Read in that order and only as far as needed, so a URL
-    // that names a workgroup never touches storage.
     if (pick(requestedWorkgroup)) return
     if (pick(storage.getWorkgroup())) return
     if (pick(defaultWorkgroup)) return
