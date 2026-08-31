@@ -72,15 +72,23 @@ describe('containers/App/queryRedirects', () => {
     expect(landingAt('/b/my-bucket/queries/es')).toBe('/queries/es')
   })
 
-  it('redirects an athena workgroup, dropping the bucket', () => {
+  // Every athena shape carries the bucket, because `?bucket=` is what makes that
+  // bucket's `ui.athena` preferences apply to the console.
+  it('redirects an athena workgroup, carrying the bucket', () => {
     expect(landingAt('/b/my-bucket/queries/athena/primary')).toBe(
-      '/queries/athena/primary',
+      '/queries/athena/primary?bucket=my-bucket',
     )
   })
 
-  it('redirects an athena query execution', () => {
+  it('redirects an athena query execution, carrying the bucket', () => {
     expect(landingAt('/b/my-bucket/queries/athena/primary/exec-1')).toBe(
-      '/queries/athena/primary/exec-1',
+      '/queries/athena/primary/exec-1?bucket=my-bucket',
+    )
+  })
+
+  it('preserves other query params alongside the bucket on a workgroup URL', () => {
+    expect(landingAt('/b/my-bucket/queries/athena/primary?table=drugs')).toBe(
+      '/queries/athena/primary?bucket=my-bucket&table=drugs',
     )
   })
 })

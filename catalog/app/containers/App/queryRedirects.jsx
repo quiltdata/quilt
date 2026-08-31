@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Switch, Route, Redirect, useLocation, useParams } from 'react-router-dom'
 
+import mkSearch from 'utils/mkSearch'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 
@@ -9,24 +10,43 @@ import parseSearch from 'utils/parseSearch'
 // components are extracted from App.jsx unchanged so their redirect targets are
 // unit-testable; App.jsx wires them at `paths.bucketQueries` exactly as before.
 
+// The bucket segment becomes the console's `?bucket=` scope param on every shape
+// below, because that param is what makes the bucket's `ui.athena` preferences
+// apply — a workgroup or execution link that dropped it would land the reader in
+// the same console, unscoped.
+function useScopeSearch() {
+  const { bucket } = useParams()
+  const { search } = useLocation()
+  return mkSearch({ bucket, ...parseSearch(search, true) })
+}
+
 export function AthenaWorkgroupRedirect() {
   const { workgroup } = useParams()
   const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaWorkgroup(workgroup)} />
+  const search = useScopeSearch()
+  return <Redirect to={{ pathname: urls.queriesAthenaWorkgroup(workgroup), search }} />
 }
 
 export function AthenaExecutionRedirect() {
   const { workgroup, queryExecutionId } = useParams()
   const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaExecution(workgroup, queryExecutionId)} />
+  const search = useScopeSearch()
+  return (
+    <Redirect
+      to={{
+        pathname: urls.queriesAthenaExecution(workgroup, queryExecutionId),
+        search,
+      }}
+    />
+  )
 }
 
 export function AthenaRootRedirect() {
   const { bucket } = useParams()
   const { search } = useLocation()
   const { urls } = NamedRoutes.use()
-  // The bucket segment becomes the console's `?bucket=` scope param (keeping
-  // `?table=` tabulator deep links alive); the rest of the search is preserved.
+  // Through the route builder rather than `useScopeSearch`, so `?table=`
+  // tabulator deep links keep their declared shape.
   const params = parseSearch(search, true)
   return <Redirect to={urls.queriesAthena({ bucket, ...params })} />
 }
