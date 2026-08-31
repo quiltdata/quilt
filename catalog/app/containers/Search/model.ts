@@ -10,7 +10,6 @@ import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as KTree from 'utils/KeyedTree'
-import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
@@ -342,17 +341,6 @@ function Predicate<Tag extends string, State, GQLType>(input: {
   }
 }
 
-// The SyntaxError names an offset into a string nobody printed, so the throw
-// names the filter and the log carries the value.
-function parseFilterJson(input: string, message: string) {
-  try {
-    return JSON.parse(input)
-  } catch (e) {
-    Log.error(`${message}; JSON.parse failed on ${JSON.stringify(input)}`, e)
-    throw new Error(message)
-  }
-}
-
 const STRICT_MARKER = '$s$:'
 
 export const Predicates = {
@@ -363,7 +351,7 @@ export const Predicates = {
       lte: null as Date | null,
     },
     fromString: (input: string) => {
-      const json = parseFilterJson(input, 'Invalid date range in the search URL')
+      const json = JSON.parse(input)
       return {
         gte: parseDate(json.gte),
         lte: parseDate(json.lte),
@@ -383,7 +371,7 @@ export const Predicates = {
       lte: null as number | null,
     },
     fromString: (input: string) => {
-      const json = parseFilterJson(input, 'Invalid number range in the search URL')
+      const json = JSON.parse(input)
       return {
         gte: (json.gte as number) ?? null,
         lte: (json.lte as number) ?? null,
@@ -410,12 +398,7 @@ export const Predicates = {
   KeywordEnum: Predicate({
     tag: 'KeywordEnum',
     init: { terms: [] as string[] },
-    fromString: (input: string) => ({
-      terms: parseFilterJson(
-        `[${input}]`,
-        'Invalid keyword list in the search URL',
-      ) as string[],
-    }),
+    fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
     toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
     toGQL: ({ terms }) =>
       terms.length
@@ -1316,7 +1299,11 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
   return React.createElement(AvailablePackagesMetaFiltersGroup, {
     state,
     children,
-    totalAvailable: available.length,
+    // Neither count alone is the pre-filter total on this path: `available` is
+    // the server-filtered result, and `initial` is the truncated list minus
+    // applied filters — which understates it when a text query matches far more
+    // than the truncated list held. Take whichever is larger.
+    totalAvailable: Math.max(initial.length, available.length),
   })
 }
 
@@ -1364,6 +1351,23 @@ function AvailablePackagesMetaFiltersClientFilter({
   })
 }
 
+/**
+ * Whether to offer the ordering switcher.
+ *
+ * Monotonic per mount: once enough fields have been seen the control stays, so
+ * narrowing the list by typing cannot make it flicker away mid-keystroke. It is
+ * withheld while nothing is displayed at all, because a live "Sort by" above "No
+ * metadata found" sorts nothing.
+ *
+ * Exported for testing: every visibility rule is here, so the hook is the only
+ * place the question can be answered.
+ */
+export function useOrderingOffered(totalAvailable: number, displayed: number): boolean {
+  const maxSeen = React.useRef(0)
+  maxSeen.current = Math.max(maxSeen.current, totalAvailable)
+  return displayed > 0 && maxSeen.current >= FACET_ORDERING_THRESHOLD
+}
+
 // Every `Ready` path funnels through here before the tree reaches the panel, so
 // this is the one place the ordering can own both the sort and the split.
 function AvailablePackagesMetaFiltersGroup({
@@ -1392,7 +1396,7 @@ function AvailablePackagesMetaFiltersGroup({
     [available, ordering],
   )
 
-  const offered = totalAvailable >= FACET_ORDERING_THRESHOLD
+  const offered = useOrderingOffered(totalAvailable, available?.length ?? 0)
 
   const orderingState = React.useMemo(
     () => ({ value: ordering, set: setOrdering, offered }),

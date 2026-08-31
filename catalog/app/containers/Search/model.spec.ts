@@ -1,7 +1,7 @@
+import { renderHook } from '@testing-library/react-hooks'
 import { describe, expect, it, vi } from 'vitest'
 
 import * as KTree from 'utils/KeyedTree'
-import Log from 'utils/Logging'
 
 import * as model from './model'
 
@@ -317,86 +317,6 @@ describe('containers/Search/model', () => {
     })
   })
 
-  describe('Predicates: malformed filter JSON', () => {
-    const silenced = (f: () => void) => {
-      const level = Log.getLevel()
-      Log.setLevel('silent')
-      try {
-        f()
-      } finally {
-        Log.setLevel(level)
-      }
-    }
-
-    it('names the filter when a date range will not parse', () => {
-      silenced(() =>
-        expect(() => model.Predicates.Datetime.fromString('{"gte":')).toThrow(
-          'Invalid date range in the search URL',
-        ),
-      )
-    })
-
-    it('names the filter when a number range will not parse', () => {
-      silenced(() =>
-        expect(() => model.Predicates.Number.fromString('{oops}')).toThrow(
-          'Invalid number range in the search URL',
-        ),
-      )
-    })
-
-    it('names the filter when a keyword list will not parse', () => {
-      silenced(() =>
-        expect(() => model.Predicates.KeywordEnum.fromString('"a",,')).toThrow(
-          'Invalid keyword list in the search URL',
-        ),
-      )
-    })
-
-    // The filter's URL param is its key, unprefixed.
-    it('reports the filter when parsing a whole search URL', () => {
-      silenced(() => {
-        expect(() => model.parseSearchParams('modified={')).toThrow(
-          'Invalid date range in the search URL',
-        )
-        expect(() => model.parseSearchParams('size={oops}')).toThrow(
-          'Invalid number range in the search URL',
-        )
-        expect(() => model.parseSearchParams('workflow="a",,')).toThrow(
-          'Invalid keyword list in the search URL',
-        )
-      })
-    })
-
-    it('logs the value that failed to parse, not just the SyntaxError', () => {
-      const level = Log.getLevel()
-      Log.setLevel('error')
-      const spy = vi.spyOn(Log, 'error').mockImplementation(() => {})
-      try {
-        expect(() => model.parseSearchParams('modified={')).toThrow()
-        expect(spy).toHaveBeenCalledWith(
-          expect.stringContaining('JSON.parse failed on "{"'),
-          expect.any(SyntaxError),
-        )
-      } finally {
-        spy.mockRestore()
-        Log.setLevel(level)
-      }
-    })
-
-    it('leaves well-formed filter params parsing as before', () => {
-      expect(
-        model.Predicates.Datetime.fromString('{"gte":"2020-01-02T00:00:00.000Z"}'),
-      ).toMatchObject({ gte: new Date('2020-01-02T00:00:00.000Z'), lte: null })
-      expect(model.Predicates.Number.fromString('{"gte":1,"lte":5}')).toMatchObject({
-        gte: 1,
-        lte: 5,
-      })
-      expect(model.Predicates.KeywordEnum.fromString('"a","b"')).toMatchObject({
-        terms: ['a', 'b'],
-      })
-    })
-  })
-
   // The URL is the contract catalog, registry and MCP share: a search link
   // pasted into chat, a bookmark, or an MCP-built URL must reconstruct the
   // exact state that produced it.
@@ -493,6 +413,50 @@ describe('containers/Search/model', () => {
       expect(model.serializeSearchUrlState(fromLegacyS).get('s')).toBe(
         'sys:modified:desc',
       )
+    })
+  })
+
+  describe('useOrderingOffered', () => {
+    const T = model.FACET_ORDERING_THRESHOLD
+
+    it('withholds the control below the threshold', () => {
+      const { result } = renderHook(() => model.useOrderingOffered(T - 1, T - 1))
+      expect(result.current).toBe(false)
+    })
+
+    it('offers the control at the threshold', () => {
+      const { result } = renderHook(() => model.useOrderingOffered(T, T))
+      expect(result.current).toBe(true)
+    })
+
+    it('keeps the control once offered, however far the list narrows', () => {
+      // The flicker: typing in "Find metadata" narrows the list, and a control
+      // that reappraised every keystroke would vanish mid-word.
+      const { result, rerender } = renderHook(
+        ({ total, shown }) => model.useOrderingOffered(total, shown),
+        { initialProps: { total: T, shown: T } },
+      )
+      expect(result.current).toBe(true)
+      rerender({ total: 1, shown: 1 })
+      expect(result.current).toBe(true)
+    })
+
+    it('withholds the control while nothing is displayed', () => {
+      // A live "Sort by" above "No metadata found" sorts nothing.
+      const { result, rerender } = renderHook(
+        ({ total, shown }) => model.useOrderingOffered(total, shown),
+        { initialProps: { total: T, shown: T } },
+      )
+      expect(result.current).toBe(true)
+      rerender({ total: T, shown: 0 })
+      expect(result.current).toBe(false)
+    })
+
+    it('does not carry the offer across mounts', () => {
+      const { result: first } = renderHook(() => model.useOrderingOffered(T, T))
+      expect(first.current).toBe(true)
+      const { result: second } = renderHook(() => model.useOrderingOffered(1, 1))
+      expect(second.current).toBe(false)
     })
   })
 })
