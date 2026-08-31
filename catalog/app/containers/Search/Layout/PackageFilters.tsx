@@ -251,12 +251,10 @@ export function AvailablePackagesMetaFilters({
             disabled={fetching}
             extents={FACET_ORDERING_VALUES}
             getOptionLabel={(value) => FACET_ORDERING_LABELS[value]}
-            // Both ids: MUI joins them into the display div's `aria-labelledby`,
-            // and the label id alone would override the div's contents, dropping
-            // the ordering a sighted user reads off the control. `labelId` also
-            // names the popup listbox and makes the caption click into the
-            // control -- neither is reachable through `SelectDisplayProps`, and
-            // `inputProps` lands on the aria-hidden native input.
+            // `labelId` reaches the focusable display div and names the popup
+            // listbox; `id` must come with it, since MUI joins the two into
+            // `aria-labelledby="labelId buttonId"` and `labelId` alone would
+            // override the div's contents, dropping the ordering from the name.
             labelId={orderLabelId}
             id={orderButtonId}
             onChange={(value) =>
