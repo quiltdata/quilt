@@ -82,27 +82,44 @@ export const queries = route('/queries')
 
 export type QueriesArgs = Parameters<typeof queries.url>
 
+// The Athena console's search, shared by the three routes that render it, so
+// they cannot disagree about which params survive a redirect between them.
+// `table` (together with the `bucket` hosting it) deep-links a Tabulator table
+// to autofill the query editor.
+interface AthenaConsoleOpts {
+  bucket?: string
+  table?: string
+}
+
 export const queriesAthena = route(
   '/queries/athena',
-  // `table` (together with the `bucket` hosting it) deep-links a Tabulator
-  // table to autofill the query editor.
-  ({ bucket, table }: { bucket?: string; table?: string } = {}) =>
+  ({ bucket, table }: AthenaConsoleOpts = {}) =>
     `/queries/athena${mkSearch({ bucket, table })}`,
 )
 
 export type QueriesAthenaArgs = Parameters<typeof queriesAthena.url>
 
+// These take the same console search as `queriesAthena` above, so a caller does
+// not have to hand-build a search string to keep the bucket scope across one.
 export const queriesAthenaWorkgroup = route(
   '/queries/athena/:workgroup',
-  (workgroup: string) => `/queries/athena/${workgroup}`,
+  (workgroup: string, { bucket, table }: AthenaConsoleOpts = {}) =>
+    `/queries/athena/${workgroup}${mkSearch({ bucket, table })}`,
 )
 
 export type QueriesAthenaWorkgroupArgs = Parameters<typeof queriesAthenaWorkgroup.url>
 
 export const queriesAthenaExecution = route(
   '/queries/athena/:workgroup/:queryExecutionId',
-  (workgroup: string, queryExecutionId: string) =>
-    `/queries/athena/${workgroup}/${queryExecutionId}`,
+  (
+    workgroup: string,
+    queryExecutionId: string,
+    { bucket }: Omit<AthenaConsoleOpts, 'table'> = {},
+  ) =>
+    // No `table` here: the editor on an execution route is populated from the
+    // execution's own SQL, and TabulatorTables' `?table=` autofill would
+    // overwrite it with a SELECT unrelated to the results on screen.
+    `/queries/athena/${workgroup}/${queryExecutionId}${mkSearch({ bucket })}`,
 )
 
 export type QueriesAthenaExecutionArgs = Parameters<typeof queriesAthenaExecution.url>

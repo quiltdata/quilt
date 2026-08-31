@@ -5,30 +5,42 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 
 // Legacy bucket-scoped query console routes redirect to the workspace-global
-// /queries screens (the bucket is not a home for the consoles anymore). These
-// components are extracted from App.jsx unchanged so their redirect targets are
-// unit-testable; App.jsx wires them at `paths.bucketQueries` exactly as before.
+// /queries screens (the bucket is not a home for the consoles anymore), so the
+// bucket segment has to survive as the console's `?bucket=` scope param.
+
+// The path segment is the bucket the user actually navigated to, so it wins over
+// any `?bucket=` already in the search — spread the incoming params first.
+function scoped(bucket, search) {
+  return { ...parseSearch(search, true), bucket }
+}
 
 export function AthenaWorkgroupRedirect() {
-  const { workgroup } = useParams()
+  const { bucket, workgroup } = useParams()
+  const { search } = useLocation()
   const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaWorkgroup(workgroup)} />
+  return <Redirect to={urls.queriesAthenaWorkgroup(workgroup, scoped(bucket, search))} />
 }
 
 export function AthenaExecutionRedirect() {
-  const { workgroup, queryExecutionId } = useParams()
+  const { bucket, workgroup, queryExecutionId } = useParams()
+  const { search } = useLocation()
   const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.queriesAthenaExecution(workgroup, queryExecutionId)} />
+  return (
+    <Redirect
+      to={urls.queriesAthenaExecution(
+        workgroup,
+        queryExecutionId,
+        scoped(bucket, search),
+      )}
+    />
+  )
 }
 
 export function AthenaRootRedirect() {
   const { bucket } = useParams()
   const { search } = useLocation()
   const { urls } = NamedRoutes.use()
-  // The bucket segment becomes the console's `?bucket=` scope param (keeping
-  // `?table=` tabulator deep links alive); the rest of the search is preserved.
-  const params = parseSearch(search, true)
-  return <Redirect to={urls.queriesAthena({ bucket, ...params })} />
+  return <Redirect to={urls.queriesAthena(scoped(bucket, search))} />
 }
 
 export function BucketQueriesRedirect() {
