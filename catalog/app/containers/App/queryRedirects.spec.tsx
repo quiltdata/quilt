@@ -72,8 +72,8 @@ describe('containers/App/queryRedirects', () => {
     expect(landingAt('/b/my-bucket/queries/es')).toBe('/queries/es')
   })
 
-  // Every athena shape carries the bucket, because `?bucket=` is what makes that
-  // bucket's `ui.athena` preferences apply to the console.
+  // Every athena shape carries the bucket: the console is workspace-global, so
+  // `?bucket=` is what keeps it scoped to the bucket the legacy link named.
   it('redirects an athena workgroup, carrying the bucket', () => {
     expect(landingAt('/b/my-bucket/queries/athena/primary')).toBe(
       '/queries/athena/primary?bucket=my-bucket',
@@ -87,9 +87,9 @@ describe('containers/App/queryRedirects', () => {
   })
 
   // The bucket in the path is the authoritative one: it is the route being
-  // redirected from. A `?bucket=` riding along on the incoming URL used to win,
-  // so `/b/source/queries/athena/primary?bucket=other` loaded `other`'s
-  // preferences instead of `source`'s.
+  // redirected from, so it outranks a `?bucket=` riding along in the query
+  // string. Only the athena root ever honoured that param before; the other two
+  // shapes dropped the search entirely and landed unscoped.
   it.each([
     [
       'a workgroup URL',
@@ -113,12 +113,21 @@ describe('containers/App/queryRedirects', () => {
     },
   )
 
-  it('preserves other query params alongside the bucket on a workgroup URL', () => {
-    // `bucket` comes last in the string because the route's value is applied
-    // last, so it outranks one arriving in the query. Order carries no meaning
-    // to any reader of these params.
-    expect(landingAt('/b/my-bucket/queries/athena/primary?table=drugs')).toBe(
-      '/queries/athena/primary?table=drugs&bucket=my-bucket',
-    )
+  // Only the athena root takes a `?table=` deep link. Carrying one onto an
+  // execution would fire the Tabulator autofill over the SQL of the execution
+  // being viewed, so these two shapes take the scope and nothing else.
+  it.each([
+    [
+      'a workgroup URL',
+      '/b/my-bucket/queries/athena/primary?table=drugs',
+      '/queries/athena/primary?bucket=my-bucket',
+    ],
+    [
+      'an execution URL',
+      '/b/my-bucket/queries/athena/primary/exec-1?table=drugs',
+      '/queries/athena/primary/exec-1?bucket=my-bucket',
+    ],
+  ])('drops ?table= on %s, keeping the bucket scope', (_label, from, to) => {
+    expect(landingAt(from)).toBe(to)
   })
 })

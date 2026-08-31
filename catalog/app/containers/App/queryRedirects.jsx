@@ -7,23 +7,18 @@ import parseSearch from 'utils/parseSearch'
 
 // Legacy bucket-scoped query console routes redirect to the workspace-global
 // /queries screens (the bucket is not a home for the consoles anymore). These
-// components are extracted from App.jsx unchanged so their redirect targets are
-// unit-testable; App.jsx wires them at `paths.bucketQueries` exactly as before.
+// components live outside App.jsx so their redirect targets are unit-testable;
+// App.jsx wires them at `paths.bucketQueries`.
 
-// The bucket segment becomes the console's `?bucket=` scope param on every shape
-// below, because that param is what makes the bucket's `ui.athena` preferences
-// apply — a workgroup or execution link that dropped it would land the reader in
-// the same console, unscoped.
+// The bucket segment becomes the console's `?bucket=` scope param: the console
+// is workspace-global, so that param is what keeps it pointed at the bucket the
+// legacy link named.
 function useScopeSearch() {
   const { bucket } = useParams()
-  const { search } = useLocation()
-  // `bucket` last, so the route wins. The bucket is in the path being redirected
-  // from and is therefore authoritative; a `?bucket=` already on the incoming
-  // URL is a query param on a per-bucket route, which cannot outrank it. With
-  // the spread the other way round,
-  // `/b/source/queries/athena/primary?bucket=other` loaded `other`'s
-  // preferences.
-  return mkSearch({ ...parseSearch(search, true), bucket })
+  // The scope and nothing else. These two routes declare no other search param,
+  // and carrying a `?table=` onto an execution would fire the Tabulator autofill
+  // over the SQL of the execution being viewed.
+  return mkSearch({ bucket })
 }
 
 export function AthenaWorkgroupRedirect() {
@@ -51,10 +46,9 @@ export function AthenaRootRedirect() {
   const { bucket } = useParams()
   const { search } = useLocation()
   const { urls } = NamedRoutes.use()
-  // Through the route builder rather than `useScopeSearch`, so `?table=`
-  // tabulator deep links keep their declared shape.
-  // `bucket` last for the same reason as `useScopeSearch`: the route's bucket
-  // outranks one arriving in the query string.
+  // The builder keeps `{ bucket, table }`, so the `?table=` tabulator deep links
+  // this shape carries survive. `bucket` last: the path being redirected from
+  // outranks a `?bucket=` arriving in the query string.
   const params = parseSearch(search, true)
   return <Redirect to={urls.queriesAthena({ ...params, bucket })} />
 }
