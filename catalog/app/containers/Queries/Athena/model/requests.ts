@@ -28,8 +28,20 @@ function parseNamedQuery(query: Athena.NamedQuery): Query {
   }
 }
 
+/**
+ * The list's own spelling of `value`, matched case-insensitively.
+ *
+ * Returns the entry rather than a boolean, because the caller must go on to use
+ * the *canonical* name: the match ignores case, but every AWS call downstream
+ * sends the workgroup name verbatim and rejects a mis-cased one with
+ * `InvalidRequestException`.
+ */
+function canonical(list: string[], value: string): string | undefined {
+  return list.find((x) => x.toLowerCase() === value.toLowerCase())
+}
+
 function listIncludes(list: string[], value: string): boolean {
-  return list.map((x) => x.toLowerCase()).includes(value.toLowerCase())
+  return canonical(list, value) !== undefined
 }
 
 export type Workgroup = string
@@ -197,23 +209,38 @@ export function useWorkgroup(
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
+    const { list } = workgroups.data
 
-    // URL parameter workgroup (user navigation)
-    if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
-      setData(requestedWorkgroup)
-      return
+    // Each candidate is resolved to the list's own spelling before it is stored:
+    // the match is case-insensitive, but `listNamedQueries` and
+    // `startQueryExecution` send this value verbatim and AWS rejects a mis-cased
+    // workgroup outright.
+    //
+    // Tried in turn rather than `stored || default`: an unavailable stored
+    // workgroup -- deleted, or access revoked -- used to be picked by the `||`,
+    // fail the availability check, and drop through to the first workgroup in the
+    // list, masking a bucket default that was perfectly valid.
+    //
+    // Storage still outranks the bucket default. That precedence predates this
+    // code path and reordering it is a product decision, not a bug fix.
+    const pick = (candidate?: string | null): boolean => {
+      if (!candidate) return false
+      const found = canonical(list, candidate)
+      if (!found) return false
+      setData(found)
+      return true
     }
 
-    // Stored or default workgroup
-    const initialWorkgroup = storage.getWorkgroup() || defaultWorkgroup
-    if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
-      setData(initialWorkgroup)
-      return
-    }
+    // URL parameter workgroup (user navigation), then the stored one, then the
+    // bucket default. Read in that order and only as far as needed, so a URL
+    // that names a workgroup never touches storage.
+    if (pick(requestedWorkgroup)) return
+    if (pick(storage.getWorkgroup())) return
+    if (pick(defaultWorkgroup)) return
 
     // First available workgroup or error. Producer drains to exhaustion, so
     // an accessible workgroup that exists is in this list.
-    setData(workgroups.data.list[0] || new Error('Workgroup not found'))
+    setData(list[0] || new Error('Workgroup not found'))
   }, [defaultWorkgroup, requestedWorkgroup, workgroups])
   return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
