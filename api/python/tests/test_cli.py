@@ -41,8 +41,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
             )
@@ -59,8 +58,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=True, dedupe=False
             )
@@ -77,8 +75,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=True
             )
@@ -93,8 +90,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_not_called()
             mocked_package = mocked_package_class.browse.return_value
-            mocked_package.set_dir.assert_called_once_with('.', dir_path)
-            mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
                 name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
             )
@@ -130,8 +126,7 @@ def test_push_with_meta_data(
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
-        mocked_package.set_dir.assert_called_once_with('.', dir_path)
-        mocked_package.set_meta.assert_called_once_with(expected_meta, agent_context=False)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
         mocked_package.push.assert_called_once_with(
             name, dest=None, message=None, registry=None, workflow=..., force=False, dedupe=False
         )
@@ -184,8 +179,7 @@ def test_push_workflow(workflow_input, expected_workflow):
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
         mocked_package_class.browse.assert_called_once_with(name, None)
-        mocked_package.set_dir.assert_called_once_with('.', dir_path)
-        mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
         mocked_package.push.assert_called_once_with(
             name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False, dedupe=False
         )
@@ -203,67 +197,6 @@ def test_list_packages(capsys):
         assert captured.out.split() == pkg_names
 
 
-def test_push_without_agent_context():
-    # Without the flag, the metadata write is forwarded with
-    # agent_context=False — behavior and package identity unchanged.
-    name = 'test/name'
-    dir_path = 'test/dir/path'
-
-    with patch_package_class as mocked_package_class:
-        mocked_package_class.browse.side_effect = FileNotFoundError()
-
-        main.main(('push', '--dir', dir_path, name))
-
-        mocked_package = mocked_package_class.return_value
-        mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
-        mocked_package.push.assert_called_once_with(
-            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
-        )
-
-
-@pytest.mark.parametrize(
-    'argv',
-    [
-        # store_true parses in any position relative to the package name.
-        ('push', '--dir', 'test/dir/path', 'test/name', '--agent-context'),
-        ('push', '--dir', 'test/dir/path', '--agent-context', 'test/name'),
-        ('push', '--agent-context', '--dir', 'test/dir/path', 'test/name'),
-    ],
-)
-def test_push_agent_context(argv):
-    name = 'test/name'
-    dir_path = 'test/dir/path'
-
-    with patch_package_class as mocked_package_class:
-        mocked_package_class.browse.side_effect = FileNotFoundError()
-
-        main.main(argv)
-
-        mocked_package = mocked_package_class.return_value
-        # Forwarded through the single metadata write, between set_dir and push.
-        mocked_package.assert_has_calls(
-            [
-                mock.call.set_dir('.', dir_path),
-                mock.call.set_meta(None, agent_context=True),
-                mock.call.push(name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False),
-            ]
-        )
-
-
-def test_push_agent_context_with_meta():
-    # --meta and --agent-context compose into one set_meta call.
-    name = 'test/name'
-    dir_path = 'test/dir/path'
-
-    with patch_package_class as mocked_package_class:
-        mocked_package_class.browse.side_effect = FileNotFoundError()
-
-        main.main(('push', '--dir', dir_path, name, '--meta', '{"agent_context": {"agent": {}}}', '--agent-context'))
-
-        mocked_package = mocked_package_class.return_value
-        mocked_package.set_meta.assert_called_once_with({"agent_context": {"agent": {}}}, agent_context=True)
-
-
 def test_push_no_copy():
     name = 'test/name'
     dir_path = 's3://test/dir/path'
@@ -274,8 +207,7 @@ def test_push_no_copy():
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package_class.assert_not_called()
         mocked_package = mocked_package_class.browse.return_value
-        mocked_package.set_dir.assert_called_once_with('.', dir_path)
-        mocked_package.set_meta.assert_called_once_with(None, agent_context=False)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
         mocked_package.push.assert_called_once_with(
             name,
             registry=None,
@@ -295,3 +227,73 @@ def test_push_no_copy_local_dir(capsys):
     assert main.main(('push', '--dir', dir_path, '--no-copy', name)) == 1
     captured = capsys.readouterr()
     assert "--no-copy flag can be specified only for remote data." in captured.err
+
+
+def test_install_legacy_source_is_unchanged():
+    with patch_package_class as mocked_package_class:
+        main.main(('install', 'user/package', '--dest', 'data'))
+
+        mocked_package_class.install.assert_called_once_with(
+            'user/package',
+            registry=None,
+            top_hash=None,
+            dest='data',
+            dest_registry=None,
+            path=None,
+        )
+
+
+def test_install_uri_source():
+    uri = 'quilt+s3://bucket#package=user/package:release&path=data%2Ffile.csv'
+    with patch_package_class as mocked_package_class:
+        main.main(('install', '--uri', uri, '--dest', 'data'))
+
+        mocked_package_class.install.assert_called_once_with(
+            uri,
+            registry=None,
+            top_hash=None,
+            dest='data',
+            dest_registry=None,
+            path=None,
+        )
+
+
+@pytest.mark.parametrize(
+    'args, error',
+    [
+        (('install',), 'Exactly one package source is required'),
+        (('install', 'user/package', '--uri', 'quilt+s3://bucket#package=user/package'), 'cannot be used together'),
+        (('install', 'quilt+s3://bucket#package=user/package'), 'with --uri'),
+        # Schemes are case-insensitive, so an uppercase one must not slip past the
+        # positional guard and get installed as a URI anyway.
+        (('install', 'QUILT+S3://bucket#package=user/package'), 'with --uri'),
+        (('install', 'Quilt+S3://bucket#package=user/package'), 'with --uri'),
+        (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--registry', 's3://other'), '--registry'),
+        (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--top-hash', 'abcdef'), '--top-hash'),
+        (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--path', 'data'), '--path'),
+    ],
+)
+def test_install_rejects_invalid_source_combinations(args, error, capsys):
+    with patch_package_class as mocked_package_class:
+        assert main.main(args) == 1
+
+        assert error in capsys.readouterr().err
+        mocked_package_class.install.assert_not_called()
+
+
+def test_install_uri_help_requires_shell_quoting(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        main.main(('install', '--help'))
+
+    assert exc_info.value.code == 0
+    help_text = capsys.readouterr().out
+    assert '--uri URI' in help_text
+    assert 'Quote the URI' in help_text
+    assert 'in the shell' in help_text
+    assert "'&'" in help_text
+
+
+def test_install_malformed_uri_has_uri_specific_error(capsys):
+    assert main.main(('install', '--uri', 'quilt+http://bucket#package=user/package')) == 1
+
+    assert 'Invalid package URI' in capsys.readouterr().err
