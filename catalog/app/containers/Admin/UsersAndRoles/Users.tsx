@@ -771,11 +771,8 @@ const useEditableStyles = M.makeStyles((t) => ({
   root: {
     marginLeft: t.spacing(0.5),
   },
-  // The reason carrier below is focusable but is not a `ButtonBase`, and
-  // `constants/style` implements the Focus Ring Rule (DESIGN.md §2) for
-  // `MuiButtonBase` only — so this element would take keyboard focus with
-  // nothing drawn on it. Same 2px ring in the ground's counter-color, offset the
-  // same way, so a keyboard admin can see where they are.
+  // Not a `ButtonBase`, and `constants/style` applies the Focus Ring Rule
+  // (DESIGN.md §2) to `MuiButtonBase` only: without this it takes focus unmarked.
   reason: {
     borderRadius: t.shape.borderRadius,
     display: 'inline-flex',
@@ -788,19 +785,14 @@ const useEditableStyles = M.makeStyles((t) => ({
 
 interface EditableSwitchProps {
   disabled?: boolean
-  /** Why the control is disabled — a disabled switch with no cause is
-   * indistinguishable from a rendering bug, and two different causes (self,
-   * service user) sit in the same column. A string, not a node: it is also the
-   * wrapper's accessible name, which is the only way a keyboard or
-   * screen-reader admin reaches the reason at all. */
+  /** A string, not a node: it is also the wrapper's accessible name. */
   disabledReason?: string
   checked: boolean
   onChange: (v: boolean) => void
   hint: NonNullable<React.ReactNode>
 }
 
-// Exported for testing: the disabled branch must keep explaining itself, and
-// only a render proves the tooltip survives the disabled element's dead events.
+// Exported for testing.
 export function EditableSwitch({
   disabled = false,
   disabledReason,
@@ -916,8 +908,8 @@ interface ColumnDisplayProps {
 
 const MANAGED_BY_STACK = 'This service user is managed by the stack'
 
-// One resolver per switch column, so the guard and its explanation cannot drift:
-// `disabled` is derived from whether there is a reason, never stated separately.
+// One resolver per switch column: each call site derives `disabled` from the
+// reason, so the guard and the explanation cannot drift apart.
 function whyEnabledDisabled(user: User, isSelf: boolean): string | undefined {
   if (isSelf) return 'You cannot deactivate your own account'
   if (user.isService) return MANAGED_BY_STACK
@@ -927,15 +919,14 @@ function whyEnabledDisabled(user: User, isSelf: boolean): string | undefined {
 function whyAdminDisabled(user: User, isSelf: boolean): string | undefined {
   if (isSelf) return 'You cannot change your own admin status'
   // `isService` before the SSO flag: the registry couples them, but the guard
-  // must not depend on that, and "managed by the stack" is the truer reason.
+  // must not depend on that.
   if (user.isService) return MANAGED_BY_STACK
   if (user.isAdminAssignmentDisabled)
     return 'Admin capabilities for this user are managed by the SSO configuration'
   return undefined
 }
 
-// Exported for testing: a disabled control's explanation lives in the column that
-// renders it, so only the call site proves it is there.
+// Exported for testing.
 export const columns: Table.Column<User>[] = [
   {
     id: 'isActive',

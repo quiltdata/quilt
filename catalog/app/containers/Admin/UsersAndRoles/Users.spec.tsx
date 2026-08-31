@@ -11,8 +11,6 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
     afterEach(cleanup)
 
     it('explains why it is disabled', async () => {
-      // A dead control with no cause is indistinguishable from a rendering
-      // bug -- and two causes (self, service user) share this column.
       const { container } = render(
         <EditableSwitch
           hint="Deactivated users can't sign in"
@@ -30,8 +28,6 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
     })
 
     it('carries the reason to keyboard and screen-reader users', async () => {
-      // The switch is disabled, so it is out of the tab order and fires no
-      // events: without a focusable, named wrapper the reason is mouse-only.
       render(
         <EditableSwitch
           hint="Deactivated users can't sign in"
