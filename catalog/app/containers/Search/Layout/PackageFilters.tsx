@@ -189,7 +189,9 @@ interface AvailablePackagesMetaFiltersProps {
   fetching: boolean
 }
 
-function AvailablePackagesMetaFilters({
+// Exported for testing: the ordering control's accessible name lives in how
+// props land on MUI's Select internals, which only a render can assert.
+export function AvailablePackagesMetaFilters({
   className,
   filtering,
   facets,
@@ -246,7 +248,9 @@ function AvailablePackagesMetaFilters({
             disabled={fetching}
             extents={FACET_ORDERING_VALUES}
             getOptionLabel={(value) => FACET_ORDERING_LABELS[value]}
-            inputProps={{ 'aria-labelledby': 'meta-order-label' }}
+            // On the display node, not `inputProps`: MUI spreads `inputProps`
+            // onto the aria-hidden native input, where a label names nothing.
+            SelectDisplayProps={{ 'aria-labelledby': 'meta-order-label' }}
             onChange={(value) =>
               ordering.set(SearchUIModel.parseFacetOrdering(value, ordering.value))
             }
