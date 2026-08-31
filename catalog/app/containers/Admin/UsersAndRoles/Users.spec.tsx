@@ -7,9 +7,15 @@ import { EditRoles, EditableSwitch, columns } from './Users'
 vi.mock('constants/config', () => ({ default: {} }))
 
 // The dialog reaches for a notification channel and a GraphQL mutation on mount;
-// neither is what these tests are about.
-vi.mock('containers/Notifications', () => ({ use: () => ({ push: vi.fn() }) }))
-vi.mock('utils/GraphQL', () => ({ useMutation: () => vi.fn() }))
+// stub only those, so the rest of each module still resolves for later tests.
+vi.mock('containers/Notifications', async () => ({
+  ...(await vi.importActual('containers/Notifications')),
+  use: () => ({ push: vi.fn() }),
+}))
+vi.mock('utils/GraphQL', async () => ({
+  ...(await vi.importActual('utils/GraphQL')),
+  useMutation: () => vi.fn(),
+}))
 
 describe('containers/Admin/UsersAndRoles/Users', () => {
   describe('EditableSwitch', () => {
@@ -222,8 +228,7 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
       )
     }
 
-    // The dialog this opens is read-only for both flags, so the invitation to
-    // edit must be gated on the same pair.
+    // Gated on the same reason as the dialog it opens, so both flags matter here.
     it.each([
       ['an SSO-managed user', { isRoleAssignmentDisabled: true, isService: false }],
       ['a service user', { isRoleAssignmentDisabled: false, isService: true }],
@@ -259,18 +264,23 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
       )
     }
 
-    // Before this pair was used, the title, the select and the Save action all
-    // gated on `isRoleAssignmentDisabled` alone -- so a service user without
-    // that flag was offered a Save the registry refuses, which submits the
-    // unchanged values and reports success.
     it.each([
-      ['an SSO-managed user', { isRoleAssignmentDisabled: true, isService: false }],
-      ['a service user', { isRoleAssignmentDisabled: false, isService: true }],
-    ])('offers no way to save for %s', (_label, user) => {
+      [
+        'an SSO-managed user',
+        { isRoleAssignmentDisabled: true, isService: false },
+        'Roles are assigned via role mapping and may be changed in config.',
+      ],
+      [
+        'a service user',
+        { isRoleAssignmentDisabled: false, isService: true },
+        'Roles for this service user are managed by the stack.',
+      ],
+    ])('offers no way to save for %s, and says why', (_label, user, why) => {
       renderDialog(user)
       expect(screen.getByText('Roles assigned to "u"')).toBeDefined()
       expect(screen.queryByText('Save')).toBeNull()
       expect(screen.getByText('Close')).toBeDefined()
+      expect(screen.getByText(why)).toBeDefined()
     })
 
     it('offers a save for an ordinary user', () => {
