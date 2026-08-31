@@ -74,9 +74,8 @@ export default function QuerySelect<T>({
         // line-height and renders 5px taller than a plain-text Select beside it,
         // leaving the two underlines misaligned. Same trap `Workgroups` avoids by
         // using bare text in its rows.
-        // Blank under error: callers null the value on a failed load, and
-        // "Custom" would assert a hand-written query is loaded right beside a
-        // helper saying the load failed.
+        // Callers null the value on a failed load, where "Custom" would assert
+        // a hand-written query is loaded right beside a helper saying it failed.
         renderValue={() => value?.name ?? (error ? '' : 'Custom')}
         // Not `aria-describedby` on the Select: that lands on the hidden native
         // input. The focusable node is the `role="button"` display div, which is

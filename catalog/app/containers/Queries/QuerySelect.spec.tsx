@@ -86,9 +86,7 @@ describe('containers/Queries/QuerySelect', () => {
     afterEach(cleanup)
 
     it('names the focusable node after the label', () => {
-      // The label must reach the role="button" display div through
-      // labelId/aria-labelledby -- InputLabel next to a Select names nothing by
-      // itself, which reads as "Custom, button" to a screen reader.
+      // Without `labelId` this reads as "Custom, button" to a screen reader.
       const { getByRole } = render(
         <QuerySelect label="Select a query" queries={[]} onChange={noop} value={null} />,
       )
@@ -116,9 +114,8 @@ describe('containers/Queries/QuerySelect', () => {
     afterEach(cleanup)
 
     it('does not claim "Custom" when the load failed', () => {
-      // Athena passes value=null for the error state too. "Custom" asserts a
-      // hand-written query is loaded, directly beside a helper saying the load
-      // failed -- the field must stay blank instead.
+      // Athena passes value=null for the error state too, so the blank has to
+      // come from `error` rather than from the value being absent.
       const { container } = render(
         <QuerySelect
           label="Select a query"
