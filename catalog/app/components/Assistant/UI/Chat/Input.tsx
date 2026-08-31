@@ -34,12 +34,12 @@ const useStyles = M.makeStyles((t) => ({
 const backgroundColor = M.colors.indigo[900]
 const backgroundColorLt = M.lighten(backgroundColor, 0.1)
 
-const useInputStyles = M.makeStyles({
+const useInputStyles = M.makeStyles((t) => ({
   focused: {},
   disabled: {},
   root: {
     backgroundColor,
-    borderRadius: '8px',
+    borderRadius: t.shape.borderRadius,
     color: M.fade(M.colors.common.white, 0.8),
     '&:hover': {
       backgroundColor: backgroundColorLt,
@@ -55,7 +55,7 @@ const useInputStyles = M.makeStyles({
       backgroundColor: backgroundColorLt,
     },
   },
-})
+}))
 
 const useLabelStyles = M.makeStyles({
   focused: {},

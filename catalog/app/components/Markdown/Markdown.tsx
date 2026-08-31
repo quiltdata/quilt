@@ -201,7 +201,7 @@ interface ContainerProps {
   className?: string
 }
 
-const useContainerStyles = M.makeStyles({
+const useContainerStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'auto',
 
@@ -232,18 +232,18 @@ const useContainerStyles = M.makeStyles({
       maxWidth: '100%',
       width: '100%',
 
-      'th, td': {
+      '& th, & td': {
         lineHeight: '1.5em',
         padding: '8px',
         textAlign: 'left',
       },
 
       '&, th, td': {
-        border: '1px solid #ddd',
+        border: `1px solid ${t.palette.divider}`,
       },
     },
   },
-})
+}))
 
 export function Container({ className, children }: ContainerProps) {
   const classes = useContainerStyles()
