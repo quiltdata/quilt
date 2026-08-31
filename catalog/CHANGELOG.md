@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Changed] Athena Queries: a legacy per-bucket queries link now lands in the workspace console scoped to that bucket (`?bucket=`) instead of unscoped, so the bucket's `ui.athena` preferences still apply; a `?bucket=` already on the link no longer overrides the bucket the link is for ([#5266](https://github.com/quiltdata/quilt/pull/5266))
+- [Fixed] Athena Queries: a legacy per-bucket Athena link now lands in the workspace console still scoped to that bucket (`?bucket=`) instead of unscoped, and a `?bucket=` already on the link no longer overrides the bucket the link is for ([#5266](https://github.com/quiltdata/quilt/pull/5266))
 - [Fixed] Athena Queries: a workgroup named in the URL is honored whatever its capitalisation, instead of matching a workgroup you can see and then having every AWS call rejected ([#5265](https://github.com/quiltdata/quilt/pull/5265))
 - [Fixed] Admin Users: the roles dialog and the Role column are read-only for service users, rather than offering a Save the registry refuses ([#5264](https://github.com/quiltdata/quilt/pull/5264))
 - [Fixed] Admin Users: a disabled Enabled or Admin switch says why on hover and on keyboard focus — your own account, a service user managed by the stack, or admin capabilities managed by the SSO configuration — instead of rendering as the same unexplained dead control; the Admin switch now also refuses service users ([#5263](https://github.com/quiltdata/quilt/pull/5263))
