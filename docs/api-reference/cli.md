@@ -104,18 +104,21 @@ options:
 ```
 ## `install`
 ```
-usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
-                      [--dest DEST] [--dest-registry DEST_REGISTRY]
-                      [--path PATH]
-                      name
+usage: quilt3 install [-h] [--uri URI] [--registry REGISTRY]
+                      [--top-hash TOP_HASH] [--dest DEST]
+                      [--dest-registry DEST_REGISTRY] [--path PATH]
+                      [name]
 
 Install a package
 
 positional arguments:
-  name                  Name of package, in the USER/PKG format
+  name                  Name of package, in the USER/PKG format. Required
+                        unless --uri is supplied.
 
 options:
   -h, --help            show this help message and exit
+  --uri URI             Quilt+ package URI copied from Catalog. Quote the URI
+                        in the shell because its fragment may contain '&'.
   --registry REGISTRY   Registry where package is located, usually s3://MY-
                         BUCKET. Defaults to the default remote registry.
   --top-hash TOP_HASH   Hash of package to install. Defaults to latest.
@@ -158,8 +161,8 @@ options:
 ## `push`
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
-                   [--message MESSAGE] [--meta META] [--agent-context]
-                   [--workflow WORKFLOW] [--force] [--dedupe] [--no-copy]
+                   [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
+                   [--force] [--dedupe] [--no-copy]
                    name
 
 Pushes the new package to the remote registry
@@ -178,13 +181,6 @@ optional arguments:
   --message MESSAGE    The commit message for the new package
   --meta META          Sets package-level metadata. Format: A json string with
                        keys in double quotes '{"key": "value"}'
-  --agent-context      Experimental: record Quilt-observed commit context (STS
-                       principal, authentication path, client version, UTC
-                       timestamp) at agent_context.quilt in package metadata,
-                       before validation and top-hash calculation. The
-                       embedded timestamp gives every push a new top hash, so
-                       --dedupe no longer skips, and any workflow metadata
-                       schema must allow the agent_context key.
   --workflow WORKFLOW  Workflow ID or empty string to skip workflow
                        validation. If not specified, the default workflow will
                        be used.

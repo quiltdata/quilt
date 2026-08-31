@@ -18,6 +18,7 @@ import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
 import * as DP from 'model/DataProducts'
+import FixtureNotice from 'containers/DataProducts/FixtureNotice'
 import { useFeature } from 'utils/features'
 
 import BucketList, { useGridStyles } from 'containers/Home/BucketGrid/BucketList'
@@ -657,6 +658,16 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
 
   return (
     <>
+      {/* Products are merged into this list before filter/sort, so a fixture row
+          sits inline among real buckets with nothing to distinguish it. Keyed on
+          the page being shown, not the whole set: a notice on a page with no
+          product is itself a false claim, which teaches readers to ignore it. */}
+      {paginated.some((e) => e.kind === 'product') && (
+        <FixtureNotice>
+          Example data — the data products in this list are illustrative, not a connected
+          catalog. Your buckets are real.
+        </FixtureNotice>
+      )}
       {isEmpty ? (
         <ZeroState isAdmin={isAdmin} />
       ) : noMatch ? (
