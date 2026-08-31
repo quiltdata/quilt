@@ -35,9 +35,16 @@ function parseNamedQuery(query: Athena.NamedQuery): Query {
  * the *canonical* name: the match ignores case, but every AWS call downstream
  * sends the workgroup name verbatim and rejects a mis-cased one with
  * `InvalidRequestException`.
+ *
+ * Names are case-sensitive, so `alpha` and `Alpha` can both exist -- an exact
+ * hit has to win over the case-insensitive one, which the sorted list would
+ * otherwise resolve to whichever sorts first.
  */
 function canonical(list: string[], value: string): string | undefined {
-  return list.find((x) => x.toLowerCase() === value.toLowerCase())
+  return (
+    list.find((x) => x === value) ??
+    list.find((x) => x.toLowerCase() === value.toLowerCase())
+  )
 }
 
 function listIncludes(list: string[], value: string): boolean {
@@ -223,8 +230,10 @@ export function useWorkgroup(
     //
     // Storage still outranks the bucket default. That precedence predates this
     // code path and reordering it is a product decision, not a bug fix.
-    const pick = (candidate?: string | null): boolean => {
-      if (!candidate) return false
+    // `unknown`, not `string`: `defaultWorkgroup` comes from a user-authored YAML
+    // document, and the bucket-config schema does not constrain `ui.athena`.
+    const pick = (candidate: unknown): boolean => {
+      if (typeof candidate !== 'string' || !candidate) return false
       const found = canonical(list, candidate)
       if (!found) return false
       setData(found)

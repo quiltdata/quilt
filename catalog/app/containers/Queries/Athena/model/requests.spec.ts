@@ -1300,6 +1300,46 @@ describe('containers/Queries/Athena/model/requests', () => {
       unmount()
     })
 
+    it('prefers an exact match over a differently-cased sibling', async () => {
+      // Workgroup names are case-sensitive, so both can exist. `fetchWorkgroups`
+      // sorts, which puts 'Alpha' first -- a case-insensitive match alone would
+      // hand the user the workgroup they did not ask for.
+      const workgroups = {
+        data: { list: ['Alpha', 'alpha'] },
+        loadMore: noop,
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, 'alpha', undefined]),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('alpha')
+      })
+      unmount()
+    })
+
+    it('falls back rather than throwing when the default is not a string', async () => {
+      // `ui.athena` is unconstrained by the bucket-config schema, so an all-digit
+      // workgroup name in the YAML arrives as a number. Reaching `toLowerCase`
+      // with it threw out of the effect and took the console down.
+      const workgroups = {
+        data: { list: ['foo', '2024'] },
+        loadMore: noop,
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, undefined, 2024 as unknown as string]),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('foo')
+      })
+      unmount()
+    })
+
     it('canonicalises a mis-cased workgroup from the URL too', async () => {
       const workgroups = {
         data: { list: ['foo', 'analytics-prod'] },
