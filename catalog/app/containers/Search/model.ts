@@ -1076,11 +1076,12 @@ export const AvailableFiltersState = tagged.create(
       ordering: {
         value: FacetOrdering
         set: (value: FacetOrdering) => void
-        // Whether to offer the control at all. Decided here because it turns on how
-        // many fields *exist*, not how many currently match the filter box --
-        // `facets.available` is the post-filter list on the client-filter path, so
-        // gating on it would unmount the control mid-search, exactly while a reader
-        // is hunting for a field.
+        // Whether to offer the control at all. Decided here because the threshold
+        // turns on how many fields *exist*, not how many currently match the filter
+        // box — `facets.available` is the post-filter list on the filtering paths,
+        // so gating the threshold on it would unmount the control mid-search,
+        // exactly while a reader is hunting for a field. It is additionally
+        // withheld when nothing is displayed at all: see `orderingOffered`.
         offered: boolean
       }
       fetching: boolean
@@ -1299,11 +1300,13 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
   return React.createElement(AvailablePackagesMetaFiltersGroup, {
     state,
     children,
-    // Neither count alone is the pre-filter total on this path: `available` is
-    // the server-filtered result, and `initial` is the truncated list minus
-    // applied filters — which understates it when a text query matches far more
-    // than the truncated list held. Take whichever is larger.
-    totalAvailable: Math.max(initial.length, available.length),
+    // `initial`, not `available`: `available` is this query's own result and
+    // shrinks with every keystroke, which is what used to unmount the control
+    // mid-word. `initial` is the list as it stood before the reader started
+    // typing, so it is stable across the search — and it is a genuine lower
+    // bound on the total, because the list reaching this path is truncated, so
+    // the server holds at least this many.
+    totalAvailable: initial.length,
   })
 }
 
@@ -1354,18 +1357,24 @@ function AvailablePackagesMetaFiltersClientFilter({
 /**
  * Whether to offer the ordering switcher.
  *
- * Monotonic per mount: once enough fields have been seen the control stays, so
- * narrowing the list by typing cannot make it flicker away mid-keystroke. It is
- * withheld while nothing is displayed at all, because a live "Sort by" above "No
- * metadata found" sorts nothing.
+ * Two rules, and they read different counts on purpose:
  *
- * Exported for testing: every visibility rule is here, so the hook is the only
- * place the question can be answered.
+ * - the **threshold** turns on `totalAvailable`, the size of the list before the
+ *   reader narrows it. Every caller passes a count that does not move while the
+ *   filter box is typed in, so narrowing cannot retract the control mid-word.
+ * - the control is **withheld** while `displayed` is zero, because a live "Sort
+ *   by" above "No metadata found" offers to sort nothing.
+ *
+ * A plain function, not a hook: nothing here is per-mount state. An earlier
+ * version latched the highest count it had seen in a ref to paper over a caller
+ * that passed a moving total; fixing the caller removed the need, and with it a
+ * ref written during render.
+ *
+ * Exported for testing: every visibility rule is here, so this is the only place
+ * the question is answered.
  */
-export function useOrderingOffered(totalAvailable: number, displayed: number): boolean {
-  const maxSeen = React.useRef(0)
-  maxSeen.current = Math.max(maxSeen.current, totalAvailable)
-  return displayed > 0 && maxSeen.current >= FACET_ORDERING_THRESHOLD
+export function orderingOffered(totalAvailable: number, displayed: number): boolean {
+  return displayed > 0 && totalAvailable >= FACET_ORDERING_THRESHOLD
 }
 
 // Every `Ready` path funnels through here before the tree reaches the panel, so
@@ -1396,7 +1405,7 @@ function AvailablePackagesMetaFiltersGroup({
     [available, ordering],
   )
 
-  const offered = useOrderingOffered(totalAvailable, available?.length ?? 0)
+  const offered = orderingOffered(totalAvailable, available?.length ?? 0)
 
   const orderingState = React.useMemo(
     () => ({ value: ordering, set: setOrdering, offered }),
