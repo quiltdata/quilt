@@ -5,7 +5,9 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
+import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -310,12 +312,19 @@ function ResultsBreadcrumbs({ children, className }: ResultsBreadcrumbsProps) {
   const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
+  const location = RRDom.useLocation()
   return (
     <div className={cx(classes.root, className)}>
       <M.Breadcrumbs classes={overrideClasses}>
         <RRDom.Link
           className={classes.breadcrumb}
-          to={urls.queriesAthenaWorkgroup(workgroup.data)}
+          // Keep the query string (e.g. the ?bucket= preference scope): the
+          // console branches on it, so dropping it here remounts the whole
+          // screen unscoped.
+          to={{
+            pathname: urls.queriesAthenaWorkgroup(workgroup.data),
+            search: location.search,
+          }}
         >
           Query Executions
         </RRDom.Link>
@@ -414,10 +423,40 @@ function AthenaContainer() {
   )
 }
 
+// `ui.athena.defaultWorkgroup` is a per-bucket preference, and the console is
+// workspace-global — so it applies exactly when a bucket is in scope via
+// `?bucket=` (every legacy `/b/:bucket/queries/...` URL redirects here with it
+// set). Without a bucket there is no preference document to consult.
+function ScopedWrapper() {
+  const { prefs } = BucketPreferences.use()
+  return BucketPreferences.Result.match(
+    {
+      Ok: ({ ui }) => (
+        <Model.Provider preferences={ui.athena}>
+          <AthenaContainer />
+        </Model.Provider>
+      ),
+      _: () => <Placeholder color="inherit" />,
+    },
+    prefs,
+  )
+}
+
 export default function Wrapper() {
+  const location = RRDom.useLocation()
+  const bucket = React.useMemo(
+    () => new URLSearchParams(location.search).get('bucket'),
+    [location.search],
+  )
+  if (!bucket)
+    return (
+      <Model.Provider>
+        <AthenaContainer />
+      </Model.Provider>
+    )
   return (
-    <Model.Provider>
-      <AthenaContainer />
-    </Model.Provider>
+    <BucketPreferences.Provider bucket={bucket}>
+      <ScopedWrapper />
+    </BucketPreferences.Provider>
   )
 }
