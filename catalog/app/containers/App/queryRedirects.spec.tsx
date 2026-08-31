@@ -86,9 +86,39 @@ describe('containers/App/queryRedirects', () => {
     )
   })
 
+  // The bucket in the path is the authoritative one: it is the route being
+  // redirected from. A `?bucket=` riding along on the incoming URL used to win,
+  // so `/b/source/queries/athena/primary?bucket=other` loaded `other`'s
+  // preferences instead of `source`'s.
+  it.each([
+    [
+      'a workgroup URL',
+      '/b/source/queries/athena/primary?bucket=other',
+      '/queries/athena/primary?bucket=source',
+    ],
+    [
+      'an execution URL',
+      '/b/source/queries/athena/primary/exec-1?bucket=other',
+      '/queries/athena/primary/exec-1?bucket=source',
+    ],
+    [
+      'the athena root',
+      '/b/source/queries/athena?bucket=other',
+      '/queries/athena?bucket=source',
+    ],
+  ])(
+    'keeps the route bucket ahead of one in the query string on %s',
+    (_label, from, to) => {
+      expect(landingAt(from)).toBe(to)
+    },
+  )
+
   it('preserves other query params alongside the bucket on a workgroup URL', () => {
+    // `bucket` comes last in the string because the route's value is applied
+    // last, so it outranks one arriving in the query. Order carries no meaning
+    // to any reader of these params.
     expect(landingAt('/b/my-bucket/queries/athena/primary?table=drugs')).toBe(
-      '/queries/athena/primary?bucket=my-bucket&table=drugs',
+      '/queries/athena/primary?table=drugs&bucket=my-bucket',
     )
   })
 })

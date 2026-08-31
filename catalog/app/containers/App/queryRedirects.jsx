@@ -17,7 +17,13 @@ import parseSearch from 'utils/parseSearch'
 function useScopeSearch() {
   const { bucket } = useParams()
   const { search } = useLocation()
-  return mkSearch({ bucket, ...parseSearch(search, true) })
+  // `bucket` last, so the route wins. The bucket is in the path being redirected
+  // from and is therefore authoritative; a `?bucket=` already on the incoming
+  // URL is a query param on a per-bucket route, which cannot outrank it. With
+  // the spread the other way round,
+  // `/b/source/queries/athena/primary?bucket=other` loaded `other`'s
+  // preferences.
+  return mkSearch({ ...parseSearch(search, true), bucket })
 }
 
 export function AthenaWorkgroupRedirect() {
@@ -47,8 +53,10 @@ export function AthenaRootRedirect() {
   const { urls } = NamedRoutes.use()
   // Through the route builder rather than `useScopeSearch`, so `?table=`
   // tabulator deep links keep their declared shape.
+  // `bucket` last for the same reason as `useScopeSearch`: the route's bucket
+  // outranks one arriving in the query string.
   const params = parseSearch(search, true)
-  return <Redirect to={urls.queriesAthena({ bucket, ...params })} />
+  return <Redirect to={urls.queriesAthena({ ...params, bucket })} />
 }
 
 export function BucketQueriesRedirect() {
