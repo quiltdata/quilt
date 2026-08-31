@@ -94,7 +94,13 @@ that maps package handle regular expressions
 to JSONPath expressions of fields to show from package metadata
 in the package list view.
 * `ui.package_description_multiline: True` - expands package metadata's root key/values
-* `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
+* `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page,
+when that page is scoped to this bucket. The Athena page is workspace-wide, so it
+reads a bucket's preferences only when a bucket is in scope - which is the case
+when you arrive from this bucket's tables link, from a Tabulator table deep link,
+or from a `/b/<bucket>/queries/athena` link, and shows in the address bar as
+`?bucket=<bucket>`. Opening Queries from the sidebar scopes it to no bucket, and
+no bucket's `defaultWorkgroup` applies
 
 ![Alongside text editor users can use visual form to modify the config](../imgs/bucket-preferences-editor.png)
 
@@ -146,6 +152,10 @@ ui:
   athena:
     defaultWorkgroup: primary
 ```
+
+This applies on the Athena page while it is scoped to this bucket
+(`/queries/athena?bucket=<bucket>`). A workgroup you select on the page is
+remembered and takes precedence over this default on your next visit.
 
 #### `ui.blocks.meta`
 

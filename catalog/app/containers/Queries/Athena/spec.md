@@ -25,11 +25,30 @@ interface ValueController<T> {
 **DataController** - Manages loading operations, handles `Loading`/`Error` states.
 **ValueController** - Manages user selections, cannot set `Loading`/`Error` directly.
 
+## Bucket scope
+
+The console is workspace-wide, and the state above is workspace-wide with it. A
+bucket reaches the console only as a `?bucket=` search param, set by the bucket
+header's tables link, by a Tabulator table deep link, and by the legacy
+`/b/:bucket/queries/athena...` redirects. It is a precondition, not part of the
+state:
+
+- with a bucket in scope the console reads that bucket's preference document and
+  `ui.athena.defaultWorkgroup` becomes a `workgroup` candidate, and
+  `TabulatorTables` has a bucket to list;
+- with no bucket in scope neither applies, and the console behaves as it does
+  below.
+
+Every in-console link therefore carries the query string forward, and the
+console keeps one mount across a change of scope -- `queryBody`, `catalogName`
+and `database` do not survive being remounted. The `?bucket=` in the URLs below
+is optional throughout.
+
 ## XML User Stories
 
 ### Story 1: View Execution Results
 
-**URL:** `/queries/athena/{workgroupId}/{executionId}`
+**URL:** `/queries/athena/{workgroupId}/{executionId}[?bucket={bucket}]`
 
 ```xml
 <Athena :workgroupId :executionId>
@@ -57,7 +76,7 @@ interface ValueController<T> {
 
 ### Story 2: Main Query Interface
 
-**URL:** `/queries/athena/{workgroupId}`
+**URL:** `/queries/athena/{workgroupId}[?bucket={bucket}]`
 
 ```xml
 <Athena :workgroupId>
@@ -84,7 +103,7 @@ interface ValueController<T> {
 
 ### Story 3: Landing Page (No Workgroup Selected)
 
-**URL:** `/queries/athena`
+**URL:** `/queries/athena[?bucket={bucket}]`
 
 ```xml
 <Athena>
