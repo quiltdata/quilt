@@ -26,9 +26,10 @@ class BaseClient:
     def __init__(
         self,
     ) -> None:
-        self.url = session.get_registry_url() + "/graphql"
+        registry_url = session.get_registry_url()
+        self.url = registry_url + "/graphql"
 
-        self.http_client = session.get_session()
+        self.http_client = session.get_session(registry_url=registry_url)
 
     def __enter__(self: Self) -> Self:
         return self
