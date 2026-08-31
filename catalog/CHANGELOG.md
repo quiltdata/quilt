@@ -22,6 +22,17 @@ complete sentence without it.
 ## Changes
 
 - [Fixed] Rendered-markdown table borders and the Qurator chat input's corner radius now use theme tokens (divider color, 4px radius) instead of hard-coded values ([#5229](https://github.com/quiltdata/quilt/pull/5229))
+- [Fixed] Quilt+ URI parsing retains the informational `catalog` field, reads a raw `+` in an unencoded path as a `+` rather than a space, and shares its compatibility corpus with quilt3 ([#5255](https://github.com/quiltdata/quilt/pull/5255))
+- [Fixed] Quilt+ URIs: a package path containing a literal `%` no longer breaks the URI, and one containing a literal `%20` no longer decodes to a space and points at the wrong entry. Paths from producers that do not percent-encode now resolve instead of failing, and a path that genuinely cannot be decoded reports a real error rather than the literal text `unknown error: ${e}` ([#5256](https://github.com/quiltdata/quilt/pull/5256))
+- [Changed] Search: error states are separate, more strictly typed components, safer to extend than one component behind a `kind` prop ([#5238](https://github.com/quiltdata/quilt/pull/5238))
+- [Fixed] Search: a malformed filter value in the URL no longer breaks the page ([#5233](https://github.com/quiltdata/quilt/pull/5233))
+- [Fixed] Search results table: a package with no commit message shows the no-value marker instead of the literal text `None` ([#5232](https://github.com/quiltdata/quilt/pull/5232))
+- [Fixed] Tabular preview: a preview abandoned mid-load no longer leaves its table in the perspective worker ([#5215](https://github.com/quiltdata/quilt/pull/5215))
+- [Fixed] Tabular preview: a perspective config that cannot be applied no longer costs the preview its toolbar ([#5215](https://github.com/quiltdata/quilt/pull/5215))
+- [Fixed] Data products (preview): the fixture data is labelled as example data on all three surfaces that render it — the volume grid, a product's own screens, and Admin Settings' catalog connections, where the invented states include an auth failure that could otherwise be read as a real one. The fixtures no longer carry internal email addresses or a real AWS account id ([#5236](https://github.com/quiltdata/quilt/pull/5236))
+- [Fixed] Admin buckets: the sticky Cancel/Add bar lines up with the form above it ([#5224](https://github.com/quiltdata/quilt/pull/5224))
+- [Fixed] Volumes grid: a card's description no longer touches its tags ([#5225](https://github.com/quiltdata/quilt/pull/5225))
+- [Changed] Volumes: tag chips are outlined, and a volume's description is set at the body step rather than as fine print ([#5225](https://github.com/quiltdata/quilt/pull/5225))
 - [Removed] The unbaked data-products GraphQL contract (added in [#5203](https://github.com/quiltdata/quilt/pull/5203), never served by a registry) is out of the schema; the `data-products` preview UI is unaffected and keeps reading fixture data ([#5223](https://github.com/quiltdata/quilt/pull/5223))
 - [Changed] Search sidebar: the package metadata list is sorted from one "Sort by" control, sitting directly above the list ([#5222](https://github.com/quiltdata/quilt/pull/5222))
 - [Fixed] Volumes list: the "Shared with" readout no longer overlaps a bucket's tags, and the extra space inside it is gone ([#5220](https://github.com/quiltdata/quilt/pull/5220))
