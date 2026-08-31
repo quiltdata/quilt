@@ -21,6 +21,7 @@ import Workgroups from './Workgroups'
 import TabulatorTables from './TabulatorTables'
 import * as Model from './model'
 import { doQueryResultsContainManifestEntries } from './model/createPackage'
+import { useBucketScope } from './scope'
 
 const CreatePackage = React.lazy(() => import('./CreatePackage'))
 
@@ -443,11 +444,7 @@ function ScopedWrapper() {
 }
 
 export default function Wrapper() {
-  const location = RRDom.useLocation()
-  const bucket = React.useMemo(
-    () => new URLSearchParams(location.search).get('bucket'),
-    [location.search],
-  )
+  const bucket = useBucketScope()
   if (!bucket)
     return (
       <Model.Provider>
