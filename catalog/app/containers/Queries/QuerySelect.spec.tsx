@@ -1,10 +1,18 @@
 import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 
 import noop from 'utils/noop'
 
 import QuerySelect from './QuerySelect'
+
+// The label id now renders unconditionally, and the real useId is
+// Math.random-based -- snapshots need it deterministic.
+const ids = vi.hoisted(() => ({ n: 0 }))
+vi.mock('utils/useId', () => ({ default: () => `test-id-${(ids.n += 1)}` }))
+beforeEach(() => {
+  ids.n = 0
+})
 
 describe('containers/Queries/QuerySelect', () => {
   it('should render', () => {
@@ -66,6 +74,50 @@ describe('containers/Queries/QuerySelect', () => {
       expect(
         container.querySelector('[role="button"]')?.getAttribute('aria-describedby'),
       ).toBeNull()
+    })
+  })
+
+  describe('the accessible name', () => {
+    afterEach(cleanup)
+
+    it('names the focusable node after the label', () => {
+      // The label must reach the role="button" display div through
+      // labelId/aria-labelledby -- InputLabel next to a Select names nothing by
+      // itself, which reads as "Custom, button" to a screen reader.
+      const { getByRole } = render(
+        <QuerySelect label="Select a query" queries={[]} onChange={noop} value={null} />,
+      )
+      expect(getByRole('button', { name: /Select a query/ })).toBeDefined()
+    })
+  })
+
+  describe('the display value under error', () => {
+    afterEach(cleanup)
+
+    it('does not claim "Custom" when the load failed', () => {
+      // Athena passes value=null for the error state too. "Custom" asserts a
+      // hand-written query is loaded, directly beside a helper saying the load
+      // failed -- the field must stay blank instead.
+      const { container } = render(
+        <QuerySelect
+          label="Select a query"
+          error
+          helperText="Failed to load"
+          queries={[]}
+          onChange={noop}
+          value={null}
+        />,
+      )
+      expect(container.querySelector('[role="button"]')?.textContent).not.toContain(
+        'Custom',
+      )
+    })
+
+    it('still reads "Custom" for a genuine no-selection state', () => {
+      const { container } = render(
+        <QuerySelect label="Select a query" queries={[]} onChange={noop} value={null} />,
+      )
+      expect(container.querySelector('[role="button"]')?.textContent).toContain('Custom')
     })
   })
 })
