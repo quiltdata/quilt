@@ -1318,11 +1318,10 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
     state,
     children,
     // `initial`, not `available`: `available` is this query's own result and
-    // shrinks with every keystroke, which is what used to unmount the control
-    // mid-word. `initial` is the list as it stood before the reader started
-    // typing, so it is stable across the search — and it is a genuine lower
-    // bound on the total, because the list reaching this path is truncated, so
-    // the server holds at least this many.
+    // shrinks with every keystroke. `initial` is the list as it stood before the
+    // reader started typing, so it is stable across the search — and it is a
+    // genuine lower bound on the total, because the list reaching this path is
+    // truncated, so the server holds at least this many.
     totalAvailable: initial.length,
   })
 }
@@ -1382,13 +1381,8 @@ function AvailablePackagesMetaFiltersClientFilter({
  * - the control is **withheld** while `displayed` is zero, because a live "Sort
  *   by" above "No metadata found" offers to sort nothing.
  *
- * A plain function, not a hook: nothing here is per-mount state. An earlier
- * version latched the highest count it had seen in a ref to paper over a caller
- * that passed a moving total; fixing the caller removed the need, and with it a
- * ref written during render.
- *
- * Exported for testing: every visibility rule is here, so this is the only place
- * the question is answered.
+ * Pure, and a plain function rather than a hook: the answer must not depend on
+ * call order or on which mount asked.
  */
 export function orderingOffered(totalAvailable: number, displayed: number): boolean {
   return displayed > 0 && totalAvailable >= FACET_ORDERING_THRESHOLD

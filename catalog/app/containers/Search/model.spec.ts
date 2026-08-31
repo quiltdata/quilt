@@ -508,10 +508,8 @@ describe('containers/Search/model', () => {
     })
 
     it('keeps the control while the reader narrows the list', () => {
-      // The flicker this replaces: typing in "Find metadata" narrows what is
-      // displayed, and the control used to be reappraised against the narrowed
-      // count and vanish mid-word. The threshold reads the pre-filter total,
-      // which does not move while the filter box is typed in.
+      // The threshold reads the pre-filter total, which does not move while the
+      // filter box is typed in, so narrowing cannot retract the control.
       expect(model.orderingOffered(T, T)).toBe(true)
       expect(model.orderingOffered(T, 3)).toBe(true)
       expect(model.orderingOffered(T, 1)).toBe(true)
@@ -523,9 +521,7 @@ describe('containers/Search/model', () => {
     })
 
     it('carries no state between calls', () => {
-      // The predicate is pure: an earlier version latched the highest total it
-      // had seen in a ref, which made the answer depend on call order and on
-      // which mount asked.
+      // The answer must not depend on call order or on which mount asked.
       expect(model.orderingOffered(T, T)).toBe(true)
       expect(model.orderingOffered(1, 1)).toBe(false)
       expect(model.orderingOffered(T, T)).toBe(true)
