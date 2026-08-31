@@ -594,9 +594,17 @@ interface EditRolesProps {
   user: User
 }
 
-// Exported for testing: the read-only branch decides whether a Save is offered
-// at all, and only a render of the dialog proves which branch a given pair of
-// flags lands on.
+// One resolver for the dialog and the Role column that opens it: each derives
+// `readOnly` from the reason, so the guard and the copy cannot drift apart.
+function whyRoleReadOnly(user: User): 'service' | 'sso' | undefined {
+  // `isService` before the SSO flag: the registry couples them, but the guard
+  // must not depend on that.
+  if (user.isService) return 'service'
+  if (user.isRoleAssignmentDisabled) return 'sso'
+  return undefined
+}
+
+// Exported for testing.
 export function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
   const { push } = Notifications.use()
   const setRole = GQL.useMutation(USER_SET_ROLE_MUTATION)
@@ -657,10 +665,8 @@ export function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
     [user.extraRoles, user.role],
   )
 
-  // One expression for the whole dialog. The registry couples these (isService
-  // implies isRoleAssignmentDisabled), but nothing here may depend on that: a
-  // live Save the registry refuses submits unchanged values and reports success.
-  const readOnly = user.isRoleAssignmentDisabled || user.isService
+  const nonAssignableReason = whyRoleReadOnly(user)
+  const readOnly = nonAssignableReason !== undefined
 
   return (
     <RF.Form<FormValues>
@@ -692,7 +698,7 @@ export function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
                     roles={roles}
                     defaultRole={defaultRole}
                     nonAssignable={readOnly}
-                    nonAssignableReason={user.isService ? 'service' : 'sso'}
+                    nonAssignableReason={nonAssignableReason}
                     {...props}
                   />
                 )}
@@ -886,9 +892,7 @@ function RoleDisplay({ user, roles, defaultRole, openDialog }: RoleDisplayProps)
       fullWidth: true,
     })
 
-  // Same pair as the dialog this opens and the switch columns: the registry
-  // couples the flags, but nothing here may depend on that holding.
-  const readOnly = user.isRoleAssignmentDisabled || user.isService
+  const readOnly = whyRoleReadOnly(user) !== undefined
 
   return (
     <M.Tooltip title={readOnly ? 'Click to view' : 'Click to edit'}>
