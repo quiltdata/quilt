@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Strength-meter, popover and preview animations no longer animate layout properties (widths, max-height): the password-strength fill moves on the compositor and honors `prefers-reduced-motion`, the get-options popover cross-fades its panel on tab switch instead of resize-animating its width (and its active-tab underline animation, referenced across JSS sheets, actually plays for the first time), and the search-hit preview expands without a stale veil fade over already-moved content ([#5230](https://github.com/quiltdata/quilt/pull/5230))
 - [Fixed] Quilt+ URI parsing retains the informational `catalog` field, reads a raw `+` in an unencoded path as a `+` rather than a space, and shares its compatibility corpus with quilt3 ([#5255](https://github.com/quiltdata/quilt/pull/5255))
 - [Fixed] Quilt+ URIs: a package path containing a literal `%` no longer breaks the URI, and one containing a literal `%20` no longer decodes to a space and points at the wrong entry. Paths from producers that do not percent-encode now resolve instead of failing, and a path that genuinely cannot be decoded reports a real error rather than the literal text `unknown error: ${e}` ([#5256](https://github.com/quiltdata/quilt/pull/5256))
 - [Changed] Search: error states are separate, more strictly typed components, safer to extend than one component behind a `kind` prop ([#5238](https://github.com/quiltdata/quilt/pull/5238))

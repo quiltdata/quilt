@@ -441,7 +441,6 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     maxHeight: '106px',
     minHeight: '106px',
     padding: t.spacing(1),
-    transition: 'max-height 0.2s',
 
     '& > *:not(iframe)': {
       // scroll `contents` div, not its children
@@ -453,7 +452,6 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
       marginLeft: 'auto',
       marginRight: 'auto',
       maxHeight: '20vh',
-      transition: 'max-height 0.2s',
 
       '$expanded &': {
         maxHeight: '80vh',
@@ -529,7 +527,6 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     left: 0,
     opacity: 1,
     position: 'absolute',
-    transition: 'opacity 0.2s',
     width: '100%',
     zIndex: 1,
 
