@@ -428,32 +428,35 @@ function AthenaContainer() {
 // workspace-global — so it applies exactly when a bucket is in scope via
 // `?bucket=` (every legacy `/b/:bucket/queries/...` URL redirects here with it
 // set). Without a bucket there is no preference document to consult.
-function ScopedWrapper() {
+function ScopedConsole({ scoped }: { scoped: boolean }) {
   const { prefs } = BucketPreferences.use()
-  return BucketPreferences.Result.match(
-    {
-      Ok: ({ ui }) => (
-        <Model.Provider preferences={ui.athena}>
-          <AthenaContainer />
-        </Model.Provider>
-      ),
-      _: () => <Placeholder color="inherit" />,
-    },
+  const preferences = BucketPreferences.Result.match(
+    { Ok: ({ ui }) => ui.athena, _: () => undefined },
     prefs,
+  )
+  // A scoped console must not mount the model before the document resolves: the
+  // workgroup is seeded once — from storage, or the first workgroup Athena lists
+  // — and a default arriving afterwards would not displace it.
+  if (scoped && preferences === undefined) return <Placeholder color="inherit" />
+  // One `Model.Provider` element, at one position, for both cases. React
+  // reconciles by position, so returning it from two different branches of the
+  // tree would remount the console whenever `?bucket=` came or went, taking the
+  // query being typed and the selected catalog and database with it.
+  return (
+    <Model.Provider preferences={preferences}>
+      <AthenaContainer />
+    </Model.Provider>
   )
 }
 
 export default function Wrapper() {
   const bucket = useBucketScope()
-  if (!bucket)
-    return (
-      <Model.Provider>
-        <AthenaContainer />
-      </Model.Provider>
-    )
+  // Mounted unscoped as well as scoped: with `bucket` null the provider serves
+  // the same state as no provider at all, and the console below it keeps its
+  // mount across a change of scope.
   return (
     <BucketPreferences.Provider bucket={bucket}>
-      <ScopedWrapper />
+      <ScopedConsole scoped={!!bucket} />
     </BucketPreferences.Provider>
   )
 }

@@ -56,6 +56,7 @@ function useSection(): 'athena' | 'es' {
 export function QueriesScreen() {
   const classes = useStyles()
   const { paths, urls } = NamedRoutes.use()
+  const { search } = useLocation()
   const section = useSection()
   // Suspending read (CatalogSettings.use()) — safe here because the whole app
   // tree sits inside the root Suspense boundary in app.tsx.
@@ -77,8 +78,20 @@ export function QueriesScreen() {
             <M.Divider />
             <div className={classes.tabsRow}>
               <M.Tabs value={section} variant="scrollable" scrollButtons="auto">
-                <NavTab label="Athena" value="athena" to={urls.queriesAthena()} />
-                <NavTab label="ElasticSearch" value="es" to={urls.queriesEs()} />
+                {/* Both tabs keep the query string. The Athena console is
+                    scoped by `?bucket=`, so a bare pathname here would drop the
+                    scope — and switching consoles and back would silently land
+                    the reader in a different one. */}
+                <NavTab
+                  label="Athena"
+                  value="athena"
+                  to={{ pathname: urls.queriesAthena(), search }}
+                />
+                <NavTab
+                  label="ElasticSearch"
+                  value="es"
+                  to={{ pathname: urls.queriesEs(), search }}
+                />
               </M.Tabs>
             </div>
           </>
