@@ -1385,8 +1385,15 @@ function AvailablePackagesMetaFiltersGroup({
   totalAvailable,
 }: RenderProps<AvailableFiltersStateInstance> & {
   state: AvailableFiltersStateInstance
-  // The count *before* any filtering, which the caller still has. `state.facets
-  // .available` is already narrowed on the client-filter path.
+  // How many fields the list held before the reader started narrowing it with
+  // the filter box — which only the caller still has, because `state.facets
+  // .available` is already narrowed on every filtering path.
+  //
+  // "Before any filtering" is *not* what this is, and the difference matters:
+  // facet filters the reader has already applied are excluded, and on the
+  // truncated paths the server returned only part of the list. It is a lower
+  // bound on the total that does not move while the filter box is typed in,
+  // which is exactly what the threshold needs and no more than that.
   totalAvailable: number
 }) {
   // From the URL, not local state, so a shared link reproduces the panel the
