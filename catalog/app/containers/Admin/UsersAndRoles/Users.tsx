@@ -594,7 +594,10 @@ interface EditRolesProps {
   user: User
 }
 
-function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
+// Exported for testing: the read-only branch decides whether a Save is offered
+// at all, and only a render of the dialog proves which branch a given pair of
+// flags lands on.
+export function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
   const { push } = Notifications.use()
   const setRole = GQL.useMutation(USER_SET_ROLE_MUTATION)
 
