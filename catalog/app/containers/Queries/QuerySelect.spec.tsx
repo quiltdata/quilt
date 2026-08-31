@@ -89,6 +89,22 @@ describe('containers/Queries/QuerySelect', () => {
       )
       expect(getByRole('button', { name: /Select a query/ })).toBeDefined()
     })
+
+    it('keeps the selected query in the name, next to the label', () => {
+      // `aria-labelledby` overrides the display div's contents, so pointing it
+      // at the label alone drops the selection a sighted user can read.
+      const queries = [{ key: 'key1', name: 'name1', url: 'url1' }]
+      const { getByRole } = render(
+        <QuerySelect
+          label="Select a query"
+          queries={queries}
+          onChange={noop}
+          value={queries[0]}
+        />,
+      )
+      expect(getByRole('button', { name: /Select a query/ })).toBeDefined()
+      expect(getByRole('button', { name: /name1/ })).toBeDefined()
+    })
   })
 
   describe('the display value under error', () => {

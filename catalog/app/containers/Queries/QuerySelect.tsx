@@ -36,6 +36,7 @@ export default function QuerySelect<T>({
 }: QuerySelectProps<T & AbstractQuery>) {
   const helperId = useId()
   const labelId = useId()
+  const buttonId = useId()
   const handleChange = React.useCallback(
     (event) => {
       if (event.target.value === LOAD_MORE && onLoadMore) {
@@ -59,9 +60,13 @@ export default function QuerySelect<T>({
     >
       <M.InputLabel id={labelId}>{label}</M.InputLabel>
       <M.Select
-        // `labelId` is what actually names the focusable display div -- an
-        // InputLabel sitting next to a Select names nothing by itself.
+        // An InputLabel next to a Select names nothing by itself -- only
+        // `labelId` reaches the focusable display div. `id` must come with it:
+        // MUI joins the two into `aria-labelledby="labelId buttonId"`, and with
+        // `labelId` alone the label overrides the div's contents, dropping the
+        // selected query from the accessible name.
         labelId={labelId}
+        id={buttonId}
         onChange={handleChange}
         // The menu rows need `ListItemText` for the name + description pair, but
         // `Select` reuses the selected row's children as the field's display

@@ -17,8 +17,9 @@ exports[`containers/Queries/QuerySelect > should render 1`] = `
     <div
       aria-disabled="true"
       aria-haspopup="listbox"
-      aria-labelledby="test-id-2"
+      aria-labelledby="test-id-2 test-id-3"
       class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
+      id="test-id-3"
       role="button"
     >
       Custom
@@ -59,8 +60,9 @@ exports[`containers/Queries/QuerySelect > should render with selected value 1`] 
   >
     <div
       aria-haspopup="listbox"
-      aria-labelledby="test-id-2"
+      aria-labelledby="test-id-2 test-id-3"
       class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+      id="test-id-3"
       role="button"
       tabindex="0"
     >
