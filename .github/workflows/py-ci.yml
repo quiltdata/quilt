@@ -27,6 +27,7 @@ jobs:
             quilt3:
               - '.github/workflows/py-ci.yml'
               - 'api/python/**'
+              - 'shared/package_uri_cases.json'
               - 'ruff.toml'
             docs:
               - '.github/workflows/py-ci.yml'

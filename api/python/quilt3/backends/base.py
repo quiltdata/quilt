@@ -2,6 +2,8 @@ import abc
 import operator
 import time
 
+import botocore.exceptions
+
 from quilt3.data_transfer import (
     copy_file,
     delete_url,
@@ -52,6 +54,17 @@ class PackageRegistry(abc.ABC):
 
     def pointer_latest_pk(self, pkg_name: str) -> PhysicalKey:
         return self.pointer_pk(pkg_name, self.latest_tag_name)
+
+    def resolve_pointer(self, pkg_name: str, pointer_name: str) -> str:
+        try:
+            return get_bytes(self.pointer_pk(pkg_name, pointer_name)).decode()
+        except FileNotFoundError as ex:
+            raise QuiltException(f"Package {pkg_name!r} has no pointer {pointer_name!r}.") from ex
+        except botocore.exceptions.ClientError as ex:
+            error_code = ex.response.get('Error', {}).get('Code')
+            if error_code not in ('404', 'NoSuchKey', 'NotFound'):
+                raise
+            raise QuiltException(f"Package {pkg_name!r} has no pointer {pointer_name!r}.") from ex
 
     @property
     @abc.abstractmethod
