@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Athena Queries: a console scoped to a bucket honors that bucket's `ui.athena.defaultWorkgroup` again — for readers who have not already picked a workgroup themselves, whose choice is still remembered and still wins — and the scope survives following an execution, a breadcrumb or the Queries tabs; the workspace re-home had silently dropped the preference, landing readers on the alphabetically-first workgroup ([#5267](https://github.com/quiltdata/quilt/pull/5267))
 - [Fixed] Athena Queries: a legacy per-bucket Athena link now lands in the workspace console still scoped to that bucket (`?bucket=`) instead of unscoped, and a `?bucket=` already on the link no longer overrides the bucket the link is for ([#5266](https://github.com/quiltdata/quilt/pull/5266))
 - [Fixed] Athena Queries: a workgroup named in the URL is honored whatever its capitalisation, instead of matching a workgroup you can see and then having every AWS call rejected ([#5265](https://github.com/quiltdata/quilt/pull/5265))
 - [Fixed] Admin Users: the roles dialog and the Role column are read-only for service users, rather than offering a Save the registry refuses ([#5264](https://github.com/quiltdata/quilt/pull/5264))
