@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
 import * as AWS from 'utils/AWS'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import Log from 'utils/Logging'
 import noop from 'utils/noop'
 
@@ -190,7 +189,10 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
 export function useWorkgroup(
   workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
-  preferences?: BucketPreferences.AthenaPreferences,
+  // The one preference this needs, as a string rather than the `ui.athena`
+  // object: the parsed preferences are rebuilt on every provider render, so an
+  // object here would re-fire this effect throughout the workgroup probe.
+  defaultWorkgroup?: string,
 ): Model.DataController<Workgroup> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
   React.useEffect(() => {
@@ -203,7 +205,7 @@ export function useWorkgroup(
     }
 
     // Stored or default workgroup
-    const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
+    const initialWorkgroup = storage.getWorkgroup() || defaultWorkgroup
     if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
       setData(initialWorkgroup)
       return
@@ -212,7 +214,7 @@ export function useWorkgroup(
     // First available workgroup or error. Producer drains to exhaustion, so
     // an accessible workgroup that exists is in this list.
     setData(workgroups.data.list[0] || new Error('Workgroup not found'))
-  }, [preferences, requestedWorkgroup, workgroups])
+  }, [defaultWorkgroup, requestedWorkgroup, workgroups])
   return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 

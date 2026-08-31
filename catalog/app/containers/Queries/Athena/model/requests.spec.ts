@@ -1266,10 +1266,9 @@ describe('containers/Queries/Athena/model/requests', () => {
         data: { list: ['foo', 'bar'] },
         loadMore: noop,
       }
-      const preferences = { defaultWorkgroup: 'bar' }
 
       const { result, waitFor, unmount } = renderHook(() =>
-        useWrapper([workgroups, undefined, preferences]),
+        useWrapper([workgroups, undefined, 'bar']),
       )
 
       await act(async () => {
