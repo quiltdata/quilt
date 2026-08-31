@@ -2,21 +2,21 @@ import * as React from 'react'
 import { render, cleanup, screen } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import * as KTree from 'utils/KeyedTree'
-
 import * as SearchUIModel from '../model'
 
 import { AvailablePackagesMetaFilters } from './PackageFilters'
 
 vi.mock('constants/config', () => ({ default: { registryUrl: '' } }))
 
-const EMPTY_TREE: SearchUIModel.FacetTree = KTree.Tree([])
-
 function renderFilters() {
   return render(
     <AvailablePackagesMetaFilters
       filtering={SearchUIModel.FacetsFilteringState.Disabled()}
-      facets={{ available: [], visible: EMPTY_TREE, hidden: EMPTY_TREE }}
+      facets={{
+        available: [],
+        visible: SearchUIModel.EMPTY_FACET_TREE,
+        hidden: SearchUIModel.EMPTY_FACET_TREE,
+      }}
       ordering={{
         value: SearchUIModel.DEFAULT_FACET_ORDERING,
         set: vi.fn(),
