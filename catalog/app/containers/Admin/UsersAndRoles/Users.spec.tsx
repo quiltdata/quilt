@@ -50,6 +50,34 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
       ).toBeDefined()
     })
 
+    it('draws a focus ring on the reason carrier', () => {
+      // The carrier is focusable but is not a `ButtonBase`, and
+      // `constants/style` implements the Focus Ring Rule for `MuiButtonBase`
+      // only — so without a rule of its own it would take keyboard focus with
+      // nothing drawn on it, on an element added by an accessibility fix.
+      render(
+        <EditableSwitch
+          hint="Deactivated users can't sign in"
+          disabled
+          disabledReason="This service user is managed by the stack"
+          checked
+          onChange={vi.fn()}
+        />,
+      )
+      const wrapper = screen.getByLabelText('This service user is managed by the stack')
+      const sheets = [...document.querySelectorAll('style')].map(
+        (el) => el.textContent ?? '',
+      )
+      const rules = sheets
+        .join('\n')
+        .split('}')
+        .filter((r) =>
+          [...wrapper.classList].some((c) => r.includes(`.${c}:focus-visible`)),
+        )
+      expect(rules.length).toBeGreaterThan(0)
+      expect(rules.join('\n')).toMatch(/outline:\s*2px solid/)
+    })
+
     it('keeps the hint on the enabled control', async () => {
       const { container } = render(
         <EditableSwitch

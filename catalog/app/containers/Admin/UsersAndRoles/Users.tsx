@@ -771,6 +771,19 @@ const useEditableStyles = M.makeStyles((t) => ({
   root: {
     marginLeft: t.spacing(0.5),
   },
+  // The reason carrier below is focusable but is not a `ButtonBase`, and
+  // `constants/style` implements the Focus Ring Rule (DESIGN.md §2) for
+  // `MuiButtonBase` only — so this element would take keyboard focus with
+  // nothing drawn on it. Same 2px ring in the ground's counter-color, offset the
+  // same way, so a keyboard admin can see where they are.
+  reason: {
+    borderRadius: t.shape.borderRadius,
+    display: 'inline-flex',
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 2,
+    },
+  },
 }))
 
 interface EditableSwitchProps {
@@ -806,8 +819,8 @@ export function EditableSwitch({
         {/* A disabled switch fires no events and is out of the tab order, so the
             reason needs a live wrapper that is focusable and named — otherwise it
             is mouse-only. */}
-        {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the span is the only reachable carrier of the reason */}
-        <span tabIndex={0} aria-label={disabledReason}>
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the span is the only reachable carrier of the reason */}
+        <span className={classes.reason} tabIndex={0} aria-label={disabledReason}>
           {sw}
         </span>
       </M.Tooltip>
