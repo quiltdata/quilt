@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Bucket header: the title, stats readouts, and actions lay out on explicit responsive tiers — one calm row when wide (the title truncates first), stats on their own line at medium widths, a compact readout grid on narrow screens — and the settings sprocket moves to the card's far edge behind a hairline divider ([#5226](https://github.com/quiltdata/quilt/pull/5226))
 - [Fixed] Quilt+ URI parsing retains the informational `catalog` field, reads a raw `+` in an unencoded path as a `+` rather than a space, and shares its compatibility corpus with quilt3 ([#5255](https://github.com/quiltdata/quilt/pull/5255))
 - [Fixed] Quilt+ URIs: a package path containing a literal `%` no longer breaks the URI, and one containing a literal `%20` no longer decodes to a space and points at the wrong entry. Paths from producers that do not percent-encode now resolve instead of failing, and a path that genuinely cannot be decoded reports a real error rather than the literal text `unknown error: ${e}` ([#5256](https://github.com/quiltdata/quilt/pull/5256))
 - [Changed] Search: error states are separate, more strictly typed components, safer to extend than one component behind a `kind` prop ([#5238](https://github.com/quiltdata/quilt/pull/5238))
