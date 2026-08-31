@@ -43,18 +43,21 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
       )
       const wrapper = screen.getByLabelText('This service user is managed by the stack')
       expect(wrapper.getAttribute('tabindex')).toBe('0')
+      // ARIA gives a bare span no name; the role is what makes `aria-label` count.
+      expect(wrapper.getAttribute('role')).toBe('group')
+      expect(wrapper.getAttribute('title')).toBeNull()
 
-      fireEvent.focus(wrapper)
+      // Real focus, not a synthetic focus event: MUI opens on focus only when it
+      // reads the focus as keyboard-driven, and a dispatched event moves nothing.
+      fireEvent.keyDown(document.body, { key: 'Tab' })
+      wrapper.focus()
+      expect(document.activeElement).toBe(wrapper)
       expect(
         await screen.findByText('This service user is managed by the stack'),
       ).toBeDefined()
     })
 
     it('draws a focus ring on the reason carrier', () => {
-      // The carrier is focusable but is not a `ButtonBase`, and
-      // `constants/style` implements the Focus Ring Rule for `MuiButtonBase`
-      // only — so without a rule of its own it would take keyboard focus with
-      // nothing drawn on it, on an element added by an accessibility fix.
       render(
         <EditableSwitch
           hint="Deactivated users can't sign in"

@@ -817,10 +817,17 @@ export function EditableSwitch({
     return (
       <M.Tooltip title={disabledReason}>
         {/* A disabled switch fires no events and is out of the tab order, so the
-            reason needs a live wrapper that is focusable and named — otherwise it
-            is mouse-only. */}
-        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the span is the only reachable carrier of the reason */}
-        <span className={classes.reason} tabIndex={0} aria-label={disabledReason}>
+            reason needs a focusable wrapper of its own. `role` because ARIA
+            forbids `aria-label` on a bare span; `title` off because MUI seeds it
+            with the same string, repeating the name as the description. */}
+        <span
+          className={classes.reason}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the span is the only reachable carrier of the reason
+          tabIndex={0}
+          role="group"
+          aria-label={disabledReason}
+          title={undefined}
+        >
           {sw}
         </span>
       </M.Tooltip>
