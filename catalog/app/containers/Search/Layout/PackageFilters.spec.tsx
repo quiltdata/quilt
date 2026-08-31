@@ -31,18 +31,17 @@ describe('containers/Search/Layout/PackageFilters', () => {
   afterEach(cleanup)
 
   describe('the accessible name', () => {
-    // Both halves, the way `QuerySelect` asserts them: an `aria-labelledby`
-    // reaching the focusable display node overrides that node's contents, so
-    // naming it after the caption alone is as lossy as not naming it at all.
+    // The exact name, not a substring: the caption alone matches /Sort by/ too,
+    // so a loosened assertion passes on wiring that drops the ordering.
     it('carries the label and the selected ordering', () => {
       renderFilters()
-      expect(screen.queryByRole('button', { name: 'Sort by: Name A → Z' })).not.toBeNull()
+      expect(screen.getByRole('button', { name: 'Sort by: Name A → Z' })).toBeTruthy()
     })
 
     it('names the popup listbox too', () => {
       renderFilters()
       fireEvent.mouseDown(screen.getByRole('button'))
-      expect(screen.queryByRole('listbox', { name: 'Sort by:' })).not.toBeNull()
+      expect(screen.getByRole('listbox', { name: 'Sort by:' })).toBeTruthy()
     })
   })
 })
