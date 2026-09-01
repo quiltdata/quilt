@@ -196,32 +196,70 @@ already emits the `:443`-explicit metadata Databricks requires — see
 Benchling AI's [AI Connectors](https://help.benchling.com/hc/en-us/articles/42715696739341-Configure-AI-Connectors-for-Benchling-AI)
 let Chat and Deep Research query external MCP servers — including the
 Quilt Platform MCP Server — so scientists can reach Quilt data without
-leaving Benchling. Chat or Deep Research must be enabled on your tenant.
+leaving Benchling. Either Chat or Deep Research must be enabled on your
+tenant; Deep Research is not required.
 
-A Benchling **tenant admin** adds Quilt as a Custom AI Connector:
+Before configuring Benchling, enable Quilt Connect Server by adding
+`.benchling.com` to the `ConnectAllowedHosts` CloudFormation parameter and
+deploying the stack. Preserve any existing entries in the comma-separated
+list. For example:
+
+```text
+.benchling.com,chatgpt.com,claude.ai
+```
+
+The leading dot is required: it allows OAuth callbacks from every Benchling
+tenant subdomain. See
+[ConnectAllowedHosts entry formats](Connect.md#connectallowedhosts-entry-formats)
+for the complete syntax.
+
+A Benchling **tenant admin** installs Quilt from the AI Connector Directory:
 
 1. Go to **Tenant admin console -> Settings -> AI Connectors**
-2. Click **Add AI Connector**
-3. Complete the configuration:
-   - **Name:** `Quilt` (this is what users see)
-   - **Server:** `https://<connect-host>/mcp/platform/mcp`
-   - **Type:** `HTTP`
-4. Review the tools exposed by the server and select which ones users may
+2. Click **Browse directory**
+3. Search for `Quilt` and select the **Quilt by Quilt** connector
+4. On the connector details page, click **Install**
+5. Enter the **Stack name** and **Domain** for the Quilt deployment.
+   Benchling uses them to construct this server URL:
+
+   ```text
+   https://<stack-name>-connect.<domain>/mcp/platform/mcp
+   ```
+
+   For example, given the Quilt catalog URL `https://open.quiltdata.com`:
+
+   - **Stack name:** `open`
+   - **Domain:** `quiltdata.com`
+   - **AI Connector URL preview:**
+     `https://open-connect.quiltdata.com/mcp/platform/mcp`
+
+   Use the stack name from the catalog hostname, not a display name such as
+   `Quilt Open`. Enter only the parent domain in **Domain**, not the full
+   catalog hostname (`open.quiltdata.com`).
+
+6. Confirm that the **AI Connector URL preview** matches the Quilt
+   `ConnectHost` CloudFormation output followed by `/mcp/platform/mcp`
+7. Click **Install** to install the configured connector
+8. Complete the Quilt OAuth flow to authenticate the connector
+9. Review the tools exposed by the server and select which ones users may
    access (at least one must be enabled)
-5. Click **Save**
+10. Click **Save**
 
 Each Benchling user then enables the connector once:
 
 1. In the navigation bar, click **AI**, then the **Settings** icon
 2. Open the **AI Connectors** tab and click **Connect** next to Quilt
-3. Complete the Quilt OAuth flow in the window that opens (see
+3. In the pop-up window, click **Connect**
+4. Complete the Quilt OAuth flow in the new tab or window (see
    [User Authorization](#user-authorization) below)
-4. Return to Benchling to finalize the connector
+5. Return to Benchling and select the Quilt tools to enable
+6. Click **Save**
 
-> Benchling completes its OAuth handshake from
-> `https://<tenant>.benchling.com/...`, so `.benchling.com` must be in
-> `ConnectAllowedHosts` (see
-> [Connect.md](Connect.md#connectallowedhosts-entry-formats)).
+To verify the connection, open Benchling Chat and ask it to search or list
+content in Quilt. Benchling automatically decides when to call the enabled
+Quilt tools. If Quilt is unavailable, confirm that at least one tool is
+enabled, the user completed authorization, and `.benchling.com` remains in
+`ConnectAllowedHosts`.
 
 ### Connecting OpenAI Codex
 

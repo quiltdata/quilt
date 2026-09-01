@@ -1,9 +1,7 @@
-import typing as T
-
 from . import types, util
 
 
-def get() -> T.Optional[types.SSOConfig]:
+def get() -> types.SSOConfig | None:
     """
     Get the current SSO configuration.
     """
@@ -11,7 +9,7 @@ def get() -> T.Optional[types.SSOConfig]:
     return None if result is None else types.SSOConfig.from_gql(result)
 
 
-def set(config: T.Optional[str]) -> T.Optional[types.SSOConfig]:
+def set(config: str | None) -> types.SSOConfig | None:
     """
     Set the SSO configuration. Pass `None` to remove SSO configuration.
     """

@@ -9,7 +9,54 @@ on:
 env:
   UV_LOCKED: 1
 jobs:
+  # Package context: https://nightly.quilttest.com/b/quilt-dev/packages/proj/260827-quilt3-acl
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      quilt3: ${{ github.ref_type == 'tag' || steps.filter.outputs.quilt3 }}
+      docs: ${{ steps.filter.outputs.docs }}
+      rest: ${{ steps.filter.outputs.rest }}
+      lambdas: ${{ steps.filter.outputs.lambdas }}
+      py-shared: ${{ steps.filter.outputs.py-shared }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590
+        id: filter
+        with:
+          filters: |
+            quilt3:
+              - '.github/workflows/py-ci.yml'
+              - 'api/python/**'
+              - 'shared/package_uri_cases.json'
+              - 'ruff.toml'
+            docs:
+              - '.github/workflows/py-ci.yml'
+              - 'api/python/**'
+              - 'docs/**'
+              - 'gendocs/**'
+              - 'testdocs/**'
+            rest:
+              - '.github/workflows/py-ci.yml'
+              - 'catalog/**'
+              - 'gendocs/**'
+              - 'lambdas/**'
+              - 'py-shared/**'
+              - 's3-proxy/**'
+              - 'shared/**'
+              - '*.py'
+              - '*.toml'
+              - '*.yaml'
+              - '*.yml'
+            lambdas:
+              - '.github/workflows/py-ci.yml'
+              - 'lambdas/**'
+              - 'shared/**'
+            py-shared:
+              - '.github/workflows/py-ci.yml'
+              - 'py-shared/**'
+
   lint-quilt3:
+    needs: changes
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -17,10 +64,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.quilt3 == 'true'
       - name: Lint
+        if: needs.changes.outputs.quilt3 == 'true'
         run: uv run poe lint
+      - name: No changes to quilt3
+        if: needs.changes.outputs.quilt3 != 'true'
+        run: echo 'No quilt3 changes; check passed.'
 
   format-quilt3:
+    needs: changes
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,16 +81,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.quilt3 == 'true'
       - name: Check formatting (quilt3)
+        if: needs.changes.outputs.quilt3 == 'true'
         run: uv run poe fmt --check
+      - name: No changes to quilt3
+        if: needs.changes.outputs.quilt3 != 'true'
+        run: echo 'No quilt3 changes; check passed.'
 
   lint-rest:
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.rest == 'true'
       - name: Run Ruff linter on entire codebase
-        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
+        if: needs.changes.outputs.rest == 'true'
+        run: uvx ruff@0.16.0 check . --exclude catalog/ --exclude api/python/
+      - name: No changes to the rest of the codebase
+        if: needs.changes.outputs.rest != 'true'
+        run: echo 'No relevant changes; check passed.'
 
   # Enable once the rest of the codebase is formatted
   # format-rest:
@@ -46,9 +110,10 @@ jobs:
   #     - uses: actions/checkout@v7
   #     - uses: astral-sh/setup-uv@v7
   #     - name: Check formatting (rest of codebase)
-  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
+  #       run: uvx ruff@0.16.0 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
+    needs: changes
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,10 +123,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.docs == 'true'
       - name: Check generated docs are up-to-date
+        if: needs.changes.outputs.docs == 'true'
         run: uv run poe gendocs-check
+      - name: No documentation changes
+        if: needs.changes.outputs.docs != 'true'
+        run: echo 'No documentation changes; check passed.'
 
   test-testdocs:
+    needs: changes
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -71,10 +142,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.docs == 'true'
       - name: Test codeblocks
+        if: needs.changes.outputs.docs == 'true'
         run: uv run poe testdocs
+      - name: No documentation changes
+        if: needs.changes.outputs.docs != 'true'
+        run: echo 'No documentation changes; check passed.'
 
   test-client:
+    needs: changes
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -88,9 +165,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.quilt3 == 'true'
       - name: Run Pytest
+        if: needs.changes.outputs.quilt3 == 'true'
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
       - uses: codecov/codecov-action@v7
+        if: needs.changes.outputs.quilt3 == 'true'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           OS: ${{ matrix.os }}
@@ -99,9 +179,12 @@ jobs:
           flags: api-python
           name: ${{ github.job }}
           env_vars: OS,PYTHON_VERSION
+      - name: No changes to quilt3
+        if: needs.changes.outputs.quilt3 != 'true'
+        run: echo 'No quilt3 changes; check passed.'
 
   pypi-release-tag-check:
-    needs: test-client
+    needs: [changes, test-client]
     runs-on: ubuntu-latest
     outputs:
       check: ${{ steps.check.outputs.check }}
@@ -135,6 +218,7 @@ jobs:
         run: uv publish
 
   test-lambda:
+    needs: changes
     strategy:
       fail-fast: false
       matrix:
@@ -156,33 +240,25 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
-      PYTHONPATH: deps
-      JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
+    defaults:
+      run:
+        working-directory: lambdas/${{ matrix.path }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version-file: lambdas/${{ matrix.path }}/.python-version
       - uses: astral-sh/setup-uv@v7
-      - name: Export requirements.txt from uv.lock
-        run: |
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt --no-default-groups
-          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o test-requirements.txt --only-group test
-      - name: Install dependencies
-        run: |
-          # Try to simulate the lambda .zip file:
-          # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
-          # - Remove "tests" directories
-          # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
-          find deps -name tests -type d -exec rm -r \{} \+
-          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
-
-          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
+        if: needs.changes.outputs.lambdas == 'true'
       - name: Pytest
-        run: |
-          python -m pytest --cov=lambdas lambdas/${{ matrix.path }}
+        if: needs.changes.outputs.lambdas == 'true'
+        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml
+      - name: Check the built package is importable
+        if: needs.changes.outputs.lambdas == 'true'
+        # The run above imports the sources, so it cannot catch files missing
+        # from the distribution. --no-editable installs the built wheel, which
+        # is how build_zip.sh and the Dockerfiles install the lambda, so
+        # collection fails if the wheel is incomplete.
+        run: uv run --no-editable pytest --collect-only -q
       - uses: codecov/codecov-action@v7
+        if: needs.changes.outputs.lambdas == 'true'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           LAMBDA: ${{ matrix.path }}
@@ -190,8 +266,12 @@ jobs:
           flags: lambda
           name: ${{ github.job }}
           env_vars: LAMBDA
+      - name: No lambda changes
+        if: needs.changes.outputs.lambdas != 'true'
+        run: echo 'No lambda changes; check passed.'
 
   test-py-shared:
+    needs: changes
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -199,11 +279,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.py-shared == 'true'
       - name: test
+        if: needs.changes.outputs.py-shared == 'true'
         run: uv run --only-group test pytest --cov=. --cov-report=xml
       - uses: codecov/codecov-action@v7
+        if: needs.changes.outputs.py-shared == 'true'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: py-shared
           name: ${{ github.job }}
+      - name: No py-shared changes
+        if: needs.changes.outputs.py-shared != 'true'
+        run: echo 'No py-shared changes; check passed.'

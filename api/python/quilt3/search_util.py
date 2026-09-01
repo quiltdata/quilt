@@ -5,12 +5,11 @@ Contains search-related glue code
 """
 
 import json
-import typing as T
 
 from . import session
 
 
-def search_api(query: T.Union[str, dict], index: str, limit: int = 10):
+def search_api(query: str | dict, index: str, limit: int = 10):
     """
     Send a query to the search API
     """
@@ -18,8 +17,9 @@ def search_api(query: T.Union[str, dict], index: str, limit: int = 10):
         params = dict(index=index, action="freeform", body=json.dumps(query), size=limit)
     else:
         params = dict(index=index, action="search", query=query, size=limit)
-    response = session.get_session().get(
-        f"{session.get_registry_url()}/api/search",
+    registry_url = session.get_registry_url()
+    response = session.get_session(registry_url=registry_url).get(
+        f"{registry_url}/api/search",
         params=params,
     )
     return response.json()

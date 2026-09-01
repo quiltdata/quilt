@@ -1,0 +1,90 @@
+import * as React from 'react'
+import * as M from '@material-ui/core'
+
+import * as Dialog from 'components/Dialog'
+import { FromS3Files, useCreateDialog } from 'containers/Bucket/PackageDialog/Create'
+
+import type * as requests from './model/requests'
+import {
+  ParsedRows,
+  doQueryResultsContainManifestEntries,
+  parseQueryResults,
+} from './model/createPackage'
+
+import Results from './Results'
+
+const useStyles = M.makeStyles((t) => ({
+  results: {
+    'div&': {
+      // NOTE: increasing CSS specifity to overwrite
+      minHeight: t.spacing(30),
+    },
+  },
+}))
+
+interface CreatePackageProps {
+  queryResults: requests.QueryResults
+}
+
+export default function CreatePackage({ queryResults }: CreatePackageProps) {
+  const classes = useStyles()
+  const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
+  // The console is not scoped to a bucket, so default the destination to the
+  // bucket the manifest entries physically live in (the dialog lets the user
+  // pick another destination).
+  const dst = React.useMemo(() => {
+    const bucket = doQueryResultsContainManifestEntries(queryResults)
+      ? Object.values(parseQueryResults(queryResults).valid)[0]?.bucket || ''
+      : ''
+    return { bucket }
+  }, [queryResults])
+  const createDialog = useCreateDialog({
+    delayHashing: true,
+    disableStateDisplay: true,
+    dst,
+  })
+  const handleConfirm = React.useCallback(
+    (ok: boolean) => {
+      if (!ok) return
+      createDialog.open({ files: FromS3Files(entries.valid) })
+    },
+    [entries, createDialog],
+  )
+  const confirm = Dialog.useConfirm({
+    title: 'These rows will be discarded. Confirm creating package?',
+    onSubmit: handleConfirm,
+  })
+  const onPackage = React.useCallback(() => {
+    if (!doQueryResultsContainManifestEntries(queryResults)) return
+
+    const parsed = parseQueryResults(queryResults)
+    setEntries(parsed)
+    if (parsed.invalid.length) {
+      confirm.open()
+    } else {
+      createDialog.open({ files: FromS3Files(parsed.valid) })
+    }
+  }, [confirm, createDialog, queryResults])
+
+  return (
+    <>
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+      {confirm.render(
+        <Results
+          className={classes.results}
+          rows={entries.invalid}
+          columns={queryResults.columns}
+        />,
+      )}
+      <M.Button color="primary" onClick={onPackage} size="small" variant="outlined">
+        Create package
+      </M.Button>
+    </>
+  )
+}

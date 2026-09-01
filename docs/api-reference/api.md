@@ -4,7 +4,7 @@ Quilt API
 
 ## clear\_api\_key()  {#clear\_api\_key}
 
-Clear the API key and fall back to interactive session (if available).
+Clear all in-memory API keys and fall back to interactive sessions.
 
 
 ## config(\*catalog\_url, \*\*config\_values)  {#config}
@@ -102,21 +102,25 @@ your stack administrator. Not required if you have existing AWS credentials.
 Launches a web browser and asks the user for a token.
 
 
-## login\_with\_api\_key(key: str)  {#login\_with\_api\_key}
+## login\_with\_api\_key(key: str, registry\_url=None)  {#login\_with\_api\_key}
 
 Authenticate using an API key.
 
-The API key is stored in memory only (no disk persistence).
-While set, the API key overrides any interactive session.
-Use clear_api_key() to revert to interactive session.
+The API key is stored in memory only (no disk persistence) and scoped to
+the supplied or currently resolved registry. While set, it overrides any
+interactive session for that registry. Use clear_api_key() to remove all
+in-memory API keys and revert to interactive sessions.
 
 __Arguments__
 
 * __key__:  API key string (starts with 'qk_')
+* __registry_url__:  optional URL snapshot. If omitted, uses the currently
+    resolved registry URL.
 
 __Raises__
 
 * `ValueError`:  If the key doesn't start with 'qk_' prefix.
+* `QuiltException`:  If no registry URL is supplied or configured.
 
 
 ## logout()  {#logout}
@@ -124,7 +128,7 @@ __Raises__
 Do not use Quilt credentials. Useful if you have existing AWS credentials.
 
 
-## search(query: str | dict, limit: int = 10) -> List[dict]  {#search}
+## search(query: str | dict, limit: int = 10) -> list[dict]  {#search}
 
 Execute a search against the configured search endpoint.
 
@@ -155,7 +159,7 @@ An API key for programmatic access.
 ## APIKeyError(result)  {#APIKeyError}
 Error during API key operation.
 
-## list(name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> List[quilt3.api\_keys.APIKey]  {#list}
+## list(name: str | None = None, fingerprint: str | None = None, status: Literal['ACTIVE', 'EXPIRED'] | None = None) -> list[quilt3.api\_keys.APIKey]  {#list}
 
 List your API keys. Optionally filter by name, fingerprint, or status.
 
@@ -183,7 +187,7 @@ __Returns__
 The API key, or None if not found.
 
 
-## create(name: str, expires\_in\_days: int = 90) -> Tuple[quilt3.api\_keys.APIKey, str]  {#create}
+## create(name: str, expires\_in\_days: int = 90) -> tuple[quilt3.api\_keys.APIKey, str]  {#create}
 
 Create a new API key for yourself.
 

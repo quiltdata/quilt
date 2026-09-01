@@ -7,7 +7,15 @@ export interface Features {
   qurator: boolean
 }
 
-export function useFeatures(notAvailable?: boolean): Features | null {
+/**
+ * @param objectDeleted the object's current version is a delete marker, so deleting
+ *   again would only stack another one. Kept separate from `notAvailable` because that
+ *   also gates `get`, and a pinned surviving version stays downloadable.
+ */
+export function useFeatures(
+  notAvailable?: boolean,
+  objectDeleted?: boolean,
+): Features | null {
   const { prefs } = BucketPreferences.use()
   if (typeof notAvailable === 'undefined') return null
   return BucketPreferences.Result.match(
@@ -17,7 +25,9 @@ export function useFeatures(notAvailable?: boolean): Features | null {
           !notAvailable && !cfg.noDownload && actions.downloadObject
             ? { code: blocks.code }
             : false,
-        organize: !notAvailable ? { delete: actions.deleteObject } : false,
+        organize: !notAvailable
+          ? { delete: actions.deleteObject && !objectDeleted }
+          : false,
         qurator: blocks.qurator,
       }),
       _: () => null,

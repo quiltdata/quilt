@@ -83,18 +83,21 @@ options:
 ```
 ## `install`
 ```
-usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
-                      [--dest DEST] [--dest-registry DEST_REGISTRY]
-                      [--path PATH]
-                      name
+usage: quilt3 install [-h] [--uri URI] [--registry REGISTRY]
+                      [--top-hash TOP_HASH] [--dest DEST]
+                      [--dest-registry DEST_REGISTRY] [--path PATH]
+                      [name]
 
 Install a package
 
 positional arguments:
-  name                  Name of package, in the USER/PKG format
+  name                  Name of package, in the USER/PKG format. Required
+                        unless --uri is supplied.
 
 options:
   -h, --help            show this help message and exit
+  --uri URI             Quilt+ package URI copied from Catalog. Quote the URI
+                        in the shell because its fragment may contain '&'.
   --registry REGISTRY   Registry where package is located, usually s3://MY-
                         BUCKET. Defaults to the default remote registry.
   --top-hash TOP_HASH   Hash of package to install. Defaults to latest.

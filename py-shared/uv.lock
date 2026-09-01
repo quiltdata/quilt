@@ -560,7 +560,6 @@ es = [
 ]
 pydantic = [
     { name = "pydantic" },
-    { name = "typing-extensions" },
 ]
 quilt = [
     { name = "quilt3" },
@@ -585,7 +584,6 @@ requires-dist = [
     { name = "quilt3", marker = "extra == 'quilt'", specifier = ">=7,<8" },
     { name = "types-aiobotocore", extras = ["s3"], marker = "extra == 'boto'", specifier = "~=2.11" },
     { name = "types-boto3", extras = ["athena", "s3", "sts"], marker = "extra == 'boto'", specifier = "~=1.34" },
-    { name = "typing-extensions", marker = "extra == 'pydantic'", specifier = "~=4.9" },
 ]
 provides-extras = ["pydantic", "boto", "quilt", "es"]
 

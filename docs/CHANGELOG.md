@@ -18,10 +18,42 @@ Entries inside each section should be ordered by type:
 
 ## unreleased - YYYY-MM-DD
 
+### CI
+
+* [Changed] Python CI runs quilt3 checks when the shared Package URI compatibility corpus changes ([#5255](https://github.com/quiltdata/quilt/pull/5255))
+* [Changed] Path-filtered Python CI keeps required check contexts successful while skipping jobs unrelated to the changed paths.
+
+### Python API
+
+* [Added] `Package.browse()` and `Package.install()` accept Catalog `quilt+s3://` package, directory, and entry URIs, including latest, named-tag, and hash selectors. A directory URI may carry the trailing slash the Catalog emits (`&path=baz%2F`), a path that descends through an entry (`&path=foo.csv%2Fbar`) reports that the package does not contain it rather than raising `AttributeError`, a raw `+` in an unencoded path stays a `+` instead of becoming a space, and the scheme is matched case-insensitively ([#5255](https://github.com/quiltdata/quilt/pull/5255))
+* [Added] `quilt3.session.use_registry_url()`, `set_registry_url_resolver()`, and `reset_registry_url_resolver()` for overriding the registry URL in-process without writing `~/.quilt/config.yml`, so a host application can drive a registry chosen at runtime or several registries in one process; each operation uses one URL snapshot, and authenticated HTTP-session creation is synchronized and isolated per resolved registry URL ([#5240](https://github.com/quiltdata/quilt/pull/5240))
+* [Changed] The parent-revision check in `Package.push()` is keyed on package name rather than on the registry a revision was read from, and accepts every revision the package object knows for that name. Pushing one object to several registries that hold the shared parent — mirroring, or promoting between environments — no longer conflicts after the first destination ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] The `QuiltConflictException` raised by `Package.push()` now names the destination bucket and package name, and leads with the routes that satisfy the check — re-using the package returned by the previous `push()`, or calling `Package.browse()` (CLI: `quilt3 install`) — before offering `force=True`/`--force` ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] `Package` no longer carries a `_origin` attribute or a `PackageRevInfo` class; the revision a package was read from or has published is tracked internally per package name. `Package.push()` returns the package it published, so `result.top_hash` is the published revision ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Changed] `Package.push(force=True, dedupe=True)` re-reads the destination before accepting an equal-hash match, so a revision published by another writer during transfer is overwritten rather than reported as a skip ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Fixed] API keys set with `login_with_api_key()` are scoped to a supplied or currently resolved registry URL, so switching registries in-process cannot send one registry's key to another; `clear_api_key()` continues to clear all in-memory keys ([#5248](https://github.com/quiltdata/quilt/pull/5248))
+* [Fixed] `Package.push()` now remembers the revision it published, so pushing the same `Package` object twice in a row no longer raises `QuiltConflictException` and no longer needs `force=True` or a `Package.browse()` in between ([#5180](https://github.com/quiltdata/quilt/pull/5180))
+* [Fixed] `Package.browse()` and `Package.install()` now recompute the manifest's top hash and raise `PackageException` when it does not match the revision that was resolved, instead of returning a package whose contents disagree with the hash it was pinned to. A cached manifest that fails the check is evicted, and a freshly downloaded one is verified before it is written into the manifest cache. The check is unconditional and cannot be skipped, so a call that previously succeeded against a corrupted cache entry or an externally modified manifest now fails ([#5184](https://github.com/quiltdata/quilt/pull/5184))
+* [Fixed] Concurrent `Package.browse()` calls for the same uncached manifest no longer download into a single shared temporary path, where they could overwrite one another's bytes and publish a partial manifest into the cache; each download now uses a unique temporary file ([#5184](https://github.com/quiltdata/quilt/pull/5184))
+
+### CLI
+
+* [Added] `quilt3 install --uri 'quilt+s3://BUCKET#package=USER/PACKAGE&path=PATH'` installs a package, directory, or entry directly from a quoted Catalog URI ([#5255](https://github.com/quiltdata/quilt/pull/5255))
+
+## 8.0.0 - 2026-08-04
+
 ### Python API
 
 * [Removed] Drop support for Python 3.9 (end-of-life); `quilt3` now requires Python >= 3.10 ([#4941](https://github.com/quiltdata/quilt/pull/4941))
 * [Fixed] `quilt3.admin.buckets.list` no longer raises `TypeError` when its type hints are introspected on Python 3.14 ([#4940](https://github.com/quiltdata/quilt/pull/4940))
+* [Fixed] `quilt3.delete_package()` on a local registry no longer deletes other packages sharing the same namespace ([#5140](https://github.com/quiltdata/quilt/pull/5140))
+* [Fixed] `Package.push()` no longer fails after the data is uploaded when cleaning up a temporary file created by `Package.set()`: a file that is already gone is ignored, which is also what happens when two logical keys share one serialized object and its temporary file is deleted twice, and any other removal error is logged instead of raised ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Package.push()` no longer uses a process pool to delete temporary files, so it works from a daemonic process (e.g. a prefork worker) and no longer requires callers to guard their entry point with `if __name__ == "__main__":` ([#5156](https://github.com/quiltdata/quilt/pull/5156))
+* [Fixed] `Bucket.delete_dir()` no longer stops partway through on zero-byte directory markers, leaving the directory half deleted ([#5158](https://github.com/quiltdata/quilt/pull/5158))
+
+### CLI
+
+* [Changed] `quilt3 login` no longer echoes the pasted code to the terminal (it is a long-lived credential) ([#5138](https://github.com/quiltdata/quilt/pull/5138))
 
 ## 7.3.0 - 2026-04-07
 

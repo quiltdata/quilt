@@ -66,7 +66,11 @@ function BucketAddDialog({ open, onClose, buckets, addBucket }: BucketAddDialogP
             {ordered.map((bucket) => (
               <M.ListItem key={bucket.name} button onClick={() => handleAdd(bucket)}>
                 <M.ListItemAvatar style={{ minWidth: 44 }}>
-                  <BucketIcon src={bucket.iconUrl} />
+                  <BucketIcon
+                    src={bucket.iconUrl}
+                    label={bucket.title}
+                    tintKey={bucket.name}
+                  />
                 </M.ListItemAvatar>
                 <M.ListItemText>
                   s3://{bucket.name}{' '}
@@ -204,7 +208,7 @@ export default function BucketsPermissions({
           }
         >
           <M.Icon fontSize="small" color="disabled" className={classes.icon}>
-            info_outlined
+            info_outline
           </M.Icon>
         </M.Tooltip>
         {GQL.fold(bucketsData, {
@@ -247,7 +251,11 @@ export default function BucketsPermissions({
             onClick={(event) => openPermissionMenu(event, perm)}
           >
             <M.ListItemAvatar style={{ minWidth: 44 }}>
-              <BucketIcon src={perm.bucket.iconUrl} />
+              <BucketIcon
+                src={perm.bucket.iconUrl}
+                label={perm.bucket.title}
+                tintKey={perm.bucket.name}
+              />
             </M.ListItemAvatar>
             <M.ListItemText
               primary={

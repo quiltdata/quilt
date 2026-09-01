@@ -4,10 +4,10 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import type { JsonRecord } from 'utils/types'
 import * as Types from '../../../model/graphql/types.generated'
 
+import type { JsonRecord } from 'utils/types'
+import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export interface DatetimeSearchPredicate {
   readonly gte: Date | null | undefined
   readonly lte: Date | null | undefined
@@ -68,11 +68,31 @@ export interface containers_Search_gql_PackageMetaFacetsFindQuery {
     | {
         readonly __typename: 'PackagesSearchResultSet'
         readonly filteredUserMetaFacets: ReadonlyArray<
-          | { readonly __typename: 'BooleanPackageUserMetaFacet'; readonly path: string }
-          | { readonly __typename: 'DatetimePackageUserMetaFacet'; readonly path: string }
-          | { readonly __typename: 'KeywordPackageUserMetaFacet'; readonly path: string }
-          | { readonly __typename: 'NumberPackageUserMetaFacet'; readonly path: string }
-          | { readonly __typename: 'TextPackageUserMetaFacet'; readonly path: string }
+          | {
+              readonly __typename: 'BooleanPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'DatetimePackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'KeywordPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'NumberPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
+          | {
+              readonly __typename: 'TextPackageUserMetaFacet'
+              readonly path: string
+              readonly sortable: boolean
+            }
         >
       }
 }
@@ -202,6 +222,10 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'path' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'sortable' },
                                   },
                                 ],
                               },

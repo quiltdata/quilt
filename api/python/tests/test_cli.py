@@ -227,3 +227,73 @@ def test_push_no_copy_local_dir(capsys):
     assert main.main(('push', '--dir', dir_path, '--no-copy', name)) == 1
     captured = capsys.readouterr()
     assert "--no-copy flag can be specified only for remote data." in captured.err
+
+
+def test_install_legacy_source_is_unchanged():
+    with patch_package_class as mocked_package_class:
+        main.main(('install', 'user/package', '--dest', 'data'))
+
+        mocked_package_class.install.assert_called_once_with(
+            'user/package',
+            registry=None,
+            top_hash=None,
+            dest='data',
+            dest_registry=None,
+            path=None,
+        )
+
+
+def test_install_uri_source():
+    uri = 'quilt+s3://bucket#package=user/package:release&path=data%2Ffile.csv'
+    with patch_package_class as mocked_package_class:
+        main.main(('install', '--uri', uri, '--dest', 'data'))
+
+        mocked_package_class.install.assert_called_once_with(
+            uri,
+            registry=None,
+            top_hash=None,
+            dest='data',
+            dest_registry=None,
+            path=None,
+        )
+
+
+@pytest.mark.parametrize(
+    'args, error',
+    [
+        (('install',), 'Exactly one package source is required'),
+        (('install', 'user/package', '--uri', 'quilt+s3://bucket#package=user/package'), 'cannot be used together'),
+        (('install', 'quilt+s3://bucket#package=user/package'), 'with --uri'),
+        # Schemes are case-insensitive, so an uppercase one must not slip past the
+        # positional guard and get installed as a URI anyway.
+        (('install', 'QUILT+S3://bucket#package=user/package'), 'with --uri'),
+        (('install', 'Quilt+S3://bucket#package=user/package'), 'with --uri'),
+        (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--registry', 's3://other'), '--registry'),
+        (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--top-hash', 'abcdef'), '--top-hash'),
+        (('install', '--uri', 'quilt+s3://bucket#package=user/package', '--path', 'data'), '--path'),
+    ],
+)
+def test_install_rejects_invalid_source_combinations(args, error, capsys):
+    with patch_package_class as mocked_package_class:
+        assert main.main(args) == 1
+
+        assert error in capsys.readouterr().err
+        mocked_package_class.install.assert_not_called()
+
+
+def test_install_uri_help_requires_shell_quoting(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        main.main(('install', '--help'))
+
+    assert exc_info.value.code == 0
+    help_text = capsys.readouterr().out
+    assert '--uri URI' in help_text
+    assert 'Quote the URI' in help_text
+    assert 'in the shell' in help_text
+    assert "'&'" in help_text
+
+
+def test_install_malformed_uri_has_uri_specific_error(capsys):
+    assert main.main(('install', '--uri', 'quilt+http://bucket#package=user/package')) == 1
+
+    assert 'Invalid package URI' in capsys.readouterr().err

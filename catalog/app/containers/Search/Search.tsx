@@ -1,8 +1,12 @@
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
+import * as RRDom from 'react-router-dom'
+import * as Sentry from '@sentry/react'
 
-import Layout, { Container } from 'components/Layout'
+import Layout, { Container, useSearchInput } from 'components/Layout'
 import assertNever from 'utils/assertNever'
 import MetaTitle from 'utils/MetaTitle'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
@@ -19,7 +23,8 @@ function SearchLayout() {
   const tableView =
     view === SearchUIModel.View.Table &&
     resultType === SearchUIModel.ResultType.QuiltPackage
-  const [inputEl, setInputEl] = React.useState<HTMLInputElement | null>(null)
+  // The query field is the header bar's, not this screen's.
+  const searchInput = useSearchInput()
 
   const handleRefine = React.useCallback(
     (action: NoResults.Refine) => {
@@ -38,11 +43,11 @@ function SearchLayout() {
           clearFilters()
           break
         case NoResults.Refine.Search:
-          inputEl?.select()
+          searchInput.select()
           break
         case NoResults.Refine.New:
           reset()
-          inputEl?.focus()
+          searchInput.focus()
           break
         case NoResults.Refine.Network:
           // TODO: retry GQL request
@@ -52,13 +57,15 @@ function SearchLayout() {
           assertNever(action)
       }
     },
-    [inputEl, resultType, setBuckets, clearFilters, setResultType, reset],
+    [searchInput, resultType, setBuckets, clearFilters, setResultType, reset],
   )
 
   return (
     <Container>
       <MetaTitle>{searchString || 'Search'}</MetaTitle>
-      <Main inputRef={setInputEl}>
+      {/* The query input is the persistent header search bar (ContentBar),
+          bound to this screen's model -- no in-body field. */}
+      <Main>
         {tableView ? (
           <TableResults
             emptySlot={<NoResults.Empty onRefine={handleRefine} />}
@@ -75,11 +82,34 @@ function SearchLayout() {
   )
 }
 
-export default function Search() {
+// The provider parses the URL in its own render, so a filter param that won't
+// parse escapes every boundary below and unwinds to app.tsx.
+function SearchErrorFallback({ error }: FallbackProps) {
+  const { urls } = NamedRoutes.use()
+  const onRefine = NoResults.useErrorRefine(urls.search({}))
   return (
-    <SearchUIModel.Provider>
-      <AssistantContext />
-      <Layout pre={<SearchLayout />} />
-    </SearchUIModel.Provider>
+    <Layout>
+      <NoResults.UnexpectedError onRefine={onRefine}>
+        {error.message}
+      </NoResults.UnexpectedError>
+    </Layout>
+  )
+}
+
+const onError = (error: Error) => Sentry.captureException(error)
+
+export default function Search() {
+  const { search } = RRDom.useLocation()
+  return (
+    <ErrorBoundary
+      FallbackComponent={SearchErrorFallback}
+      onError={onError}
+      resetKeys={[search]}
+    >
+      <SearchUIModel.Provider>
+        <AssistantContext />
+        <Layout pre={<SearchLayout />} />
+      </SearchUIModel.Provider>
+    </ErrorBoundary>
   )
 }

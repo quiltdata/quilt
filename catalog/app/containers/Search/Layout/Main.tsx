@@ -2,7 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
-import { useDebouncedCallback } from 'use-debounce'
 
 import BucketSelector from 'containers/Search/Buckets'
 import ResultTypeSelector from 'containers/Search/ResultType'
@@ -19,72 +18,6 @@ function useMobileView() {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
 }
-
-const useSearchFieldStyles = M.makeStyles((t) => ({
-  root: {
-    background: t.palette.background.paper,
-  },
-}))
-
-interface SearchFieldProps {
-  className?: string
-}
-
-const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
-  function SearchField({ className }, inputRef) {
-    const classes = useSearchFieldStyles()
-
-    const model = SearchUIModel.use()
-
-    const [query, setQuery] = React.useState(model.state.searchString || '')
-    const onChange = useDebouncedCallback(model.actions.setSearchString, 500)
-    const handleChange = React.useCallback(
-      (event) => {
-        setQuery(event.target.value)
-        onChange(event.target.value)
-      },
-      [onChange],
-    )
-    const clear = React.useCallback(() => {
-      setQuery('')
-      onChange('')
-    }, [onChange])
-
-    React.useEffect(
-      () => setQuery(model.state.searchString || ''),
-      [model.state.searchString],
-    )
-
-    return (
-      <M.TextField
-        autoFocus
-        inputRef={inputRef}
-        className={className}
-        fullWidth
-        onChange={handleChange}
-        placeholder="Search"
-        size="small"
-        value={query}
-        variant="outlined"
-        InputProps={{
-          classes,
-          startAdornment: (
-            <M.InputAdornment position="start">
-              <M.Icon>search</M.Icon>
-            </M.InputAdornment>
-          ),
-          endAdornment: query && (
-            <M.InputAdornment position="end">
-              <M.IconButton onClick={clear} edge="end">
-                <M.Icon>close</M.Icon>
-              </M.IconButton>
-            </M.InputAdornment>
-          ),
-        }}
-      />
-    )
-  },
-)
 
 const useMobileFiltersStyles = M.makeStyles((t) => ({
   filters: {
@@ -108,7 +41,11 @@ function MobileFilters({ open, onClose }: MobileFiltersProps) {
   return (
     <M.Drawer anchor="left" open={open} onClose={onClose}>
       <Filters className={classes.filters} />
-      <M.IconButton className={classes.close} onClick={onClose}>
+      <M.IconButton
+        aria-label="Close filters"
+        className={classes.close}
+        onClick={onClose}
+      >
         <M.Icon>close</M.Icon>
       </M.IconButton>
     </M.Drawer>
@@ -176,9 +113,6 @@ const useStyles = M.makeStyles((t) => ({
     gridColumnGap: t.spacing(2),
     gridTemplateColumns: `${t.spacing(40)}px auto`,
   },
-  search: {
-    marginBottom: t.spacing(2),
-  },
   results: {
     display: 'grid',
     gridAutoFlow: 'row',
@@ -194,10 +128,11 @@ const useStyles = M.makeStyles((t) => ({
 
 interface MainProps {
   children: React.ReactNode
-  inputRef: React.Ref<HTMLInputElement>
 }
 
-export default function Main({ inputRef, children }: MainProps) {
+// The query input is the header search bar (ContentBar), which every page here
+// sits under -- this body mounts no field of its own.
+export default function Main({ children }: MainProps) {
   const model = SearchUIModel.use()
 
   const classes = useStyles()
@@ -214,7 +149,6 @@ export default function Main({ inputRef, children }: MainProps) {
 
   return (
     <div className={classes.root}>
-      <SearchField className={classes.search} ref={inputRef} />
       <div className={cx(!toggleFilters && classes.withSidebar)}>
         {toggleFilters ? (
           <MobileFilters open={showFilters} onClose={toggleFilters} />

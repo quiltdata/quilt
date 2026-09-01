@@ -3,11 +3,25 @@ import { Schema as S } from 'effect'
 
 import * as SearchModel from 'containers/Search/model'
 import * as routes from 'constants/routes'
-import * as Model from 'model'
 import * as Nav from 'utils/Navigation'
 
 import * as Filter from './Filter'
 import * as UserMetaFilters from './UserMetaFilters'
+
+// The package ordering expression for the Assistant's JSON API — the same
+// `PackageOrdering` wire grammar the backend and the UI use (see change
+// package-metadata-sort). One string: `sys:<field>:<dir>` |
+// `usr:<json-pointer>:<type>:<dir>` | null (relevance). It lives on the shared
+// top-level `ordering` param (below), not per-result-type, since both result
+// types order by it (objects map the presets to their enum boundary).
+const ORDERING_DESCRIPTION =
+  'Ordering expression for results. One of: a system-field sort `sys:<field>:<dir>` ' +
+  'where field is name|modified|size|entries|hash|workflow and dir is asc|desc ' +
+  '(e.g. `sys:modified:desc`); a user-metadata sort ' +
+  '`usr:<json-pointer>:<type>:<dir>` where type is number|datetime|keyword|text|boolean ' +
+  '(e.g. `usr:/experiment/date:datetime:asc`); or omit for relevance (best match). ' +
+  'For object search only the system-field presets on name/modified are honored; ' +
+  'anything else falls back to relevance.'
 
 const PackageSearchParamsSchema = S.Struct({
   resultType: S.tag(SearchModel.ResultType.QuiltPackage).annotations({
@@ -87,26 +101,14 @@ const SearchParamsSchema = S.Struct({
     title: 'Search buckets',
     description: 'A list of buckets to search in (keep empty to search in all buckets)',
   }),
-  order: S.optional(S.Enums(Model.GQLTypes.SearchResultOrder)).annotations({
-    title: 'Search result order',
-    description: 'Order of search results',
+  ordering: S.optional(S.NullOr(S.String)).annotations({
+    title: 'Result ordering',
+    description: ORDERING_DESCRIPTION,
   }),
   params: S.Union(PackageSearchParamsSchema, ObjectSearchParamsSchema).annotations({
     title: 'Result type-specific parameters',
   }),
 })
-
-const OrderFromNullableString = S.transform(
-  S.NullOr(S.String),
-  S.Enums(Model.GQLTypes.SearchResultOrder),
-  {
-    encode: (input) => (input === SearchModel.DEFAULT_ORDER ? null : input),
-    decode: (input) =>
-      Object.values(Model.GQLTypes.SearchResultOrder).includes(input as any)
-        ? (input as Model.GQLTypes.SearchResultOrder)
-        : SearchModel.DEFAULT_ORDER,
-  },
-)
 
 const ResultTypeFromNullableString = S.transform(
   S.NullOr(S.String),
@@ -148,12 +150,20 @@ const RouteSearchParams = S.transform(Nav.SearchParams, SearchParamsSchema, {
       // TODO: validate bucket name format?
     )
 
-    const order = Eff.pipe(
+    // The ordering follows the same precedence as the URL codec (model.ts is the
+    // single source of truth): new-vocabulary `s` wins → legacy-form `s` maps →
+    // else legacy `o` maps → else relevance (the default-free mount).
+    const s = Eff.pipe(
+      Eff.Record.get(input, 's'),
+      Eff.Option.flatMap(Eff.Array.last),
+      Eff.Option.getOrNull,
+    )
+    const o = Eff.pipe(
       Eff.Record.get(input, 'o'),
       Eff.Option.flatMap(Eff.Array.last),
       Eff.Option.getOrNull,
-      S.decodeSync(OrderFromNullableString),
     )
+    const ordering = SearchModel.parseOrdering(s, o, SearchModel.DEFAULT_ORDERING)
 
     const resultType = Eff.pipe(
       Eff.Record.get(input, 't'),
@@ -171,7 +181,7 @@ const RouteSearchParams = S.transform(Nav.SearchParams, SearchParamsSchema, {
     return {
       searchString,
       buckets,
-      order,
+      ordering,
       params,
     }
   },
@@ -186,12 +196,10 @@ const RouteSearchParams = S.transform(Nav.SearchParams, SearchParamsSchema, {
       Eff.Option.toArray,
     )
 
-    const o = Eff.pipe(
-      Eff.Option.fromNullable(input.order),
-      Eff.Option.map(S.encodeSync(OrderFromNullableString)),
-      Eff.Option.flatMap(Eff.Option.fromNullable),
-      Eff.Option.toArray,
-    )
+    // Serialize the ordering to `s` (the ordering param). null = relevance, the
+    // route's default, so it is omitted entirely; the legacy `o` param is never
+    // written anymore.
+    const s = input.ordering ? [SearchModel.serializeOrdering(input.ordering)] : []
 
     const t = Eff.pipe(
       Eff.Option.fromNullable(input.params.resultType),
@@ -208,7 +216,7 @@ const RouteSearchParams = S.transform(Nav.SearchParams, SearchParamsSchema, {
     return {
       q,
       buckets,
-      o,
+      s,
       t,
       ...filter,
     }

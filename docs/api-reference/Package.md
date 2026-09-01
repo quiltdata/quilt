@@ -30,13 +30,16 @@ Installs a named package to the local registry and downloads its files.
 
 __Arguments__
 
-* __name(str)__:  Name of package to install.
+* __name(str)__:  Package name or ``quilt+s3://`` package URI to install.
 * __registry(str)__:  Registry where package is located.
     Defaults to the default remote registry.
 * __top_hash(str)__:  Hash of package to install. Defaults to latest.
 * __dest(str)__:  Local path to download files to.
 * __dest_registry(str)__:  Registry to install package to. Defaults to local registry.
 * __path(str)__:  If specified, downloads only `path` or its children.
+
+A package URI cannot be combined with ``registry``, ``top_hash``, or ``path``.
+Its optional path uses the same selective-install behavior as ``path``.
 
 
 ## Package.resolve\_hash(name, registry, hash\_prefix)  {#Package.resolve\_hash}
@@ -57,9 +60,13 @@ the manifest.
 
 __Arguments__
 
-* __name(string)__:  name of package to load
+* __name(string)__:  Package name or ``quilt+s3://`` package URI to load.
 * __registry(string)__:  location of registry to load package from
 * __top_hash(string)__:  top hash of package version to load
+
+A package URI cannot be combined with ``registry`` or ``top_hash``. If
+the URI selects a path, return that entry or subpackage instead of the
+full package.
 
 
 ## Package.\_\_contains\_\_(self, logical\_key)  {#Package.\_\_contains\_\_}
@@ -333,6 +340,11 @@ no matter what `selector_fn('entry_1', pkg["entry_1"])` returns.
 
 By default, push will not overwrite an existing package if its top hash does not match
 the parent hash of the package being pushed. Use `force=True` to skip the check.
+
+A successful push records the revision it published on the package it was called on, in
+addition to the package it returns. Either object can therefore push again -- as the next
+revision at the same destination, or as the same revision to another registry holding the
+parent -- without an intervening `browse()` and without `force=True`.
 
 __Arguments__
 

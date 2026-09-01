@@ -32,31 +32,23 @@ vi.mock('../model', () => ({
 
 vi.mock('../NoResults', () => ({
   Skeleton: () => <div>Loading…</div>,
-  Error: ({ children, kind }: { children?: React.ReactNode; kind?: string }) => {
-    switch (kind) {
-      case 'syntax':
-        return (
-          <section>
-            <h1>Syntax error</h1>
-            <details>{children}</details>
-          </section>
-        )
-      case 'timeout':
-        return (
-          <section>
-            <h1>Timeout error</h1>
-            <details>{children}</details>
-          </section>
-        )
-      default:
-        return (
-          <section>
-            <h1>Unexpected error</h1>
-            <details>{children}</details>
-          </section>
-        )
-    }
-  },
+  UnexpectedError: ({ children }: { children?: React.ReactNode }) => (
+    <section>
+      <h1>Unexpected error</h1>
+      <details>{children}</details>
+    </section>
+  ),
+  SyntaxError: ({ children }: { children?: React.ReactNode }) => (
+    <section>
+      <h1>Syntax error</h1>
+      <details>{children}</details>
+    </section>
+  ),
+  TimeoutError: () => (
+    <section>
+      <h1>Timeout error</h1>
+    </section>
+  ),
   SecureSearch: () => (
     <section>
       <h1>This is secure search.</h1>
@@ -188,6 +180,7 @@ describe('containers/Search/List/index', () => {
           __typename: 'PackagesSearchResultSet',
           total: -1, // secure search
           firstPage: {
+            __typename: 'PackagesSearchResultSetPage',
             cursor: null,
             hits: [], // We show Secure search "error", only if no results
           },
@@ -210,6 +203,7 @@ describe('containers/Search/List/index', () => {
           __typename: 'PackagesSearchResultSet',
           total: 2,
           firstPage: {
+            __typename: 'PackagesSearchResultSetPage',
             cursor: null,
             hits: [
               {
@@ -243,6 +237,7 @@ describe('containers/Search/List/index', () => {
           __typename: 'ObjectsSearchResultSet',
           total: 2,
           firstPage: {
+            __typename: 'ObjectsSearchResultSetPage',
             cursor: null,
             hits: [
               {
