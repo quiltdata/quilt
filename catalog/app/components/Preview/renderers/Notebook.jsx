@@ -1,5 +1,5 @@
 import cx from 'classnames'
-import renderMathInEl from 'katex/contrib/auto-render/auto-render'
+import renderMathInEl from 'katex/contrib/auto-render'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
