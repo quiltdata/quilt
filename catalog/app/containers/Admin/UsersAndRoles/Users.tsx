@@ -594,7 +594,18 @@ interface EditRolesProps {
   user: User
 }
 
-function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
+// One resolver for the dialog and the Role column that opens it: each derives
+// `readOnly` from the reason, so the guard and the copy cannot drift apart.
+function whyRoleReadOnly(user: User): 'service' | 'sso' | undefined {
+  // `isService` before the SSO flag: the registry couples them, but the guard
+  // must not depend on that.
+  if (user.isService) return 'service'
+  if (user.isRoleAssignmentDisabled) return 'sso'
+  return undefined
+}
+
+// Exported for testing.
+export function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
   const { push } = Notifications.use()
   const setRole = GQL.useMutation(USER_SET_ROLE_MUTATION)
 
@@ -654,6 +665,9 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
     [user.extraRoles, user.role],
   )
 
+  const nonAssignableReason = whyRoleReadOnly(user)
+  const readOnly = nonAssignableReason !== undefined
+
   return (
     <RF.Form<FormValues>
       onSubmit={onSubmit}
@@ -672,7 +686,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
       }) => (
         <>
           <M.DialogTitle>
-            {user.isRoleAssignmentDisabled
+            {readOnly
               ? `Roles assigned to "${user.name}"`
               : `Assign roles to "${user.name}"`}
           </M.DialogTitle>
@@ -683,8 +697,8 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
-                    nonAssignable={user.isRoleAssignmentDisabled}
-                    nonAssignableReason={user.isService ? 'service' : 'sso'}
+                    nonAssignable={readOnly}
+                    nonAssignableReason={nonAssignableReason}
                     {...props}
                   />
                 )}
@@ -694,7 +708,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
               </Form.FormErrorAuto>
             </DialogForm>
           </M.DialogContent>
-          {user.isRoleAssignmentDisabled ? (
+          {readOnly ? (
             <M.DialogActions>
               <M.Button color="primary" onClick={close} variant="contained">
                 Close
@@ -878,8 +892,10 @@ function RoleDisplay({ user, roles, defaultRole, openDialog }: RoleDisplayProps)
       fullWidth: true,
     })
 
+  const readOnly = whyRoleReadOnly(user) !== undefined
+
   return (
-    <M.Tooltip title={user.isRoleAssignmentDisabled ? 'Click to view' : 'Click to edit'}>
+    <M.Tooltip title={readOnly ? 'Click to view' : 'Click to edit'}>
       <Clickable onClick={edit}>
         {user.role?.name ?? emptyRole}
         {user.extraRoles.length > 0 && <Hint> +{user.extraRoles.length}</Hint>}

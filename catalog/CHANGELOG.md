@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Admin Users: the roles dialog and the Role column are read-only for service users, rather than offering a Save the registry refuses ([#5264](https://github.com/quiltdata/quilt/pull/5264))
 - [Fixed] Admin Users: a disabled Enabled or Admin switch says why on hover and on keyboard focus — your own account, a service user managed by the stack, or admin capabilities managed by the SSO configuration — instead of rendering as the same unexplained dead control; the Admin switch now also refuses service users ([#5263](https://github.com/quiltdata/quilt/pull/5263))
 - [Fixed] Search sidebar: the facet "Sort by" control no longer disappears while you type in "Find metadata" on stacks with truncated facet lists, and it is withheld when the query matches nothing rather than offering to sort an empty list ([#5262](https://github.com/quiltdata/quilt/pull/5262))
 - [Fixed] Search sidebar: the facet "Sort by" control announces what it is — its label used to land on a hidden input, leaving assistive tech to read the control as its current ordering and nothing more ([#5261](https://github.com/quiltdata/quilt/pull/5261))
