@@ -25,7 +25,7 @@ The above systems provide you with hundreds of charts out of the box.
 
 ## `quilt_summarize.json`
 `quilt_summarize.json` is a configuration file that renders one or more dashboard
-elements in both Bucket view and Packages view. The contents of `quilt_summarize.json`
+elements in both Files view and Packages view. The contents of `quilt_summarize.json`
 are a JSON array of files that you wish to preview in the catalog. Each file may
 be represented as a string or, if you wish to provide more configuration, as an
 object.
@@ -119,7 +119,7 @@ all [supported image types](../Catalog/Preview.md#binary-and-special-file-format
 > To hide this block, use the `gallery` field in
 your [bucket preferences](./Preferences.md) file.
 
-In the **Bucket** tab, the Catalog displays thumbnail image 
+In the **Files** tab, the Catalog displays thumbnail image 
 previews in a similarly paginated grid but _only from the current 
 directory viewed_.
 

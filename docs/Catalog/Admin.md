@@ -1,7 +1,8 @@
 <!-- markdownlint-disable -->
 The Quilt catalog includes an admin panel that allows you to manage
 users and buckets in Quilt, as well as customize the Quilt catalog. You can access
-the panel via a dropdown menu under username in the navbar.
+the panel via **Admin** in the catalog's left sidebar, which is shown only to
+administrators.
 
 ![](../imgs/admin-dropdown.png)
 
@@ -30,8 +31,9 @@ You can edit existing users' attributes by clicking on underlined cells.
 
 ![](../imgs/admin-users-invite.png)
 
-Users can switch between assigned roles via the dropdown menu in the navbar
-(if assigned more than one).
+Users assigned more than one role can switch between them from the
+**Workspace** row at the top of the left sidebar, which shows the role they are
+currently using. Clicking it opens the **Switch workspace** dialog.
 
 ![](../imgs/switch-role-menu.png)
 
@@ -120,8 +122,8 @@ break indexing or event delivery.
 
 ## Settings
 
-This section allows you to customize your Quilt catalog, including custom links
-in the navbar, custom logo, and default search mode. The Theme editor accepts
+This section allows you to customize your Quilt catalog, including a custom
+navigation link, custom logo, and default search mode. The Theme editor accepts
 a logo as either a direct file upload (PNG, JPEG, WebP, or GIF) or a URL
 (all of those plus SVG).
 

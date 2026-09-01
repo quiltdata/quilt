@@ -4,10 +4,22 @@ that makes it easy to analyze data in Amazon S3 using standard SQL. Athena is
 serverless, so there is no infrastructure to manage, and you pay only for the
 queries that you run.
 
-The Catalog's Queries tab allows you to run Athena queries against your S3
-buckets, and any other data sources your users have access to. There are
-prebuilt tables for packages and objects, and you can create your own tables and
-views. See, for example, [Tabulator](../advanced-features/tabulator.md).
+The Catalog's Queries page — **Queries** in the left sidebar, at `/queries` —
+allows you to run Athena queries against your S3 buckets, and any other data
+sources your users have access to. There are prebuilt tables for packages and
+objects, and you can create your own tables and views. See, for example,
+[Tabulator](../advanced-features/tabulator.md).
+
+The page is workspace-global rather than per-bucket: there is no longer a
+Queries tab on a bucket. Old `/b/<BUCKET>/queries` links redirect here,
+carrying the bucket along as a `?bucket=` scope parameter, which is what
+surfaces that bucket's Tabulator tables as one-click chips.
+
+Queries is Athena-only by default. The legacy [ElasticSearch query
+console](Search.md#elasticsearch-query-console-legacy) is no longer enabled by
+default; an administrator can keep it available by turning on the
+**ElasticSearch query console** toggle under **Admin > Settings > Preview
+features**, which adds an **ElasticSearch** tab alongside Athena.
 
 NOTE: This page describes how to use Athena for precise querying of specific
 tables and fields. For full-text searching using Elasticsearch, see the
@@ -15,13 +27,11 @@ tables and fields. For full-text searching using Elasticsearch, see the
 
 ## Basics
 
-"Run query" executes the selected query and waits for the result.
+"Run query" executes the selected query and waits for the result. Individual
+users also see their past queries under "Query executions", and can easily
+re-run them.
 
 ![ui](../imgs/athena-ui.png)
-
- Individual users will also see their past queries, and easily re-run them.
-
-![history](../imgs/athena-history.png)
 
 ## Example: query package-level metadata
 
@@ -61,5 +71,9 @@ AND json_array_contains(json_extract(metadata, '$.user_meta.cellindex'), '5');
 Athena queries saved from the AWS Console for a given workgroup will be
 available in the Quilt Catalog for all users to run.
 
-Administrators can hide the "Queries" tab by setting `ui > nav > queries: false`
-([learn more](./Preferences.md)).
+The Queries page is workspace-global and always reachable from the left
+sidebar; there is no per-bucket toggle that hides it. Setting `ui > nav >
+queries: false` for a bucket ([learn more](./Preferences.md)) hides that
+bucket's own entry points into this page — the tables stat in the bucket header
+and the Tabulator tables section on the bucket's Overview tab — but not the
+page itself.

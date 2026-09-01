@@ -251,5 +251,5 @@ additional IPs.
 ## The "Last Modified" column in the Quilt catalog is empty
 
 Amazon S3 is a key-value store with prefixes but no true "folders".
-In the Quilt Catalog Bucket view, as in AWS Console, only objects have
+In the Quilt Catalog Files view, as in AWS Console, only objects have
 a "Last modified" value, whereas package entries and prefixes do not.

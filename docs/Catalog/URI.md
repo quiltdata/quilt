@@ -1,5 +1,5 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-Every package and object in the Bucket and Packages views has a "CODE" pane,
+Every package and object in the Files and Packages views has a "CODE" pane,
 which contains code snippets that can be used to download and upload a package
 or object via either:
 
@@ -61,10 +61,10 @@ informational and does not change credentials or endpoints.
 ### Catalog Usage
 
 URIs can be used to quickly navigate to a specific package or object from the
-Catalog. If your window is wide enough, there will be a "URI" button to the
-right of the search bar. Clicking this button will display a dialog where you
-can paste a URI and "Resolve" it to navigate to the package or object it
-references.
+Catalog. At the right end of the header bar, past the search field, there is a
+chain-link icon button tooltipped "Resolve a Quilt URI". Clicking it opens a
+page where you can paste a URI and "Resolve" it to navigate to the package or
+object it references.
 
 ![Resolving URIs](../imgs/uri-resolve.png)
 
