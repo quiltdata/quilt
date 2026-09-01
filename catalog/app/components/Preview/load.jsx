@@ -10,6 +10,7 @@ import * as Image from './loaders/Image'
 import * as Json from './loaders/Json'
 import * as Manifest from './loaders/Manifest'
 import * as Markdown from './loaders/Markdown'
+import * as Mermaid from './loaders/Mermaid'
 import * as NamedPackage from './loaders/NamedPackage'
 import * as Ngl from './loaders/Ngl'
 import * as Notebook from './loaders/Notebook'
@@ -33,6 +34,7 @@ const loaderChain = [
   Json,
   Manifest,
   Markdown,
+  Mermaid,
   NamedPackage,
   Ngl,
   Notebook,
