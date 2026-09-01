@@ -1093,11 +1093,12 @@ export const AvailableFiltersState = tagged.create(
       ordering: {
         value: FacetOrdering
         set: (value: FacetOrdering) => void
-        // Whether to offer the control at all. Decided here because it turns on how
-        // many fields *exist*, not how many currently match the filter box --
-        // `facets.available` is the post-filter list on the client-filter path, so
-        // gating on it would unmount the control mid-search, exactly while a reader
-        // is hunting for a field.
+        // Whether to offer the control at all. Decided here because the threshold
+        // turns on how many fields *exist*, not how many currently match the filter
+        // box — `facets.available` is the post-filter list on the filtering paths,
+        // so gating the threshold on it would unmount the control mid-search,
+        // exactly while a reader is hunting for a field. It is additionally
+        // withheld when nothing is displayed at all: see `orderingOffered`.
         offered: boolean
       }
       fetching: boolean
@@ -1316,7 +1317,12 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
   return React.createElement(AvailablePackagesMetaFiltersGroup, {
     state,
     children,
-    totalAvailable: available.length,
+    // `initial`, not `available`: `available` is this query's own result and
+    // shrinks with every keystroke. `initial` is the list as it stood before the
+    // reader started typing, so it is stable across the search — and it is a
+    // genuine lower bound on the total, because the list reaching this path is
+    // truncated, so the server holds at least this many.
+    totalAvailable: initial.length,
   })
 }
 
@@ -1364,6 +1370,24 @@ function AvailablePackagesMetaFiltersClientFilter({
   })
 }
 
+/**
+ * Whether to offer the ordering switcher.
+ *
+ * Two rules, and they read different counts on purpose:
+ *
+ * - the **threshold** turns on `totalAvailable`, the size of the list before the
+ *   reader narrows it. Every caller passes a count that does not move while the
+ *   filter box is typed in, so narrowing cannot retract the control mid-word.
+ * - the control is **withheld** while `displayed` is zero, because a live "Sort
+ *   by" above "No metadata found" offers to sort nothing.
+ *
+ * Pure, and a plain function rather than a hook: the answer must not depend on
+ * call order or on which mount asked.
+ */
+export function orderingOffered(totalAvailable: number, displayed: number): boolean {
+  return displayed > 0 && totalAvailable >= FACET_ORDERING_THRESHOLD
+}
+
 // Every `Ready` path funnels through here before the tree reaches the panel, so
 // this is the one place the ordering can own both the sort and the split.
 function AvailablePackagesMetaFiltersGroup({
@@ -1372,8 +1396,15 @@ function AvailablePackagesMetaFiltersGroup({
   totalAvailable,
 }: RenderProps<AvailableFiltersStateInstance> & {
   state: AvailableFiltersStateInstance
-  // The count *before* any filtering, which the caller still has. `state.facets
-  // .available` is already narrowed on the client-filter path.
+  // How many fields the list held before the reader started narrowing it with
+  // the filter box — which only the caller still has, because `state.facets
+  // .available` is already narrowed on every filtering path.
+  //
+  // "Before any filtering" is *not* what this is, and the difference matters:
+  // facet filters the reader has already applied are excluded, and on the
+  // truncated paths the server returned only part of the list. It is a lower
+  // bound on the total that does not move while the filter box is typed in,
+  // which is exactly what the threshold needs and no more than that.
   totalAvailable: number
 }) {
   // From the URL, not local state, so a shared link reproduces the panel the
@@ -1392,7 +1423,7 @@ function AvailablePackagesMetaFiltersGroup({
     [available, ordering],
   )
 
-  const offered = totalAvailable >= FACET_ORDERING_THRESHOLD
+  const offered = orderingOffered(totalAvailable, available?.length ?? 0)
 
   const orderingState = React.useMemo(
     () => ({ value: ordering, set: setOrdering, offered }),
