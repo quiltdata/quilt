@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
 import * as AWS from 'utils/AWS'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import Log from 'utils/Logging'
 import noop from 'utils/noop'
 
@@ -29,8 +28,24 @@ function parseNamedQuery(query: Athena.NamedQuery): Query {
   }
 }
 
+/**
+ * The list's own spelling of `value`, preferring an exact match.
+ *
+ * Callers must use the spelling this returns: AWS calls send the workgroup name
+ * verbatim and reject a mis-cased one with `InvalidRequestException`. Names are
+ * case-sensitive, so `alpha` and `Alpha` can both exist -- an exact hit has to
+ * win over the case-insensitive one, which the sorted list would otherwise
+ * resolve to whichever sorts first.
+ */
+function canonical(list: string[], value: string): string | undefined {
+  return (
+    list.find((x) => x === value) ??
+    list.find((x) => x.toLowerCase() === value.toLowerCase())
+  )
+}
+
 function listIncludes(list: string[], value: string): boolean {
-  return list.map((x) => x.toLowerCase()).includes(value.toLowerCase())
+  return canonical(list, value) !== undefined
 }
 
 export type Workgroup = string
@@ -190,29 +205,34 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
 export function useWorkgroup(
   workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
-  preferences?: BucketPreferences.AthenaPreferences,
+  // A string rather than the `ui.athena` object: the parsed preferences are
+  // rebuilt on every provider render, so an object would re-fire this effect
+  // throughout the workgroup probe.
+  defaultWorkgroup?: string,
 ): Model.DataController<Workgroup> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
+    const { list } = workgroups.data
 
-    // URL parameter workgroup (user navigation)
-    if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
-      setData(requestedWorkgroup)
-      return
+    // `unknown`, not `string`: `defaultWorkgroup` comes from a user-authored YAML
+    // document, and the bucket-config schema does not constrain `ui.athena`.
+    const pick = (candidate: unknown): boolean => {
+      if (typeof candidate !== 'string' || !candidate) return false
+      const found = canonical(list, candidate)
+      if (!found) return false
+      setData(found)
+      return true
     }
 
-    // Stored or default workgroup
-    const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
-    if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
-      setData(initialWorkgroup)
-      return
-    }
+    if (pick(requestedWorkgroup)) return
+    if (pick(storage.getWorkgroup())) return
+    if (pick(defaultWorkgroup)) return
 
     // First available workgroup or error. Producer drains to exhaustion, so
     // an accessible workgroup that exists is in this list.
-    setData(workgroups.data.list[0] || new Error('Workgroup not found'))
-  }, [preferences, requestedWorkgroup, workgroups])
+    setData(list[0] || new Error('Workgroup not found'))
+  }, [defaultWorkgroup, requestedWorkgroup, workgroups])
   return React.useMemo(() => ({ data, loadMore: noop }), [data])
 }
 
