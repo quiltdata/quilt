@@ -35,6 +35,8 @@ export default function QuerySelect<T>({
   value,
 }: QuerySelectProps<T & AbstractQuery>) {
   const helperId = useId()
+  const labelId = useId()
+  const buttonId = useId()
   const handleChange = React.useCallback(
     (event) => {
       if (event.target.value === LOAD_MORE && onLoadMore) {
@@ -56,8 +58,15 @@ export default function QuerySelect<T>({
       error={error}
       fullWidth
     >
-      <M.InputLabel>{label}</M.InputLabel>
+      <M.InputLabel id={labelId}>{label}</M.InputLabel>
       <M.Select
+        // An InputLabel next to a Select names nothing by itself -- only
+        // `labelId` reaches the focusable display div. `id` must come with it:
+        // MUI joins the two into `aria-labelledby="labelId buttonId"`, and with
+        // `labelId` alone the label overrides the div's contents, dropping the
+        // selected query from the accessible name.
+        labelId={labelId}
+        id={buttonId}
         onChange={handleChange}
         // The menu rows need `ListItemText` for the name + description pair, but
         // `Select` reuses the selected row's children as the field's display
@@ -65,7 +74,9 @@ export default function QuerySelect<T>({
         // line-height and renders 5px taller than a plain-text Select beside it,
         // leaving the two underlines misaligned. Same trap `Workgroups` avoids by
         // using bare text in its rows.
-        renderValue={() => value?.name ?? 'Custom'}
+        // Callers null the value on a failed load, where "Custom" would assert
+        // a hand-written query is loaded right beside a helper saying it failed.
+        renderValue={() => value?.name ?? (error ? '' : 'Custom')}
         // Not `aria-describedby` on the Select: that lands on the hidden native
         // input. The focusable node is the `role="button"` display div, which is
         // only reachable through `SelectDisplayProps`.
