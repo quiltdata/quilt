@@ -8,6 +8,7 @@ import * as FiltersUI from 'components/Filters'
 import Skeleton from 'components/Skeleton'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import useId from 'utils/useId'
 
 import FilterWidget from '../FilterWidget'
 import { PACKAGE_FILTER_LABELS } from '../i18n'
@@ -189,7 +190,9 @@ interface AvailablePackagesMetaFiltersProps {
   fetching: boolean
 }
 
-function AvailablePackagesMetaFilters({
+// Exported for testing: the ordering control's accessible name lives in how
+// props land on MUI's Select internals, which only a render can assert.
+export function AvailablePackagesMetaFilters({
   className,
   filtering,
   facets,
@@ -197,6 +200,8 @@ function AvailablePackagesMetaFilters({
   fetching,
 }: AvailablePackagesMetaFiltersProps) {
   const classes = useAvailablePackagesMetaFiltersStyles()
+  const orderLabelId = useId()
+  const orderButtonId = useId()
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
@@ -237,7 +242,7 @@ function AvailablePackagesMetaFilters({
           on the client-filter path. */}
       {ordering.offered && (
         <div className={classes.order}>
-          <span className={classes.orderLabel} id="meta-order-label">
+          <span className={classes.orderLabel} id={orderLabelId}>
             Sort by:
           </span>
           <FiltersUI.Select<string>
@@ -246,7 +251,12 @@ function AvailablePackagesMetaFilters({
             disabled={fetching}
             extents={FACET_ORDERING_VALUES}
             getOptionLabel={(value) => FACET_ORDERING_LABELS[value]}
-            inputProps={{ 'aria-labelledby': 'meta-order-label' }}
+            // `labelId` reaches the focusable display div and names the popup
+            // listbox; `id` must come with it, since MUI joins the two into
+            // `aria-labelledby="labelId buttonId"` and `labelId` alone would
+            // override the div's contents, dropping the ordering from the name.
+            labelId={orderLabelId}
+            id={orderButtonId}
             onChange={(value) =>
               ordering.set(SearchUIModel.parseFacetOrdering(value, ordering.value))
             }
