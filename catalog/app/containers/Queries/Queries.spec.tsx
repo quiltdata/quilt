@@ -107,5 +107,25 @@ describe('containers/Queries', () => {
       const { queryByTestId } = at('/queries/es')
       expect(queryByTestId('es')).not.toBeNull()
     })
+
+    // The Athena console is scoped by `?bucket=`. A bare pathname on these tabs
+    // drops the scope, so switching consoles and coming back would land the
+    // reader in a different console from the one they left.
+    it('keeps the scope on both tabs', () => {
+      const { getByText } = at('/queries/athena?bucket=my-bucket')
+      expect(getByText('Athena').closest('a')?.getAttribute('href')).toBe(
+        '/queries/athena?bucket=my-bucket',
+      )
+      expect(getByText('ElasticSearch').closest('a')?.getAttribute('href')).toBe(
+        '/queries/es?bucket=my-bucket',
+      )
+    })
+
+    it('adds no query string to the tabs when there is no scope', () => {
+      const { getByText } = at('/queries/athena')
+      expect(getByText('Athena').closest('a')?.getAttribute('href')).toBe(
+        '/queries/athena',
+      )
+    })
   })
 })
