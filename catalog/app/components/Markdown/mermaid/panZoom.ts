@@ -86,7 +86,14 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0 || VB.isFit(base, view)) return
     drag = { x: e.clientX, y: e.clientY, from: { ...view } }
-    svg.setPointerCapture(e.pointerId)
+    // Capture keeps a drag alive when the cursor leaves the diagram, but throws if
+    // the pointer is already gone. The drag works without it, so never let that
+    // throw escape the handler.
+    try {
+      svg.setPointerCapture(e.pointerId)
+    } catch {
+      // no capture: pointermove still tracks while the cursor stays over the svg
+    }
     svg.style.cursor = 'grabbing'
   }
 
