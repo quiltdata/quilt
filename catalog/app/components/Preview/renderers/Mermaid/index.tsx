@@ -7,7 +7,6 @@ import type { MermaidProps } from './Mermaid'
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-// mermaid is a large ESM-only bundle; keep it out of the main chunk.
 const Mermaid: React.FC<MermaidProps> = RT.mkLazy(
   () => import('./Mermaid'),
   SuspensePlaceholder,

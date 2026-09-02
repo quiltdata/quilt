@@ -1,7 +1,9 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Placeholder from 'components/Placeholder'
+import useId from 'utils/useId'
 
 export interface MermaidProps extends React.HTMLAttributes<HTMLDivElement> {
   contents: string
@@ -20,19 +22,28 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// mermaid.render() needs a DOM id to key its output by.
-let idCounter = 0
+// Past its own 50k-char default mermaid silently swaps the source for a "text size
+// exceeded" graph, which renders as if it were the diagram. Match the loader's fetch
+// ceiling so anything that got fetched is drawn as itself or reported as an error.
+const MAX_TEXT_SIZE = 1024 * 1024
+
+type State =
+  | { tag: 'pending' }
+  | { tag: 'ok'; svg: string }
+  | { tag: 'err'; error: Error }
 
 export default function Mermaid({ contents, className, ...props }: MermaidProps) {
   const classes = useStyles()
   const t = M.useTheme()
-  const [svg, setSvg] = React.useState<string | null>(null)
-  const [error, setError] = React.useState<Error | null>(null)
-  const id = React.useMemo(() => `mermaid-preview-${(idCounter += 1)}`, [])
+  const [state, setState] = React.useState<State>({ tag: 'pending' })
+  const id = `mermaid-preview-${useId()}`
 
   React.useEffect(() => {
     let stale = false
-    setError(null)
+    // mermaid measures text by drawing into a temp node it appends to `document.body`,
+    // then removes it -- but both its error paths throw first, so a diagram that fails
+    // to parse strands that node, and its error graph, outside the preview pane.
+    const dropTempNode = () => document.getElementById(`d${id}`)?.remove()
     async function render() {
       try {
         const { default: mermaid } = await import('mermaid')
@@ -43,41 +54,47 @@ export default function Mermaid({ contents, className, ...props }: MermaidProps)
           securityLevel: 'strict',
           theme: 'neutral',
           fontFamily: t.typography.fontFamily,
+          maxTextSize: MAX_TEXT_SIZE,
         })
-        const { svg: rendered } = await mermaid.render(id, contents)
-        if (!stale) setSvg(rendered)
+        const { svg } = await mermaid.render(id, contents)
+        if (!stale) setState({ tag: 'ok', svg })
       } catch (e) {
+        dropTempNode()
         if (stale) return
-        setSvg(null)
-        setError(e instanceof Error ? e : new Error(String(e)))
+        setState({ tag: 'err', error: e instanceof Error ? e : new Error(String(e)) })
       }
     }
     render()
     return () => {
       stale = true
+      dropTempNode()
     }
   }, [contents, id, t.typography.fontFamily])
 
-  if (error)
+  if (state.tag === 'err')
     return (
-      <M.Box padding={2}>
+      <M.Box className={className} padding={2} {...props}>
         <M.Typography variant="body1" gutterBottom>
           Unable to render this diagram.
         </M.Typography>
         <M.Typography variant="caption" color="textSecondary">
-          {error.message}
+          {state.error.message}
         </M.Typography>
       </M.Box>
     )
 
-  if (svg === null) return <Placeholder color="text.secondary" />
+  if (state.tag === 'pending')
+    return <Placeholder className={className} color="text.secondary" delay={0} />
 
   return (
+    // props precedes dangerouslySetInnerHTML: quilt_summarize.json passes author-set
+    // keys through here, and a `children` among them would otherwise replace the SVG.
     <div
-      className={className ? `${classes.root} ${className}` : classes.root}
-      // Rendered by mermaid under securityLevel: 'strict', which sanitizes the SVG.
-      dangerouslySetInnerHTML={{ __html: svg }}
       {...props}
+      className={cx(classes.root, className)}
+      // Rendered by mermaid's DOMPurify pass over the emitted SVG; securityLevel
+      // 'strict' additionally refuses script and click directives in the source.
+      dangerouslySetInnerHTML={{ __html: state.svg }}
     />
   )
 }
