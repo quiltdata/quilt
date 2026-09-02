@@ -1037,6 +1037,38 @@ class S3DownloadTest(QuiltTestCase):
     def test_threshold_eq_chunk_gt_size(self):
         self._test_download(threshold=self.size, chunksize=self.size + 1)
 
+    def test_versioned_download_probes_versioned_object(self):
+        version_id = 'v1'
+        probe_params = []
+
+        def find_correct_client(api_type, bucket, params):
+            # params is mutated in place afterwards, so snapshot what the probe actually saw.
+            probe_params.append(dict(params))
+            return self.s3_client
+
+        s3_client_provider = mock.MagicMock()
+        s3_client_provider.find_correct_client.side_effect = find_correct_client
+
+        self.s3_stubber.add_response(
+            'get_object',
+            service_response={'Body': self.s3_streaming_body(self.data)},
+            expected_params={
+                'Bucket': self.bucket,
+                'Key': self.key,
+                'VersionId': version_id,
+            },
+        )
+
+        ctx = data_transfer.WorkerContext(
+            s3_client_provider=s3_client_provider,
+            progress=lambda size: None,
+            done=lambda pk, checksum: None,
+            run=lambda func, *args: func(*args),
+        )
+        data_transfer._download_file(ctx, self.size, self.bucket, self.key, version_id, self.filename)
+
+        assert probe_params == [{'Bucket': self.bucket, 'Key': self.key, 'VersionId': version_id}]
+
 
 class S3HashingTest(QuiltTestCase):
     bucket = 'test-bucket'

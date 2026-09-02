@@ -84,7 +84,7 @@ class S3ClientProvider:
     """
 
     def __init__(self):
-        self._use_unsigned_client = {}  # f'{action}/{bucket}' -> use_unsigned_client_bool
+        self._use_unsigned_client = {}  # f'{action}/{bucket}/{versioned}' -> use_unsigned_client_bool
         self._standard_client = None
         self._unsigned_client = None
 
@@ -100,34 +100,37 @@ class S3ClientProvider:
             self._build_unsigned_client()
         return self._unsigned_client
 
-    def get_correct_client(self, action: S3Api, bucket: str):
-        if not self.client_type_known(action, bucket):
+    def get_correct_client(self, action: S3Api, bucket: str, versioned: bool = False):
+        if not self.client_type_known(action, bucket, versioned):
             raise RuntimeError(
                 "get_correct_client was called, but the correct client type is not known. "
                 "Only call get_correct_client() after checking if client_type_known()"
             )
 
-        if self.should_use_unsigned_client(action, bucket):
+        if self.should_use_unsigned_client(action, bucket, versioned):
             return self.unsigned_client
         else:
             return self.standard_client
 
-    def key(self, action: S3Api, bucket: str):
-        return f"{action}/{bucket}"
+    def key(self, action: S3Api, bucket: str, versioned: bool = False):
+        # Versioned reads need s3:GetObjectVersion, which a bucket policy may grant separately from
+        # s3:GetObject, so the two cannot share a cached answer.
+        return f"{action}/{bucket}/{versioned}"
 
-    def set_cache(self, action: S3Api, bucket: str, use_unsigned: bool):
-        self._use_unsigned_client[self.key(action, bucket)] = use_unsigned
+    def set_cache(self, action: S3Api, bucket: str, use_unsigned: bool, versioned: bool = False):
+        self._use_unsigned_client[self.key(action, bucket, versioned)] = use_unsigned
 
-    def should_use_unsigned_client(self, action: S3Api, bucket: str):
+    def should_use_unsigned_client(self, action: S3Api, bucket: str, versioned: bool = False):
         # True if should use unsigned, False if should use standard, None if don't know yet
-        return self._use_unsigned_client.get(self.key(action, bucket))
+        return self._use_unsigned_client.get(self.key(action, bucket, versioned))
 
-    def client_type_known(self, action: S3Api, bucket: str):
-        return self.should_use_unsigned_client(action, bucket) is not None
+    def client_type_known(self, action: S3Api, bucket: str, versioned: bool = False):
+        return self.should_use_unsigned_client(action, bucket, versioned) is not None
 
     def find_correct_client(self, api_type, bucket, param_dict):
-        if self.client_type_known(api_type, bucket):
-            return self.get_correct_client(api_type, bucket)
+        versioned = "VersionId" in param_dict
+        if self.client_type_known(api_type, bucket, versioned):
+            return self.get_correct_client(api_type, bucket, versioned)
         else:
             check_fn_mapper = {
                 S3Api.GET_OBJECT: check_get_object_works_for_client,
@@ -142,11 +145,11 @@ class S3ClientProvider:
             )
             check_fn = check_fn_mapper[api_type]
             if check_fn(self.standard_client, param_dict):
-                self.set_cache(api_type, bucket, use_unsigned=False)
+                self.set_cache(api_type, bucket, use_unsigned=False, versioned=versioned)
                 return self.standard_client
             else:
                 if check_fn(self.unsigned_client, param_dict):
-                    self.set_cache(api_type, bucket, use_unsigned=True)
+                    self.set_cache(api_type, bucket, use_unsigned=True, versioned=versioned)
                     return self.unsigned_client
                 else:
                     raise S3NoValidClientError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
@@ -340,6 +343,9 @@ def _download_file(
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
 
     params = dict(Bucket=src_bucket, Key=src_key)
+    if src_version is not None:
+        params.update(VersionId=src_version)
+
     s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, params)
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
@@ -356,9 +362,6 @@ def _download_file(
         #         os.posix_fallocate(fileno, 0, size)
         #     else:
         #         f.truncate(size)
-
-    if src_version is not None:
-        params.update(VersionId=src_version)
 
     # Note: we are not calculating checksums when downloading,
     # so we're free to use S3 defaults (or anything else) here.
