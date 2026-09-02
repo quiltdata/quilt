@@ -173,10 +173,23 @@ interface RendererArgs {
   processImg?: AttributeProcessor
   processLink?: AttributeProcessor
   win?: Window
+  /** Draw mermaid fences as diagrams; false leaves them as their source. */
+  drawMermaid?: boolean
+}
+
+// memoize needs a primitive key, but the renderer is selected by object identity
+// (the two processors and the window); this gives each a stable id.
+const ids = new WeakMap<object, number>()
+let nextId = 0
+const idOf = (v: unknown): number | null => {
+  if (v == null) return null
+  const key = v as object
+  if (!ids.has(key)) ids.set(key, (nextId += 1))
+  return ids.get(key) as number
 }
 
 export const getRenderer = memoize(
-  ({ processImg, processLink, win = window }: RendererArgs) => {
+  ({ processImg, processLink, win = window, drawMermaid = true }: RendererArgs) => {
     const md = new MarkdownIt({
       highlight,
       html: true,
@@ -184,7 +197,7 @@ export const getRenderer = memoize(
       typographer: true,
     })
     md.use(checkboxHandler)
-    md.use(fenceHandler)
+    if (drawMermaid) md.use(fenceHandler)
     const purify = createDOMPurify(win as $TSFixMe)
     purify.addHook(
       'uponSanitizeElement',
@@ -204,6 +217,16 @@ export const getRenderer = memoize(
       return purify.sanitize(md.renderer.render(tokens, md.options, env), SANITIZE_OPTS)
     }
   },
+  // memoize keys on the first argument, and every caller builds a fresh object
+  // literal: without a resolver the cache never hits and grows one MarkdownIt +
+  // DOMPurify pair per render, forever.
+  ({ processImg, processLink, win, drawMermaid = true }: RendererArgs) =>
+    JSON.stringify([
+      idOf(processImg),
+      idOf(processLink),
+      idOf(win ?? window),
+      drawMermaid,
+    ]),
 )
 
 interface ContainerProps {
@@ -249,6 +272,12 @@ const useContainerStyles = M.makeStyles((t: M.Theme) => ({
      * clipped to its box so panning reveals the rest rather than growing the page. */
     [`& pre.${VIEWPORT_CLASS}`]: {
       position: 'relative',
+      /* Both new focusable targets carry a visible focus ring: the diagram itself
+       * is a tab stop, and the controls are reachable from it. */
+      '&:focus-visible': {
+        outline: `2px solid ${t.palette.primary.main}`,
+        outlineOffset: '2px',
+      },
       [`&:hover .${CONTROLS_CLASS}, &:focus-within .${CONTROLS_CLASS}`]: {
         opacity: 1,
       },
@@ -288,6 +317,12 @@ const useContainerStyles = M.makeStyles((t: M.Theme) => ({
         '&:hover': {
           background: t.palette.action.hover,
           color: t.palette.text.primary,
+        },
+        '&:focus-visible': {
+          borderColor: t.palette.primary.main,
+          color: t.palette.text.primary,
+          outline: `2px solid ${t.palette.primary.main}`,
+          outlineOffset: '1px',
         },
       },
     },

@@ -12,10 +12,6 @@ export const FENCE_LANG = 'mermaid'
 export const FENCE_CLASS = 'mermaid-fence'
 export const FENCE_RENDERED_CLASS = 'mermaid-fence-rendered'
 
-// Past its own 50k-char default mermaid silently swaps the source for a "text size
-// exceeded" graph, which renders as if it were the diagram.
-const MAX_TEXT_SIZE = 1024 * 1024
-
 /**
  * Render a ```mermaid fence as a <pre> holding the diagram source.
  *
@@ -28,7 +24,7 @@ export const fenceHandler = (md: MarkdownIt) => {
   const inherited = md.renderer.rules.fence
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx]
-    if (token.info.trim().split(/\s+/)[0] !== FENCE_LANG) {
+    if (token.info.trim().split(/\s+/)[0].toLowerCase() !== FENCE_LANG) {
       return inherited
         ? inherited(tokens, idx, options, env, self)
         : self.renderToken(tokens, idx, options)
@@ -73,7 +69,6 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
         // click-handler/script directives in the graph definition.
         securityLevel: 'strict',
         theme: 'neutral',
-        maxTextSize: MAX_TEXT_SIZE,
       })
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i]
@@ -85,9 +80,13 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
         try {
           // eslint-disable-next-line no-await-in-loop
           const { svg } = await mermaid.render(id, source)
-          if (stale) return
-          // Rendered by mermaid's own DOMPurify pass; the page sanitizer cannot
-          // carry svg, which is why the diagram is written in here directly.
+          if (stale) break
+          // The page sanitizer cannot carry svg, so this bypasses it: the markup
+          // is sanitized by mermaid's own DOMPurify instead, under
+          // securityLevel 'strict'. That pass is NOT the same policy -- it admits
+          // the <style> element mermaid compiles per diagram, which SANITIZE_OPTS
+          // forbids by name -- and it runs against mermaid's transitive dompurify,
+          // not the catalog's pin. A dompurify advisory has to be answered in both.
           node.innerHTML = svg
           node.classList.add(FENCE_RENDERED_CLASS)
           const el = node.querySelector('svg')
@@ -100,7 +99,10 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
       dropTempNodes()
     }
 
-    render()
+    // The import and initialize sit outside render()'s own try, and a floating
+    // rejection would reach Sentry as a bare error: a stale chunk after a redeploy
+    // must degrade to the visible source, as utils/hljs does for its grammars.
+    render().catch((e) => log.error(e))
     return () => {
       stale = true
       dropTempNodes()
