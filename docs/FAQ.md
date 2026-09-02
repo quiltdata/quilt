@@ -22,6 +22,21 @@ that you push Quilt packages to.
 Object versioning ensures that mutations to every object are tracked,
 and provides some protection against deletion.
 
+When the bucket is versioned, each package revision records the S3 `VersionId`
+of every object it points at, so browsing that revision later resolves the exact
+bytes it was built from even if the objects have since been overwritten. On an
+unversioned bucket there is no `VersionId` to record, so a revision points at
+whatever the object holds *now* and older revisions stop being reproducible once
+an object is overwritten.
+
+See [How a revision pins S3 object
+versions](MentalModel.md#how-a-revision-pins-s3-object-versions) for the two
+levels of versioning, [Overwriting objects under a
+revision](MentalModel.md#overwriting-objects-under-a-revision) for a worked
+example, and [Caveat: unversioned
+buckets](MentalModel.md#caveat-unversioned-buckets) for what you give up without
+object versioning.
+
 ## Where are the Quilt 2 packages?
 
 Visit [legacy.quiltdata.com](https://legacy.quiltdata.com/)

@@ -40,6 +40,10 @@ Entries inside each section should be ordered by type:
 
 * [Added] `quilt3 install --uri 'quilt+s3://BUCKET#package=USER/PACKAGE&path=PATH'` installs a package, directory, or entry directly from a quoted Catalog URI ([#5255](https://github.com/quiltdata/quilt/pull/5255))
 
+### Docs
+
+* [Added] Mental Model explains how a package revision pins each object's S3 `VersionId`, with a walkthrough showing an older revision still resolving the versions it pinned after the objects are overwritten in place, and the caveat that unversioned buckets (or `unversioned=True`) give up that reproducibility; the FAQ now links to both ([#4545](https://github.com/quiltdata/quilt/issues/4545))
+
 ## 8.0.0 - 2026-08-04
 
 ### Python API

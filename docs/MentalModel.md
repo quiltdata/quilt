@@ -229,6 +229,84 @@ if latest.top_hash == specific.top_hash:
     print("Same version")
 ```
 
+### How a Revision Pins S3 Object Versions
+
+Package immutability rests on S3 object versioning. When you push to a bucket
+that has versioning enabled, Quilt records each object's S3 `VersionId` in the
+manifest alongside the logical key — that is the `?versionId=` suffix on the
+physical keys shown under [Logical vs Physical Keys](#logical-vs-physical-keys).
+
+The two levels of versioning do different jobs:
+
+| Level | Unit | Identifier | Answers |
+|-------|------|------------|---------|
+| **S3 object version** | One object | `VersionId` | "What did this file contain at that point?" |
+| **Quilt revision** | A whole collection | `top_hash` | "Which set of file versions made up this dataset?" |
+
+A revision is therefore a *pinned set* of object versions. Overwriting an object
+in S3 creates a new `VersionId` and leaves earlier ones in place, so a revision
+pushed before the overwrite keeps resolving the bytes it was built from. This is
+what makes a `top_hash` reproducible rather than merely a label.
+
+It is strongly recommended — though not required — that you enable object
+versioning on buckets you push packages to. Pushes to an unversioned bucket
+succeed, and `Package.set()` / `Package.set_dir()` accept `unversioned=True` to
+skip recording `VersionId` even on a versioned bucket. See the
+[caveat below](#caveat-unversioned-buckets) for what you give up.
+
+#### Overwriting objects under a revision
+
+This is the case that surprises people: files are updated in place, yet an older
+revision still resolves the old data.
+
+<!-- pytest.mark.skip -->
+```python
+import quilt3
+
+# 1. Publish a revision from objects in a versioned bucket
+pkg = quilt3.Package()
+pkg.set_dir("raw/", "s3://company-raw/incoming/")
+first = pkg.push("myteam/dataset", registry="s3://company-prod")
+first_hash = first.top_hash
+
+# 2. Overwrite the same S3 keys in place (aws s3 sync, a pipeline, the Catalog).
+#    Each overwrite mints a new VersionId; earlier versions remain.
+
+# 3. Publish a second revision over the new object versions
+updated = quilt3.Package()
+updated.set_dir("raw/", "s3://company-raw/incoming/")
+second = updated.push("myteam/dataset", registry="s3://company-prod")
+
+# 4. The first revision still resolves the versions it pinned
+old = quilt3.Package.browse("myteam/dataset", "s3://company-prod", top_hash=first_hash)
+for logical_key, entry in old.walk():
+    print(logical_key, entry.physical_key)  # ...?versionId=<pinned at step 1>
+
+assert second.top_hash != first_hash
+```
+
+Step 4 is the payoff: the physical keys carry the `versionId` captured at step 1,
+not the current contents of the bucket. Incremental updates and reproducibility
+coexist — new revisions move forward while old ones stay readable.
+
+#### Caveat: unversioned buckets
+
+On a bucket without versioning there is no `VersionId` to pin, so the manifest
+records a bare `s3://bucket/key` physical key. An overwrite replaces those bytes
+permanently and every revision pointing at that key — including revisions pushed
+long before — now resolves the new contents. The `top_hash` still describes what
+the package contained at push time, so a hash check will fail, but the original
+data is gone.
+
+The same asymmetry shows up in the Catalog: on versioning-enabled buckets a
+delete adds a delete marker and prior versions remain available from packages,
+while on unversioned buckets the object is permanently removed (see
+[File Browser](Catalog/FileBrowser.md#uploading-and-deleting-files)).
+
+Passing `unversioned=True` to `Package.set()` or `Package.set_dir()` has the same
+effect on a versioned bucket: those entries lose the pin, and with it the
+reproducibility guarantee.
+
 ## 🎯 Practical Mental Model
 
 ### Think of Quilt Like...
