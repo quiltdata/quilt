@@ -460,8 +460,13 @@ def calculate_pkg_hashes(
                 else local_pool.submit(compute_via_copy, entry)
             )
 
-        # Wait for all computations to complete
-        concurrent.futures.wait(comp_futures)
+        # Wait for all computations to complete, surfacing any exception.
+        # wait() alone silently retains exceptions on the futures, leaving entry.hash
+        # unset (e.g. an AccessDenied writing to a cross-region scratch bucket) and
+        # falling back to an expensive download-and-hash with no signal. result()
+        # re-raises so the failure is loud.
+        for f in concurrent.futures.as_completed(comp_futures):
+            f.result()  # Raises exception if any occurred
 
     # Summary
     precomputed = len(entries_to_hash) - len(comp_futures)

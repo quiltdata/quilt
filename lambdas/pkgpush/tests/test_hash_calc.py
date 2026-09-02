@@ -101,6 +101,48 @@ def test_calculate_pkg_hashes(
     assert entry_without_hash_large.hash is not None
 
 
+class _ScratchAccessDenied(Exception):
+    """Distinct exception type so the regression test binds to the intended failure path,
+    not any incidental Exception with a matching message."""
+
+
+def test_calculate_pkg_hashes_propagates_compute_error(
+    pkg: Package,
+    entry_without_hash: PackageEntry,
+    mocker: MockerFixture,
+):
+    """A failure inside a per-entry hash computation must propagate, not be swallowed.
+
+    Regression: calculate_pkg_hashes used concurrent.futures.wait() without reading
+    the futures' results, so an exception (e.g. an AccessDenied writing to a scratch
+    bucket) was silently discarded, entry.hash stayed None, and package creation fell
+    back to an expensive download-and-hash with no signal.
+    """
+    checksum_algorithms = [ChecksumAlgorithm.SHA256_CHUNKED]
+
+    session_mock = boto3.Session(**CREDENTIALS.boto_args)
+
+    mocker.patch.object(t4_lambda_pkgpush, "try_get_compliant_sha256_chunked", return_value=None)
+
+    # The small-file copy path raises (mirrors an S3 AccessDenied on the scratch bucket).
+    boom = _ScratchAccessDenied("AccessDenied")
+    mocker.patch.object(t4_lambda_pkgpush, "compute_checksum_via_copy", side_effect=boom)
+    # Keep the large-file path succeeding so only the copy path is the failure.
+    invoke_hash_lambda_mock = mocker.patch.object(t4_lambda_pkgpush, "invoke_hash_lambda")
+    invoke_hash_lambda_mock.return_value = Checksum.sha256_chunked(b"large_hash")
+
+    with t4_lambda_pkgpush.setup_user_boto_session(session_mock):
+        with pytest.raises(_ScratchAccessDenied):
+            t4_lambda_pkgpush.calculate_pkg_hashes(pkg, SCRATCH_BUCKETS, checksum_algorithms)
+
+    # The core regression symptom: the failed entry's hash must NOT have been quietly
+    # left set/unset-and-ignored. The small (copy-path) entry never got a hash, and the
+    # bug's damage was that this silently triggered a download-and-hash fallback. Asserting
+    # the hash stayed None guards that the failure surfaces instead of masquerading as
+    # "just recompute later".
+    assert entry_without_hash.hash is None
+
+
 def test_calculate_pkg_hashes_too_large_file_error(pkg: Package, mocker: MockerFixture):
     """Test that files exceeding max size raise error"""
     checksum_algorithms = [ChecksumAlgorithm.SHA256_CHUNKED]
