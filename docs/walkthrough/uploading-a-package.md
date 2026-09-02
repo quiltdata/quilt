@@ -34,7 +34,7 @@ quilt3.login()
 To share a package with others via a remote registry, use `push`:
 
 ```python
-p = quilt3.Package()
+p = quilt3.Package.browse("aneesh/test_data", "s3://quilt-example")
 p.push(
     "aneesh/test_data",
     "s3://quilt-example",
@@ -44,18 +44,20 @@ p.push(
 
 `s3://quilt-example` is the *registry*&mdash;the storage backend that the package is available from.
 
-You can omit the registry argument if you configure a `default_remote_registry` (this setting persists between sessions):
+Pushing a new revision of a package that already exists requires starting from the revision you are building on, so `push` can tell that you are not overwriting someone else's work. `Package.browse` reads the current revision from the registry; alternatively, carry on from the package `push` returns, which records the revision it just published. Pushing a bare `quilt3.Package()` under a name that already has revisions raises `QuiltConflictException`.
+
+You can omit the registry argument to `push` if you configure a `default_remote_registry` (this setting persists between sessions). `browse` reads from the local registry by default, so it still needs the remote one named:
 
 ```python
 quilt3.config(default_remote_registry='s3://quilt-example')
-p = quilt3.Package()
+p = quilt3.Package.browse("aneesh/test_data", "s3://quilt-example")
 p.push("aneesh/test_data")
 ```
 
 You can control where files land using `dest`:
 
 ```python
-p = quilt3.Package()
+p = quilt3.Package.browse("aneesh/test_data", "s3://quilt-example")
 p.push(
     "aneesh/test_data",
     dest="s3://quilt-example/foo/bar"

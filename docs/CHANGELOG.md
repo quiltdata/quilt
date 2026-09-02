@@ -23,6 +23,10 @@ Entries inside each section should be ordered by type:
 * [Changed] Python CI runs quilt3 checks when the shared Package URI compatibility corpus changes ([#5255](https://github.com/quiltdata/quilt/pull/5255))
 * [Changed] Path-filtered Python CI keeps required check contexts successful while skipping jobs unrelated to the changed paths.
 
+### Docs
+
+* [Fixed] The "uploading a package" walkthrough no longer teaches pushing a bare `quilt3.Package()` under a name that already has revisions, which has raised `QuiltConflictException` since the parent-revision check landed. The push examples now start from `Package.browse()`, and the prose names re-using the package `push()` returned as the other route ([#5185](https://github.com/quiltdata/quilt/issues/5185))
+
 ### Python API
 
 * [Added] `Package.browse()` and `Package.install()` accept Catalog `quilt+s3://` package, directory, and entry URIs, including latest, named-tag, and hash selectors. A directory URI may carry the trailing slash the Catalog emits (`&path=baz%2F`), a path that descends through an entry (`&path=foo.csv%2Fbar`) reports that the package does not contain it rather than raising `AttributeError`, a raw `+` in an unencoded path stays a `+` instead of becoming a space, and the scheme is matched case-insensitively ([#5255](https://github.com/quiltdata/quilt/pull/5255))
