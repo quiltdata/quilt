@@ -4,6 +4,10 @@ import * as React from 'react'
 import log from 'utils/Logging'
 import useId from 'utils/useId'
 
+import { attach } from './panZoom'
+
+export { CONTROLS_CLASS, VIEWPORT_CLASS, ZOOMED_CLASS } from './panZoom'
+
 export const FENCE_LANG = 'mermaid'
 export const FENCE_CLASS = 'mermaid-fence'
 export const FENCE_RENDERED_CLASS = 'mermaid-fence-rendered'
@@ -58,6 +62,7 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
     const dropTempNodes = () => {
       tempIds.forEach((id) => document.getElementById(id)?.remove())
     }
+    const detachers: Array<() => void> = []
 
     async function render() {
       const { default: mermaid } = await import('mermaid')
@@ -85,6 +90,8 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
           // carry svg, which is why the diagram is written in here directly.
           node.innerHTML = svg
           node.classList.add(FENCE_RENDERED_CLASS)
+          const el = node.querySelector('svg')
+          if (el) detachers.push(attach(el, node))
         } catch (e) {
           // Leave the fence showing its source rather than blanking the diagram.
           log.error(e)
@@ -97,6 +104,7 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
     return () => {
       stale = true
       dropTempNodes()
+      detachers.forEach((detach) => detach())
     }
   }, [html, idPrefix])
 

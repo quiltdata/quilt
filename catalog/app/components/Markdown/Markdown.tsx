@@ -14,8 +14,11 @@ import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
 import {
+  CONTROLS_CLASS,
   FENCE_CLASS,
   FENCE_RENDERED_CLASS,
+  VIEWPORT_CLASS,
+  ZOOMED_CLASS,
   fenceHandler,
   useMermaidFences,
 } from './mermaid'
@@ -208,7 +211,7 @@ interface ContainerProps {
   className?: string
 }
 
-const useContainerStyles = M.makeStyles({
+const useContainerStyles = M.makeStyles((t: M.Theme) => ({
   root: {
     overflow: 'auto',
 
@@ -242,6 +245,53 @@ const useContainerStyles = M.makeStyles({
       },
     },
 
+    /* The zoom viewport: controls sit over the diagram, and a zoomed diagram is
+     * clipped to its box so panning reveals the rest rather than growing the page. */
+    [`& pre.${VIEWPORT_CLASS}`]: {
+      position: 'relative',
+      [`&:hover .${CONTROLS_CLASS}, &:focus-within .${CONTROLS_CLASS}`]: {
+        opacity: 1,
+      },
+    },
+    [`& pre.${ZOOMED_CLASS}`]: {
+      overflow: 'hidden',
+      /* A dragged diagram must not select the prose around it. */
+      userSelect: 'none',
+    },
+    [`& .${CONTROLS_CLASS}`]: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+      opacity: 0,
+      position: 'absolute',
+      right: t.spacing(1),
+      top: t.spacing(1),
+      transition: 'opacity 150ms ease',
+      /* Keyboard users get the controls the moment they focus one. */
+      '&:focus-within': {
+        opacity: 1,
+      },
+      '& button': {
+        alignItems: 'center',
+        background: t.palette.background.paper,
+        border: `1px solid ${t.palette.divider}`,
+        borderRadius: t.shape.borderRadius,
+        color: t.palette.text.secondary,
+        cursor: 'pointer',
+        display: 'flex',
+        font: 'inherit',
+        height: '24px',
+        justifyContent: 'center',
+        lineHeight: 1,
+        padding: 0,
+        width: '24px',
+        '&:hover': {
+          background: t.palette.action.hover,
+          color: t.palette.text.primary,
+        },
+      },
+    },
+
     '& * + h1, & * + h2, & * + h3, & * + h4, & * + h5, & * + h6': {
       marginTop: '8px',
     },
@@ -269,7 +319,7 @@ const useContainerStyles = M.makeStyles({
       },
     },
   },
-})
+}))
 
 export function Container({ className, children }: ContainerProps) {
   const classes = useContainerStyles()
