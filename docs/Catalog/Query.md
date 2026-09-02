@@ -15,13 +15,11 @@ tables and fields. For full-text searching using Elasticsearch, see the
 
 ## Basics
 
-"Run query" executes the selected query and waits for the result.
+"Run query" executes the selected query and waits for the result. Individual
+users also see their past queries under "Query executions", and can easily
+re-run them.
 
 ![ui](../imgs/athena-ui.png)
-
- Individual users will also see their past queries, and easily re-run them.
-
-![history](../imgs/athena-history.png)
 
 ## Example: query package-level metadata
 
