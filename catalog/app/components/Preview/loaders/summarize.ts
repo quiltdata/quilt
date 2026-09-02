@@ -8,7 +8,6 @@ export type TypeShorthand =
   | typeof FileType.Igv
   | typeof FileType.Json
   | typeof FileType.Jupyter
-  | typeof FileType.Mermaid
   | typeof FileType.Tabular
   | typeof FileType.Vega
   | typeof FileType.Voila

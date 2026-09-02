@@ -26,7 +26,6 @@ export const PreviewData = tagged([
   'Image', // { handle: object }
   'Json', // { rendered: object }
   'Markdown', // { rendered: string }
-  'Mermaid', // { contents: string }
   'NamedPackage', // { bucket: string, hash: string }
   'Notebook', // { preview: string, ...PreviewStatus }
   'Ngl', // { blob: Blob([Uint8Array|string]) }

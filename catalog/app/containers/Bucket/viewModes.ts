@@ -15,7 +15,6 @@ const FILE_TYPE_TITLES_MAP = {
   [FileType.Json]: 'JSON',
   [FileType.Jupyter]: 'Jupyter',
   [FileType.Markdown]: 'Markdown',
-  [FileType.Mermaid]: 'Mermaid',
   [FileType.Ngl]: 'NGL',
   [FileType.Tabular]: 'Tabular Data',
   [FileType.Text]: 'Plain Text',
