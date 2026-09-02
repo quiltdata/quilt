@@ -324,19 +324,17 @@ def test_get_role_by_id(role_data, expected):
 
 
 def test_get_role_by_name():
-    with mock_client_multi(
-        ({"role": None}, "roleGet", {"id": "ManagedRole"}),
-        ({"roles": [MANAGED_ROLE]}, "rolesList"),
-    ):
-        assert admin.roles.get("ManagedRole") == EXPECTED_MANAGED_ROLE
+    with mock.patch.object(_graphql_client.Client, "role_get", return_value=None) as role_get:
+        with mock_client({"roles": [MANAGED_ROLE]}, "rolesList"):
+            assert admin.roles.get("ManagedRole") == EXPECTED_MANAGED_ROLE
+    role_get.assert_not_called()
 
 
 def test_get_role_not_found():
-    with mock_client_multi(
-        ({"role": None}, "roleGet", {"id": "nonexistent"}),
-        ({"roles": []}, "rolesList"),
-    ):
-        assert admin.roles.get("nonexistent") is None
+    with mock.patch.object(_graphql_client.Client, "role_get", return_value=None) as role_get:
+        with mock_client({"roles": []}, "rolesList"):
+            assert admin.roles.get("nonexistent") is None
+    role_get.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -574,19 +572,17 @@ def test_get_policy_by_id():
 
 
 def test_get_policy_by_title():
-    with mock_client_multi(
-        ({"policy": None}, "policyGet", {"id": "ManagedPolicy"}),
-        ({"policies": [POLICY]}, "policiesList"),
-    ):
-        assert admin.policies.get("ManagedPolicy") == EXPECTED_POLICY
+    with mock.patch.object(_graphql_client.Client, "policy_get", return_value=None) as policy_get:
+        with mock_client({"policies": [POLICY]}, "policiesList"):
+            assert admin.policies.get("ManagedPolicy") == EXPECTED_POLICY
+    policy_get.assert_not_called()
 
 
 def test_get_policy_not_found():
-    with mock_client_multi(
-        ({"policy": None}, "policyGet", {"id": "nonexistent"}),
-        ({"policies": []}, "policiesList"),
-    ):
-        assert admin.policies.get("nonexistent") is None
+    with mock.patch.object(_graphql_client.Client, "policy_get", return_value=None) as policy_get:
+        with mock_client({"policies": []}, "policiesList"):
+            assert admin.policies.get("nonexistent") is None
+    policy_get.assert_not_called()
 
 
 def test_list_policies():

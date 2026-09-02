@@ -5,6 +5,10 @@ from . import exceptions, types, util
 
 
 def _get_by_id(id: str) -> types.Policy | None:
+    # `get()` feeds titles here first and falls through to `_get_by_title()` on a falsy
+    # result, so a non-UUID must return None rather than raise.
+    if not util._is_uuid(id):
+        return None
     result = util.get_client().policy_get(id=id)
     if result is None:
         return None
