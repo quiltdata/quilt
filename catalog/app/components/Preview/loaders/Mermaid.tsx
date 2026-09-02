@@ -41,10 +41,6 @@ function MermaidLoader({ gated, handle, children }: MermaidLoaderProps) {
   return <>{children(result)}</>
 }
 
-const SIZE_THRESHOLDS = {
-  neverFetch: 1024 * 1024,
-}
-
 interface GatedMermaidLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: Model.S3.S3ObjectLocation
@@ -54,7 +50,7 @@ export const Loader = function GatedMermaidLoader({
   handle,
   children,
 }: GatedMermaidLoaderProps) {
-  const data = useGate(handle, SIZE_THRESHOLDS)
+  const data = useGate(handle)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case(
     {
