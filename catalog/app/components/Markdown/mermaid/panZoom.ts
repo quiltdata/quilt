@@ -48,6 +48,7 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   if (!base) return () => {}
 
   let view: VB.ViewBox = { ...base }
+  let drag: { x: number; y: number; from: VB.ViewBox } | null = null
 
   // mermaid caps the SVG's width to the diagram's natural size, which makes a
   // zoomed-in view scale the box instead of showing more detail inside it.
@@ -59,8 +60,9 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
     svg.setAttribute('viewBox', VB.format(view))
     const zoomed = !VB.isFit(base, view)
     host.classList.toggle(ZOOMED_CLASS, zoomed)
-    // A fit diagram is not draggable, so it should not advertise a grab cursor.
-    svg.style.cursor = zoomed ? 'grab' : ''
+    // A fit diagram is not draggable, so it should not advertise a grab cursor --
+    // but a drag in progress owns the cursor, and every pointermove lands here.
+    if (!drag) svg.style.cursor = zoomed ? 'grab' : ''
   }
 
   const zoomAt = (factor: number, clientX?: number, clientY?: number) => {
@@ -80,8 +82,6 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
     e.preventDefault()
     zoomAt(e.deltaY < 0 ? VB.STEP : 1 / VB.STEP, e.clientX, e.clientY)
   }
-
-  let drag: { x: number; y: number; from: VB.ViewBox } | null = null
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0 || VB.isFit(base, view)) return
@@ -129,6 +129,10 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
+    // A fit diagram has nowhere to pan, so the arrows must stay the reader's page
+    // scroll -- every diagram is a tab stop, and swallowing them would strand a
+    // keyboard reader mid-document. Same rule the wheel handler follows.
+    if (VB.isFit(base, view) && e.key.startsWith('Arrow')) return
     const pan = (dx: number, dy: number) => {
       apply(VB.panBy(base, view, dx * view.w * 0.1, dy * view.h * 0.1))
     }

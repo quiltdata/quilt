@@ -53,8 +53,27 @@ describe('components/Markdown/mermaid', () => {
     expect(await render('```\nplain\n```')).not.toContain(FENCE_CLASS)
   })
 
+  it('matches the fence label case-insensitively, as GitHub does', async () => {
+    // Authors learn ```mermaid on GitHub, where the label is case-insensitive; a
+    // ```Mermaid fence must not fall through to the highlighter as monospace.
+    expect(await render('```Mermaid\nflowchart TB\n  A --> B\n```')).toContain(
+      FENCE_CLASS,
+    )
+    expect(await render('```MERMAID\nflowchart TB\n  A --> B\n```')).toContain(
+      FENCE_CLASS,
+    )
+  })
+
   it('does not claim a fence whose label merely starts with mermaid', async () => {
     expect(await render('```mermaidish\nnope\n```')).not.toContain(FENCE_CLASS)
+  })
+
+  it('leaves fences as source when drawMermaid is off (the Markdown view mode)', async () => {
+    const renderer = getRenderer({ drawMermaid: false })
+    const html = renderer(DIAGRAM)
+    expect(html).not.toContain(FENCE_CLASS)
+    // still readable as its own text, which is the point of the source view
+    expect(html).toContain('flowchart TB')
   })
 
   it('handles several diagrams in one document', async () => {
