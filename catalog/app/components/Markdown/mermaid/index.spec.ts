@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { getRenderer } from './Markdown'
-import { FENCE_CLASS } from './mermaid'
+import { getRenderer } from '../Markdown'
+import { FENCE_CLASS } from '.'
 
 // getRenderer throws a Promise (Suspense protocol) when a fence needs an unloaded
 // grammar; await it and retry until rendering completes.
