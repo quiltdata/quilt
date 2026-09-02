@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Mermaid diagrams render inside Markdown: a ```mermaid fence in a `.md` file draws as a diagram instead of a block of monospace source. The diagram is drawn into the fence after the page sanitizer has run, since `SANITIZE_OPTS` carries no `svg` tags and would otherwise strip it; a fence whose definition does not parse keeps showing its source ([#5269](https://github.com/quiltdata/quilt/pull/5269))
 - [Added] Mermaid diagram previewer: `.mmd` and `.mermaid` files render as diagrams when browsing a bucket or package and from `quilt_summarize.json` (`"types": ["mermaid"]`), with the plain-text source available from the view selector and a parse error reported in place of the diagram. The source is read from S3 rather than the preview endpoint, whose truncated head/tail would turn a large diagram into a syntax error; Mermaid itself is lazy-loaded and rendered at its `strict` security level ([#5269](https://github.com/quiltdata/quilt/pull/5269))
 - [Fixed] Queries: the query selector announces its label to assistive tech, and no longer claims "Custom" is loaded while its helper text reports the query failed to load ([#5260](https://github.com/quiltdata/quilt/pull/5260))
 - [Changed] The `data-products` demo fixture data no longer ships in the bundles a browser downloads on the volumes landing; it loads only when the preview is on ([#5259](https://github.com/quiltdata/quilt/pull/5259))

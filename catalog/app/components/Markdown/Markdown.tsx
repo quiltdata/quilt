@@ -13,6 +13,12 @@ import log from 'utils/Logging'
 import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
+import {
+  FENCE_CLASS,
+  FENCE_RENDERED_CLASS,
+  fenceHandler,
+  useMermaidFences,
+} from './mermaid'
 import * as tasklist from './parseTasklist'
 
 /* Most of what's in the commonmark spec for HTML blocks;
@@ -175,6 +181,7 @@ export const getRenderer = memoize(
       typographer: true,
     })
     md.use(checkboxHandler)
+    md.use(fenceHandler)
     const purify = createDOMPurify(win as $TSFixMe)
     purify.addHook(
       'uponSanitizeElement',
@@ -216,6 +223,25 @@ const useContainerStyles = M.makeStyles({
       maxWidth: '100%',
     },
 
+    /* A mermaid fence holds its source until the diagram is drawn into it, then
+     * carries an svg -- so it keeps `pre` wrapping for the text and loses the
+     * code-block chrome once rendered. */
+    [`& pre.${FENCE_CLASS}`]: {
+      overflowX: 'auto',
+      whiteSpace: 'pre-wrap',
+    },
+    [`& pre.${FENCE_RENDERED_CLASS}`]: {
+      backgroundColor: 'transparent',
+      border: 'none',
+      padding: 0,
+      textAlign: 'center',
+      whiteSpace: 'normal',
+      '& svg': {
+        height: 'auto',
+        maxWidth: '100%',
+      },
+    },
+
     '& * + h1, & * + h2, & * + h3, & * + h4, & * + h5, & * + h6': {
       marginTop: '8px',
     },
@@ -247,8 +273,12 @@ const useContainerStyles = M.makeStyles({
 
 export function Container({ className, children }: ContainerProps) {
   const classes = useContainerStyles()
+  // Diagrams are drawn after the sanitizer has run: SANITIZE_OPTS carries no svg
+  // tags, so a diagram emitted into the HTML string would be stripped.
+  const ref = useMermaidFences<HTMLDivElement>(children)
   return (
     <div
+      ref={ref}
       className={cx(className, classes.root)}
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: children ?? '' }}
