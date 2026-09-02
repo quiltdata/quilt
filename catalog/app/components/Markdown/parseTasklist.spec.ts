@@ -1,4 +1,4 @@
-import type { StateInline, Token } from 'markdown-it'
+import type { StateInline, Token } from './markdownItTypes'
 import { describe, it, expect } from 'vitest'
 
 import * as tasklist from './parseTasklist'
