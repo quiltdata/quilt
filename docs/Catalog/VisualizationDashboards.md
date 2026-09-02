@@ -289,46 +289,38 @@ are not available.
 ## Mermaid
 The Quilt catalog renders [Mermaid](https://mermaid.js.org/) diagrams — flowcharts,
 sequence diagrams, ER diagrams, Gantt charts, state diagrams, and the other graph
-types Mermaid supports — from text files describing the diagram.
+types Mermaid supports — written as fenced code blocks inside your Markdown.
 See [package.json](https://github.com/quiltdata/quilt/blob/master/catalog/package.json)
 for the specific library version.
 
-Files with a `.mmd` or `.mermaid` extension preview as diagrams automatically, both
-when browsing a bucket or package and when referenced from `quilt_summarize.json`:
-
-```json
-// quilt_summarize.json
-[
-  {
-    "path": "pipeline.mmd",
-    "title": "Processing pipeline",
-    "types": ["mermaid"]
-  }
-]
-```
+Label a fence `mermaid` and it draws as a diagram wherever the catalog renders
+Markdown: a `README.md` on a bucket or package, any `.md` file you open, and
+Markdown referenced from `quilt_summarize.json`.
 
 ### Example
 
-```
-// pipeline.mmd
+````markdown
+# Processing pipeline
+
+```mermaid
 flowchart LR
   raw[Raw reads] --> qc[Quality control]
   qc --> align[Alignment]
   align --> counts[Count matrix]
   counts --> report[Report]
 ```
+````
 
-Use the view selector to switch between the rendered diagram and the plain-text
-source. A file whose diagram definition does not parse reports the error from
-Mermaid in place of the diagram, so the source can be corrected.
+A fence whose diagram definition does not parse keeps showing its source, so the
+text can be corrected.
 
 ### Limitations
 
 Diagram definitions are rendered with Mermaid's `strict` security level, so
 directives that would inject scripts or click handlers into the diagram are
 ignored. Mermaid diagrams do not read external data: unlike Vega and ECharts, the
-diagram is fully described by the file itself, and relative paths to package files
-are not resolved.
+diagram is fully described by the fence itself, and relative paths to package
+files are not resolved.
 
 ## Voila
 *This feature is a Developer preview, details are subject to change.*

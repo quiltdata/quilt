@@ -12,7 +12,6 @@ enum FileType {
   Json = 'json',
   Jupyter = 'jupyter',
   Markdown = 'markdown',
-  Mermaid = 'mermaid',
   Ngl = 'ngl',
   Tabular = 'perspective',
   Text = 'text',
