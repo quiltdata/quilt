@@ -25,6 +25,7 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
+* [Added] `quilt3.graphql.execute()` for running arbitrary GraphQL queries and mutations against the registry ([#5171](https://github.com/quiltdata/quilt/pull/5171))
 * [Added] `Package.browse()` and `Package.install()` accept Catalog `quilt+s3://` package, directory, and entry URIs, including latest, named-tag, and hash selectors. A directory URI may carry the trailing slash the Catalog emits (`&path=baz%2F`), a path that descends through an entry (`&path=foo.csv%2Fbar`) reports that the package does not contain it rather than raising `AttributeError`, a raw `+` in an unencoded path stays a `+` instead of becoming a space, and the scheme is matched case-insensitively ([#5255](https://github.com/quiltdata/quilt/pull/5255))
 * [Added] `quilt3.session.use_registry_url()`, `set_registry_url_resolver()`, and `reset_registry_url_resolver()` for overriding the registry URL in-process without writing `~/.quilt/config.yml`, so a host application can drive a registry chosen at runtime or several registries in one process; each operation uses one URL snapshot, and authenticated HTTP-session creation is synchronized and isolated per resolved registry URL ([#5240](https://github.com/quiltdata/quilt/pull/5240))
 * [Changed] The parent-revision check in `Package.push()` is keyed on package name rather than on the registry a revision was read from, and accepts every revision the package object knows for that name. Pushing one object to several registries that hold the shared parent — mirroring, or promoting between environments — no longer conflicts after the first destination ([#5180](https://github.com/quiltdata/quilt/pull/5180))
@@ -38,6 +39,7 @@ Entries inside each section should be ordered by type:
 
 ### CLI
 
+* [Added] `quilt3 graphql` for running arbitrary GraphQL queries and mutations against the registry ([#5171](https://github.com/quiltdata/quilt/pull/5171))
 * [Added] `quilt3 install --uri 'quilt+s3://BUCKET#package=USER/PACKAGE&path=PATH'` installs a package, directory, or entry directly from a quoted Catalog URI ([#5255](https://github.com/quiltdata/quilt/pull/5255))
 
 ## 8.0.0 - 2026-08-04
