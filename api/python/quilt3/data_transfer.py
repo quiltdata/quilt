@@ -876,6 +876,12 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
             raise ValueError("`size` does not make sense for directories")
 
         for rel_path, size in list_url(src):
+            # S3 lists directory markers, including the prefix itself, as objects. They are keyed on the
+            # trailing "/" rather than on being zero-byte, so that genuine empty files still download.
+            if rel_path == '' or rel_path.endswith('/'):
+                if size != 0:
+                    warnings.warn(f'Paths cannot end in "/", skipping: {src.path + rel_path}')
+                continue
             sanity_check(rel_path)
             url_list.append((src.join(rel_path), dest.join(rel_path), size))
         if not url_list:

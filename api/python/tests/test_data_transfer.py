@@ -1038,6 +1038,90 @@ class S3DownloadTest(QuiltTestCase):
         self._test_download(threshold=self.size, chunksize=self.size + 1)
 
 
+class S3DirectoryDownloadTest(QuiltTestCase):
+    bucket = 'test-bucket'
+    prefix = 'dir/'
+
+    def _stub_listing(self, contents):
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={'IsTruncated': False, 'Contents': contents},
+            expected_params={'Bucket': self.bucket, 'Prefix': self.prefix},
+        )
+
+    def _stub_download(self, key, data):
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={'Body': self.s3_streaming_body(data)},
+            expected_params={'Bucket': self.bucket, 'Key': key},
+        )
+
+    def _copy_dir(self):
+        with mock.patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
+            data_transfer.copy_file(
+                PhysicalKey(self.bucket, self.prefix, None),
+                PhysicalKey.from_path('dest/'),
+            )
+
+    def test_prefix_marker_skipped(self):
+        # Listing the prefix itself returns it as a zero-byte object, whose relative path is ''.
+        self._stub_listing(
+            [
+                {'Key': 'dir/', 'Size': 0},
+                {'Key': 'dir/a', 'Size': 1},
+                {'Key': 'dir/b', 'Size': 1},
+            ]
+        )
+        self._stub_download('dir/a', b'a')
+        self._stub_download('dir/b', b'b')
+
+        self._copy_dir()
+
+        assert pathlib.Path('dest/a').read_bytes() == b'a'
+        assert pathlib.Path('dest/b').read_bytes() == b'b'
+
+    def test_nested_markers_skipped(self):
+        self._stub_listing(
+            [
+                {'Key': 'dir/sub/', 'Size': 0},
+                {'Key': 'dir/sub/a', 'Size': 1},
+                {'Key': 'dir/a/b/', 'Size': 0},
+            ]
+        )
+        self._stub_download('dir/sub/a', b'a')
+
+        self._copy_dir()
+
+        assert pathlib.Path('dest/sub/a').read_bytes() == b'a'
+
+    def test_zero_byte_file_downloaded(self):
+        self._stub_listing(
+            [
+                {'Key': 'dir/', 'Size': 0},
+                {'Key': 'dir/empty', 'Size': 0},
+            ]
+        )
+        self._stub_download('dir/empty', b'')
+
+        self._copy_dir()
+
+        assert pathlib.Path('dest/empty').read_bytes() == b''
+
+    def test_non_empty_marker_warns(self):
+        self._stub_listing(
+            [
+                {'Key': 'dir/sub/', 'Size': 5},
+                {'Key': 'dir/a', 'Size': 1},
+            ]
+        )
+        self._stub_download('dir/a', b'a')
+
+        with pytest.warns(UserWarning, match='dir/sub/'):
+            self._copy_dir()
+
+        assert pathlib.Path('dest/a').read_bytes() == b'a'
+
+
 class S3HashingTest(QuiltTestCase):
     bucket = 'test-bucket'
     key = 'test-key'
