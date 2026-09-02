@@ -27,6 +27,7 @@ import Link from 'utils/StyledLink'
 import { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
+import PanelBoundary from './PanelBoundary'
 import * as requests from './requests'
 import * as errors from './errors'
 
@@ -436,13 +437,24 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
-        <FilePreview
-          handle={file.handle}
-          headingOverride={getHeadingOverride(file, mkUrl)}
-          file={file}
-          expanded={file.expand}
-          packageHandle={packageHandle}
-        />
+        // Per entry, not per summary: every panel's renderer runs in the same
+        // pass, so one entry that cannot render used to cost the whole summary.
+        //
+        // `resetErrorBoundary` is a live retry here: the preview fetch runs in
+        // `Preview.load` below this boundary, so clearing the error remounts the
+        // loader and it reads again.
+        <PanelBoundary
+          title={`Preview unavailable: ${(file.handle.logicalKey || file.handle.key).split('/').pop()}`}
+          resetKeys={[file.handle.bucket, file.handle.key, file.handle.version]}
+        >
+          <FilePreview
+            handle={file.handle}
+            headingOverride={getHeadingOverride(file, mkUrl)}
+            file={file}
+            expanded={file.expand}
+            packageHandle={packageHandle}
+          />
+        </PanelBoundary>
       )}
     </EnsureAvailability>
   )
