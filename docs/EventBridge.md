@@ -111,30 +111,22 @@ Create an EventBridge rule to capture S3 events:
 
 **Console Steps:**
 1. Navigate to **EventBridge Console** → **Rules** → **Create rule**
-2. **Name**: `quilt-s3-events-rule`
-3. **Event bus**: default
-4. **Rule type**: Rule with an event pattern
+2. **Builder mode**: Advanced builder (step-by-step configuration)
+3. **Name**: `quilt-s3-events-rule`
+4. **Event bus**: default
+5. Click **Next**
 
 #### Step 4: Configure Event Pattern
 
 Set up the event pattern to capture S3 operations:
 
-**Event source**: AWS services
-**AWS service**: Simple Storage Service (S3)
-**Event type**: Specific operation(s)
+1. **Event source**: AWS events or EventBridge partner events
+2. Under **Event pattern**, choose **Custom pattern (JSON editor)**
+3. Paste the pattern below, replacing `your-bucket-name` with the name of
+   your bucket
+4. Confirm the editor reports **JSON is valid**, then click **Next**
 
-**Select these operations:**
-- ✅ `PutObject`
-- ✅ `CopyObject` 
-- ✅ `CompleteMultipartUpload`
-- ✅ `DeleteObject`
-- ✅ `DeleteObjects`
-
-**Bucket specification:**
-- Select **Specific bucket(s) by name**
-- Enter your bucket name: `your-bucket-name`
-
-**Example Event Pattern JSON:**
+**Event Pattern JSON:**
 ```json
 {
   "source": ["aws.s3"],
@@ -161,9 +153,10 @@ Set up the event pattern to capture S3 operations:
 
 Set the SNS topic as the target for EventBridge events:
 
-1. **Target type**: AWS service
+1. **Target types**: AWS service
 2. **Select a target**: SNS topic
-3. **Topic**: Select the SNS topic created in Step 1
+3. **Target location**: Target in this account
+4. **Topic**: Select the SNS topic created in Step 1
 
 ![Event Target Configuration](./imgs/event-target.png)
 
