@@ -78,9 +78,11 @@ name inferred from the S3 key. For example, if the key is
 
 The Quilt Packaging Engine is built on top of the existing packaging lambdas
 used by the Quilt Platform, including the ability to parallelize creation of S3
-Checksums for existing objects. We have exposed this functionality to customers
-via an SQS queue, which is invoked by the EventBridge rules created by the Admin
-Settings GUI.
+Checksums for existing objects (see
+[Checksums and Hashing](../CHUNKED_CHECKSUMS.md) for the algorithm and how to
+enable faster CRC64/NVME checksums). We have exposed this functionality to
+customers via an SQS queue, which is invoked by the EventBridge rules created
+by the Admin Settings GUI.
 
 ### SQS Parameters
 

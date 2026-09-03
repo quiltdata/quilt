@@ -78,11 +78,16 @@ a local machine or foreign region)—I/O is much faster.
 [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
 
-1. If you are using Quilt Catalog 1.51 (released Feb 2024), you can enable the
-   `ChunkedChecksums` CloudFormation parameter so it will calculate the
-   checksums in parallel, or reuse them if already existing in S3. Parallel
-   checksums are also available by default in `quilt3` v6 or later (pre-released
-   Feb 2024).
+1. Use `quilt3` v6 or later, which calculates
+   [chunked checksums](CHUNKED_CHECKSUMS.md) in parallel and reuses
+   checksums already computed by S3 where possible.
+
+1. For packages created server-side (Catalog UI or Packaging Engine), on
+   Quilt Platform 1.65.0 or later you can enable the `CRC64Checksums`
+   CloudFormation parameter so the stack reuses S3's precomputed
+   CRC64/NVME checksums instead of re-hashing objects — up to 10x faster
+   for data already in S3. See
+   [Checksums and Hashing](CHUNKED_CHECKSUMS.md) for details.
 
 ## Does Quilt work with R?
 
