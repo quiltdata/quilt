@@ -72,17 +72,56 @@ stack's packaging lambdas.
 For files already in S3, packaging can be up to 10x faster by using S3's
 native CRC64/NVME checksums instead of computing SHA-256 hashes.
 
-Since AWS enabled default data-integrity protections (early 2025), S3
-automatically computes and stores a full-object `CRC64NVME` checksum for
-objects uploaded with current AWS SDKs, the AWS CLI, or the S3 console.
-When CRC64/NVME support is enabled on your Quilt stack, the packaging
-lambdas read that precomputed checksum with a metadata request instead of
-downloading and re-hashing the object.
+S3 stores a full-object `CRC64NVME` checksum in an object's metadata when
+the object was uploaded with the `CRC64NVME` algorithm, or — since S3's
+[default data integrity protections](https://aws.amazon.com/blogs/aws/introducing-default-data-integrity-protections-for-new-objects-in-amazon-s3/)
+rolled out (January 2025) — when it was uploaded without any client-side
+checksum, including multipart uploads. When CRC64/NVME support is enabled
+on your Quilt stack, the packaging lambdas read that precomputed checksum
+with a single metadata request (`HeadObject`) instead of reading and
+re-hashing the object's data. That is where the speedup comes from.
 
-Objects that do not have a precomputed `CRC64NVME` checksum (for example,
-objects uploaded before the AWS integrity changes or with older tooling)
-automatically fall back to `sha2-256-chunked` hashing, so a single package
-may contain entries with both hash types.
+### Do I need to change my objects or buckets?
+
+No. Enabling CRC64/NVME is a stack-level setting only:
+
+* **Quilt never modifies your source objects.** Checksums are stored in
+  the package manifest, not written back to the objects.
+* **No bucket configuration is required.**
+* **Objects without a precomputed checksum still work.** For those, the
+  packaging lambdas compute the checksum using server-side S3 copies into
+  the stack's internal scratch bucket, so your data never leaves S3 and
+  the source object is untouched — this path is simply slower than the
+  metadata-only read. If a compliant precomputed SHA-256 checksum exists
+  on the object, it is reused instead. As a result, a single package may
+  contain entries with both `CRC64NVME` and `sha2-256-chunked` hash
+  types; that is expected and fully supported.
+* **Existing packages are unaffected.** The hash type is recorded per
+  entry, so packages created before enabling (or after disabling) the
+  feature remain valid and verifiable.
+
+To check whether a given object already has a precomputed checksum:
+
+<!--pytest.mark.skip-->
+```sh
+aws s3api head-object --bucket your-bucket --key your/key \
+  --checksum-mode ENABLED
+```
+
+Look for `ChecksumCRC64NVME` in the response. Two common reasons it is
+absent:
+
+* The object was uploaded before January 2025 and no checksum was
+  requested at upload time.
+* The uploading AWS SDK sent a different default checksum (recent SDKs
+  may send `CRC32` or `CRC32C`); S3 only adds `CRC64NVME` automatically
+  when the client sends no checksum at all.
+
+Optionally, you can backfill a `CRC64NVME` checksum onto existing objects
+with an in-place copy, e.g.
+`aws s3 cp s3://bucket/key s3://bucket/key --checksum-algorithm CRC64NVME`.
+This is not required — it only pre-populates the fast path. Note that in
+versioned buckets this creates a new object version.
 
 ### How to enable
 
@@ -108,8 +147,7 @@ Notes:
   Engine, `pkgpush`). The `quilt3` client continues to compute
   `sha2-256-chunked` checksums on `push`.
 * The feature is experimental. To revert, set `CRC64Checksums` back to
-  `Disabled`; existing packages remain valid because the hash type is
-  recorded per entry.
+  `Disabled`; packages created while it was enabled remain valid.
 
 ## Verifying package integrity
 
