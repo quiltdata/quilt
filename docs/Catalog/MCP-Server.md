@@ -3,9 +3,9 @@
 The **Quilt Platform MCP Server** lets AI assistants interact with your
 organization's data through natural language. Built on the open
 [Model Context Protocol](https://modelcontextprotocol.io/), it connects
-Claude, Cursor, and other MCP-compatible clients directly to your Quilt
-environment — so users can search, browse, read, create, and query data
-without leaving their AI workflow.
+Claude, Cursor, OpenAI Codex, and other MCP-compatible clients directly to
+your Quilt environment — so users can search, browse, read, create, and query
+data without leaving their AI workflow.
 
 All actions respect your existing Quilt roles and permissions. Data never
 leaves your AWS environment.
