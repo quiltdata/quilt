@@ -21,8 +21,6 @@ tables and fields. For full-text searching using Elasticsearch, see the
 
  Individual users will also see their past queries, and easily re-run them.
 
-![history](../imgs/athena-history.png)
-
 ## Example: query package-level metadata
 
 Suppose we wish to find all packages produced by algorithm version 1.3 with a
