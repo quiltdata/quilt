@@ -86,7 +86,7 @@ Here you can add or remove buckets from Quilt and configure bucket indexing and
 display settings. 
 <!--TODO explain sub sections of bucket editor !-->
 
-![](../imgs/admin-buckets.png)
+![](../imgs/catalog-admin-buckets.png)
 
 ![](../imgs/admin-buckets-add.png)
 
@@ -125,7 +125,7 @@ in the navbar, custom logo, and default search mode. The Theme editor accepts
 a logo as either a direct file upload (PNG, JPEG, WebP, or GIF) or a URL
 (all of those plus SVG).
 
-![](../imgs/admin-settings.png)
+![](../imgs/catalog-admin-settings.png)
 
 ## Further settings
 See [Preferences](Preferences.md) for further control over the catalog user interface.

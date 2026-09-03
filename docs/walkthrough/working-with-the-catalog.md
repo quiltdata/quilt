@@ -52,6 +52,8 @@ bucket, by packages vs. objects, and by package-level metadata facets.
 You can upload a new package providing the name of the package, commit message,
 files, metadata, and [workflow](../advanced-features/workflows.md).
 
+![Create package dialog](../imgs/catalog-create-package.png)
+
 The name should have the format `namespace/package-name`.
 
 The message needs to add notes on a new revision for this package.
