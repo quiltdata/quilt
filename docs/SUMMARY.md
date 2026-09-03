@@ -34,6 +34,7 @@
 * [Enterprise Installs](technical-reference.md)
 * [quilt3.admin Python API](api-reference/Admin.md)
 * **Advanced**
+  * [Checksums & Hashing](CHUNKED_CHECKSUMS.md)
   * [Package Events](advanced-features/package-events.md)
   * [Private Endpoints](advanced-features/private-endpoint-access.md)
   * [Restrict Access by Bucket Prefix](advanced-features/s3-prefix-permissions.md)
