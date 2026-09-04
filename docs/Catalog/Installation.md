@@ -7,7 +7,7 @@ find, understand, and file discoveries based on data of any size or in any forma
 
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
-Quilt is available through AWS Marketplace and AWS Service Catalog. Its
+Quilt is available through AWS Marketplace. Its
 underlying infrastructure can be deployed through CloudFormation or Terraform.
 
 ## Help and Advice
@@ -50,8 +50,7 @@ You will need the following:
     aws iam create-service-linked-role --aws-service-name es.amazonaws.com
     ```
 
-1. **IAM Permissions** to create the CloudFormation stack (or Add products in
-Service Catalog).
+1. **IAM Permissions** to create the CloudFormation stack.
     1. You may choose to use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     for stack creation and updates.
@@ -101,8 +100,8 @@ following Bucket characteristics:
 
 ## Installation Methods
 
-AWS Marketplace and AWS Service Catalog are ways to acquire and access Quilt;
-they both launch Quilt through CloudFormation. Separately, there are two
+AWS Marketplace is the way to acquire and access Quilt; it launches
+Quilt through CloudFormation. Separately, there are two
 infrastructure deployment paths: **CloudFormation** and **Terraform**. In both
 cases, the Quilt application runs as a CloudFormation stack. With CloudFormation
 alone, all resources are managed within a single stack. With Terraform, an outer
@@ -118,34 +117,6 @@ network, database, and search resources.
 
 You can install Quilt via AWS Marketplace. As indicated above, we
 recommend that you [contact us first](#help-and-advice).
-
-### AWS Service Catalog
-
-1. Email [support@quilt.bio](mailto:support@quilt.bio)
-with your AWS account ID to request access to Quilt through the
-AWS Service Catalog and to obtain a license key.
-1. Click the service catalog link that you received from Quilt.
-Arrive at the Service Catalog. Click IMPORT, lower right.
-
-    ![Import portfolio page](../imgs/import.png)
-
-1. Navigate to Admin > Portfolios list > Imported Portfolios. Click Quilt Enterprise.
-
-    ![Portfolio page](../imgs/portfolio.png)
-
-1. On the Portfolio details page, click ADD USER, GROUP OR ROLE. Add any users,
-**including yourself**, whom you would like to be able to install Quilt.
-
-    ![Portfolio users page](../imgs/portfolio-users.png)
-
-1. Click Products list, upper left. Click the menu to the left of Quilt CloudFormation
-Template. Click Launch product. (In the future, use the same menu to upgrade
-Quilt when a new version is released.)
-
-    ![Products list page](../imgs/products-list.png)
-
-1. Continue to the [CloudFormation](#cloudformation) section. The following
-screenshots may differ slightly from what you see in Service Catalog.
 
 ### CloudFormation
 
@@ -163,9 +134,7 @@ In the AWS Console this option appears under the phrase "Stack failure options."
 
 1. Specify stack details in the form of a stack _name_ and CloudFormation
 _parameters_. Refer to the descriptions displayed above each
-text box for further details. Service Catalog users require a license key. See
-[Before you install Quilt](#before-you-install-quilt) for how to obtain
-a license key.
+text box for further details.
 
     ![Stack details page](../imgs/stack-details.png)
 
@@ -173,13 +142,13 @@ a license key.
 
     ![Specifying stack role](../imgs/service-role.png)
 
-1. Service Catalog users, skip this step. Under Stack creation
+1. Under Stack creation
 options, enable termination protection. This protects the stack
 from accidental deletion. Click Next.
 
     ![Enabling stack protection](../imgs/term_protect.png)
 
-1. Service Catalog users, skip this step. Check the box asking you
+1. Check the box asking you
 to acknowledge that CloudFormation may create IAM roles, then click
 Create.
 
