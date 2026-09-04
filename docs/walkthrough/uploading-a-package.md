@@ -14,11 +14,11 @@ p = quilt3.Package()
 top_hash = p.build("aneesh/test_data")
 ```
 
-Building a package requires providing it with a name. Packages names must follow the `"${namespace}/${packagename}"` format. For small teams, we recommend using the package author's name as the namespace.
+Building a package requires providing it with a name. Package names must follow the `"${namespace}/${packagename}"` format. For small teams, we recommend using the package author's name as the namespace.
 
 ## Authenticating to a remote registry
 
-To share a package with others via a remote registry you will first need to authenticate against, if you haven't done so already:
+To share a package with others via a remote registry you will first need to authenticate against it, if you haven't done so already:
 
 ```python
 # only need to run this once
@@ -38,7 +38,7 @@ p = quilt3.Package()
 p.push(
     "aneesh/test_data",
     "s3://quilt-example",
-    message="Updated version my package"
+    message="Updated version of my package"
 )
 ```
 
@@ -63,6 +63,23 @@ p.push(
 ```
 
 >For even more fine-grained control of object landing paths see [Materialization](../advanced-features/materialization.md).
+
+## Pushing again: revision conflicts
+
+`push` will not overwrite a package revision it does not descend from. A push succeeds only if the destination has no revision yet, or its latest revision is one your in-memory package "knows about" &mdash; i.e. it was obtained via `Package.browse()` or returned by a previous `push`. Otherwise `push` raises `QuiltConflictException`. This protects two writers from silently clobbering each other's revisions.
+
+The recommended pattern for updating an existing package is browse-then-push:
+
+```python
+p = quilt3.Package.browse("aneesh/test_data", "s3://quilt-example")
+p.set("new_file.csv", "new_file.csv")
+p.push("aneesh/test_data", "s3://quilt-example", message="Add new_file.csv")
+```
+
+Two keyword arguments modify this behavior:
+
+* `force=True` skips the conflict check and overwrites the latest revision (CLI: `quilt3 push --force`).
+* `dedupe=True` skips the push entirely if the package content is identical to the latest revision at the destination.
 
 ## Saving a package on a remote registry
 

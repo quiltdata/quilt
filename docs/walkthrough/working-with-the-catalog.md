@@ -56,7 +56,7 @@ files, metadata, and [workflow](../advanced-features/workflows.md).
 
 The name should have the format `namespace/package-name`.
 
-The message needs to add notes on a new revision for this package.
+The message is a commit-style note describing what changed in this revision.
 
 Files are the content of your package.
 

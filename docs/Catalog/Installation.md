@@ -3,7 +3,7 @@
 # Catalog Installation
 
 Quilt is a data mesh that verifies the integrity of your data so that teams can
-find, understand, and file discoveries based on data of any size or in any format.
+find, understand, and make discoveries based on data of any size or in any format.
 
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
@@ -41,7 +41,7 @@ You will need the following:
 
 1. **An AWS account**.
     1. **The service-linked role for Elasticsearch**
-    > This role is not created automatically when you use Cloudformation or other
+    > This role is not created automatically when you use CloudFormation or other
     > APIs.
 
     You can create the role as follows:
@@ -88,7 +88,7 @@ following Bucket characteristics:
     **It is strongly recommended that you keep versioning either on or off during
     the entire lifetime of the bucket**. Toggling versioning on and off incurs
     edge cases that may cause bugs with any state that Quilt stores in
-    ElasticSearch due to inconsistent semantics of `ObjectRemoved:DeleteMarkerCreated`.
+    Elasticsearch due to inconsistent semantics of `ObjectRemoved:DeleteMarkerCreated`.
 
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).

@@ -24,6 +24,7 @@ ui:
     deleteRevision: False
     downloadObject: True
     downloadPackage: True
+    openInDesktop: True
     restore: True
     revisePackage: True
     writeFile: True
@@ -31,6 +32,7 @@ ui:
     analytics: True
     browser: True
     code: True
+    qurator: True
     gallery:
       files: True
       packages: True
@@ -61,17 +63,22 @@ drag-and-drop or from folders in S3
 * `ui.actions.deleteObject: True` - show buttons to delete files and
   directories (off by default since 1.66 to prevent accidental deletions)
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
-* `ui.actions.downloadObject: False` - hide download buttons under "Bucket" tab
+* `ui.actions.downloadObject: False` - hide download buttons under the "Files" tab
 * `ui.actions.downloadPackage: False` - hide download buttons under "Packages" tab
+* `ui.actions.openInDesktop: False` - hide the "Open in QuiltSync" option
+  (this key is not shown in the visual preferences editor, but works via YAML)
 * `ui.actions.restore: False` - hide the button to restore (rehydrate) archived
   S3 Glacier / Deep Archive objects
 * `ui.actions.revisePackage: False` - hide the button to revise packages
 * `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page
-* `ui.blocks.browser: False` - hide files browser on both Bucket and Packages tab
+* `ui.blocks.browser: False` - hide files browser on both the Files and
+  Packages tabs
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
+* `ui.blocks.qurator: False` - hide the [Qurator](Qurator.md) assistance
+  button on file pages
 * `ui.blocks.gallery: False` - hide all galleries (see below for list of galleries)
-* `ui.blocks.gallery.files: False` - hide gallery in Bucket tab;
+* `ui.blocks.gallery.files: False` - hide gallery in the Files tab;
 this gallery lists all images in the current directory
 * `ui.blocks.gallery.packages: False` - hide gallery in Packages tab;
 this gallery lists all images in the current directory in package

@@ -8,14 +8,23 @@ p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 ```
 
 > Use a [.quiltignore
-file](https://docs.quilt.bio/advanced-usage/.quiltignore) for more control
+file](advanced-features/.quiltignore.md) for more control
 over which files `set_dir()` includes.
+
+Two caveats when re-running this on an existing package:
+
+* `push` refuses to overwrite a package revision it does not descend from and
+  raises `QuiltConflictException`. Browse the latest revision first and push
+  that, or pass `force=True`. See
+  [Uploading a Package](walkthrough/uploading-a-package.md).
+* Calling `set_dir(".", ...)` without `meta=` resets package-level metadata.
+  See [Troubleshooting](Troubleshooting.md#missing-metadata-when-working-with-quilt-packages-via-the-api).
 
 ## How does Quilt versioning relate to S3 object versioning?
 
 Quilt packages are one level of abstraction above S3 object versions. Object
-versions track mutations to a single file, whereas a quilt package references a
-*collection* files and assigns this collection a unique version.
+versions track mutations to a single file, whereas a Quilt package references a
+*collection* of files and assigns this collection a unique version.
 
 It is strongly recommended that you enable object versioning on the S3 buckets
 that you push Quilt packages to.
@@ -111,11 +120,15 @@ with your R scripts to create a unified workflow:
 
 <!--pytest.mark.skip-->
 ```bash
-quilt3 install my-package # download Quilt data package
-[Run R commands or scripts] # modify the data in Quilt data package using R
-quilt3 push --dir path/to/remote-registry my-package
-# upload Quilt data package to the remote registry
+# download the Quilt data package
+quilt3 install my-package --registry s3://remote-registry
+[Run R commands or scripts] # modify the data in the package using R
+# upload the modified files as a new package revision
+quilt3 push my-package --dir ./local-data-dir --registry s3://remote-registry
 ```
+
+> `--dir` is the *local* directory whose contents become the package;
+> `--registry` is the S3 registry the package is pushed to.
 
 ### Using Quilt with Reticulate
 
@@ -128,7 +141,7 @@ within your R session.
 You may have a test data package that you wish to delete at some point to ensure
 your data repository is clean and organized. *Please do this very carefully!*
 In favor of immutability, Quilt makes deletion a
-bit tricky. First, note that `quilt3.Package.delete` only deletes the
+bit tricky. First, note that `quilt3.delete_package` only deletes the
 *package manifest*, not the *underlying objects*. If you wish to delete
 the entire package *and* its objects, *delete the objects first*.
 
@@ -162,7 +175,10 @@ for (k, e) in p.walk():
 You can then follow the above with `q3.delete_package(pname, registry=reg,
 top_hash=p.top_hash)`.
 
-## Do I have to login via quilt3 to use the Quilt APIs?
+## Do I have to log in via quilt3 to use the Quilt APIs?
+
+No. If valid AWS credentials are available in your environment, `quilt3` uses
+them directly. See the next question for details.
 
 ## How do I push to Quilt from a headless environment like a Docker container?
 
@@ -178,7 +194,7 @@ export AWS_PROFILE=your_profile
 ```
 
 The S3 permissions needed by `quilt3` are similar to
-[this bucket policy](https://docs.quilt.bio/advanced/crossaccount#bucket-policies)
+[this bucket policy](CrossAccount.md#step-2-create-cross-account-bucket-policy)
 but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
 
 ## How complex can my Athena queries be?
@@ -247,7 +263,7 @@ in the Amazon S3 documentation.
 ## How many IPs does a standard Quilt stack require?
 
 Currently, a full size, multi-Availability Zone deployment (without
-[Voila](https://docs.quilt.bio/catalog/visualizationdashboards#voila))
+[Voila](Catalog/VisualizationDashboards.md#voila))
 requires at least 256 IPs. This means a minimum CIDR block of `/24`.
 
 Optional additional features (such as automated data packaging) require
@@ -256,5 +272,5 @@ additional IPs.
 ## The "Last Modified" column in the Quilt catalog is empty
 
 Amazon S3 is a key-value store with prefixes but no true "folders".
-In the Quilt Catalog Bucket view, as in AWS Console, only objects have
+In the Quilt catalog's Files view, as in the AWS Console, only objects have
 a "Last modified" value, whereas package entries and prefixes do not.

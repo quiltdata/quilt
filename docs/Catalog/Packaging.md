@@ -131,6 +131,19 @@ explicitly specifying any of the following fields:
 
 The job will fail if you try to specify both `metadata` and `metadata_uri`.
 
+Notes on individual fields:
+
+* `package_name` must match `^[\w-]+/[\w-]+$` (a namespace and a name
+  consisting of letters, digits, underscores, and hyphens, separated by a
+  single `/`). When the name is inferred from `source_prefix`, characters
+  outside that set are replaced with hyphens.
+* `workflow` has three-way semantics:
+  * **omitted** — the registry's *default* workflow (if one is configured) is
+    applied, and package creation fails if the package does not validate
+    against it;
+  * `""` (empty string) — no workflow is applied, even if a default exists;
+  * a workflow name — that specific workflow is applied.
+
 ### SendMessage API
 
 If you have appropriate IAM permissions, and the SQS URL, you can send a message
@@ -234,6 +247,31 @@ response = eventbridge.put_targets(
 
 print("SQS Target Attached to EventBridge Rule:", response)
 ```
+
+## Limits
+
+Server-side package operations (creating, copying, and hashing packages) are
+subject to size and file-count limits. The limit values are configured
+per-stack by the CloudFormation template; the error codes below are what you
+see when an operation exceeds one of them:
+
+* `ManifestTooLarge` — the source package manifest exceeds the maximum
+  manifest size when copying a package across buckets
+* `PackageTooLargeToCopy` — the total size of package data exceeds the
+  maximum when copying a package's objects
+* `TooManyFilesToCopy` — the number of files exceeds the maximum when copying
+  a package's objects
+* `PackageTooLargeToHash` — the total bytes needing new checksums exceed the
+  maximum for a single package operation
+* `TooManyFilesToHash` — the number of files needing new checksums exceeds
+  the maximum
+* `FileTooLargeForHashing` — a single file exceeds the maximum size the
+  hashing lambda accepts
+* `RequestTooLarge` — the request payload passed via S3 exceeds the maximum
+  request size
+
+If you hit one of these limits, contact your Quilt administrator or Quilt
+support — most limits can be adjusted for your stack.
 
 ## Caveats
 

@@ -3,14 +3,16 @@
 * [About Quilt](README.md)
 * [Architecture](Architecture.md)
 * [Mental Model](MentalModel.md)
-* [Metadata Management](Catalog/Metadata.md)
-* [Metadata Workflows](advanced-features/workflows.md)
+* [Frequently Asked Questions](FAQ.md)
+* [Troubleshooting](Troubleshooting.md)
 
 ## Quilt Platform
 
 * [About the Catalog](walkthrough/working-with-the-catalog.md)
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
+* [Metadata Management](Catalog/Metadata.md)
+* [Metadata Workflows](advanced-features/workflows.md)
 * [Packaging Engine](Catalog/Packaging.md)
 * [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
@@ -77,9 +79,7 @@
 * **More**
   * [Changelog](CHANGELOG.md)
   * [Contributing](CONTRIBUTING.md)
-  * [Frequently Asked Questions](FAQ.md)
-  * [Troubleshooting](Troubleshooting.md)
-  
+
 ## Quilt Ecosystem Integrations
 
 * [Benchling Packager](examples/benchling.md)
