@@ -10,35 +10,49 @@ but they are designed to work together.
 
 ## Brief tour
 
-The Quilt Catalog provides a homepage for your data catalog, based on a `README.md`
-file that you can optionally create at the top of your bucket.
+The Catalog opens on your workspace: a searchable, filterable list of the
+S3 buckets (volumes) attached to your stack, with global search, queries,
+and bookmarks available from the left-hand navigation.
+
+![Volumes list](../imgs/catalog-volumes-list.png)
+
+Each bucket provides an "Overview" tab — a homepage based on a `README.md`
+file that you can optionally create at the top of your bucket, along with
+summary statistics and the latest packages.
 
 ### Browse
 
-![Homepage](../imgs/catalog_homepage.png)
+![Bucket overview](../imgs/catalog-volume-overview.png)
 
 The Catalog lets you navigate packages in the registry using the "Packages" tab.
 
-![Packages tab](../imgs/catalog_packages_tab.png)
+![Packages tab](../imgs/catalog-packages-list.png)
 
-You can also browse the underlying S3 objects using the "Bucket" tab.
+Clicking a package shows its revisions, metadata, and file tree, along with
+actions to revise the package, push it to another bucket, or download it.
 
-![Files tab](../imgs/catalog_bucket_tab.png)
+![Package detail](../imgs/catalog-package-detail.png)
+
+You can also browse the underlying S3 objects using the "Files" tab.
+
+![Files tab](../imgs/catalog-files-browser.png)
 
 ### Search
 
 Catalogs also enable you to search the contents of your bucket. We support both
 unstructured (e.g. "`San Francisco`") and structured with
 [Query String Queries](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html#query-string-syntax)
-(e.g. "`metadata_key: metadata_value`") search. Hits are previewed right in the
-search results.
+(e.g. "`metadata_key: metadata_value`") search. Results can be narrowed by
+bucket, by packages vs. objects, and by package-level metadata facets.
 
-![Search](../imgs/catalog_search.png)
+![Search](../imgs/catalog-search-results.png)
 
 ### Upload package
 
 You can upload a new package providing the name of the package, commit message,
 files, metadata, and [workflow](../advanced-features/workflows.md).
+
+![Create package dialog](../imgs/catalog-create-package.png)
 
 The name should have the format `namespace/package-name`.
 

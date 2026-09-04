@@ -97,6 +97,9 @@ https://sqs.REGION.amazonaws.com/ACCOUNT_ID/stack-name-PackagerQueue-XXX
 
 Where REGION and ACCOUNT_ID will be the same as for the Quilt stack.
 
+![PackagerQueueArn and PackagerQueueUrl in the CloudFormation Outputs
+tab](../imgs/cfn-outputs-packager-queue.png)
+
 The body of the message is the stringified JSON of a package description.
 There is only one required parameter:
 

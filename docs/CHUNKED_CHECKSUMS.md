@@ -134,6 +134,9 @@ parameter:
 1. Under **Beta features**, set `CRC64Checksums` to `Enabled`.
 1. Complete the stack update.
 
+![CRC64Checksums parameter under Beta features in the CloudFormation stack
+update wizard](imgs/cfn-crc64-parameter.png)
+
 Requirements:
 
 * Quilt Platform release 1.65.0 (December 2025) or later.
