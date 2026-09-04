@@ -6,7 +6,7 @@
 * [Metadata Management](Catalog/Metadata.md)
 * [Metadata Workflows](advanced-features/workflows.md)
 
-## Quilt Platform (Catalog) User
+## Quilt Platform User
 
 * [About the Catalog](walkthrough/working-with-the-catalog.md)
 * [Bucket Browsing](Catalog/FileBrowser.md)
