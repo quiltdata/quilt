@@ -125,5 +125,37 @@ a logo as either a direct file upload (PNG, JPEG, WebP, or GIF) or a URL
 
 ![](../imgs/catalog-admin-settings.png)
 
+### Beta and preview features
+
+The Settings tab also contains stack-wide opt-in switches for features that
+are not yet enabled by default. Both are admin-editable at runtime (no
+redeployment) and apply to the whole stack.
+
+**Enable beta features** is a single global switch that currently gates:
+
+* the new bucket Overview page (Overview v2) and bucket header card
+* the Tabulator tables panel on the Athena Queries page
+
+> Note: Overview v2 is controlled only by this switch. There is no per-bucket
+> configuration key for it in `.quilt/catalog/config.yaml`.
+
+**Preview features** are independently switchable capabilities. Each toggle is
+off by default:
+
+* **New front door** — replaces the volume list on the catalog home page with
+  a unified search bar and tiles. When off, the home page is the volume list,
+  unchanged.
+* **ElasticSearch query console** — shows the ElasticSearch tab on the Queries
+  page. When off, Queries is Athena-only and `/queries/es` redirects to it.
+* **Data products** — adds a browsing surface for data products defined in an
+  enterprise catalog (AWS DataZone, Databricks Unity Catalog, Snowflake).
+  Enabling it also reveals a **Data Product Catalogs** configuration section in
+  Settings. When off, no data-product route or navigation entry exists.
+
+### Support Diagnostics
+
+The Support Diagnostics section lets an admin generate and download a stack
+diagnostics bundle (a zip file) to attach when contacting Quilt support.
+
 ## Further settings
 See [Preferences](Preferences.md) for further control over the catalog user interface.

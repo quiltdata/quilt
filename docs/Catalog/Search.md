@@ -31,14 +31,53 @@ indexing for the following file extensions:
 
 The search page in the catalog, accessible from the search bar or the
 "Search" entry in the left-hand navigation, provides a convenient way for
-searching objects and packages in an Amazon S3 bucket. Results can be
-filtered by bucket, by packages vs. objects, and by package-level metadata
-facets.
+searching objects and packages across the Amazon S3 buckets in your stack.
 
 ![Search page](../imgs/catalog-search-results.png)
 
+#### Result types and scope
+
+Results are either **packages** (the default) or **objects**; switch between
+the two at the top of the filter panel. The bucket selector scopes the search
+to one or more buckets, or to all buckets you can access.
+
+#### Filters
+
+Each result type has its own set of system filters:
+
+* **Packages**: last modified date, cumulative package size, package name,
+  package hash, total number of files in the package, package revision
+  comment, and workflow.
+* **Objects**: last modified date, object size, extension, object key,
+  contents, and delete marker.
+
+Package searches can additionally be filtered by **package-level metadata**:
+the filter panel lists the metadata fields present in matching packages,
+typed (keyword, number, date, boolean), so you can add a facet for any
+metadata field your packages define.
+
+#### Historical versions
+
+By default, package searches match only the **latest** revision of each
+package. Turn on the **Include historical versions** toggle in the filter
+panel to also match prior revisions.
+
+#### Views and sorting
+
+Results display as a list or as a **table** with togglable columns and
+per-column sorting. The sort dropdown offers: Best match, Most recent first,
+Least recent first, A → Z, and Z → A.
+
+#### Query syntax
+
 NOTE: Quilt uses Elasticsearch 7.10 [query string
 syntax](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html#query-string-syntax).
+
+If your query contains none of the Elasticsearch special syntax below (field
+selectors, wildcards, quotes, logical operators, grouping, fuzzy or negation
+operators), the catalog automatically appends a trailing `*` so that plain
+terms match as substrings. Queries that use any special syntax are passed
+through unchanged.
 
 The following are all valid search parameters:
 
