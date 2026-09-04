@@ -96,7 +96,7 @@ in the package list view.
 * `ui.package_description_multiline: True` - expands package metadata's root key/values
 * `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
 
-![Alongside text editor users can use visual form to modify the config](../imgs/bucket-preferences-editor.png)
+![Alongside text editor users can use visual form to modify the config](../imgs/buckets-preferences-editor.png)
 
 #### `ui.sourceBuckets` example
 

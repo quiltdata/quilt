@@ -17,11 +17,9 @@ tables and fields. For full-text searching using Elasticsearch, see the
 
 "Run query" executes the selected query and waits for the result.
 
-![ui](../imgs/athena-ui.png)
+![ui](../imgs/catalog-queries-athena.png)
 
  Individual users will also see their past queries, and easily re-run them.
-
-![history](../imgs/athena-history.png)
 
 ## Example: query package-level metadata
 

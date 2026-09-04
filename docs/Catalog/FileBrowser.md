@@ -1,8 +1,13 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-Every S3 bucket attached to Quilt has a "Bucket" tab in the Catalog
+Every S3 bucket attached to Quilt has a "Files" tab in the Catalog
 that displays all files in the bucket.
 
-![Files browser tab](../imgs/catalog-filesbrowser-tab.png)
+![Files browser tab](../imgs/catalog-files-browser.png)
+
+Clicking a file opens it with an inline preview, its version history, and
+a download button.
+
+![Object preview](../imgs/catalog-object-preview.png)
 
 > If desired, [this tab can be hidden](./Preferences.md).
 

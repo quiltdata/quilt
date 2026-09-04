@@ -85,8 +85,8 @@ To enable Qurator Omni:
 3. **Start Using Qurator**:  
    - Once activated, the Qurator chatbot will appear in the Quilt web catalog
      interface.
-   - Click the Qurator icon on the
-     bottom right of the screen to open the chat interface. ![qurator icon](../imgs/qurator-icon.png)
+   - Click **Ask Qurator** in the left-hand navigation to open the chat
+     interface. ![Qurator chat panel](../imgs/catalog-qurator-chat.png)
    - You can begin by typing questions into the chat interface. For example,
      queries like _“What are the key findings on small molecule delivery?”_ will
      prompt Qurator to search for relevant data and present a summarized

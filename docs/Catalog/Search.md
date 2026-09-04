@@ -29,9 +29,13 @@ indexing for the following file extensions:
 
 ### Search page
 
-The search page in the catalog, accessible from the search button in the top menu bar, provides a convenient
-way for searching objects and packages in an Amazon S3
-bucket.
+The search page in the catalog, accessible from the search bar or the
+"Search" entry in the left-hand navigation, provides a convenient way for
+searching objects and packages in an Amazon S3 bucket. Results can be
+filtered by bucket, by packages vs. objects, and by package-level metadata
+facets.
+
+![Search page](../imgs/catalog-search-results.png)
 
 NOTE: Quilt uses Elasticsearch 7.10 [query string
 syntax](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/query-dsl-query-string-query.html#query-string-syntax).
