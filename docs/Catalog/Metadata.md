@@ -9,7 +9,7 @@ Metadata solves the following problems:
 * *Collaboration* — Metadata are the clues that enable developers, non-developers,
 and code to create a shared understanding and vocabulary
 
-* *Discoverability* — Quilt package-level metadata are searchable via ElasticSearch;
+* *Discoverability* — Quilt package-level metadata are searchable via Elasticsearch;
 package-level and object-level metadata are queryable via AWS Athena
 
 * *Trust* — Quilt metadata are screened against JSON schemas that you define to

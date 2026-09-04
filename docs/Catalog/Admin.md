@@ -1,9 +1,7 @@
 <!-- markdownlint-disable -->
 The Quilt catalog includes an admin panel that allows you to manage
 users and buckets in Quilt, as well as customize the Quilt catalog. You can access
-the panel via a dropdown menu under username in the navbar.
-
-![](../imgs/admin-dropdown.png)
+the panel via the **Admin** entry in the left sidebar.
 
 The admin page is only accessible to designated administrators. The first admin
 is set during the CloudFormation installation. Subsequent admins may be designated

@@ -36,7 +36,7 @@ p.push(
 )
 ```
 
-- [Reference](https://docs.quilt.bio/api-reference/package#package.set_dir).
+- [Reference](api-reference/Package.md#Package.set_dir).
 
 ## User creation and log in
 
