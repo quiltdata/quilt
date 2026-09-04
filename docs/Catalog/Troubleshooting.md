@@ -41,7 +41,7 @@ support](mailto:support@quilt.bio).
 
 ### Inspect the Elasticsearch domain
 
-1. Determine your Quilt instance's ElasticSearch domain from Amazon Console >
+1. Determine your Quilt instance's Elasticsearch domain from Amazon Console >
 OpenSearch or `aws opensearch list-domain-names`. Note the domain name
 (hereafter `QUILT_DOMAIN`).
 

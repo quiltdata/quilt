@@ -3,7 +3,8 @@ The Quilt catalog renders previews of the following file types.
 Whenever possible, Quilt streams the smallest possible subset of the data
 needed to generate the preview.
 
-Previews are supported for uncompressed files as well as for gzip archives (.gz).
+Previews are supported for uncompressed files as well as for gzip (.gz) and
+bzip2 (.bz2) archives.
 
 ## Plain text previews
 
@@ -80,7 +81,7 @@ files) are already display-ready and are shown unchanged.
 
 * AnnData (.h5ad) — annotated matrix metadata, with QC metrics for small files
 * FCS Flow Cytometry files (.fcs)
-* Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
+* Media (.flac, .m2t, .m2ts, .mp3, .mp4, .ogg, .ts, .tsa, .wav, .webm)
 * Jupyter notebooks (.ipynb)
 * .parquet
 * PDF (.pdf)

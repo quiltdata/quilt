@@ -62,9 +62,14 @@ print(pkg)
 ### 4. **Access Your First File**
 <!-- pytest-codeblocks:cont -->
 ```python
-# Download and read a file (using pkg from previous step)
+# Access a file (using pkg from previous step)
 data_file = pkg["README_NF_QUILT.md"]
-content = data_file.get()
+
+# get() returns the file's physical location (an S3 URI), not its contents
+print(data_file.get())
+
+# Read the file contents into memory as a string
+content = data_file.get_as_string()
 print(content)
 ```
 

@@ -149,6 +149,102 @@ __Arguments__
 * __name__:  Name of the bucket to remove.
 
 
+# quilt3.admin.policies
+
+
+## get(id\_or\_title: str) -> quilt3.admin.types.Policy | None  {#get}
+
+Get a policy by ID or title. Return `None` if the policy does not exist.
+
+__Arguments__
+
+* __id_or_title__:  Policy ID or title.
+
+
+## list() -> list[quilt3.admin.types.Policy]  {#list}
+
+Get a list of all policies in the registry.
+
+
+## create\_managed(title: str, \*, permissions: list[quilt3.admin.types.Permission], roles: list[str] = ()) -> quilt3.admin.types.Policy  {#create\_managed}
+
+Create a managed policy in the registry.
+
+__Arguments__
+
+* __title__:  Policy title.
+* __permissions__:  Bucket permissions to include.
+* __roles__:  Role IDs to attach to the policy.
+
+
+## create\_unmanaged(title: str, \*, arn: str, roles: list[str] = ()) -> quilt3.admin.types.Policy  {#create\_unmanaged}
+
+Create an unmanaged policy in the registry.
+
+__Arguments__
+
+* __title__:  Policy title.
+* __arn__:  Existing IAM policy ARN.
+* __roles__:  Role IDs to attach to the policy.
+
+
+## update\_managed(id\_or\_title: str, \*, title: str, permissions: list[quilt3.admin.types.Permission], roles: list[str]) -> quilt3.admin.types.Policy  {#update\_managed}
+
+Update a managed policy in the registry (full replacement).
+
+__Arguments__
+
+* __id_or_title__:  Policy ID or title.
+* __title__:  New policy title.
+* __permissions__:  Bucket permissions to include.
+* __roles__:  Role IDs to attach to the policy.
+
+
+## update\_unmanaged(id\_or\_title: str, \*, title: str, arn: str, roles: list[str]) -> quilt3.admin.types.Policy  {#update\_unmanaged}
+
+Update an unmanaged policy in the registry (full replacement).
+
+__Arguments__
+
+* __id_or_title__:  Policy ID or title.
+* __title__:  New policy title.
+* __arn__:  Existing IAM policy ARN.
+* __roles__:  Role IDs to attach to the policy.
+
+
+## patch\_managed(id\_or\_title: str, \*, title: str | None = None, permissions: list[quilt3.admin.types.Permission] | None = None, roles: list[str] | None = None) -> quilt3.admin.types.Policy  {#patch\_managed}
+
+Partially update a managed policy — only specified fields are changed.
+
+__Arguments__
+
+* __id_or_title__:  Policy ID or title.
+* __title__:  New policy title (keeps current if not specified).
+* __permissions__:  Bucket permissions (keeps current if not specified).
+* __roles__:  Role IDs to attach (keeps current if not specified).
+
+
+## patch\_unmanaged(id\_or\_title: str, \*, title: str | None = None, arn: str | None = None, roles: list[str] | None = None) -> quilt3.admin.types.Policy  {#patch\_unmanaged}
+
+Partially update an unmanaged policy — only specified fields are changed.
+
+__Arguments__
+
+* __id_or_title__:  Policy ID or title.
+* __title__:  New policy title (keeps current if not specified).
+* __arn__:  New IAM policy ARN (keeps current if not specified).
+* __roles__:  Role IDs to attach (keeps current if not specified).
+
+
+## delete(id\_or\_title: str) -> None  {#delete}
+
+Delete a policy from the registry.
+
+__Arguments__
+
+* __id_or_title__:  Policy ID or title.
+
+
 # quilt3.admin.roles
 
 

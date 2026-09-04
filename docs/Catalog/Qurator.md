@@ -95,7 +95,7 @@ To enable Qurator Omni:
 ### Example Use Cases
 
 - **Search**: _“What are the latest papers on melanoma?”_  
-  Qurator will search through the Quilt catalog using Elastic Search and
+  Qurator will search through the Quilt catalog using Elasticsearch and
   retrieve the most relevant data.
   
 - **Summarize**: _“Summarize the key points of this BRCA1 research.”_  

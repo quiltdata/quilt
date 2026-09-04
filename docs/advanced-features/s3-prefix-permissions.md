@@ -22,12 +22,12 @@ search results.
 
 ## Limitations and workarounds
 
-* Roles for users of the Quilt Catalog's Bucket tab must have
+* Roles for users of the Quilt Catalog's Files tab must have
 **full ListBucket permissions**, whether or not they are allowed to access all
 folders and objects. Catalog users who click on a prefix or object that they
 are not permitted to access will see an _Access Denied_ message.
-  * Alternatively, you can [hide the Bucket tab completely](../Catalog/Admin.md#show-and-hide-features-in-the-quilt-catalog)
-  and leave users access to the Package tab.
+  * Alternatively, you can [hide the Files tab completely](../Catalog/Preferences.md#show-and-hide-features-in-the-quilt-catalog)
+  and leave users access to the Packages tab.
 
   > IAM is not designed as a filter for browsing S3.
   ListBucket will return a 403 error for the root of bucket
