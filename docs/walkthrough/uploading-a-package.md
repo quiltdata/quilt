@@ -64,6 +64,23 @@ p.push(
 
 >For even more fine-grained control of object landing paths see [Materialization](../advanced-features/materialization.md).
 
+## Pushing again: revision conflicts
+
+`push` will not overwrite a package revision it does not descend from. A push succeeds only if the destination has no revision yet, or its latest revision is one your in-memory package "knows about" &mdash; i.e. it was obtained via `Package.browse()` or returned by a previous `push`. Otherwise `push` raises `QuiltConflictException`. This protects two writers from silently clobbering each other's revisions.
+
+The recommended pattern for updating an existing package is browse-then-push:
+
+```python
+p = quilt3.Package.browse("aneesh/test_data", "s3://quilt-example")
+p.set("new_file.csv", "new_file.csv")
+p.push("aneesh/test_data", "s3://quilt-example", message="Add new_file.csv")
+```
+
+Two keyword arguments modify this behavior:
+
+* `force=True` skips the conflict check and overwrites the latest revision (CLI: `quilt3 push --force`).
+* `dedupe=True` skips the push entirely if the package content is identical to the latest revision at the destination.
+
 ## Saving a package on a remote registry
 
 `push` will send both a package manifest and its data to a remote registry. This will involve copying your data to S3. To save just the package manifest to S3 without any data copying, use `build`:

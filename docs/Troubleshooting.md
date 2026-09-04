@@ -38,6 +38,21 @@ p.push(
 
 - [Reference](api-reference/Package.md#Package.set_dir).
 
+## `QuiltConflictException` when pushing a package
+
+`Package.push` refuses to overwrite a package revision that the package being
+pushed does not descend from. A push succeeds only if the destination's latest
+revision is one the local package "knows about" — i.e. it was obtained via
+`Package.browse()` (CLI: `quilt3 install`) or returned by a previous `push`.
+Otherwise `push` raises `QuiltConflictException`.
+
+To resolve:
+
+- Browse the latest revision, apply your changes to it, and push that; or
+- pass `force=True` (CLI: `--force`) to overwrite the latest revision anyway; or
+- pass `dedupe=True` to skip the push silently when the content is identical
+  to the latest revision.
+
 ## User creation and log in
 
 Users can either be invited directly or are _just-in-time provisioned (JIP)_

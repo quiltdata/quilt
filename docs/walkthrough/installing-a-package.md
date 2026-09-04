@@ -121,8 +121,8 @@ An alternative to `install` is `browse`. `browse` downloads a package manifest w
 import quilt3 # load a package manifest from a remote registry
 p = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
 
-# load a package manifest from the default remote registry
-quilt3.config(default_remote_registry="s3://quilt-example")
+# with no registry argument, browse reads from your *local* registry --
+# e.g. packages you have previously installed or built locally
 p = quilt3.Package.browse("examples/hurdat")
 ```
 

@@ -11,6 +11,15 @@ p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 file](advanced-features/.quiltignore.md) for more control
 over which files `set_dir()` includes.
 
+Two caveats when re-running this on an existing package:
+
+* `push` refuses to overwrite a package revision it does not descend from and
+  raises `QuiltConflictException`. Browse the latest revision first and push
+  that, or pass `force=True`. See
+  [Uploading a Package](walkthrough/uploading-a-package.md).
+* Calling `set_dir(".", ...)` without `meta=` resets package-level metadata.
+  See [Troubleshooting](Troubleshooting.md#missing-metadata-when-working-with-quilt-packages-via-the-api).
+
 ## How does Quilt versioning relate to S3 object versioning?
 
 Quilt packages are one level of abstraction above S3 object versions. Object
@@ -111,11 +120,15 @@ with your R scripts to create a unified workflow:
 
 <!--pytest.mark.skip-->
 ```bash
-quilt3 install my-package # download Quilt data package
-[Run R commands or scripts] # modify the data in Quilt data package using R
-quilt3 push --dir path/to/remote-registry my-package
-# upload Quilt data package to the remote registry
+# download the Quilt data package
+quilt3 install my-package --registry s3://remote-registry
+[Run R commands or scripts] # modify the data in the package using R
+# upload the modified files as a new package revision
+quilt3 push my-package --dir ./local-data-dir --registry s3://remote-registry
 ```
+
+> `--dir` is the *local* directory whose contents become the package;
+> `--registry` is the S3 registry the package is pushed to.
 
 ### Using Quilt with Reticulate
 
@@ -128,7 +141,7 @@ within your R session.
 You may have a test data package that you wish to delete at some point to ensure
 your data repository is clean and organized. *Please do this very carefully!*
 In favor of immutability, Quilt makes deletion a
-bit tricky. First, note that `quilt3.Package.delete` only deletes the
+bit tricky. First, note that `quilt3.delete_package` only deletes the
 *package manifest*, not the *underlying objects*. If you wish to delete
 the entire package *and* its objects, *delete the objects first*.
 
