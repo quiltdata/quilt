@@ -6,7 +6,7 @@
 * [Metadata Management](Catalog/Metadata.md)
 * [Metadata Workflows](advanced-features/workflows.md)
 
-## Quilt Platform User
+## Quilt Platform
 
 * [About the Catalog](walkthrough/working-with-the-catalog.md)
 * [Bucket Browsing](Catalog/FileBrowser.md)
@@ -24,7 +24,7 @@
   * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
   * [Removing Stacks](Catalog/RemovingStacks.md)
 
-## Quilt Platform Administrator
+## Quilt Platform Administration
 
 * [Catalog Installation](Catalog/Installation.md)
 * [Admin Settings UI](Catalog/Admin.md)
