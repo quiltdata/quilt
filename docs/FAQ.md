@@ -14,8 +14,8 @@ over which files `set_dir()` includes.
 ## How does Quilt versioning relate to S3 object versioning?
 
 Quilt packages are one level of abstraction above S3 object versions. Object
-versions track mutations to a single file, whereas a quilt package references a
-*collection* files and assigns this collection a unique version.
+versions track mutations to a single file, whereas a Quilt package references a
+*collection* of files and assigns this collection a unique version.
 
 It is strongly recommended that you enable object versioning on the S3 buckets
 that you push Quilt packages to.
@@ -162,7 +162,10 @@ for (k, e) in p.walk():
 You can then follow the above with `q3.delete_package(pname, registry=reg,
 top_hash=p.top_hash)`.
 
-## Do I have to login via quilt3 to use the Quilt APIs?
+## Do I have to log in via quilt3 to use the Quilt APIs?
+
+No. If valid AWS credentials are available in your environment, `quilt3` uses
+them directly. See the next question for details.
 
 ## How do I push to Quilt from a headless environment like a Docker container?
 
@@ -256,5 +259,5 @@ additional IPs.
 ## The "Last Modified" column in the Quilt catalog is empty
 
 Amazon S3 is a key-value store with prefixes but no true "folders".
-In the Quilt Catalog Bucket view, as in AWS Console, only objects have
+In the Quilt catalog's Files view, as in the AWS Console, only objects have
 a "Last modified" value, whereas package entries and prefixes do not.

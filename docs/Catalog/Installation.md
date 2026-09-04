@@ -3,7 +3,7 @@
 # Catalog Installation
 
 Quilt is a data mesh that verifies the integrity of your data so that teams can
-find, understand, and file discoveries based on data of any size or in any format.
+find, understand, and make discoveries based on data of any size or in any format.
 
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 

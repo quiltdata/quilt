@@ -14,11 +14,11 @@ p = quilt3.Package()
 top_hash = p.build("aneesh/test_data")
 ```
 
-Building a package requires providing it with a name. Packages names must follow the `"${namespace}/${packagename}"` format. For small teams, we recommend using the package author's name as the namespace.
+Building a package requires providing it with a name. Package names must follow the `"${namespace}/${packagename}"` format. For small teams, we recommend using the package author's name as the namespace.
 
 ## Authenticating to a remote registry
 
-To share a package with others via a remote registry you will first need to authenticate against, if you haven't done so already:
+To share a package with others via a remote registry you will first need to authenticate against it, if you haven't done so already:
 
 ```python
 # only need to run this once
@@ -38,7 +38,7 @@ p = quilt3.Package()
 p.push(
     "aneesh/test_data",
     "s3://quilt-example",
-    message="Updated version my package"
+    message="Updated version of my package"
 )
 ```
 

@@ -1,7 +1,7 @@
 <!-- markdownlint-disable -->
 ## Searching for packages
 
-As explained in ["Uploading a Package"](uploading-a-package.md), packages are managed using *registries*. There is a one local registry on your machine, and potentially many remote registries elsewhere "in the world". Use `list_packages` to see the packages available on a registry:
+As explained in ["Uploading a Package"](uploading-a-package.md), packages are managed using *registries*. There is one local registry on your machine, and potentially many remote registries elsewhere "in the world". Use `list_packages` to see the packages available on a registry:
 
 
 ```python
@@ -59,7 +59,7 @@ quilt3.Package.install(
     
 
 
-Note that unless this registry is public, you will need to be logged into a user who has read access to this registry in order to install from it:
+Note that unless this registry is public, you will need to be logged in as a user who has read access to this registry in order to install from it:
 <!--pytest.mark.skip-->
 ```python
 # only need to run this once

@@ -68,7 +68,8 @@ drag-and-drop or from folders in S3
 * `ui.actions.revisePackage: False` - hide the button to revise packages
 * `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page
-* `ui.blocks.browser: False` - hide files browser on both the Files and Packages tabs
+* `ui.blocks.browser: False` - hide files browser on both the Files and
+  Packages tabs
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
 * `ui.blocks.gallery: False` - hide all galleries (see below for list of galleries)
 * `ui.blocks.gallery.files: False` - hide gallery in the Files tab;
