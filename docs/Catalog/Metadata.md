@@ -97,5 +97,4 @@ Quilt will convert those strings to objects.
 
 Quilt recommends, and the APIs will soon enforce, that users limit each instance of
 package-level and object-level metadata to 1MB or less so that your package
-works well with S3 Select (1MiB row limit) and AWS Athena (32MB row limit),
-both of which are used by the Quilt backend.
+works well with AWS Athena (32MB row limit), which is used by the Quilt backend.
