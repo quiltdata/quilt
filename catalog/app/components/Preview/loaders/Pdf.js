@@ -3,22 +3,22 @@ import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
+import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
 
 export const detect = utils.extIn(['.pdf', '.pptx'])
 
-async function loadPdf({ sign, handle }) {
+async function loadPdf({ url, handle }) {
   try {
-    const url = sign(handle)
     const type = (handle.logicalKey || handle.key).toLowerCase().endsWith('.pptx')
       ? 'pptx'
       : 'pdf'
     const search = mkSearch({
       url,
       input: type,
-      size: 'w1024h768',
+      size: 'w2048h1536',
       countPages: true,
     })
     const r = await fetch(`${cfg.apiGatewayEndpoint}/thumbnail${search}`)
@@ -40,12 +40,20 @@ async function loadPdf({ sign, handle }) {
     console.warn('error loading pdf preview', { ...e })
     // eslint-disable-next-line no-console
     console.error(e)
+    // Re-throw the raw error so useErrorHandling wraps it into
+    // PreviewError.Unexpected with `retry: data.fetch` attached. Building the
+    // PreviewError here would bake in `retry: null` and pass through
+    // useErrorHandling's `R.unless(PreviewError.is, …)` unchanged, leaving
+    // transient failures (timeouts, temporary 5xx) with no retry button.
     throw e
   }
 }
 
 export const Loader = function PdfLoader({ handle, children }) {
   const sign = AWS.Signer.useS3Signer()
-  const data = Data.use(loadPdf, { sign, handle })
+  const url = useMemoEq([sign, handle.bucket, handle.key, handle.version], () =>
+    sign(handle),
+  )
+  const data = Data.use(loadPdf, { url, handle })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }
