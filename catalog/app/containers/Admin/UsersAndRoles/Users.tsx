@@ -771,25 +771,61 @@ const useEditableStyles = M.makeStyles((t) => ({
   root: {
     marginLeft: t.spacing(0.5),
   },
+  // Not a `ButtonBase`, and `constants/style` applies the Focus Ring Rule
+  // (DESIGN.md §2) to `MuiButtonBase` only: without this it takes focus unmarked.
+  reason: {
+    borderRadius: t.shape.borderRadius,
+    display: 'inline-flex',
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 2,
+    },
+  },
 }))
 
 interface EditableSwitchProps {
   disabled?: boolean
+  /** A string, not a node: it is also the wrapper's accessible name. */
+  disabledReason?: string
   checked: boolean
   onChange: (v: boolean) => void
   hint: NonNullable<React.ReactNode>
 }
 
-function EditableSwitch({
+// Exported for testing.
+export function EditableSwitch({
   disabled = false,
+  disabledReason,
   checked,
   onChange,
   hint,
 }: EditableSwitchProps) {
   const classes = useEditableStyles()
-  return disabled ? (
-    <M.Switch className={classes.root} checked={checked} disabled color="default" />
-  ) : (
+  if (disabled) {
+    const sw = (
+      <M.Switch className={classes.root} checked={checked} disabled color="default" />
+    )
+    if (!disabledReason) return sw
+    return (
+      <M.Tooltip title={disabledReason}>
+        {/* A disabled switch fires no events and is out of the tab order, so the
+            reason needs a focusable wrapper of its own. `role` because ARIA
+            forbids `aria-label` on a bare span; `title` off because MUI seeds it
+            with the same string, repeating the name as the description. */}
+        <span
+          className={classes.reason}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the span is the only reachable carrier of the reason
+          tabIndex={0}
+          role="group"
+          aria-label={disabledReason}
+          title={undefined}
+        >
+          {sw}
+        </span>
+      </M.Tooltip>
+    )
+  }
+  return (
     <Editable value={checked} onChange={onChange}>
       {({ change, busy, value }) => (
         <M.Tooltip title={hint}>
@@ -870,19 +906,44 @@ interface ColumnDisplayProps {
   isSelf: boolean
 }
 
-const columns: Table.Column<User>[] = [
+const MANAGED_BY_STACK = 'This service user is managed by the stack'
+
+// One resolver per switch column: each call site derives `disabled` from the
+// reason, so the guard and the explanation cannot drift apart.
+function whyEnabledDisabled(user: User, isSelf: boolean): string | undefined {
+  if (isSelf) return 'You cannot deactivate your own account'
+  if (user.isService) return MANAGED_BY_STACK
+  return undefined
+}
+
+function whyAdminDisabled(user: User, isSelf: boolean): string | undefined {
+  if (isSelf) return 'You cannot change your own admin status'
+  // `isService` before the SSO flag: the registry couples them, but the guard
+  // must not depend on that.
+  if (user.isService) return MANAGED_BY_STACK
+  if (user.isAdminAssignmentDisabled)
+    return 'Admin capabilities for this user are managed by the SSO configuration'
+  return undefined
+}
+
+// Exported for testing.
+export const columns: Table.Column<User>[] = [
   {
     id: 'isActive',
     label: 'Enabled',
     getValue: (u) => u.isActive,
-    getDisplay: (_v, u, { setActive, isSelf }: ColumnDisplayProps) => (
-      <EditableSwitch
-        hint="Deactivated users can't sign in and use the Catalog"
-        disabled={isSelf || u.isService}
-        checked={u.isActive}
-        onChange={(active) => setActive(u.name, active)}
-      />
-    ),
+    getDisplay: (_v, u, { setActive, isSelf }: ColumnDisplayProps) => {
+      const reason = whyEnabledDisabled(u, isSelf)
+      return (
+        <EditableSwitch
+          hint="Deactivated users can't sign in and use the Catalog"
+          disabled={reason !== undefined}
+          disabledReason={reason}
+          checked={u.isActive}
+          onChange={(active) => setActive(u.name, active)}
+        />
+      )
+    },
     props: { padding: 'none' },
   },
   {
@@ -931,21 +992,25 @@ const columns: Table.Column<User>[] = [
     id: 'isAdmin',
     label: 'Admin',
     getValue: (u) => u.isAdmin,
-    getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => (
-      <EditableSwitch
-        hint="Admins can see this page, add/remove users, and make/remove admins"
-        disabled={isSelf || u.isAdminAssignmentDisabled}
-        checked={u.isAdmin}
-        onChange={(admin) =>
-          openDialog<boolean>(
-            ({ close }) => <ConfirmAdminRights {...{ close, admin, name: u.name }} />,
-            DIALOG_PROPS,
-          ).then((res) => {
-            if (!res) throw new Error('cancel')
-          })
-        }
-      />
-    ),
+    getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => {
+      const reason = whyAdminDisabled(u, isSelf)
+      return (
+        <EditableSwitch
+          hint="Admins can see this page, add/remove users, and make/remove admins"
+          disabled={reason !== undefined}
+          disabledReason={reason}
+          checked={u.isAdmin}
+          onChange={(admin) =>
+            openDialog<boolean>(
+              ({ close }) => <ConfirmAdminRights {...{ close, admin, name: u.name }} />,
+              DIALOG_PROPS,
+            ).then((res) => {
+              if (!res) throw new Error('cancel')
+            })
+          }
+        />
+      )
+    },
     props: { padding: 'none' },
   },
 ]
