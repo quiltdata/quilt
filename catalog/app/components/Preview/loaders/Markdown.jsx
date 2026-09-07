@@ -72,13 +72,21 @@ export function useMarkdownRenderer(contentsResult, handle, options) {
   const processImg = useImgProcessor(handle)
   const defaultProcessLink = useLinkProcessor(handle)
   const processLink = options?.processLink ?? defaultProcessLink
-  return utils.useProcessing(contentsResult, getRenderer({ processImg, processLink }), [
-    processImg,
-    processLink,
-  ])
+  // Markdown mode leaves mermaid fences as their source; Mermaid mode (the default
+  // when a fence is present) draws them.
+  const drawMermaid = options?.mode !== FileType.Markdown
+  return utils.useProcessing(
+    contentsResult,
+    getRenderer({ processImg, processLink, drawMermaid }),
+    [processImg, processLink, drawMermaid],
+  )
 }
 
 export const detect = utils.extIn(['.md', '.rmd'])
+
+// A fenced block labelled `mermaid`, at the start of a line, case-insensitive to
+// match the fence handler.
+const MERMAID_FENCE_RE = /^[ \t]*(?:```|~~~)[ \t]*mermaid\b/im
 
 function MarkdownLoader({ gated, handle, options, children }) {
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
@@ -90,13 +98,28 @@ function MarkdownLoader({ gated, handle, options, children }) {
     [data.result],
   )
   const markdowned = useMarkdownRenderer(contents, handle, options)
+  // Only offer the Mermaid/Markdown switch when the file actually has a fence to
+  // draw -- a dead mode on every other README is worse than no mode.
+  const hasFence = React.useMemo(
+    () =>
+      AsyncResult.case(
+        { Ok: (text) => MERMAID_FENCE_RE.test(text), _: () => false },
+        contents,
+      ),
+    [contents],
+  )
   const processed = React.useMemo(
     () =>
       AsyncResult.mapCase({
         Ok: (rendered) =>
-          PreviewData.Markdown({ rendered, modes: [FileType.Markdown, FileType.Text] }),
+          PreviewData.Markdown({
+            rendered,
+            modes: hasFence
+              ? [FileType.Mermaid, FileType.Markdown, FileType.Text]
+              : [FileType.Markdown, FileType.Text],
+          }),
       })(markdowned),
-    [markdowned],
+    [markdowned, hasFence],
   )
   const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
   const result =

@@ -98,6 +98,7 @@
     "loglevel": "^1.9.1",
     "markdown-it": "^14.1.1",
     "match-sorter": "^6.3.1",
+    "mermaid": "^11.17.2",
     "mime-types": "^2.1.35",
     "mixpanel-browser": "^2.49.0",
     "monocle-ts": "^2.3.13",
