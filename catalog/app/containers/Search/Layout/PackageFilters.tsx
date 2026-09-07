@@ -237,9 +237,10 @@ export function AvailablePackagesMetaFilters({
         },
         Disabled: () => null,
       })(filtering)}
-      {/* `offered` rather than a count taken here: withholding it turns on how many
+      {/* `offered` rather than a count taken here: the threshold turns on how many
           fields exist, and `facets.available` is already narrowed by the filter box
-          on the client-filter path. */}
+          on the filtering paths. The model also withholds it when nothing is
+          displayed, so this is the whole rule. */}
       {ordering.offered && (
         <div className={classes.order}>
           <span className={classes.orderLabel} id={orderLabelId}>
