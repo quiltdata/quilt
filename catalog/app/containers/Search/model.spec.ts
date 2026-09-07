@@ -495,4 +495,36 @@ describe('containers/Search/model', () => {
       )
     })
   })
+
+  describe('orderingOffered', () => {
+    const T = model.FACET_ORDERING_THRESHOLD
+
+    it('withholds the control below the threshold', () => {
+      expect(model.orderingOffered(T - 1, T - 1)).toBe(false)
+    })
+
+    it('offers the control at the threshold', () => {
+      expect(model.orderingOffered(T, T)).toBe(true)
+    })
+
+    it('keeps the control while the reader narrows the list', () => {
+      // The threshold reads the pre-filter total, which does not move while the
+      // filter box is typed in, so narrowing cannot retract the control.
+      expect(model.orderingOffered(T, T)).toBe(true)
+      expect(model.orderingOffered(T, 3)).toBe(true)
+      expect(model.orderingOffered(T, 1)).toBe(true)
+    })
+
+    it('withholds the control while nothing is displayed', () => {
+      // A live "Sort by" above "No metadata found" offers to sort nothing.
+      expect(model.orderingOffered(T, 0)).toBe(false)
+    })
+
+    it('carries no state between calls', () => {
+      // The answer must not depend on call order or on which mount asked.
+      expect(model.orderingOffered(T, T)).toBe(true)
+      expect(model.orderingOffered(1, 1)).toBe(false)
+      expect(model.orderingOffered(T, T)).toBe(true)
+    })
+  })
 })
