@@ -1266,10 +1266,9 @@ describe('containers/Queries/Athena/model/requests', () => {
         data: { list: ['foo', 'bar'] },
         loadMore: noop,
       }
-      const preferences = { defaultWorkgroup: 'bar' }
 
       const { result, waitFor, unmount } = renderHook(() =>
-        useWrapper([workgroups, undefined, preferences]),
+        useWrapper([workgroups, undefined, 'bar']),
       )
 
       await act(async () => {
@@ -1277,6 +1276,128 @@ describe('containers/Queries/Athena/model/requests', () => {
         expect(result.current.data).toBe('bar')
       })
       unmount()
+    })
+
+    it('stores the workgroup as AWS spells it, not as the caller did', async () => {
+      const workgroups = {
+        data: { list: ['foo', 'analytics-prod'] },
+        loadMore: noop,
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, undefined, 'Analytics-Prod']),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('analytics-prod')
+      })
+      unmount()
+    })
+
+    it('prefers an exact match over a differently-cased sibling', async () => {
+      // Workgroup names are case-sensitive, so both can exist. `fetchWorkgroups`
+      // sorts, which puts 'Alpha' first -- a case-insensitive match alone would
+      // hand the user the workgroup they did not ask for.
+      const workgroups = {
+        data: { list: ['Alpha', 'alpha'] },
+        loadMore: noop,
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, 'alpha', undefined]),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('alpha')
+      })
+      unmount()
+    })
+
+    it('falls back rather than throwing when the default is not a string', async () => {
+      // `ui.athena` is unconstrained by the bucket-config schema, so an all-digit
+      // workgroup name in the YAML arrives as a number. Reaching `toLowerCase`
+      // with it threw out of the effect and took the console down.
+      const workgroups = {
+        data: { list: ['foo', '2024'] },
+        loadMore: noop,
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, undefined, 2024 as unknown as string]),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('foo')
+      })
+      unmount()
+    })
+
+    it('canonicalises a mis-cased workgroup from the URL too', async () => {
+      const workgroups = {
+        data: { list: ['foo', 'analytics-prod'] },
+        loadMore: noop,
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, 'ANALYTICS-PROD', undefined]),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('analytics-prod')
+      })
+      unmount()
+    })
+
+    it('falls through to the bucket default when the stored workgroup is gone', async () => {
+      const storageMock = getStorageKey.getMockImplementation()
+      getStorageKey.mockImplementation(() => 'deleted')
+      const workgroups = {
+        data: { list: ['alpha', 'team'] },
+        loadMore: noop,
+      }
+
+      try {
+        const { result, waitFor, unmount } = renderHook(() =>
+          useWrapper([workgroups, undefined, 'team']),
+        )
+
+        await act(async () => {
+          await waitFor(() => typeof result.current.data === 'string')
+          expect(result.current.data).toBe('team')
+        })
+        unmount()
+      } finally {
+        getStorageKey.mockImplementation(storageMock!)
+      }
+    })
+
+    it('keeps the stored workgroup ahead of the bucket default', async () => {
+      // Precedence pinned, not chosen here: storage-before-default predates this
+      // code path, so changing it is a product decision.
+      const storageMock = getStorageKey.getMockImplementation()
+      getStorageKey.mockImplementation(() => 'alpha')
+      const workgroups = {
+        data: { list: ['alpha', 'team'] },
+        loadMore: noop,
+      }
+
+      try {
+        const { result, waitFor, unmount } = renderHook(() =>
+          useWrapper([workgroups, undefined, 'team']),
+        )
+
+        await act(async () => {
+          await waitFor(() => typeof result.current.data === 'string')
+          expect(result.current.data).toBe('alpha')
+        })
+        unmount()
+      } finally {
+        getStorageKey.mockImplementation(storageMock!)
+      }
     })
 
     it('select the first available workgroup if no requested or default', async () => {
