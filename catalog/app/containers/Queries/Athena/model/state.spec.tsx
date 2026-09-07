@@ -102,4 +102,56 @@ describe('app/containers/Queries/Athena/model/state', () => {
     expect(result.current.workgroup.data).toBe('w')
     unmount()
   })
+
+  it('threads the bucket default workgroup through to the model', async () => {
+    // The workgroup named in the URL is deliberately one this user cannot reach:
+    // without a named workgroup the provider redirects instead of rendering, so
+    // this is the only shape in which the default can be observed.
+    useParams.mockImplementation(() => ({ workgroup: 'gone' }) as Record<string, string>)
+    listWorkGroups.mockImplementation(() => ({
+      promise: () =>
+        Promise.resolve({
+          WorkGroups: [{ Name: 'alpha' }, { Name: 'team' }],
+        }),
+    }))
+    getWorkGroup.mockImplementation(({ WorkGroup: Name }: { WorkGroup: string }) => ({
+      promise: () =>
+        Promise.resolve({
+          WorkGroup: {
+            Configuration: { ResultConfiguration: { OutputLocation: 'any' } },
+            State: 'ENABLED',
+            Name,
+          },
+        }),
+    }))
+    listNamedQueries.mockImplementation((_x, cb) => {
+      cb(undefined, { NamedQueryIds: [] })
+      return { abort: noop }
+    })
+    listQueryExecutions.mockImplementation((_x, cb) => {
+      cb(undefined, { QueryExecutionIds: [] })
+      return { abort: noop }
+    })
+    listDataCatalogs.mockImplementation(() => ({
+      promise: () => Promise.resolve({ DataCatalogsSummary: [] }),
+    }))
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <Model.Provider preferences={{ defaultWorkgroup: 'team' }}>
+        {children}
+      </Model.Provider>
+    )
+    try {
+      const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
+      await act(async () => {
+        await waitFor(() => typeof result.current.workgroup.data === 'string')
+      })
+      // 'alpha' is first in the list, so this is the default being honored rather
+      // than the fallback happening to agree.
+      expect(result.current.workgroup.data).toBe('team')
+      unmount()
+    } finally {
+      useParams.mockImplementation(() => ({ workgroup: 'w' }) as Record<string, string>)
+    }
+  })
 })
