@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Search sidebar: the facet "Sort by" control announces what it is — its label used to land on a hidden input, leaving assistive tech to read the control as its current ordering and nothing more ([#5261](https://github.com/quiltdata/quilt/pull/5261))
 - [Fixed] Queries: the query selector announces its label to assistive tech, and no longer claims "Custom" is loaded while its helper text reports the query failed to load ([#5260](https://github.com/quiltdata/quilt/pull/5260))
 - [Changed] The `data-products` demo fixture data no longer ships in the bundles a browser downloads on the volumes landing; it loads only when the preview is on ([#5259](https://github.com/quiltdata/quilt/pull/5259))
 - [Fixed] Quilt+ URI parsing retains the informational `catalog` field, reads a raw `+` in an unencoded path as a `+` rather than a space, and shares its compatibility corpus with quilt3 ([#5255](https://github.com/quiltdata/quilt/pull/5255))
