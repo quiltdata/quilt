@@ -11,6 +11,7 @@ import {
 } from 'containers/Bucket/Tabulator/requests'
 
 import * as Model from './model'
+import { useBucketScope } from './scope'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -126,11 +127,7 @@ function BucketTabulatorTables({ bucket }: BucketTabulatorTablesProps) {
 // arrives as a `?bucket=` search param (set by the bucket-page deep links and
 // the legacy-route redirect). Without it there is nothing to list.
 export default function TabulatorTables() {
-  const location = RRDom.useLocation()
-  const bucket = React.useMemo(
-    () => new URLSearchParams(location.search).get('bucket'),
-    [location.search],
-  )
+  const bucket = useBucketScope()
   if (!bucket) return null
   return <BucketTabulatorTables bucket={bucket} />
 }

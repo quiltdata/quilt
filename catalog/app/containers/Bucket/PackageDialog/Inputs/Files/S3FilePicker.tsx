@@ -115,15 +115,27 @@ interface BucketSelectProps {
   selectBucket: (bucket: string) => void
 }
 
-function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
+// Exported for testing: this is the only node in the dialog that read a
+// `:bucket` route segment, and the route it is opened from does not always have
+// one.
+export function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
   const classes = useBucketSelectStyles()
 
   const { handle } = BucketPreferences.use()
-  const { bucket: currentBucket } = RRDom.useParams<{ bucket: string }>()
-  invariant(currentBucket, '`currentBucket` must be defined')
+  // The route param is a *fallback* for `handle`, and nothing more. Asserting it
+  // unconditionally crashed every mount from a route without a `:bucket`
+  // segment: the Athena console reaches this dialog from
+  // `/queries/athena/:workgroup`, which has no such segment, and the only error
+  // boundary above it is the app root -- so the throw replaced the whole catalog
+  // screen rather than failing the panel. `bucket` (the picker's own selection)
+  // is always defined, so there is a last resort that cannot be absent.
+  const { bucket: routeBucket } = RRDom.useParams<{ bucket?: string }>()
 
   const toConfig = FileEditorRoutes.useEditBucketFile(
-    handle || { bucket: currentBucket, key: quiltConfigs.bucketPreferences[0] },
+    handle || {
+      bucket: routeBucket ?? bucket,
+      key: quiltConfigs.bucketPreferences[0],
+    },
   )
 
   const handleChange = React.useCallback(
