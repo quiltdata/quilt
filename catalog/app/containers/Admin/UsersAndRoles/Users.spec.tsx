@@ -2,9 +2,20 @@ import * as React from 'react'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { EditableSwitch, columns } from './Users'
+import { EditRoles, EditableSwitch, columns } from './Users'
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+// The dialog reaches for a notification channel and a GraphQL mutation on mount;
+// stub only those, so the rest of each module still resolves for later tests.
+vi.mock('containers/Notifications', async () => ({
+  ...(await vi.importActual('containers/Notifications')),
+  use: () => ({ push: vi.fn() }),
+}))
+vi.mock('utils/GraphQL', async () => ({
+  ...(await vi.importActual('utils/GraphQL')),
+  useMutation: () => vi.fn(),
+}))
 
 describe('containers/Admin/UsersAndRoles/Users', () => {
   describe('EditableSwitch', () => {
@@ -194,6 +205,88 @@ describe('containers/Admin/UsersAndRoles/Users', () => {
     it('stays editable for an ordinary user', () => {
       const { container } = renderSwitch({ name: 'u', isActive: true, isService: false })
       expect(container.querySelector('input')?.disabled).toBe(false)
+    })
+  })
+  describe('the Role column', () => {
+    afterEach(cleanup)
+
+    const column = columns.find((c) => c.id === 'role')!
+
+    function renderRole(user: object) {
+      return render(
+        <>
+          {column.getDisplay!(
+            undefined,
+            { extraRoles: [], ...user } as never,
+            {
+              roles: [],
+              defaultRole: null,
+              openDialog: vi.fn(),
+            } as never,
+          )}
+        </>,
+      )
+    }
+
+    // Gated on the same reason as the dialog it opens, so both flags matter here.
+    it.each([
+      ['an SSO-managed user', { isRoleAssignmentDisabled: true, isService: false }],
+      ['a service user', { isRoleAssignmentDisabled: false, isService: true }],
+    ])('offers only viewing for %s', (_label, user) => {
+      const { container } = renderRole(user)
+      expect(container.querySelector('[title]')?.getAttribute('title')).toBe(
+        'Click to view',
+      )
+    })
+
+    it('offers editing for an ordinary user', () => {
+      const { container } = renderRole({
+        isRoleAssignmentDisabled: false,
+        isService: false,
+      })
+      expect(container.querySelector('[title]')?.getAttribute('title')).toBe(
+        'Click to edit',
+      )
+    })
+  })
+
+  describe('EditRoles', () => {
+    afterEach(cleanup)
+
+    function renderDialog(user: object) {
+      return render(
+        <EditRoles
+          close={vi.fn()}
+          roles={[]}
+          defaultRole={null}
+          user={{ name: 'u', extraRoles: [], role: null, ...user } as never}
+        />,
+      )
+    }
+
+    it.each([
+      [
+        'an SSO-managed user',
+        { isRoleAssignmentDisabled: true, isService: false },
+        'Roles are assigned via role mapping and may be changed in config.',
+      ],
+      [
+        'a service user',
+        { isRoleAssignmentDisabled: false, isService: true },
+        'Roles for this service user are managed by the stack.',
+      ],
+    ])('offers no way to save for %s, and says why', (_label, user, why) => {
+      renderDialog(user)
+      expect(screen.getByText('Roles assigned to "u"')).toBeDefined()
+      expect(screen.queryByText('Save')).toBeNull()
+      expect(screen.getByText('Close')).toBeDefined()
+      expect(screen.getByText(why)).toBeDefined()
+    })
+
+    it('offers a save for an ordinary user', () => {
+      renderDialog({ isRoleAssignmentDisabled: false, isService: false })
+      expect(screen.getByText('Assign roles to "u"')).toBeDefined()
+      expect(screen.getByText('Save')).toBeDefined()
     })
   })
 })
