@@ -1,0 +1,25 @@
+[project]
+name = "t4_lambda_faraday"
+version = "0.1.0"
+description = "Package-backed Faraday task runner for the Quilt platform"
+requires-python = "==3.13.*"
+dependencies = [
+    "boto3>=1.35,<2",
+    "mcp>=1.30,<2",
+    "httpx>=0.28,<1",
+    "pydantic>=2.10,<3",
+    "quilt3>=8,<9",
+]
+
+[build-system]
+requires = ["uv_build==0.9.*"]
+build-backend = "uv_build"
+
+[dependency-groups]
+test = ["pytest>=9.1,<10", "pytest-cov>=7,<8", "moto[s3]>=5,<6", "ruff==0.16.0"]
+
+[tool.uv]
+default-groups = ["test"]
+
+[tool.uv.sources]
+quilt3 = { url = "https://github.com/quiltdata/quilt/archive/fe9bda5435cd63e445030740ded2735735e8afa3.zip", subdirectory = "api/python" }
