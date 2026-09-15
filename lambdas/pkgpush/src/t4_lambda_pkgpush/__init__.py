@@ -54,6 +54,8 @@ from quilt_shared.pkgpush import (
     make_scratch_key,
 )
 
+from . import rocrate
+
 if T.TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
     from mypy_boto3_s3.type_defs import HeadObjectOutputTypeDef
@@ -1041,34 +1043,62 @@ def package_prefix(event, context):
 
     prefix_pk = params.get_source_prefix_pk()
 
-    pkg_name = infer_pkg_name_from_prefix(prefix_pk.path) if params.package_name is None else params.package_name
-
     dst_bucket = params.registry or prefix_pk.bucket
     registry_url = f"s3://{dst_bucket}"
     package_registry = get_package_registry(registry_url)
 
     metadata = params.metadata
-    if metadata_uri_pk := params.get_metadata_uri_pk():
+    metadata_uri_pk = params.get_metadata_uri_pk()
+    if metadata_uri_pk is not None:
         metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
         if not isinstance(metadata, dict):
             raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
 
-    prefix_len = len(prefix_pk.path)
-
     pkg_entries: dict[str, quilt3.packages.PackageEntry] = {}
+    inferred_name = infer_pkg_name_from_prefix(prefix_pk.path)
 
-    for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):
-        key = obj.get("Key")
-        assert key is not None
-        size = obj.get("Size")
-        assert size is not None
-        logical_key = key[prefix_len:]
-        pkg_entries[logical_key] = quilt3.packages.PackageEntry(
-            PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
-            size,
-            None,
-            None,
-        )
+    if metadata_uri_pk is not None and rocrate.is_rocrate(metadata):
+        try:
+            crate = rocrate.parse(metadata, metadata_uri_pk)
+        except rocrate.RoCrateError as e:
+            raise PkgpushException(e.name, e.context) from e
+        metadata = crate.user_meta
+        inferred_prefix, inferred_suffix = inferred_name.split("/")
+        inferred_name = f"{crate.name_prefix or inferred_prefix}/{crate.name_suffix or inferred_suffix}"
+        # Directories first, so a file the crate also lists explicitly keeps its metadata.
+        for entry in sorted(crate.entries, key=lambda e: not e.is_dir):
+            if entry.is_dir:
+                for obj in list_prefix_latest_versions(entry.physical_key.bucket, entry.physical_key.path):
+                    key = obj["Key"]
+                    pkg_entries[entry.logical_key + key[len(entry.physical_key.path) :]] = (
+                        quilt3.packages.PackageEntry(
+                            PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId")), obj["Size"], None, None
+                        )
+                    )
+                continue
+            # Version, size and checksum are filled in by complete_entries_metadata().
+            pkg_entries[entry.logical_key] = quilt3.packages.PackageEntry(
+                entry.physical_key,
+                None,
+                None,
+                {"user_meta": entry.user_meta} if entry.user_meta else None,
+            )
+    else:
+        prefix_len = len(prefix_pk.path)
+        for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):
+            key = obj.get("Key")
+            assert key is not None
+            size = obj.get("Size")
+            assert size is not None
+            logical_key = key[prefix_len:]
+            pkg_entries[logical_key] = quilt3.packages.PackageEntry(
+                PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
+                size,
+                None,
+                None,
+            )
+
+    pkg_name = inferred_name if params.package_name is None else params.package_name
 
     # Fetch missing metadata and precomputed checksums concurrently
     complete_entries_metadata(pkg_entries, checksum_algorithms)
