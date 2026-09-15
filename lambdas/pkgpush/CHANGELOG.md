@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Build packages from an RO-Crate's graph — `hasPart` entries, `type.id` package metadata, `File` properties as entry metadata, name from `Namespace` + dataset — instead of sweeping the folder and copying the crate verbatim ([#XXXX](https://github.com/quiltdata/quilt/pull/XXXX))
+- [Changed] Build packages from RO-Crate contents and metadata to support Vir's ingestion workflow ([#5290](https://github.com/quiltdata/quilt/pull/5290))
 - [Fixed] Read the published revision off the package `_push()` returns instead of its private `_origin` bookkeeping, which quilt3 8 removes ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 - [Changed] Switch to uv ([#4649](https://github.com/quiltdata/quilt/pull/4649))
 - [Changed] Upgrade to Python 3.13 ([#4649](https://github.com/quiltdata/quilt/pull/4649))
