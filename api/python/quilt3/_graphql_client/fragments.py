@@ -2,7 +2,7 @@
 # Source: queries.graphql
 
 from datetime import datetime
-from typing import Annotated, Any, List, Literal, Optional, Union
+from typing import Annotated, Any, Literal, Optional, Union
 
 from pydantic import Field
 
@@ -27,19 +27,19 @@ class BucketConfigSelection(BaseModel):
     icon_url: Optional[str] = Field(alias="iconUrl")
     description: Optional[str]
     overview_url: Optional[str] = Field(alias="overviewUrl")
-    tags: Optional[List[str]]
+    tags: Optional[list[str]]
     relevance_score: int = Field(alias="relevanceScore")
     last_indexed: Optional[datetime] = Field(alias="lastIndexed")
     sns_notification_arn: Optional[str] = Field(alias="snsNotificationArn")
     scanner_parallel_shards_depth: Optional[int] = Field(alias="scannerParallelShardsDepth")
     skip_meta_data_indexing: Optional[bool] = Field(alias="skipMetaDataIndexing")
-    file_extensions_to_index: Optional[List[str]] = Field(alias="fileExtensionsToIndex")
+    file_extensions_to_index: Optional[list[str]] = Field(alias="fileExtensionsToIndex")
     index_content_bytes: Optional[int] = Field(alias="indexContentBytes")
-    prefixes: List[str]
+    prefixes: list[str]
 
 
 class InvalidInputSelection(BaseModel):
-    errors: List["InvalidInputSelectionErrors"]
+    errors: list["InvalidInputSelectionErrors"]
 
 
 class InvalidInputSelectionErrors(BaseModel):
@@ -63,7 +63,7 @@ class PolicySummarySelection(BaseModel):
     title: str
     arn: str
     managed: bool
-    permissions: List["PolicySummarySelectionPermissions"]
+    permissions: list["PolicySummarySelectionPermissions"]
 
 
 class PolicySummarySelectionPermissions(PermissionSelection):
@@ -84,8 +84,8 @@ class ManagedRoleSelection(BaseModel):
     id: str
     name: str
     arn: str
-    policies: List["ManagedRoleSelectionPolicies"]
-    permissions: List["ManagedRoleSelectionPermissions"]
+    policies: list["ManagedRoleSelectionPolicies"]
+    permissions: list["ManagedRoleSelectionPermissions"]
 
 
 class ManagedRoleSelectionPolicies(PolicySummarySelection):
@@ -107,8 +107,8 @@ class PolicySelection(BaseModel):
     title: str
     arn: str
     managed: bool
-    permissions: List["PolicySelectionPermissions"]
-    roles: List["PolicySelectionRoles"]
+    permissions: list["PolicySelectionPermissions"]
+    roles: list["PolicySelectionRoles"]
 
 
 class PolicySelectionPermissions(PermissionSelection):
@@ -141,7 +141,7 @@ class UserSelection(BaseModel):
             Field(discriminator="typename__"),
         ]
     ]
-    extra_roles: List[
+    extra_roles: list[
         Annotated[
             Union[
                 "UserSelectionExtraRolesUnmanagedRole",
