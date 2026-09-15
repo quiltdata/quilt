@@ -225,6 +225,7 @@ jobs:
         path:
           - access_counts
           - es_ingest
+          - faraday
           - iceberg
           - indexer
           - manifest_indexer
