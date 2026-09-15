@@ -131,8 +131,17 @@ describe('containers/Sidebar/Sidebar (the fold)', () => {
     expect(width()).toBe('256px')
     input.remove()
 
-    // Modified `[` is somebody else's shortcut.
+    // Cmd/Ctrl+[ is somebody else's shortcut; a held key must not strobe.
     fireEvent.keyDown(window, { key: '[', metaKey: true })
+    fireEvent.keyDown(window, { key: '[', ctrlKey: true })
+    fireEvent.keyDown(window, { key: '[', repeat: true })
+    expect(width()).toBe('256px')
+
+    // AltGr+8 (Windows: ctrl+alt) and Option+5 (macOS: alt) are how `[` is
+    // typed on German, Nordic and Spanish layouts.
+    fireEvent.keyDown(window, { key: '[', ctrlKey: true, altKey: true })
+    expect(width()).toBe('72px')
+    fireEvent.keyDown(window, { key: '[', altKey: true })
     expect(width()).toBe('256px')
   })
 

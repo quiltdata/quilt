@@ -364,9 +364,10 @@ Every control uses the same vocabulary on every screen.
   axis, labels faded rather than removed, the workspace and identity boxes
   shedding their ground to read as bare icon rows, the wordmark crossfading to
   the square Q mark, a right-side tooltip standing in for each label. The
-  rail's width is the one animated layout property (the content column must
-  reflow with it); everything else is opacity/transform, and reduced-motion
-  gets the instant swap.
+  rail's width is the one animated property that reflows the page (the
+  content column must follow it); what moves inside the rail — labels fading,
+  expanded-only rows closing up, boxes losing their ground — rides on that
+  same 200ms clock, and reduced-motion gets the instant swap.
 - **The search band:** the top bar is chrome, not a card — Surface white,
   full-bleed to the rail's edge, square, flat (no resting shadow), delineated
   by a Divider hairline, height-registered at 64px with the rail's logo block

@@ -13,6 +13,7 @@ import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
+import isTypingTarget from 'utils/isTypingTarget'
 
 import * as NavMenu from './AuthState'
 import OutlinedIcon from './OutlinedIcon'
@@ -108,7 +109,9 @@ const useStyles = M.makeStyles((t) => {
     },
     // 6px, not a spacing step: with the 30px control beneath the 64px mark it
     // puts the first nav row at the same y (160px) as the expanded rail, so
-    // the rows don't hop on toggle.
+    // the rows don't hop on toggle. That registration assumes the Workspace
+    // section is there to give the height back; LOCAL mode with no user
+    // omits it and takes a 36px hop.
     brandCollapsed: {
       flexDirection: 'column',
       paddingBottom: 6,
@@ -163,12 +166,11 @@ const useStyles = M.makeStyles((t) => {
     logoDim: {
       opacity: 0,
     },
-    // A customer's lockup has no square variant; collapsed it fits the column
-    // by height and shrinks in place rather than being cropped.
-    logoCustomCollapsed: {
-      maxWidth: '100%',
-      objectFit: 'contain',
-      objectPosition: 'left center',
+    // A customer's lockup has no square variant: collapsed it gets the whole
+    // column (Logo fits it inside by height and width) rather than the mark's
+    // 32px box, since a wide lockup squeezed into a square is a smear.
+    logoStackCustomCollapsed: {
+      width: `calc(100% - ${t.spacing(2)}px)`,
     },
     toggle: {
       color: t.palette.navigation.textMuted,
@@ -203,11 +205,6 @@ const useStyles = M.makeStyles((t) => {
         }),
       },
     },
-    // Collapsed, the boxed rows shed their ground and read as bare icon rows,
-    // one vocabulary with the nav beneath.
-    boxCollapsed: {
-      backgroundColor: 'transparent',
-    },
     icon: {
       color: 'inherit',
       '& .material-icons': {
@@ -239,28 +236,36 @@ const useStyles = M.makeStyles((t) => {
         }),
       },
     },
+    // Rows that exist only in the expanded rail (the section label, the
+    // version readout) close up through a 1fr -> 0fr grid track: it animates
+    // to the content's real height, so text scaling can never overrun a
+    // ceiling, and the inner box (min-height 0) is what actually shrinks.
+    // Padding stays on the child so the closed track can reach zero.
+    fold: {
+      display: 'grid',
+      gridTemplateRows: '1fr',
+      [MOTION]: {
+        transition: t.transitions.create(['grid-template-rows', 'opacity'], {
+          duration: t.transitions.duration.shorter,
+        }),
+      },
+    },
+    foldClosed: {
+      gridTemplateRows: '0fr',
+      opacity: 0,
+    },
+    foldInner: {
+      minHeight: 0,
+      overflow: 'hidden',
+    },
     sectionLabel: {
       color: t.palette.navigation.textMuted,
       fontSize: 11,
       fontWeight: 500,
       letterSpacing: '0.06em',
       lineHeight: '16px',
-      // maxHeight, not height, so the row can still grow with text scaling;
-      // it's here only to give the collapse a measurable value to close to.
-      maxHeight: t.spacing(4),
-      overflow: 'hidden',
       padding: t.spacing(1, 2.5, 0.5),
       textTransform: 'uppercase',
-      [MOTION]: {
-        transition: t.transitions.create(['max-height', 'padding', 'opacity'], {
-          duration: t.transitions.duration.shorter,
-        }),
-      },
-    },
-    sectionLabelCollapsed: {
-      maxHeight: 0,
-      opacity: 0,
-      padding: t.spacing(0, 2.5),
     },
     wsRow: {
       minHeight: 44,
@@ -346,8 +351,14 @@ const useStyles = M.makeStyles((t) => {
     spacer: {
       flexGrow: 1,
     },
+    // Same 8px inset as the nav list so the warning glyph shares the icon axis.
     account: {
-      padding: t.spacing(0.5, 0),
+      padding: t.spacing(0.5, 1),
+    },
+    unlicensedRow: {
+      minHeight: 44,
+      padding: t.spacing(0, 1.5, 0, 2),
+      ...iconCol,
     },
     version: {
       ...t.typography.caption,
@@ -356,16 +367,10 @@ const useStyles = M.makeStyles((t) => {
       cursor: 'pointer',
       display: 'flex',
       gap: t.spacing(0.5),
-      // See sectionLabel: maxHeight only gives the collapse a value to close to.
-      maxHeight: t.spacing(6),
       opacity: 0.55,
-      overflow: 'hidden',
       padding: t.spacing(0.5, 2, 1.5),
-      transition: 'opacity 150ms',
       [MOTION]: {
-        transition: t.transitions.create(['max-height', 'padding', 'opacity'], {
-          duration: t.transitions.duration.shorter,
-        }),
+        transition: t.transitions.create('opacity', { duration: 150 }),
       },
       '&:hover': {
         opacity: 0.9,
@@ -377,14 +382,6 @@ const useStyles = M.makeStyles((t) => {
         ...ring,
         opacity: 0.9,
       },
-    },
-    // The version is a readout, not a destination: collapsed it closes up
-    // rather than becoming an icon row nobody could read.
-    versionCollapsed: {
-      maxHeight: 0,
-      opacity: 0,
-      padding: t.spacing(0, 2),
-      pointerEvents: 'none',
     },
     versionText: {
       fontFamily: t.typography.monospace.fontFamily,
@@ -401,9 +398,15 @@ const useStyles = M.makeStyles((t) => {
     badgeDot: {
       backgroundColor: t.palette.navigation.indicator,
     },
-    // Last on purpose: it overrides the inset and icon column of every row
-    // class above it, and at equal specificity JSS order is the tiebreak.
+    // Last on purpose: these override the inset, icon column and ground of
+    // every row and box class above them, and at equal specificity JSS order
+    // is the tiebreak.
     rowCollapsed: collapsedRow,
+    // Collapsed, the boxed rows shed their ground and read as bare icon rows,
+    // one vocabulary with the nav beneath.
+    boxCollapsed: {
+      backgroundColor: 'transparent',
+    },
   }
 })
 
@@ -433,6 +436,16 @@ function NavShell({
     <M.Drawer anchor="left" open={open} onClose={onClose} classes={{ paper: paperClass }}>
       {children}
     </M.Drawer>
+  )
+}
+
+// A block that closes to zero height when the rail folds (see `fold` styles).
+function Fold({ closed, children }: { closed: boolean; children: React.ReactNode }) {
+  const classes = useStyles()
+  return (
+    <div className={cx(classes.fold, closed && classes.foldClosed)} aria-hidden={closed}>
+      <div className={classes.foldInner}>{children}</div>
+    </div>
   )
 }
 
@@ -495,6 +508,8 @@ function NavRow({
       />
     </>
   )
+  // Two elements, not one with a conditional `component`: ListItem's
+  // overloads won't type `to` against an undefined component.
   const row = to ? (
     <M.ListItem button component={Link} to={to} selected={selected} className={className}>
       {content}
@@ -633,20 +648,24 @@ function Version({ collapsed }: { collapsed: boolean }) {
     [handleCopy],
   )
   if (!cfg.stackVersion) return null
-  // Collapsed it is closed up and invisible, so it leaves the tab order too.
+  // The version is a readout, not a destination: collapsed it closes up
+  // rather than becoming an icon row nobody could read, and leaves the tab
+  // order with it.
   return (
-    <div
-      className={cx(classes.version, collapsed && classes.versionCollapsed)}
-      onClick={handleCopy}
-      onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={collapsed ? -1 : 0}
-      aria-hidden={collapsed}
-      title="Copy Platform release version to clipboard"
-    >
-      <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
-      <OutlinedIcon className={classes.copyIcon}>content_copy</OutlinedIcon>
-    </div>
+    <Fold closed={collapsed}>
+      <div
+        className={classes.version}
+        onClick={handleCopy}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={collapsed ? -1 : 0}
+        aria-hidden={collapsed}
+        title="Copy Platform release version to clipboard"
+      >
+        <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
+        <OutlinedIcon className={classes.copyIcon}>content_copy</OutlinedIcon>
+      </div>
+    </Fold>
   )
 }
 
@@ -671,15 +690,13 @@ function CollapseToggle({
   const classes = useStyles()
   React.useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
-      if (evt.key !== '[' || evt.metaKey || evt.ctrlKey || evt.altKey) return
-      const target = evt.target as HTMLElement | null
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      )
-        return
+      if (evt.key !== '[') return
+      // Cmd/Ctrl+[ is the browser's (or someone else's). Alt stays allowed:
+      // on German, Nordic and Spanish layouts `[` is only reachable as Option+5
+      // or AltGr+8, which report altKey (and, for AltGr, ctrlKey too).
+      if (evt.metaKey || (evt.ctrlKey && !evt.altKey)) return
+      // A held key auto-repeats; a toggle must not strobe.
+      if (evt.repeat || isTypingTarget(evt)) return
       evt.preventDefault()
       onToggle()
     }
@@ -804,15 +821,20 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                   collapsed it crossfades to the square Q mark. A customer's own
                   logo still renders via `src` as before. */}
               <div
-                className={cx(classes.logoStack, collapsed && classes.logoStackCollapsed)}
+                className={cx(
+                  classes.logoStack,
+                  collapsed &&
+                    (settings?.logo?.url
+                      ? classes.logoStackCustomCollapsed
+                      : classes.logoStackCollapsed),
+                )}
               >
                 {settings?.logo?.url ? (
                   <Logo
-                    className={cx(collapsed && classes.logoCustomCollapsed)}
                     height="32px"
                     width="100%"
                     src={settings.logo.url}
-                    variant="wordmark"
+                    variant={collapsed ? 'icon' : 'wordmark'}
                   />
                 ) : (
                   <>
@@ -843,15 +865,9 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
 
           {(user || cfg.mode !== 'LOCAL') && (
             <>
-              <div
-                className={cx(
-                  classes.sectionLabel,
-                  collapsed && classes.sectionLabelCollapsed,
-                )}
-                aria-hidden={collapsed}
-              >
-                Workspace
-              </div>
+              <Fold closed={collapsed}>
+                <div className={classes.sectionLabel}>Workspace</div>
+              </Fold>
               <div
                 className={cx(classes.workspaceBox, collapsed && classes.boxCollapsed)}
               >
@@ -960,9 +976,11 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
           <div className={classes.spacer} />
 
           {subscription.invalid && (
-            <M.List disablePadding dense className={classes.account}>
+            <M.List disablePadding className={classes.account}>
               <RowTip collapsed={collapsed} title="Unlicensed">
-                <M.ListItem className={cx(collapsed && classes.rowCollapsed)}>
+                <M.ListItem
+                  className={cx(classes.unlicensedRow, collapsed && classes.rowCollapsed)}
+                >
                   <M.ListItemIcon className={classes.icon}>
                     <OutlinedIcon color="error">warning</OutlinedIcon>
                   </M.ListItemIcon>
