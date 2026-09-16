@@ -16,7 +16,6 @@ if T.TYPE_CHECKING:
 ICEBERG_COMMIT_ERROR_PREFIX = "ICEBERG_COMMIT_ERROR"
 RETRY_MAX_ATTEMPTS = 3
 RETRY_BASE_SEC = 1
-RETRY_CAP_SEC = 8
 
 
 class AthenaQueryBaseException(Exception):
@@ -127,6 +126,9 @@ class QueryRunner:
             The method polls Athena for query status and manages concurrent execution within specified
             limits. Failed queries will either raise an exception or return execution details based on
             raise_on_failed.
+
+            A query that fails with ICEBERG_COMMIT_ERROR is re-executed, so statements passed here must
+            be idempotent: that error also covers a commit whose outcome is unknown.
         """
         results: list[QueryExecutionTypeDef | None] = [None] * len(query_list)
 
@@ -146,7 +148,7 @@ class QueryRunner:
                 if self._should_retry(query_execution, attempts[idx]):
                     reason = query_execution["Status"]["StateChangeReason"]
                     self.logger.warning("Retrying Athena query %s after commit conflict: %s", execution_id, reason)
-                    time.sleep(random.uniform(0, min(RETRY_CAP_SEC, RETRY_BASE_SEC * 2 ** (attempts[idx] - 1))))
+                    time.sleep(random.uniform(0, RETRY_BASE_SEC * 2 ** (attempts[idx] - 1)))
                     remaining_queries.append((idx, query_list[idx]))
                     continue
 

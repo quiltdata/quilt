@@ -86,8 +86,15 @@ COMMIT_ERROR_REASON = "ICEBERG_COMMIT_ERROR: failed to commit to table test_buck
 
 @pytest.fixture
 def no_backoff(monkeypatch):
-    """Collapse the retry backoff so tests don't actually sleep."""
-    monkeypatch.setattr("quilt_shared.athena.random.uniform", lambda a, b: 0)
+    """Collapse the retry backoff so tests don't actually sleep, recording the bounds asked for."""
+    bounds = []
+
+    def fake_uniform(a, b):
+        bounds.append(b)
+        return 0
+
+    monkeypatch.setattr("quilt_shared.athena.random.uniform", fake_uniform)
+    return bounds
 
 
 def _stub_start(stubber, query, execution_id):
@@ -142,6 +149,7 @@ def test_run_multiple_queries_retries_are_bounded(query_runner, stubbed_athena_c
     stubbed_athena_client.assert_no_pending_responses()
     assert exc_info.value.query_execution_id == "exec_id_3"
     assert COMMIT_ERROR_REASON in str(exc_info.value)
+    assert no_backoff == [1, 2]
 
 
 def test_run_multiple_queries_does_not_retry_other_failures(query_runner, stubbed_athena_client, no_backoff):
