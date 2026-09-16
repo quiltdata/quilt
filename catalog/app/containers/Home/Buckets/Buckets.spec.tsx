@@ -54,10 +54,15 @@ vi.mock('utils/features', () => ({
   useFeature: () => dataProductsEnabled,
 }))
 
-// Stub only the suspending port read. `useProducts` goes through ResourceCache,
+// Stub only the suspending port read. `useVolumes` goes through ResourceCache,
 // which needs a Provider this spec does not mount, and suspending here would
 // make every assertion await a microtask. The `enabled` passthrough is kept
 // faithful, because "shows none while the feature is off" depends on it.
+//
+// Products only: the volume list still reads buckets through `utils/Buckets`,
+// because the volume model adds a kind rather than taking over what a bucket row
+// renders. So the bucket volumes the adapter also returns are filtered out here,
+// exactly as `Buckets` does.
 vi.mock('model/DataProducts', async () => {
   const actual =
     await vi.importActual<typeof import('model/DataProducts')>('model/DataProducts')
@@ -66,7 +71,9 @@ vi.mock('model/DataProducts', async () => {
   )
   return {
     ...actual,
-    useProducts: (enabled = true) => (enabled ? fx.ALL_PRODUCTS : []),
+    useActiveWorkspace: () => fx.DEFAULT_WORKSPACE,
+    useVolumes: (enabled = true) =>
+      enabled ? fx.heldProductsFor(fx.DEFAULT_WORKSPACE) : [],
   }
 })
 
@@ -285,18 +292,16 @@ describe('website/pages/Landing/Buckets', () => {
       dataProductsEnabled = true
       const { queryByText } = renderBuckets()
       expect(queryByText('bucket:bucket-one')).toBeTruthy()
-      expect(queryByText('dp:datazone:dzd_4xample/lst_9kq2v')).toBeTruthy()
+      expect(queryByText('dp:fixture-assay-cohort-2026')).toBeTruthy()
     })
 
     it('answers the same filter box as buckets', () => {
       // A user typing a term means it about everything on the page. Filtering
       // buckets only would leave a product visible that does not match.
       dataProductsEnabled = true
-      const { queryByText } = renderBuckets('?q=restricted')
+      const { queryByText } = renderBuckets('?q=panels')
       expect(queryByText('bucket:bucket-one')).toBeFalsy()
-      expect(
-        queryByText('dp:uc:aws-prod-metastore/quilt_demo/restricted_cohort'),
-      ).toBeTruthy()
+      expect(queryByText('dp:fixture-reference-panels')).toBeTruthy()
     })
 
     it('keeps the page non-empty when only products match', () => {
@@ -306,27 +311,24 @@ describe('website/pages/Landing/Buckets', () => {
       mockBuckets = []
       const { queryByText } = renderBuckets()
       expect(queryByText('Add Bucket')).toBeFalsy()
-      expect(queryByText('dp:datazone:dzd_4xample/lst_9kq2v')).toBeTruthy()
+      expect(queryByText('dp:fixture-assay-cohort-2026')).toBeTruthy()
     })
 
     it('interleaves them by sort rather than appending them after buckets', () => {
-      // The point of one list. Sorted A–Z, `acme_cohort_2024` precedes
-      // `Bucket One` and `Clinical Cohort 2024` follows it — so a product sits
-      // on either side of a bucket. Appending products after buckets (the
-      // previous shape) would put both after it, which is two lists wearing one
-      // heading.
+      // The point of one list. Sorted A–Z, `Assay cohort 2026` precedes `Bucket
+      // One` and `Clinical outcomes` follows it — so a product sits on either
+      // side of a bucket. Appending products after buckets (the previous shape)
+      // would put both after it, which is two lists wearing one heading.
       dataProductsEnabled = true
       const { getAllByTestId } = renderBuckets('?sort=name-asc')
       const rendered = getAllByTestId('entry').map((d) => d.textContent ?? '')
 
-      const acme = rendered.indexOf(
-        'dp:uc:aws-prod-metastore/quilt_demo/acme_cohort_2024',
-      )
+      const assay = rendered.indexOf('dp:fixture-assay-cohort-2026')
       const bucket = rendered.indexOf('bucket:bucket-one')
-      const clinical = rendered.indexOf('dp:datazone:dzd_4xample/lst_9kq2v')
+      const clinical = rendered.indexOf('dp:fixture-clinical-outcomes')
 
-      expect(acme).toBeGreaterThanOrEqual(0)
-      expect(bucket).toBeGreaterThan(acme)
+      expect(assay).toBeGreaterThanOrEqual(0)
+      expect(bucket).toBeGreaterThan(assay)
       expect(clinical).toBeGreaterThan(bucket)
     })
 
@@ -423,10 +425,11 @@ describe('website/pages/Landing/Buckets', () => {
       mockBuckets = [mkBucket('bucket-one')]
       dataProductsEnabled = true
       const { queryByText } = renderBuckets('?q=nomatchxyz')
-      // 1 bucket + the 7 fixture products.
+      // 1 bucket + the 5 products the default fixture workspace holds (two it
+      // owns, three it subscribes to, one of those revoked).
       expect(
         queryByText(
-          'Searched all 8 volumes you can reach, across name, description, and tags or labels.',
+          'Searched all 6 volumes you can reach, across name, description, and tags or labels.',
         ),
       ).toBeTruthy()
     })

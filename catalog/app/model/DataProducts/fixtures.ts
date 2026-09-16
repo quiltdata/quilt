@@ -1,862 +1,636 @@
 /**
- * Data Product fixtures, one per platform binding.
+ * Fixtures for the local volume model.
  *
- * These stand in for adapters that do not exist yet: no pipeline publishes
- * magic tables, and no byte broker is wired. The point is to build UX against a
- * shape that is *congruent with what the platforms actually produce* -- so
- * these fixtures are deliberately pessimistic, and each awkward field carries
- * the doc-verified reason it is that way.
+ * These stand in for a registry that serves no volume, exchange or mint API yet.
+ * Their value is not the data -- it is that the screens are built against a shape
+ * congruent with what the registry will produce, so the day an adapter lands, no
+ * container changes.
  *
- * Deliberately unfaithful in exactly one respect: `locator.token` is a made-up
- * string. That is safe because the UI never dereferences a locator -- it is
- * opaque and passed onward (clause 1.4). Everything else mirrors what its
- * platform can really return.
+ * **Every screen that renders these says so.** Not a courtesy: several of these
+ * rows are states that would be alarming if read as real -- an approval whose
+ * grant did not read back, a revoke that did not take. Presented as an operator's
+ * own stack they would send someone to debug Lake Formation. `FixtureNotice`
+ * carries the label; the ids all carry a `fixture-` prefix so a fixture volume
+ * cannot shadow a real bucket name at `/b/:bucket`; and there are no internal
+ * email addresses, account ids or real bucket names anywhere below.
  *
- * Three variants exist rather than one because intersection-mode rendering
- * alone would let capability-aware mode rot untested (clause 7.3).
+ * # Why this file holds stack-wide records and projects them
+ *
+ * The registry's `volumes` and `holdings` are stack-wide tables, and a workspace
+ * reads only **its own slice** of holdings (DEC-52, *ruled*). So the fixtures are
+ * written the same way: `PRODUCT_RECORDS` is what the stack knows, and
+ * `projectVolume` derives what one workspace may see -- its own holding, and the
+ * queue and subscriber list **only when it owns the product**.
+ *
+ * That projection is the point. Written the other way -- a `ProductVolume` per
+ * workspace with its subscriber list filled in by hand -- nothing would stop a
+ * screen from reading another workspace's holdings, and the rule would hold only
+ * as long as everyone remembered it. Here a non-owner projection has `requests`
+ * and `subscribers` as `null` by construction, so a screen that tried could not.
+ *
+ * # What the fixtures deliberately cover
+ *
+ * Two workspaces, exactly one active at a time (invariant 9), and switching
+ * changes the holdings slice, the publisher's queue and the listing -- because
+ * "one active workspace, never unioned" is only testable if there are two.
+ *
+ * Every state a screen must render distinctly: the four agreeing ones, and every
+ * disagreement -- approved with the grant missing, rejected with a grant still
+ * present, a revoke that did not take, an approval recorded as failed, and a
+ * read-back that did not answer at all.
+ *
+ * What they deliberately do **not** contain: a capture. Minting is not wired, so
+ * there are no invented bytes and no invented file tree -- see
+ * `UNAVAILABLE_ACTS.MINT`.
  */
 
-import type { Capabilities, DataProduct, Member, PackageHandle } from './types'
-import type { Connection } from './connections'
-import type { ContentEntry } from './contents'
-import type { AccessRequest } from './requests'
-import { capabilitiesFor as capabilitiesForKind } from './capabilities'
+import type {
+  BucketVolume,
+  Capture,
+  Decision,
+  Definition,
+  GrantObservation,
+  Holding,
+  ProductVolume,
+  Publication,
+  Subscription,
+  Workspace,
+} from './types'
 
-const token = (s: string) => ({ token: s })
+/** Fixed so "last checked" rendering and snapshots stay deterministic. */
+const NOW = new Date('2026-09-15T12:00:00.000Z')
+const d = (iso: string) => new Date(iso)
 
-/** Fixed so snapshots and "last checked" rendering stay deterministic. */
-const FETCHED_AT = new Date('2026-08-17T12:00:00.000Z')
+const ws = (name: string): Workspace => ({ name })
+
+const grant = (status: GrantObservation['status'], at = NOW): GrantObservation => ({
+  status,
+  at,
+})
+
+const decision = (
+  kind: Decision['kind'],
+  by: string,
+  at: string,
+  reason?: string,
+): Decision => ({ kind, by, at: d(at), exchange: 'local', reason })
+
+// ---------------------------------------------------------------------------
+// The two workspaces.
+// ---------------------------------------------------------------------------
+
+export const WS_GENOMICS = 'fixture-ws-genomics'
+export const WS_CLINICAL = 'fixture-ws-clinical'
 
 /**
- * DataZone: a product wrapper over two heterogeneous members.
+ * The workspaces this fixture stack has, and the one active by default.
  *
- * Notable, and all verified:
- * - `curationStatus` is null because DataZone has no such concept -- not
- *   because this product is uncertified. Read it through the capability flag.
- * - `owningEntity` is a PROJECT with `derived: false`. There is no per-product
- *   owner API (`ListEntityOwners` is DOMAIN_UNIT-only); a human name would have
- *   to be derived from project memberships, hence PROJECT rather than a person.
- * - The S3 member has `schema: null` and no `sizeBytes`. DataZone's S3 asset
- *   type carries only `bucketArn`; granularity is bucket/prefix, never
- *   per-object. A fixture showing per-file sizes would teach the UI a shape
- *   DataZone cannot deliver.
- * - The tabular member *does* have columns, but reaching them requires parsing
- *   an opaque JSON `forms` string -- which is why `memberSchema` is false for
- *   DataZone even though columns appear here.
- * - Grants are PROJECT-principal with `origin: 'UNKNOWN'`: subscriptions are
- *   enumerations, not an inherited-grant model.
+ * A switcher over these exists on the prototype's surfaces so the "one active
+ * workspace" rule can be *seen*: the same product shows the publisher face to one
+ * and the subscriber face to the other, and neither list ever contains the other's
+ * holdings. In the real catalog this is `switchRole`, which already exists.
  */
-export const DATAZONE_PRODUCT: DataProduct = {
-  id: 'datazone:dzd_4xample/lst_9kq2v',
-  name: 'Clinical Cohort 2024',
-  description: 'Curated patient cohort with linked assay outputs. Quarterly refresh.',
-  labels: ['clinical', 'cohort', 'phi-adjacent'],
-  curationStatus: null,
-  owningEntity: { kind: 'PROJECT', label: 'Clinical Data Platform', derived: false },
-  members: [
-    {
-      logicalName: 'cohort_manifest',
-      kind: 'TABLE',
-      schema: [
-        { name: 'subject_id', type: 'string', description: 'Pseudonymised subject key' },
-        { name: 'enrolled_on', type: 'date' },
-        { name: 'site_code', type: 'string' },
-        { name: 'arm', type: 'string', description: 'Treatment arm' },
-      ],
-      locator: token('dz:asset/4h8x2p:cohort_manifest'),
-      readable: true,
-      // Glue table: DataZone enumerates it and Lake Formation governs it, so
-      // row/column rules may be filtering what we display.
-      contentsSource: 'CATALOG',
-    },
-    {
-      logicalName: 'assay_outputs',
-      kind: 'FILESET',
-      schema: null,
-      locator: token('dz:asset/7m1k9q:assay_outputs'),
-      readable: false,
-      // The S3 asset form carries only {"bucketArn": ...} -- no file list, no
-      // sizes. Browsing into it means Quilt listing S3 off that ARN, which
-      // reaches around the catalog: its governance does not cover what we show.
-      // Here `readable: false` means we cannot list it at all yet.
-      contentsSource: 'DIRECT_S3',
-    },
-  ],
-  grants: [
-    {
-      principal: 'Clinical Data Platform',
-      principalType: 'PROJECT',
-      privilege: 'READ',
-      nativePrivilege: 'SUBSCRIPTION:APPROVED',
-      origin: 'UNKNOWN',
-    },
-    {
-      principal: 'Biostatistics',
-      principalType: 'PROJECT',
-      privilege: 'READ',
-      nativePrivilege: 'SUBSCRIPTION:APPROVED',
-      origin: 'UNKNOWN',
-    },
-  ],
-  // An approved DataZone subscription may be row/column-filtered via
-  // assetScopes[].filterIds, so a policy can be present without us being able
-  // to characterise it.
-  policyFlags: { rowLevel: 'PRESENT', columnMask: 'NOT_VISIBLE' },
-  binding: {
-    kind: 'datazone',
-    domainId: 'dzd_4xample',
-    listingId: 'lst_9kq2v',
-    entityId: 'ast_2bv7',
+export const WORKSPACES = [WS_GENOMICS, WS_CLINICAL]
+
+export const DEFAULT_WORKSPACE = WS_GENOMICS
+
+// ---------------------------------------------------------------------------
+// The exchange record: requests and decisions, stack-wide.
+// ---------------------------------------------------------------------------
+
+const ASSAY = 'fixture-assay-cohort-2026'
+const DRAFT = 'fixture-variant-calls-draft'
+const PANELS = 'fixture-reference-panels'
+const OUTCOMES = 'fixture-clinical-outcomes'
+const TILES = 'fixture-imaging-tiles'
+const LEGACY = 'fixture-legacy-assays'
+
+/**
+ * Requests against `fixture-assay-cohort-2026`, which `ws-genomics` owns.
+ *
+ * One per state the publisher's Sharing screen must render distinctly. The
+ * clinical workspace is among them, which is what makes the face switch
+ * meaningful: the same row is a queue entry to the owner and its own access state
+ * to the subscriber.
+ */
+const ASSAY_SUBSCRIPTIONS: Subscription[] = [
+  // Agreeing: no decision yet.
+  {
+    id: 'sub-pending',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-biostats'),
+    requestedBy: 'j.tan',
+    requestedAt: d('2026-09-11T08:05:00.000Z'),
+    decision: null,
+    grant: grant('ABSENT'),
+    lastFailure: null,
   },
-  fetchedAt: FETCHED_AT,
-}
-
-/**
- * Unity Catalog: a synthesized product -- a schema plus tags.
- *
- * Notable, and all verified:
- * - `id` is composed from metastore/catalog/schema and is *not stable across
- *   renames*. Nothing emits an event when it changes.
- * - `curationStatus` is populated. Unity is the only platform with a real
- *   curation primitive (`system.certification_status`).
- * - Grants carry `origin` because the effective-permissions endpoint reports
- *   it, and `nativePrivilege` shows the conjunction Unity actually requires:
- *   `USE CATALOG` and `USE SCHEMA` are separate grants from `SELECT`, and
- *   normalizing them all to READ would erase why a user can or cannot read.
- * - The FILESET member is a volume: `schema: null`, `READ VOLUME` rather than
- *   `SELECT`, and no row policy is even possible on it -- volumes are not
- *   tables.
- * - `BROWSE` appears as a grant to `account users`: discovery without data
- *   access, which is the state the UI must render without implying readability.
- */
-export const UNITY_PRODUCT: DataProduct = {
-  id: 'uc:aws-prod-metastore/quilt_demo/acme_cohort_2024',
-  name: 'acme_cohort_2024',
-  description: 'Acme Cohort 2024 - curated clinical package metadata.',
-  labels: ['data_product=acme_cohort_2024', 'domain=clinical'],
-  curationStatus: 'certified',
-  owningEntity: { kind: 'PRINCIPAL', label: 'data-platform-team', derived: false },
-  members: [
-    {
-      logicalName: 'package_entries',
-      kind: 'TABLE',
-      schema: [
-        { name: 'package_name', type: 'string' },
-        { name: 'package_top_hash', type: 'string', description: 'Immutable revision' },
-        { name: 'logical_key', type: 'string' },
-        { name: 'size_bytes', type: 'bigint' },
-        { name: 'physical_uri', type: 'string', description: 'Opaque to the UI' },
-      ],
-      locator: token('uc:quilt_demo.acme_cohort_2024.package_entries'),
-      readable: true,
-      // Unity table: columns via TableInfo, and row filters / column masks can
-      // be attached, so the catalog both enumerates and governs it.
-      contentsSource: 'CATALOG',
+  /**
+   * An approve whose grant write did not read back -- Fig. 5's `else` branch.
+   *
+   * The publisher must see *approval failed* with a retry; the subscriber sees a
+   * plain pending. Two faces, one row: the case a single stored state cannot
+   * carry, and the reason `deriveState` takes a face.
+   */
+  {
+    id: 'sub-approval-failed',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-imaging'),
+    requestedBy: 'p.novak',
+    requestedAt: d('2026-09-10T11:20:00.000Z'),
+    decision: null,
+    grant: grant('ABSENT'),
+    lastFailure: {
+      at: d('2026-09-12T10:02:00.000Z'),
+      cause:
+        'GrantPermissions: EntityNotFoundException (view not found in product database)',
     },
-    {
-      logicalName: 'raw_files',
-      kind: 'FILESET',
-      schema: null,
-      locator: token('uc:/Volumes/quilt_demo/acme_cohort_2024/raw_files'),
-      sizeBytes: 4_812_390_400,
-      readable: true,
-      // A volume is path-based and cannot be a table, so no row/column rule can
-      // reach it. Unity can list the path (READ VOLUME, /api/2.0/fs/*), but the
-      // contents are ungoverned by row-level policy either way.
-      contentsSource: 'CATALOG',
-    },
-  ],
-  grants: [
-    {
-      principal: 'account users',
-      principalType: 'GROUP',
-      privilege: 'BROWSE',
-      nativePrivilege: 'BROWSE',
-      origin: 'DIRECT',
-    },
-    {
-      principal: 'quilt-consumers',
-      principalType: 'GROUP',
-      privilege: 'READ',
-      nativePrivilege: 'USE CATALOG',
-      origin: 'INHERITED',
-    },
-    {
-      principal: 'quilt-consumers',
-      principalType: 'GROUP',
-      privilege: 'READ',
-      nativePrivilege: 'USE SCHEMA',
-      origin: 'DIRECT',
-    },
-    {
-      principal: 'quilt-consumers',
-      principalType: 'GROUP',
-      privilege: 'READ',
-      nativePrivilege: 'SELECT',
-      origin: 'DIRECT',
-    },
-    {
-      principal: 'data-platform-team',
-      principalType: 'GROUP',
-      privilege: 'MANAGE',
-      nativePrivilege: 'ALL PRIVILEGES',
-      origin: 'DIRECT',
-    },
-  ],
-  policyFlags: { rowLevel: 'PRESENT', columnMask: 'PRESENT' },
-  binding: {
-    kind: 'unity-schema',
-    metastore: 'aws-prod-metastore',
-    catalog: 'quilt_demo',
-    schema: 'acme_cohort_2024',
   },
-  fetchedAt: FETCHED_AT,
-}
-
-/**
- * Snowflake: an organizational listing over one share.
- *
- * Notable, and all verified:
- * - Grants are ROLE-principal with `origin: 'UNKNOWN'`. Effective access needs
- *   a role-closure traversal against a snapshot up to 120 minutes stale, with a
- *   documented blind spot for share-derived database roles. Claiming
- *   DIRECT/INHERITED here would be a fabricated confidence.
- * - `policyFlags.rowLevel` is `NOT_VISIBLE`, not false. `POLICY_REFERENCES`
- *   filters by the caller's own privileges, so a role without APPLY/OWNERSHIP
- *   sees nothing. This fixture exists partly to force the UI to render that
- *   third state honestly.
- * - `owningEntity` is a role, not a person -- Snowflake ownership is
- *   role-based.
- */
-export const SNOWFLAKE_PRODUCT: DataProduct = {
-  id: 'snowflake:GZT1a9xQ2',
-  name: 'Trial Outcomes (Shared)',
-  description: null,
-  labels: ['trials'],
-  curationStatus: null,
-  owningEntity: { kind: 'PRINCIPAL', label: 'DATA_PRODUCT_OWNER', derived: false },
-  members: [
-    {
-      logicalName: 'TRIAL_OUTCOMES',
-      kind: 'VIEW',
-      schema: null,
-      locator: token('sf:SHARED_DB.PUBLIC.TRIAL_OUTCOMES'),
-      readable: true,
-      // A share-derived view: Snowflake enumerates it, and a row access policy
-      // may be attached that POLICY_REFERENCES will not disclose to us (see
-      // policyFlags.rowLevel: 'NOT_VISIBLE' below). Governed, but opaquely so.
-      contentsSource: 'CATALOG',
-    },
-  ],
-  grants: [
-    {
-      principal: 'ANALYST_RL',
-      principalType: 'ROLE',
-      privilege: 'READ',
-      nativePrivilege: 'SELECT',
-      origin: 'UNKNOWN',
-    },
-    {
-      principal: 'PUBLIC',
-      principalType: 'ROLE',
-      privilege: 'BROWSE',
-      nativePrivilege: 'USAGE',
-      origin: 'UNKNOWN',
-    },
-  ],
-  policyFlags: { rowLevel: 'NOT_VISIBLE', columnMask: 'NOT_VISIBLE' },
-  binding: { kind: 'snowflake-listing', listingId: 'GZT1a9xQ2' },
-  fetchedAt: FETCHED_AT,
-}
-
-/**
- * A discovery-only product: visible, zero readable members.
- *
- * Unity's `BROWSE` grants exactly this -- see the product, its description and
- * tags, read nothing. Not an error state and not an empty product; it is the
- * state that makes a request-access affordance meaningful (clause 3.2, 5.2),
- * and the one most likely to be mishandled as "no data".
- */
-export const DISCOVERY_ONLY_PRODUCT: DataProduct = {
-  id: 'uc:aws-prod-metastore/quilt_demo/restricted_cohort',
-  name: 'restricted_cohort',
-  description: 'Restricted cohort. Request access to view contents.',
-  labels: ['data_product=restricted_cohort', 'domain=clinical', 'sensitivity=high'],
-  curationStatus: null,
-  owningEntity: { kind: 'PRINCIPAL', label: 'clinical-governance', derived: false },
-  members: [],
-  grants: [
-    {
-      principal: 'account users',
-      principalType: 'GROUP',
-      privilege: 'BROWSE',
-      nativePrivilege: 'BROWSE',
-      origin: 'DIRECT',
-    },
-  ],
-  policyFlags: { rowLevel: 'UNKNOWN', columnMask: 'UNKNOWN' },
-  binding: {
-    kind: 'unity-schema',
-    metastore: 'aws-prod-metastore',
-    catalog: 'quilt_demo',
-    schema: 'restricted_cohort',
+  // Agreeing: approve + grant present. The clinical workspace's own row.
+  {
+    id: 'sub-clinical',
+    volumeId: ASSAY,
+    subscriber: ws(WS_CLINICAL),
+    requestedBy: 'r.okafor',
+    requestedAt: d('2026-09-02T09:12:00.000Z'),
+    decision: decision('APPROVE', 'l.mendes', '2026-09-02T15:40:00.000Z'),
+    grant: grant('PRESENT'),
+    lastFailure: null,
   },
-  fetchedAt: FETCHED_AT,
-}
-
-/**
- * Unity via Delta Sharing: the fourth binding kind, and the only one where the
- * product is consumed rather than owned.
- *
- * Exists because `unity-share` had no fixture at all while being a real
- * `PlatformBinding` case that maps to the same UNITY capabilities as
- * `unity-schema`. Three branches only this fixture reaches:
- *
- * - `curationStatus: null` *with* `caps.curationStatus === true`. Unity can
- *   express curation, this share has none set. That is the "Not set" reading --
- *   genuinely different from DataZone, where the field is absent because the
- *   concept does not exist. Nothing else exercises the difference.
- * - A `RECIPIENT` principal, whose approval widens to everyone using the share.
- * - An `UNAVAILABLE` member, the third `ContentsSource` state.
- */
-export const UNITY_SHARE_PRODUCT: DataProduct = {
-  id: 'uc:aws-prod-metastore/share/acme_trials_outbound',
-  name: 'acme_trials_outbound',
-  description: 'Trial results shared out to the Acme analytics recipient.',
-  labels: ['domain=clinical', 'sharing=outbound'],
-  // Unity *can* carry certification; this share has none. Renders "Not set",
-  // not absent -- see the class comment.
-  curationStatus: null,
-  owningEntity: { kind: 'PRINCIPAL', label: 'data-platform-team', derived: false },
-  members: [
-    {
-      logicalName: 'trial_results',
-      kind: 'TABLE',
-      schema: [
-        { name: 'trial_id', type: 'string' },
-        { name: 'endpoint', type: 'string', description: 'Primary endpoint measured' },
-        { name: 'value', type: 'double' },
-      ],
-      locator: token('uc:share/acme_trials_outbound#trial_results'),
-      readable: true,
-      contentsSource: 'CATALOG',
-    },
-    {
-      // A share entry that no longer resolves on the provider side. Shares
-      // reference objects by name, so a dropped or renamed upstream table leaves
-      // an entry that cannot be listed -- distinct from "not readable by you",
-      // which is a permission answer rather than a missing object.
-      logicalName: 'trial_sites',
-      kind: 'TABLE',
-      schema: null,
-      locator: token('uc:share/acme_trials_outbound#trial_sites'),
-      readable: false,
-      contentsSource: 'UNAVAILABLE',
-      // NOT_FOUND, not a permission answer: shares reference objects by name, so
-      // a dropped or renamed upstream table leaves an entry pointing at nothing.
-      // The distinction matters here more than most places -- `readable: false`
-      // on this member is the catalog reporting it cannot resolve the target,
-      // and telling the reader to request access would send them to an admin who
-      // finds nothing to grant.
-      unavailableReason: 'NOT_FOUND',
-    },
-  ],
-  grants: [
-    {
-      // `GRANT SELECT ON SHARE ... TO RECIPIENT ...` -- the recipient is the
-      // principal, and it is an external identity rather than a workspace group.
-      principal: 'acme_analytics',
-      principalType: 'RECIPIENT',
-      privilege: 'READ',
-      nativePrivilege: 'SELECT',
-      origin: 'DIRECT',
-    },
-    {
-      principal: 'data-platform-team',
-      principalType: 'GROUP',
-      privilege: 'MANAGE',
-      nativePrivilege: 'ALL PRIVILEGES',
-      origin: 'DIRECT',
-    },
-  ],
-  // Not claimed either way: what a recipient sees through a share is mediated by
-  // the provider's own rules, and the share surface does not report whether a
-  // row filter or column mask sits behind it. UNKNOWN rather than a guess.
-  policyFlags: { rowLevel: 'UNKNOWN', columnMask: 'UNKNOWN' },
-  binding: {
-    kind: 'unity-share',
-    metastore: 'aws-prod-metastore',
-    shareName: 'acme_trials_outbound',
+  /**
+   * Approved, no failure recorded, and the grant is gone.
+   *
+   * Not the same as `sub-approval-failed`, and the difference is the whole point:
+   * nobody attempted-and-failed here, so there is nothing to retry -- the grant
+   * went missing after the fact. An audit read, reported unresolved to both faces
+   * and collapsed into neither Pending nor Approved.
+   */
+  {
+    id: 'sub-approved-grant-missing',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-registry-ops'),
+    requestedBy: 's.iqbal',
+    requestedAt: d('2026-08-28T14:00:00.000Z'),
+    decision: decision('APPROVE', 'l.mendes', '2026-08-28T16:30:00.000Z'),
+    grant: grant('ABSENT'),
+    lastFailure: null,
   },
-  fetchedAt: FETCHED_AT,
-}
+  // Rejected, with the publisher's reason shown to the requester verbatim.
+  {
+    id: 'sub-rejected',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-partner-eval'),
+    requestedBy: 'm.aoki',
+    requestedAt: d('2026-09-04T07:45:00.000Z'),
+    decision: decision(
+      'REJECT',
+      'l.mendes',
+      '2026-09-04T12:10:00.000Z',
+      'Cohort is limited to consented studies; ask again with a study id.',
+    ),
+    grant: grant('ABSENT'),
+    lastFailure: null,
+  },
+  // Rejected, yet a grant is present. The audit fact from the other side.
+  {
+    id: 'sub-rejected-grant-present',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-legacy-etl'),
+    requestedBy: 'v.silva',
+    requestedAt: d('2026-08-20T10:00:00.000Z'),
+    decision: decision('REJECT', 'l.mendes', '2026-08-20T11:00:00.000Z'),
+    grant: grant('PRESENT'),
+    lastFailure: null,
+  },
+  // Revoked and the grant is gone. Credentials minted before it live to TTL.
+  {
+    id: 'sub-revoked',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-archive'),
+    requestedBy: 'h.berger',
+    requestedAt: d('2026-07-15T09:00:00.000Z'),
+    decision: decision('REVOKE', 'l.mendes', '2026-09-08T09:00:00.000Z'),
+    grant: grant('ABSENT'),
+    lastFailure: null,
+  },
+  /**
+   * Revoke recorded, grant still present: the removal did not take.
+   *
+   * The faces disagree in the other direction here -- the publisher sees *revoke
+   * failed* and retries, the subscriber reads *approved*, because they can still
+   * read. Telling them access was removed would be false.
+   */
+  {
+    id: 'sub-revoke-failed',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-vendor-qc'),
+    requestedBy: 'a.dubois',
+    requestedAt: d('2026-08-01T13:30:00.000Z'),
+    decision: decision('REVOKE', 'l.mendes', '2026-09-13T16:45:00.000Z'),
+    grant: grant('PRESENT'),
+    lastFailure: {
+      at: d('2026-09-13T16:45:30.000Z'),
+      cause: 'RevokePermissions: ConcurrentModificationException',
+    },
+  },
+  // The read-back call itself failed. Not a state of the subscription.
+  {
+    id: 'sub-unknown',
+    volumeId: ASSAY,
+    subscriber: ws('fixture-ws-ml-platform'),
+    requestedBy: 'k.zhou',
+    requestedAt: d('2026-09-05T15:00:00.000Z'),
+    decision: decision('APPROVE', 'l.mendes', '2026-09-05T17:20:00.000Z'),
+    grant: grant('UNREAD'),
+    lastFailure: null,
+  },
+]
+
+/** `ws-genomics` is approved on the reference panels the reference-data workspace publishes. */
+const PANELS_SUBSCRIPTIONS: Subscription[] = [
+  {
+    id: 'sub-genomics-panels',
+    volumeId: PANELS,
+    subscriber: ws(WS_GENOMICS),
+    requestedBy: 'l.mendes',
+    requestedAt: d('2026-09-09T10:15:00.000Z'),
+    decision: decision('APPROVE', 'd.ferreira', '2026-09-09T14:00:00.000Z'),
+    grant: grant('PRESENT'),
+    lastFailure: null,
+  },
+]
+
+/** `ws-genomics` has asked the clinical workspace for its outcomes, and is waiting. */
+const OUTCOMES_SUBSCRIPTIONS: Subscription[] = [
+  {
+    id: 'sub-genomics-outcomes',
+    volumeId: OUTCOMES,
+    subscriber: ws(WS_GENOMICS),
+    requestedBy: 'l.mendes',
+    requestedAt: d('2026-09-14T09:30:00.000Z'),
+    decision: null,
+    grant: grant('ABSENT'),
+    lastFailure: null,
+  },
+]
+
+/** `ws-genomics` was revoked on the legacy assays, and the row stays listed as such. */
+const LEGACY_SUBSCRIPTIONS: Subscription[] = [
+  {
+    id: 'sub-genomics-legacy',
+    volumeId: LEGACY,
+    subscriber: ws(WS_GENOMICS),
+    requestedBy: 'l.mendes',
+    requestedAt: d('2026-04-02T09:00:00.000Z'),
+    decision: decision('REVOKE', 'h.berger', '2026-09-07T10:00:00.000Z'),
+    grant: grant('ABSENT'),
+    lastFailure: null,
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Stack-wide product records.
+// ---------------------------------------------------------------------------
 
 /**
- * DataZone wrapping a **Quilt package** -- modeled on a real deployment.
+ * One `volumes` row plus the exchange's record for it.
  *
- * Every awkward detail here was read out of AWS's `raja-poc` staging domain
- * rather than invented; see `research/raja-poc-reverse-engineered.md`. It is the
- * only fixture whose shape is corroborated by something running.
- *
- * What it exercises that nothing else does:
- * - `contentsSource: 'PACKAGE'` -- contents come from a pinned manifest, so the
- *   listing carries logical keys and per-entry sizes and is reproducible. The
- *   other file-ish source (`DIRECT_S3`) has neither.
- * - A `packageHandle` on the binding *and* on the member. Real: the locator is
- *   the asset's `externalIdentifier`, a fully-pinned Quilt+ URI.
- *
- * The names mirror the real domain (`alpha/home` under project `raja-owner`) so
- * anyone comparing this fixture to the live deployment sees the same shape.
+ * Deliberately *not* a `ProductVolume`: it has no `holding`, because a holding is
+ * a fact about a workspace and this is a fact about the stack. `projectVolume`
+ * turns one into the other for one reader.
  */
-export const PACKAGE_PRODUCT: DataProduct = {
-  id: 'datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv',
-  name: 'alpha/home',
-  // The real asset's description is generated: "RAJA package asset for
-  // alpha/home". Kept close to that rather than written as marketing copy,
-  // because a generated description is what the UI will actually receive.
-  description: 'RAJA package asset for alpha/home. JWT-scoped read via the broker.',
-  labels: ['raja', 'package-backed'],
-  curationStatus: null,
-  owningEntity: { kind: 'PROJECT', label: 'raja-owner', derived: false },
-  members: [
-    {
-      // One member per package. The real implementation is one listing per
-      // package, with entries enumerated on demand by walking the manifest --
-      // so a member here is the package, not a file in it.
-      logicalName: 'alpha/home',
-      // FILESET rather than TABLE: package entries are files. No columns exist
-      // to expose, and `schema: null` is correct representation, not a gap.
-      kind: 'FILESET',
-      schema: null,
-      locator: token(
-        'quilt+s3://raja-poc-registry-712023778557-us-east-1#package=alpha/home@bee98d06',
-      ),
-      readable: true,
-      contentsSource: 'PACKAGE',
-      // Sizes come from the manifest, so a total is knowable without touching
-      // S3 -- unlike DIRECT_S3, where the catalog carries only a bucket ARN.
-      sizeBytes: 369,
-      packageHandle: {
-        registry: 'raja-poc-registry-712023778557-us-east-1',
-        name: 'alpha/home',
-        topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
+interface ProductRecord {
+  id: string
+  title: string
+  description: string | null
+  owner: string
+  designatedBy: string
+  designatedAt: Date
+  definition: Definition
+  published: Publication | null
+  /** The exchange record for this product: every request, with its decision and read-back. */
+  subscriptions: Subscription[]
+}
+
+const PROXY_ENDPOINT = 'https://dpp.example-stack.quilt/local/'
+
+const PRODUCT_RECORDS: ProductRecord[] = [
+  {
+    id: ASSAY,
+    title: 'Assay cohort 2026',
+    description: 'Plate-level assay outputs joined to the consented cohort manifest.',
+    owner: WS_GENOMICS,
+    designatedBy: 'l.mendes',
+    designatedAt: d('2026-08-18T10:00:00.000Z'),
+    definition: {
+      view: 'assay_cohort_2026_v3',
+      versionId: 'gv-8c41f0',
+      sql:
+        'SELECT\n' +
+        "  concat('plates/', p.plate_id, '/', o.file_name) AS logical_key,\n" +
+        '  o.bucket,\n' +
+        '  o.key,\n' +
+        '  o.version_id\n' +
+        'FROM "fixture_assay_raw"."objects" o\n' +
+        'JOIN "fixture_cohort_ref"."plates" p ON p.plate_id = o.plate_id\n' +
+        "WHERE p.consent_status = 'consented'",
+      referencedBuckets: ['fixture-assay-raw', 'fixture-cohort-ref'],
+      authoredAt: d('2026-09-06T11:30:00.000Z'),
+    },
+    published: { scope: 'STACK', publishedAt: d('2026-08-18T10:20:00.000Z') },
+    subscriptions: ASSAY_SUBSCRIPTIONS,
+  },
+  /**
+   * Designated and not published.
+   *
+   * Its own state, not a half-finished one: a row and a database exist, and there
+   * is no listing. The Sharing screen says a product that is unpublished cannot
+   * receive requests, rather than showing an empty queue with no explanation.
+   */
+  {
+    id: DRAFT,
+    title: 'Variant calls (draft)',
+    description: 'Working definition over the variant call sets. Not shared yet.',
+    owner: WS_GENOMICS,
+    designatedBy: 'l.mendes',
+    designatedAt: d('2026-09-14T16:00:00.000Z'),
+    definition: {
+      view: 'variant_calls_draft_v1',
+      versionId: 'gv-11ab90',
+      sql:
+        "SELECT concat('vcf/', s.sample_id, '.vcf.gz') AS logical_key, o.bucket, o.key\n" +
+        'FROM "fixture_variant_raw"."objects" o\n' +
+        'JOIN "fixture_variant_raw"."samples" s ON s.sample_id = o.sample_id',
+      referencedBuckets: ['fixture-variant-raw'],
+      authoredAt: d('2026-09-14T16:00:00.000Z'),
+    },
+    published: null,
+    subscriptions: [],
+  },
+  {
+    id: OUTCOMES,
+    title: 'Clinical outcomes',
+    description: 'Outcome measures by study arm.',
+    owner: WS_CLINICAL,
+    designatedBy: 'r.okafor',
+    designatedAt: d('2026-07-21T13:00:00.000Z'),
+    definition: {
+      view: 'clinical_outcomes_v2',
+      versionId: 'gv-90ffa2',
+      sql:
+        "SELECT concat('outcomes/', a.arm_id, '/', o.file_name) AS logical_key, o.bucket, o.key\n" +
+        'FROM "fixture_clinical_core"."objects" o\n' +
+        'JOIN "fixture_clinical_core"."arms" a ON a.arm_id = o.arm_id',
+      referencedBuckets: ['fixture-clinical-core'],
+      authoredAt: d('2026-08-30T10:00:00.000Z'),
+    },
+    published: { scope: 'STACK', publishedAt: d('2026-07-21T13:15:00.000Z') },
+    subscriptions: OUTCOMES_SUBSCRIPTIONS,
+  },
+  {
+    id: PANELS,
+    title: 'Reference panels',
+    description: 'Curated reference panels for imputation, refreshed quarterly.',
+    owner: 'fixture-ws-reference-data',
+    designatedBy: 'd.ferreira',
+    designatedAt: d('2026-06-02T09:00:00.000Z'),
+    definition: {
+      view: 'reference_panels_v7',
+      versionId: 'gv-4471de',
+      sql:
+        "SELECT concat('panels/', p.panel_id, '.bcf') AS logical_key, o.bucket, o.key\n" +
+        'FROM "fixture_reference_data"."objects" o\n' +
+        'JOIN "fixture_reference_data"."panels" p ON p.panel_id = o.panel_id',
+      referencedBuckets: ['fixture-reference-data'],
+      authoredAt: d('2026-09-01T08:00:00.000Z'),
+    },
+    published: { scope: 'STACK', publishedAt: d('2026-06-02T09:30:00.000Z') },
+    subscriptions: PANELS_SUBSCRIPTIONS,
+  },
+  /** Published in the stack, held by neither of the two switchable workspaces. */
+  {
+    id: TILES,
+    title: 'Imaging tiles',
+    description: 'Whole-slide image tiles with per-slide manifests.',
+    owner: 'fixture-ws-imaging',
+    designatedBy: 'p.novak',
+    designatedAt: d('2026-05-11T11:00:00.000Z'),
+    definition: {
+      view: 'imaging_tiles_v4',
+      versionId: 'gv-2a77c1',
+      sql: null,
+      referencedBuckets: ['fixture-imaging-raw', 'fixture-imaging-derived'],
+      authoredAt: d('2026-08-12T14:00:00.000Z'),
+    },
+    published: { scope: 'STACK', publishedAt: d('2026-05-11T11:30:00.000Z') },
+    // The clinical workspace subscribes here and the genomics workspace does not,
+    // so neither workspace's holdings are a subset of the other's. That matters for
+    // more than realism: with one list nested inside the other, a screen that
+    // unioned the two roles would look merely longer rather than visibly wrong.
+    subscriptions: [
+      {
+        id: 'sub-clinical-tiles',
+        volumeId: TILES,
+        subscriber: ws(WS_CLINICAL),
+        requestedBy: 'r.okafor',
+        requestedAt: d('2026-08-19T09:00:00.000Z'),
+        decision: decision('APPROVE', 'p.novak', '2026-08-19T14:30:00.000Z'),
+        grant: grant('PRESENT'),
+        lastFailure: null,
       },
-    },
-  ],
-  grants: [
-    {
-      principal: 'raja-owner',
-      principalType: 'PROJECT',
-      privilege: 'MANAGE',
-      nativePrivilege: 'OWNING_PROJECT',
-      origin: 'UNKNOWN',
-    },
-    {
-      // A real approved subscription in the live domain, whose subscribed
-      // principal is a *project* rather than a person -- which is why
-      // PrincipalType has a PROJECT arm at all.
-      principal: 'raja-guests',
-      principalType: 'PROJECT',
-      privilege: 'READ',
-      nativePrivilege: 'SUBSCRIPTION:APPROVED',
-      origin: 'UNKNOWN',
-    },
-  ],
-  // Nothing observed says otherwise, and the broker's grant is package-wide with
-  // per-object membership checks rather than a row filter. NOT_VISIBLE would
-  // imply we looked and were refused; UNKNOWN is the honest state.
-  policyFlags: { rowLevel: 'UNKNOWN', columnMask: 'UNKNOWN' },
-  binding: {
-    kind: 'datazone',
-    domainId: 'dzd-61b4n7ubllnqlj',
-    listingId: '46g5jnuhfnucyv',
-    entityId: 'brga0b06ujf3tz',
-    packageHandle: {
-      registry: 'raja-poc-registry-712023778557-us-east-1',
-      name: 'alpha/home',
-      topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
-    },
+    ],
   },
-  fetchedAt: FETCHED_AT,
+  {
+    id: LEGACY,
+    title: 'Legacy assays',
+    description: 'Retired assay outputs, retained for reproducibility.',
+    owner: 'fixture-ws-archive',
+    designatedBy: 'h.berger',
+    designatedAt: d('2026-03-14T09:00:00.000Z'),
+    definition: {
+      view: 'legacy_assays_v1',
+      versionId: 'gv-55cc02',
+      sql: null,
+      referencedBuckets: ['fixture-legacy-archive'],
+      authoredAt: d('2026-03-14T09:00:00.000Z'),
+    },
+    published: { scope: 'STACK', publishedAt: d('2026-03-14T09:20:00.000Z') },
+    subscriptions: LEGACY_SUBSCRIPTIONS,
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Bucket volumes and the reach.
+// ---------------------------------------------------------------------------
+
+interface BucketRecord {
+  id: string
+  description: string
+  /** Which workspaces hold it, and at what level. The holdings slice for buckets. */
+  holders: Record<string, 'RW' | 'RO'>
 }
 
 /**
- * A published product pointing at a package that does not resolve.
+ * Bucket records.
  *
- * **Not hypothetical.** Four of the seven products published in `raja-poc` are
- * in this state: `scale/1k`, `scale/10k`, `scale/100k` and `scale/1m` are all
- * discoverable and subscribable, and `Package.browse` on each fails `NoSuchKey`
- * against the registry that deployment is configured with (research §5).
- *
- * Exists so `NOT_FOUND` is rendered by something rather than being a branch
- * nobody has seen. Note the shape it forces: the product is complete and legible
- * -- name, description, owner, grants -- and only its contents are missing. A UI
- * that treated unresolvable contents as a broken product would hide information
- * the reader can still use.
+ * They carry nothing but the wrapper: the catalog's own bucket queries still
+ * supply everything a bucket screen renders, and the volume model adds a kind
+ * rather than moving anything a bucket user has (the stable-destination rule).
  */
-export const DANGLING_PACKAGE_PRODUCT: DataProduct = {
-  id: 'datazone:dzd-61b4n7ubllnqlj/5i2yhfmdd9nbqf',
-  name: 'scale/1k',
-  description: 'RAJA package asset for scale/1k. Scale-test fixture.',
-  labels: ['raja', 'scale-test'],
-  curationStatus: null,
-  owningEntity: { kind: 'PROJECT', label: 'raja-owner', derived: false },
-  members: [
-    {
-      logicalName: 'scale/1k',
-      kind: 'FILESET',
-      schema: null,
-      locator: token(
-        'quilt+s3://raja-poc-registry-712023778557-us-east-1#package=scale/1k@0000000',
-      ),
-      // `readable: true` is deliberate and is the point of this fixture. The
-      // catalog authorized us; the package is simply not where it says. Setting
-      // this false would conflate a publishing fault with a permission denial --
-      // exactly the collapse the four reasons exist to prevent.
-      readable: true,
-      contentsSource: 'UNAVAILABLE',
-      unavailableReason: 'NOT_FOUND',
-      packageHandle: {
-        registry: 'raja-poc-registry-712023778557-us-east-1',
-        name: 'scale/1k',
-        topHash: '0000000000000000000000000000000000000000000000000000000000000000',
-      },
-    },
-  ],
-  grants: [
-    {
-      principal: 'raja-owner',
-      principalType: 'PROJECT',
-      privilege: 'MANAGE',
-      nativePrivilege: 'OWNING_PROJECT',
-      origin: 'UNKNOWN',
-    },
-  ],
-  policyFlags: { rowLevel: 'UNKNOWN', columnMask: 'UNKNOWN' },
-  binding: {
-    kind: 'datazone',
-    domainId: 'dzd-61b4n7ubllnqlj',
-    listingId: '5i2yhfmdd9nbqf',
-    packageHandle: {
-      registry: 'raja-poc-registry-712023778557-us-east-1',
-      name: 'scale/1k',
-      topHash: '0000000000000000000000000000000000000000000000000000000000000000',
-    },
+const BUCKET_RECORDS: BucketRecord[] = [
+  {
+    id: 'fixture-assay-raw',
+    description: 'Instrument output, written by the assay pipeline.',
+    holders: { [WS_GENOMICS]: 'RW' },
   },
-  fetchedAt: FETCHED_AT,
-}
-
-export const ALL_PRODUCTS: DataProduct[] = [
-  DATAZONE_PRODUCT,
-  PACKAGE_PRODUCT,
-  DANGLING_PACKAGE_PRODUCT,
-  UNITY_PRODUCT,
-  UNITY_SHARE_PRODUCT,
-  SNOWFLAKE_PRODUCT,
-  DISCOVERY_ONLY_PRODUCT,
+  {
+    id: 'fixture-cohort-ref',
+    description: 'Cohort manifests and consent status.',
+    holders: { [WS_GENOMICS]: 'RO', [WS_CLINICAL]: 'RO' },
+  },
+  {
+    id: 'fixture-variant-raw',
+    description: 'Variant call sets and sample index.',
+    holders: { [WS_GENOMICS]: 'RW' },
+  },
+  {
+    id: 'fixture-clinical-core',
+    description: 'Clinical core tables and study arms.',
+    holders: { [WS_CLINICAL]: 'RW' },
+  },
 ]
 
 /**
- * Contents per member, keyed `productId::memberLogicalName`.
+ * The substrate a workspace's definitions may select from.
  *
- * Separate from the products because that is how it really arrives: the locator
- * is not in a listing, so enumerating contents is a second call authorized
- * separately (research §1.1, §2). Hanging entries off `Member` would model that
- * cost away.
- *
- * Mirrors the real `alpha/home` manifest -- three files, those exact sizes --
- * plus nesting the real package lacks, because a browser that has only rendered
- * a flat list has never exercised drilling in.
+ * The authoring screen shows this beside the editor because a SQL naming a bucket
+ * outside it is `BucketNotInReach` before anything runs, and that is worth saying
+ * before a check rather than after. In a real adapter this is the registry's
+ * answer, not a client-side derivation from a bucket list.
  */
-/**
- * Build an entry's pinned USL the way the real implementation does.
- *
- * A helper rather than eight hand-typed URIs, because the point of the field is
- * that every entry's URI shares one registry and one revision -- a copy-paste
- * fixture would let them drift and quietly stop demonstrating that.
- * Deliberately mirrors the shape `raja/quilt_uri.py` produces:
- * `quilt+s3://{registry}#package={name}@{hash}&path={key}`.
- */
-const usl = (handle: PackageHandle, logicalKey: string) =>
-  `quilt+s3://${handle.registry}#package=${handle.name}@${handle.topHash}&path=${logicalKey}`
-
-const ALPHA_HOME: PackageHandle = {
-  registry: 'raja-poc-registry-712023778557-us-east-1',
-  name: 'alpha/home',
-  topHash: 'bee98d061f67228f36ee807e42bea4165575c02495c996119b3587c7f8e6ed84',
+export function reachFor(workspace: string): string[] {
+  return BUCKET_RECORDS.filter((b) => workspace in b.holders)
+    .map((b) => b.id)
+    .sort()
 }
 
-const alphaEntry = (
-  logicalKey: string,
-  rest: Omit<ContentEntry, 'logicalKey' | 'usl'> = {},
-): ContentEntry => ({ logicalKey, usl: usl(ALPHA_HOME, logicalKey), ...rest })
+// ---------------------------------------------------------------------------
+// Projection: what one workspace may see.
+// ---------------------------------------------------------------------------
 
-export const PACKAGE_CONTENTS: Record<string, ContentEntry[]> = {
-  [`datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv::alpha/home`]: [
-    // The three real entries, with their real sizes.
-    alphaEntry('README.md', { sizeBytes: 147, readable: true }),
-    alphaEntry('data.csv', { sizeBytes: 115, readable: true }),
-    alphaEntry('results.json', { sizeBytes: 107, readable: true }),
-    // Nesting, so drill-down is exercised. Numeric suffixes out of order on
-    // purpose: plate_2 must sort before plate_10, which bytewise ordering gets
-    // wrong.
-    alphaEntry('raw/plate_2/A01.tiff', { sizeBytes: 2_048, readable: true }),
-    alphaEntry('raw/plate_10/A01.tiff', { sizeBytes: 4_096, readable: true }),
-    alphaEntry('raw/plate_10/A02.tiff', { sizeBytes: 4_096, readable: true }),
-    // One unsized entry, which forces its folder's total to be withheld rather
-    // than shown as a partial sum.
-    alphaEntry('raw/plate_10/A03.tiff', { readable: true }),
-    // A genuinely empty file, in its own directory so the case is isolable. Zero
-    // is a *known* size, and treating it as unreported is a real bug the size
-    // column had: `!f.sizeBytes` is true for 0, so a directory whose only sizes
-    // were zero hid a column we could have filled. Empty files are ordinary in
-    // pipeline output -- a touched sentinel, a run that produced nothing.
-    alphaEntry('logs/empty.log', { sizeBytes: 0, readable: true }),
-    // Present in the manifest but refused by the broker. Real: membership is
-    // checked per object, so a listing can be fully visible while one object in
-    // it is denied (research §3.1).
-    alphaEntry('derived/restricted.parquet', { sizeBytes: 8_192, readable: false }),
-  ],
+/**
+ * The reader's holding on a product, from the stack-wide record.
+ *
+ * Owner comes from the row; subscriber comes from the reader's **own** request in
+ * the exchange record. Anything else is `null` -- a listing without a holding,
+ * which mounts Overview and Access only (screen rule R4).
+ */
+function holdingFor(record: ProductRecord, workspace: string): Holding | null {
+  if (record.owner === workspace) return { role: 'OWNER', level: 'RW' }
+  const mine = record.subscriptions.find((s) => s.subscriber.name === workspace)
+  if (mine) return { role: 'SUBSCRIBER', level: 'RO', subscription: mine }
+  return null
 }
 
 /**
- * Text bodies for the entries a preview can actually render.
+ * A stack-wide record as one workspace may see it.
  *
- * Only three, and that is the honest set: a preview needs bytes, the UI is not
- * in the byte path, and no broker is wired. So these stand in for what a broker
- * would return for the small text-ish files -- and the `.tiff` and `.parquet`
- * entries deliberately have **no** body, because an image or columnar preview
- * cannot be faked from a string. A file view must render those as
- * identity-without-preview rather than inventing something.
+ * The two `null`s are the DEC-52 slice made structural: a workspace that does not
+ * own the product gets no queue and no subscriber list, so a screen cannot read
+ * another workspace's holdings even by mistake. `null` rather than `[]` because
+ * "nobody subscribes" is a claim a non-owner has no standing to make.
  *
- * Contents match the real package's file names; the bodies are plausible rather
- * than copied, since the real objects are 147/115/107 bytes of test data.
+ * `sql` is withheld from a non-owner as **UNK-C6's conservative default, not a
+ * ruled requirement**. A grantee can `DESCRIBE` the view in Glue today (SP-8a), so
+ * hiding it here hides nothing from a determined reader; the default is kept
+ * because the owner has not called it, and it is the cheap direction to reverse.
+ * The version id is shown to everyone either way, because a revision advances it
+ * and readers are affected.
  */
-export const ENTRY_TEXT: Record<string, string> = {
-  'README.md': [
-    '# alpha/home',
-    '',
-    'Test package published to the RAJA proof-of-concept registry.',
-    '',
-    '- `data.csv` — subject-level readouts',
-    '- `results.json` — summary statistics',
-  ].join('\n'),
-  'data.csv': [
-    'subject_id,arm,value',
-    'S-0001,treatment,4.21',
-    'S-0002,control,3.86',
-    'S-0003,treatment,4.55',
-  ].join('\n'),
-  'results.json': JSON.stringify(
-    { n: 3, arms: ['treatment', 'control'], mean: 4.206, generated: '2026-04-26' },
-    null,
-    2,
-  ),
+export function projectVolume(record: ProductRecord, workspace: string): ProductVolume {
+  const owned = record.owner === workspace
+  return {
+    id: record.id,
+    kind: 'PRODUCT',
+    title: record.title,
+    description: record.description,
+    holding: holdingFor(record, workspace),
+    owner: ws(record.owner),
+    designatedBy: record.designatedBy,
+    designatedAt: record.designatedAt,
+    definition: owned ? record.definition : { ...record.definition, sql: null },
+    published: record.published,
+    address: { endpoint: PROXY_ENDPOINT, bucket: record.id, connector: 'local' },
+    // The queue is every request with no decision yet -- including an approve
+    // recorded as failed, which is still pending (Fig. 5's `else`).
+    requests: owned ? record.subscriptions.filter((s) => !s.decision) : null,
+    subscribers: owned ? record.subscriptions : null,
+  }
 }
 
-/** Capabilities that go with a fixture, so UI wiring stays consistent. */
-export function capabilitiesFor(product: DataProduct): Capabilities {
-  return capabilitiesForKind(product.binding.kind)
+/** Bucket volumes this workspace holds. */
+export function bucketVolumesFor(workspace: string): BucketVolume[] {
+  return BUCKET_RECORDS.filter((b) => workspace in b.holders).map((b) => ({
+    id: b.id,
+    kind: 'BUCKET',
+    title: b.id,
+    description: b.description,
+    holding: { role: 'ATTACHED', level: b.holders[workspace]! },
+  }))
 }
 
-/** Members the current user can actually read. */
-export function readableMembers(product: DataProduct): Member[] {
-  return product.members.filter((m) => m.readable)
+/** Products this workspace holds -- owned or subscribed, including revoked. */
+export function heldProductsFor(workspace: string): ProductVolume[] {
+  return PRODUCT_RECORDS.filter((r) => holdingFor(r, workspace) !== null).map((r) =>
+    projectVolume(r, workspace),
+  )
 }
 
 /**
- * Access requests, one per state the UI has to render honestly.
+ * The exchange listing for this workspace: every product published in its scope.
  *
- * Chosen to cover the cases that are easy to get wrong rather than the happy
- * path: a request the catalog cannot confirm, an approval whose blast radius
- * exceeds the requester, and a revocation that did not actually revoke.
+ * Held or not -- the listing is what is published, and the workspace's relation to
+ * each row is a separate column. The unpublished draft has no listing and is
+ * absent, including from its own owner's listing.
  */
-
-/**
- * Unity: initiated, and permanently unconfirmable.
- *
- * Unity can start a request but cannot list pending ones
- * (`enumerableRequests: false`), so `platformRecord: null` with `SUBMITTED` is
- * not a transient stage here -- it is the steady state. A UI that treats
- * "no platform record yet" as "still syncing" would show a spinner forever.
- */
-export const UNITY_SUBMITTED_REQUEST: AccessRequest = {
-  id: 'dpr_01hq8x',
-  dataProductId: DISCOVERY_ONLY_PRODUCT.id,
-  requestedBy: 'simon@quiltdata.io',
-  beneficiary: { type: 'USER', label: 'simon@quiltdata.io' },
-  reason: 'Cohort reconciliation for the Q3 assay comparison.',
-  createdAt: new Date('2026-08-15T09:20:00.000Z'),
-  status: 'SUBMITTED',
-  platformRecord: null,
-  retainedPermissions: null,
+export function exchangeFor(workspace: string): ProductVolume[] {
+  return PRODUCT_RECORDS.filter((r) => r.published !== null).map((r) =>
+    projectVolume(r, workspace),
+  )
 }
 
-/**
- * DataZone: pending, and the beneficiary is a project.
- *
- * The blast-radius case. A DataZone subscription is held by a project, so
- * approving this grants every member of Clinical Data Platform -- not the one
- * person who asked. `grantsBeyondRequester` is true here.
- */
-export const DATAZONE_PENDING_REQUEST: AccessRequest = {
-  id: 'dpr_01hq9m',
-  dataProductId: DATAZONE_PRODUCT.id,
-  requestedBy: 'rita@quiltdata.io',
-  beneficiary: { type: 'PROJECT', label: 'Clinical Data Platform' },
-  reason: 'Linking assay outputs to enrolment records for the 2024 cohort.',
-  createdAt: new Date('2026-08-16T14:05:00.000Z'),
-  status: 'PENDING',
-  platformRecord: {
-    id: 'subreq_7fk2p',
-    reconciledAt: FETCHED_AT,
-  },
-  retainedPermissions: null,
+/** One volume by id, as this workspace may see it, or null. */
+export function volumeFor(
+  workspace: string,
+  id: string,
+): ProductVolume | BucketVolume | null {
+  const product = PRODUCT_RECORDS.find((r) => r.id === id)
+  if (product) return projectVolume(product, workspace)
+  return bucketVolumesFor(workspace).find((b) => b.id === id) ?? null
+}
+
+/** Every volume this workspace holds, both kinds, one list. */
+export function volumesFor(workspace: string): (ProductVolume | BucketVolume)[] {
+  return [...bucketVolumesFor(workspace), ...heldProductsFor(workspace)]
 }
 
 /**
- * DataZone: revoked with permissions retained -- the §5.4 trap, made concrete.
+ * Every product id the fixtures define, for route dispatch.
  *
- * DataZone stopped managing this subscription, but the underlying Lake
- * Formation permissions are still live. The status field alone says `REVOKED`;
- * the access is not gone. `accessMayPersistAfterRevoke` is true and `isSettled`
- * is false, which is the whole point of keeping those two separate.
+ * A screen asks this, rather than a regex on the `fixture-` prefix, so the day a
+ * real adapter lands the dispatch is the registry's answer and not a naming
+ * convention. The prefix is a safety belt against shadowing a real bucket name at
+ * `/b/:bucket`, not the mechanism.
  */
-export const DATAZONE_REVOKED_RETAINED_REQUEST: AccessRequest = {
-  id: 'dpr_01hq4c',
-  dataProductId: DATAZONE_PRODUCT.id,
-  requestedBy: 'former-contractor@example.com',
-  beneficiary: { type: 'PROJECT', label: 'Assay Ops' },
-  reason: 'Temporary access for the migration audit.',
-  createdAt: new Date('2026-06-02T11:00:00.000Z'),
-  status: 'REVOKED',
-  platformRecord: {
-    id: 'sub_2mq8t',
-    reconciledAt: FETCHED_AT,
-  },
-  retainedPermissions: true,
-}
+export const PRODUCT_IDS: string[] = PRODUCT_RECORDS.map((r) => r.id)
 
 /**
- * A share request whose beneficiary is a recipient.
+ * No captures.
  *
- * The fourth widening shape. A Delta Sharing recipient is an *external*
- * identity, so approval hands access to whoever holds that recipient's
- * credentials -- not to a person and not to a group inside this workspace. The
- * other fixtures cover USER and PROJECT; without this one the RECIPIENT branch
- * of the blast-radius wording is unreachable, and a reviewer would have to take
- * it on faith.
- *
- * `platformRecord` is null for the same reason as the Unity schema case: Unity
- * cannot enumerate requests, so this is the steady state rather than a stage.
+ * Deliberately empty, and exported as such so a container cannot reach for a
+ * fixture tree that does not exist. Minting is not wired (UNK-C2 open, no mint on
+ * this stack), and a fixture capture would put invented bytes behind a real-looking
+ * file tree -- the one lie on this surface with a cost measured in someone's
+ * afternoon.
  */
-export const UNITY_SHARE_RECIPIENT_REQUEST: AccessRequest = {
-  id: 'dpr_01hqb2',
-  dataProductId: UNITY_SHARE_PRODUCT.id,
-  requestedBy: 'priya@quiltdata.io',
-  beneficiary: { type: 'RECIPIENT', label: 'acme_analytics' },
-  reason: 'Acme needs the site-level breakdown for their Q3 readout.',
-  createdAt: new Date('2026-08-17T08:40:00.000Z'),
-  status: 'SUBMITTED',
-  platformRecord: null,
-  retainedPermissions: null,
-}
-
-/**
- * The settled happy path, which nothing else covered.
- *
- * Every other request fixture is unresolved in some way, so `isSettled` was only
- * ever exercised as `true` against a synthesized object in the spec -- never
- * against something the UI actually renders. A reviewer reading the fixtures
- * would reasonably conclude the model has no clean terminal state.
- */
-export const UNITY_APPROVED_REQUEST: AccessRequest = {
-  id: 'dpr_01hq7a',
-  dataProductId: UNITY_PRODUCT.id,
-  requestedBy: 'dana@quiltdata.io',
-  beneficiary: { type: 'GROUP', label: 'quilt-consumers' },
-  reason: 'Joining package metadata against the assay manifest.',
-  createdAt: new Date('2026-08-10T13:15:00.000Z'),
-  status: 'APPROVED',
-  platformRecord: {
-    id: 'req_9xk3m',
-    reconciledAt: FETCHED_AT,
-  },
-  retainedPermissions: null,
-}
-
-export const ALL_REQUESTS: AccessRequest[] = [
-  UNITY_SUBMITTED_REQUEST,
-  DATAZONE_PENDING_REQUEST,
-  DATAZONE_REVOKED_RETAINED_REQUEST,
-  UNITY_SHARE_RECIPIENT_REQUEST,
-  UNITY_APPROVED_REQUEST,
-]
-
-/** Requests filed against one product. */
-export function requestsFor(product: DataProduct): AccessRequest[] {
-  return ALL_REQUESTS.filter((r) => r.dataProductId === product.id)
-}
-
-/**
- * Connections, one per state an admin actually has to act on.
- *
- * Chosen so the three `ConnectionState`s are all reachable: a working one, one
- * that has never been checked, and one that is failing. A fixture set of three
- * READY connections would leave the two states that need admin attention
- * untested and unrendered.
- */
-
-/** DataZone, working. IAM_ROLE because there is no OAuth path on this platform. */
-export const DATAZONE_CONNECTION: Connection = {
-  id: 'dpc_01',
-  title: 'Clinical DataZone (us-east-1)',
-  platform: 'datazone',
-  endpoint: 'dzd_4xample',
-  authMethod: 'IAM_ROLE',
-  secretRef: null, // an assumed role needs no stored secret
-  state: 'READY',
-  statusMessage: null,
-  lastCheckedAt: new Date('2026-08-18T09:30:00.000Z'),
-}
-
-/**
- * Databricks, configured but never exercised.
- *
- * The state most likely to be misread. Products from this catalog will not load,
- * and an empty list would look like "this catalog has no products" rather than
- * "nobody has verified this connection" -- which is why `isUsable` refuses to
- * treat UNVERIFIED as working.
- */
-export const UNITY_CONNECTION: Connection = {
-  id: 'dpc_02',
-  title: 'Databricks (acme-prod)',
-  platform: 'unity-schema',
-  endpoint: 'https://acme-prod.cloud.databricks.com',
-  authMethod: 'OAUTH_U2M',
-  secretRef:
-    'arn:aws:secretsmanager:us-east-1:123456789012:secret:databricks-oauth-Ab3xY9',
-  state: 'UNVERIFIED',
-  statusMessage: null,
-  lastCheckedAt: null,
-}
-
-/** Snowflake, failing. The message is what the platform said, not a paraphrase. */
-export const SNOWFLAKE_CONNECTION: Connection = {
-  id: 'dpc_03',
-  title: 'Snowflake (ACME_PROD)',
-  platform: 'snowflake-listing',
-  endpoint: 'acme-prod.us-east-1.snowflakecomputing.com',
-  authMethod: 'OAUTH_M2M',
-  secretRef:
-    'arn:aws:secretsmanager:us-east-1:123456789012:secret:snowflake-oauth-Kp7mQ2',
-  state: 'ERROR',
-  statusMessage: 'OAuth token exchange returned 401: invalid_client',
-  lastCheckedAt: new Date('2026-08-18T08:15:00.000Z'),
-}
-
-export const ALL_CONNECTIONS: Connection[] = [
-  DATAZONE_CONNECTION,
-  UNITY_CONNECTION,
-  SNOWFLAKE_CONNECTION,
-]
+export const CAPTURES: Record<string, Capture> = {}

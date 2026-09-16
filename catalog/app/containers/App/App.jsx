@@ -72,10 +72,27 @@ const ConnectAuthorize = requireAuth()(
   RT.mkLazy(() => import('containers/Connect'), Placeholder),
 )
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
-// The query consoles always required an authenticated actor, so gate on auth
-// regardless of the app-level protect mode.
-const DataProducts = requireAuth()(
-  RT.mkLazy(() => import('containers/DataProducts'), Placeholder),
+// Data products always required an authenticated actor, so gate on auth
+// regardless of the app-level protect mode. Note `Bucket` above is `protect`,
+// which on an OPEN stack is the identity: the product screens keep their own
+// `requireAuth` so moving them onto the bucket route does not silently downgrade
+// them.
+const Exchange = requireAuth()(
+  RT.mkLazy(
+    () => import('containers/DataProducts').then((m) => ({ default: m.ExchangeScreen })),
+    Placeholder,
+  ),
+)
+const NewProduct = requireAuth()(
+  RT.mkLazy(
+    () =>
+      import('containers/DataProducts').then((m) => ({ default: m.NewProductScreen })),
+    Placeholder,
+  ),
+)
+const VolumeRoute = RT.mkLazy(
+  () => import('containers/DataProducts/VolumeRoute'),
+  Placeholder,
 )
 
 /**
@@ -83,11 +100,37 @@ const DataProducts = requireAuth()(
  * which discloses a flagged-off surface to an anonymous visitor on an OPEN stack.
  * Redirects home, matching the screen, so flag-off lands in one place either way.
  */
-function DataProductsRoute() {
+function ProductScreenRoute({ children }) {
   const { urls } = NamedRoutes.use()
   const enabled = useFeature('data-products')
   if (!enabled) return <Redirect to={urls.home()} />
-  return <DataProducts />
+  return children
+}
+
+/**
+ * `/b/:bucket` for both volume kinds.
+ *
+ * With the flag off this renders `<Bucket />` and nothing else — the same component
+ * tree as before, so a bucket page is byte-identical to `dev`. With it on, the kind
+ * decides: a product mounts its own layout, and anything that is not a product falls
+ * through to `Bucket` untouched.
+ *
+ * The flag read is what keeps a flag-off deployment from paying for a volume lookup
+ * on every bucket navigation.
+ */
+function BucketOrProductRoute() {
+  const enabled = useFeature('data-products')
+  if (!enabled) return <Bucket />
+  return (
+    <VolumeRouteBoundary>
+      <Bucket />
+    </VolumeRouteBoundary>
+  )
+}
+
+function VolumeRouteBoundary({ children }) {
+  const { bucket } = useParams()
+  return <VolumeRoute bucket={bucket}>{children}</VolumeRoute>
 }
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
@@ -192,10 +235,25 @@ export default function App() {
         <BucketSearchRedirect />
       </Route>
 
-      {/* Registered unconditionally; `DataProductsRoute` reads the flag before
-          auth can redirect to sign-in. */}
-      <Route path={paths.dataProducts}>
-        <DataProductsRoute />
+      {/* Registered unconditionally; each reads the flag before auth can redirect
+          to sign-in, so a flagged-off surface is never disclosed to an anonymous
+          visitor on an OPEN stack. */}
+      <Route path={paths.exchange} exact>
+        <ProductScreenRoute>
+          <Exchange />
+        </ProductScreenRoute>
+      </Route>
+
+      <Route path={paths.productNew} exact>
+        <ProductScreenRoute>
+          <NewProduct />
+        </ProductScreenRoute>
+      </Route>
+
+      {/* The pre-pivot family, kept as a redirect so old links land on the volume
+          list rather than a 404. */}
+      <Route path={paths.dataProductsLegacy}>
+        <RedirectTo path={urls.buckets()} />
       </Route>
 
       <Route path={paths.queries}>
@@ -206,8 +264,9 @@ export default function App() {
         <BucketQueriesRedirect />
       </Route>
 
+      {/* Both volume kinds. Flag off, this is `<Bucket />` and nothing else. */}
       <Route path={paths.bucketRoot}>
-        <Bucket />
+        <BucketOrProductRoute />
       </Route>
 
       <Route path={paths.redir}>

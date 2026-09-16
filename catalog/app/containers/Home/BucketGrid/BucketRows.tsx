@@ -198,19 +198,30 @@ function BucketRow({ bucket, divider, tagIsMatching, onTagClick }: BucketRowProp
 }
 
 interface DataProductRowProps {
-  product: DP.DataProduct
+  product: DP.ProductVolume
   divider: boolean
 }
 
-// The dense counterpart to DataProductCard, wearing BucketRow's markup: one
-// line, same avatar footprint, same single-tab-stop treatment. What differs is
-// the second line (the defining catalog, where a bucket has its `s3://` address)
-// and the right-hand slot (readability, where a bucket runs collaborators).
+// The dense counterpart to DataProductCard, wearing BucketRow's markup: one line,
+// same avatar footprint, same single-tab-stop treatment. What differs is the second
+// line (the publishing workspace, where a bucket has its `s3://` address) and the
+// right-hand slot (this workspace's relation, where a bucket runs collaborators).
+//
+// The right-hand slot is a *relation*, never a readability claim: a listing, a
+// holding and a decision are three different facts and none of them is entitlement
+// (model.md invariant 1). A disagreement between the record and the grant carries
+// its mark here and stays unresolved (screen rule R5).
 function DataProductRow({ product, divider }: DataProductRowProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const to = urls.dataProduct(product.id)
-  const platform = DP.platformLabelFor(product.binding.kind)
+  // The bucket route: a product is a bucket the catalog reaches through the proxy.
+  const to = urls.bucketRoot(product.id)
+  const holding = DP.holdingSummary(product.holding)
+  const relation = holding
+    ? `${holding.attention ? '⚠ ' : ''}${holding.label}`
+    : product.published
+      ? 'Listed · not subscribed'
+      : 'Unpublished'
 
   return (
     <M.ListItem
@@ -220,8 +231,8 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
       data-data-product={product.id}
     >
       <M.ListItemAvatar className={classes.avatar}>
-        {/* No iconUrl to honor: an external product has no Quilt-side icon, so
-            this is a plain type glyph rather than a hashed identity tint. */}
+        {/* No iconUrl to honor: a product has no Quilt-side icon, so this is a
+            plain type glyph rather than a hashed identity tint. */}
         <Link aria-hidden="true" tabIndex={-1} to={to}>
           <M.Avatar>
             <M.Icon>view_module</M.Icon>
@@ -233,10 +244,10 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
         disableTypography
         primary={
           <span className={classes.heading}>
-            <Link className={classes.title} to={to} title={product.name}>
-              {product.name}
+            <Link className={classes.title} to={to} title={product.title}>
+              {product.title}
             </Link>
-            <span className={classes.name}>{platform}</span>
+            <span className={classes.name}>Data product · {product.owner.name}</span>
           </span>
         }
         secondary={
@@ -254,7 +265,7 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
       />
       <M.ListItemSecondaryAction>
         <M.Typography variant="caption" color="textSecondary">
-          {DP.accessSummary(product)}
+          {relation}
         </M.Typography>
       </M.ListItemSecondaryAction>
     </M.ListItem>

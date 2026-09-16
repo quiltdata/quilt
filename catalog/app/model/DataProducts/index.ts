@@ -1,53 +1,56 @@
 /**
- * Data Products: externally-owned products rendered inside Quilt.
+ * Data products: volumes this stack's own registry defines.
  *
- * Products are defined and governed in an enterprise catalog (AWS DataZone,
- * Databricks Unity Catalog, Snowflake Horizon). Quilt reads and renders them;
- * the catalog owns every access decision.
+ * A data product is a virtual volume a workspace defines with a SQL definition
+ * over the substrate it holds, publishes to a local exchange, and grants other
+ * workspaces access to; a reader mints short-lived credentials against a capture
+ * and reads through the proxy, as any S3 client does. The read shape and the
+ * operation list are in `contrib/simon/creation-ux/model.md` (rev 2); the API this
+ * layer is written against is its `api/README.md`, which is a proposal until the
+ * registry's schema rules on it.
  *
- * **Containers read through the hooks, never from `fixtures`.** `useProducts`,
- * `useProduct` and `useRequests` go via the adapter port, so replacing the
- * fixture adapter with a real one touches no container. `fixtures` stays
- * exported for specs and for the fixture adapter itself; a container importing
- * it has bypassed the port and will silently keep reading fixtures after a real
- * adapter lands.
+ * **Containers read through the hooks, never from `fixtures`.** `useVolumes`,
+ * `useVolume`, `useExchange` and the write hooks go via the adapter port, so
+ * replacing the fixture adapter with a real one touches no container. `fixtures`
+ * stays exported for specs and for the fixture adapter itself; a container
+ * importing it has bypassed the port and will silently keep reading fixtures
+ * after a real adapter lands.
  *
- * The read shape is documented in
- * `wb/dp-ui-slice-1/research/dp-read-shape-contract.md`.
+ * Two exports whose absence would be worse than their awkwardness:
+ * `IS_FIXTURE_DATA`, so every surface can label what it renders, and
+ * `UNAVAILABLE_ACTS`, so a write that nothing serves says so rather than
+ * appearing to work.
  */
 
 export * from './types'
-export * from './requests'
-export * from './connections'
-export * from './contents'
+export * from './state'
 export * from './unavailable'
 export type {
-  BrowsingAdapter,
-  ContentsResult,
+  ActRefused,
+  ActUnavailable,
   DataProductAdapter,
-  EntryBody,
-  EntryBodyResult,
-  FetchingAdapter,
-  RequestingAdapter,
+  DefinitionCheck,
+  MintResult,
+  MintingAdapter,
+  PublishingAdapter,
+  SubscribingAdapter,
+  WriteFailure,
 } from './adapter'
-export { supportsBrowsing, supportsFetching, supportsRequests } from './adapter'
+export { supportsMinting, supportsPublishing, supportsSubscribing } from './adapter'
+export { checkDefinition, referencedBuckets } from './fixtureAdapter'
+export type { WriteState } from './hooks'
 export {
+  IS_FIXTURE_DATA,
+  WORKSPACES,
+  setActiveWorkspace,
+  useActiveWorkspace,
   useAdapter,
-  useConnections,
-  useContents,
-  useEntryBody,
-  useProduct,
-  useProducts,
-  useRequests,
+  useDefinitionCheck,
+  useExchange,
+  usePublishing,
+  useSubscribing,
+  useVolume,
+  useVolumes,
+  useWorkspaceReach,
+  useWrite,
 } from './hooks'
-export {
-  CAPABILITIES,
-  INTERSECTION,
-  PLATFORM_LABEL,
-  accessSummary,
-  platformLabelFor,
-  capabilitiesFor,
-  forMode,
-  mayBranchOn,
-  supportingPlatformCount,
-} from './capabilities'

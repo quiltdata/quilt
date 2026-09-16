@@ -12,13 +12,18 @@ import type { Bucket } from './BucketCard'
  *
  * A discriminated union rather than a common interface: the two genuinely have
  * almost no fields in common (no `iconUrl`, `s3://` address, tags or
- * collaborators on a product; no platform binding or readability on a bucket), so
- * flattening them would mean a wide type of mostly-null fields and every consumer
- * guessing which half applies. `kind` makes the branch explicit and lets
- * TypeScript check that both cases are handled.
+ * collaborators on a product; no owner workspace, definition or holding on a
+ * bucket), so flattening them would mean a wide type of mostly-null fields and
+ * every consumer guessing which half applies. `kind` makes the branch explicit and
+ * lets TypeScript check that both cases are handled.
  *
  * `label` and `relevance` are normalized up front so the list's comparators do
  * not need to know either shape — see `asEntries` in containers/Home/Buckets.
+ *
+ * Note the bucket arm is the catalog's own `Bucket`, not the volume model's
+ * `BucketVolume`. The volume model adds a kind; it does not take over what a
+ * bucket row renders, and reading buckets through it would drop the tags,
+ * collaborators and icon the existing card needs.
  */
 export type VolumeEntry =
   | {
@@ -32,15 +37,15 @@ export type VolumeEntry =
     }
   | {
       kind: 'product'
-      /** A product has no title distinct from its name. */
+      /** The product's display title. */
       label: string
-      /** Relevance tiebreak: the product's stable id, not its display name. */
+      /** Relevance tiebreak: the `volume_id`, which is immutable, not the title. */
       sortKey: string
       /**
-       * Always 0. No platform exposes anything relevance-like for a product, and
+       * Always 0. The registry exposes nothing relevance-like for a product, and
        * inventing a score would silently decide ranking; 0 places products among
        * buckets of default relevance rather than pinning them to either end.
        */
       relevance: number
-      product: DP.DataProduct
+      product: DP.ProductVolume
     }
