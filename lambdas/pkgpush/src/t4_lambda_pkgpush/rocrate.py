@@ -12,12 +12,18 @@ entity's remaining properties attached as entry metadata; that is how
 from __future__ import annotations
 
 import dataclasses
+import re
 import typing as T
+import urllib.parse
 
-from quilt3.util import PhysicalKey
+from quilt3.util import PhysicalKey, QuiltException, validate_key
 
 CRATE_FILENAME = "ro-crate-metadata.json"
 ROOT_ID = "./"
+
+# Package names are validated against PACKAGE_NAME_FORMAT, but crate names are
+# written for people, so a name half is sanitized the way an inferred one is.
+_NAME_UNSAFE_RE = re.compile(r"[^\w-]")
 
 # Structural properties of a File entity; everything else is entry metadata.
 _FILE_STRUCTURAL_PROPS = frozenset(("@id", "@type", "name"))
@@ -72,6 +78,15 @@ def is_rocrate(doc: T.Any) -> bool:
     return any(e.get("@id") == ROOT_ID and "Dataset" in _types(e) for e in graph)
 
 
+def _sanitize_name(name: str | None) -> str | None:
+    if name is None:
+        return None
+    sanitized = _NAME_UNSAFE_RE.sub("-", name)
+    # All-punctuation sanitizes to a name that is valid but says nothing, so the
+    # caller's S3-inferred name is the better half.
+    return sanitized if sanitized.strip("-") else None
+
+
 def _resolve_part(part_id: str, folder: PhysicalKey, is_dir: bool) -> tuple[str, PhysicalKey]:
     """
     Return (logical_key, physical_key) for a `hasPart` reference. For a
@@ -85,11 +100,15 @@ def _resolve_part(part_id: str, folder: PhysicalKey, is_dir: bool) -> tuple[str,
         logical_key = path.rstrip("/").rsplit("/", 1)[-1] + ("/" if is_dir else "")
         return logical_key, PhysicalKey(pk.bucket, path, None if is_dir else pk.version_id)
 
-    rel = part_id[2:] if part_id.startswith("./") else part_id
-    if not rel or rel == "/" or (rel.endswith("/") and not is_dir):
+    # Relative ids are URI references too, so they are unquoted like the s3://
+    # ones PhysicalKey.from_url handles: "sample%201.csv" is the key with a space.
+    rel = urllib.parse.unquote(part_id[2:] if part_id.startswith("./") else part_id)
+    if not rel or rel == "/" or (rel.endswith("/") and not is_dir) or rel.startswith("/") or "://" in rel:
         raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
-    if rel.startswith("/") or "://" in rel or rel == ".." or rel.startswith("../") or "/../" in rel:
-        raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
+    try:
+        validate_key(rel.rstrip("/"))
+    except QuiltException as e:
+        raise RoCrateError("RoCrateInvalidPart", {"id": part_id}) from e
     if is_dir and not rel.endswith("/"):
         rel += "/"
     return rel, PhysicalKey(folder.bucket, folder.path + rel, None)
@@ -149,9 +168,20 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         meta = None if is_dir else {k: v for k, v in entity.items() if k not in _FILE_STRUCTURAL_PROPS} or None
         entries[logical_key] = CrateEntry(logical_key, physical_key, meta, is_dir)
 
-    # The crate is the package's provenance, so it always ships with it.
-    entries.setdefault(
-        CRATE_FILENAME, CrateEntry(CRATE_FILENAME, PhysicalKey(crate_pk.bucket, crate_pk.path, None), None, False)
+    # The crate is the package's provenance, so it always ships with it — at the
+    # version that was read, and never displaced by another part resolving to the
+    # same logical key.
+    existing = entries.get(CRATE_FILENAME)
+    if existing is not None and (existing.physical_key.bucket, existing.physical_key.path) != (
+        crate_pk.bucket,
+        crate_pk.path,
+    ):
+        raise RoCrateError("RoCrateDuplicateEntry", {"logical_key": CRATE_FILENAME})
+    entries[CRATE_FILENAME] = CrateEntry(
+        CRATE_FILENAME,
+        PhysicalKey(crate_pk.bucket, crate_pk.path, crate_pk.version_id),
+        existing.user_meta if existing is not None else None,
+        False,
     )
 
-    return Crate(name_prefix, name_suffix, user_meta, list(entries.values()))
+    return Crate(_sanitize_name(name_prefix), _sanitize_name(name_suffix), user_meta, list(entries.values()))

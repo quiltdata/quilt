@@ -38,20 +38,21 @@ When enabled, this will create a package from the crate when an
 `ro-crate-metadata.json` file is written to a bucket that is already part of the
 stack. The crate's graph decides what the package contains:
 
-- **Entries** are exactly the root dataset's `hasPart` list, plus the crate
+* **Entries** are exactly the root dataset's `hasPart` list, plus the crate
   itself. A relative `@id` resolves against the crate's folder; an `s3://` URI
   may point outside it. A directory part (a `Dataset` entity, or an `@id` ending
   in `/`) includes everything under it. Paths that climb out of the folder are
   rejected.
-- **Package metadata** is one key per contextual entity, `<type>.<id> → name`
+* **Package metadata** is one key per contextual entity, `<type>.<id> → name`
   with the type lower-cased and a leading `#` dropped from the id — for example
   `{"@id": "#lab-group", "@type": "Organization", "name": "TechOps"}` becomes
   `organization.lab-group: "TechOps"`. Two entities of the same type therefore
   never collide, and the value is what people search for.
-- **Entry metadata** for each `File` entity is every property other than `@id`,
+* **Entry metadata** for each `File` entity is every property other than `@id`,
   `@type` and `name`, so `dateCreated` and `dateModified` survive the upload.
-- **Package name** is `<Namespace entity name>/<root dataset name>`; either half
-  falls back to the name inferred from the S3 key (below).
+* **Package name** is `<Namespace entity name>/<root dataset name>`, each half
+  sanitized to the package-name grammar; either half falls back to the name
+  inferred from the S3 key (below).
 
 A metadata file that is not an RO-Crate (no `./` entity of type `Dataset`)
 packages the whole enclosing folder and is used verbatim as package metadata.
