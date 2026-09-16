@@ -122,13 +122,10 @@ const useStyles = M.makeStyles((t) => {
       padding: t.spacing(0, 2),
       ...focusRing,
     },
-    // Folded, the mark sits on the icon axis (x=26, matching every nav row)
-    // rather than centered in the column: centered would put it 1.5px off the
-    // detent straddling the right edge, reading as a collision.
     logoCollapsed: {
       flexGrow: 0,
-      justifyContent: 'flex-start',
-      padding: t.spacing(0, 0, 0, 2),
+      justifyContent: 'center',
+      padding: 0,
       width: '100%',
     },
     // Both brand variants occupy one box and crossfade, so the swap settles on
@@ -171,19 +168,18 @@ const useStyles = M.makeStyles((t) => {
     // both states -- a control that relocates when pressed can't be aimed
     // twice. Deeper than the rail and carrying the border's own hairline, it
     // reads as part of the edge rather than as a glyph floating in the brand
-    // row. Half of it overhangs the content column, so it sits above the
-    // header (zIndex) and the rail cannot clip it (overflow: visible).
+    // row. Half of it overhangs the content column; the rail's own zIndex
+    // (appBar + 1, see Rail) is what carries it over the header.
     toggle: {
       backgroundColor: t.palette.primary.dark,
       border: `1px solid ${fade(t.palette.common.white, 0.12)}`,
       color: t.palette.navigation.text,
-      padding: 5,
+      padding: 3,
       position: 'absolute',
       // The rail's own border is the axis: half the 28px control each side.
       right: -14,
       top: 32,
       transform: 'translateY(-50%)',
-      zIndex: 1,
       [MOTION]: {
         transition: t.transitions.create(['color', 'background-color', 'border-color'], {
           duration: 150,
@@ -286,7 +282,7 @@ const useStyles = M.makeStyles((t) => {
     },
     wsRow: {
       minHeight: 44,
-      padding: t.spacing(1, 1.5, 1, 2),
+      padding: t.spacing(0, 1.5, 0, 2),
       ...iconCol,
     },
     wsRowClickable: {
