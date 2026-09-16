@@ -1081,21 +1081,32 @@ def package_prefix(event, context):
                     key = obj["Key"]
                     logical_key = entry.logical_key + key[len(entry.physical_key.path) :]
                     physical_key = PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId"))
-                    # Only directories have been expanded so far, so an existing key means
-                    # two prefixes overlap. Naming a different object, that would otherwise
-                    # resolve by graph order.
+                    # Only directories have been expanded so far, so an existing key means two
+                    # prefixes overlap. Naming a different object, that would otherwise resolve
+                    # by graph order; the version is excluded because a nested pair of prefixes
+                    # legitimately sweeps one object twice and it may be rewritten in between.
                     collision = pkg_entries.get(logical_key)
-                    if collision is not None and collision.physical_key != physical_key:
+                    if collision is not None and (collision.physical_key.bucket, collision.physical_key.path) != (
+                        physical_key.bucket,
+                        physical_key.path,
+                    ):
                         raise PkgpushException("RoCrateDuplicateEntry", {"logical_key": logical_key})
                     pkg_entries[logical_key] = quilt3.packages.PackageEntry(physical_key, obj["Size"], None, None)
                 continue
-            # An explicit File keeps its crate metadata. If a prefix already pinned this
-            # object, that version and size are kept so its snapshot matches its siblings';
-            # otherwise complete_entries_metadata() fills them in.
-            expanded = pkg_entries.get(entry.logical_key) if entry.physical_key.version_id is None else None
+            # An explicit File keeps its crate metadata. When a prefix already swept this same
+            # object, its pinned version and size are kept so the snapshot matches its
+            # siblings'; otherwise complete_entries_metadata() fills them in. A prefix holding
+            # a *different* object under this key would substitute it silently.
+            expanded = pkg_entries.get(entry.logical_key)
+            if expanded is not None and (expanded.physical_key.bucket, expanded.physical_key.path) != (
+                entry.physical_key.bucket,
+                entry.physical_key.path,
+            ):
+                raise PkgpushException("RoCrateDuplicateEntry", {"logical_key": entry.logical_key})
+            keep_swept = expanded is not None and entry.physical_key.version_id is None
             pkg_entries[entry.logical_key] = quilt3.packages.PackageEntry(
-                expanded.physical_key if expanded else entry.physical_key,
-                expanded.size if expanded else None,
+                expanded.physical_key if keep_swept else entry.physical_key,
+                expanded.size if keep_swept else None,
                 None,
                 {"user_meta": entry.user_meta} if entry.user_meta else None,
             )
