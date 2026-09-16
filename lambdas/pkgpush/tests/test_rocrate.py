@@ -181,6 +181,10 @@ def test_parse_haspart_unlisted_file_gets_no_meta():
         ("sub/../escape.txt", "RoCrateInvalidPart"),
         ("sub/./data.csv", "RoCrateInvalidPart"),
         ("sub//data.csv", "RoCrateInvalidPart"),
+        # A directory's trailing "/" is syntax; an empty segment inside it is not.
+        ("sub//", "RoCrateInvalidPart"),
+        ("a/b//", "RoCrateInvalidPart"),
+        ("sub/./", "RoCrateInvalidPart"),
         ("/abs.txt", "RoCrateInvalidPart"),
         ("https://example.com/x.txt", "RoCrateInvalidPart"),
         ("./", "RoCrateInvalidPart"),
@@ -231,14 +235,31 @@ def test_parse_keeps_crate_version():
     assert crate.entries[-1].physical_key == versioned
 
 
-def test_parse_foreign_crate_name_does_not_displace_provenance():
-    """Another crate under the provenance logical key is a conflict, not a silent swap."""
+@pytest.mark.parametrize(
+    "part_id, crate_pk",
+    [
+        ("s3://other-bucket/other/ro-crate-metadata.json", CRATE_PK),
+        (f"s3://{CRATE_PK.bucket}/{CRATE_PK.path}?versionId=old", PhysicalKey(CRATE_PK.bucket, CRATE_PK.path, "new")),
+    ],
+    ids=["other-object", "other-version"],
+)
+def test_parse_crate_part_does_not_displace_provenance(part_id, crate_pk):
+    """The provenance entry is the crate that was read; anything else there is a conflict."""
     doc = copy.deepcopy(SAMPLE)
-    root_of(doc)["hasPart"].append({"@id": "s3://other-bucket/other/ro-crate-metadata.json"})
+    root_of(doc)["hasPart"].append({"@id": part_id})
     with pytest.raises(rocrate.RoCrateError) as excinfo:
-        rocrate.parse(doc, CRATE_PK)
+        rocrate.parse(doc, crate_pk)
     assert excinfo.value.name == "RoCrateDuplicateEntry"
     assert excinfo.value.context == {"logical_key": "ro-crate-metadata.json"}
+
+
+def test_parse_crate_self_reference_keeps_read_version():
+    """A part naming the crate at the version being read is the same object, not a conflict."""
+    versioned = PhysicalKey(CRATE_PK.bucket, CRATE_PK.path, "v1")
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"].append({"@id": f"s3://{CRATE_PK.bucket}/{CRATE_PK.path}?versionId=v1"})
+    crate = rocrate.parse(doc, versioned)
+    assert crate.entries[-1].physical_key == versioned
 
 
 @pytest.mark.parametrize(
@@ -355,6 +376,7 @@ def test_package_prefix_crate_mode_expands_directory_parts(mocker, packager_stub
     root_of(doc)["hasPart"] = [{"@id": "out/"}, {"@id": "out/b.csv"}]
     doc["@graph"].append({"@id": "out/b.csv", "@type": "File", "name": "b.csv", "dateCreated": "2026-01-01"})
     get_object_stub(mocker, doc)
+    user_s3 = mocker.patch.object(t4_lambda_pkgpush, "get_user_s3_client").return_value
     list_prefix = mocker.patch.object(
         t4_lambda_pkgpush,
         "list_prefix_latest_versions",
@@ -374,7 +396,8 @@ def test_package_prefix_crate_mode_expands_directory_parts(mocker, packager_stub
         None,
     )
 
-    list_prefix.assert_called_once_with("bucket", "experiments/260908_ale_ELNID/out/")
+    # The crate names the prefix, so it is listed with the caller's client, not the lambda's.
+    list_prefix.assert_called_once_with("bucket", "experiments/260908_ale_ELNID/out/", user_s3)
     pkg, _ = built_package(packager_stubs)
     assert sorted(lk for lk, _ in pkg.walk()) == ["out/a.csv", "out/b.csv", "ro-crate-metadata.json"]
     assert pkg["out/a.csv"].physical_key == PhysicalKey("bucket", "experiments/260908_ale_ELNID/out/a.csv", "va")
