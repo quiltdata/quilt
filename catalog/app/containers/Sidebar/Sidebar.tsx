@@ -712,7 +712,7 @@ export interface SidebarProps {
   onClose?: () => void
 }
 
-// The collapse control: a chevron beside the brand. `[` toggles it from
+// The collapse control: a detent on the rail's right edge. `[` toggles it from
 // anywhere except while typing, the same guard the search band's `/` uses.
 function CollapseToggle({
   collapsed,

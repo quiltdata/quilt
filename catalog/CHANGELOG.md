@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5290](https://github.com/quiltdata/quilt/pull/5290))
+- [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5292](https://github.com/quiltdata/quilt/pull/5292))
 - [Added] The sidebar folds to an icon rail and back — the chevron on its edge or `[` — and remembers the choice, giving wide tables and previews the room; typing `[` in a metadata cell still starts an array ([#5289](https://github.com/quiltdata/quilt/pull/5289))
 - [Added] Markdown files carrying a mermaid fence offer a Mermaid/Markdown view switch: Mermaid draws the diagrams (the default), Markdown leaves each fence as its source, so a syntax error can be read where it is. The mode is only offered when the file actually has a fence ([#5269](https://github.com/quiltdata/quilt/pull/5269))
 - [Fixed] Mermaid diagrams: a drag now shows the grabbing cursor for its whole duration instead of reverting on the first movement; arrow keys leave page scrolling alone when the diagram is already fit, rather than swallowing it from a keyboard reader; a fence labelled `Mermaid` or `MERMAID` renders as a diagram, matching how the label works elsewhere; a failed diagram-library chunk load degrades to the visible source instead of an unhandled rejection; and the diagram and its zoom controls carry a visible focus ring ([#5269](https://github.com/quiltdata/quilt/pull/5269))
