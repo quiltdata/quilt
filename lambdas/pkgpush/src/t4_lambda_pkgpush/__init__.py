@@ -1020,8 +1020,8 @@ def package_prefix_sqs(event, context):
             package_prefix(record["body"], context)
 
 
-def list_prefix_latest_versions(bucket: str, prefix: str):
-    paginator = s3.get_paginator("list_object_versions")
+def list_prefix_latest_versions(bucket: str, prefix: str, s3_client=None):
+    paginator = (s3_client or s3).get_paginator("list_object_versions")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Versions", []):
             if not obj.get("IsLatest"):
@@ -1068,7 +1068,11 @@ def package_prefix(event, context):
         # Directories first, so a file the crate also lists explicitly keeps its metadata.
         for entry in sorted(crate.entries, key=lambda e: not e.is_dir):
             if entry.is_dir:
-                for obj in list_prefix_latest_versions(entry.physical_key.bucket, entry.physical_key.path):
+                # The crate names the prefix, so listing it with this lambda's role
+                # would enumerate keys the caller cannot list. Expand with theirs.
+                for obj in list_prefix_latest_versions(
+                    entry.physical_key.bucket, entry.physical_key.path, get_user_s3_client()
+                ):
                     key = obj["Key"]
                     pkg_entries[entry.logical_key + key[len(entry.physical_key.path) :]] = (
                         quilt3.packages.PackageEntry(
