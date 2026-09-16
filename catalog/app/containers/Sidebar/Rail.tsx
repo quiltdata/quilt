@@ -15,6 +15,9 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     flexShrink: 0,
     minHeight: 0,
+    // The collapse control straddles the right border, so the rail must not
+    // clip it.
+    overflow: 'visible',
     // Stay above the header AppBar (and absolutely-positioned page backgrounds
     // like the landing Dots), otherwise the rail isn't clickable on the home page.
     position: 'relative',
