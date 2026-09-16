@@ -5,7 +5,7 @@ import json
 import pytest
 
 import t4_lambda_pkgpush
-from quilt3.util import PhysicalKey
+from quilt3.util import PhysicalKey, validate_package_name
 from t4_lambda_pkgpush import rocrate
 
 CRATE_PK = PhysicalKey("bucket", "experiments/260908_ale_ELNID/ro-crate-metadata.json", None)
@@ -179,6 +179,8 @@ def test_parse_haspart_unlisted_file_gets_no_meta():
     [
         ("../escape.txt", "RoCrateInvalidPart"),
         ("sub/../escape.txt", "RoCrateInvalidPart"),
+        ("sub/./data.csv", "RoCrateInvalidPart"),
+        ("sub//data.csv", "RoCrateInvalidPart"),
         ("/abs.txt", "RoCrateInvalidPart"),
         ("https://example.com/x.txt", "RoCrateInvalidPart"),
         ("./", "RoCrateInvalidPart"),
@@ -221,6 +223,70 @@ def test_parse_crate_listed_in_haspart_not_duplicated():
     root_of(doc)["hasPart"].append({"@id": "ro-crate-metadata.json"})
     crate = rocrate.parse(doc, CRATE_PK)
     assert [e.logical_key for e in crate.entries] == ["test_file.txt", "ro-crate-metadata.json"]
+
+
+def test_parse_keeps_crate_version():
+    versioned = PhysicalKey(CRATE_PK.bucket, CRATE_PK.path, "v1")
+    crate = rocrate.parse(copy.deepcopy(SAMPLE), versioned)
+    assert crate.entries[-1].physical_key == versioned
+
+
+def test_parse_foreign_crate_name_does_not_displace_provenance():
+    """Another crate under the provenance logical key is a conflict, not a silent swap."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"].append({"@id": "s3://other-bucket/other/ro-crate-metadata.json"})
+    with pytest.raises(rocrate.RoCrateError) as excinfo:
+        rocrate.parse(doc, CRATE_PK)
+    assert excinfo.value.name == "RoCrateDuplicateEntry"
+    assert excinfo.value.context == {"logical_key": "ro-crate-metadata.json"}
+
+
+@pytest.mark.parametrize(
+    "part_id, logical_key, path",
+    [
+        ("sample%201.csv", "sample 1.csv", "experiments/260908_ale_ELNID/sample 1.csv"),
+        ("sub/a%23b.csv", "sub/a#b.csv", "experiments/260908_ale_ELNID/sub/a#b.csv"),
+    ],
+)
+def test_parse_haspart_relative_uri_is_unquoted(part_id, logical_key, path):
+    """A relative @id is a URI reference, like the absolute ones PhysicalKey unquotes."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": part_id}]
+    entry = rocrate.parse(doc, CRATE_PK).entries[0]
+    assert entry.logical_key == logical_key
+    assert entry.physical_key == PhysicalKey("bucket", path, None)
+
+
+@pytest.mark.parametrize(
+    "prefix_name, suffix_name, expected",
+    [
+        ("ale", "RNA sequencing run 1", "ale/RNA-sequencing-run-1"),
+        ("lab group", "260908", "lab-group/260908"),
+        ("...", "260908", "experiments/260908"),
+    ],
+)
+def test_package_prefix_crate_name_is_sanitized(mocker, packager_stubs, prefix_name, suffix_name, expected):
+    """A crate name is written for people; the package name grammar admits [\\w-] only."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["name"] = suffix_name
+    for e in doc["@graph"]:
+        if e["@id"] == "#package-prefix":
+            e["name"] = prefix_name
+    get_object_stub(mocker, doc)
+
+    t4_lambda_pkgpush.package_prefix(
+        json.dumps(
+            {
+                "source_prefix": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                "metadata_uri": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+            }
+        ),
+        None,
+    )
+
+    _, kwargs = built_package(packager_stubs)
+    assert kwargs["name"] == expected
+    validate_package_name(kwargs["name"])
 
 
 # --- package_prefix() integration -------------------------------------------------
