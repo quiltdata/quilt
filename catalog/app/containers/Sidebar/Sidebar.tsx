@@ -99,23 +99,14 @@ const useStyles = M.makeStyles((t) => {
       border: 0,
       width: `min(${t.spacing(32)}px, 85vw)`,
     },
-    // The brand row holds the home link and the collapse control. Expanded
-    // they share the 64px row; collapsed the control drops beneath the mark so
-    // the mark can sit centered on the icon axis.
+    // The brand row is brand only: the collapse control rides the rail's right
+    // edge instead, so folding doesn't reshuffle this row.
     brand: {
       alignItems: 'center',
       display: 'flex',
-      paddingRight: t.spacing(1),
     },
-    // 6px, not a spacing step: with the 30px control beneath the 64px mark it
-    // puts the first nav row at the same y (160px) as the expanded rail, so
-    // the rows don't hop on toggle. That registration assumes the Workspace
-    // section is there to give the height back; LOCAL mode with no user
-    // omits it and takes a 36px hop.
     brandCollapsed: {
-      flexDirection: 'column',
-      paddingBottom: 6,
-      paddingRight: 0,
+      justifyContent: 'center',
     },
     // Match the 64px pseudo-header height so the logo and search bar align.
     // minHeight, not height: at 200% zoom the row has to be able to grow rather
@@ -172,16 +163,31 @@ const useStyles = M.makeStyles((t) => {
     logoStackCustomCollapsed: {
       width: `calc(100% - ${t.spacing(2)}px)`,
     },
+    // A detent on the seam the control moves. It straddles the rail's right
+    // border, centered on the 64px header line, so it holds one position in
+    // both states -- a control that relocates when pressed can't be aimed
+    // twice. Deeper than the rail and carrying the border's own hairline, it
+    // reads as part of the edge rather than as a glyph floating in the brand
+    // row. Half of it overhangs the content column; the rail's own zIndex
+    // (appBar + 1, see Rail) is what carries it over the header.
     toggle: {
-      color: t.palette.navigation.textMuted,
+      backgroundColor: t.palette.primary.dark,
+      border: `1px solid ${fade(t.palette.common.white, 0.12)}`,
+      color: t.palette.navigation.text,
+      padding: 3,
+      position: 'absolute',
+      // The rail's own border is the axis: half the 28px control each side.
+      right: -14,
+      top: 32,
+      transform: 'translateY(-50%)',
       [MOTION]: {
-        transition: t.transitions.create(['color', 'background-color'], {
+        transition: t.transitions.create(['color', 'background-color', 'border-color'], {
           duration: 150,
         }),
       },
       '&:hover': {
-        backgroundColor: fade(t.palette.common.white, 0.08),
-        color: t.palette.navigation.text,
+        backgroundColor: t.palette.primary.main,
+        borderColor: fade(t.palette.common.white, 0.32),
       },
       ...focusRing,
     },
@@ -267,9 +273,16 @@ const useStyles = M.makeStyles((t) => {
       padding: t.spacing(1, 2.5, 0.5),
       textTransform: 'uppercase',
     },
+    // Folding changes width, not the rows' y. The section label is the one
+    // expanded-only row *above* the nav, so its band has to survive its
+    // content closing -- otherwise every row below hops up by its height.
+    // (The version readout folds at the foot, where there is nothing to shift.)
+    labelBandCollapsed: {
+      minHeight: 28,
+    },
     wsRow: {
       minHeight: 44,
-      padding: t.spacing(1, 1.5, 1, 2),
+      padding: t.spacing(0, 1.5, 0, 2),
       ...iconCol,
     },
     wsRowClickable: {
@@ -440,10 +453,27 @@ function NavShell({
 }
 
 // A block that closes to zero height when the rail folds (see `fold` styles).
-function Fold({ closed, children }: { closed: boolean; children: React.ReactNode }) {
+// `keepBand` holds the closed block's height for a fold that has rows beneath
+// it, which must not shift.
+function Fold({
+  closed,
+  keepBand = false,
+  children,
+}: {
+  closed: boolean
+  keepBand?: boolean
+  children: React.ReactNode
+}) {
   const classes = useStyles()
   return (
-    <div className={cx(classes.fold, closed && classes.foldClosed)} aria-hidden={closed}>
+    <div
+      className={cx(
+        classes.fold,
+        closed && classes.foldClosed,
+        closed && keepBand && classes.labelBandCollapsed,
+      )}
+      aria-hidden={closed}
+    >
       <div className={classes.foldInner}>{children}</div>
     </div>
   )
@@ -678,7 +708,7 @@ export interface SidebarProps {
   onClose?: () => void
 }
 
-// The collapse control: a chevron beside the brand. `[` toggles it from
+// The collapse control: a detent on the rail's right edge. `[` toggles it from
 // anywhere except while typing, the same guard the search band's `/` uses.
 function CollapseToggle({
   collapsed,
@@ -858,14 +888,14 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                 )}
               </div>
             </Link>
-            {canCollapse && (
-              <CollapseToggle collapsed={collapsed} onToggle={toggleCollapsed} />
-            )}
           </div>
+          {canCollapse && (
+            <CollapseToggle collapsed={collapsed} onToggle={toggleCollapsed} />
+          )}
 
           {(user || cfg.mode !== 'LOCAL') && (
             <>
-              <Fold closed={collapsed}>
+              <Fold closed={collapsed} keepBand>
                 <div className={classes.sectionLabel}>Workspace</div>
               </Fold>
               <div
