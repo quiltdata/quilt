@@ -358,12 +358,17 @@ Every control uses the same vocabulary on every screen.
   Navigation Selected wash + the amber bracket (Indicator Rule); keyboard focus
   per the Focus Ring Rule. Icon actions carry tooltips with arrows.
 - **The folded rail:** where the rail is a column (not the compact overlay) it
-  folds to a 72px icon column and back from a chevron beside the brand mark, or
-  `[` from anywhere outside a field; the choice is remembered. Folding changes
-  nothing but width: the same rows at the same 44px rhythm, icons held on one
-  axis, labels faded rather than removed, the workspace and identity boxes
-  shedding their ground to read as bare icon rows, the wordmark crossfading to
-  the square Q mark, a right-side tooltip standing in for each label. The
+  folds to a 72px icon column and back from a chevron on the rail's own right
+  edge, or `[` from anywhere outside a field; the choice is remembered. The
+  control is a detent straddling that edge, centered on the 64px header line —
+  midnight-deep, carrying the border's hairline — and it holds that one
+  position in both states, since a control that relocates when pressed cannot
+  be aimed twice. Folding changes nothing but width: the same rows at the same
+  44px rhythm and the same y (an expanded-only row above the nav keeps its band
+  when its content closes), icons held on one axis, labels faded rather than
+  removed, the workspace and identity boxes shedding their ground to read as
+  bare icon rows, the wordmark crossfading to the square Q mark on the icon
+  axis, a right-side tooltip standing in for each label. The
   rail's width is the one animated property that reflows the page (the
   content column must follow it); what moves inside the rail — labels fading,
   expanded-only rows closing up, boxes losing their ground — rides on that
