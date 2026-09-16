@@ -1,109 +1,205 @@
 /**
- * What to tell a reader when a product's contents cannot be listed.
+ * What to tell a reader when an act cannot be performed, or a mint was refused.
  *
- * Four reasons, four different people who can fix it. The temptation is one
- * "no files" message; the cost of that is sending someone to the wrong person,
- * or to nobody. All four states are live in AWS's `raja-poc` deployment today --
- * 4 of its 7 published products are in one of them
- * (`wb/dp-ui-slice-1/research/raja-poc-reverse-engineered.md` §5, §5a).
+ * Two separate vocabularies live here, and merging them would be the mistake:
  *
- * Copy lives here rather than inline in JSX so it can be asserted on directly.
- * The distinctions are the product decision; a spec that pins them catches a
- * later "simplification" that collapses two states back into one.
+ * - **`UNAVAILABLE_ACTS`** -- a write the prototype cannot perform, because the
+ *   registry serves no volume, exchange or mint API yet. Every publisher and
+ *   subscriber mutation is in this state. Its copy says the act is not wired,
+ *   never that it failed and never that it succeeded: a fixture that reported a
+ *   successful designation would teach a reader that a backend exists, and the
+ *   whole point of shipping this behind a flag is to design the surface without
+ *   claiming the plumbing.
+ * - **`MINT_REFUSALS`** -- a refusal of *one mint attempt*, in the mint's own
+ *   words. Deliberately not lifecycle states: *no grant* is not "you are not
+ *   subscribed" (a grant can be missing after an approval), and *definition
+ *   failed* is not "the publisher's definition is broken" (the requester's
+ *   authority and the run's conditions bear on it). Whether the browser face may
+ *   name a cause at all is UNK-C5, so the uniform rendering is here too.
  *
- * Register, from `PRODUCT.md` and the design critiques: plainly stated, blame
- * free, no "Oops". Modeled on the existing precedents --
- * `PackageTree.tsx` ("You don't have access to this object") and
- * `RehydrateDialog.tsx`, which names the exact IAM action to ask for rather than
- * saying "contact your administrator". Naming the specific thing to request is
- * both kinder and more actionable.
+ * Copy lives in this module rather than inline in JSX so a spec can pin the
+ * distinctions -- and on this surface the distinctions *are* the honesty, so a
+ * later "simplification" that collapses two of them is worth failing a test over.
+ *
+ * Register, from PRODUCT.md and the precedents in `PackageTree.tsx` and
+ * `RehydrateDialog.tsx`: state what is true, name the specific thing to ask for
+ * rather than "contact your administrator", no blame, no "Oops".
  */
 
-import type { UnavailableReason } from './types'
+/**
+ * A write the local volume model defines but nothing serves yet.
+ *
+ * One id per act rather than a single "not implemented", because the acts land at
+ * different times behind different units (U16c, U16d, U19, U25) and a reader
+ * deserves to know which of them is missing. The screens render the control and
+ * this notice, rather than hiding the control: hiding it would misreport the
+ * design as smaller than it is, and the surface is what is being reviewed.
+ */
+export type UnavailableActId =
+  | 'DESIGNATE'
+  | 'REVISE'
+  | 'UPDATE_METADATA'
+  | 'PUBLISH'
+  | 'UNPUBLISH'
+  | 'APPROVE'
+  | 'REJECT'
+  | 'REVOKE'
+  | 'SUBSCRIBE'
+  | 'UNSUBSCRIBE'
+  | 'MINT'
 
-export interface Unavailable {
-  /** Page-level heading. `h5` is the ceiling app-wide (No-Display-Font Rule). */
+export interface UnavailableAct {
+  /** What the act would do, so the notice reads as a description of the design rather than an error. */
   title: string
-  /** One sentence: what is true. Never speculation about why. */
+  /** One sentence: what is missing, named. */
   body: string
-  /**
-   * Who can change this, and what to ask them for. `null` when nobody can --
-   * offering a remedy that does not exist is worse than admitting there is none.
-   */
-  remedy: string | null
-  /**
-   * Whether this is a permission boundary rather than a fault.
-   *
-   * Drives presentation: a governed denial is a normal state in a product whose
-   * premise is per-bucket permissions, so it must not be rendered as an error.
-   * There is no error-red token in the palette and reaching for one here would
-   * misreport a working system as a broken one.
-   */
-  governed: boolean
+  /** The unit that lands it, so a reader can go and look. */
+  unit: string
 }
 
-export const UNAVAILABLE: Record<UnavailableReason, Unavailable> = {
-  EMPTY: {
-    title: 'No files',
-    body: 'This product resolves, and the revision it points at contains no files.',
-    // Nothing to fix. An empty package is a real thing to publish, and the
-    // honest answer is that the contents are empty rather than hidden.
-    remedy: null,
-    governed: false,
-  },
-
-  NOT_FOUND: {
-    title: 'Contents not found',
+export const UNAVAILABLE_ACTS: Record<UnavailableActId, UnavailableAct> = {
+  DESIGNATE: {
+    title: 'Designating a product is not wired yet',
     body:
-      'This product points at a package that does not exist in the registry it names. ' +
-      'The listing was published, but its target was not.',
-    // Deliberately not "request access": no grant fixes this, and suggesting one
-    // sends the reader to an admin who will find nothing wrong on their side.
-    // Live example: 4 of raja-poc's 7 listings resolve to nothing in the
-    // registry configured for that deployment (research §5).
-    remedy: 'Ask whoever publishes this product to check its target.',
-    governed: false,
+      'Creating a product runs a five-step saga on the registry — product database, owner grant, view, validation, row — ' +
+      'and this stack serves none of it. Nothing was created.',
+    unit: 'U16c',
   },
-
-  NOT_A_MEMBER: {
-    title: 'Contents not visible to you',
+  REVISE: {
+    title: 'Revising a definition is not wired yet',
     body:
-      'You can see that this product exists, but listing its contents needs ' +
-      'membership in the catalog project that owns it.',
-    // Verified as its own layer, not inferred: the same AWS admin credential got
-    // AccessDenied on one DataZone project and succeeded on another, so this is
-    // project membership and an IAM grant will not touch it (research §2).
-    remedy: 'Ask a catalog admin to add you to the owning project.',
-    governed: true,
+      'A revision authors a new view version on the registry. Nothing was changed, and the version this product ' +
+      'points at is unchanged.',
+    unit: 'U16c',
   },
-
-  REGISTRY_UNREADABLE: {
-    title: 'Storage not readable by you',
+  UPDATE_METADATA: {
+    title: 'Editing title and description is not wired yet',
+    body: 'The registry serves no volume row to write. Nothing was changed.',
+    unit: 'U16d',
+  },
+  PUBLISH: {
+    title: 'Publishing is not wired yet',
     body:
-      'The catalog authorized you for this product, but its files live in storage ' +
-      'you cannot read — commonly a bucket in another account.',
-    // The pair most tempting to merge with NOT_A_MEMBER, and the reason not to:
-    // this one is a bucket policy, that one is a catalog grant. Different
-    // system, different owner, and a reader told the wrong one wastes a round
-    // trip discovering the message was wrong.
-    remedy: 'Ask a storage admin for read access to the registry bucket.',
-    governed: true,
+      'Publishing writes the volume row and adds a listing to the exchange. Neither exists on this stack, so ' +
+      'no listing was created.',
+    unit: 'U16d, U19',
+  },
+  UNPUBLISH: {
+    title: 'Unpublishing is not wired yet',
+    body:
+      'Unpublishing removes the listing only — it does not touch a holding or a grant. Neither the listing nor ' +
+      'the row can be written here, so nothing was changed.',
+    unit: 'U16d, U19',
+  },
+  APPROVE: {
+    title: 'Approving is not wired yet',
+    body:
+      'An approval records a decision, writes the subscriber workspace’s grant, and reads it back. The exchange ' +
+      'and the grant path do not exist on this stack, so no grant was written.',
+    unit: 'U19',
+  },
+  REJECT: {
+    title: 'Rejecting is not wired yet',
+    body: 'A rejection records a decision in the exchange. The exchange does not exist on this stack.',
+    unit: 'U19',
+  },
+  REVOKE: {
+    title: 'Revoking is not wired yet',
+    body:
+      'A revoke removes the grant and records the decision; credentials already minted keep working until they ' +
+      'expire. Nothing was removed here.',
+    unit: 'U19',
+  },
+  SUBSCRIBE: {
+    title: 'Requesting access is not wired yet',
+    body:
+      'A request writes your workspace’s holding row and a request in the exchange. Neither exists on this ' +
+      'stack, so no request was filed.',
+    unit: 'U16d, U19',
+  },
+  UNSUBSCRIBE: {
+    title: 'Withdrawing is not wired yet',
+    body:
+      'Withdrawing a request, and leaving an approved subscription, are the registry’s to define (what happens ' +
+      'to the request and to a grant is still open). Nothing was changed.',
+    unit: 'U16d',
+  },
+  MINT: {
+    // The one that would be most tempting to fake, and the most expensive to
+    // fake: a fabricated mint would put invented bytes behind a real-looking
+    // file tree. It also cannot be faked *safely* even with goodwill, because
+    // which session the catalog may present to the mint is itself unanswered
+    // (UNK-C2) -- and the catalog must never fall back to the workspace's
+    // S3-only session to read a product's objects directly (model.md §Reading a
+    // product, step 6).
+    title: 'Minting access is not wired yet',
+    body:
+      'Reading a product means asking the registry to mint short-lived credentials against a capture, then ' +
+      'reading through the proxy. This stack serves no mint, and the catalog does not read a product’s objects ' +
+      'any other way.',
+    unit: 'U25',
   },
 }
 
 /**
- * The reason to show for a member, given what the adapter reported.
+ * Cause classes a refused mint may carry, as model.md names them.
  *
- * `EMPTY` is the fallback when a member is `UNAVAILABLE` with no reason stated.
- * That is the wrong-but-harmless choice on purpose: claiming "no files" about a
- * product that is actually restricted overstates nothing and accuses nobody,
- * whereas defaulting to a permission story would invent a denial that may not
- * exist and send the reader to an admin for no reason.
+ * These are outcomes of **one attempt**, not durable states of a product. The
+ * screen shows the cause and, beside it, re-reads the derived subscription state
+ * — so a *no grant* refusal sits next to whatever the record actually says,
+ * rather than being translated into a claim about the subscription.
  */
-export function reasonFor(
-  contentsSource: string,
-  reason: UnavailableReason | undefined,
-): Unavailable | null {
-  if (contentsSource !== 'UNAVAILABLE') return null
-  return UNAVAILABLE[reason ?? 'EMPTY']
+export type MintRefusalCause =
+  | 'NO_GRANT'
+  | 'NO_SUCH_VOLUME'
+  | 'DEFINITION_FAILED'
+  | 'OVER_CAP'
+  | 'OVER_BUDGET'
+  /** D-F may rule that no cause is disclosed. Then there is one line and the last derived state. */
+  | 'UNIFORM'
+
+export interface MintRefusal {
+  /** The cause in the mint's words, for the line "Minting was refused: <label>". */
+  label: string
+  /** What is and is not implied. Never a lifecycle claim. */
+  body: string
+}
+
+export const MINT_REFUSALS: Record<MintRefusalCause, MintRefusal> = {
+  NO_GRANT: {
+    label: 'no grant',
+    // Explicitly severed from the subscription's state: a grant can be missing
+    // *after* an approval, which is one of the disagreement states, and telling
+    // a reader "you are not subscribed" when a decision exists is simply wrong.
+    body:
+      'The mint found no grant for your workspace on this product’s view. That is not the same as your ' +
+      'subscription’s state — see it beside this.',
+  },
+  NO_SUCH_VOLUME: {
+    label: 'no such volume',
+    body: 'The registry has no volume with this id.',
+  },
+  DEFINITION_FAILED: {
+    label: 'definition failed',
+    // Not "the publisher's definition is broken": the run happens as the
+    // requester, so the requester's authority and the run's conditions bear on
+    // the outcome too.
+    body:
+      'The definition did not run for this attempt. The requester’s authority and the run’s conditions bear ' +
+      'on this as much as the definition does.',
+  },
+  OVER_CAP: {
+    label: 'over cap',
+    body: 'The attempt exceeded a cap the mint enforces.',
+  },
+  OVER_BUDGET: {
+    label: 'over budget',
+    body: 'The attempt exceeded a budget the mint enforces.',
+  },
+  UNIFORM: {
+    label: 'refused',
+    body:
+      'Quilt could not mint access to this product for your workspace just now. No cause is disclosed for a ' +
+      'refused mint.',
+  },
 }

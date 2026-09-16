@@ -1,21 +1,26 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
 
 import * as DP from 'model/DataProducts'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-// An externally-owned data product wearing BucketCard's markup: same three bands
-// (header wash, body, bottom row), same truncation and hover treatment, so a
-// mixed volume grid reads as one wall of cards rather than two card
-// vocabularies. What differs is what a DP has instead of tags and collaborators
-// -- the catalog that defines it and how much of it you can actually read.
+// A data product wearing BucketCard's markup: same three bands (header, body,
+// bottom row), same truncation and hover treatment, so a mixed volume grid reads
+// as one wall of cards rather than two card vocabularies. What differs is what a
+// product has instead of tags and collaborators -- the workspace that publishes
+// it, and this workspace's relation to it.
 //
-// Deliberately not a `variant` prop on BucketCard: the two share layout but
-// almost no fields (no iconUrl, no s3:// address, no tags, no collaborators),
-// and threading a discriminated union through that component would cost more
-// than the duplicated shell.
+// Deliberately not a `variant` prop on BucketCard: the two share layout but almost
+// no fields (no iconUrl, no s3:// address, no tags, no collaborators), and
+// threading a discriminated union through that component would cost more than the
+// duplicated shell.
+//
+// What this card must never show: anything that reads as a claim about
+// readability. No entry counts, no "n of m readable", no size. A row says what the
+// workspace's *relation* to the product is; whether its bytes can be read is a
+// mint's answer, and four separate facts stand between a listing and a read
+// (model.md invariant 1).
 
 const ICON_SIZE = 44
 
@@ -38,127 +43,100 @@ const useStyles = M.makeStyles((t) => ({
   },
   header: {
     alignItems: 'center',
-    backgroundColor: fade(t.palette.primary.main, 0.04),
-    borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
     gap: t.spacing(1.5),
-    minWidth: 0,
-    padding: t.spacing(2),
-    textDecoration: 'none',
-    '&:focus-visible': {
-      outline: `2px solid ${t.palette.primary.main}`,
-      outlineOffset: -2,
-    },
-  },
-  body: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
     padding: t.spacing(2),
   },
-  bodySpacer: {
-    flexGrow: 1,
-  },
-  bottomRow: {
+  icon: {
     alignItems: 'center',
+    background: t.palette.action.selected,
+    borderRadius: t.shape.borderRadius,
     display: 'flex',
-    gap: t.spacing(1),
-    justifyContent: 'space-between',
-  },
-  // Matches BucketIcon's footprint so a DP card's identity block aligns with a
-  // bucket card's in the same grid row.
-  avatar: {
     flexShrink: 0,
     height: ICON_SIZE,
+    justifyContent: 'center',
     width: ICON_SIZE,
   },
-  identity: {
+  heading: {
     minWidth: 0,
   },
   title: {
     color: t.palette.text.primary,
     display: 'block',
-    fontWeight: t.typography.fontWeightMedium,
     overflow: 'hidden',
+    textDecoration: 'none',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  platform: {
+  owner: {
     color: t.palette.text.secondary,
     display: 'block',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  description: {
-    ...(t.mixins as $TSFixMe).lineClamp(2),
-    color: t.palette.text.secondary,
+  body: {
+    flexGrow: 1,
+    padding: t.spacing(0, 2, 2),
   },
-  access: {
-    ...t.typography.caption,
-    color: t.palette.text.secondary,
-    flexShrink: 0,
-    textAlign: 'right',
+  description: {
+    display: '-webkit-box',
+    overflow: 'hidden',
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 3,
+  },
+  bottom: {
+    alignItems: 'center',
+    borderTop: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    gap: t.spacing(1),
+    minHeight: t.spacing(5),
+    padding: t.spacing(1, 2),
   },
 }))
 
-interface DataProductCardProps {
-  product: DP.DataProduct
-}
-
-export default function DataProductCard({ product }: DataProductCardProps) {
+export default function DataProductCard({ product }: { product: DP.ProductVolume }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const to = urls.dataProduct(product.id)
-  const caps = DP.capabilitiesFor(product.binding.kind)
-  const platform = DP.platformLabelFor(product.binding.kind)
+  // The bucket route: a product is a bucket the catalog reaches through the proxy.
+  const to = urls.bucketRoot(product.id)
 
   return (
-    <div
-      className={classes.root}
-      data-testid="bucket-grid--data-product"
-      data-data-product={product.id}
-    >
-      <Link className={classes.header} to={to} title={product.name}>
-        {/* No iconUrl to honor: an external product has no Quilt-side icon, so
-            the avatar is a plain type glyph rather than a hashed identity tint.
-            Identity tints encode *which object* and are reserved for objects
-            that own one. */}
-        <M.Avatar className={classes.avatar}>
-          <M.Icon>view_module</M.Icon>
-        </M.Avatar>
-        <div className={classes.identity}>
-          <M.Typography className={classes.title} component="span" variant="body1">
-            {product.name}
+    <div className={classes.root} data-testid="volume-grid--data-product">
+      <div className={classes.header}>
+        <Link aria-hidden="true" tabIndex={-1} to={to} className={classes.icon}>
+          {/* A plain type glyph rather than a hashed identity tint: a product has
+              no Quilt-side icon of its own. */}
+          <M.Icon color="action">view_module</M.Icon>
+        </Link>
+        <div className={classes.heading}>
+          <M.Typography variant="subtitle1" className={classes.title} component="span">
+            <Link className={classes.title} to={to} title={product.title}>
+              {product.title}
+            </Link>
           </M.Typography>
-          <M.Typography className={classes.platform} component="span" variant="body2">
-            {platform}
+          <M.Typography variant="caption" className={classes.owner}>
+            Data product · {product.owner.name}
           </M.Typography>
         </div>
-      </Link>
+      </div>
       <div className={classes.body}>
-        {!!product.description && (
-          <M.Typography className={classes.description} component="p" variant="caption">
+        {product.description && (
+          <M.Typography
+            variant="body2"
+            color="textSecondary"
+            className={classes.description}
+          >
             {product.description}
           </M.Typography>
         )}
-        <div className={classes.bodySpacer} />
-        <div className={classes.bottomRow}>
-          {/* Curation is capability-gated: only Unity has the primitive, so
-              elsewhere the chip is absent rather than empty. An unconditional
-              "—" would read as "not certified" when the truth is that the
-              catalog has no such concept. */}
-          {caps.curationStatus && product.curationStatus ? (
-            <M.Chip
-              label={product.curationStatus}
-              size="small"
-              color={product.curationStatus === 'certified' ? 'primary' : 'default'}
-            />
-          ) : (
-            <M.Chip label="Data product" size="small" />
-          )}
-          <span className={classes.access}>{DP.accessSummary(product)}</span>
-        </div>
+      </div>
+      <div className={classes.bottom}>
+        <M.Typography variant="caption" color="textSecondary">
+          {/* The relation, with an amber mark when the record and the grant
+              disagree -- never a resolved state (screen rule R5). */}
+          {DP.relationLabel(product)}
+        </M.Typography>
       </div>
     </div>
   )

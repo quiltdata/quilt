@@ -111,39 +111,19 @@ export const queriesEs = route('/queries/es')
 
 export type QueriesEsArgs = Parameters<typeof queriesEs.url>
 
-// Data products are defined in an enterprise catalog (DataZone / Unity /
-// Snowflake), not in Quilt, so the id is a Quilt-side synthetic composed from
-// the platform binding rather than a platform-native identifier.
-export const dataProducts = route('/data-products')
+// Data products are volumes this stack's own registry defines. A product *is* an
+// S3-compatible bucket at the proxy (bucket = `volume_id`, path-style), so the
+// product screens live on the bucket route below rather than at a family of their
+// own -- see `bucketDefinition` and its siblings. Two acts are the workspace's
+// rather than a volume's, so they stay top-level: the exchange listing spans
+// volumes the workspace does not hold, and creation precedes any volume existing.
+export const exchange = route('/exchange')
 
-export type DataProductsArgs = Parameters<typeof dataProducts.url>
+export type ExchangeArgs = Parameters<typeof exchange.url>
 
-// NOT `encode` from utils/s3paths: that one splits on `/` and encodes each
-// segment separately, deliberately preserving slashes as path separators for S3
-// keys. Product ids embed the binding and contain slashes of their own
-// (`uc:metastore/catalog/schema`), which would spill into extra path segments
-// and stop this route matching at all. `encodeURIComponent` keeps the whole id
-// in one segment, so `decodeURIComponent` on the way out is its exact inverse.
-export const dataProduct = route(
-  '/data-products/:dataProductId',
-  (dataProductId: string) => `/data-products/${encodeURIComponent(dataProductId)}`,
-)
+export const productNew = route('/products/new')
 
-export type DataProductArgs = Parameters<typeof dataProduct.url>
-
-// Sections are their own routes rather than local state, matching the in-bucket
-// and Quilt-owned-DP vocabulary: a tab is addressable, survives reload, and can
-// be linked to. Same `encodeURIComponent` reasoning as above.
-export const dataProductContents = route(
-  '/data-products/:dataProductId/contents',
-  (dataProductId: string) =>
-    `/data-products/${encodeURIComponent(dataProductId)}/contents`,
-)
-
-export const dataProductAccess = route(
-  '/data-products/:dataProductId/access',
-  (dataProductId: string) => `/data-products/${encodeURIComponent(dataProductId)}/access`,
-)
+export type ProductNewArgs = Parameters<typeof productNew.url>
 
 // Immutable URI resolver
 export const uriResolver = route(
@@ -163,6 +143,31 @@ export const bucketRoot = route('/b/:bucket', (bucket: string) => `/b/${bucket}`
 export const bucketOverview = bucketRoot
 
 export type BucketOverviewArgs = Parameters<typeof bucketOverview.url>
+
+// Product tabs, on the bucket route because a product *is* a bucket the catalog
+// reaches through the proxy: the param stays `:bucket` so every existing
+// `useBucketSafe`/`useBucketStrict` reader keeps working, and the kind decides which
+// of these mount. Unguarded they would appear on real buckets too, so the product
+// branch gates them on the volume's kind rather than on the path.
+export const bucketConnect = route(
+  '/b/:bucket/connect',
+  (bucket: string) => `/b/${bucket}/connect`,
+)
+
+export const bucketDefinition = route(
+  '/b/:bucket/definition',
+  (bucket: string) => `/b/${bucket}/definition`,
+)
+
+export const bucketSharing = route(
+  '/b/:bucket/sharing',
+  (bucket: string) => `/b/${bucket}/sharing`,
+)
+
+export const bucketAccess = route(
+  '/b/:bucket/access',
+  (bucket: string) => `/b/${bucket}/access`,
+)
 
 // redirects to global search
 export const bucketSearch = route(

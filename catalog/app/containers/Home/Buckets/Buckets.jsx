@@ -81,13 +81,13 @@ const asEntries = (buckets, products) => [
   })),
   ...products.map((p) => ({
     kind: 'product',
-    label: p.name,
-    // A product's id is its stable identity; `name` is display text a catalog
-    // owner can change.
+    label: p.title,
+    // The `volume_id` is the product's stable identity and is immutable; the title
+    // is display text its owner can change.
     sortKey: p.id,
-    // No platform exposes anything relevance-like for a product, and inventing
-    // a score would silently decide ranking. 0 places them among buckets of
-    // default relevance rather than pinning them to either end.
+    // The registry exposes nothing relevance-like for a product, and inventing a
+    // score would silently decide ranking. 0 places them among buckets of default
+    // relevance rather than pinning them to either end.
     relevance: 0,
     product: p,
   })),
@@ -575,7 +575,16 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
   // in rather than guarding the call: hooks cannot be called conditionally, so
   // the disabled case resolves to [] inside the resource without reaching the
   // adapter at all.
-  const dataProducts = DP.useProducts(dataProductsEnabled)
+  //
+  // Products only. The volume model returns both kinds, but a bucket row still
+  // reads through `utils/Buckets` — the model adds a kind, it does not take over
+  // what a bucket renders, and reading buckets from here would drop the tags,
+  // collaborators and icon the existing card needs.
+  const volumes = DP.useVolumes(dataProductsEnabled)
+  const dataProducts = React.useMemo(
+    () => volumes.filter((v) => v.kind === 'PRODUCT'),
+    [volumes],
+  )
 
   // One list from here down. Merging *before* filter/sort/pagination is what
   // makes a volume a volume: a product is ranked against buckets, lands on

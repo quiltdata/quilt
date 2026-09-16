@@ -1,223 +1,249 @@
 /**
- * The adapter port: the one boundary between the UI and an external catalog.
+ * The adapter port: the one boundary between the UI and the registry.
  *
  * Containers must not reach for `fixtures` directly. They ask this port, and
  * something behind it decides where the answer comes from -- today a fixture
- * table, later a GraphQL resolver over DataZone / Unity / Horizon. Swapping that
- * must not touch a single container.
+ * table, later the registry's GraphQL (`volumes`, `volume`, `exchangeListing`,
+ * and the own-side and exchange mutations proposed in
+ * `contrib/simon/creation-ux/api/README.md`). Swapping that must not touch a
+ * container.
  *
  * **Async on purpose, even though the fixture implementation is not.** A real
- * adapter is a network call: it fails, it takes time, it can return partial
- * results. Modelling the port as synchronous would let every call site assume
- * data is always present, and every one of them would need reopening the day an
- * adapter lands. The awkwardness of Promises here is the cost of not lying about
- * what this becomes.
+ * adapter is a network call: it fails, it takes time. Modelling the port as
+ * synchronous would let every call site assume data is always present, and every
+ * one of them would need reopening the day the registry serves this.
  *
- * What the port deliberately does **not** expose:
+ * The shape reads and writes the **local** volume model, not an external
+ * catalog's listing. Consequences that show up as absences here:
  *
- * - **No `whoHasAccess(user, product)`.** Undecidable, not merely unimplemented.
- *   See `Capabilities.effectiveAccessForNamedUser`, typed as literal `false`.
- * - **No write path for grants.** Quilt does not grant access to an
- *   externally-owned product; the catalog does. `submitRequest` records an
- *   intention, and the catalog decides.
- * - **No `refresh()` or subscription.** No platform emits product-level change
- *   events (contract §6.3), so a hook promising live updates would be fiction.
- *   Callers re-ask and get a new `fetchedAt`.
+ * - **No `whoHasAccess(user, product)`.** Grants land on workspace roles, never
+ *   on people (model.md invariant 2, *ruled*), so a per-person verdict is not a
+ *   thing the model has. The publisher's face answers *which workspaces* are
+ *   granted, which is what `subscribers` carries.
+ * - **No `listHoldings(workspace)`.** A workspace reads only its own slice of
+ *   `holdings` (DEC-52, *ruled*). A publisher learns its subscribers from the
+ *   exchange record, and this port offers no way to ask otherwise.
+ * - **No read path for a product's bytes on the adapter itself.** Reading is a
+ *   mint plus an S3 client at the proxy (`MintingAdapter`), separately declared,
+ *   because a stack can serve the registry and not the mint.
+ *
+ * The write methods are the reason `Result` types are unions rather than throws:
+ * the registry's own convention is a union of one success type and typed error
+ * arms (`BucketAddResult = BucketAddSuccess | BucketAlreadyAdded | ...`), and an
+ * expected outcome -- an id already taken, an approval whose grant did not read
+ * back -- is data a screen renders, not an exception.
  */
 
-import type { DataProduct, UnavailableReason } from './types'
-import type { ContentEntry } from './contents'
-import type { AccessRequest } from './requests'
-import type { Connection } from './connections'
+import type { MintRefusalCause, UnavailableActId } from './unavailable'
+import type { Capture, Subscription, Volume, ProductVolume } from './types'
+
+export type { UnavailableActId }
 
 /**
- * What an adapter can be asked.
+ * The refusal every write on a stack with no registry API returns.
  *
- * One interface rather than one-per-platform: the platform difference lives in
- * `Capabilities` (data), not in the shape of the port (configuration). An
- * implementation covering only one platform returns only its products.
+ * A single arm on every write union, and the honest one for this prototype: the
+ * act is not wired, so nothing happened. Distinct from a *failure*, which would
+ * mean the registry was asked and said no -- and distinct from success, which is
+ * the arm a fixture must never fabricate. `act` names which act is missing so the
+ * screen can show the specific notice from `UNAVAILABLE_ACTS`.
+ */
+export interface ActUnavailable {
+  ok: false
+  reason: 'UNAVAILABLE'
+  act: UnavailableActId
+}
+
+/** A write the registry refused for a stated reason. Reserved for a real adapter. */
+export interface ActRefused {
+  ok: false
+  reason: 'REFUSED'
+  /** The registry's arm, verbatim -- e.g. `VolumeIdTaken`, `NotOwner`, `NotListed`. */
+  arm: string
+  detail: string
+}
+
+export type WriteFailure = ActUnavailable | ActRefused
+
+/**
+ * What an adapter can be asked to read.
+ *
+ * Reads and writes are split across interfaces for the same reason the old port
+ * split browsing from fetching: a stack can serve reads and not writes, and an
+ * adapter for one should not have to implement methods that throw. Absence of a
+ * method is the honest encoding, and the `supports*` guards let a container ask.
  */
 export interface DataProductAdapter {
   /**
-   * Every product this user can see -- which includes products they cannot read
-   * into. Discovery and readability are different questions, and filtering
-   * unreadable products out here would hide the case a request affordance
-   * exists for.
+   * Every volume the **active workspace** holds -- both kinds, one list (B1).
+   *
+   * One list rather than two because a reader is browsing "what is here", and the
+   * backing kind is a property of an entry rather than a reason for a second
+   * pane. Never unioned across the user's other workspaces: one active workspace
+   * (model.md §Stacks and workspaces, *ruled*).
    */
-  listProducts(): Promise<DataProduct[]>
+  listVolumes(): Promise<Volume[]>
 
   /**
-   * One product, or `null` when it is not there.
+   * One volume, or `null` when this stack has none with that id.
    *
-   * `null` is an expected answer rather than an error: product ids are
-   * synthesized from the platform binding and are **not stable across renames**
-   * (a Unity schema rename silently changes the id and emits no event), so a
-   * miss is ordinary drift.
+   * `null` is an expected answer. Increment 1 keeps no tombstone for a retired
+   * product (UNK-C3), so a retired product and a typo look the same here -- by
+   * design, and the overview says exactly that rather than inventing a reason.
    */
-  getProduct(id: string): Promise<DataProduct | null>
+  getVolume(id: string): Promise<Volume | null>
 
   /**
-   * Access requests recorded against a product.
+   * Products published in the active workspace's scope, held or not (S1).
    *
-   * Always answerable, because the record is Quilt's. Only DataZone can
-   * enumerate platform-native requests, so an adapter reconciles what it can and
-   * leaves `platformRecord: null` where it cannot -- which is a steady state on
-   * Unity, not a pending sync.
+   * Reads the exchange record. A listing is *visibility*: nothing in this answer
+   * says the workspace may read any of it.
    */
-  listRequests(productId: string): Promise<AccessRequest[]>
+  listExchange(): Promise<ProductVolume[]>
 
-  /**
-   * The catalog connections an admin has configured.
-   *
-   * On the port rather than read from `fixtures` by the admin screen: a
-   * connection list reports live integration status, including failures, and a
-   * container reading fixtures directly would keep showing invented ones after a
-   * real adapter lands -- three plausible rows, one of them a fabricated auth
-   * error, presented as the operator's own stack.
-   */
-  listConnections(): Promise<Connection[]>
+  /** The active workspace, for the copy that names it on every act. */
+  activeWorkspace(): Promise<string>
 }
 
 /**
- * An adapter that can also file a request.
+ * Static checks on a draft definition, before designation.
  *
- * Separate from `DataProductAdapter` because initiating is a real capability
- * split: `initiableRequests` is true on DataZone and Unity, false on Snowflake.
- * An adapter for a platform with no request flow should not have to implement a
- * method that throws -- absence of the method is the honest encoding, and
- * `supportsRequests()` lets the UI ask without a cast.
+ * `sample` is `null` in this prototype and that is a modelled absence, not a gap:
+ * Fig. 4 validates *after* the view exists in the product database, so before
+ * designation there is no database to run in, and whether any run -- even a
+ * `SELECT ... LIMIT 0` -- is affordable beforehand is UNK-C4. A fixture that
+ * returned invented candidate rows would answer an open question in the reader's
+ * favour and teach the shape of a preview nothing has agreed to.
  */
-export interface RequestingAdapter extends DataProductAdapter {
-  /**
-   * Record an intention to grant. Returns the stored request.
-   *
-   * Never returns an approval: no adapter can approve on the catalog's behalf.
-   * The returned request is `SUBMITTED` at best.
-   */
-  submitRequest(input: {
-    dataProductId: string
-    beneficiary: AccessRequest['beneficiary']
-    reason: string
-  }): Promise<AccessRequest>
+export interface DefinitionCheck {
+  valid: boolean
+  errors: string[]
+  /** Buckets the SQL selects from, as parsed. */
+  referencedBuckets: string[]
+  /** Buckets named by the SQL that the workspace does not hold -- `BucketNotInReach` before anything runs. */
+  outOfReach: string[]
+  /** Null until UNK-C4 rules a pre-designation run affordable. */
+  sample: null
 }
 
-export function supportsRequests(
+/**
+ * An adapter that can author and share products (the publisher face).
+ *
+ * Every method returns a union whose success arm a fixture adapter never
+ * produces. That is the structural version of the honesty rule: the type makes
+ * "pretend it worked" require inventing a success value, rather than making it
+ * the path of least resistance.
+ */
+export interface PublishingAdapter extends DataProductAdapter {
+  /**
+   * Static checks only -- no run. Always answerable, because parsing SQL for
+   * referenced buckets is a local computation and needs no registry.
+   */
+  checkDefinition(sql: string, reach: string[]): Promise<DefinitionCheck>
+
+  /** P4. A saga with five named steps; the job's shape is `ProductJob` when this lands. */
+  designate(input: {
+    id: string
+    title: string
+    description: string
+    sql: string
+  }): Promise<{ ok: true; product: ProductVolume } | WriteFailure>
+
+  /** P5. A new view version; captures already minted keep serving theirs to TTL. */
+  revise(id: string, sql: string): Promise<{ ok: true } | WriteFailure>
+
+  /** P6. */
+  updateMetadata(
+    id: string,
+    input: { title?: string; description?: string },
+  ): Promise<{ ok: true } | WriteFailure>
+
+  /** P7. Publish adds the listing; unpublish removes **only** the listing (DEC-42). */
+  publish(id: string): Promise<{ ok: true } | WriteFailure>
+  unpublish(id: string): Promise<{ ok: true } | WriteFailure>
+
+  /**
+   * P9. Records the decision, writes the grant, reads it back.
+   *
+   * The success arm carries the subscription so the row re-renders from the
+   * read-back rather than from an assumption -- an approve whose grant does not
+   * read back is a *recorded failure* and the request stays pending, which the
+   * caller learns by re-deriving the state, not from a boolean.
+   */
+  approve(
+    subscriptionId: string,
+  ): Promise<{ ok: true; subscription: Subscription } | WriteFailure>
+  reject(
+    subscriptionId: string,
+    reason: string,
+  ): Promise<{ ok: true; subscription: Subscription } | WriteFailure>
+  /**
+   * P12. Removes the grant.
+   *
+   * `credentialsOutstandingUntil` is on the success arm so no caller can report a
+   * revoke as an ending: the TTL is the revocation granularity (model.md §The
+   * mint, *ruled*), and a screen that says "access removed" is wrong until then.
+   */
+  revoke(
+    subscriptionId: string,
+  ): Promise<
+    | { ok: true; subscription: Subscription; credentialsOutstandingUntil: Date }
+    | WriteFailure
+  >
+}
+
+export function supportsPublishing(
   adapter: DataProductAdapter,
-): adapter is RequestingAdapter {
-  return typeof (adapter as RequestingAdapter).submitRequest === 'function'
+): adapter is PublishingAdapter {
+  return typeof (adapter as PublishingAdapter).designate === 'function'
 }
 
-/**
- * An adapter that can enumerate a member's contents.
- *
- * **A separate call on purpose, not a field on `Member`.** In the one working
- * implementation, listing a product does not yield its contents: the locator
- * lives on the asset rather than the listing, so resolving it costs an extra
- * read that is *authorized separately* -- a caller can list products and still
- * be refused the handle (`research/raja-poc-reverse-engineered.md` §1.1, §2).
- * Folding contents into `listProducts` would model that cost away and make the
- * discoverable-but-unresolvable state unrepresentable.
- *
- * Split from `DataProductAdapter` for the same reason as `RequestingAdapter`: an
- * adapter for a platform that cannot enumerate contents should not implement a
- * method that throws. Whether a *given member* can be enumerated is a different
- * question, carried by `Member.contentsSource`.
- */
-export interface BrowsingAdapter extends DataProductAdapter {
-  /**
-   * Entries in one member, as a flat list of logical keys.
-   *
-   * Flat rather than pre-grouped because that is what a manifest is; grouping
-   * into directory levels is the UI's job (`model/DataProducts/contents`).
-   *
-   * Returns `UnavailableReason` rather than throwing when contents cannot be
-   * listed. Four of those reasons are ordinary states -- an empty package, a
-   * product whose target was never published, and two different permission
-   * layers -- and an exception would flatten them into one failure that the UI
-   * could only render as an error.
-   */
-  listContents(productId: string, memberLogicalName: string): Promise<ContentsResult>
+/** An adapter that can request and leave subscriptions (the subscriber face). */
+export interface SubscribingAdapter extends DataProductAdapter {
+  /** S2. Writes the workspace's holding row and the request. Never returns an approval. */
+  subscribe(
+    volumeId: string,
+  ): Promise<{ ok: true; subscription: Subscription } | WriteFailure>
+  /** S4. Withdraw a pending request or leave an approved subscription; the registry defines the semantics (UNK-56). */
+  unsubscribe(subscriptionId: string): Promise<{ ok: true } | WriteFailure>
 }
 
-export type ContentsResult =
-  | { ok: true; entries: ContentEntry[] }
-  | { ok: false; reason: UnavailableReason }
-
-export function supportsBrowsing(
+export function supportsSubscribing(
   adapter: DataProductAdapter,
-): adapter is BrowsingAdapter {
-  return typeof (adapter as BrowsingAdapter).listContents === 'function'
+): adapter is SubscribingAdapter {
+  return typeof (adapter as SubscribingAdapter).subscribe === 'function'
 }
 
 /**
- * What a broker returned for one entry.
+ * The refused arm of a mint, as the outcome of one attempt.
  *
- * **Text only, and that is a decision rather than a limitation of today's
- * fixtures.** The UI is not in the byte path: it hands a locator plus the user's
- * credential to a broker and gets bytes back. For a small text-ish file that is
- * enough to render, because every text-shaped preview renderer in this codebase
- * accepts a string. For an image, a PDF, or a Parquet file it is not -- those
- * renderers need a URL the browser can fetch, or a Blob.
- *
- * So this type deliberately cannot express "here is an image". A file view given
- * a `.tiff` must render identity-without-preview, which is the honest outcome,
- * rather than being handed something that looks previewable and is not. When a
- * broker can issue a short-lived URL, that becomes a second variant here and the
- * renderers that need one become reachable -- an additive change, and the reason
- * this is a tagged result rather than a bare string.
+ * `cause` is optional because whether the browser face may name one is UNK-C5:
+ * with a uniform ruling there is one line and the last derived state, and this
+ * type carries both renderings rather than assuming the permissive one.
  */
-export type EntryBody =
-  | {
-      kind: 'text'
-      text: string
-      /**
-       * True when the broker returned a prefix rather than the whole object.
-       *
-       * Carried so a preview can say so. A truncated file rendered as complete is
-       * the kind of quiet misreport that costs a reader real time -- a JSON
-       * preview that silently loses its tail looks like malformed data.
-       */
-      truncated?: boolean
-    }
-  /**
-   * The entry exists and is readable, but its bytes are not renderable as text.
-   *
-   * Not an error and not a denial: a 4 GB TIFF is a perfectly good object. The
-   * `mediaHint` is for explaining *why* there is no preview, never for guessing at
-   * one.
-   */
-  | { kind: 'opaque'; mediaHint?: string }
-
-export type EntryBodyResult =
-  | { ok: true; body: EntryBody }
-  | { ok: false; reason: UnavailableReason }
-
-/**
- * An adapter that can fetch one entry's bytes.
- *
- * Separate from `BrowsingAdapter` because listing and reading are separately
- * authorized in the real implementation: the broker checks manifest membership
- * *per object*, so a caller can enumerate a package fully and still be refused a
- * single file in it (`research/raja-poc-reverse-engineered.md` §3.1). An adapter
- * that can list but not fetch is a real shape, not a half-built one.
- */
-export interface FetchingAdapter extends BrowsingAdapter {
-  /**
-   * One entry's bytes, or the reason they are unavailable.
-   *
-   * Keyed by logical key rather than by the entry's `usl`, so a caller does not
-   * have to hold the listing to ask -- and so a fixture cannot silently depend on
-   * a URI it never validated.
-   */
-  fetchEntry(
-    productId: string,
-    memberLogicalName: string,
-    logicalKey: string,
-  ): Promise<EntryBodyResult>
+export interface MintRefused {
+  ok: false
+  reason: 'REFUSED'
+  cause?: MintRefusalCause
 }
 
-export function supportsFetching(
-  adapter: DataProductAdapter,
-): adapter is FetchingAdapter {
-  return typeof (adapter as FetchingAdapter).fetchEntry === 'function'
+export type MintResult = { ok: true; capture: Capture } | MintRefused | ActUnavailable
+
+/**
+ * An adapter that can mint access to a product and list its capture.
+ *
+ * Separate from the reads because a stack can serve the registry's rows and not
+ * the mint, and because minting is the one call whose absence has no workaround:
+ * the catalog reads a product's objects **only** through a mint and the proxy,
+ * and never falls back to the workspace's S3-only session even where that session
+ * could reach the bucket (model.md §Reading a product, step 6; R3). An adapter
+ * that omits this method is a product that cannot be read here, which is the
+ * truthful state while UNK-C2 is open.
+ */
+export interface MintingAdapter extends DataProductAdapter {
+  mint(volumeId: string, prefix?: string): Promise<MintResult>
+}
+
+export function supportsMinting(adapter: DataProductAdapter): adapter is MintingAdapter {
+  return typeof (adapter as MintingAdapter).mint === 'function'
 }
