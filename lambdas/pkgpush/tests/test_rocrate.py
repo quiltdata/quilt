@@ -396,14 +396,15 @@ def test_package_prefix_crate_mode_expands_directory_parts(mocker, packager_stub
         None,
     )
 
-    # The crate names the prefix, so it is listed with the caller's client, not the lambda's.
+    # One client, built once and reused across prefixes.
     list_prefix.assert_called_once_with("bucket", "experiments/260908_ale_ELNID/out/", user_s3)
     pkg, _ = built_package(packager_stubs)
     assert sorted(lk for lk, _ in pkg.walk()) == ["out/a.csv", "out/b.csv", "ro-crate-metadata.json"]
     assert pkg["out/a.csv"].physical_key == PhysicalKey("bucket", "experiments/260908_ale_ELNID/out/a.csv", "va")
     assert pkg["out/a.csv"].meta == {}
-    # Listed explicitly: unversioned until complete_entries_metadata(), and carries its crate metadata.
-    assert pkg["out/b.csv"].physical_key == PhysicalKey("bucket", "experiments/260908_ale_ELNID/out/b.csv", None)
+    # Listed explicitly and covered by the prefix: keeps its crate metadata, and keeps the
+    # version the sweep pinned so its snapshot matches out/a.csv's.
+    assert pkg["out/b.csv"].physical_key == PhysicalKey("bucket", "experiments/260908_ale_ELNID/out/b.csv", "vb")
     assert pkg["out/b.csv"].meta == {"dateCreated": "2026-01-01"}
 
 
