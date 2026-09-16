@@ -27,9 +27,18 @@ interface LogoProps {
 }
 
 const useStyles = M.makeStyles(() => ({
-  custom: ({ height }: { height: string }) => ({
-    height,
-  }),
+  // A customer's logo is a wide lockup of unknown ratio. In the 'icon' slot
+  // (the folded rail) it has to fit the box on both axes, not just by height,
+  // or a 4:1 lockup overflows a square and gets cropped.
+  custom: ({ height, width, variant }: LogoProps) =>
+    variant === 'icon'
+      ? {
+          height: 'auto',
+          maxHeight: height,
+          maxWidth: width,
+          objectFit: 'contain',
+        }
+      : { height },
   quilt: ({
     height,
     width,

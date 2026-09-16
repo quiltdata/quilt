@@ -10,6 +10,7 @@ import * as URLS from 'constants/urls'
 import * as SearchUIModel from 'containers/Search/model'
 import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import isTypingTarget from 'utils/isTypingTarget'
 
 import { useSearchInputRef } from './SearchInput'
 
@@ -145,14 +146,7 @@ export function ContentBar({ onMenu }: ContentBarProps = {}) {
       const slash = evt.key === '/' && !evt.metaKey && !evt.ctrlKey && !evt.altKey
       const cmdK = evt.key.toLowerCase() === 'k' && (evt.metaKey || evt.ctrlKey)
       if (!slash && !cmdK) return
-      const target = evt.target as HTMLElement | null
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      )
-        return
+      if (isTypingTarget(evt)) return
       evt.preventDefault()
       inputRef.current?.focus()
     }

@@ -93,6 +93,7 @@ components:
     backgroundColor: "{colors.midnight-chassis}"
     textColor: "{colors.navigation-text}"
     width: "256px"
+    collapsedWidth: "72px"
   search-band:
     backgroundColor: "{colors.surface}"
     borderBottom: "1px solid {colors.divider}"
@@ -356,6 +357,17 @@ Every control uses the same vocabulary on every screen.
   box at the foot; the version readout (Caption + Mono) under it. Selection =
   Navigation Selected wash + the amber bracket (Indicator Rule); keyboard focus
   per the Focus Ring Rule. Icon actions carry tooltips with arrows.
+- **The folded rail:** where the rail is a column (not the compact overlay) it
+  folds to a 72px icon column and back from a chevron beside the brand mark, or
+  `[` from anywhere outside a field; the choice is remembered. Folding changes
+  nothing but width: the same rows at the same 44px rhythm, icons held on one
+  axis, labels faded rather than removed, the workspace and identity boxes
+  shedding their ground to read as bare icon rows, the wordmark crossfading to
+  the square Q mark, a right-side tooltip standing in for each label. The
+  rail's width is the one animated property that reflows the page (the
+  content column must follow it); what moves inside the rail — labels fading,
+  expanded-only rows closing up, boxes losing their ground — rides on that
+  same 200ms clock, and reduced-motion gets the instant swap.
 - **The search band:** the top bar is chrome, not a card — Surface white,
   full-bleed to the rail's edge, square, flat (no resting shadow), delineated
   by a Divider hairline, height-registered at 64px with the rail's logo block
