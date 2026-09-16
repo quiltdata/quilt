@@ -92,15 +92,26 @@ def _reject_non_json(meta: dict[str, T.Any], part_id: str) -> None:
 
 def _normalize_id(entity_id: str) -> str:
     """
-    "./x", "x" and "x/" are the same reference, so entity lookup has to agree with
-    `_resolve_part` on which one it is. A Dataset is idiomatically written "x/"
-    while `hasPart` may reference it either way.
+    "./x" and "x" are the same relative reference, so entity lookup has to agree
+    with `_resolve_part` on which one it is. A trailing slash is left alone: "x"
+    and "x/" can be a File and a Dataset that both legally exist.
     """
-    if entity_id == ROOT_ID:
+    if entity_id == ROOT_ID or entity_id.startswith("s3://"):
         return entity_id
-    if entity_id.startswith("./"):
-        entity_id = entity_id[2:]
-    return entity_id.rstrip("/") or entity_id
+    return entity_id[2:] if entity_id.startswith("./") else entity_id
+
+
+def _lookup_part(by_id: dict[str, dict[str, T.Any]], part_id: str) -> dict[str, T.Any]:
+    """
+    A Dataset is idiomatically written "x/" while `hasPart` may reference it either
+    way, so a reference without the slash still has to find it. Only the slash is
+    added, never dropped: "x/" must not resolve to a File named "x".
+    """
+    normalized = _normalize_id(part_id)
+    entity = by_id.get(normalized)
+    if entity is None and not normalized.endswith("/"):
+        entity = by_id.get(normalized + "/")
+    return entity or {}
 
 
 def _sanitize_name(name: str | None) -> str | None:
@@ -219,7 +230,7 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         part_id = part.get("@id") if isinstance(part, dict) else part
         if not isinstance(part_id, str):
             raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
-        entity = by_id.get(_normalize_id(part_id), {})
+        entity = _lookup_part(by_id, part_id)
         is_dir = "Dataset" in _types(entity) or part_id.endswith("/")
         logical_key, physical_key = _resolve_part(part_id, folder, is_dir)
         if logical_key in entries:
