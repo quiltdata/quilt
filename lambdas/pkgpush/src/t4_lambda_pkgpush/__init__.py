@@ -1050,9 +1050,14 @@ def package_prefix(event, context):
     metadata = params.metadata
     metadata_uri_pk = params.get_metadata_uri_pk()
     if metadata_uri_pk is not None:
-        metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+        metadata_resp = s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)
+        metadata = json.load(metadata_resp["Body"])
         if not isinstance(metadata, dict):
             raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
+        # A crate ships as its own provenance, so the version parsed here has to be the
+        # version packaged; otherwise the later HEAD can pin a newer one.
+        if metadata_uri_pk.version_id is None and metadata_resp.get("VersionId"):
+            metadata_uri_pk = PhysicalKey(metadata_uri_pk.bucket, metadata_uri_pk.path, metadata_resp["VersionId"])
 
     pkg_entries: dict[str, quilt3.packages.PackageEntry] = {}
     inferred_name = infer_pkg_name_from_prefix(prefix_pk.path)
@@ -1065,28 +1070,39 @@ def package_prefix(event, context):
         metadata = crate.user_meta
         inferred_prefix, inferred_suffix = inferred_name.split("/")
         inferred_name = f"{crate.name_prefix or inferred_prefix}/{crate.name_suffix or inferred_suffix}"
+        # One client for every prefix: each one carries a large connection pool.
+        user_s3_client = get_user_s3_client() if any(e.is_dir for e in crate.entries) else None
         # Directories first, so a file the crate also lists explicitly keeps its metadata.
         for entry in sorted(crate.entries, key=lambda e: not e.is_dir):
             if entry.is_dir:
-                # The crate names the prefix, so listing it with this lambda's role
-                # would enumerate keys the caller cannot list. Expand with theirs.
                 for obj in list_prefix_latest_versions(
-                    entry.physical_key.bucket, entry.physical_key.path, get_user_s3_client()
+                    entry.physical_key.bucket, entry.physical_key.path, user_s3_client
                 ):
                     key = obj["Key"]
-                    pkg_entries[entry.logical_key + key[len(entry.physical_key.path) :]] = (
-                        quilt3.packages.PackageEntry(
-                            PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId")), obj["Size"], None, None
-                        )
-                    )
+                    logical_key = entry.logical_key + key[len(entry.physical_key.path) :]
+                    physical_key = PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId"))
+                    # Only directories have been expanded so far, so an existing key means
+                    # two prefixes overlap. Naming a different object, that would otherwise
+                    # resolve by graph order.
+                    collision = pkg_entries.get(logical_key)
+                    if collision is not None and collision.physical_key != physical_key:
+                        raise PkgpushException("RoCrateDuplicateEntry", {"logical_key": logical_key})
+                    pkg_entries[logical_key] = quilt3.packages.PackageEntry(physical_key, obj["Size"], None, None)
                 continue
-            # Version, size and checksum are filled in by complete_entries_metadata().
+            # An explicit File keeps its crate metadata. If a prefix already pinned this
+            # object, that version and size are kept so its snapshot matches its siblings';
+            # otherwise complete_entries_metadata() fills them in.
+            expanded = pkg_entries.get(entry.logical_key) if entry.physical_key.version_id is None else None
             pkg_entries[entry.logical_key] = quilt3.packages.PackageEntry(
-                entry.physical_key,
-                None,
+                expanded.physical_key if expanded else entry.physical_key,
+                expanded.size if expanded else None,
                 None,
                 {"user_meta": entry.user_meta} if entry.user_meta else None,
             )
+        # hasPart was non-empty, but directory parts over empty prefixes expand to
+        # nothing, which would publish a package holding only the crate.
+        if set(pkg_entries) == {rocrate.CRATE_FILENAME}:
+            raise PkgpushException("RoCrateNoParts", {"details": "Crate parts expanded to no objects"})
     else:
         prefix_len = len(prefix_pk.path)
         for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):

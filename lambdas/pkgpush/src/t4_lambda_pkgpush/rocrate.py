@@ -92,12 +92,15 @@ def _reject_non_json(meta: dict[str, T.Any], part_id: str) -> None:
 
 def _normalize_id(entity_id: str) -> str:
     """
-    "./x" and "x" are the same relative reference, so entity lookup has to agree
-    with `_resolve_part` on which one it is.
+    "./x", "x" and "x/" are the same reference, so entity lookup has to agree with
+    `_resolve_part` on which one it is. A Dataset is idiomatically written "x/"
+    while `hasPart` may reference it either way.
     """
-    if entity_id == ROOT_ID or entity_id.startswith("s3://"):
+    if entity_id == ROOT_ID:
         return entity_id
-    return entity_id[2:] if entity_id.startswith("./") else entity_id
+    if entity_id.startswith("./"):
+        entity_id = entity_id[2:]
+    return entity_id.rstrip("/") or entity_id
 
 
 def _sanitize_name(name: str | None) -> str | None:
@@ -133,6 +136,10 @@ def _resolve_part(part_id: str, folder: PhysicalKey, is_dir: bool) -> tuple[str,
 
     # Relative ids are URI references too, so they are unquoted like the s3://
     # ones PhysicalKey.from_url handles: "sample%201.csv" is the key with a space.
+    # A literal "?" or "#" in a key has to arrive percent-encoded, so an unescaped
+    # one is a query or fragment this resolver has no meaning for.
+    if "?" in part_id or "#" in part_id:
+        raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
     rel = urllib.parse.unquote(part_id[2:] if part_id.startswith("./") else part_id)
     if not rel or (rel.endswith("/") and not is_dir) or rel.startswith("/") or "://" in rel:
         raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
@@ -175,7 +182,12 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
 
     for entity in graph:
         entity_id = entity.get("@id")
-        if not isinstance(entity_id, str) or entity_id in (ROOT_ID, CRATE_FILENAME):
+        if not isinstance(entity_id, str):
+            continue
+        # Normalized like the by_id keys, so a "./"-spelled descriptor is still
+        # recognized and a relative id does not key metadata as "type../id".
+        entity_id = _normalize_id(entity_id)
+        if entity_id in (ROOT_ID, CRATE_FILENAME):
             continue
         types = _types(entity)
         if not types or "File" in types:
