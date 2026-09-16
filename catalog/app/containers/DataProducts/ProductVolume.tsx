@@ -101,13 +101,10 @@ export default function ProductVolume({ product }: { product: DP.ProductVolume }
   const { paths, urls } = NamedRoutes.use()
   const section = useSection(product.id)
 
-  const isOwner = product.holding?.role === 'OWNER'
-  const sub = product.holding?.subscription
-  const state = sub ? DP.deriveState(sub, 'subscriber') : null
-  // Files is offered on a confirmed grant or to the owner. Never on a listing, and
-  // never from a decision alone: an approval whose grant is missing would mint and
-  // fail (screen rule R4).
-  const mayRead = isOwner || (state !== null && DP.grantIsPresent(state))
+  // One derivation, shared with Overview, Files and Access -- these four disagreed
+  // when each computed it: an owner's `state` is null, so a site reading only the
+  // state hid Files from the publishing workspace while this one mounted the tab.
+  const { isOwner, mayAttemptMint: mayRead } = DP.readAccess(product)
 
   return (
     <Layout

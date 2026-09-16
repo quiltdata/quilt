@@ -86,9 +86,7 @@ export default function Overview({ product }: { product: DP.ProductVolume }) {
   const canMint = DP.supportsMinting(adapter)
 
   const holdingCopy = DP.holdingSummary(product.holding)
-  const state = product.holding?.subscription
-    ? DP.deriveState(product.holding.subscription, 'subscriber')
-    : null
+  const { state, mayAttemptMint } = DP.readAccess(product)
 
   return (
     <M.Box p={3}>
@@ -141,10 +139,11 @@ export default function Overview({ product }: { product: DP.ProductVolume }) {
       </Stat>
 
       <M.Box mt={3} display="flex" style={{ gap: 8 }}>
-        {/* One act follows from the state. Files is offered only where a grant is
-            confirmed present -- never from a listing, a holding or a decision
-            (screen rule R4), because the tab would mint and fail. */}
-        {state && DP.grantIsPresent(state) && (
+        {/* One act follows from the state. `mayAttemptMint` is the shared rule --
+            a confirmed grant, or the owner -- so this screen and the tab strip
+            cannot disagree about whether Files exists. It gates the attempt, not a
+            readability claim: the mint decides. */}
+        {mayAttemptMint && (
           <M.Button component={Link} to={urls.bucketDir(product.id)} variant="outlined">
             Open files
           </M.Button>

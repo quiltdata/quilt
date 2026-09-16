@@ -12,11 +12,14 @@
  * making every call site render a spinner branch by hand. The volume list and a
  * product's own screens both ask for volumes; with the cache that is one fetch.
  *
- * The reads suspend. They are safe wherever `CatalogSettings.use()` is safe --
+ * Most reads suspend, and are safe wherever `CatalogSettings.use()` is safe --
  * inside the app's root Suspense boundary, which is everywhere these render.
+ * `useVolume` and `useVolumeSettled` are the exceptions: they sit on `/b/:bucket`,
+ * which is the bucket page for every id that is not a product, so they report
+ * pending and failed reads as values rather than throwing. See their own notes.
  *
- * The writes do **not** suspend and are not cached: they are one-shot acts a
- * button triggers, and caching a write result would replay it on remount.
+ * The write hooks live in `./writes`, not here -- they need a synchronous adapter,
+ * which means a static fixtures import, which this module must not have.
  */
 
 import * as React from 'react'
@@ -147,6 +150,10 @@ const VolumeResource = Cache.createResource({
   key: ({ id, workspace }: VolumeInput) => `${workspace}::${id}`,
 })
 
+// Reads the fixture table directly rather than the port, which is a gap: the reach
+// is the registry's answer, and `DataProductAdapter` has no method for it. Dynamic
+// so it stays out of the landing chunk like the rest. When the port grows a
+// `workspaceReach()`, this becomes a `loadAdapter(workspace)` call like its siblings.
 const ReachResource = Cache.createResource({
   name: 'DataProducts.reach',
   fetch: ({ workspace }: { workspace: string }) =>
@@ -200,8 +207,7 @@ export function useExchange(enabled = true): ProductVolume[] {
  * so, where the alternative takes down every bucket page on the stack.
  */
 export function useVolume(id: string): Volume | null {
-  const workspace = useActiveWorkspace()
-  const entry = Cache.useData(VolumeResource, { id, workspace })
+  const entry = useVolumeEntry(id)
   return AsyncResult.case(
     {
       Ok: (v: Volume | null) => v,
@@ -217,16 +223,38 @@ export function useVolume(id: string): Volume | null {
  * Whether the volume lookup has settled.
  *
  * Separate from `useVolume` so a caller can tell "not a product" from "not known
- * yet" -- the two look identical in a `null`, and the product route needs the
- * difference to avoid flashing a bucket page at a product URL.
+ * yet" -- the two look identical in a `null`. `VolumeRoute` needs that difference:
+ * it must not mount `Bucket` for an id that turns out to be a product, because
+ * every call in that tree would run against a `volume_id`.
  */
 export function useVolumeSettled(id: string): boolean {
-  const workspace = useActiveWorkspace()
-  const entry = Cache.useData(VolumeResource, { id, workspace })
+  const entry = useVolumeEntry(id)
   return AsyncResult.case(
     { Ok: () => true, Err: () => true, _: () => false },
     entry.result,
   ) as boolean
+}
+
+/**
+ * The cache entry both non-suspending volume reads share.
+ *
+ * The `promise` rejection is consumed here. `suspend` would have rethrown it, but
+ * these hooks read `result` instead and never touch `promise`, so a failed lookup
+ * left the deferred promise unhandled and logged an unhandled rejection on top of
+ * the failure it already reported as `null`. `catch` with an empty handler is the
+ * whole fix: the error is already carried in `result`, and this only stops the
+ * runtime from also reporting it as unobserved.
+ */
+function useVolumeEntry(id: string) {
+  const workspace = useActiveWorkspace()
+  const entry = Cache.useData(VolumeResource, { id, workspace }) as {
+    result: unknown
+    promise?: Promise<unknown>
+  }
+  React.useEffect(() => {
+    entry.promise?.catch(() => {})
+  }, [entry])
+  return entry as { result: unknown }
 }
 
 /**

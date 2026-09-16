@@ -179,13 +179,12 @@ function SubscriberRow({ sub }: { sub: DP.Subscription }) {
 
   const state = DP.deriveState(sub, 'publisher')
   const copy = DP.stateCopy(sub, 'publisher')
-  // Revoke is offered wherever the grant may still be live -- which is every state
-  // whose read-back is not a confirmed ABSENT, not only the two agreeing ones. An
-  // earlier version covered APPROVED and REVOKE_FAILED alone, so
-  // REJECTED_GRANT_PRESENT and UNKNOWN showed an amber warning with no remedy on
-  // the one screen that carries revoke: the publisher was told a grant might be
-  // live and given nothing to do about it.
-  const revocable = state === 'APPROVED' || DP.isDisagreement(state)
+  // Revoke is offered where a grant may actually be live -- read back PRESENT, or
+  // not read back at all. `isDisagreement` is the wrong predicate here even though
+  // it is the right one for the amber mark: it includes APPROVAL_FAILED and
+  // APPROVED_GRANT_MISSING, where the read-back said ABSENT, and offering to revoke
+  // a grant that was never written is its own false claim.
+  const revocable = DP.mayHaveLiveGrant(state)
 
   return (
     <M.TableRow data-testid="dp-subscriber-row" data-state={state}>

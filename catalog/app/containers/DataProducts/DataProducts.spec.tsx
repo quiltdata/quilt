@@ -71,6 +71,25 @@ const listedNotHeld = () => {
   return v
 }
 
+/**
+ * The barrel, loaded the way the router loads it.
+ *
+ * `App.jsx` reaches both screens through a dynamic `import('containers/DataProducts')`
+ * and resolves `m.ExchangeScreen` / `m.NewProductScreen`. A barrel exporting only
+ * `default` gave both routes `{ default: undefined }` and crashed the SPA on render,
+ * and nothing caught it: `App.jsx` is untyped JSX, and the rest of this spec imports
+ * leaf components directly. So this loads through the barrel and asserts what the
+ * router dereferences.
+ */
+describe('containers/DataProducts barrel', () => {
+  it('exports the named screens App resolves off it', async () => {
+    const m = await import('./index')
+    expect(typeof m.ExchangeScreen).toBe('function')
+    expect(typeof m.NewProductScreen).toBe('function')
+    expect(typeof m.default).toBe('function')
+  })
+})
+
 describe('containers/DataProducts', () => {
   /**
    * The rule this suite exists for. A publisher's queue and subscriber list come

@@ -85,14 +85,10 @@ export default function Files({ product }: { product: DP.ProductVolume }) {
   const workspace = DP.useActiveWorkspace()
   const adapter = W.useAdapter()
 
-  const sub = product.holding?.subscription
-  const state = sub ? DP.deriveState(sub, 'subscriber') : null
-  const isOwner = product.holding?.role === 'OWNER'
-
-  // Offered only where a grant is confirmed present, or to the owner. Not from a
-  // listing, a holding or a decision -- those are three different facts and none
-  // of them is entitlement (screen rule R4).
-  const mayAttempt = isOwner || (state !== null && DP.grantIsPresent(state))
+  // The same rule the tab strip used to decide this tab exists. Gates the attempt,
+  // never a claim that bytes are readable: the mint answers that, and an owner whose
+  // GRANT_OWNER step failed gets a refused mint with its cause.
+  const { state, mayAttemptMint: mayAttempt } = DP.readAccess(product)
 
   if (!mayAttempt) {
     return (

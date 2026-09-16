@@ -50,7 +50,7 @@ export default function Access({ product }: { product: DP.ProductVolume }) {
   const subscribing = W.useSubscribing()
 
   const sub = product.holding?.subscription
-  const state = sub ? DP.deriveState(sub, 'subscriber') : null
+  const { state } = DP.readAccess(product)
 
   const request = W.useAct(subscribing, (s) => s.subscribe(product.id))
   // Guarded on the subscription as well: leaving needs one to leave.

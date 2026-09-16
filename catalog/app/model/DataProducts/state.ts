@@ -85,6 +85,24 @@ export function grantIsPresent(state: SubscriptionState): boolean {
 }
 
 /**
+ * States in which a grant may still be live, so revoking it is a real act.
+ *
+ * Present, or never read back at all. Deliberately **not** `isDisagreement`: that
+ * predicate is right for the amber mark and wrong here, because it includes
+ * `APPROVAL_FAILED` and `APPROVED_GRANT_MISSING`, where the read-back said ABSENT.
+ * Offering to revoke a grant that was never written is its own false claim — the
+ * publisher would be told there is access to remove.
+ *
+ * `UNKNOWN` is included because the read failed: the grant may be there, and the
+ * publisher is the only one who can act on that.
+ */
+export function mayHaveLiveGrant(state: SubscriptionState): boolean {
+  return (
+    grantIsPresent(state) || state === 'REJECTED_GRANT_PRESENT' || state === 'UNKNOWN'
+  )
+}
+
+/**
  * Whether this state is a disagreement between the record and the grant, or a
  * failed read-back.
  *
@@ -322,18 +340,42 @@ export interface ReadAccess {
   isOwner: boolean
   /** The subscriber-face state, or null when this workspace has no subscription. */
   state: SubscriptionState | null
-  mayRead: boolean
+  /**
+   * A grant read back as present, for **this** workspace.
+   *
+   * The only field that is evidence of readability. False for an owner: the
+   * registry records no grant observation for the owning workspace, so there is
+   * nothing to have read back.
+   */
+  grantConfirmed: boolean
+  /**
+   * Whether a mint is worth attempting, which is **not** a claim that it will
+   * succeed.
+   *
+   * True for a confirmed grant, and true for the owner — but for different
+   * reasons, and the difference is the honest part. An owner's read rests on
+   * `GRANT_OWNER`, one step of the designation saga (model.md P4: the owner's
+   * `CREATE_TABLE`/`DESCRIBE` on Lake Formation). A saga step can fail, and the
+   * registry keeps no read-back for it, so "owner" is not evidence that the owner
+   * can read — it is only evidence that the owner is the workspace the grant was
+   * written for.
+   *
+   * So this gates *offering the attempt*, never a readability badge. The mint is
+   * what decides, and its refusal is the outcome of one attempt (invariant 1: a
+   * holding is not a grant, a grant is not a capture, a capture is not a read).
+   * An owner whose `GRANT_OWNER` failed gets a refused mint with its cause, which
+   * is the truthful outcome — where suppressing the affordance would tell them
+   * they cannot read, and a badge would tell them they can.
+   */
+  mayAttemptMint: boolean
 }
 
 export function readAccess(product: HoldingLike): ReadAccess {
   const isOwner = product.holding?.role === 'OWNER'
   const sub = product.holding?.subscription
   const state = sub ? deriveState(sub, 'subscriber') : null
-  return {
-    isOwner,
-    state,
-    mayRead: isOwner || (state !== null && grantIsPresent(state)),
-  }
+  const grantConfirmed = state !== null && grantIsPresent(state)
+  return { isOwner, state, grantConfirmed, mayAttemptMint: isOwner || grantConfirmed }
 }
 
 /**

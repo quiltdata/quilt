@@ -7,6 +7,7 @@ import {
   grantIsPresent,
   holdingSummary,
   isDisagreement,
+  mayHaveLiveGrant,
   stateCopy,
 } from './state'
 import type { Decision, GrantStatus, Subscription } from './types'
@@ -222,6 +223,38 @@ describe('model/DataProducts/state', () => {
       'leaves %s unmarked',
       (state) => {
         expect(isDisagreement(state)).toBe(false)
+      },
+    )
+  })
+
+  describe('mayHaveLiveGrant', () => {
+    // Sharing gates Revoke on this. The tempting predicate is `isDisagreement`,
+    // which is wrong in a way no type catches: two of the states it marks for
+    // attention are states where the grant read back ABSENT, so offering Revoke
+    // on them offers to remove a grant that was never written.
+    it.each<SubscriptionState>([
+      'APPROVED',
+      'REVOKE_FAILED',
+      'REJECTED_GRANT_PRESENT',
+      'UNKNOWN',
+    ])('is true for %s, where a grant may still be serving reads', (state) => {
+      expect(mayHaveLiveGrant(state)).toBe(true)
+    })
+
+    it.each<SubscriptionState>(['APPROVAL_FAILED', 'APPROVED_GRANT_MISSING'])(
+      'is false for %s: the read-back said ABSENT, so there is nothing to revoke',
+      (state) => {
+        expect(mayHaveLiveGrant(state)).toBe(false)
+        // The trap, asserted so a future edit cannot quietly widen the gate back
+        // to every state that wants the publisher's attention.
+        expect(isDisagreement(state)).toBe(true)
+      },
+    )
+
+    it.each<SubscriptionState>(['PENDING', 'REJECTED', 'REVOKED'])(
+      'is false for %s',
+      (state) => {
+        expect(mayHaveLiveGrant(state)).toBe(false)
       },
     )
   })
