@@ -1075,9 +1075,22 @@ def package_prefix(event, context):
         # Directories first, so a file the crate also lists explicitly keeps its metadata.
         for entry in sorted(crate.entries, key=lambda e: not e.is_dir):
             if entry.is_dir:
-                for obj in list_prefix_latest_versions(
-                    entry.physical_key.bucket, entry.physical_key.path, user_s3_client
-                ):
+                # A crate can name any bucket, so this LIST is reachable with credentials
+                # that cannot read it; surface that the way an entry's HEAD does.
+                try:
+                    swept = list(
+                        list_prefix_latest_versions(entry.physical_key.bucket, entry.physical_key.path, user_s3_client)
+                    )
+                except botocore.exceptions.ClientError as e:
+                    raise PkgpushException(
+                        "RoCrateFailedToListPrefix",
+                        {
+                            "logical_key": entry.logical_key,
+                            "physical_key": str(entry.physical_key),
+                            "error": str(e),
+                        },
+                    ) from e
+                for obj in swept:
                     key = obj["Key"]
                     logical_key = entry.logical_key + key[len(entry.physical_key.path) :]
                     physical_key = PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId"))
@@ -1137,7 +1150,12 @@ def package_prefix(event, context):
     pkg = quilt3.Package()
 
     for logical_key, pkg_entry in pkg_entries.items():
-        pkg.set(logical_key, pkg_entry)
+        # A crate naming both a file "x" and a directory "x/" is legal in S3 and in
+        # RO-Crate, but one logical key cannot be both; quilt3 raises here.
+        try:
+            pkg.set(logical_key, pkg_entry)
+        except quilt3.util.QuiltException as e:
+            raise PkgpushException("InvalidLogicalKey", {"logical_key": logical_key, "error": str(e)}) from e
 
     pkg.set_meta(metadata)
     pkg._validate_with_workflow(

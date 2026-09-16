@@ -92,13 +92,14 @@ def _reject_non_json(meta: dict[str, T.Any], part_id: str) -> None:
 
 def _normalize_id(entity_id: str) -> str:
     """
-    "./x" and "x" are the same relative reference, so entity lookup has to agree
-    with `_resolve_part` on which one it is. A trailing slash is left alone: "x"
-    and "x/" can be a File and a Dataset that both legally exist.
+    Ids are URI references, so "./x", "x" and "%20"-style escapes are all the same
+    reference and entity lookup has to agree with `_resolve_part` on which one it is.
+    A trailing slash is left alone: "x" and "x/" can be a File and a Dataset that
+    both legally exist.
     """
     if entity_id == ROOT_ID or entity_id.startswith("s3://"):
         return entity_id
-    return entity_id[2:] if entity_id.startswith("./") else entity_id
+    return urllib.parse.unquote(entity_id[2:] if entity_id.startswith("./") else entity_id)
 
 
 def _lookup_part(by_id: dict[str, dict[str, T.Any]], part_id: str) -> dict[str, T.Any]:
@@ -191,6 +192,17 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
     name_suffix = root.get("name") if isinstance(root.get("name"), str) and root.get("name") else None
     user_meta: dict[str, T.Any] = {}
 
+    raw_parts = root.get("hasPart") or []
+    if not isinstance(raw_parts, list):
+        raw_parts = [raw_parts]
+    # An entity the root lists as a part is data, whatever it is typed; its properties
+    # are entry metadata and its name must not also become a package-level key.
+    part_ids = {
+        _normalize_id(p.get("@id") if isinstance(p, dict) else p)
+        for p in raw_parts
+        if isinstance(p.get("@id") if isinstance(p, dict) else p, str)
+    }
+
     for entity in graph:
         entity_id = entity.get("@id")
         if not isinstance(entity_id, str):
@@ -198,7 +210,7 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         # Normalized like the by_id keys, so a "./"-spelled descriptor is still
         # recognized and a relative id does not key metadata as "type../id".
         entity_id = _normalize_id(entity_id)
-        if entity_id in (ROOT_ID, CRATE_FILENAME):
+        if entity_id in (ROOT_ID, CRATE_FILENAME) or entity_id in part_ids:
             continue
         types = _types(entity)
         if not types or "File" in types:
