@@ -131,6 +131,15 @@ describe('containers/Sidebar/Sidebar (the fold)', () => {
     expect(width()).toBe('256px')
     input.remove()
 
+    // A JsonEditor cell is a focusable div, and `[` there starts an array.
+    const cell = document.createElement('div')
+    cell.setAttribute('role', 'textbox')
+    cell.tabIndex = 0
+    document.body.appendChild(cell)
+    fireEvent.keyDown(cell, { key: '[' })
+    expect(width()).toBe('256px')
+    cell.remove()
+
     // Cmd/Ctrl+[ is somebody else's shortcut; a held key must not strobe.
     fireEvent.keyDown(window, { key: '[', metaKey: true })
     fireEvent.keyDown(window, { key: '[', ctrlKey: true })
