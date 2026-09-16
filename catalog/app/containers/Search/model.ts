@@ -2011,6 +2011,10 @@ function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
 
         updateUrlState,
       },
+      // Carries the provider's `base`, so a link built from it stays on the
+      // surface the model belongs to. `useMakeUrl()` called bare defaults to
+      // global search instead, which silently leaves the bucket's Packages tab.
+      makeUrl,
       baseSearchQuery,
       firstPageQuery,
     },

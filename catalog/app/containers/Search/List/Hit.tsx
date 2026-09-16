@@ -13,6 +13,7 @@ import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 
+import PackageHandle from '../NamespaceLink'
 import * as SearchUIModel from '../model'
 
 const useCardStyles = M.makeStyles((t) => ({
@@ -304,16 +305,19 @@ export function Package({
   return (
     <Card {...props}>
       <Section grow>
-        <Link
-          to={urls.bucketPackageTree(
-            hit.bucket,
-            hit.name,
-            hit.pointer === 'latest' ? hit.pointer : hit.hash,
-          )}
-        >
-          {showBucket && <Heading secondary>{hit.bucket} / </Heading>}
-          <Heading>{hit.name}</Heading>
-        </Link>
+        {/* Not one Link around the whole handle: the namespace segment is its own
+            link to the filtered list, so the handle cannot be wrapped in one. */}
+        {showBucket && <Heading secondary>{hit.bucket} / </Heading>}
+        <Heading>
+          <PackageHandle
+            handle={hit.name}
+            to={urls.bucketPackageTree(
+              hit.bucket,
+              hit.name,
+              hit.pointer === 'latest' ? hit.pointer : hit.hash,
+            )}
+          />
+        </Heading>
         <Secondary>
           {readableBytes(hit.size)}
           <Divider />

@@ -13,6 +13,8 @@ import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import { readableBytes } from 'utils/string'
 
+import PackageHandle from '../NamespaceLink'
+
 import { ColumnTag } from './useColumns'
 import type { Column, FilterType } from './useColumns'
 import type { Hit } from './useResults'
@@ -141,15 +143,18 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       return <>{readableBytes(hit.size)}</>
     case 'name':
       return (
-        <StyledLink
+        <PackageHandle
+          handle={hit.name}
           to={urls.bucketPackageTree(
             hit.bucket,
             hit.name,
             hit.pointer === 'latest' ? hit.pointer : hit.hash,
           )}
         >
-          <Match on={hit.matchLocations.name}>{hit.name}</Match>
-        </StyledLink>
+          {/* The match highlight covers the whole handle, so it stays on the
+              name segment rather than being dropped or split at the slash. */}
+          {(name) => <Match on={hit.matchLocations.name}>{name}</Match>}
+        </PackageHandle>
       )
     case 'comment':
       // FIXME: the registry sends 'None', not null, for no commit message.
