@@ -58,9 +58,30 @@ describe('model/DataProducts/fixtures', () => {
       expect(seen.subscribers).toBeNull()
     })
 
-    it('nulls them for a workspace with no holding at all, not just for a subscriber', () => {
-      const listed = byId(nonOwner, DRAFT + '')
-      expect(listed).toBeDefined()
+    /**
+     * A direct read has to enforce what the lists enforce.
+     *
+     * `volumeFor` used an unfiltered lookup while `exchangeFor` and
+     * `heldProductsFor` filtered, so another workspace's unpublished draft was
+     * invisible in every list and fully readable at its URL -- title, owner, who
+     * designated it, the view name. The URL was the hole.
+     */
+    it('does not resolve another workspace’s unpublished draft', () => {
+      expect(fixtures.volumeFor(nonOwner, DRAFT)).toBeNull()
+    })
+
+    it('still resolves the draft for the workspace that owns it', () => {
+      const own = fixtures.volumeFor(owner, DRAFT)
+      expect(own).not.toBeNull()
+      expect(own!.holding?.role).toBe('OWNER')
+    })
+
+    it('resolves a published product for a workspace with no holding on it', () => {
+      // Published is visible without a holding: a listing is visibility. That is
+      // what separates this from the draft above.
+      const listed = fixtures.volumeFor(nonOwner, 'fixture-legacy-assays')
+      expect(listed).not.toBeNull()
+      expect(listed!.holding).toBeNull()
     })
 
     it('gives the owner its queue and withholds it from everyone else', () => {
@@ -217,7 +238,7 @@ describe('model/DataProducts/fixtures', () => {
       for (const w of fixtures.WORKSPACES) {
         for (const v of fixtures.volumesFor(w)) expect(v.id).toMatch(/^fixture-/)
       }
-      for (const id of fixtures.PRODUCT_IDS) expect(id).toMatch(/^fixture-/)
+      for (const p of fixtures.exchangeFor(owner)) expect(p.id).toMatch(/^fixture-/)
     })
 
     it('names every workspace with a `fixture-` prefix too', () => {

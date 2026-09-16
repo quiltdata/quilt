@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import * as W from 'model/DataProducts/writes'
 
 import DefinitionEditor from './DefinitionEditor'
 import FixtureNotice, { WorkspaceSwitcher, WriteResult } from './FixtureNotice'
@@ -73,21 +74,14 @@ export default function NewProduct() {
   const classes = useStyles()
   const workspace = DP.useActiveWorkspace()
   const reach = DP.useWorkspaceReach()
-  const publishing = DP.usePublishing()
+  const publishing = W.usePublishing()
 
   const [id, setId] = React.useState('')
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
   const [sql, setSql] = React.useState('')
 
-  const designate = React.useCallback(
-    () =>
-      publishing
-        ? publishing.designate({ id, title, description, sql })
-        : Promise.resolve(null),
-    [publishing, id, title, description, sql],
-  )
-  const create = DP.useWrite(publishing ? designate : null)
+  const create = W.useAct(publishing, (p) => p.designate({ id, title, description, sql }))
 
   const idError = id && !ID_RULE.test(id)
 

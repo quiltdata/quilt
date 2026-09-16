@@ -216,12 +216,7 @@ function DataProductRow({ product, divider }: DataProductRowProps) {
   const { urls } = NamedRoutes.use()
   // The bucket route: a product is a bucket the catalog reaches through the proxy.
   const to = urls.bucketRoot(product.id)
-  const holding = DP.holdingSummary(product.holding)
-  const relation = holding
-    ? `${holding.attention ? '⚠ ' : ''}${holding.label}`
-    : product.published
-      ? 'Listed · not subscribed'
-      : 'Unpublished'
+  const relation = DP.relationLabel(product)
 
   return (
     <M.ListItem

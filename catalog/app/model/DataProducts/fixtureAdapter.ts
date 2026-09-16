@@ -72,13 +72,19 @@ const unavailable = (act: UnavailableActId): WriteFailure => ({
  *
  * Substrate databases use underscores where bucket names use hyphens, so the
  * schema name is mapped back.
+ *
+ * The capture is **lowercased**, not only underscore-mapped. The `i` flag makes the
+ * character class match uppercase, and Athena identifiers are case-insensitive, so
+ * `FROM "Fixture_Assay_Raw".plates` is valid SQL over a bucket the workspace holds
+ * -- but it parsed to `Fixture-Assay-Raw`, which matches no bucket name, and the
+ * check then reported a bucket outside the reach for a definition that was fine.
  */
 export function referencedBuckets(sql: string): string[] {
   const found = new Set<string>()
   const re = /\b(?:from|join)\s+"?([a-z0-9][a-z0-9_-]*)"?\s*\./gi
   let m = re.exec(sql)
   while (m) {
-    found.add(m[1]!.replace(/_/g, '-'))
+    found.add(m[1]!.toLowerCase().replace(/_/g, '-'))
     m = re.exec(sql)
   }
   return Array.from(found).sort()

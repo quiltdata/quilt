@@ -125,11 +125,6 @@ export const productNew = route('/products/new')
 
 export type ProductNewArgs = Parameters<typeof productNew.url>
 
-// The pre-pivot `/data-products` family is retired with the external-catalog model
-// it served. Kept only as a redirect target so an old link lands somewhere
-// sensible rather than on a 404.
-export const dataProductsLegacy = route('/data-products')
-
 // Immutable URI resolver
 export const uriResolver = route(
   '/uri/:uri(.*)',

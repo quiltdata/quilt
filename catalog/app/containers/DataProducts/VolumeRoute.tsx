@@ -1,38 +1,48 @@
 import * as React from 'react'
-import { Redirect } from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
+import requireAuth from 'containers/Auth/wrapper'
 import * as DP from 'model/DataProducts'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
-
-import ProductVolume from './ProductVolume'
 
 /**
  * Kind dispatch for `/b/:bucket`.
  *
  * The volume model widens the bucket model, so one route serves both kinds and the
- * *kind* decides which layout mounts. Two properties matter here, and both are
+ * *kind* decides which layout mounts. Three properties matter, and two of them are
  * about what happens for a **bucket**:
  *
- * 1. **A bucket must reach `Bucket` unchanged.** Not "equivalently" — the same
- *    component tree, so `BucketPreferences.Provider`, the existence probe and the
- *    tab set are exactly what they are on `dev`. This component therefore renders
- *    `children` untouched for anything that is not a known product.
+ * 1. **A bucket must reach `Bucket` unchanged**, and must not wait. `children` is
+ *    rendered on the first pass, before the lookup has answered, so a bucket page
+ *    mounts exactly as it does on `dev` — same tree, same timing. An earlier shape
+ *    suspended here first, which replaced every bucket page with a Placeholder
+ *    until the lookup resolved and remounted `<Bucket />` (losing its state) on a
+ *    workspace switch. Hence `useVolume` does not suspend: see its own note.
  * 2. **A product must never reach `Bucket`.** Everything in that tree calls S3 or
- *    GraphQL for a bucket by this name, and a `volume_id` is not one.
+ *    GraphQL for a bucket by this name, and a `volume_id` is not one. So the
+ *    product branch replaces `children` outright rather than wrapping it.
+ * 3. **A product screen requires auth.** `Bucket` is `protect`, which on an OPEN
+ *    stack is the identity, so an unguarded product branch would show Definition,
+ *    Sharing and Access to an anonymous visitor. The product layout below is
+ *    wrapped in `requireAuth`, matching `/exchange` and `/products/new`.
  *
  * The dispatch asks the registry (here, the fixture adapter) rather than pattern-
  * matching the id. The `fixture-` prefix on every fixture id is a safety belt
  * against shadowing a real bucket name, not the mechanism: with a real adapter the
  * answer is the registry's, and a prefix rule would then be wrong.
- *
- * Order matters for a bucket: the product lookup suspends, and a bucket page must
- * not wait on it. `useVolume` resolves from one cached list, so the cost is one
- * fetch for the session rather than one per navigation — but the flag is read first
- * and short-circuits the whole thing when the preview is off, so a deployment with
- * products disabled makes no lookup at all.
  */
+
+/**
+ * The product layout, gated and lazy.
+ *
+ * `requireAuth` wraps the lazy component rather than the branch below, so the
+ * redirect to sign-in happens before any product screen renders — and so the chunk
+ * is still only fetched for a product URL.
+ */
+const ProductVolume = requireAuth<{ product: DP.ProductVolume }>()(
+  RT.mkLazy(() => import('./ProductVolume'), Placeholder),
+)
+
 export default function VolumeRoute({
   bucket,
   children,
@@ -40,37 +50,17 @@ export default function VolumeRoute({
   bucket: string
   children: React.ReactNode
 }) {
+  // Does not suspend: `volume` is null until the lookup answers, and null again if
+  // it failed.
   const volume = DP.useVolume(bucket)
 
-  // Not a product: hand the bucket route straight through, with nothing added.
-  if (!volume || volume.kind !== 'PRODUCT') return <>{children}</>
+  if (volume && DP.isProduct(volume)) return <ProductVolume product={volume} />
 
-  return <ProductVolume product={volume} />
-}
-
-/**
- * The product surfaces that are the workspace's rather than a volume's.
- *
- * `/exchange` and `/products/new` are top-level because the listing spans volumes
- * the workspace does not hold, and creation precedes any volume existing.
- *
- * Lazy so the fixture tables and these screens stay out of the bundle a browser
- * downloads for the volume list. That was a real regression once: the fixture data
- * shipped to every visitor of the landing page.
- */
-const Exchange = RT.mkLazy(() => import('./Exchange'), Placeholder)
-const NewProduct = RT.mkLazy(() => import('./NewProduct'), Placeholder)
-
-export { Exchange, NewProduct }
-
-/**
- * The retired `/data-products` family.
- *
- * Redirects to the volume list rather than 404ing: the pre-pivot links pointed at
- * products that are now reached on the bucket route, and there is no id mapping
- * from the old synthetic ids to `volume_id`s, so the list is the honest landing.
- */
-export function LegacyRedirect() {
-  const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.buckets()} />
+  // Not a product, not answered yet, or the lookup failed: the bucket route, with
+  // nothing added. Rendering `children` before the lookup answers is the point —
+  // holding it back is the wait property 1 forbids — and a failed lookup landing
+  // here is deliberate: the worst a registry outage can do to `/b/:bucket` is render
+  // the bucket page. The cost is that a product URL shows the bucket page for the
+  // frames before the lookup resolves.
+  return <>{children}</>
 }

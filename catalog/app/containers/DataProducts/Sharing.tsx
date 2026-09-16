@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import * as W from 'model/DataProducts/writes'
 
 import { StateLine, WriteResult } from './FixtureNotice'
 
@@ -51,19 +52,10 @@ const useStyles = M.makeStyles((t) => ({
  */
 function Published({ product }: { product: DP.ProductVolume }) {
   const classes = useStyles()
-  const publishing = DP.usePublishing()
+  const publishing = W.usePublishing()
 
-  const publish = React.useCallback(
-    () => (publishing ? publishing.publish(product.id) : Promise.resolve(null)),
-    [publishing, product.id],
-  )
-  const unpublish = React.useCallback(
-    () => (publishing ? publishing.unpublish(product.id) : Promise.resolve(null)),
-    [publishing, product.id],
-  )
-
-  const pub = DP.useWrite(publishing ? publish : null)
-  const unpub = DP.useWrite(publishing ? unpublish : null)
+  const pub = W.useAct(publishing, (p) => p.publish(product.id))
+  const unpub = W.useAct(publishing, (p) => p.unpublish(product.id))
 
   return (
     <section>
@@ -119,21 +111,12 @@ function Published({ product }: { product: DP.ProductVolume }) {
  */
 function RequestRow({ sub }: { sub: DP.Subscription }) {
   const classes = useStyles()
-  const publishing = DP.usePublishing()
+  const publishing = W.usePublishing()
   const [reason, setReason] = React.useState('')
   const [rejecting, setRejecting] = React.useState(false)
 
-  const approve = React.useCallback(
-    () => (publishing ? publishing.approve(sub.id) : Promise.resolve(null)),
-    [publishing, sub.id],
-  )
-  const reject = React.useCallback(
-    () => (publishing ? publishing.reject(sub.id, reason) : Promise.resolve(null)),
-    [publishing, sub.id, reason],
-  )
-
-  const app = DP.useWrite(publishing ? approve : null)
-  const rej = DP.useWrite(publishing ? reject : null)
+  const app = W.useAct(publishing, (p) => p.approve(sub.id))
+  const rej = W.useAct(publishing, (p) => p.reject(sub.id, reason))
 
   const state = DP.deriveState(sub, 'publisher')
   const copy = DP.stateCopy(sub, 'publisher')
@@ -190,17 +173,19 @@ function RequestRow({ sub }: { sub: DP.Subscription }) {
 /** One row of the subscriber list, with its derived state and the grant evidence. */
 function SubscriberRow({ sub }: { sub: DP.Subscription }) {
   const classes = useStyles()
-  const publishing = DP.usePublishing()
+  const publishing = W.usePublishing()
 
-  const revoke = React.useCallback(
-    () => (publishing ? publishing.revoke(sub.id) : Promise.resolve(null)),
-    [publishing, sub.id],
-  )
-  const rev = DP.useWrite(publishing ? revoke : null)
+  const rev = W.useAct(publishing, (p) => p.revoke(sub.id))
 
   const state = DP.deriveState(sub, 'publisher')
   const copy = DP.stateCopy(sub, 'publisher')
-  const revocable = state === 'APPROVED' || state === 'REVOKE_FAILED'
+  // Revoke is offered wherever the grant may still be live -- which is every state
+  // whose read-back is not a confirmed ABSENT, not only the two agreeing ones. An
+  // earlier version covered APPROVED and REVOKE_FAILED alone, so
+  // REJECTED_GRANT_PRESENT and UNKNOWN showed an amber warning with no remedy on
+  // the one screen that carries revoke: the publisher was told a grant might be
+  // live and given nothing to do about it.
+  const revocable = state === 'APPROVED' || DP.isDisagreement(state)
 
   return (
     <M.TableRow data-testid="dp-subscriber-row" data-state={state}>

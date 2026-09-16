@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import type { WriteState } from 'model/DataProducts/writes'
 
 /**
  * The label every product-bearing surface carries.
@@ -120,7 +121,7 @@ export function ActUnavailableNotice({ act }: { act: DP.UnavailableActId }) {
  * arms -- and the type says so: a success arm would have to be invented. Kept as
  * one component so no screen grows its own interpretation of a write result.
  */
-export function WriteResult({ result }: { result: DP.WriteState<object> | null }) {
+export function WriteResult({ result }: { result: WriteState<object> | null }) {
   if (!result) return null
   if (result.ok) {
     // Unreachable with the fixture adapter, and rendered rather than assumed away

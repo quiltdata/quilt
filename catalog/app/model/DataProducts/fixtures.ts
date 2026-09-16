@@ -599,13 +599,26 @@ export function exchangeFor(workspace: string): ProductVolume[] {
   )
 }
 
-/** One volume by id, as this workspace may see it, or null. */
+/**
+ * One volume by id, as this workspace may see it, or null.
+ *
+ * Filtered on the same rule its siblings use: a workspace may see a product it
+ * **holds**, or one that is **published** in its scope. Neither is true of another
+ * workspace's unpublished draft, and an unfiltered lookup here leaked exactly that
+ * -- title, description, owner, who designated it and the view name -- to anyone who
+ * guessed the id, while `exchangeFor` and `heldProductsFor` correctly withheld it.
+ * A direct read has to enforce what the lists enforce; otherwise the URL is the
+ * hole.
+ */
 export function volumeFor(
   workspace: string,
   id: string,
 ): ProductVolume | BucketVolume | null {
   const product = PRODUCT_RECORDS.find((r) => r.id === id)
-  if (product) return projectVolume(product, workspace)
+  if (product) {
+    const visible = holdingFor(product, workspace) !== null || product.published !== null
+    return visible ? projectVolume(product, workspace) : null
+  }
   return bucketVolumesFor(workspace).find((b) => b.id === id) ?? null
 }
 
@@ -613,16 +626,6 @@ export function volumeFor(
 export function volumesFor(workspace: string): (ProductVolume | BucketVolume)[] {
   return [...bucketVolumesFor(workspace), ...heldProductsFor(workspace)]
 }
-
-/**
- * Every product id the fixtures define, for route dispatch.
- *
- * A screen asks this, rather than a regex on the `fixture-` prefix, so the day a
- * real adapter lands the dispatch is the registry's answer and not a naming
- * convention. The prefix is a safety belt against shadowing a real bucket name at
- * `/b/:bucket`, not the mechanism.
- */
-export const PRODUCT_IDS: string[] = PRODUCT_RECORDS.map((r) => r.id)
 
 /**
  * No captures.

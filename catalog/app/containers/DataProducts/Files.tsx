@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import * as W from 'model/DataProducts/writes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { StateLine } from './FixtureNotice'
@@ -82,7 +83,7 @@ export default function Files({ product }: { product: DP.ProductVolume }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const workspace = DP.useActiveWorkspace()
-  const adapter = DP.useAdapter()
+  const adapter = W.useAdapter()
 
   const sub = product.holding?.subscription
   const state = sub ? DP.deriveState(sub, 'subscriber') : null

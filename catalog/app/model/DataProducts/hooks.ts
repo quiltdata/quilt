@@ -21,19 +21,12 @@
 
 import * as React from 'react'
 
+import AsyncResult from 'utils/AsyncResult'
 import * as Cache from 'utils/ResourceCache'
 
-import type {
-  DataProductAdapter,
-  DefinitionCheck,
-  PublishingAdapter,
-  SubscribingAdapter,
-  WriteFailure,
-} from './adapter'
-import { supportsPublishing, supportsSubscribing } from './adapter'
-import { makeFixtureAdapter } from './fixtureAdapter'
-import * as fixtures from './fixtures'
+import type { PublishingAdapter, SubscribingAdapter } from './adapter'
 import type { ProductVolume, Volume } from './types'
+import { DEFAULT_WORKSPACE, WORKSPACES as WORKSPACE_NAMES } from './workspaces'
 
 /**
  * Whether the data these hooks return is fixture data.
@@ -58,30 +51,41 @@ export const IS_FIXTURE_DATA = true
  * the publisher face for one workspace and the subscriber face for the other, and
  * neither list ever contains the other's holdings.
  */
-let activeWorkspace = fixtures.DEFAULT_WORKSPACE
+let activeWorkspace = DEFAULT_WORKSPACE
 const workspaceListeners = new Set<() => void>()
 
 /**
- * Which adapter the hooks read from, rebuilt when the workspace changes.
+ * The adapter, loaded on demand and bound to one workspace.
  *
- * Bound to a workspace rather than taking one per call: there is no legitimate
- * read that spans two workspaces, and an adapter that took it as an argument would
- * put a unioned read one typo away.
+ * **Dynamically imported, and that is load-bearing rather than tidy.**
+ * `Buckets.jsx` imports the barrel, the barrel imports these hooks, so a static
+ * edge from here to `fixtureAdapter` -> `fixtures` puts ~1300 lines of fixture
+ * data in the volumes-landing chunk every visitor downloads, flag on or off.
+ * #5259 removed exactly that edge; a later refactor put it back. The dynamic
+ * import is what keeps it out, so this must not become a top-level `import`.
+ *
+ * Bound to a workspace rather than taking one per call at the adapter's own
+ * boundary: there is no legitimate read spanning two workspaces. The *cache*
+ * resources below still thread the workspace through `fetch`, because the module
+ * binding is mutable and a fetch that read it could resolve against a workspace
+ * the key does not name.
  *
  * When a GraphQL-backed adapter lands this becomes a build- or config-time choice
  * here, and no container changes. That is the whole point of the port.
  */
-let adapter: DataProductAdapter = makeFixtureAdapter(activeWorkspace)
+const loadAdapter = (
+  workspace: string,
+): Promise<PublishingAdapter & SubscribingAdapter> =>
+  import('./fixtureAdapter').then((m) => m.makeFixtureAdapter(workspace))
 
 export function setActiveWorkspace(name: string) {
   if (name === activeWorkspace) return
   activeWorkspace = name
-  adapter = makeFixtureAdapter(name)
   workspaceListeners.forEach((l) => l())
 }
 
 /** The workspaces this deployment offers a switch between. */
-export const WORKSPACES = fixtures.WORKSPACES
+export const WORKSPACES = WORKSPACE_NAMES
 
 // The cache keys on `input`; these resources take none beyond the ids below, so
 // `key` is explicit rather than relying on `R.identity` over an object.
@@ -107,27 +111,48 @@ interface ListInput {
   workspace: string
 }
 
+// Every fetch takes its workspace from `input` -- the same value the key names --
+// and never from the module binding. That is the point: `createResource` defers its
+// fetch a macrotask, so a switch inside that window would have a fetch read the
+// *new* binding and cache the result under the *old* workspace's key. The cache has
+// no invalidation, so that entry would then serve one workspace's projection under
+// the other's name, including the `requests`/`subscribers` arrays DEC-52 exists to
+// withhold.
 const VolumesResource = Cache.createResource({
   name: 'DataProducts.volumes',
-  fetch: ({ enabled }: ListInput) =>
-    enabled ? adapter.listVolumes() : Promise.resolve([]),
+  fetch: ({ enabled, workspace }: ListInput) =>
+    enabled ? loadAdapter(workspace).then((a) => a.listVolumes()) : Promise.resolve([]),
   // @ts-expect-error
   key: ({ enabled, workspace }: ListInput) => `${workspace}::${enabled}`,
 })
 
 const ExchangeResource = Cache.createResource({
   name: 'DataProducts.exchange',
-  fetch: ({ enabled }: ListInput) =>
-    enabled ? adapter.listExchange() : Promise.resolve([]),
+  fetch: ({ enabled, workspace }: ListInput) =>
+    enabled ? loadAdapter(workspace).then((a) => a.listExchange()) : Promise.resolve([]),
   // @ts-expect-error
   key: ({ enabled, workspace }: ListInput) => `${workspace}::${enabled}`,
 })
 
+interface VolumeInput {
+  id: string
+  workspace: string
+}
+
 const VolumeResource = Cache.createResource({
   name: 'DataProducts.volume',
-  fetch: ({ id }: { id: string; workspace: string }) => adapter.getVolume(id),
+  fetch: ({ id, workspace }: VolumeInput) =>
+    loadAdapter(workspace).then((a) => a.getVolume(id)),
   // @ts-expect-error
-  key: ({ id, workspace }: { id: string; workspace: string }) => `${workspace}::${id}`,
+  key: ({ id, workspace }: VolumeInput) => `${workspace}::${id}`,
+})
+
+const ReachResource = Cache.createResource({
+  name: 'DataProducts.reach',
+  fetch: ({ workspace }: { workspace: string }) =>
+    import('./fixtures').then((m) => m.reachFor(workspace)),
+  // @ts-expect-error
+  key: ({ workspace }: { workspace: string }) => workspace,
 })
 
 /**
@@ -162,14 +187,46 @@ export function useExchange(enabled = true): ProductVolume[] {
  * `null` is data, not an error: increment 1 keeps no tombstone for a retired
  * product, so a retired product and a typo are indistinguishable here and the
  * screen says exactly that.
+ *
+ * **A failed read is also `null`, deliberately.** This hook sits on `/b/:bucket`,
+ * which is the bucket page for every id that is not a product, and `suspend`
+ * rethrows the cache's `Err` arm. With no error boundary between `App` and
+ * `Bucket`, a registry that 500s would take the whole catalog down on a plain
+ * bucket URL. Degrading to `null` means the worst a failed lookup can do is render
+ * the bucket page -- which is what the id most likely is.
+ *
+ * The cost is that a product briefly looks like a bucket during an outage. That is
+ * the right way round: a product route that fails renders a bucket page and says
+ * so, where the alternative takes down every bucket page on the stack.
  */
 export function useVolume(id: string): Volume | null {
   const workspace = useActiveWorkspace()
-  return Cache.useData(
-    VolumeResource,
-    { id, workspace },
-    { suspend: true },
+  const entry = Cache.useData(VolumeResource, { id, workspace })
+  return AsyncResult.case(
+    {
+      Ok: (v: Volume | null) => v,
+      // Init and Pending are "not answered yet". Not suspended on: see above --
+      // this must not hold up the bucket page it shares a route with.
+      _: () => null,
+    },
+    entry.result,
   ) as Volume | null
+}
+
+/**
+ * Whether the volume lookup has settled.
+ *
+ * Separate from `useVolume` so a caller can tell "not a product" from "not known
+ * yet" -- the two look identical in a `null`, and the product route needs the
+ * difference to avoid flashing a bucket page at a product URL.
+ */
+export function useVolumeSettled(id: string): boolean {
+  const workspace = useActiveWorkspace()
+  const entry = Cache.useData(VolumeResource, { id, workspace })
+  return AsyncResult.case(
+    { Ok: () => true, Err: () => true, _: () => false },
+    entry.result,
+  ) as boolean
 }
 
 /**
@@ -205,116 +262,5 @@ export function useActiveWorkspace(): string {
  */
 export function useWorkspaceReach(): string[] {
   const workspace = useActiveWorkspace()
-  return React.useMemo(() => fixtures.reachFor(workspace), [workspace])
-}
-
-/**
- * The adapter itself, for the one thing the read hooks cannot express: asking
- * whether a write path exists at all.
- *
- * Exposed so a container can call `supportsPublishing(useAdapter())` rather than
- * hardcoding what this deployment can do.
- */
-export function useAdapter(): DataProductAdapter {
-  return adapter
-}
-
-/**
- * The result of a write the user triggered: nothing yet, or the act's outcome.
- *
- * `null` is "not attempted", which is a different thing from every failure arm.
- * The screens render it as an absence rather than a state.
- */
-export type WriteState<T> = null | ({ ok: true } & T) | WriteFailure
-
-/**
- * Run one write and hold its result.
- *
- * Deliberately not a cache resource: a write is a one-shot act, and a cached one
- * would replay on remount. Deliberately not throwing either -- the port's
- * failures are typed arms a screen renders, including the `UNAVAILABLE` arm every
- * write returns on a stack with no registry API.
- *
- * `pending` is tracked even though the fixture adapter resolves on the microtask
- * queue, so the branch exists and is testable rather than being added the day a
- * real adapter makes it visible.
- */
-export function useWrite<Args extends unknown[], T extends object>(
-  run: ((...args: Args) => Promise<WriteState<T>>) | null,
-): {
-  result: WriteState<T>
-  pending: boolean
-  call: (...args: Args) => Promise<void>
-  reset: () => void
-} {
-  const [result, setResult] = React.useState<WriteState<T>>(null)
-  const [pending, setPending] = React.useState(false)
-
-  const call = React.useCallback(
-    async (...args: Args) => {
-      if (!run) return
-      setPending(true)
-      try {
-        setResult(await run(...args))
-      } finally {
-        setPending(false)
-      }
-    },
-    [run],
-  )
-
-  const reset = React.useCallback(() => setResult(null), [])
-
-  return { result, pending, call, reset }
-}
-
-/**
- * The publishing adapter, or null when this deployment has no write path at all.
- *
- * Null and "returns UNAVAILABLE" are different situations and the screens treat
- * them differently: null means the deployment cannot publish and the controls do
- * not belong; UNAVAILABLE means the act exists in the model and nothing serves it
- * yet, which is what the fixture adapter says and what the notice explains.
- */
-export function usePublishing(): PublishingAdapter | null {
-  return supportsPublishing(adapter) ? adapter : null
-}
-
-export function useSubscribing(): SubscribingAdapter | null {
-  return supportsSubscribing(adapter) ? adapter : null
-}
-
-/**
- * Static checks on a draft definition.
- *
- * Debounced by the caller, not here: the screens run this on an explicit Check
- * press rather than on keystroke, because with a real adapter a check costs an
- * Athena query. The hook only holds the last answer.
- */
-export function useDefinitionCheck(): {
-  check: DefinitionCheck | null
-  pending: boolean
-  run: (sql: string, reach: string[]) => Promise<void>
-  reset: () => void
-} {
-  const publishing = usePublishing()
-  const [check, setCheck] = React.useState<DefinitionCheck | null>(null)
-  const [pending, setPending] = React.useState(false)
-
-  const run = React.useCallback(
-    async (sql: string, reach: string[]) => {
-      if (!publishing) return
-      setPending(true)
-      try {
-        setCheck(await publishing.checkDefinition(sql, reach))
-      } finally {
-        setPending(false)
-      }
-    },
-    [publishing],
-  )
-
-  const reset = React.useCallback(() => setCheck(null), [])
-
-  return { check, pending, run, reset }
+  return Cache.useData(ReachResource, { workspace }, { suspend: true }) as string[]
 }

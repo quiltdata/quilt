@@ -297,3 +297,53 @@ export function holdingSummary(
   }
   return null
 }
+
+/** The minimum a screen needs to describe a workspace's standing on a product. */
+export interface HoldingLike {
+  holding: { role: string; subscription?: Subscription } | null
+  published?: { publishedAt: Date } | null
+}
+
+/**
+ * What one workspace may do with a product: the face, the state, and read access.
+ *
+ * **One function, because four screens derived this separately and disagreed.**
+ * `Overview` read the state off `holding.subscription`, which is `null` for an
+ * owner, and so hid "Open files" from the very workspace that publishes the
+ * product — while `ProductVolume` mounted the Files tab for that same owner. Two
+ * screens, one product, opposite answers. Anything deciding whether a read
+ * affordance belongs calls this instead.
+ *
+ * `mayRead` is the owner **or** a confirmed grant. Never a listing, a holding or a
+ * decision on its own: none of those is entitlement, and a Files tab offered on one
+ * would mint and fail (screen rule R4).
+ */
+export interface ReadAccess {
+  isOwner: boolean
+  /** The subscriber-face state, or null when this workspace has no subscription. */
+  state: SubscriptionState | null
+  mayRead: boolean
+}
+
+export function readAccess(product: HoldingLike): ReadAccess {
+  const isOwner = product.holding?.role === 'OWNER'
+  const sub = product.holding?.subscription
+  const state = sub ? deriveState(sub, 'subscriber') : null
+  return {
+    isOwner,
+    state,
+    mayRead: isOwner || (state !== null && grantIsPresent(state)),
+  }
+}
+
+/**
+ * The one-line relation for a volume-list row or card.
+ *
+ * The ⚠ prefix was spelled out at three call sites; it belongs with the label it
+ * marks. Says what the workspace's relation *is* — never what it may read.
+ */
+export function relationLabel(product: HoldingLike): string {
+  const copy = holdingSummary(product.holding)
+  if (copy) return copy.attention ? `⚠ ${copy.label}` : copy.label
+  return product.published ? 'Listed · not subscribed' : 'Unpublished'
+}

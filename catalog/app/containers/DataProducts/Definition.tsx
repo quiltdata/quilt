@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import * as W from 'model/DataProducts/writes'
 
 import { WriteResult } from './FixtureNotice'
 import DefinitionEditor from './DefinitionEditor'
@@ -39,16 +40,12 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Definition({ product }: { product: DP.ProductVolume }) {
   const classes = useStyles()
-  const publishing = DP.usePublishing()
+  const publishing = W.usePublishing()
   const reach = DP.useWorkspaceReach()
   const [sql, setSql] = React.useState('')
   const [revising, setRevising] = React.useState(false)
 
-  const revise = React.useCallback(
-    () => (publishing ? publishing.revise(product.id, sql) : Promise.resolve(null)),
-    [publishing, product.id, sql],
-  )
-  const save = DP.useWrite(publishing ? revise : null)
+  const save = W.useAct(publishing, (p) => p.revise(product.id, sql))
 
   const approved = (product.subscribers ?? []).filter((s) =>
     DP.grantIsPresent(DP.deriveState(s, 'publisher')),

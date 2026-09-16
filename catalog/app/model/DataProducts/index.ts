@@ -37,20 +37,26 @@ export type {
   WriteFailure,
 } from './adapter'
 export { supportsMinting, supportsPublishing, supportsSubscribing } from './adapter'
-export { checkDefinition, referencedBuckets } from './fixtureAdapter'
-export type { WriteState } from './hooks'
+
+/**
+ * Reads only.
+ *
+ * The write hooks and `checkDefinition` live in `./writes`, which the product
+ * screens import directly and this barrel deliberately does not re-export. They
+ * need a synchronous adapter, so that module imports the fixture tables statically
+ * -- and the volumes landing imports this barrel (`Buckets.jsx` -> here -> the read
+ * hooks), so re-exporting them would ship ~23KB of fixture data to every visitor
+ * whether or not the preview is on. #5259 removed exactly that edge; the split is
+ * what keeps it removed.
+ */
 export {
   IS_FIXTURE_DATA,
   WORKSPACES,
   setActiveWorkspace,
   useActiveWorkspace,
-  useAdapter,
-  useDefinitionCheck,
   useExchange,
-  usePublishing,
-  useSubscribing,
   useVolume,
+  useVolumeSettled,
   useVolumes,
   useWorkspaceReach,
-  useWrite,
 } from './hooks'

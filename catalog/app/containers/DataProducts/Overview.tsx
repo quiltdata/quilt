@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import * as W from 'model/DataProducts/writes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { StateLine } from './FixtureNotice'
@@ -81,7 +82,7 @@ export default function Overview({ product }: { product: DP.ProductVolume }) {
   const { urls } = NamedRoutes.use()
   const workspace = DP.useActiveWorkspace()
 
-  const adapter = DP.useAdapter()
+  const adapter = W.useAdapter()
   const canMint = DP.supportsMinting(adapter)
 
   const holdingCopy = DP.holdingSummary(product.holding)

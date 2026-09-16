@@ -100,7 +100,6 @@ export default function DataProductCard({ product }: { product: DP.ProductVolume
   const { urls } = NamedRoutes.use()
   // The bucket route: a product is a bucket the catalog reaches through the proxy.
   const to = urls.bucketRoot(product.id)
-  const holding = DP.holdingSummary(product.holding)
 
   return (
     <div className={classes.root} data-testid="volume-grid--data-product">
@@ -136,11 +135,7 @@ export default function DataProductCard({ product }: { product: DP.ProductVolume
         <M.Typography variant="caption" color="textSecondary">
           {/* The relation, with an amber mark when the record and the grant
               disagree -- never a resolved state (screen rule R5). */}
-          {holding
-            ? `${holding.attention ? '⚠ ' : ''}${holding.label}`
-            : product.published
-              ? 'Listed · not subscribed'
-              : 'Unpublished'}
+          {DP.relationLabel(product)}
         </M.Typography>
       </div>
     </div>

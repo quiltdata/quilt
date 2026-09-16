@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import * as W from 'model/DataProducts/writes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { StateLine, WriteResult } from './FixtureNotice'
@@ -46,22 +47,16 @@ export default function Access({ product }: { product: DP.ProductVolume }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const workspace = DP.useActiveWorkspace()
-  const subscribing = DP.useSubscribing()
+  const subscribing = W.useSubscribing()
 
   const sub = product.holding?.subscription
   const state = sub ? DP.deriveState(sub, 'subscriber') : null
 
-  const subscribe = React.useCallback(
-    () => (subscribing ? subscribing.subscribe(product.id) : Promise.resolve(null)),
-    [subscribing, product.id],
+  const request = W.useAct(subscribing, (s) => s.subscribe(product.id))
+  // Guarded on the subscription as well: leaving needs one to leave.
+  const leave = W.useAct(subscribing && sub ? subscribing : null, (s) =>
+    s.unsubscribe(sub!.id),
   )
-  const unsubscribe = React.useCallback(
-    () => (subscribing && sub ? subscribing.unsubscribe(sub.id) : Promise.resolve(null)),
-    [subscribing, sub],
-  )
-
-  const request = DP.useWrite(subscribing ? subscribe : null)
-  const leave = DP.useWrite(subscribing && sub ? unsubscribe : null)
 
   if (product.holding?.role === 'OWNER') {
     return (

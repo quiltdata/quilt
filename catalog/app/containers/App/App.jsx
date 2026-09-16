@@ -250,12 +250,6 @@ export default function App() {
         </ProductScreenRoute>
       </Route>
 
-      {/* The pre-pivot family, kept as a redirect so old links land on the volume
-          list rather than a 404. */}
-      <Route path={paths.dataProductsLegacy}>
-        <RedirectTo path={urls.buckets()} />
-      </Route>
-
       <Route path={paths.queries}>
         <Queries />
       </Route>

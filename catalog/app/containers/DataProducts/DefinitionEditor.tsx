@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as DP from 'model/DataProducts'
+import * as W from 'model/DataProducts/writes'
 
 /**
  * The SQL editor, its reach, and the check.
@@ -49,7 +49,7 @@ interface Props {
 
 export default function DefinitionEditor({ sql, onChange, reach }: Props) {
   const classes = useStyles()
-  const { check, pending, run } = DP.useDefinitionCheck()
+  const { check, pending, run } = W.useDefinitionCheck()
 
   return (
     <div data-testid="dp-definition-editor">
