@@ -1,6 +1,14 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+/**
+ * @param {{
+ *   columns: any,
+ *   selection?: any,
+ *   ordering: any,
+ *   withInlineActions?: boolean,
+ * }} props
+ */
 export function Head({
   columns,
   selection: sel = undefined,
@@ -11,10 +19,12 @@ export function Head({
     <M.TableHead>
       <M.TableRow>
         {!!sel && (
-          <M.TableCell padding="checkbox" onClick={sel.toggleAll}>
+          <M.TableCell padding="checkbox">
             <M.Checkbox
-              indeterminate={sel.selected.size > 0 && sel.selected.size < sel.all.size}
-              checked={sel.selected.equals(sel.all)}
+              indeterminate={sel.someSelected}
+              checked={sel.allSelected}
+              onChange={sel.toggleAll}
+              inputProps={{ 'aria-label': 'Select all rows on this page' }}
             />
           </M.TableCell>
         )}
