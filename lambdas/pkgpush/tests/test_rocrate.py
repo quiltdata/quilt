@@ -2,6 +2,7 @@ import copy
 import io
 import json
 
+import botocore.exceptions
 import pytest
 
 import t4_lambda_pkgpush
@@ -172,6 +173,33 @@ def test_parse_haspart_unlisted_file_gets_no_meta():
     entries = rocrate.parse(doc, CRATE_PK).entries
     assert entries[0].logical_key == "orphan.txt"
     assert entries[0].user_meta is None
+
+
+@pytest.mark.parametrize(
+    "part_id, entity_id",
+    [
+        ("sample%201.csv", "sample 1.csv"),
+        ("sample 1.csv", "sample%201.csv"),
+    ],
+)
+def test_parse_haspart_percent_encoding_still_finds_entity(part_id, entity_id):
+    """An id is a URI reference, so the two spellings are one entity and keep its meta."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": part_id}]
+    doc["@graph"].append({"@id": entity_id, "@type": "File", "name": "s", "dateCreated": "2026-01-01"})
+    entries = {e.logical_key: e for e in rocrate.parse(doc, CRATE_PK).entries}
+    assert entries["sample 1.csv"].user_meta == {"dateCreated": "2026-01-01"}
+
+
+def test_parse_part_entities_are_not_package_metadata():
+    """A listed part is data whatever its type; its name must not become a package key."""
+    doc = crate_without("test_file.txt")
+    root_of(doc)["hasPart"] = [{"@id": "sub/"}, {"@id": "data.csv"}]
+    doc["@graph"] += [
+        {"@id": "sub/", "@type": "Dataset", "name": "Sub directory"},
+        {"@id": "data.csv", "@type": "MediaObject", "name": "Data"},
+    ]
+    assert rocrate.parse(doc, CRATE_PK).user_meta == EXPECTED_META
 
 
 @pytest.mark.parametrize(
@@ -461,6 +489,60 @@ def test_package_prefix_crate_error_is_pkgpush_exception(mocker, packager_stubs)
             None,
         )
     assert excinfo.value.name == "RoCrateInvalidPart"
+
+
+def test_package_prefix_dir_list_denied_is_pkgpush_exception(mocker, packager_stubs):
+    """A crate may name a bucket the caller cannot list; that surfaces structurally."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": "out/"}]
+    get_object_stub(mocker, doc)
+    mocker.patch.object(t4_lambda_pkgpush, "get_user_s3_client")
+    mocker.patch.object(
+        t4_lambda_pkgpush,
+        "list_prefix_latest_versions",
+        side_effect=botocore.exceptions.ClientError(
+            {"Error": {"Code": "AccessDenied", "Message": "denied"}}, "ListObjectVersions"
+        ),
+    )
+
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
+        t4_lambda_pkgpush.package_prefix(
+            json.dumps(
+                {
+                    "source_prefix": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                    "metadata_uri": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                }
+            ),
+            None,
+        )
+    assert excinfo.value.name == "RoCrateFailedToListPrefix"
+    assert excinfo.value.context["logical_key"] == "out/"
+
+
+def test_package_prefix_file_and_dir_same_name_is_pkgpush_exception(mocker, packager_stubs):
+    """A crate naming both "data" and "data/" cannot become one manifest."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": "data/"}, {"@id": "data"}]
+    doc["@graph"].append({"@id": "data", "@type": "File", "name": "data"})
+    get_object_stub(mocker, doc)
+    mocker.patch.object(t4_lambda_pkgpush, "get_user_s3_client")
+    mocker.patch.object(
+        t4_lambda_pkgpush,
+        "list_prefix_latest_versions",
+        return_value=[{"Key": "experiments/260908_ale_ELNID/data/x.csv", "Size": 1, "VersionId": "vx"}],
+    )
+
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
+        t4_lambda_pkgpush.package_prefix(
+            json.dumps(
+                {
+                    "source_prefix": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                    "metadata_uri": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                }
+            ),
+            None,
+        )
+    assert excinfo.value.name == "InvalidLogicalKey"
 
 
 def test_package_prefix_legacy_mode_unchanged(mocker, packager_stubs):
