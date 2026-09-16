@@ -525,11 +525,25 @@ type ObjectsSearchStats {
   ext: KeywordExtents!
 }
 
+# One `namespace/` prefix of a package handle, with the number of matching
+# packages under it.
+type NamespaceFacet {
+  namespace: String!
+  count: Int!
+}
+
 type PackagesSearchStats {
   modified: DatetimeExtents!
   size: NumberExtents!
   entries: NumberExtents!
   workflow: KeywordExtents!
+  # Namespaces among the matching packages, by descending count. `count` is a
+  # count of packages only while `latestOnly` is set (one pointer per package);
+  # otherwise it counts revisions. Capped, with the cap reported as
+  # `namespacesTruncated` — the tail is dropped, so counts shown are exact but
+  # the list may be incomplete.
+  namespaces: [NamespaceFacet!]!
+  namespacesTruncated: Boolean!
   userMeta: [PackageUserMetaFacet!]!
   userMetaTruncated: Boolean!
 }

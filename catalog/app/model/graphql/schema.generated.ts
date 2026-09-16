@@ -3321,6 +3321,37 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'NamespaceFacet',
+        fields: [
+          {
+            name: 'count',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'namespace',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'NotificationConfigurationError',
         fields: [
           {
@@ -4684,6 +4715,36 @@ export default {
               ofType: {
                 kind: 'OBJECT',
                 name: 'DatetimeExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'namespaces',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'NamespaceFacet',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'namespacesTruncated',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },

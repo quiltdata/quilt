@@ -17,6 +17,7 @@ import * as SearchUIModel from '../model'
 import ColumnTitle from './ColumnTitle'
 import FilterSection from './FilterSection'
 import MoreButton from './MoreButton'
+import NamespaceFacet from './NamespaceFacet'
 
 interface PackagesMetaFilterActivatorProps {
   typename: SearchUIModel.PackageUserMetaFacet['__typename']
@@ -531,6 +532,12 @@ export default function PackageFilters({ className }: PackageFiltersProps) {
           </FilterSection>
         </RRDom.Route>
       </RRDom.Switch>
+
+      {/* Above the filter list: namespaces are how this bucket's packages are
+          actually organized, so they lead rather than sit among the predicates. */}
+      <FilterSection>
+        <NamespaceFacet />
+      </FilterSection>
 
       {activeFilters.map((f) => (
         <FilterSection key={f}>

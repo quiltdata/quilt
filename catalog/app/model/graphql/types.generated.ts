@@ -718,6 +718,12 @@ export interface MyRole {
   readonly name: Scalars['String']['output']
 }
 
+export interface NamespaceFacet {
+  readonly __typename: 'NamespaceFacet'
+  readonly count: Scalars['Int']['output']
+  readonly namespace: Scalars['String']['output']
+}
+
 export interface NotificationConfigurationError {
   readonly __typename: 'NotificationConfigurationError'
   readonly _: Maybe<Scalars['Boolean']['output']>
@@ -1064,6 +1070,8 @@ export interface PackagesSearchStats {
   readonly __typename: 'PackagesSearchStats'
   readonly entries: NumberExtents
   readonly modified: DatetimeExtents
+  readonly namespaces: ReadonlyArray<NamespaceFacet>
+  readonly namespacesTruncated: Scalars['Boolean']['output']
   readonly size: NumberExtents
   readonly userMeta: ReadonlyArray<PackageUserMetaFacet>
   readonly userMetaTruncated: Scalars['Boolean']['output']
