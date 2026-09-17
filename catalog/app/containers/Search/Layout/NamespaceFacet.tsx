@@ -8,6 +8,7 @@ import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 
 import { useNamespaceUrl } from '../NamespaceLink'
+import NAMESPACES_QUERY from '../gql/Namespaces.generated'
 import * as SearchUIModel from '../model'
 
 interface Namespace {
@@ -22,7 +23,11 @@ interface Namespaces {
 
 function useNamespaces(): { fetching: boolean; namespaces: Namespaces | undefined } {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  return GQL.fold(model.baseSearchQuery, {
+  const query = GQL.useQuery(NAMESPACES_QUERY, {
+    buckets: model.state.buckets,
+    searchString: model.state.searchString,
+  })
+  return GQL.fold(query, {
     data: ({ searchPackages: r }) => {
       switch (r.__typename) {
         case 'EmptySearchResultSet':
@@ -42,6 +47,9 @@ function useNamespaces(): { fetching: boolean; namespaces: Namespaces | undefine
       }
     },
     fetching: () => ({ fetching: true, namespaces: undefined }),
+    // A registry predating this field rejects the query at validation. Drop the
+    // facet rather than the page — but still report, since the same arm catches
+    // a real backend failure and silence there would hide it.
     error: () => ({ fetching: false, namespaces: undefined }),
   })
 }

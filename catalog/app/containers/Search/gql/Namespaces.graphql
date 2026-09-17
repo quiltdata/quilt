@@ -1,0 +1,20 @@
+# Separate from BaseSearch on purpose. A catalog can be deployed against a
+# registry that predates this field (catalog-only version bumps are routine),
+# and GraphQL rejects an unknown field at validation: selecting it in
+# BaseSearch would fail that whole query and take the Packages tab's totals,
+# facets and result list with it. Alone, a stale registry costs only this
+# facet.
+query ($buckets: [String!], $searchString: String) {
+  searchPackages(buckets: $buckets, searchString: $searchString, latestOnly: true) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        namespaces {
+          namespace
+          count
+        }
+        namespacesTruncated
+      }
+    }
+  }
+}

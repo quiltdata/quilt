@@ -19,9 +19,12 @@ const stats = vi.hoisted(() => ({
   truncated: false,
 }))
 
-// The model folds several queries. Answer only the base search (the one
-// carrying `stats`) with data; the rest stay "fetching", as they would while a
-// page loads, so this spec exercises the facet and not the results list.
+// Answer only this facet's own query (gql/Namespaces); the model's other
+// queries stay "fetching", so the spec exercises the facet, not the result
+// list. `failing` makes that query error, as it does against a registry
+// predating the field.
+const failing = vi.hoisted(() => ({ value: false }))
+
 vi.mock('utils/GraphQL', () => ({
   useQuery: (doc: any) => ({
     fetching: false,
@@ -30,10 +33,10 @@ vi.mock('utils/GraphQL', () => ({
     doc,
   }),
   fold: (result: any, cfg: any) => {
-    const isBaseSearch = result?.doc?.definitions?.[0]?.selectionSet?.selections?.some(
-      (s: any) => s.name?.value === 'searchPackages',
-    )
-    if (!isBaseSearch) return cfg.fetching(result)
+    const op = result?.doc?.definitions?.[0]
+    const selectsNamespaces = JSON.stringify(op ?? {}).includes('namespaces')
+    if (!selectsNamespaces) return cfg.fetching(result)
+    if (failing.value) return cfg.error(new Error('Cannot query field'), result)
     return cfg.data(
       {
         searchPackages: {
@@ -68,6 +71,18 @@ describe('containers/Search/Layout/NamespaceFacet', () => {
     cleanup()
     stats.namespaces = []
     stats.truncated = false
+    failing.value = false
+  })
+
+  // The whole reason this facet has its own query: a registry predating the
+  // `namespaces` field rejects it at validation. That must cost the facet and
+  // nothing else, so the facet renders nothing rather than surfacing an error.
+  it('renders nothing when the registry does not serve the field', () => {
+    stats.namespaces = NAMESPACES
+    failing.value = true
+    const { container } = renderAt('/search')
+
+    expect(container.textContent).toBe('')
   })
 
   it('lists each namespace with its exact count', () => {

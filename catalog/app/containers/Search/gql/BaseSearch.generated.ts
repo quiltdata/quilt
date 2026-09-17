@@ -38,7 +38,6 @@ export interface containers_Search_gql_BaseSearchQuery {
         readonly total: number
         readonly stats: {
           readonly __typename: 'PackagesSearchStats'
-          readonly namespacesTruncated: boolean
           readonly modified: {
             readonly __typename: 'DatetimeExtents'
             readonly min: Date
@@ -58,11 +57,6 @@ export interface containers_Search_gql_BaseSearchQuery {
             readonly __typename: 'KeywordExtents'
             readonly values: ReadonlyArray<string>
           }
-          readonly namespaces: ReadonlyArray<{
-            readonly __typename: 'NamespaceFacet'
-            readonly namespace: string
-            readonly count: number
-          }>
           readonly userMeta: ReadonlyArray<
             | {
                 readonly __typename: 'BooleanPackageUserMetaFacet'
@@ -263,27 +257,6 @@ export const containers_Search_gql_BaseSearchDocument = {
                                   },
                                 ],
                               },
-                            },
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'namespaces' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'namespace' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'count' },
-                                  },
-                                ],
-                              },
-                            },
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'namespacesTruncated' },
                             },
                             {
                               kind: 'Field',
