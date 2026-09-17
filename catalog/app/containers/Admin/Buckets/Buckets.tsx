@@ -1377,12 +1377,16 @@ interface ReindexProps {
 
 // APIConnector puts the raw body in `json.message` when it does not parse as JSON, so
 // reading the message off the error would otherwise render an ALB or nginx error page
-// as if the registry had said it.
+// as if the registry had said it. A null return means the response did not come from
+// the registry, so the caller must not speak for the registry either.
 function serverMessage(e: unknown): string | null {
   if (!(e instanceof APIConnector.HTTPError)) return null
   try {
-    const { message } = JSON.parse(e.text)
-    return typeof message === 'string' && message ? message : null
+    const { message, error } = JSON.parse(e.text)
+    for (const v of [message, error]) {
+      if (typeof v === 'string' && v) return v
+    }
+    return null
   } catch {
     return null
   }
@@ -1412,9 +1416,16 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   const handlePrefixChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setPrefix(e.target.value)
+      // A refusal names the prefix it was about, so it stops being true the moment the
+      // prefix changes -- and the registry accepts distinct prefixes concurrently.
+      setError(false)
     },
     [],
   )
+
+  // The registry does not trim, and `if prefix:` there takes the prefix-scoped path for
+  // whitespace: it would skip the index rebuild and match nothing, then return 200.
+  const trimmedPrefix = prefix.trim()
 
   const reindex = React.useCallback(async () => {
     if (submitting) return
@@ -1425,17 +1436,19 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       await req({
         endpoint: `/admin/reindex/${bucket}`,
         method: 'POST',
-        body: { repair: repair || undefined, prefix: prefix || undefined },
+        body: { repair: repair || undefined, prefix: trimmedPrefix || undefined },
       })
       setSubmitSucceeded(true)
     } catch (e) {
       if (APIConnector.HTTPError.is(e, 404, 'Bucket not found')) {
         setError('Bucket not found')
-      } else if (APIConnector.HTTPError.is(e, 409)) {
+      } else if (APIConnector.HTTPError.is(e, 409) && serverMessage(e)) {
         // The registry refuses four distinct ways here (this prefix, a concurrent
         // prefix, full-bucket either way round), and only its own message says which;
         // collapsing them hides whether a different prefix would be accepted now.
-        setError(serverMessage(e) || 'Indexing already in progress')
+        // A 409 with no registry message is a proxy's, so it falls through rather
+        // than asserting a running job that may not exist.
+        setError(serverMessage(e) as string)
       } else {
         // eslint-disable-next-line no-console
         console.log('Error re-indexing bucket:')
@@ -1445,7 +1458,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       }
     }
     setSubmitting(false)
-  }, [submitting, req, bucket, prefix, repair])
+  }, [submitting, req, bucket, trimmedPrefix, repair])
 
   const handleClose = React.useCallback(() => {
     if (submitting) return
@@ -1460,11 +1473,11 @@ function Reindex({ bucket, open, close }: ReindexProps) {
           <M.DialogContentText color="textPrimary">
             We have {repair && <>repaired S3 notifications and </>}
             started re-indexing{' '}
-            {prefix ? (
+            {trimmedPrefix ? (
               <>
                 keys beginning with{' '}
                 <M.Box fontFamily="monospace.fontFamily" component="span">
-                  {prefix}
+                  {trimmedPrefix}
                 </M.Box>
               </>
             ) : (
@@ -1482,7 +1495,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
             label="Key prefix"
             placeholder="Leave blank to re-index the whole bucket"
             helperText={
-              prefix
+              trimmedPrefix
                 ? 'Only keys beginning with this string are re-scanned, and the search indices are kept in place. Matching is literal, not path-aware: "data" also matches "database/".'
                 : 'Every key is re-scanned and the search indices are recreated from scratch.'
             }
@@ -1493,7 +1506,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
             value={prefix}
             InputLabelProps={{ shrink: true }}
           />
-          {!!prefix && (
+          {!!trimmedPrefix && (
             <M.Box color="warning.dark">
               <M.Typography color="inherit" variant="caption">
                 Keys deleted under this prefix may stay in the index: only deletions S3
@@ -1512,7 +1525,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
             <M.Box color="warning.dark" ml={4}>
               <M.Typography color="inherit" variant="caption">
                 Bucket notifications will be overwritten
-                {!!prefix && <>, bucket-wide regardless of the prefix</>}
+                {!!trimmedPrefix && <>, bucket-wide regardless of the prefix</>}
               </M.Typography>
             </M.Box>
           )}
