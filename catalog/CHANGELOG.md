@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin buckets: a re-index can be scoped to a key prefix, so an admin can re-scan part of a bucket without recreating its search indices, and a refused re-index reports the registry's own reason instead of a generic "already in progress" ([#5295](https://github.com/quiltdata/quilt/pull/5295))
 - [Fixed] Expanding the folded sidebar no longer makes the workspace box and nav rows jump before settling: the section label fades in place instead of reopening from zero height ([#5300](https://github.com/quiltdata/quilt/pull/5300))
 - [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5293](https://github.com/quiltdata/quilt/pull/5293))
 - [Added] The sidebar folds to an icon rail and back — the chevron on its edge or `[` — and remembers the choice, giving wide tables and previews the room; typing `[` in a metadata cell still starts an array ([#5289](https://github.com/quiltdata/quilt/pull/5289))
