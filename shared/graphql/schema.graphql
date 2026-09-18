@@ -1405,6 +1405,8 @@ union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
   | OperationError
 
+union PackageDeleteResult = Ok | OperationError
+
 union BrowsingSessionCreateResult =
     BrowsingSession
   | InvalidInput
@@ -1516,6 +1518,7 @@ type Mutation {
     name: String!
     hash: String!
   ): PackageRevisionDeleteResult!
+  packageDelete(bucket: String!, name: String!): PackageDeleteResult!
 
   admin: AdminMutations! @admin
 

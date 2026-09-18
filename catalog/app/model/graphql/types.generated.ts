@@ -928,6 +928,7 @@ export interface Mutation {
    */
   readonly dataProductRequestSubmit: DataProductRequestSubmitResult
   readonly packageConstruct: PackageConstructResult
+  readonly packageDelete: PackageDeleteResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
   readonly policyCreateManaged: PolicyResult
@@ -1000,6 +1001,11 @@ export interface MutationdataProductRequestSubmitArgs {
 export interface MutationpackageConstructArgs {
   params: PackagePushParams
   src: PackageConstructSource
+}
+
+export interface MutationpackageDeleteArgs {
+  bucket: Scalars['String']['input']
+  name: Scalars['String']['input']
 }
 
 export interface MutationpackagePromoteArgs {
@@ -1197,6 +1203,8 @@ export type PackageConstructResult = InvalidInput | OperationError | PackagePush
 export interface PackageConstructSource {
   readonly entries: ReadonlyArray<PackageConstructEntry>
 }
+
+export type PackageDeleteResult = Ok | OperationError
 
 export interface PackageDir {
   readonly __typename: 'PackageDir'
