@@ -25,6 +25,8 @@ import usePrevious from 'utils/usePrevious'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
+import RevisionDeleteDialog from '../PackageTree/RevisionDeleteDialog'
+import DELETE_REVISION from '../PackageTree/gql/DeleteRevision.generated'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
 
@@ -332,6 +334,9 @@ const useRevisionStyles = M.makeStyles((t) => ({
 interface RevisionProps extends RevisionFields {
   bucket: string
   name: string
+  selected?: boolean
+  // absent when the user may not delete revisions
+  onSelect?: (hash: string) => void
 }
 
 function Revision({
@@ -344,6 +349,8 @@ function Revision({
   totalEntries,
   totalBytes,
   accessCounts,
+  selected,
+  onSelect,
 }: RevisionProps) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
@@ -378,6 +385,14 @@ function Revision({
       }
       hash={
         <>
+          {!!onSelect && (
+            <M.Checkbox
+              checked={!!selected}
+              onChange={() => onSelect(hash)}
+              edge="start"
+              inputProps={{ 'aria-label': 'Select revision' }}
+            />
+          )}
           <M.Box className={classes.hash} component="span" order={{ xs: 1, sm: 0 }}>
             <RRDom.Link
               to={urls.bucketPackageCompare(bucket, name, hash)}
@@ -417,6 +432,66 @@ function Revision({
 
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
+const usePackageRevisionsStyles = M.makeStyles((t) => ({
+  danger: {
+    color: t.palette.error.dark,
+    marginRight: t.spacing(1),
+  },
+}))
+
+// Deletes one at a time and stops at the first failure, so a partial failure
+// leaves the survivors selected.
+function useBulkDelete(bucket: string, name: string) {
+  const deleteRevision = GQL.useMutation(DELETE_REVISION)
+  const [selected, setSelected] = React.useState<Set<string>>(new Set())
+  const [state, setState] = React.useState({
+    error: undefined as React.ReactNode | undefined,
+    loading: false,
+    opened: false,
+  })
+
+  const toggle = React.useCallback(
+    (hash: string) =>
+      setSelected((s) => {
+        const next = new Set(s)
+        if (!next.delete(hash)) next.add(hash)
+        return next
+      }),
+    [],
+  )
+
+  const run = React.useCallback(async () => {
+    setState(R.assoc('loading', true))
+    const done = new Set<string>()
+    let error: React.ReactNode | undefined
+    for (const hash of selected) {
+      try {
+        const r = (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
+        if (r.__typename === 'OperationError') {
+          error = `${r.message} (${hash})`
+          break
+        }
+        done.add(hash)
+      } catch (e: any) {
+        error = `Unexpected error: ${e.message ?? e}`
+        break
+      }
+    }
+    setSelected((s) => new Set([...s].filter((h) => !done.has(h))))
+    setState({ error, loading: false, opened: !!error })
+  }, [bucket, name, selected, deleteRevision])
+
+  return {
+    selected,
+    setSelected,
+    toggle,
+    state,
+    confirm: () => setState(R.mergeLeft({ opened: true })),
+    close: () => setState(R.mergeLeft({ opened: false, error: undefined })),
+    run,
+  }
+}
+
 interface PackageRevisionsProps {
   bucket: string
   name: string
@@ -424,6 +499,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
+  const classes = usePackageRevisionsStyles()
   const { prefs } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
@@ -437,10 +513,13 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const scrollRef = React.useRef<HTMLSpanElement>(null)
 
-  // scroll to top on page change
+  const bulk = useBulkDelete(bucket, name)
+
+  // scroll to top and drop selection on page change
   usePrevious(actualPage, (prev) => {
-    if (prev && actualPage !== prev && scrollRef.current) {
-      scrollRef.current.scrollIntoView()
+    if (prev && actualPage !== prev) {
+      scrollRef.current?.scrollIntoView()
+      bulk.setSelected(new Set())
     }
   })
 
@@ -452,12 +531,30 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     perPage: PER_PAGE,
   })
 
+  const pageHashes = React.useMemo(
+    () => (revisionListQuery.data?.package?.revisions.page || []).map((r) => r.hash),
+    [revisionListQuery.data],
+  )
+  const allSelected =
+    pageHashes.length > 0 && pageHashes.every((h) => bulk.selected.has(h))
+  const toggleAll = () => bulk.setSelected(new Set(allSelected ? [] : pageHashes))
+
   const src = React.useMemo(() => ({ bucket, name }), [bucket, name])
   const dst = React.useMemo(() => ({ bucket }), [bucket])
   const updateDialog = PD.useCreateDialog({ dst, src })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
+      <RevisionDeleteDialog
+        error={bulk.state.error}
+        loading={bulk.state.loading}
+        name={name}
+        onClose={bulk.close}
+        onDelete={bulk.run}
+        open={bulk.state.opened}
+        scope={{ type: 'revisions', count: bulk.selected.size }}
+      />
+
       {updateDialog.render({
         resetFiles: 'Undo changes',
         submit: 'Push',
@@ -482,17 +579,44 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
         <M.Box flexGrow={1} />
         {BucketPreferences.Result.match(
           {
-            Ok: ({ ui: { actions } }) =>
-              actions.revisePackage && (
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  style={{ marginTop: -3, marginBottom: -3 }}
-                  onClick={() => updateDialog.open()}
-                >
-                  Revise package
-                </M.Button>
-              ),
+            Ok: ({ ui: { actions } }) => (
+              <>
+                {actions.deleteRevision && (
+                  <>
+                    <M.FormControlLabel
+                      control={
+                        <M.Checkbox
+                          checked={allSelected}
+                          disabled={!pageHashes.length}
+                          onChange={toggleAll}
+                        />
+                      }
+                      label="Select all"
+                      style={{ marginTop: -3, marginBottom: -3 }}
+                    />
+                    <M.Button
+                      variant="outlined"
+                      className={classes.danger}
+                      disabled={!bulk.selected.size}
+                      style={{ marginTop: -3, marginBottom: -3 }}
+                      onClick={bulk.confirm}
+                    >
+                      Delete {bulk.selected.size || ''} selected
+                    </M.Button>
+                  </>
+                )}
+                {actions.revisePackage && (
+                  <M.Button
+                    variant="contained"
+                    color="primary"
+                    style={{ marginTop: -3, marginBottom: -3 }}
+                    onClick={() => updateDialog.open()}
+                  >
+                    Revise package
+                  </M.Button>
+                )}
+              </>
+            ),
             Pending: () => <Buttons.Skeleton />,
             Init: () => null,
           },
@@ -523,13 +647,23 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
                   const items = actualPage < pages ? PER_PAGE : revisionCount % PER_PAGE
                   return renderRevisionSkeletons(items)
                 },
-                data: (dd) =>
-                  (dd.package?.revisions.page || []).map((r) => (
+                data: (dd) => {
+                  const canDelete = BucketPreferences.Result.match(
+                    {
+                      Ok: ({ ui: { actions } }) => actions.deleteRevision,
+                      _: () => false,
+                    },
+                    prefs,
+                  )
+                  return (dd.package?.revisions.page || []).map((r) => (
                     <Revision
                       key={`${r.hash}:${r.modified.valueOf()}`}
                       {...{ bucket, name, ...r }}
+                      selected={bulk.selected.has(r.hash)}
+                      onSelect={canDelete ? bulk.toggle : undefined}
                     />
-                  )),
+                  ))
+                },
               })}
               {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
             </>

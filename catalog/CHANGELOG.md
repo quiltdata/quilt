@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Package revisions can be deleted in bulk: the revision list offers per-revision checkboxes with "Select all" and "Delete selected", and the revision menu gains "Delete package" to remove every revision at once; both are gated by `ui.actions.deleteRevision` and the latter needs a registry with the `packageDelete` mutation ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Fixed] Queries: the query selector announces its label to assistive tech, and no longer claims "Custom" is loaded while its helper text reports the query failed to load ([#5260](https://github.com/quiltdata/quilt/pull/5260))
 - [Changed] The `data-products` demo fixture data no longer ships in the bundles a browser downloads on the volumes landing; it loads only when the preview is on ([#5259](https://github.com/quiltdata/quilt/pull/5259))
 - [Fixed] Quilt+ URI parsing retains the informational `catalog` field, reads a raw `+` in an unencoded path as a `+` rather than a space, and shares its compatibility corpus with quilt3 ([#5255](https://github.com/quiltdata/quilt/pull/5255))
