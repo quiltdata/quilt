@@ -343,6 +343,9 @@ function Delete({ role, close }: DeleteProps) {
         case 'RoleNameUsedBySsoConfig':
           push("Can't delete role used by SSO configuration")
           return
+        case 'RoleOwnsDataProducts':
+          push("Can't delete a role that owns data products")
+          return
         default:
           assertNever(r)
       }
