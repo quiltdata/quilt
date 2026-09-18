@@ -27,7 +27,7 @@ export function useBulkDelete(bucket: string, name: string) {
   )
 
   const run = React.useCallback(async () => {
-    setState(R.assoc('loading', true))
+    setState(R.mergeLeft({ loading: true, error: undefined }))
     const done = new Set<string>()
     let error: React.ReactNode | undefined
     for (const hash of selected) {
@@ -47,13 +47,12 @@ export function useBulkDelete(bucket: string, name: string) {
     setState({ error, loading: false, opened: !!error })
   }, [bucket, name, selected, deleteRevision])
 
-  return {
-    selected,
-    setSelected,
-    toggle,
-    state,
-    confirm: () => setState(R.mergeLeft({ opened: true })),
-    close: () => setState(R.mergeLeft({ opened: false, error: undefined })),
-    run,
-  }
+  const confirm = React.useCallback(() => setState(R.mergeLeft({ opened: true })), [])
+
+  const close = React.useCallback(
+    () => setState(R.mergeLeft({ opened: false, error: undefined })),
+    [],
+  )
+
+  return { selected, setSelected, toggle, state, confirm, close, run }
 }

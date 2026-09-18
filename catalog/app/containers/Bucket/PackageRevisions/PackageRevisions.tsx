@@ -19,6 +19,7 @@ import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
+import * as packageHandleUtils from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
@@ -390,7 +391,9 @@ function Revision({
               checked={!!selected}
               onChange={() => onSelect(hash)}
               edge="start"
-              inputProps={{ 'aria-label': 'Select revision' }}
+              inputProps={{
+                'aria-label': `Select revision ${packageHandleUtils.shortenRevision(hash)}`,
+              }}
             />
           )}
           <M.Box className={classes.hash} component="span" order={{ xs: 1, sm: 0 }}>
@@ -460,6 +463,12 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const scrollRef = React.useRef<HTMLSpanElement>(null)
 
+  // One gate for both the toolbar and the row checkboxes, so they cannot drift.
+  const canDelete = BucketPreferences.Result.match(
+    { Ok: ({ ui: { actions } }) => actions.deleteRevision, _: () => false },
+    prefs,
+  )
+
   const bulk = useBulkDelete(bucket, name)
 
   // scroll to top and drop selection on page change
@@ -528,7 +537,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
           {
             Ok: ({ ui: { actions } }) => (
               <>
-                {actions.deleteRevision && (
+                {canDelete && (
                   <>
                     <M.FormControlLabel
                       control={
@@ -586,6 +595,10 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
           const pages = Math.ceil(revisionCount / PER_PAGE)
 
+          // Deleting a whole page shrinks the count past the page in the URL,
+          // which would otherwise render empty with no pagination to escape it.
+          if (actualPage > pages) return <RRDom.Redirect to={makePageUrl(pages)} />
+
           return (
             <>
               {GQL.fold(revisionListQuery, {
@@ -594,23 +607,15 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
                   const items = actualPage < pages ? PER_PAGE : revisionCount % PER_PAGE
                   return renderRevisionSkeletons(items)
                 },
-                data: (dd) => {
-                  const canDelete = BucketPreferences.Result.match(
-                    {
-                      Ok: ({ ui: { actions } }) => actions.deleteRevision,
-                      _: () => false,
-                    },
-                    prefs,
-                  )
-                  return (dd.package?.revisions.page || []).map((r) => (
+                data: (dd) =>
+                  (dd.package?.revisions.page || []).map((r) => (
                     <Revision
                       key={`${r.hash}:${r.modified.valueOf()}`}
                       {...{ bucket, name, ...r }}
                       selected={bulk.selected.has(r.hash)}
                       onSelect={canDelete ? bulk.toggle : undefined}
                     />
-                  ))
-                },
+                  )),
               })}
               {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
             </>
