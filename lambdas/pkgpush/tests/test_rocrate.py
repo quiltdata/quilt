@@ -1,6 +1,7 @@
 import copy
 import io
 import json
+import pathlib
 
 import botocore.exceptions
 import pytest
@@ -10,6 +11,11 @@ from quilt3.util import PhysicalKey, validate_package_name
 from t4_lambda_pkgpush import rocrate
 
 CRATE_PK = PhysicalKey("bucket", "experiments/260908_ale_ELNID/ro-crate-metadata.json", None)
+
+# The canonical nf-prov WRROC (quilt-example-bucket example/wrroc/ro-crate-metadata.json,
+# version ez_H9dTk41yptiJoVaLRL1SIduvvmu33): repeats two provenance nodes verbatim and
+# lists its license URL as a part, both of which parse() has to survive.
+WRROC_PATH = pathlib.Path(__file__).parent / "data" / "wrroc-canonical.json"
 
 SAMPLE = {
     "@context": "https://w3id.org/ro/crate/1.1/context",
@@ -147,6 +153,44 @@ def test_parse_duplicate_key_fails():
     assert excinfo.value.context == {"key": "organization.lab-group"}
 
 
+@pytest.mark.parametrize("duplicate_id", ["#lab-group", "test_file.txt"])
+def test_parse_duplicate_id_identical_entity_kept(duplicate_id):
+    """nf-prov WRROC emitters repeat a node verbatim; a copy is not a conflict."""
+    doc = copy.deepcopy(SAMPLE)
+    doc["@graph"].append(copy.deepcopy(next(e for e in doc["@graph"] if e["@id"] == duplicate_id)))
+    crate = rocrate.parse(doc, CRATE_PK)
+    assert crate.user_meta == EXPECTED_META
+    assert [e.logical_key for e in crate.entries] == ["test_file.txt", "ro-crate-metadata.json"]
+
+
+def test_parse_duplicate_id_identical_entity_kept_across_id_spellings():
+    """"./x" and "x" are one URI reference; identical content there is still a copy."""
+    doc = copy.deepcopy(SAMPLE)
+    original = next(e for e in doc["@graph"] if e["@id"] == "test_file.txt")
+    doc["@graph"].append({**copy.deepcopy(original), "@id": "./test_file.txt"})
+    crate = rocrate.parse(doc, CRATE_PK)
+    assert crate.user_meta == EXPECTED_META
+    assert [e.logical_key for e in crate.entries] == ["test_file.txt", "ro-crate-metadata.json"]
+
+
+@pytest.mark.parametrize(
+    "conflicting",
+    [
+        {"@id": "#lab-group", "@type": "Organization", "name": "Other"},
+        {"@id": "#lab-group", "@type": "Person", "name": "TechOps"},
+        {"@id": "#lab-group", "@type": "Organization", "name": "TechOps", "url": "https://example.com"},
+    ],
+    ids=["other-name", "other-type", "extra-property"],
+)
+def test_parse_duplicate_id_conflicting_entity_fails(conflicting):
+    doc = copy.deepcopy(SAMPLE)
+    doc["@graph"].append(conflicting)
+    with pytest.raises(rocrate.RoCrateError) as excinfo:
+        rocrate.parse(doc, CRATE_PK)
+    assert excinfo.value.name == "RoCrateDuplicateId"
+    assert excinfo.value.context == {"id": "#lab-group"}
+
+
 def test_parse_file_with_only_structural_props_has_no_meta():
     doc = copy.deepcopy(SAMPLE)
     doc["@graph"] = [
@@ -214,7 +258,7 @@ def test_parse_part_entities_are_not_package_metadata():
         ("a/b//", "RoCrateInvalidPart"),
         ("sub/./", "RoCrateInvalidPart"),
         ("/abs.txt", "RoCrateInvalidPart"),
-        ("https://example.com/x.txt", "RoCrateInvalidPart"),
+        ("ftp://example.com/x.txt", "RoCrateInvalidPart"),
         ("./", "RoCrateInvalidPart"),
         ("s3://other-bucket", "RoCrateInvalidPart"),
         (42, "RoCrateInvalidPart"),
@@ -226,6 +270,27 @@ def test_parse_haspart_rejects(part_id, error):
     with pytest.raises(rocrate.RoCrateError) as excinfo:
         rocrate.parse(doc, CRATE_PK)
     assert excinfo.value.name == error
+
+
+@pytest.mark.parametrize("web_id", ["https://spdx.org/licenses/MIT", "http://example.com/x.txt"])
+def test_parse_haspart_web_uri_is_skipped(web_id):
+    """A web-based data entity is legal RO-Crate but has no object to package."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"].append({"@id": web_id})
+    doc["@graph"].append({"@id": web_id, "@type": "CreativeWork"})
+    crate = rocrate.parse(doc, CRATE_PK)
+    assert crate.user_meta == EXPECTED_META
+    assert [e.logical_key for e in crate.entries] == ["test_file.txt", "ro-crate-metadata.json"]
+
+
+@pytest.mark.parametrize("parts", [[], [{"@id": "https://spdx.org/licenses/MIT"}]], ids=["empty", "all-web"])
+def test_parse_haspart_without_packageable_parts_fails(parts):
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = parts
+    with pytest.raises(rocrate.RoCrateError) as excinfo:
+        rocrate.parse(doc, CRATE_PK)
+    assert excinfo.value.name == "RoCrateNoParts"
+    assert excinfo.value.context == {"id": "./"}
 
 
 @pytest.mark.parametrize(
@@ -336,6 +401,84 @@ def test_package_prefix_crate_name_is_sanitized(mocker, packager_stubs, prefix_n
     _, kwargs = built_package(packager_stubs)
     assert kwargs["name"] == expected
     validate_package_name(kwargs["name"])
+
+
+def test_parse_canonical_nf_prov_wrroc():
+    """The canonical nf-prov WRROC parses; its root hasPart becomes the package."""
+    doc = json.loads(WRROC_PATH.read_text())
+    crate_pk = PhysicalKey("quilt-example-bucket", "example/wrroc/ro-crate-metadata.json", "ez_H9dTk41yptiJoVaLRL1SIduvvmu33")
+
+    assert rocrate.is_rocrate(doc)
+    crate = rocrate.parse(doc, crate_pk)
+
+    assert crate.name_prefix is None
+    assert crate.name_suffix == "Workflow-run-of-famosab-wrroc-meta-test"
+
+    entries = {e.logical_key: e for e in crate.entries}
+    # Every root hasPart except the license web URI, plus the crate itself.
+    assert sorted(entries) == [
+        "README.md",
+        "fastp/test.fastp.html",
+        "fastp/test.fastp.json",
+        "fastp/test.fastp.log",
+        "fastp/test_1.fastp.fastq.gz",
+        "fastp/test_2.fastp.fastq.gz",
+        "main.nf",
+        "megahit/intermediate_contigs/k51.addi.fa.gz",
+        "megahit/intermediate_contigs/k51.contigs.fa.gz",
+        "megahit/intermediate_contigs/k51.final.contigs.fa.gz",
+        "megahit/intermediate_contigs/k51.local.fa.gz",
+        "megahit/intermediate_contigs/k71.addi.fa.gz",
+        "megahit/intermediate_contigs/k71.contigs.fa.gz",
+        "megahit/intermediate_contigs/k71.final.contigs.fa.gz",
+        "megahit/test.contigs.fa.gz",
+        "megahit/test.log",
+        "nextflow.config",
+        "nextflow_schema.json",
+        "read1.fq.gz",
+        "read2.fq.gz",
+        "ro-crate-metadata.json",
+    ]
+    assert not any(e.is_dir for e in crate.entries)
+    # Relative parts resolve against the crate folder; absolute s3:// parts stand alone.
+    assert entries["main.nf"].physical_key == PhysicalKey("quilt-example-bucket", "example/wrroc/main.nf", None)
+    assert entries["read1.fq.gz"].physical_key == PhysicalKey("quilt-example-bucket", "test/wrroc/read1.fq.gz", None)
+    assert entries["ro-crate-metadata.json"].physical_key == crate_pk
+    assert entries["README.md"].user_meta == {
+        "description": "The README file of the workflow.",
+        "encodingFormat": "text/markdown",
+    }
+
+    # The verbatim-duplicated provenance nodes survive as one metadata key each.
+    for k in ("k51", "k71"):
+        key = f"creativework.task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/{k}.final.contigs.fa.gz"
+        assert crate.user_meta[key] == f"intermediate_contigs/{k}.final.contigs.fa.gz"
+    # The license part is neither an entry nor package metadata.
+    assert not any("spdx.org" in k for k in crate.user_meta)
+    assert len(crate.user_meta) == 76
+
+
+def test_package_prefix_canonical_nf_prov_wrroc(mocker, packager_stubs):
+    get_object_stub(mocker, json.loads(WRROC_PATH.read_text()))
+    list_prefix = mocker.patch.object(t4_lambda_pkgpush, "list_prefix_latest_versions")
+
+    t4_lambda_pkgpush.package_prefix(
+        json.dumps(
+            {
+                "source_prefix": "s3://quilt-example-bucket/example/wrroc/ro-crate-metadata.json",
+                "metadata_uri": "s3://quilt-example-bucket/example/wrroc/ro-crate-metadata.json",
+            }
+        ),
+        None,
+    )
+
+    list_prefix.assert_not_called()
+    pkg, kwargs = built_package(packager_stubs)
+    assert kwargs["name"] == "example/Workflow-run-of-famosab-wrroc-meta-test"
+    assert len(list(pkg.walk())) == 21
+    assert pkg["main.nf"].physical_key == PhysicalKey("quilt-example-bucket", "example/wrroc/main.nf", None)
+    assert pkg["read2.fq.gz"].physical_key == PhysicalKey("quilt-example-bucket", "test/wrroc/read2.fq.gz", None)
+    assert pkg["ro-crate-metadata.json"].meta == {}
 
 
 # --- package_prefix() integration -------------------------------------------------

@@ -6,7 +6,9 @@ entity, so two entities of the same type (e.g. lab group and lab subgroup,
 both `Organization`) get distinct keys and the value is what people search on.
 Package entries are exactly the root dataset's `hasPart`, with each `File`
 entity's remaining properties attached as entry metadata; that is how
-`dateCreated` survives S3, which only knows when an object landed.
+`dateCreated` survives S3, which only knows when an object landed. A part
+that is a web URI (nf-prov WRROC lists the license there) is a reference
+with no object behind it, so it is not an entry.
 """
 
 from __future__ import annotations
@@ -115,6 +117,18 @@ def _lookup_part(by_id: dict[str, dict[str, T.Any]], part_id: str) -> dict[str, 
     return entity or {}
 
 
+def _entity_body(entity: dict[str, T.Any]) -> dict[str, T.Any]:
+    """
+    An entity minus its `@id` spelling: "./x" and "x" name one entity, so only
+    the content decides whether a repeated id is a copy or a conflict.
+    """
+    return {k: v for k, v in entity.items() if k != "@id"}
+
+
+def _is_web_uri(part_id: str) -> bool:
+    return part_id.startswith(("http://", "https://"))
+
+
 def _sanitize_name(name: str | None) -> str | None:
     if name is None:
         return None
@@ -181,9 +195,13 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         if not isinstance(entity_id, str):
             continue
         entity_id = _normalize_id(entity_id)
-        # Ids are unique per the spec; letting a later entity win would mean
-        # is_rocrate() and the rest of parse() read different roots.
+        # Ids are unique per the spec, but nf-prov WRROC emitters repeat a
+        # provenance node verbatim; a copy that says the same thing is that
+        # entity, so the first one stands. Two entities that disagree would
+        # mean is_rocrate() and the rest of parse() read different roots.
         if entity_id in by_id:
+            if _entity_body(by_id[entity_id]) == _entity_body(entity):
+                continue
             raise RoCrateError("RoCrateDuplicateId", {"id": entity_id})
         by_id[entity_id] = entity
     root = by_id[ROOT_ID]
@@ -203,13 +221,10 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         if isinstance(p.get("@id") if isinstance(p, dict) else p, str)
     }
 
-    for entity in graph:
-        entity_id = entity.get("@id")
-        if not isinstance(entity_id, str):
-            continue
-        # Normalized like the by_id keys, so a "./"-spelled descriptor is still
-        # recognized and a relative id does not key metadata as "type../id".
-        entity_id = _normalize_id(entity_id)
+    # by_id, not graph: an identical duplicate must not read as a name clash.
+    # Its keys are already normalized, so a "./"-spelled descriptor is still
+    # recognized and a relative id does not key metadata as "type../id".
+    for entity_id, entity in by_id.items():
         if entity_id in (ROOT_ID, CRATE_FILENAME) or entity_id in part_ids:
             continue
         types = _types(entity)
@@ -234,14 +249,15 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
     parts = root.get("hasPart") or []
     if not isinstance(parts, list):
         parts = [parts]
-    # An empty hasPart would package the crate alone. That is legal RO-Crate but
-    # means a data-less package, so it fails rather than publish one silently.
-    if not parts:
-        raise RoCrateError("RoCrateNoParts", {"id": ROOT_ID})
     for part in parts:
         part_id = part.get("@id") if isinstance(part, dict) else part
         if not isinstance(part_id, str):
             raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
+        # A web-based data entity (e.g. a license URL, idiomatic in nf-prov
+        # WRROC) is legal RO-Crate but is a reference, not an object a package
+        # entry can point at, so it is left out rather than failing the crate.
+        if _is_web_uri(part_id):
+            continue
         entity = _lookup_part(by_id, part_id)
         is_dir = "Dataset" in _types(entity) or part_id.endswith("/")
         logical_key, physical_key = _resolve_part(part_id, folder, is_dir)
@@ -251,6 +267,12 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         if meta is not None:
             _reject_non_json(meta, part_id)
         entries[logical_key] = CrateEntry(logical_key, physical_key, meta, is_dir)
+
+    # An empty or all-web hasPart would package the crate alone. That is legal
+    # RO-Crate but means a data-less package, so it fails rather than publish
+    # one silently.
+    if not entries:
+        raise RoCrateError("RoCrateNoParts", {"id": ROOT_ID})
 
     # The crate is the package's provenance, so it always ships with it — at the
     # version that was read, and never displaced by another part resolving to the
