@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin buckets: a bucket's bulk scan scope is editable on the add and edit forms, so an admin can limit which prefixes the scanner enqueues without the SDK ([#XXXX](https://github.com/quiltdata/quilt/pull/XXXX))
 - [Added] Package revisions can be deleted in bulk: select revisions on the revision list and delete them together, or delete a whole package from the revision menu ([#5303](https://github.com/quiltdata/quilt/pull/5303))
 - [Added] Admin users: select rows and apply one action to all of them (enable, disable, grant or revoke admin rights, delete), with a per-user result so one failure does not hide the rest ([#5296](https://github.com/quiltdata/quilt/pull/5296))
 - [Added] Admin buckets: a re-index can be scoped to a key prefix, so an admin can re-scan part of a bucket without recreating its search indices, and a refused re-index reports the registry's own reason instead of a generic "already in progress" ([#5295](https://github.com/quiltdata/quilt/pull/5295))
