@@ -59,6 +59,8 @@ const bucketToIndexingAndNotificationsValues = (bucket: BucketConfig) => ({
   fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
   indexContentBytes: bucket.indexContentBytes,
   scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
+  // `[""]` is the registry's "whole bucket", so it round-trips as an empty field.
+  prefixes: (bucket.prefixes || []).filter((p: string) => p).join('\n'),
   snsNotificationArn:
     bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
       ? DO_NOT_SUBSCRIBE_SYM
@@ -244,6 +246,27 @@ const normalizeExtensions = FP.function.flow(
     exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
 )
 
+// One prefix per line, since a key may legally contain a comma. An empty field sends
+// null, which the registry normalizes to [""] -- whole-bucket access, not "leave the
+// scope alone". Clearing the box therefore widens a narrowed bucket, which is why the
+// field's copy says blank means the whole bucket.
+const normalizePrefixes = FP.function.flow(
+  Types.decode(Types.fromNullable(IO.string, '')),
+  R.split('\n'),
+  R.map(R.trim),
+  R.reject((p: string) => !p),
+  R.uniq,
+  (prefixes) => (prefixes.length ? prefixes : null),
+)
+
+// The registry only trims and appends a trailing slash, so an s3:// URI or a leading
+// slash is stored verbatim and the scan then matches no keys, silently.
+const BAD_PREFIX_RE = /^(s3:\/\/|\/)/
+
+const validatePrefixes = FP.function.flow(normalizePrefixes, (prefixes) =>
+  prefixes?.some(R.test(BAD_PREFIX_RE)) ? 'validPrefixes' : undefined,
+)
+
 const EXT_RE = /\.[0-9a-z_]+/
 
 const validateExtensions = FP.function.flow(normalizeExtensions, (exts) =>
@@ -419,8 +442,7 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('browsable'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
-  // NOTE: prefixes are managed via quilt3.admin SDK for now
-  prefixes: () => null,
+  prefixes: R.pipe(R.prop('prefixes'), normalizePrefixes),
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
@@ -1005,6 +1027,21 @@ function IndexingAndNotificationsForm({
           integer: 'Enter a valid integer',
         }}
         parse={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16) as (s: string) => string)}
+        fullWidth
+        margin="normal"
+      />
+      <RF.Field
+        component={Form.Field}
+        name="prefixes"
+        label="Bulk scan scope"
+        placeholder="Leave blank to scan the whole bucket"
+        validate={validatePrefixes}
+        errors={{
+          validPrefixes: 'Enter plain key prefixes, without s3:// or a leading slash',
+        }}
+        helperText="One key prefix per line; blank means the whole bucket. This governs which bulk scanner jobs are enqueued: objects written outside these prefixes are still indexed and still searchable, and narrowing the scope removes nothing already indexed. A scope that excludes .quilt/ also leaves the bucket without Iceberg registration."
+        multiline
+        rowsMax={6}
         fullWidth
         margin="normal"
       />
