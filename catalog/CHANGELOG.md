@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin users: select rows and apply one action to all of them (enable, disable, grant or revoke admin rights, delete), with a per-user result so one failure does not hide the rest ([#5296](https://github.com/quiltdata/quilt/pull/5296))
 - [Added] Admin buckets: a re-index can be scoped to a key prefix, so an admin can re-scan part of a bucket without recreating its search indices, and a refused re-index reports the registry's own reason instead of a generic "already in progress" ([#5295](https://github.com/quiltdata/quilt/pull/5295))
 - [Fixed] Expanding the folded sidebar no longer makes the workspace box and nav rows jump before settling: the section label fades in place instead of reopening from zero height ([#5300](https://github.com/quiltdata/quilt/pull/5300))
 - [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5293](https://github.com/quiltdata/quilt/pull/5293))

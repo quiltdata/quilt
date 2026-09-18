@@ -747,6 +747,13 @@ interface EditableProps<T> {
 function Editable<T>({ value, onChange, children }: EditableProps<T>) {
   const [busy, setBusy] = React.useState(false)
   const [savedValue, saveValue] = React.useState(value)
+
+  // A bulk action changes the row without going through `change`, so the optimistic
+  // value has to follow the prop or the switch keeps showing the pre-action state.
+  // Skipped while busy: mid-flight, the optimistic value is the truthful one.
+  React.useEffect(() => {
+    if (!busy) saveValue(value)
+  }, [value, busy])
   const change = React.useCallback(
     (newValue: T) => {
       if (savedValue === newValue) return
@@ -950,6 +957,8 @@ const columns: Table.Column<User>[] = [
   },
 ]
 
+const getUserName = (u: User) => u.name
+
 function useSetActive() {
   const { push } = Notifications.use()
   const setActive = GQL.useMutation(USER_SET_ACTIVE_MUTATION)
@@ -988,6 +997,318 @@ function useSetActive() {
   )
 }
 
+type BulkOutcome =
+  | { status: 'ok' }
+  | { status: 'skipped'; reason: string }
+  | { status: 'failed'; reason: string }
+
+interface InputErrorLike {
+  readonly path: string | null
+  readonly message: string
+  readonly name: string
+}
+
+type UserResultLike =
+  | { readonly __typename: 'User' }
+  | {
+      readonly __typename: 'InvalidInput'
+      readonly errors: ReadonlyArray<InputErrorLike>
+    }
+  | {
+      readonly __typename: 'OperationError'
+      readonly name: string
+      readonly message: string
+    }
+
+type DeleteResultLike =
+  | { readonly __typename: 'Ok' }
+  | {
+      readonly __typename: 'InvalidInput'
+      readonly errors: ReadonlyArray<InputErrorLike>
+    }
+  | {
+      readonly __typename: 'OperationError'
+      readonly name: string
+      readonly message: string
+    }
+
+const describeInputError = (e: InputErrorLike) => `${e.name} at '${e.path}': ${e.message}`
+
+// Same union arms the per-user handlers narrow, but reported instead of thrown: a
+// bulk run must survive one user's failure to report on the rest.
+function outcomeFromUserResult(r: UserResultLike | null | undefined): BulkOutcome {
+  switch (r?.__typename) {
+    case 'User':
+      return { status: 'ok' }
+    case undefined:
+      return { status: 'failed', reason: 'User not found' }
+    case 'OperationError':
+      return { status: 'failed', reason: `${r.name}: ${r.message}` }
+    case 'InvalidInput':
+      return { status: 'failed', reason: describeInputError(r.errors[0]) }
+    default:
+      return assertNever(r)
+  }
+}
+
+function outcomeFromDeleteResult(r: DeleteResultLike | null | undefined): BulkOutcome {
+  switch (r?.__typename) {
+    case 'Ok':
+      return { status: 'ok' }
+    case undefined:
+      return { status: 'failed', reason: 'User not found' }
+    case 'OperationError':
+      return { status: 'failed', reason: `${r.name}: ${r.message}` }
+    case 'InvalidInput':
+      return { status: 'failed', reason: describeInputError(r.errors[0]) }
+    default:
+      return assertNever(r)
+  }
+}
+
+interface BulkOp {
+  title: string
+  icon: string
+  /** Non-null reason means the user is left out of the run. */
+  blockedReason: (u: User) => string | null
+  prompt: (count: number) => string
+  confirmLabel: string
+  run: (u: User) => Promise<BulkOutcome>
+}
+
+function useBulkOps(self: string): BulkOp[] {
+  const setActive = GQL.useMutation(USER_SET_ACTIVE_MUTATION)
+  const setAdmin = GQL.useMutation(USER_SET_ADMIN_MUTATION)
+  const del = GQL.useMutation(USER_DELETE_MUTATION)
+
+  return React.useMemo(() => {
+    const guard =
+      (extra: (u: User) => string | null) =>
+      (u: User): string | null =>
+        u.name === self ? 'This is you' : extra(u)
+
+    const attempt = async (
+      run: () => Promise<BulkOutcome>,
+      context: Record<string, unknown>,
+    ): Promise<BulkOutcome> => {
+      try {
+        return await run()
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Bulk user operation failed', context)
+        // eslint-disable-next-line no-console
+        console.dir(e)
+        Sentry.captureException(e)
+        return { status: 'failed', reason: `${e}` }
+      }
+    }
+
+    const activeOp = (active: boolean): BulkOp => ({
+      title: active ? 'Enable' : 'Disable',
+      icon: active ? 'check_circle' : 'block',
+      blockedReason: guard((u) => (u.isService ? 'Service user' : null)),
+      prompt: (n) => `${active ? 'Enable' : 'Disable'} ${n} user${n === 1 ? '' : 's'}?`,
+      confirmLabel: active ? 'Enable' : 'Disable',
+      run: (u) =>
+        attempt(
+          async () => {
+            const data = await setActive({ name: u.name, active })
+            return outcomeFromUserResult(data.admin.user.mutate?.setActive)
+          },
+          { name: u.name, active },
+        ),
+    })
+
+    const adminOp = (admin: boolean): BulkOp => ({
+      title: admin ? 'Grant admin rights' : 'Revoke admin rights',
+      icon: admin ? 'verified_user' : 'remove_circle_outline',
+      blockedReason: guard((u) =>
+        u.isAdminAssignmentDisabled ? 'Admin rights not assignable' : null,
+      ),
+      prompt: (n) =>
+        `${admin ? 'Grant admin rights to' : 'Revoke admin rights from'} ${n} user${
+          n === 1 ? '' : 's'
+        }?`,
+      confirmLabel: admin ? 'Grant' : 'Revoke',
+      run: (u) =>
+        attempt(
+          async () => {
+            const data = await setAdmin({ name: u.name, admin })
+            return outcomeFromUserResult(data.admin.user.mutate?.setAdmin)
+          },
+          { name: u.name, admin },
+        ),
+    })
+
+    return [
+      activeOp(true),
+      activeOp(false),
+      adminOp(true),
+      adminOp(false),
+      {
+        title: 'Delete',
+        icon: 'delete',
+        blockedReason: guard((u) => (u.isService ? 'Service user' : null)),
+        prompt: (n) =>
+          `Delete ${n} user${n === 1 ? '' : 's'}? This operation is irreversible.`,
+        confirmLabel: 'Delete',
+        run: (u) =>
+          attempt(
+            async () => {
+              const data = await del({ name: u.name })
+              return outcomeFromDeleteResult(data.admin.user.mutate?.delete)
+            },
+            { name: u.name },
+          ),
+      },
+    ]
+  }, [self, setActive, setAdmin, del])
+}
+
+const useOutcomeStyles = M.makeStyles((t) => ({
+  list: {
+    maxHeight: 320,
+    overflowY: 'auto',
+  },
+  ok: {
+    color: t.palette.success.main,
+  },
+  failed: {
+    color: t.palette.error.main,
+  },
+  skipped: {
+    color: t.palette.text.secondary,
+  },
+}))
+
+const OUTCOME_ICON: Record<BulkOutcome['status'], string> = {
+  ok: 'check',
+  failed: 'error_outline',
+  skipped: 'remove',
+}
+
+interface OutcomeListProps {
+  entries: [User, BulkOutcome][]
+}
+
+function OutcomeList({ entries }: OutcomeListProps) {
+  const classes = useOutcomeStyles()
+  return (
+    <M.List dense disablePadding className={classes.list}>
+      {entries.map(([u, outcome]) => (
+        <M.ListItem key={u.name} disableGutters>
+          <M.ListItemIcon className={classes[outcome.status]}>
+            <M.Icon fontSize="small">{OUTCOME_ICON[outcome.status]}</M.Icon>
+          </M.ListItemIcon>
+          <M.ListItemText
+            primary={u.name}
+            secondary={outcome.status === 'ok' ? 'Done' : outcome.reason}
+          />
+        </M.ListItem>
+      ))}
+    </M.List>
+  )
+}
+
+interface BulkActionProps {
+  close: Dialogs.Close<boolean>
+  op: BulkOp
+  users: User[]
+}
+
+function BulkAction({ close, op, users }: BulkActionProps) {
+  const [results, setResults] = React.useState<[User, BulkOutcome][] | null>(null)
+  const [running, setRunning] = React.useState(false)
+
+  const blocked = React.useMemo(
+    () =>
+      users
+        .map((u) => [u, op.blockedReason(u)] as const)
+        .filter((e): e is readonly [User, string] => e[1] !== null),
+    [users, op],
+  )
+  const eligible = React.useMemo(
+    () => users.filter((u) => op.blockedReason(u) === null),
+    [users, op],
+  )
+
+  const run = React.useCallback(async () => {
+    setRunning(true)
+    const collected: [User, BulkOutcome][] = blocked.map(([u, reason]) => [
+      u,
+      { status: 'skipped', reason },
+    ])
+    // Sequential, and each outcome kept: these are N independent mutations, not one
+    // transaction, so a failure part-way must still leave a verdict for every user.
+    for (const u of eligible) {
+      collected.push([u, await op.run(u)])
+    }
+    setResults(collected)
+    setRunning(false)
+  }, [blocked, eligible, op])
+
+  if (results) {
+    const failed = results.filter((e) => e[1].status === 'failed').length
+    const done = results.filter((e) => e[1].status === 'ok').length
+    return (
+      <>
+        <M.DialogTitle>{op.title}: results</M.DialogTitle>
+        <M.DialogContent>
+          <M.Typography variant="body2" color="textSecondary" gutterBottom>
+            {done} succeeded, {failed} failed, {results.length - done - failed} skipped.
+          </M.Typography>
+          <OutcomeList entries={results} />
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={() => close(true)} color="primary" variant="contained">
+            Close
+          </M.Button>
+        </M.DialogActions>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <M.DialogTitle>{op.title}</M.DialogTitle>
+      <M.DialogContent>
+        <M.Typography variant="body2" gutterBottom>
+          {eligible.length > 0
+            ? op.prompt(eligible.length)
+            : `No selected user can be affected by "${op.title}".`}
+        </M.Typography>
+        {eligible.length > 0 && (
+          <M.Typography variant="body2" color="textSecondary">
+            {eligible.map((u) => u.name).join(', ')}
+          </M.Typography>
+        )}
+        {blocked.length > 0 && (
+          <>
+            <M.Box mt={2} />
+            <M.Typography variant="body2" color="textSecondary">
+              Skipped: {blocked.map(([u, reason]) => `${u.name} (${reason})`).join(', ')}
+            </M.Typography>
+          </>
+        )}
+      </M.DialogContent>
+      <M.DialogActions>
+        {running && <ActionProgress>Working...</ActionProgress>}
+        <M.Button onClick={() => close(false)} color="primary" disabled={running}>
+          Cancel
+        </M.Button>
+        <M.Button
+          onClick={run}
+          color="primary"
+          variant="contained"
+          disabled={running || eligible.length === 0}
+        >
+          {op.confirmLabel}
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   table: {
     '& th, & td': {
@@ -1023,6 +1344,11 @@ export default function Users() {
     getItemId: (u: User) => u.name,
   })
 
+  const selection = Table.useSelection({
+    rows: pagination.paginated,
+    getId: getUserName,
+  })
+
   const toolbarActions = [
     {
       title: 'Invite',
@@ -1042,6 +1368,34 @@ export default function Users() {
   ]
 
   const self: string = redux.useSelector(Auth.selectors.username)
+
+  const bulkOps = useBulkOps(self)
+
+  const { selectedRows, clear: clearSelection } = selection
+  const selectedActions: Table.Action[] = React.useMemo(
+    () =>
+      bulkOps.map((op) => ({
+        title: op.title,
+        icon: <M.Icon>{op.icon}</M.Icon>,
+        fn: () =>
+          openDialog(
+            ({ close }) => <BulkAction {...{ close, op, users: selectedRows }} />,
+            // Not dismissible: the run keeps going after the dialog unmounts, so a
+            // stray Escape would leave an irreversible action with no record of which
+            // users it reached.
+            {
+              ...DIALOG_PROPS,
+              maxWidth: 'sm',
+              disableBackdropClick: true,
+              disableEscapeKeyDown: true,
+            },
+            // Only the results path has acted on the selection; cancelling keeps it.
+          ).then((ran) => {
+            if (ran) clearSelection()
+          }),
+      })),
+    [bulkOps, openDialog, selectedRows, clearSelection],
+  )
 
   const inlineActions = (user: User) => [
     user.name === self || user.isService
@@ -1067,15 +1421,32 @@ export default function Users() {
 
   return (
     <>
-      <Table.Toolbar heading="Users" actions={toolbarActions}>
+      <Table.Toolbar
+        heading="Users"
+        actions={toolbarActions}
+        selected={selection.count}
+        selectedActions={selectedActions}
+      >
         <Table.Filter {...filtering} />
       </Table.Toolbar>
       <Table.Wrapper>
         <M.Table size="small" className={classes.table}>
-          <Table.Head columns={columns} ordering={ordering} withInlineActions />
+          <Table.Head
+            columns={columns}
+            ordering={ordering}
+            selection={selection}
+            withInlineActions
+          />
           <M.TableBody>
             {pagination.paginated.map((i: User) => (
-              <M.TableRow hover key={i.name}>
+              <M.TableRow hover key={i.name} selected={selection.isSelected(i.name)}>
+                <M.TableCell padding="checkbox">
+                  <M.Checkbox
+                    checked={selection.isSelected(i.name)}
+                    onChange={() => selection.toggle(i.name)}
+                    inputProps={{ 'aria-label': `Select user ${i.name}` }}
+                  />
+                </M.TableCell>
                 {columns.map((col) => (
                   <M.TableCell key={col.id} {...col.props}>
                     {(col.getDisplay || R.identity)(

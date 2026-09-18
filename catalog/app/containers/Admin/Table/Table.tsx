@@ -23,6 +23,69 @@ export function useFiltering<Row>({ rows, filterBy }: UseFilteringProps<Row>) {
   return { value, onChange, filtered }
 }
 
+const EMPTY_SELECTION: ReadonlySet<string> = new Set<string>()
+
+interface UseSelectionProps<Row> {
+  rows: readonly Row[]
+  getId: (r: Row) => string
+}
+
+export function useSelection<Row>({ rows, getId }: UseSelectionProps<Row>) {
+  const [stored, setStored] = React.useState(EMPTY_SELECTION)
+
+  // Deep-equal so a mutation that rewrites row objects without changing which rows
+  // are on screen keeps the selection.
+  const ids = useMemoEq(rows.map(getId), R.identity)
+
+  // Scoped to the rows on screen so a bulk action can never reach a row the admin
+  // stopped seeing after paginating or filtering. Intersecting covers the render
+  // before the reset effect runs.
+  const selected = React.useMemo(
+    () => new Set(ids.filter((id) => stored.has(id))),
+    [ids, stored],
+  )
+
+  React.useEffect(() => {
+    setStored(EMPTY_SELECTION)
+  }, [ids])
+
+  const toggle = React.useCallback((id: string) => {
+    setStored((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(id)) next.add(id)
+      return next
+    })
+  }, [])
+
+  const allSelected = ids.length > 0 && selected.size === ids.length
+
+  const toggleAll = React.useCallback(() => {
+    setStored(allSelected ? EMPTY_SELECTION : new Set(ids))
+  }, [allSelected, ids])
+
+  const clear = React.useCallback(() => setStored(EMPTY_SELECTION), [])
+
+  const isSelected = React.useCallback((id: string) => selected.has(id), [selected])
+
+  const selectedRows = React.useMemo(
+    () => rows.filter((r) => selected.has(getId(r))),
+    [rows, selected, getId],
+  )
+
+  return {
+    allSelected,
+    clear,
+    count: selected.size,
+    isSelected,
+    selectedRows,
+    someSelected: selected.size > 0 && !allSelected,
+    toggle,
+    toggleAll,
+  }
+}
+
+export type Selection<Row> = ReturnType<typeof useSelection<Row>>
+
 type Direction = 'asc' | 'desc'
 
 const changeDirection = (d: Direction) => (d === 'asc' ? 'desc' : 'asc')
