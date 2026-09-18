@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
+import * as Format from 'utils/format'
 import * as packageHandleUtils from 'utils/packageHandle'
 
 const useStyles = M.makeStyles((t) => ({
@@ -56,7 +57,9 @@ function Title({ name, scope }: { name: string; scope: DeleteScope }) {
     case 'revisions':
       return (
         <>
-          Really delete {scope.count} revisions of <Code>{name}</Code>?
+          Really delete {scope.count}{' '}
+          <Format.Plural value={scope.count} one="revision" other="revisions" /> of{' '}
+          <Code>{name}</Code>?
         </>
       )
     case 'revision':
@@ -81,6 +84,10 @@ const RECORDS = {
   revisions: ' of these revisions',
   revision: ' of this revision',
 }
+
+// A one-revision selection reads as a single revision, not "1 revisions".
+const textKey = (scope: DeleteScope) =>
+  scope.type === 'revisions' && scope.count === 1 ? 'revision' : scope.type
 
 export default function PackageDeleteDialog({
   error,
@@ -109,9 +116,9 @@ export default function PackageDeleteDialog({
       </M.DialogTitle>
       <M.DialogContent id="alert-dialog-description">
         <M.DialogContentText>
-          {LOST[scope.type]} Package deletion does not delete objects in the package, but
-          it does delete all metadata and all records of the contents
-          {RECORDS[scope.type]}. Are you sure you want to delete it?
+          {LOST[textKey(scope)]} Package deletion does not delete objects in the package,
+          but it does delete all metadata and all records of the contents
+          {RECORDS[textKey(scope)]}. Are you sure you want to delete it?
         </M.DialogContentText>
 
         {!!error && <Lab.Alert severity="error">{error}</Lab.Alert>}
