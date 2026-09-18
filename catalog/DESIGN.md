@@ -364,15 +364,16 @@ Every control uses the same vocabulary on every screen.
   midnight-deep, carrying the border's hairline — and it holds that one
   position in both states, since a control that relocates when pressed cannot
   be aimed twice. Folding changes nothing but width: the same rows at the same
-  44px rhythm and the same y (an expanded-only row above the nav keeps its band
-  when its content closes), icons held on one axis, labels faded rather than
-  removed, the workspace and identity boxes shedding their ground to read as
-  bare icon rows, the wordmark crossfading to the square Q mark on the icon
-  axis, a right-side tooltip standing in for each label. The
+  44px rhythm and the same y (the one expanded-only row above the nav fades
+  in place, holding its height, rather than closing up), icons held on one
+  axis, labels faded rather than removed, the workspace and identity boxes
+  shedding their ground to read as bare icon rows, the wordmark crossfading
+  to the square Q mark on the icon axis, a right-side tooltip standing in for
+  each label. The
   rail's width is the one animated property that reflows the page (the
   content column must follow it); what moves inside the rail — labels fading,
-  expanded-only rows closing up, boxes losing their ground — rides on that
-  same 200ms clock, and reduced-motion gets the instant swap.
+  the foot's version readout closing up, boxes losing their ground — rides on
+  that same 200ms clock, and reduced-motion gets the instant swap.
 - **The search band:** the top bar is chrome, not a card — Surface white,
   full-bleed to the rail's edge, square, flat (no resting shadow), delineated
   by a Divider hairline, height-registered at 64px with the rail's logo block

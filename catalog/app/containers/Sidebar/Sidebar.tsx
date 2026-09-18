@@ -272,13 +272,29 @@ const useStyles = M.makeStyles((t) => {
       lineHeight: '16px',
       padding: t.spacing(1, 2.5, 0.5),
       textTransform: 'uppercase',
+      [MOTION]: {
+        transition: t.transitions.create('opacity', {
+          duration: t.transitions.duration.shorter,
+          easing: t.transitions.easing.easeOut,
+          delay: 60,
+        }),
+      },
     },
     // Folding changes width, not the rows' y. The section label is the one
-    // expanded-only row *above* the nav, so its band has to survive its
-    // content closing -- otherwise every row below hops up by its height.
-    // (The version readout folds at the foot, where there is nothing to shift.)
-    labelBandCollapsed: {
-      minHeight: 28,
+    // expanded-only row *above* the nav, so it fades in place (on the row
+    // labels' timing) instead of closing up: its box holds the same height in
+    // both states, which is what keeps every row below it registered.
+    // Animating the height instead would have to restore it from zero on
+    // expand, hopping the rows a frame before sliding them back. (The version
+    // readout folds at the foot, where there is nothing beneath it to shift.)
+    sectionLabelHidden: {
+      opacity: 0,
+      [MOTION]: {
+        transition: t.transitions.create('opacity', {
+          duration: 100,
+          easing: t.transitions.easing.easeIn,
+        }),
+      },
     },
     wsRow: {
       minHeight: 44,
@@ -453,27 +469,12 @@ function NavShell({
 }
 
 // A block that closes to zero height when the rail folds (see `fold` styles).
-// `keepBand` holds the closed block's height for a fold that has rows beneath
-// it, which must not shift.
-function Fold({
-  closed,
-  keepBand = false,
-  children,
-}: {
-  closed: boolean
-  keepBand?: boolean
-  children: React.ReactNode
-}) {
+// Only for a block with nothing beneath it: closing changes the height of the
+// flow, so anything below would move with it.
+function Fold({ closed, children }: { closed: boolean; children: React.ReactNode }) {
   const classes = useStyles()
   return (
-    <div
-      className={cx(
-        classes.fold,
-        closed && classes.foldClosed,
-        closed && keepBand && classes.labelBandCollapsed,
-      )}
-      aria-hidden={closed}
-    >
+    <div className={cx(classes.fold, closed && classes.foldClosed)} aria-hidden={closed}>
       <div className={classes.foldInner}>{children}</div>
     </div>
   )
@@ -895,9 +896,15 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
 
           {(user || cfg.mode !== 'LOCAL') && (
             <>
-              <Fold closed={collapsed} keepBand>
-                <div className={classes.sectionLabel}>Workspace</div>
-              </Fold>
+              <div
+                className={cx(
+                  classes.sectionLabel,
+                  collapsed && classes.sectionLabelHidden,
+                )}
+                aria-hidden={collapsed}
+              >
+                Workspace
+              </div>
               <div
                 className={cx(classes.workspaceBox, collapsed && classes.boxCollapsed)}
               >
