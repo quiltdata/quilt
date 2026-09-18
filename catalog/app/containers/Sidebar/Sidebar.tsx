@@ -272,19 +272,27 @@ const useStyles = M.makeStyles((t) => {
       lineHeight: '16px',
       padding: t.spacing(1, 2.5, 0.5),
       textTransform: 'uppercase',
+      [MOTION]: {
+        transition: t.transitions.create('opacity', {
+          duration: t.transitions.duration.shorter,
+          easing: t.transitions.easing.easeOut,
+          delay: 60,
+        }),
+      },
     },
     // Folding changes width, not the rows' y. The section label is the one
-    // expanded-only row *above* the nav, so it fades in place instead of
-    // closing up: its box holds the same height in both states, which is what
-    // keeps every row below it registered. Animating the height instead would
-    // have to restore it from zero on expand, hopping the rows a frame before
-    // sliding them back. (The version readout folds at the foot, where there
-    // is nothing beneath it to shift.)
+    // expanded-only row *above* the nav, so it fades in place (on the row
+    // labels' timing) instead of closing up: its box holds the same height in
+    // both states, which is what keeps every row below it registered.
+    // Animating the height instead would have to restore it from zero on
+    // expand, hopping the rows a frame before sliding them back. (The version
+    // readout folds at the foot, where there is nothing beneath it to shift.)
     sectionLabelHidden: {
       opacity: 0,
       [MOTION]: {
         transition: t.transitions.create('opacity', {
-          duration: t.transitions.duration.shorter,
+          duration: 100,
+          easing: t.transitions.easing.easeIn,
         }),
       },
     },
