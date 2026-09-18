@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Expanding the folded sidebar no longer makes the workspace box and nav rows jump before settling: the section label fades in place instead of reopening from zero height ([#5300](https://github.com/quiltdata/quilt/pull/5300))
 - [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5293](https://github.com/quiltdata/quilt/pull/5293))
 - [Added] The sidebar folds to an icon rail and back — the chevron on its edge or `[` — and remembers the choice, giving wide tables and previews the room; typing `[` in a metadata cell still starts an array ([#5289](https://github.com/quiltdata/quilt/pull/5289))
 - [Added] Markdown files carrying a mermaid fence offer a Mermaid/Markdown view switch: Mermaid draws the diagrams (the default), Markdown leaves each fence as its source, so a syntax error can be read where it is. The mode is only offered when the file actually has a fence ([#5269](https://github.com/quiltdata/quilt/pull/5269))
