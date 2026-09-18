@@ -747,6 +747,13 @@ interface EditableProps<T> {
 function Editable<T>({ value, onChange, children }: EditableProps<T>) {
   const [busy, setBusy] = React.useState(false)
   const [savedValue, saveValue] = React.useState(value)
+
+  // A bulk action changes the row without going through `change`, so the optimistic
+  // value has to follow the prop or the switch keeps showing the pre-action state.
+  // Skipped while busy: mid-flight, the optimistic value is the truthful one.
+  React.useEffect(() => {
+    if (!busy) saveValue(value)
+  }, [value, busy])
   const change = React.useCallback(
     (newValue: T) => {
       if (savedValue === newValue) return
@@ -1373,8 +1380,19 @@ export default function Users() {
         fn: () =>
           openDialog(
             ({ close }) => <BulkAction {...{ close, op, users: selectedRows }} />,
-            { ...DIALOG_PROPS, maxWidth: 'sm' },
-          ).then(clearSelection),
+            // Not dismissible: the run keeps going after the dialog unmounts, so a
+            // stray Escape would leave an irreversible action with no record of which
+            // users it reached.
+            {
+              ...DIALOG_PROPS,
+              maxWidth: 'sm',
+              disableBackdropClick: true,
+              disableEscapeKeyDown: true,
+            },
+            // Only the results path has acted on the selection; cancelling keeps it.
+          ).then((ran) => {
+            if (ran) clearSelection()
+          }),
       })),
     [bulkOps, openDialog, selectedRows, clearSelection],
   )
