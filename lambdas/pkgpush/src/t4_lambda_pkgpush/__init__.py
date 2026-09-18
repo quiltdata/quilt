@@ -54,6 +54,8 @@ from quilt_shared.pkgpush import (
     make_scratch_key,
 )
 
+from . import rocrate
+
 if T.TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
     from mypy_boto3_s3.type_defs import HeadObjectOutputTypeDef
@@ -1018,8 +1020,8 @@ def package_prefix_sqs(event, context):
             package_prefix(record["body"], context)
 
 
-def list_prefix_latest_versions(bucket: str, prefix: str):
-    paginator = s3.get_paginator("list_object_versions")
+def list_prefix_latest_versions(bucket: str, prefix: str, s3_client=None):
+    paginator = (s3_client or s3).get_paginator("list_object_versions")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Versions", []):
             if not obj.get("IsLatest"):
@@ -1041,34 +1043,106 @@ def package_prefix(event, context):
 
     prefix_pk = params.get_source_prefix_pk()
 
-    pkg_name = infer_pkg_name_from_prefix(prefix_pk.path) if params.package_name is None else params.package_name
-
     dst_bucket = params.registry or prefix_pk.bucket
     registry_url = f"s3://{dst_bucket}"
     package_registry = get_package_registry(registry_url)
 
     metadata = params.metadata
-    if metadata_uri_pk := params.get_metadata_uri_pk():
-        metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+    metadata_uri_pk = params.get_metadata_uri_pk()
+    if metadata_uri_pk is not None:
+        metadata_resp = s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)
+        metadata = json.load(metadata_resp["Body"])
         if not isinstance(metadata, dict):
             raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
-
-    prefix_len = len(prefix_pk.path)
+        # A crate ships as its own provenance, so the version parsed here has to be the
+        # version packaged; otherwise the later HEAD can pin a newer one.
+        if metadata_uri_pk.version_id is None and metadata_resp.get("VersionId"):
+            metadata_uri_pk = PhysicalKey(metadata_uri_pk.bucket, metadata_uri_pk.path, metadata_resp["VersionId"])
 
     pkg_entries: dict[str, quilt3.packages.PackageEntry] = {}
+    inferred_name = infer_pkg_name_from_prefix(prefix_pk.path)
 
-    for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):
-        key = obj.get("Key")
-        assert key is not None
-        size = obj.get("Size")
-        assert size is not None
-        logical_key = key[prefix_len:]
-        pkg_entries[logical_key] = quilt3.packages.PackageEntry(
-            PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
-            size,
-            None,
-            None,
-        )
+    if metadata_uri_pk is not None and rocrate.is_rocrate(metadata):
+        try:
+            crate = rocrate.parse(metadata, metadata_uri_pk)
+        except rocrate.RoCrateError as e:
+            raise PkgpushException(e.name, e.context) from e
+        metadata = crate.user_meta
+        inferred_prefix, inferred_suffix = inferred_name.split("/")
+        inferred_name = f"{crate.name_prefix or inferred_prefix}/{crate.name_suffix or inferred_suffix}"
+        # One client for every prefix: each one carries a large connection pool.
+        user_s3_client = get_user_s3_client() if any(e.is_dir for e in crate.entries) else None
+        # Directories first, so a file the crate also lists explicitly keeps its metadata.
+        for entry in sorted(crate.entries, key=lambda e: not e.is_dir):
+            if entry.is_dir:
+                # A crate can name any bucket, so this LIST is reachable with credentials
+                # that cannot read it; surface that the way an entry's HEAD does.
+                try:
+                    swept = list(
+                        list_prefix_latest_versions(entry.physical_key.bucket, entry.physical_key.path, user_s3_client)
+                    )
+                except botocore.exceptions.ClientError as e:
+                    raise PkgpushException(
+                        "RoCrateFailedToListPrefix",
+                        {
+                            "logical_key": entry.logical_key,
+                            "physical_key": str(entry.physical_key),
+                            "error": str(e),
+                        },
+                    ) from e
+                for obj in swept:
+                    key = obj["Key"]
+                    logical_key = entry.logical_key + key[len(entry.physical_key.path) :]
+                    physical_key = PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId"))
+                    # Only directories have been expanded so far, so an existing key means two
+                    # prefixes overlap. Naming a different object, that would otherwise resolve
+                    # by graph order; the version is excluded because a nested pair of prefixes
+                    # legitimately sweeps one object twice and it may be rewritten in between.
+                    collision = pkg_entries.get(logical_key)
+                    if collision is not None and (collision.physical_key.bucket, collision.physical_key.path) != (
+                        physical_key.bucket,
+                        physical_key.path,
+                    ):
+                        raise PkgpushException("RoCrateDuplicateEntry", {"logical_key": logical_key})
+                    pkg_entries[logical_key] = quilt3.packages.PackageEntry(physical_key, obj["Size"], None, None)
+                continue
+            # An explicit File keeps its crate metadata. When a prefix already swept this same
+            # object, its pinned version and size are kept so the snapshot matches its
+            # siblings'; otherwise complete_entries_metadata() fills them in. A prefix holding
+            # a *different* object under this key would substitute it silently.
+            expanded = pkg_entries.get(entry.logical_key)
+            if expanded is not None and (expanded.physical_key.bucket, expanded.physical_key.path) != (
+                entry.physical_key.bucket,
+                entry.physical_key.path,
+            ):
+                raise PkgpushException("RoCrateDuplicateEntry", {"logical_key": entry.logical_key})
+            keep_swept = expanded is not None and entry.physical_key.version_id is None
+            pkg_entries[entry.logical_key] = quilt3.packages.PackageEntry(
+                expanded.physical_key if keep_swept else entry.physical_key,
+                expanded.size if keep_swept else None,
+                None,
+                {"user_meta": entry.user_meta} if entry.user_meta else None,
+            )
+        # hasPart was non-empty, but directory parts over empty prefixes expand to
+        # nothing, which would publish a package holding only the crate.
+        if set(pkg_entries) == {rocrate.CRATE_FILENAME}:
+            raise PkgpushException("RoCrateNoParts", {"details": "Crate parts expanded to no objects"})
+    else:
+        prefix_len = len(prefix_pk.path)
+        for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):
+            key = obj.get("Key")
+            assert key is not None
+            size = obj.get("Size")
+            assert size is not None
+            logical_key = key[prefix_len:]
+            pkg_entries[logical_key] = quilt3.packages.PackageEntry(
+                PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
+                size,
+                None,
+                None,
+            )
+
+    pkg_name = inferred_name if params.package_name is None else params.package_name
 
     # Fetch missing metadata and precomputed checksums concurrently
     complete_entries_metadata(pkg_entries, checksum_algorithms)
@@ -1076,7 +1150,12 @@ def package_prefix(event, context):
     pkg = quilt3.Package()
 
     for logical_key, pkg_entry in pkg_entries.items():
-        pkg.set(logical_key, pkg_entry)
+        # A crate naming both a file "x" and a directory "x/" is legal in S3 and in
+        # RO-Crate, but one logical key cannot be both; quilt3 raises here.
+        try:
+            pkg.set(logical_key, pkg_entry)
+        except quilt3.util.QuiltException as e:
+            raise PkgpushException("InvalidLogicalKey", {"logical_key": logical_key, "error": str(e)}) from e
 
     pkg.set_meta(metadata)
     pkg._validate_with_workflow(
