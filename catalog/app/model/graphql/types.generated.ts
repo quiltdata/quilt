@@ -1223,6 +1223,7 @@ export type RoleDeleteResult =
   | RoleDoesNotExist
   | RoleNameReserved
   | RoleNameUsedBySsoConfig
+  | RoleOwnsDataProducts
 
 export interface RoleDeleteSuccess {
   readonly __typename: 'RoleDeleteSuccess'
@@ -1266,6 +1267,11 @@ export interface RoleNameReserved {
 
 export interface RoleNameUsedBySsoConfig {
   readonly __typename: 'RoleNameUsedBySsoConfig'
+  readonly _: Maybe<Scalars['Boolean']['output']>
+}
+
+export interface RoleOwnsDataProducts {
+  readonly __typename: 'RoleOwnsDataProducts'
   readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
