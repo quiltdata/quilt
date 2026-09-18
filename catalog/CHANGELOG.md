@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Package revisions can be deleted in bulk: the revision list offers per-revision checkboxes with "Select all" and "Delete selected", and the revision menu gains "Delete package" to remove every revision at once; both are gated by `ui.actions.deleteRevision` and the latter needs a registry with the `packageDelete` mutation ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Fixed] Expanding the folded sidebar no longer makes the workspace box and nav rows jump before settling: the section label fades in place instead of reopening from zero height ([#5300](https://github.com/quiltdata/quilt/pull/5300))
 - [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5293](https://github.com/quiltdata/quilt/pull/5293))
 - [Added] The sidebar folds to an icon rail and back — the chevron on its edge or `[` — and remembers the choice, giving wide tables and previews the room; typing `[` in a metadata cell still starts an array ([#5289](https://github.com/quiltdata/quilt/pull/5289))
