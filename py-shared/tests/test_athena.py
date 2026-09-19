@@ -200,6 +200,55 @@ def test_run_multiple_queries_retry_does_not_rerun_successful_siblings(
     stubbed_athena_client.assert_no_pending_responses()
 
 
+def test_run_multiple_queries_retry_does_not_preempt_unstarted(query_runner, stubbed_athena_client, no_backoff):
+    """A requeued query goes behind queries that have never run, not ahead of them."""
+    queries = ["MERGE INTO test_bucket_package_manifest", "SELECT * FROM table2"]
+
+    # Only one slot, so ordering is observable: query 0 runs, conflicts, and is requeued.
+    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_status(stubbed_athena_client, "exec_id_1", "FAILED", COMMIT_ERROR_REASON)
+    # Query 1 has never started, so it must go next -- not the retry.
+    _stub_start(stubbed_athena_client, queries[1], "exec_id_2")
+    _stub_status(stubbed_athena_client, "exec_id_2", "SUCCEEDED")
+    _stub_start(stubbed_athena_client, queries[0], "exec_id_3")
+    _stub_status(stubbed_athena_client, "exec_id_3", "SUCCEEDED")
+
+    results = query_runner.run_multiple_queries(queries, max_current_queries=1, sleep_sec=0)
+
+    assert [r["QueryExecutionId"] for r in results] == ["exec_id_3", "exec_id_2"]
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_failing_sibling_raises_while_retry_pending(
+    query_runner, stubbed_athena_client, no_backoff
+):
+    """A non-retryable sibling failure raises even while another query is mid-retry."""
+    queries = ["MERGE INTO test_bucket_package_manifest", "SELECT * FROM table2"]
+
+    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_start(stubbed_athena_client, queries[1], "exec_id_2")
+    # Query 0 is requeued for a commit conflict; query 1 then fails unretryably.
+    _stub_status(stubbed_athena_client, "exec_id_1", "FAILED", COMMIT_ERROR_REASON)
+    _stub_status(stubbed_athena_client, "exec_id_2", "FAILED", "SYNTAX_ERROR: line 1:1: mismatched input")
+
+    with pytest.raises(AthenaQueryFailedException) as exc_info:
+        query_runner.run_multiple_queries(queries, sleep_sec=0)
+
+    # The pending retry is abandoned rather than started: no third execution was stubbed.
+    assert exc_info.value.query_execution_id == "exec_id_2"
+    assert "SYNTAX_ERROR" in str(exc_info.value)
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_should_retry_matches_reason_with_leading_text():
+    """Athena's StateChangeReason is free text; a leading category must not defeat the match."""
+    query_execution = {
+        "Status": {"State": "FAILED", "StateChangeReason": f"TrinoException: {COMMIT_ERROR_REASON}"},
+    }
+
+    assert QueryRunner._should_retry(query_execution, 1) is True
+
+
 def test_run_multiple_queries(query_runner, stubbed_athena_client):
     queries = ["SELECT * FROM table1", "SELECT * FROM table2"]
     execution_ids = ["exec_id_1", "exec_id_2"]
