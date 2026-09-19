@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import time
 import typing as T
 
@@ -8,6 +9,15 @@ if T.TYPE_CHECKING:
 
     from types_boto3_athena.client import AthenaClient
     from types_boto3_athena.type_defs import QueryExecutionTypeDef
+
+# Concurrent DML against one Iceberg table fails the loser's commit; a fresh execution
+# of the same statement succeeds. Bounded low because the registry's bucket-add path
+# calls this synchronously from an admin request, so retries delay a user-visible call.
+# Matched as a substring: Athena reports the Trino error code inside a free-text
+# StateChangeReason, so a leading category or wrapper must not defeat the match.
+ICEBERG_COMMIT_ERROR_CODE = "ICEBERG_COMMIT_ERROR"
+RETRY_MAX_ATTEMPTS = 3
+RETRY_BASE_SEC = 1
 
 
 class AthenaQueryBaseException(Exception):
@@ -23,7 +33,10 @@ class AthenaQueryBaseException(Exception):
         return self.query_execution["QueryExecutionId"]
 
     def __str__(self) -> str:
-        return f"Athena query {self.query_execution_id} failed with state {self.state}"
+        msg = f"Athena query {self.query_execution_id} failed with state {self.state}"
+        if reason := self.query_execution.get("Status", {}).get("StateChangeReason"):
+            msg += f": {reason}"
+        return msg
 
 
 class AthenaQueryFailedException(AthenaQueryBaseException):
@@ -75,6 +88,15 @@ class QueryRunner:
         else:
             assert False, "Unexpected state: %s" % state
 
+    @staticmethod
+    def _should_retry(query_execution: QueryExecutionTypeDef, attempts: int) -> bool:
+        status = query_execution["Status"]
+        return (
+            status["State"] == "FAILED"
+            and ICEBERG_COMMIT_ERROR_CODE in status.get("StateChangeReason", "")
+            and attempts < RETRY_MAX_ATTEMPTS
+        )
+
     def run_multiple_queries(
         self,
         query_list: list[str],
@@ -106,25 +128,54 @@ class QueryRunner:
             The method polls Athena for query status and manages concurrent execution within specified
             limits. Failed queries will either raise an exception or return execution details based on
             raise_on_failed.
+
+            A query that fails with ICEBERG_COMMIT_ERROR is re-executed, so statements passed here must
+            be idempotent: that error also covers a commit whose outcome is unknown.
         """
         results: list[QueryExecutionTypeDef | None] = [None] * len(query_list)
 
         remaining_queries = list(enumerate(query_list))
         remaining_queries.reverse()  # Just to make unit tests more sane: we use pop() later, so keep the order the same.
         pending_execution_ids = {}
+        attempts: dict[int, int] = {}
 
         while remaining_queries or pending_execution_ids:
+            # Largest backoff any conflict asked for this pass. Taken once, below, rather
+            # than per conflict inside the scan: concurrent conflicts would otherwise
+            # sleep serially, and no in-flight execution is polled while one sleeps.
+            backoff_sec: float = 0
             # Remove completed queries. Make a copy of the set before iterating over it.
             for execution_id, idx in list(pending_execution_ids.items()):
-                if (query_execution := self.query_finished(execution_id, raise_on_failed=raise_on_failed)) is not None:
-                    del pending_execution_ids[execution_id]
-                    results[idx] = query_execution
+                # Ask for the record rather than the exception, so a commit conflict can be retried.
+                if (query_execution := self.query_finished(execution_id, raise_on_failed=False)) is None:
+                    continue
+                del pending_execution_ids[execution_id]
+
+                if self._should_retry(query_execution, attempts[idx]):
+                    reason = query_execution["Status"]["StateChangeReason"]
+                    self.logger.warning("Retrying Athena query %s after commit conflict: %s", execution_id, reason)
+                    backoff_sec = max(backoff_sec, random.uniform(0, RETRY_BASE_SEC * 2 ** (attempts[idx] - 1)))
+                    # Bottom of the stack: pop() takes from the end, so a retry must not
+                    # preempt queries that have never been started.
+                    remaining_queries.insert(0, (idx, query_list[idx]))
+                    continue
+
+                if raise_on_failed and query_execution["Status"]["State"] == "FAILED":
+                    raise AthenaQueryFailedException(query_execution)
+                results[idx] = query_execution
+
+            # Back off before re-dispatching, once per pass rather than per conflict: a
+            # sleep inside the scan would delay concurrent conflicts serially, and no
+            # in-flight execution is polled while one sleeps.
+            if backoff_sec:
+                time.sleep(backoff_sec)
 
             # Start new queries.
             while remaining_queries and len(pending_execution_ids) < max_current_queries:
                 idx, query = remaining_queries.pop()
                 execution_id = self.start_query(query)
                 pending_execution_ids[execution_id] = idx
+                attempts[idx] = attempts.get(idx, 0) + 1
 
             time.sleep(sleep_sec)
 
