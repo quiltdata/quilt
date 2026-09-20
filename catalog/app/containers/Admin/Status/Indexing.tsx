@@ -2,8 +2,10 @@ import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
+import * as urql from 'urql'
 
 import * as APIConnector from 'utils/APIConnector'
+import { useQuery } from 'utils/GraphQL'
 
 type ScannerJob = {
   id: number
@@ -22,6 +24,15 @@ type BucketShardInfo = {
 }
 
 const POLL_MS = 10_000
+
+const BUCKET_SHARD_DEPTHS_QUERY = urql.gql`
+  query {
+    bucketConfigs {
+      name
+      scannerParallelShardsDepth
+    }
+  }
+`
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -73,8 +84,9 @@ function useBulkScannerJobs(pollMs: number) {
 
   const load = React.useCallback(async () => {
     try {
+      // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
       const data = (await req({
-        endpoint: '/api/bulk_scanner_jobs',
+        endpoint: '/bulk_scanner_jobs',
         method: 'GET',
       })) as { results?: ScannerJob[] }
       setJobs(data.results ?? [])
@@ -96,40 +108,15 @@ function useBulkScannerJobs(pollMs: number) {
 }
 
 function useBucketShardDepths() {
-  const req = APIConnector.use()
-  const [byName, setByName] = React.useState<Record<string, number | null>>({})
+  const result = useQuery<{ bucketConfigs: BucketShardInfo[] }>(BUCKET_SHARD_DEPTHS_QUERY)
 
-  React.useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const data = (await req({
-          endpoint: '/graphql',
-          method: 'POST',
-          body: {
-            query: '{ bucketConfigs { name scannerParallelShardsDepth } }',
-          },
-        })) as {
-          data?: { bucketConfigs?: BucketShardInfo[] }
-        }
-        if (cancelled) return
-        const next: Record<string, number | null> = {}
-        for (const b of data.data?.bucketConfigs ?? []) {
-          next[b.name] = b.scannerParallelShardsDepth
-        }
-        setByName(next)
-      } catch (e) {
-        // Panel still works without shard depths; empty-search warning stays off.
-        // eslint-disable-next-line no-console
-        console.error(e)
-      }
-    })()
-    return () => {
-      cancelled = true
+  return React.useMemo(() => {
+    const next: Record<string, number | null> = {}
+    for (const b of result.data?.bucketConfigs ?? []) {
+      next[b.name] = b.scannerParallelShardsDepth
     }
-  }, [req])
-
-  return byName
+    return next
+  }, [result.data])
 }
 
 export default function Indexing() {
@@ -142,6 +129,8 @@ export default function Indexing() {
     const names = new Set<string>()
     for (const job of jobs) {
       if (job.prefix !== '') continue
+      // Skip until shard config for this bucket is known — unknown must not warn.
+      if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
       const depth = shardDepths[job.name]
       // Only warn where grounding is honest: unsharded buckets.
       if (depth == null || depth === 0) {
