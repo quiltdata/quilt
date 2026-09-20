@@ -8,6 +8,7 @@ import MetaTitle from 'utils/MetaTitle'
 import StyledLink from 'utils/StyledLink'
 
 import Canaries from './Canaries'
+import Indexing from './Indexing'
 import Reports from './Reports'
 import Stats from './Stats'
 import STATUS_QUERY from './gql/Status.generated'
@@ -23,9 +24,17 @@ export default function Status() {
     reportsOrder: DEFAULT_REPORTS_ORDER,
   })
 
+  React.useEffect(() => {
+    if (window.location.hash !== '#indexing') return
+    const el = document.getElementById('indexing')
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [status])
+
   return (
     <M.Box my={2}>
       <MetaTitle>{['Status', 'Admin']}</MetaTitle>
+      <Indexing />
+      <M.Box pt={2} />
       {status.__typename === 'Status' ? (
         <>
           <Stats
