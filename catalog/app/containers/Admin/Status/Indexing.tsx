@@ -162,11 +162,11 @@ export default function Indexing() {
 
       <M.Typography variant="body2" className={classes.caveat}>
         Position is the S3 list resume cursor (not a percentage). Job age is time since
-        creation; a healthy large scan yields after about 20&nbsp;000 keys and is
-        checked out again with the same creation time, so age alone cannot tell
-        progressing from stalled — watch the cursor across refreshes. ETA is unknown
-        because completed jobs are deleted. Queue order is newest-first, not FIFO. This
-        panel does not report search-cluster health.
+        creation; a healthy large scan yields after about 20&nbsp;000 keys and is checked
+        out again with the same creation time, so age alone cannot tell progressing from
+        stalled — watch the cursor across refreshes. ETA is unknown because completed jobs
+        are deleted. Queue order is newest-first, not FIFO. This panel does not report
+        search-cluster health.
       </M.Typography>
 
       {emptySearchBuckets.length > 0 && (
@@ -174,8 +174,8 @@ export default function Indexing() {
           <M.Typography variant="body2" color="inherit">
             Full-bucket re-index in progress for{' '}
             <span className={classes.mono}>{emptySearchBuckets.join(', ')}</span>. Search
-            for {emptySearchBuckets.length === 1 ? 'that bucket' : 'those buckets'} returns
-            nothing until the rescan finishes.
+            for {emptySearchBuckets.length === 1 ? 'that bucket' : 'those buckets'}{' '}
+            returns nothing until the rescan finishes.
           </M.Typography>
         </div>
       )}
