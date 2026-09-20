@@ -26,6 +26,8 @@ type BucketShardInfo = {
 
 const POLL_MS = 10_000
 
+const CAVEATS_ID = 'indexing-caveats'
+
 const BUCKET_SHARD_DEPTHS_QUERY = urql.gql`
   query {
     bucketConfigs {
@@ -41,8 +43,10 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     // The re-index dialog deep-links to #indexing, and the page scrolls under
     // Layout's sticky ContentBar (64px min-height), which would otherwise cover
-    // this panel's heading on arrival.
-    scrollMarginTop: 64 + t.spacing(2),
+    // this panel's heading on arrival. The unit is explicit because JSS's
+    // default-unit plugin has no scroll-margin entry, so a bare number here
+    // would emit an invalid declaration that the browser drops.
+    scrollMarginTop: `${64 + t.spacing(2)}px`,
   },
   activity: {
     borderTopLeftRadius: 'inherit',
@@ -73,13 +77,6 @@ const useStyles = M.makeStyles((t) => ({
   mono: {
     fontFamily: 'Roboto Mono, monospace',
     wordBreak: 'break-all',
-  },
-  cursor: {
-    fontFamily: 'Roboto Mono, monospace',
-    maxWidth: '28ch',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   numeric: {
     fontVariantNumeric: 'tabular-nums',
@@ -197,12 +194,23 @@ export default function Indexing() {
     return [...names].sort()
   }, [jobs, shardDepths])
 
-  const active = jobs?.filter((j) => j.retries_remaining > 0).length ?? 0
+  // `retries_remaining > 0` means "not exhausted", which is the most the payload
+  // supports: there is no checked-out or worker field, so a queued job and a job
+  // a worker is actively scanning are indistinguishable here. The copy says
+  // "queued" for that reason -- claiming "in flight" would assert a running
+  // worker this endpoint never reports.
+  const outstanding = jobs?.filter((j) => j.retries_remaining > 0).length ?? 0
   const loading = jobs === null && !error
+  // A failed poll leaves `jobs` at its last good value. Animating that would
+  // assert liveness from data that is minutes stale, so the strip and its label
+  // both stand down until a fetch succeeds again.
+  const showActivity = outstanding > 0 && !error
 
   return (
-    <M.Paper className={classes.root} id="indexing">
-      {active > 0 && <M.LinearProgress className={classes.activity} aria-hidden="true" />}
+    <M.Paper variant="outlined" className={classes.root} id="indexing">
+      {showActivity && (
+        <M.LinearProgress className={classes.activity} aria-hidden="true" />
+      )}
 
       <div className={classes.titleRow}>
         <M.Typography variant="h5">Indexing</M.Typography>
@@ -211,11 +219,11 @@ export default function Indexing() {
         </M.Button>
       </div>
 
-      {jobs && (
+      {jobs && !error && (
         <M.Typography variant="body2" className={classes.activeLabel}>
-          {active > 0
-            ? `Scanning — ${active} ${active === 1 ? 'job' : 'jobs'} in flight, no completion estimate`
-            : 'Idle'}
+          {outstanding > 0
+            ? `${outstanding} ${outstanding === 1 ? 'job' : 'jobs'} queued, no completion estimate`
+            : 'No jobs outstanding'}
         </M.Typography>
       )}
 
@@ -229,11 +237,12 @@ export default function Indexing() {
           size="small"
           onClick={() => setDetailsOpen((o) => !o)}
           aria-expanded={detailsOpen}
+          aria-controls={CAVEATS_ID}
         >
           {detailsOpen ? 'Hide details' : 'Why no percentage or ETA?'}
         </M.Button>
         <M.Collapse in={detailsOpen}>
-          <M.Typography variant="body2" className={classes.caveat}>
+          <M.Typography id={CAVEATS_ID} variant="body2" className={classes.caveat}>
             Job age is time since creation; a healthy large scan yields after about
             20&nbsp;000 keys and is checked out again with the same creation time, so age
             alone cannot tell progressing from stalled. ETA is unknown because completed
@@ -296,13 +305,11 @@ export default function Indexing() {
                 >
                   <M.TableCell className={classes.mono}>{job.name}</M.TableCell>
                   <M.TableCell>{scopeLabel(job)}</M.TableCell>
-                  <M.TableCell>
-                    {/* Cursors are full S3 keys; the tooltip keeps the exact value
-                        reachable rather than truncating it away. */}
-                    <M.Tooltip arrow title={cursor}>
-                      <div className={classes.cursor}>{cursor}</div>
-                    </M.Tooltip>
-                  </M.TableCell>
+                  {/* The cursor wraps rather than truncating: it is the one value
+                      on this panel an admin compares across refreshes, and a
+                      tooltip would be the only copy of it -- unreachable without
+                      a pointer. */}
+                  <M.TableCell className={classes.mono}>{cursor}</M.TableCell>
                   <M.TableCell>
                     {dateFns.formatDistanceToNow(created, { addSuffix: true })}
                     {exhausted && ' · exhausted'}

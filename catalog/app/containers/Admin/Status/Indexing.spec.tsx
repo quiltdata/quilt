@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const mocks = vi.hoisted(() => ({ req: vi.fn() }))
 
@@ -41,7 +41,7 @@ function renderPanel(results: ReturnType<typeof job>[]) {
 const strip = (c: HTMLElement) => c.querySelector('.MuiLinearProgress-root')
 
 describe('containers/Admin/Status/Indexing', () => {
-  it('reports a running scan without claiming how far it got', async () => {
+  it('reports outstanding work without claiming how far it got', async () => {
     const { container } = renderPanel([job()])
 
     await waitFor(() => expect(strip(container)).not.toBeNull())
@@ -53,19 +53,22 @@ describe('containers/Admin/Status/Indexing', () => {
     expect(bar.className).toContain('MuiLinearProgress-indeterminate')
     expect(bar.getAttribute('aria-valuenow')).toBeNull()
     // State never rests on motion alone — the count is also written out.
-    expect(screen.getByText(/1 job in flight/)).toBeTruthy()
+    expect(screen.getByText(/1 job queued/)).toBeTruthy()
     expect(screen.queryByText(/%/)).toBeNull()
+    // The payload has no checked-out field, so the panel must not claim a
+    // worker is running.
+    expect(screen.queryByText(/in flight|scanning/i)).toBeNull()
   })
 
-  it('pluralizes the in-flight count', async () => {
+  it('pluralizes the queued count', async () => {
     renderPanel([job({ id: 1 }), job({ id: 2 })])
-    await waitFor(() => expect(screen.getByText(/2 jobs in flight/)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/2 jobs queued/)).toBeTruthy())
   })
 
   it('shows no activity for a queue of exhausted jobs', async () => {
     const { container } = renderPanel([job({ retries_remaining: 0 })])
 
-    await waitFor(() => expect(screen.getByText('Idle')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('No jobs outstanding')).toBeTruthy())
     // An exhausted job is not progressing; a strip here would assert motion
     // that has stopped.
     expect(strip(container)).toBeNull()
@@ -74,5 +77,27 @@ describe('containers/Admin/Status/Indexing', () => {
   it('tells an admin where to start a scan when none are queued', async () => {
     renderPanel([])
     await waitFor(() => expect(screen.getByText(/No scanner jobs queued/)).toBeTruthy())
+  })
+
+  it('stands down the liveness claim when a poll fails', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValueOnce({ results: [job()] })
+    const { container } = render(
+      <ThemeProvider theme={theme}>
+        <Indexing />
+      </ThemeProvider>,
+    )
+    await waitFor(() => expect(strip(container)).not.toBeNull())
+
+    // Stale jobs survive a failed poll, so without gating on `error` the strip
+    // would keep animating over data that is minutes old.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }))
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
+    expect(strip(container)).toBeNull()
+    expect(screen.queryByText(/job queued/)).toBeNull()
   })
 })
