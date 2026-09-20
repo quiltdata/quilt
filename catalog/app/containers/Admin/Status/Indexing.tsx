@@ -81,17 +81,22 @@ function useBulkScannerJobs(pollMs: number) {
   const req = APIConnector.use()
   const [jobs, setJobs] = React.useState<ScannerJob[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const seqRef = React.useRef(0)
 
   const load = React.useCallback(async () => {
+    const seq = ++seqRef.current
     try {
       // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
       const data = (await req({
         endpoint: '/bulk_scanner_jobs',
         method: 'GET',
       })) as { results?: ScannerJob[] }
+      // Discard superseded responses (overlapping polls / rapid Refresh).
+      if (seq !== seqRef.current) return
       setJobs(data.results ?? [])
       setError(null)
     } catch (e) {
+      if (seq !== seqRef.current) return
       // eslint-disable-next-line no-console
       console.error(e)
       setError('Could not load scanner jobs')
@@ -128,7 +133,8 @@ export default function Indexing() {
     if (!jobs) return []
     const names = new Set<string>()
     for (const job of jobs) {
-      if (job.prefix !== '') continue
+      // Full-bucket wipe only: empty prefix and not a top-level-only (ignore_dirs) job.
+      if (job.prefix !== '' || job.ignore_dirs) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
       const depth = shardDepths[job.name]
