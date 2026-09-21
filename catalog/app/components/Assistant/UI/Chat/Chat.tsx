@@ -14,6 +14,7 @@ import * as Model from '../../Model'
 
 import DevTools from './DevTools'
 import Input from './Input'
+import Instructions from './Instructions'
 import MessageAction from './MessageAction'
 
 const BG = {
@@ -300,7 +301,19 @@ interface WaitingStateProps extends ConversationDispatchProps {
   timestamp: Date
 }
 
+const useWaitingStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+  },
+  spinner: {
+    color: 'inherit',
+  },
+}))
+
 function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
+  const classes = useWaitingStyles()
   const abort = React.useCallback(
     () => dispatch(Model.Conversation.Action.Abort()),
     [dispatch],
@@ -310,7 +323,49 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
-      Processing...
+      <span className={classes.root}>
+        <M.CircularProgress size={14} thickness={4} className={classes.spinner} />
+        Thinking…
+      </span>
+    </MessageContainer>
+  )
+}
+
+// The error is content, not chrome: it renders as a message in the
+// conversation, but wears the semantic error pair (icon + colored heading,
+// never color alone) so it cannot be mistaken for an answer.
+const useErrorStyles = M.makeStyles((t) => ({
+  heading: {
+    alignItems: 'center',
+    color: t.palette.error.dark,
+    display: 'flex',
+    fontWeight: t.typography.fontWeightMedium,
+    gap: t.spacing(0.5),
+  },
+  icon: {
+    fontSize: t.typography.body1.fontSize,
+  },
+  details: {
+    color: t.palette.text.secondary,
+    marginTop: t.spacing(0.5),
+  },
+}))
+
+interface ErrorStateProps {
+  message: string
+  details: string
+  timestamp: Date
+}
+
+function ErrorState({ message, details, timestamp }: ErrorStateProps) {
+  const classes = useErrorStyles()
+  return (
+    <MessageContainer timestamp={timestamp}>
+      <div className={classes.heading}>
+        <M.Icon className={classes.icon}>error_outline</M.Icon>
+        {message}
+      </div>
+      <div className={classes.details}>{details}</div>
     </MessageContainer>
   )
 }
@@ -460,6 +515,45 @@ const useStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     overflow: 'hidden',
   },
+  // Qurator's identity line: the amber-bordered mark (a stroke and a glyph,
+  // never an amber wash — same treatment as the front door's QuratorPanel)
+  // plus a quiet provenance readout. Surface white with a hairline, so the
+  // chat reads as one instrument with a labeled face.
+  header: {
+    alignItems: 'center',
+    background: t.palette.background.paper,
+    borderBottom: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    flexShrink: 0,
+    gap: t.spacing(1),
+    minHeight: 56,
+    // right padding clears the absolutely positioned menu button
+    padding: t.spacing(1, 8, 1, 2),
+  },
+  qicon: {
+    alignItems: 'center',
+    border: `1px solid ${t.palette.secondary.main}`,
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.secondary.main,
+    display: 'grid',
+    flexShrink: 0,
+    height: t.spacing(4),
+    placeItems: 'center',
+    width: t.spacing(4),
+  },
+  qiconGlyph: {
+    fontSize: t.typography.body1.fontSize,
+  },
+  title: {
+    fontSize: t.typography.body1.fontSize,
+    fontWeight: t.typography.fontWeightMedium,
+    lineHeight: 1.3,
+  },
+  subtitle: {
+    color: t.palette.text.secondary,
+    fontSize: t.typography.caption.fontSize,
+    lineHeight: 1.3,
+  },
   menu: {
     position: 'absolute',
     right: t.spacing(1),
@@ -502,9 +596,16 @@ interface ChatProps {
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
   connectors: Model.Assistant.API['connectors']
+  instructions: Model.Assistant.API['instructions']
 }
 
-export default function Chat({ state, dispatch, devTools, connectors }: ChatProps) {
+export default function Chat({
+  state,
+  dispatch,
+  devTools,
+  connectors,
+  instructions,
+}: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
@@ -557,6 +658,15 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
 
   return (
     <div className={classes.chat}>
+      <div className={classes.header}>
+        <span className={classes.qicon}>
+          <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>
+        </span>
+        <div>
+          <div className={classes.title}>Qurator</div>
+          <div className={classes.subtitle}>Claude on Bedrock, with your permissions</div>
+        </div>
+      </div>
       <Menu
         state={state}
         dispatch={dispatch}
@@ -572,7 +682,8 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
-            Hi! I'm Qurator, your AI assistant. How can I help you?
+            Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
+            data — I can search, query and summarize them for you.
           </MessageContainer>
           {state.events
             .filter((e) => !e.discarded)
@@ -600,11 +711,11 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
             Idle: (s) =>
               Eff.Option.match(s.error, {
                 onSome: (e) => (
-                  <MessageContainer timestamp={s.timestamp}>
-                    <b>{e.message}</b>
-                    <br />
-                    {e.details}
-                  </MessageContainer>
+                  <ErrorState
+                    message={e.message}
+                    details={e.details}
+                    timestamp={s.timestamp}
+                  />
                   // TODO: retry / discard
                 ),
                 onNone: () => null,
@@ -622,6 +733,7 @@ export default function Chat({ state, dispatch, devTools, connectors }: ChatProp
           <div ref={scrollRef} />
         </div>
       </div>
+      <Instructions instructions={instructions} />
       <Input
         className={classes.input}
         disabled={inputDisabled}
