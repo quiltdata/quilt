@@ -26,6 +26,10 @@ type BucketShardInfo = {
 
 const POLL_MS = 10_000
 
+// How long a cursor advance keeps counting as progress. Three polls, so one slow
+// or dropped response does not flip a working scan to "no movement".
+const PROGRESS_TTL_MS = 3 * POLL_MS
+
 const CAVEATS_ID = 'indexing-caveats'
 
 const BUCKET_SHARD_DEPTHS_QUERY = urql.gql`
@@ -149,6 +153,41 @@ function useBulkScannerJobs(pollMs: number) {
   return { jobs, error, reload: load }
 }
 
+type Movement = { cursor: string; seenAt: number; moved: boolean }
+
+// The resume cursor advancing between polls is the only evidence this endpoint
+// offers that a scan is actually running -- `retries_remaining` merely says the
+// job has not given up. So remember each job's cursor and compare, which is the
+// same check the panel's own caveat asks the admin to perform by eye.
+function useCursorMovement(jobs: ScannerJob[] | null) {
+  const seen = React.useRef(new Map<number, Movement>())
+
+  return React.useMemo(() => {
+    if (!jobs) return 0
+    const now = Date.now()
+    const next = new Map<number, Movement>()
+    let moving = 0
+    for (const job of jobs) {
+      const cursor = `${job.next_key_marker ?? ''}\u0000${job.next_version_id_marker ?? ''}`
+      const prev = seen.current.get(job.id)
+      // First sight has no baseline to compare against, so it counts as neither
+      // advancing nor stalled until the next poll.
+      const entry: Movement =
+        prev == null
+          ? { cursor, seenAt: now, moved: false }
+          : prev.cursor === cursor
+            ? prev
+            : { cursor, seenAt: now, moved: true }
+      next.set(job.id, entry)
+      if (entry.moved && now - entry.seenAt < PROGRESS_TTL_MS) moving += 1
+    }
+    // Completed jobs are deleted server-side; drop them so the map cannot grow
+    // without bound across a long-lived Status tab.
+    seen.current = next
+    return moving
+  }, [jobs])
+}
+
 function useBucketShardDepths() {
   const result = useQuery<{ bucketConfigs: BucketShardInfo[] }>(BUCKET_SHARD_DEPTHS_QUERY)
 
@@ -194,17 +233,15 @@ export default function Indexing() {
     return [...names].sort()
   }, [jobs, shardDepths])
 
-  // `retries_remaining > 0` means "not exhausted", which is the most the payload
-  // supports: there is no checked-out or worker field, so a queued job and a job
-  // a worker is actively scanning are indistinguishable here. The copy says
-  // "queued" for that reason -- claiming "in flight" would assert a running
-  // worker this endpoint never reports.
+  // `retries_remaining > 0` only means "not exhausted" -- true of a stalled job
+  // as much as a working one -- so it sizes the queue and nothing more.
   const outstanding = jobs?.filter((j) => j.retries_remaining > 0).length ?? 0
+  const advancing = useCursorMovement(jobs)
   const loading = jobs === null && !error
-  // A failed poll leaves `jobs` at its last good value. Animating that would
-  // assert liveness from data that is minutes stale, so the strip and its label
-  // both stand down until a fetch succeeds again.
-  const showActivity = outstanding > 0 && !error
+  // Motion stands for observed progress, so it needs a cursor that actually
+  // moved. A failed poll leaves `jobs` at its last good value, which would
+  // otherwise animate over data that is minutes stale.
+  const showActivity = advancing > 0 && !error
 
   return (
     <M.Paper variant="outlined" className={classes.root} id="indexing">
@@ -221,16 +258,21 @@ export default function Indexing() {
 
       {jobs && !error && (
         <M.Typography variant="body2" className={classes.activeLabel}>
-          {outstanding > 0
-            ? `${outstanding} ${outstanding === 1 ? 'job' : 'jobs'} queued, no completion estimate`
-            : 'No jobs outstanding'}
+          {outstanding === 0
+            ? 'No jobs outstanding'
+            : `${outstanding} ${outstanding === 1 ? 'job' : 'jobs'} queued · ${
+                advancing > 0
+                  ? `${advancing} advancing, no completion estimate`
+                  : 'no cursor movement observed yet'
+              }`}
         </M.Typography>
       )}
 
       <div className={classes.caveatBlock}>
         <M.Typography variant="body2" className={classes.caveat}>
-          Position is the S3 list resume cursor, not a percentage — watch it change across
-          refreshes to tell a progressing scan from a stalled one.
+          Position is the S3 list resume cursor, not a percentage. A job counts as
+          advancing once that cursor moves between refreshes — until then it is queued,
+          which looks the same here whether a worker has picked it up or not.
         </M.Typography>
         <M.Button
           className={classes.disclosure}
