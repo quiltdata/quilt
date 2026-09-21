@@ -60,15 +60,15 @@ const useInputStyles = M.makeStyles((t) => {
   }
 })
 
-const useLabelStyles = M.makeStyles({
+const useLabelStyles = M.makeStyles((t) => ({
   focused: {},
   root: {
-    color: M.fade(M.colors.common.white, 0.6),
+    color: M.fade(t.palette.primary.contrastText, 0.7),
     '&$focused': {
-      color: M.fade(M.colors.common.white, 0.6),
+      color: M.fade(t.palette.primary.contrastText, 0.7),
     },
   },
-})
+}))
 
 const darkTheme = createCustomAppTheme({ palette: { type: 'dark' } } as any)
 

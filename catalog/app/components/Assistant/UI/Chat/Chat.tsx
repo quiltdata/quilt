@@ -196,20 +196,26 @@ function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageP
         className={classes.header}
         onClick={toggleExpanded}
         aria-expanded={expanded}
-        aria-label={`${name}: ${status}`}
       >
         <M.Icon className={classes.icon}>build</M.Icon>
         <span className={classes.toolName}>{name}</span>
         {status === 'success' && (
-          <M.Icon className={cx(classes.icon, classes.success)}>
+          <M.Icon className={cx(classes.icon, classes.success)} aria-label="Succeeded">
             check_circle_outline
           </M.Icon>
         )}
         {status === 'error' && (
-          <M.Icon className={cx(classes.icon, classes.error)}>error_outline</M.Icon>
+          <M.Icon className={cx(classes.icon, classes.error)} aria-label="Failed">
+            error_outline
+          </M.Icon>
         )}
         {status === 'running' && (
-          <M.CircularProgress size={14} thickness={4} className={classes.running} />
+          <M.CircularProgress
+            size={14}
+            thickness={4}
+            className={classes.running}
+            aria-label="Running"
+          />
         )}
       </M.ButtonBase>
       <M.Collapse in={expanded}>

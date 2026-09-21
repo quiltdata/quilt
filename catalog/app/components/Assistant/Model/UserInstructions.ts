@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
@@ -49,7 +50,7 @@ export interface UserInstructions {
 export function useUserInstructions(): UserInstructions {
   const settings = CatalogSettings.use()
   const writeSettings = CatalogSettings.useWriteSettings()
-  const canEdit = redux.useSelector(AuthSelectors.isAdmin) as boolean
+  const canEdit = !!redux.useSelector(AuthSelectors.isAdmin)
 
   const text = settings?.qurator?.instructions ?? ''
   const enabled = settings?.qurator?.instructionsEnabled !== false
@@ -81,4 +82,64 @@ export function useUserInstructions(): UserInstructions {
     () => ({ text, setText, enabled, setEnabled, clear, active, canEdit }),
     [text, setText, enabled, setEnabled, clear, active, canEdit],
   )
+}
+
+const errorMessage = (e: unknown) =>
+  e instanceof CatalogSettings.SettingsConflictError
+    ? e.message
+    : "Couldn't save instructions, see console for details"
+
+/**
+ * Editor state shared by the in-chat strip and Admin → Settings: a local draft
+ * (so typing does not PUT settings.json per keystroke), one in-flight write
+ * at a time, and the failure surfaced inline. Both surfaces render the same
+ * stack value, so the draft is dropped whenever it moves underneath.
+ */
+export function useInstructionsEditor(instructions: UserInstructions) {
+  const { text, setText, setEnabled, clear } = instructions
+
+  const [draft, setDraft] = React.useState(text)
+  React.useEffect(() => setDraft(text), [text])
+
+  const [pending, setPending] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const mounted = React.useRef(true)
+  React.useEffect(
+    () => () => {
+      mounted.current = false
+    },
+    [],
+  )
+
+  const run = React.useCallback(async (op: () => Promise<void>) => {
+    setPending(true)
+    setError(null)
+    try {
+      await op()
+    } catch (e) {
+      Sentry.captureException(e)
+      // eslint-disable-next-line no-console
+      console.error('Error saving Qurator instructions', e)
+      if (mounted.current) setError(errorMessage(e))
+    } finally {
+      if (mounted.current) setPending(false)
+    }
+  }, [])
+
+  const save = React.useCallback(() => run(() => setText(draft)), [run, setText, draft])
+  const toggle = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const next = e.target.checked
+      run(() => setEnabled(next))
+    },
+    [run, setEnabled],
+  )
+  // Clearing an unsaved draft is local; only a stored value costs a write.
+  const onClear = React.useCallback(() => {
+    setDraft('')
+    if (text) run(clear)
+  }, [run, clear, text])
+
+  return { draft, setDraft, dirty: draft !== text, pending, error, save, toggle, onClear }
 }

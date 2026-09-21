@@ -2,9 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as CatalogSettings from 'utils/CatalogSettings'
-
-import type * as Model from '../../Model'
+import * as UserInstructions from '../../Model/UserInstructions'
 
 // The sticky instructions strip that sits between the conversation history
 // and the composer: standing guidance ("answer in French", "always cite
@@ -107,55 +105,19 @@ const HINT_ADMIN =
 const HINT_READ_ONLY = 'Set by an admin for everyone on this stack.'
 const EMPTY_READ_ONLY = 'No instructions set for this stack.'
 
-const errorMessage = (e: unknown) =>
-  e instanceof CatalogSettings.SettingsConflictError
-    ? e.message
-    : "Couldn't save instructions, see console for details"
-
 interface InstructionsProps {
   className?: string
-  instructions: Model.UserInstructions.UserInstructions
+  instructions: UserInstructions.UserInstructions
 }
 
 export default function Instructions({ className, instructions }: InstructionsProps) {
   const classes = useStyles()
-  const { text, setText, enabled, setEnabled, clear, active, canEdit } = instructions
+  const { text, enabled, active, canEdit } = instructions
+  const { draft, setDraft, dirty, pending, error, save, toggle, onClear } =
+    UserInstructions.useInstructionsEditor(instructions)
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((prev) => !prev), [])
-
-  // Local draft so typing does not PUT settings.json per keystroke; Save
-  // commits, and a stale draft is dropped when the stack value moves.
-  const [draft, setDraft] = React.useState(text)
-  React.useEffect(() => setDraft(text), [text])
-  const dirty = draft !== text
-
-  const [pending, setPending] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-
-  const run = React.useCallback(async (op: () => Promise<void>) => {
-    setPending(true)
-    setError(null)
-    try {
-      await op()
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Error saving Qurator instructions', e)
-      setError(errorMessage(e))
-    } finally {
-      setPending(false)
-    }
-  }, [])
-
-  const save = React.useCallback(() => run(() => setText(draft)), [run, setText, draft])
-  const toggle = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const next = e.target.checked
-      run(() => setEnabled(next))
-    },
-    [run, setEnabled],
-  )
-  const onClear = React.useCallback(() => run(clear), [run, clear])
 
   const muted = !enabled && !!text.trim()
 
@@ -223,7 +185,11 @@ export default function Instructions({ className, instructions }: InstructionsPr
                   label="Apply to every message"
                 />
                 <div className={classes.actions}>
-                  <M.Button disabled={!text || pending} onClick={onClear} size="small">
+                  <M.Button
+                    disabled={!(draft || text) || pending}
+                    onClick={onClear}
+                    size="small"
+                  >
                     Clear
                   </M.Button>
                   <M.Button
