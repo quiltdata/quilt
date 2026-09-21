@@ -57,7 +57,11 @@ vi.mock('./Tiles/RecentPackagesTile', () => ({ default: () => <div>Recent tile</
 // The suggestion rows themselves aren't the point; the bucket read beside them is.
 vi.mock('./useUnifiedSuggestions', () => ({ default: () => [] }))
 vi.mock('components/Assistant', () => ({
-  Model: { useIsEnabled: () => false, useAssistant: () => vi.fn() },
+  Model: {
+    useIsEnabled: () => false,
+    useAssistant: () => vi.fn(),
+    useAssistantAPI: () => null,
+  },
 }))
 
 import { FrontDoorContent, TileBoundary } from './FrontDoor'
