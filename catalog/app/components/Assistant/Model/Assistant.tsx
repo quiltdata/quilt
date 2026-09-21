@@ -18,6 +18,7 @@ import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
+import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
 
 export const DISABLED = Symbol('DISABLED')
@@ -170,9 +171,35 @@ function useRecording() {
   ] as const
 }
 
+/**
+ * Feed the sticky user instructions into the prompt through the same
+ * aggregation path as every other context contribution, so they show up in
+ * the `<context>` block (and in DevTools) instead of being a hidden system
+ * string. The `userInstructions` marker lets other surfaces observe whether
+ * instructions are in effect.
+ */
+function useUserInstructionsContext(): UserInstructions.UserInstructions {
+  const instructions = UserInstructions.useUserInstructions()
+  const { active, text } = instructions
+  Context.usePushContext(
+    React.useMemo(
+      () =>
+        active
+          ? {
+              messages: [UserInstructions.toPromptBlock(text)],
+              markers: { userInstructions: true },
+            }
+          : {},
+      [active, text],
+    ),
+  )
+  return instructions
+}
+
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride] = useModelIdOverride()
   const [record, recording] = useRecording()
+  const instructions = useUserInstructionsContext()
 
   const platformConfig = usePlatformConnectorConfig()
   const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
@@ -221,6 +248,7 @@ function useConstructAssistantAPI() {
     state,
     dispatch,
     connectors,
+    instructions,
     devTools: { recording, modelIdOverride },
   }
 }
