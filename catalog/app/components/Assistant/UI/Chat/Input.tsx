@@ -31,30 +31,33 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const backgroundColor = M.colors.indigo[900]
-const backgroundColorLt = M.lighten(backgroundColor, 0.1)
-
-const useInputStyles = M.makeStyles({
-  focused: {},
-  disabled: {},
-  root: {
-    backgroundColor,
-    borderRadius: '8px',
-    color: M.fade(M.colors.common.white, 0.8),
-    '&:hover': {
-      backgroundColor: backgroundColorLt,
-      // Reset on touch devices, it doesn't add specificity
-      '@media (hover: none)': {
+// Called during ChatInput's render, outside the dark ThemeProvider below, so
+// `t` is the app theme: the field sits on the midnight chassis (primary).
+const useInputStyles = M.makeStyles((t) => {
+  const backgroundColor = t.palette.primary.main
+  const backgroundColorLt = M.lighten(backgroundColor, 0.1)
+  return {
+    focused: {},
+    disabled: {},
+    root: {
+      backgroundColor,
+      borderRadius: t.shape.borderRadius * 2,
+      color: M.fade(t.palette.primary.contrastText, 0.8),
+      '&:hover': {
+        backgroundColor: backgroundColorLt,
+        // Reset on touch devices, it doesn't add specificity
+        '@media (hover: none)': {
+          backgroundColor,
+        },
+      },
+      '&$focused': {
         backgroundColor,
       },
+      '&$disabled': {
+        backgroundColor: backgroundColorLt,
+      },
     },
-    '&$focused': {
-      backgroundColor,
-    },
-    '&$disabled': {
-      backgroundColor: backgroundColorLt,
-    },
-  },
+  }
 })
 
 const useLabelStyles = M.makeStyles({
@@ -126,7 +129,7 @@ export default function ChatInput({
                   type="submit"
                   edge="end"
                 >
-                  <M.Icon style={{ opacity: 0.7 }}>send</M.Icon>
+                  <M.Icon>send</M.Icon>
                 </M.IconButton>
               </M.InputAdornment>
             ),

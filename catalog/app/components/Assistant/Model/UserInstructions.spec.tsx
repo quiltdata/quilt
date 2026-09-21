@@ -1,16 +1,29 @@
 import * as Eff from 'effect'
 import * as React from 'react'
 import { act, cleanup, render } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { CatalogSettings } from 'utils/CatalogSettings'
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+let settings: CatalogSettings | null = null
+const writeSettings = vi.fn<
+  (s: CatalogSettings, expected?: CatalogSettings | null) => Promise<void>
+>(async () => {})
+
+vi.mock('utils/CatalogSettings', () => ({
+  use: () => settings,
+  useWriteSettings: () => writeSettings,
+  SettingsConflictError: class extends Error {},
+}))
+
+let isAdmin = false
+vi.mock('react-redux', () => ({ useSelector: () => isAdmin }))
 
 import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as UserInstructions from './UserInstructions'
-
-const KEY = UserInstructions.STORAGE_KEY
-const ENABLED_KEY = UserInstructions.ENABLED_STORAGE_KEY
 
 /**
  * Render the hook and hand the latest value back through a ref-like box, so
@@ -32,62 +45,93 @@ function setupHook() {
 }
 
 describe('components/Assistant/Model/UserInstructions', () => {
-  afterEach(() => {
-    cleanup()
-    window.localStorage.clear()
+  beforeEach(() => {
+    settings = null
+    isAdmin = false
+    writeSettings.mockReset()
+    writeSettings.mockResolvedValue(undefined)
   })
+  afterEach(cleanup)
 
-  describe('persistence', () => {
-    it('defaults to empty text, enabled, inactive', () => {
+  describe('persistence (stack settings)', () => {
+    it('defaults to empty text, enabled, inactive when the stack has no settings', () => {
       const current = setupHook()
       expect(current().text).toBe('')
       expect(current().enabled).toBe(true)
       expect(current().active).toBe(false)
     })
 
-    it('persists text to localStorage under the qurator.userInstructions key', () => {
-      const current = setupHook()
-      act(() => current().setText('Answer in French'))
-      expect(window.localStorage.getItem(KEY)).toBe('Answer in French')
-      expect(current().text).toBe('Answer in French')
-      expect(current().active).toBe(true)
-    })
-
-    it('rehydrates persisted text and enabled flag on mount', () => {
-      window.localStorage.setItem(KEY, 'Be terse')
-      window.localStorage.setItem(ENABLED_KEY, '0')
+    it('reads text and enabled flag from settings.qurator', () => {
+      settings = { qurator: { instructions: 'Be terse', instructionsEnabled: false } }
       const current = setupHook()
       expect(current().text).toBe('Be terse')
       expect(current().enabled).toBe(false)
       expect(current().active).toBe(false)
     })
 
-    it('clear removes the stored value and deactivates', () => {
-      window.localStorage.setItem(KEY, 'Be terse')
-      const current = setupHook()
-      expect(current().active).toBe(true)
-      act(() => current().clear())
-      expect(window.localStorage.getItem(KEY)).toBeNull()
-      expect(current().text).toBe('')
-      expect(current().active).toBe(false)
-    })
-
-    it('disabling keeps the text but deactivates; re-enabling restores', () => {
-      const current = setupHook()
-      act(() => current().setText('Cite revisions'))
-      act(() => current().setEnabled(false))
-      expect(window.localStorage.getItem(KEY)).toBe('Cite revisions')
-      expect(window.localStorage.getItem(ENABLED_KEY)).toBe('0')
-      expect(current().active).toBe(false)
-      act(() => current().setEnabled(true))
-      expect(window.localStorage.getItem(ENABLED_KEY)).toBeNull()
-      expect(current().active).toBe(true)
+    it('is active when text is set and the flag is absent (enabled by default)', () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      expect(setupHook()().active).toBe(true)
     })
 
     it('whitespace-only text does not count as active', () => {
+      settings = { qurator: { instructions: '   \n  ' } }
+      expect(setupHook()().active).toBe(false)
+    })
+
+    it('setText writes the whole document with the snapshot as expected prior state', async () => {
+      settings = { beta: true, qurator: { instructionsEnabled: false } }
       const current = setupHook()
-      act(() => current().setText('   \n  '))
-      expect(current().active).toBe(false)
+      await act(() => current().setText('Answer in French'))
+      // Other keys and the sibling qurator flag survive; the second argument is
+      // what makes the write refuse rather than revert a concurrent change.
+      expect(writeSettings).toHaveBeenCalledWith(
+        {
+          beta: true,
+          qurator: { instructionsEnabled: false, instructions: 'Answer in French' },
+        },
+        settings,
+      )
+    })
+
+    it('setEnabled keeps the text and only flips the flag', async () => {
+      settings = { qurator: { instructions: 'Cite revisions' } }
+      const current = setupHook()
+      await act(() => current().setEnabled(false))
+      expect(writeSettings).toHaveBeenCalledWith(
+        { qurator: { instructions: 'Cite revisions', instructionsEnabled: false } },
+        settings,
+      )
+    })
+
+    it('clear writes empty text', async () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      const current = setupHook()
+      await act(() => current().clear())
+      expect(writeSettings).toHaveBeenCalledWith(
+        { qurator: { instructions: '' } },
+        settings,
+      )
+    })
+
+    it('never touches localStorage', () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      setupHook()
+      expect(window.localStorage.length).toBe(0)
+    })
+  })
+
+  describe('admin gate', () => {
+    it('non-admins cannot edit but still receive the instructions', () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      const current = setupHook()
+      expect(current().canEdit).toBe(false)
+      expect(current().active).toBe(true)
+    })
+
+    it('admins can edit', () => {
+      isAdmin = true
+      expect(setupHook()().canEdit).toBe(true)
     })
   })
 
