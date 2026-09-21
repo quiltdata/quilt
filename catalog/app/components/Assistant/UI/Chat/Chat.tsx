@@ -581,6 +581,15 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: t.typography.caption.fontSize,
     lineHeight: 1.3,
   },
+  // Sits inside the header's reserved right gutter, left of the menu button.
+  close: {
+    marginLeft: 'auto',
+    // The Focus Ring Rule (DESIGN.md §2), light half: midnight on white.
+    '&&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
+  },
   menu: {
     position: 'absolute',
     right: t.spacing(1),
@@ -615,6 +624,8 @@ interface ChatProps {
   devTools: Model.Assistant.API['devTools']
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
+  /** Rendered as a close button when the host has no scrim to dismiss. */
+  onClose?: () => void
 }
 
 export default function Chat({
@@ -623,6 +634,7 @@ export default function Chat({
   devTools,
   connectors,
   instructions,
+  onClose,
 }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -684,6 +696,16 @@ export default function Chat({
           <div className={classes.title}>Qurator</div>
           <div className={classes.subtitle}>Claude on Bedrock, with your permissions</div>
         </div>
+        {!!onClose && (
+          <M.IconButton
+            className={classes.close}
+            onClick={onClose}
+            size="small"
+            aria-label="Close Qurator"
+          >
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        )}
       </div>
       <Menu
         state={state}

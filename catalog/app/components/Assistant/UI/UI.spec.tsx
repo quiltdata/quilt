@@ -2,7 +2,7 @@ import * as React from 'react'
 import { render, cleanup } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { WithAssistantUI, Trigger } from './UI'
+import { WithAssistantUI, Trigger, usePanelReflow } from './UI'
 
 const useAssistantAPI = vi.fn()
 
@@ -10,9 +10,14 @@ vi.mock('../Model', () => ({
   useAssistantAPI: () => useAssistantAPI(),
 }))
 
-// Render the Chat subtree as a no-op; these tests only assert Fab/Drawer presence.
+// Render the Chat subtree as a no-op; these tests assert the panel host, not
+// the chat. Props are recorded so the wiring handed down can be checked.
+let chatProps: Record<string, any> | null = null
 vi.mock('./Chat', () => ({
-  default: () => null,
+  default: (props: Record<string, any>) => {
+    chatProps = props
+    return null
+  },
 }))
 
 let inlined = false
@@ -30,7 +35,14 @@ function makeAPI() {
     dispatch: vi.fn(),
     devTools: {},
     connectors: {},
+    instructions: {},
   }
+}
+
+// The gutter Layout reserves is driven by this context, so read it the way
+// Layout does rather than asserting on the paper's own fixed width.
+function Reflow() {
+  return <span data-testid="reflow">{String(usePanelReflow())}</span>
 }
 
 describe('components/Assistant/UI Trigger', () => {
@@ -67,23 +79,61 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     cleanup()
     vi.clearAllMocks()
     inlined = false
+    chatProps = null
   })
 
-  it('keeps the sidebar closed while an inline chat is active, even when visible', () => {
+  // The panel is docked, so `.MuiDrawer-root` is in the tree whether it is open
+  // or not; the paper is what `unmountOnExit` takes away when it closes.
+  const paper = (el: HTMLElement) => el.querySelector('.MuiDrawer-paper')
+
+  it('defaults closed', () => {
+    useAssistantAPI.mockReturnValue(makeAPI())
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(paper(baseElement)).toBeFalsy()
+    expect(getByTestId('reflow').textContent).toBe('false')
+  })
+
+  it('keeps the panel closed while an inline chat is active, even when visible', () => {
     inlined = true
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
-    const { baseElement } = render(<WithAssistantUI />)
-    expect(baseElement.querySelector('.MuiDrawer-root')).toBeFalsy()
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(paper(baseElement)).toBeFalsy()
+    expect(getByTestId('reflow').textContent).toBe('false')
   })
 
-  it('opens the sidebar when visible and no inline chat is active', () => {
+  it('opens as a docked panel and reflows content when visible', () => {
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
-    const { baseElement } = render(<WithAssistantUI />)
-    expect(baseElement.querySelector('.MuiDrawer-root')).toBeTruthy()
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(baseElement.querySelector('.MuiDrawer-docked')).toBeTruthy()
+    expect(paper(baseElement)).toBeTruthy()
+    expect(getByTestId('reflow').textContent).toBe('true')
+  })
+
+  it('hands the chat its wiring and a way to close the panel', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    render(<WithAssistantUI />)
+    expect(chatProps?.instructions).toBe(api.instructions)
+    expect(chatProps?.connectors).toBe(api.connectors)
+    chatProps?.onClose()
+    expect(api.hide).toHaveBeenCalled()
   })
 
   it('does not render a trigger button (trigger is now inline in the top bar)', () => {
