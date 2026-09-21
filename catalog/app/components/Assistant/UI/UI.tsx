@@ -8,8 +8,6 @@ import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
 import { PANEL_WIDTH, Context as ReflowContext } from './PanelReflow'
 
-export * from './PanelReflow'
-
 // The left rail drops to an overlay at the same threshold: under 960px a
 // 40rem panel would leave no content column to reflow.
 const useCompact = () => {
@@ -17,13 +15,28 @@ const useCompact = () => {
   return M.useMediaQuery(t.breakpoints.down('sm'))
 }
 
+// The gutter Layout holds open can only transition inside this query, so the
+// paper has to honour it too -- otherwise the column snaps and the paper slides.
+const useInstant = () => M.useMediaQuery('(prefers-reduced-motion: reduce)')
+
+// MUI hands `onClose` to a Modal, which only the `temporary` variant renders:
+// the docked panel would otherwise lose the Escape the overlay gave for free.
+// Not a focus trap -- the point of a panel that reflows is that the content
+// beside it stays usable.
+function useEscapeToClose(active: boolean, hide: () => void) {
+  React.useEffect(() => {
+    if (!active) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') hide()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [active, hide])
+}
+
 const usePanelStyles = M.makeStyles((t) => ({
   paper: {
     background: t.palette.background.default,
-    // Docked paper carries no divider of its own; the hairline is what makes
-    // the panel read as chrome against the content it pushed aside.
-    borderLeft: `1px solid ${t.palette.divider}`,
-    display: 'flex',
     width: PANEL_WIDTH,
   },
 }))
@@ -36,6 +49,8 @@ interface PanelProps {
 
 function Panel({ api, compact, open }: PanelProps) {
   const classes = usePanelStyles()
+  const instant = useInstant()
+  useEscapeToClose(open && !compact, api.hide)
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer
@@ -45,8 +60,9 @@ function Panel({ api, compact, open }: PanelProps) {
         onClose={api.hide}
         classes={{ paper: classes.paper }}
         // A persistent drawer stays in the tree when closed; without this its
-        // contents keep their tab stops offscreen.
-        SlideProps={{ unmountOnExit: true }}
+        // contents keep their tab stops offscreen. `timeout` overrides the
+        // Drawer's own Slide duration -- it spreads SlideProps last.
+        SlideProps={{ unmountOnExit: true, timeout: instant ? 0 : undefined }}
       >
         <Chat
           state={api.state}

@@ -1,8 +1,9 @@
 import * as React from 'react'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { WithAssistantUI, Trigger, usePanelReflow } from './UI'
+import { usePanelReflow } from './PanelReflow'
+import { WithAssistantUI, Trigger } from './UI'
 
 const useAssistantAPI = vi.fn()
 
@@ -80,11 +81,28 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     vi.clearAllMocks()
     inlined = false
     chatProps = null
+    delete (window as any).matchMedia
   })
 
   // The panel is docked, so `.MuiDrawer-root` is in the tree whether it is open
   // or not; the paper is what `unmountOnExit` takes away when it closes.
   const paper = (el: HTMLElement) => el.querySelector('.MuiDrawer-paper')
+
+  // jsdom ships no matchMedia, so MUI reports false for every query -- a wide
+  // viewport with no motion preference. The compact branch needs the opposite
+  // answer for the width query alone: the panel asks two.
+  const narrowViewport = () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('max-width'),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as any
+  }
 
   it('defaults closed', () => {
     useAssistantAPI.mockReturnValue(makeAPI())
@@ -123,6 +141,30 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(baseElement.querySelector('.MuiDrawer-docked')).toBeTruthy()
     expect(paper(baseElement)).toBeTruthy()
     expect(getByTestId('reflow').textContent).toBe('true')
+  })
+
+  it('stays an overlay below 960px and reserves no gutter', () => {
+    narrowViewport()
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(paper(baseElement)).toBeTruthy()
+    expect(baseElement.querySelector('.MuiDrawer-docked')).toBeFalsy()
+    expect(getByTestId('reflow').textContent).toBe('false')
+  })
+
+  it('closes the docked panel on Escape', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    render(<WithAssistantUI />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(api.hide).toHaveBeenCalled()
   })
 
   it('hands the chat its wiring and a way to close the panel', () => {

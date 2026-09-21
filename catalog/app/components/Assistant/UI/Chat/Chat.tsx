@@ -624,8 +624,7 @@ interface ChatProps {
   devTools: Model.Assistant.API['devTools']
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
-  /** Rendered as a close button when the host has no scrim to dismiss. */
-  onClose?: () => void
+  onClose: () => void
 }
 
 export default function Chat({
@@ -696,16 +695,14 @@ export default function Chat({
           <div className={classes.title}>Qurator</div>
           <div className={classes.subtitle}>Claude on Bedrock, with your permissions</div>
         </div>
-        {!!onClose && (
-          <M.IconButton
-            className={classes.close}
-            onClick={onClose}
-            size="small"
-            aria-label="Close Qurator"
-          >
-            <M.Icon>close</M.Icon>
-          </M.IconButton>
-        )}
+        <M.IconButton
+          className={classes.close}
+          onClick={onClose}
+          size="small"
+          aria-label="Close Qurator"
+        >
+          <M.Icon>close</M.Icon>
+        </M.IconButton>
       </div>
       <Menu
         state={state}
