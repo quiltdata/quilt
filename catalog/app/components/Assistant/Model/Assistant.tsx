@@ -96,10 +96,12 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
  * Known limitation: allocation happens during render via `useConst`.
  * If React aborts the render before commit (Suspense unwind, Error
  * Boundary, concurrent-mode discard), the cleanup `useEffect` never
- * fires and the lifecycle fibers leak. Mitigation: `<AssistantProvider>`
- * is mounted at app root above any Suspense boundaries. Proper fix is
- * to defer allocation into `useEffect` and expose a Loading state on
- * AssistantAPI.
+ * fires and the lifecycle fibers leak. Mitigation: in
+ * `useConstructAssistantAPI`, `useUserInstructionsContext` (the only
+ * suspending hook, via `CatalogSettings.use()`) runs before this one, so
+ * a cold-load suspend throws before `useConst` allocates; keep that
+ * order. Proper fix is to defer allocation into `useEffect` and expose a
+ * Loading state on AssistantAPI.
  */
 function useConnectors(
   configs: readonly Connectors.ConnectorConfig[],

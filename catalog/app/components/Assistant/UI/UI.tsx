@@ -7,15 +7,15 @@ import * as Model from '../Model'
 import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
 
-const useSidebarStyles = M.makeStyles({
+const useSidebarStyles = M.makeStyles((t) => ({
   sidebar: {
-    background: M.colors.indigo[50],
+    background: t.palette.background.default,
     display: 'flex',
     height: '100%',
     maxWidth: '40rem',
     width: '50vw',
   },
-})
+}))
 
 function Sidebar() {
   const classes = useSidebarStyles()
@@ -51,7 +51,7 @@ export function Trigger() {
       onClick={api.show}
       aria-label="Open Qurator AI assistant"
     >
-      <M.Icon>assistant</M.Icon>
+      <M.Icon>auto_awesome</M.Icon>
     </M.IconButton>
   )
 }
