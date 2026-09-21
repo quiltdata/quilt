@@ -33,6 +33,7 @@ function Sidebar() {
             dispatch={api.dispatch}
             devTools={api.devTools}
             connectors={api.connectors}
+            instructions={api.instructions}
           />
         </div>
       </M.Drawer>
