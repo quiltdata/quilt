@@ -2,20 +2,21 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import type * as Model from '../../Model'
+import * as UserInstructions from '../../Model/UserInstructions'
 
 // The sticky instructions strip that sits between the conversation history
 // and the composer: standing guidance ("answer in French", "always cite
-// package revisions") that rides along with every message. The strip is a
-// working surface, not chrome — Surface white over the sidebar ground,
-// delineated by a hairline, collapsible so it costs one caption row when
-// the user is done configuring it.
+// package revisions") that rides along with every message for everyone on
+// the stack. The strip is a working surface, not chrome — Surface white over
+// the sidebar ground, delineated by a hairline, collapsible so it costs one
+// caption row when nobody is configuring it.
 //
 // Qurator's amber identity marks the *state*, per the Indicator Rule: when
 // instructions are active the collapsed row wears an outlined amber
 // "Instructions on" chip — a stroke, never a fill. Muting (the switch)
-// keeps the text but stops the injection, so a user can park instructions
-// without retyping them; Clear erases the text itself.
+// keeps the text but stops the injection, so an admin can park instructions
+// without retyping them; Clear erases the text itself. Non-admins get the
+// same readout but no controls: the text is theirs to see, not to change.
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
@@ -28,17 +29,20 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(1, 2),
     textAlign: 'left',
     width: '100%',
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
   },
   headerIcon: {
     color: t.palette.text.secondary,
     fontSize: t.typography.body1.fontSize,
   },
   headerLabel: {
-    ...t.typography.caption,
+    ...t.typography.overline,
     color: t.palette.text.secondary,
     fontWeight: t.typography.fontWeightMedium,
-    letterSpacing: '.07em',
-    textTransform: 'uppercase',
+    lineHeight: 1,
   },
   chipOn: {
     borderColor: t.palette.secondary.main,
@@ -64,6 +68,11 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(1),
     padding: t.spacing(0, 2, 1.5),
   },
+  readOnly: {
+    ...t.typography.body2,
+    color: t.palette.text.primary,
+    whiteSpace: 'pre-wrap',
+  },
   controls: {
     alignItems: 'center',
     display: 'flex',
@@ -73,26 +82,39 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.caption,
     color: t.palette.text.secondary,
   },
-  clear: {
+  actions: {
+    display: 'flex',
+    gap: t.spacing(1),
     marginLeft: 'auto',
   },
   hint: {
     ...t.typography.caption,
     color: t.palette.text.hint,
   },
+  error: {
+    ...t.typography.caption,
+    color: t.palette.error.main,
+  },
 }))
 
 const PLACEHOLDER =
   'e.g. Prefer concise answers. Always cite package names and revisions.'
 
+const HINT_ADMIN =
+  'Applies to everyone on this stack, sent with every message as part of the prompt.'
+const HINT_READ_ONLY = 'Set by an admin for everyone on this stack.'
+const EMPTY_READ_ONLY = 'No instructions set for this stack.'
+
 interface InstructionsProps {
   className?: string
-  instructions: Model.UserInstructions.UserInstructions
+  instructions: UserInstructions.UserInstructions
 }
 
 export default function Instructions({ className, instructions }: InstructionsProps) {
   const classes = useStyles()
-  const { text, setText, enabled, setEnabled, clear, active } = instructions
+  const { text, enabled, active, canEdit } = instructions
+  const { draft, setDraft, dirty, pending, error, save, toggle, onClear } =
+    UserInstructions.useInstructionsEditor(instructions)
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((prev) => !prev), [])
@@ -134,42 +156,67 @@ export default function Instructions({ className, instructions }: InstructionsPr
       </M.ButtonBase>
       <M.Collapse in={expanded}>
         <div className={classes.body}>
-          <M.TextField
-            fullWidth
-            multiline
-            rows={3}
-            rowsMax={8}
-            variant="outlined"
-            placeholder={PLACEHOLDER}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            inputProps={{ 'aria-label': 'Qurator instructions' }}
-          />
-          <div className={classes.controls}>
-            <M.FormControlLabel
-              classes={{ label: classes.switchLabel }}
-              control={
-                <M.Switch
-                  checked={enabled}
-                  color="secondary"
-                  onChange={(e) => setEnabled(e.target.checked)}
-                  size="small"
+          {canEdit ? (
+            <>
+              <M.TextField
+                fullWidth
+                multiline
+                rows={3}
+                rowsMax={8}
+                variant="outlined"
+                placeholder={PLACEHOLDER}
+                value={draft}
+                disabled={pending}
+                onChange={(e) => setDraft(e.target.value)}
+                inputProps={{ 'aria-label': 'Qurator instructions' }}
+              />
+              <div className={classes.controls}>
+                <M.FormControlLabel
+                  classes={{ label: classes.switchLabel }}
+                  control={
+                    <M.Switch
+                      checked={enabled}
+                      color="primary"
+                      disabled={pending}
+                      onChange={toggle}
+                      size="small"
+                    />
+                  }
+                  label="Apply to every message"
                 />
-              }
-              label="Apply to every message"
-            />
-            <M.Button
-              className={classes.clear}
-              disabled={!text}
-              onClick={clear}
-              size="small"
-            >
-              Clear
-            </M.Button>
-          </div>
-          <span className={classes.hint}>
-            Sent with every message as part of the prompt. Stored in this browser only.
-          </span>
+                <div className={classes.actions}>
+                  <M.Button
+                    disabled={!(draft || text) || pending}
+                    onClick={onClear}
+                    size="small"
+                  >
+                    Clear
+                  </M.Button>
+                  <M.Button
+                    color="primary"
+                    disabled={!dirty || pending}
+                    onClick={save}
+                    size="small"
+                    variant="outlined"
+                  >
+                    Save
+                  </M.Button>
+                </div>
+              </div>
+              {error ? (
+                <span className={classes.error} role="alert">
+                  {error}
+                </span>
+              ) : (
+                <span className={classes.hint}>{HINT_ADMIN}</span>
+              )}
+            </>
+          ) : (
+            <>
+              <div className={classes.readOnly}>{text.trim() || EMPTY_READ_ONLY}</div>
+              <span className={classes.hint}>{HINT_READ_ONLY}</span>
+            </>
+          )}
         </div>
       </M.Collapse>
     </div>
