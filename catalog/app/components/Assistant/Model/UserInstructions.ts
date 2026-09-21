@@ -56,11 +56,13 @@ export function useUserInstructions(): UserInstructions {
 
   const write = React.useCallback(
     (patch: NonNullable<CatalogSettings.CatalogSettings['qurator']>) =>
-      writeSettings(
-        { ...settings, qurator: { ...settings?.qurator, ...patch } },
-        settings,
-      ),
-    [settings, writeSettings],
+      canEdit
+        ? writeSettings(
+            { ...settings, qurator: { ...settings?.qurator, ...patch } },
+            settings,
+          )
+        : Promise.reject(new Error('Only admins can change Qurator instructions')),
+    [canEdit, settings, writeSettings],
   )
 
   const setText = React.useCallback(

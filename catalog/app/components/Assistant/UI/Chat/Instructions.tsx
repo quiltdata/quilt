@@ -31,6 +31,10 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(1, 2),
     textAlign: 'left',
     width: '100%',
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
   },
   headerIcon: {
     color: t.palette.text.secondary,

@@ -80,6 +80,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
     })
 
     it('setText writes the whole document with the snapshot as expected prior state', async () => {
+      isAdmin = true
       settings = { beta: true, qurator: { instructionsEnabled: false } }
       const current = setupHook()
       await act(() => current().setText('Answer in French'))
@@ -95,6 +96,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
     })
 
     it('setEnabled keeps the text and only flips the flag', async () => {
+      isAdmin = true
       settings = { qurator: { instructions: 'Cite revisions' } }
       const current = setupHook()
       await act(() => current().setEnabled(false))
@@ -105,6 +107,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
     })
 
     it('clear writes empty text', async () => {
+      isAdmin = true
       settings = { qurator: { instructions: 'Be terse' } }
       const current = setupHook()
       await act(() => current().clear())
@@ -114,10 +117,15 @@ describe('components/Assistant/Model/UserInstructions', () => {
       )
     })
 
-    it('never touches localStorage', () => {
+    it('never touches localStorage', async () => {
+      isAdmin = true
       settings = { qurator: { instructions: 'Be terse' } }
-      setupHook()
+      const spy = vi.spyOn(Storage.prototype, 'setItem')
+      const current = setupHook()
+      await act(() => current().setText('Answer in French'))
+      expect(spy).not.toHaveBeenCalled()
       expect(window.localStorage.length).toBe(0)
+      spy.mockRestore()
     })
   })
 
@@ -127,6 +135,13 @@ describe('components/Assistant/Model/UserInstructions', () => {
       const current = setupHook()
       expect(current().canEdit).toBe(false)
       expect(current().active).toBe(true)
+    })
+
+    it('non-admin writes are rejected before reaching the stack', async () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      const current = setupHook()
+      await expect(current().setText('x')).rejects.toThrow(/admins/)
+      expect(writeSettings).not.toHaveBeenCalled()
     })
 
     it('admins can edit', () => {
