@@ -2,7 +2,6 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
@@ -16,12 +15,6 @@ import DevTools from './DevTools'
 import Input from './Input'
 import Instructions from './Instructions'
 import MessageAction from './MessageAction'
-
-const BG = {
-  intense: M.colors.indigo[900],
-  normal: M.colors.common.white,
-  faint: M.colors.grey[600],
-}
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   align_left: {},
@@ -45,23 +38,23 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     maxWidth: '100%',
   },
+  // Three registers, all from the theme: the user's turn on the chassis, the
+  // answer on paper, tool calls as a quiet outlined card that is legible
+  // without hovering.
   contentArea: {
-    borderRadius: `${t.spacing(1)}px`,
+    borderRadius: t.shape.borderRadius * 2,
     '$color_intense &': {
-      background: BG.intense,
-      color: M.fade(t.palette.common.white, 0.8),
+      background: t.palette.primary.main,
+      color: t.palette.primary.contrastText,
     },
     '$color_normal &': {
-      background: BG.normal,
+      background: t.palette.background.paper,
       color: t.palette.text.primary,
     },
     '$color_faint &': {
-      background: BG.faint,
-      color: t.palette.getContrastText(BG.faint),
-      opacity: 0.5,
-      '&:hover': {
-        opacity: 1,
-      },
+      background: t.palette.background.paper,
+      border: `1px solid ${t.palette.divider}`,
+      color: t.palette.text.secondary,
     },
     '$align_right &': {
       borderBottomRightRadius: 0,
@@ -81,12 +74,12 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     gap: t.spacing(1),
     justifyContent: 'flex-end',
     paddingLeft: t.spacing(4),
-    paddingTop: '6px',
+    paddingTop: t.spacing(0.75),
   },
   actions: {
-    opacity: 0.7,
-    '$messageContainer:hover &': {
-      opacity: 1,
+    color: t.palette.text.secondary,
+    '$messageContainer:hover &, $messageContainer:focus-within &': {
+      color: t.palette.text.primary,
     },
   },
 }))
@@ -131,25 +124,42 @@ function MessageContainer({
 }
 
 const useToolMessageStyles = M.makeStyles((t) => ({
+  // A real button: the whole row toggles, so it takes focus and the ring
+  // (Focus Ring Rule) instead of an opacity dip on hover.
   header: {
-    display: 'flex',
+    ...t.typography.body2,
     alignItems: 'center',
-    cursor: 'pointer',
-    userSelect: 'none',
+    borderRadius: t.shape.borderRadius,
+    color: 'inherit',
+    display: 'flex',
+    gap: t.spacing(1),
+    justifyContent: 'flex-start',
+    margin: t.spacing(-0.5, -1),
+    padding: t.spacing(0.5, 1),
+    width: `calc(100% + ${t.spacing(2)}px)`,
     '&:hover': {
-      opacity: 0.8,
+      color: t.palette.text.primary,
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 2,
     },
   },
   icon: {
     fontSize: t.typography.body1.fontSize,
-    color: 'inherit',
   },
   toolName: {
-    marginLeft: t.spacing(1),
-    marginRight: t.spacing(1),
+    flexGrow: 1,
+    textAlign: 'left',
   },
-  spinner: {
-    color: 'inherit',
+  running: {
+    color: t.palette.secondary.main,
+  },
+  success: {
+    color: t.palette.success.main,
+  },
+  error: {
+    color: t.palette.error.main,
   },
   details: {
     marginTop: t.spacing(1),
@@ -182,15 +192,32 @@ function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageP
 
   return (
     <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
-      <div className={classes.header} onClick={toggleExpanded}>
-        <Icons.Build className={classes.icon} />
+      <M.ButtonBase
+        className={classes.header}
+        onClick={toggleExpanded}
+        aria-expanded={expanded}
+      >
+        <M.Icon className={classes.icon}>build</M.Icon>
         <span className={classes.toolName}>{name}</span>
-        {status === 'success' && <Icons.CheckCircleOutline className={classes.icon} />}
-        {status === 'error' && <Icons.ErrorOutline className={classes.icon} />}
-        {status === 'running' && (
-          <M.CircularProgress size={14} thickness={4} className={classes.spinner} />
+        {status === 'success' && (
+          <M.Icon className={cx(classes.icon, classes.success)} aria-label="Succeeded">
+            check_circle_outline
+          </M.Icon>
         )}
-      </div>
+        {status === 'error' && (
+          <M.Icon className={cx(classes.icon, classes.error)} aria-label="Failed">
+            error_outline
+          </M.Icon>
+        )}
+        {status === 'running' && (
+          <M.CircularProgress
+            size={14}
+            thickness={4}
+            className={classes.running}
+            aria-label="Running"
+          />
+        )}
+      </M.ButtonBase>
       <M.Collapse in={expanded}>
         <div className={classes.details}>
           <JsonDisplay defaultExpanded={2} name="details" value={details} />
@@ -419,7 +446,7 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
     <>
       <M.Fade in={!devToolsOpen}>
         <M.IconButton
-          aria-label="menu"
+          aria-label="Qurator menu"
           aria-haspopup="true"
           onClick={toggleMenu}
           className={className}
@@ -454,8 +481,8 @@ const useConnectorHelperStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(0.5),
   },
   separator: {
+    color: t.palette.text.disabled,
     margin: t.spacing(0, 0.5),
-    opacity: 0.5,
   },
 }))
 
@@ -567,14 +594,6 @@ const useStyles = M.makeStyles((t) => ({
   historyContainer: {
     flexGrow: 1,
     overflowY: 'auto',
-    // TODO: nice overflow markers
-    // position: 'relative',
-    // '&::before': {
-    //   content: '""',
-    //   position: 'absolute',
-    // },
-    // '&::after': {
-    // },
   },
   history: {
     display: 'flex',
@@ -585,7 +604,6 @@ const useStyles = M.makeStyles((t) => ({
     padding: `${t.spacing(3)}px`,
     paddingBottom: 0,
   },
-  input: {},
   connectorLine: {
     display: 'block',
   },
@@ -716,7 +734,6 @@ export default function Chat({
                     details={e.details}
                     timestamp={s.timestamp}
                   />
-                  // TODO: retry / discard
                 ),
                 onNone: () => null,
               }),
@@ -735,7 +752,6 @@ export default function Chat({
       </div>
       <Instructions instructions={instructions} />
       <Input
-        className={classes.input}
         disabled={inputDisabled}
         helperText={helperText}
         helperSeverity={helperSeverity}

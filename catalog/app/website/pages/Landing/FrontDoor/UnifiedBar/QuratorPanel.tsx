@@ -75,14 +75,13 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(2),
   },
   lbl: {
+    ...t.typography.overline,
     alignItems: 'center',
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: t.typography.caption.fontSize,
     gap: t.spacing(0.5),
-    letterSpacing: '.07em',
+    lineHeight: 1.5,
     marginBottom: t.spacing(1),
-    textTransform: 'uppercase',
   },
   crit: {
     display: 'flex',
@@ -125,7 +124,7 @@ export default function QuratorPanel({ query, onRun, onJustSearch }: QuratorPane
         </span>
         <M.Typography className={classes.title}>Qurator</M.Typography>
         {instructions?.active && (
-          <M.Tooltip title="Your saved instructions are sent along when Qurator runs. Edit them in the assistant panel.">
+          <M.Tooltip title="Stack instructions set by an admin are sent along when Qurator runs.">
             <M.Chip
               className={classes.instructionsChip}
               label="Instructions on"

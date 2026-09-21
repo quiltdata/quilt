@@ -37,6 +37,7 @@ vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
 // spec can import the one component it tests without dragging in GraphQL.
 vi.mock('./FeatureSettings', () => ({ default: () => null, HAS_PREVIEW_FEATURES: false }))
 vi.mock('./PackagerSettings', () => ({ default: () => null }))
+vi.mock('./QuratorSettings', () => ({ default: () => null }))
 vi.mock('./SearchSettings', () => ({ default: () => null }))
 vi.mock('./TabulatorSettings', () => ({ default: () => null }))
 vi.mock('./ThemeEditor', () => ({ default: () => null }))
