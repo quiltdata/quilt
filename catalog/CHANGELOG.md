@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] A custom logo now scales to fit its slot instead of being clipped by it, so a wide lockup stays readable in the folded sidebar ([#5319](https://github.com/quiltdata/quilt/pull/5319))
 - [Added] Mermaid: a ```mermaid fence in any Markdown the catalog renders draws as a zoomable diagram, with a Markdown view to read its source ([#5269](https://github.com/quiltdata/quilt/pull/5269))
 - [Added] The sidebar folds to an icon rail and back — the chevron on its edge or `[` — and remembers the choice, giving wide tables and previews the room; typing `[` in a metadata cell still starts an array ([#5289](https://github.com/quiltdata/quilt/pull/5289))
 - [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5293](https://github.com/quiltdata/quilt/pull/5293))
