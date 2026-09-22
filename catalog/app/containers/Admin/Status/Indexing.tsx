@@ -2,11 +2,12 @@ import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
-import * as urql from 'urql'
 
 import Skeleton from 'components/Skeleton'
 import * as APIConnector from 'utils/APIConnector'
 import { useQuery } from 'utils/GraphQL'
+
+import BUCKET_CONFIGS_QUERY from '../Buckets/gql/BucketConfigs.generated'
 
 type ScannerJob = {
   id: number
@@ -17,11 +18,6 @@ type ScannerJob = {
   time_created: string
   next_key_marker?: string | null
   next_version_id_marker?: string | null
-}
-
-type BucketShardInfo = {
-  name: string
-  scannerParallelShardsDepth: number | null
 }
 
 const POLL_MS = 10_000
@@ -37,22 +33,13 @@ const REQUEST_TIMEOUT_MS = 2 * POLL_MS
 
 const CAVEATS_ID = 'indexing-caveats'
 
-const BUCKET_SHARD_DEPTHS_QUERY = urql.gql`
-  query {
-    bucketConfigs {
-      name
-      scannerParallelShardsDepth
-    }
-  }
-`
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2),
     position: 'relative',
-    // The re-index dialog deep-links to #indexing, and the page scrolls under
-    // Layout's sticky ContentBar (64px min-height), which would otherwise cover
-    // this panel's heading on arrival. The unit is explicit because JSS's
+    // #indexing is a deep-link target, and the page scrolls under Layout's
+    // sticky ContentBar (64px min-height), which would otherwise cover this
+    // panel's heading on arrival. The unit is explicit because JSS's
     // default-unit plugin has no scroll-margin entry, so a bare number here
     // would emit an invalid declaration that the browser drops.
     scrollMarginTop: `${64 + t.spacing(2)}px`,
@@ -127,12 +114,14 @@ function useBulkScannerJobs(pollMs: number) {
   const req = APIConnector.use()
   const [jobs, setJobs] = React.useState<ScannerJob[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const [busy, setBusy] = React.useState(false)
   const seqRef = React.useRef(0)
 
   const load = React.useCallback(async () => {
     const seq = ++seqRef.current
     const ctl = new AbortController()
     let timer = 0
+    setBusy(true)
     try {
       // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
       const data = (await Promise.race([
@@ -159,6 +148,7 @@ function useBulkScannerJobs(pollMs: number) {
       setError('Could not load scanner jobs')
     } finally {
       window.clearTimeout(timer)
+      if (seq === seqRef.current) setBusy(false)
     }
   }, [req])
 
@@ -176,11 +166,14 @@ function useBulkScannerJobs(pollMs: number) {
     cycle()
     return () => {
       stopped = true
+      // Supersede any in-flight request so its response cannot set state on an
+      // unmounted component; the guards in `load` already discard stale seqs.
+      seqRef.current += 1
       window.clearTimeout(timer)
     }
   }, [load, pollMs])
 
-  return { jobs, error, reload: load }
+  return { jobs, error, busy, reload: load }
 }
 
 type Movement = { cursor: string; seenAt: number; moved: boolean }
@@ -226,7 +219,7 @@ function useCursorMovement(jobs: ScannerJob[] | null) {
 }
 
 function useBucketShardDepths() {
-  const result = useQuery<{ bucketConfigs: BucketShardInfo[] }>(BUCKET_SHARD_DEPTHS_QUERY)
+  const result = useQuery(BUCKET_CONFIGS_QUERY)
 
   return React.useMemo(() => {
     const next: Record<string, number | null> = {}
@@ -249,7 +242,7 @@ function LoadingRows() {
 
 export default function Indexing() {
   const classes = useStyles()
-  const { jobs, error, reload } = useBulkScannerJobs(POLL_MS)
+  const { jobs, error, busy, reload } = useBulkScannerJobs(POLL_MS)
   const shardDepths = useBucketShardDepths()
   const [detailsOpen, setDetailsOpen] = React.useState(false)
 
@@ -257,8 +250,13 @@ export default function Indexing() {
     if (!jobs) return []
     const names = new Set<string>()
     for (const job of jobs) {
-      // Full-bucket wipe only: empty prefix and not a top-level-only (ignore_dirs) job.
-      if (job.prefix !== '' || job.ignore_dirs) continue
+      // Full-bucket wipe only: no prefix and not a top-level-only (ignore_dirs)
+      // job. The prefix test is falsy rather than `!== ''` because the re-index
+      // dialog sends no prefix field, which the registry stores as null.
+      if (job.prefix || job.ignore_dirs) continue
+      // An exhausted job is not going to finish, so promising that search comes
+      // back "when the rescan finishes" would be false.
+      if (job.retries_remaining <= 0) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
       const depth = shardDepths[job.name]
@@ -288,7 +286,7 @@ export default function Indexing() {
 
       <div className={classes.titleRow}>
         <M.Typography variant="h5">Indexing</M.Typography>
-        <M.Button size="small" onClick={reload} disabled={loading}>
+        <M.Button size="small" onClick={reload} disabled={busy}>
           Refresh
         </M.Button>
       </div>
@@ -332,7 +330,7 @@ export default function Indexing() {
         </M.Collapse>
       </div>
 
-      {emptySearchBuckets.length > 0 && (
+      {!error && emptySearchBuckets.length > 0 && (
         <div className={classes.warning}>
           <M.Typography variant="body2" color="inherit">
             Full-bucket re-index in progress for{' '}
@@ -391,7 +389,9 @@ export default function Indexing() {
                       a pointer. */}
                   <M.TableCell className={classes.mono}>{cursor}</M.TableCell>
                   <M.TableCell>
-                    {dateFns.formatDistanceToNow(created, { addSuffix: true })}
+                    {dateFns.isValid(created)
+                      ? dateFns.formatDistanceToNow(created, { addSuffix: true })
+                      : '—'}
                     {exhausted && ' · exhausted'}
                   </M.TableCell>
                   <M.TableCell align="right" className={classes.numeric}>

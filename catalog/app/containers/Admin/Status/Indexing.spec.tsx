@@ -6,10 +6,14 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 const mocks = vi.hoisted(() => ({ req: vi.fn() }))
 
 vi.mock('utils/APIConnector', () => ({ use: () => mocks.req }))
-// The panel only reads bucketConfigs to gate the empty-search warning; every
-// job here is ignore_dirs, which that gate skips before consulting shard depth.
+// The panel reads bucketConfigs only to gate the empty-search warning, and
+// only unsharded buckets qualify. Every job here is bucket-a, so one entry at
+// null depth is what lets the warning tests reach that gate at all.
 vi.mock('utils/GraphQL', () => ({
-  useQuery: () => ({ data: { bucketConfigs: [] }, fetching: false }),
+  useQuery: () => ({
+    data: { bucketConfigs: [{ name: 'bucket-a', scannerParallelShardsDepth: null }] },
+    fetching: false,
+  }),
 }))
 
 import Indexing from './Indexing'
@@ -23,19 +27,25 @@ type JobOverrides = {
   retries_remaining?: number
   id?: number
   next_key_marker?: string | null
+  prefix?: string | null
+  ignore_dirs?: boolean | null
+  time_created?: string
 }
 
 const job = ({
   id = 1,
   retries_remaining = 3,
   next_key_marker = null,
+  prefix = '',
+  ignore_dirs = true,
+  time_created = new Date().toISOString(),
 }: JobOverrides = {}) => ({
   id,
   name: 'bucket-a',
-  prefix: '',
-  ignore_dirs: true,
+  prefix,
+  ignore_dirs,
   retries_remaining,
-  time_created: new Date().toISOString(),
+  time_created,
   next_key_marker,
 })
 
@@ -222,5 +232,41 @@ describe('containers/Admin/Status/Indexing', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('warns about empty search when the full-bucket job carries no prefix field', async () => {
+    mocks.req.mockReset()
+    // The re-index dialog omits prefix entirely, so the registry stores null.
+    // Comparing against '' would have missed exactly the jobs this warns about.
+    mocks.req.mockResolvedValue({
+      results: [job({ prefix: null, ignore_dirs: false })],
+    })
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/returns nothing until the rescan finishes/)).toBeTruthy(),
+    )
+  })
+
+  it('does not promise search comes back for a job that ran out of attempts', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValue({
+      results: [job({ prefix: null, ignore_dirs: false, retries_remaining: 0 })],
+    })
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByText('No jobs outstanding')).toBeTruthy())
+    expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
+  })
+
+  it('renders a placeholder rather than "Invalid Date" for an unparseable timestamp', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValue({ results: [job({ time_created: 'not a date' })] })
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByText('bucket-a')).toBeTruthy())
+    // date-fns throws on an invalid date, which the admin error boundary would
+    // turn into a blank Status tab.
+    expect(screen.getByText('—')).toBeTruthy()
   })
 })

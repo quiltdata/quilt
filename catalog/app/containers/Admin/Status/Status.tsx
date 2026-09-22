@@ -28,7 +28,10 @@ export default function Status() {
     if (window.location.hash !== '#indexing') return
     const el = document.getElementById('indexing')
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [status])
+    // One shot: the panel renders outside the status branch, so #indexing
+    // exists on first commit and a re-run would yank a scrolled-down admin
+    // back up whenever the status query settles.
+  }, [])
 
   return (
     <M.Box my={2}>
