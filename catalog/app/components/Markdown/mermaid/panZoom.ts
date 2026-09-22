@@ -48,7 +48,8 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   if (!base) return () => {}
 
   let view: VB.ViewBox = { ...base }
-  let drag: { x: number; y: number; from: VB.ViewBox } | null = null
+  // `at` is the grabbed diagram point; a drag keeps it under the cursor.
+  let drag: { at: VB.Point } | null = null
 
   // mermaid caps the svg at the diagram's natural width. Keep that cap so a small
   // diagram is not blown up to the column, and fit a wide one to the column
@@ -90,7 +91,9 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0 || VB.isFit(base, view)) return
-    drag = { x: e.clientX, y: e.clientY, from: { ...view } }
+    const at = toDiagram(svg, e.clientX, e.clientY)
+    if (!at) return
+    drag = { at }
     // Capture keeps a drag alive when the cursor leaves the diagram, but throws if
     // the pointer is already gone. The drag works without it (pointerup is heard
     // on the window), so never let that throw escape the handler.
@@ -105,20 +108,11 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   const onPointerMove = (e: PointerEvent) => {
     if (!drag) return
     e.preventDefault()
-    const rect = svg.getBoundingClientRect()
-    if (!rect.width || !rect.height) return
-    // Measure the drag against the viewBox at pointerdown: applying deltas to a
-    // view that is itself moving would compound them.
-    const perPxX = drag.from.w / rect.width
-    const perPxY = drag.from.h / rect.height
-    apply(
-      VB.panBy(
-        base,
-        drag.from,
-        (e.clientX - drag.x) * perPxX,
-        (e.clientY - drag.y) * perPxY,
-      ),
-    )
+    // Map the cursor through the CTM, as zoom does, so a letterboxed svg pans
+    // true; then move the view so the grabbed point sits under the cursor again.
+    const now = toDiagram(svg, e.clientX, e.clientY)
+    if (!now) return
+    apply(VB.panBy(base, view, now.x - drag.at.x, now.y - drag.at.y))
   }
 
   const endDrag = (e: PointerEvent) => {

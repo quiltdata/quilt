@@ -189,9 +189,13 @@ const idOf = (v: unknown): number | null => {
   return ids.get(key) as number
 }
 
+// Same options as the renderer: `html: true` changes what is a fence (one inside
+// an unbroken html block is not), so the two must not disagree.
+const MD_OPTS = { highlight, html: true, linkify: true, typographer: true }
+
 // Whether `data` holds a mermaid fence, decided by the same parser and predicate
 // that draw one, so a nested example fence or an indented list fence agree.
-const bare = new MarkdownIt()
+const bare = new MarkdownIt(MD_OPTS)
 export const hasMermaidFence = (data: string) => bare.parse(data, {}).some(isMermaidFence)
 
 // The processors are per file, so a session that browses many files would
@@ -201,12 +205,7 @@ const MAX_RENDERERS = 16
 
 const buildRenderer = memoize(
   ({ processImg, processLink, win = window, drawMermaid = true }: RendererArgs) => {
-    const md = new MarkdownIt({
-      highlight,
-      html: true,
-      linkify: true,
-      typographer: true,
-    })
+    const md = new MarkdownIt(MD_OPTS)
     md.use(checkboxHandler)
     if (drawMermaid) md.use(fenceHandler)
     const purify = createDOMPurify(win as $TSFixMe)
@@ -300,7 +299,9 @@ const useContainerStyles = M.makeStyles((t: M.Theme) => ({
     },
     [`& pre.${ZOOMED_CLASS}`]: {
       overflow: 'hidden',
-      /* A dragged diagram must not select the prose around it. */
+      /* A dragged diagram must not select the prose around it, and on touch the
+       * drag is the pan, not a page scroll. */
+      touchAction: 'none',
       userSelect: 'none',
     },
     [`& .${CONTROLS_CLASS}`]: {

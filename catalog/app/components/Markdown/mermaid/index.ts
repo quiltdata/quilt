@@ -82,7 +82,7 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
         securityLevel: 'strict',
         theme: 'neutral',
       })
-      for (let i = 0; i < nodes.length; i++) {
+      for (let i = 0; i < nodes.length && !stale; i++) {
         const node = nodes[i]
         // textContent, not innerHTML: the source was html-escaped for the
         // sanitizer and this reads it back as the author wrote it.

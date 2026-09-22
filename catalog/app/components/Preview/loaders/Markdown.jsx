@@ -18,6 +18,8 @@ import useGate from './useGate'
 import * as utils from './utils'
 
 export const FILE_TYPE = FileType.Markdown
+// The Mermaid view mode is this loader's too: `?mode=mermaid` must route here.
+export const MODES = [FileType.Mermaid]
 
 // TODO: resolve relative paths inside packages?
 function useImgProcessor(handle) {

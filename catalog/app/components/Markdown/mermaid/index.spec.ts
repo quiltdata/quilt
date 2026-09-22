@@ -98,6 +98,8 @@ describe('components/Markdown/mermaid', () => {
       expect(hasMermaidFence('```mermaidish\nnope\n```')).toBe(false)
       // a mermaid fence quoted inside a wider fence is literal text
       expect(hasMermaidFence(`\`\`\`\`markdown\n${DIAGRAM}\n\`\`\`\``)).toBe(false)
+      // with `html: true`, an unbroken html block swallows the fence
+      expect(hasMermaidFence(`<div>\n${DIAGRAM}\n</div>`)).toBe(false)
     })
   })
 })
