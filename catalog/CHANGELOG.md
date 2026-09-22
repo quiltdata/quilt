@@ -21,8 +21,10 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Admin status: a hung request to the indexing endpoint now times out instead of leaving the panel animating over minutes-old data with no error ([#PRNUM](https://github.com/quiltdata/quilt/pull/PRNUM))
 - [Changed] Qurator opens as a right side panel that pushes page content aside instead of an overlay that covers it, so the chat and the data it is about are readable at once; it still defaults closed, and narrow viewports keep the overlay ([#5312](https://github.com/quiltdata/quilt/pull/5312))
 - [Changed] Qurator instructions are a stack-wide setting that admins edit from Admin → Settings or the chat strip, so every user's Qurator follows one steer instead of per-browser notes ([#5311](https://github.com/quiltdata/quilt/pull/5311))
+- [Fixed] Admin status: the indexing panel animates only for jobs whose resume marker actually moved, so a stalled scan no longer reads as live scanning ([#5309](https://github.com/quiltdata/quilt/pull/5309))
 - [Changed] Admin status: the indexing panel shows an indeterminate activity strip and a job count while scans run, instead of leaving an admin unable to tell a live scan from an idle queue ([#5308](https://github.com/quiltdata/quilt/pull/5308))
 - [Added] Admin buckets: a bucket's bulk scan scope is editable on the add and edit forms, so an admin can limit which prefixes the scanner enqueues without the SDK ([#5305](https://github.com/quiltdata/quilt/pull/5305))
 - [Added] Package revisions can be deleted in bulk: select revisions on the revision list and delete them together, or delete a whole package from the revision menu ([#5303](https://github.com/quiltdata/quilt/pull/5303))
