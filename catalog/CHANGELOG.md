@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Website pages no longer force full-bleed content, so the OPEN-mode landing's Volumes list carries the standard horizontal page inset instead of running edge to edge ([#5316](https://github.com/quiltdata/quilt/pull/5316))
 - [Removed] The OPEN-mode landing no longer renders its own hero search above the global ContentBar search, leaving one search bar and the Volumes list at the top of the page ([#5315](https://github.com/quiltdata/quilt/pull/5315))
 - [Added] Admin roles: deleting a role that owns data products is refused, and the screen names that reason instead of reporting a generic "Error deleting role" ([#5299](https://github.com/quiltdata/quilt/pull/5299))
 - [Fixed] Queries: the query selector announces its label to assistive tech, and no longer claims "Custom" is loaded while its helper text reports the query failed to load ([#5260](https://github.com/quiltdata/quilt/pull/5260))

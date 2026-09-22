@@ -33,7 +33,8 @@ function UserInfo() {
 
 export default function OpenProfile() {
   return (
-    <Layout>
+    // Full-bleed: `UserInfo` supplies its own inset via `M.Container`.
+    <Layout flush>
       <UserInfo />
     </Layout>
   )

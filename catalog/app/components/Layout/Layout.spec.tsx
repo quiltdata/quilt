@@ -99,6 +99,18 @@ describe('components/Layout/Layout (shell adaptation)', () => {
     expect(last(sidebarProps).open).toBe(false)
   })
 
+  // The inset is on by default and `flush` is the only opt-out. Three website
+  // pages once carried `flush={false}` to undo a hard-coded `flush` one layer
+  // up; nothing failed when it was there, so pin the default here.
+  it('insets page content unless the page asks to be flush', () => {
+    // By class, not computed style: jsdom does not resolve JSS-injected rules.
+    const padded = renderShell(<Layout>content</Layout>)
+    expect(padded.container.querySelector('[class*="padded"]')).not.toBeNull()
+    cleanup()
+    const flush = renderShell(<Layout flush>content</Layout>)
+    expect(flush.container.querySelector('[class*="padded"]')).toBeNull()
+  })
+
   // `bare` pages (sign-in) mount neither the rail nor the header band, so the
   // compact switch must not conjure either one.
   it('leaves bare pages alone in both modes', () => {
