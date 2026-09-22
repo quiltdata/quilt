@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Removed] The OPEN-mode landing no longer renders its own hero search above the global ContentBar search, leaving one search bar and the Volumes list at the top of the page ([#5315](https://github.com/quiltdata/quilt/pull/5315))
 - [Added] Admin roles: deleting a role that owns data products is refused, and the screen names that reason instead of reporting a generic "Error deleting role" ([#5299](https://github.com/quiltdata/quilt/pull/5299))
 - [Fixed] Queries: the query selector announces its label to assistive tech, and no longer claims "Custom" is loaded while its helper text reports the query failed to load ([#5260](https://github.com/quiltdata/quilt/pull/5260))
 - [Changed] The `data-products` demo fixture data no longer ships in the bundles a browser downloads on the volumes landing; it loads only when the preview is on ([#5259](https://github.com/quiltdata/quilt/pull/5259))
