@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
+import * as Buckets from 'utils/Buckets'
 import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
@@ -17,8 +18,15 @@ import Instructions from './Instructions'
 import MessageAction from './MessageAction'
 import { toCurrentStack } from './links'
 
-// Module-level so `getRenderer` memoizes on a stable identity.
-const processLink = (href: string) => toCurrentStack(href, window.location.origin)
+// `getRenderer` memoizes on the processor's identity, so this must stay stable;
+// `useIsInStack` returns a callback keyed on the bucket list, which does.
+function useProcessLink() {
+  const isInStack = Buckets.useIsInStack()
+  return React.useCallback(
+    (href: string) => toCurrentStack(href, window.location.origin, isInStack),
+    [isInStack],
+  )
+}
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   align_left: {},
@@ -235,7 +243,7 @@ type MessageEventProps = ConversationDispatchProps &
   ConversationStateProps &
   ReturnType<typeof Model.Conversation.Event.Message>
 
-function MessageEvent({
+export function MessageEvent({
   state,
   id,
   timestamp,
@@ -249,6 +257,11 @@ function MessageEvent({
     [dispatch, id, state],
   )
 
+  // Only the assistant's links are retargeted: a host the user typed is a host
+  // the user meant.
+  const processLink = useProcessLink()
+  const processAssistantLink = role === 'user' ? undefined : processLink
+
   return (
     <MessageContainer
       color={role === 'user' ? 'intense' : 'normal'}
@@ -257,7 +270,7 @@ function MessageEvent({
       timestamp={timestamp}
     >
       {Model.Content.MessageContentBlock.$match(content, {
-        Text: ({ text }) => <Markdown data={text} processLink={processLink} />,
+        Text: ({ text }) => <Markdown data={text} processLink={processAssistantLink} />,
         Image: ({ format }) => `${format} image`,
         Document: ({ name, format }) => `${format} document "${name}"`,
       })}
