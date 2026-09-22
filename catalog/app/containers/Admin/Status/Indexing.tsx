@@ -37,11 +37,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2),
     position: 'relative',
-    // #indexing is a deep-link target, and the page scrolls under Layout's
-    // sticky ContentBar (64px min-height), which would otherwise cover this
-    // panel's heading on arrival. The unit is explicit because JSS's
-    // default-unit plugin has no scroll-margin entry, so a bare number here
-    // would emit an invalid declaration that the browser drops.
+    // Deep-link target scrolling under Layout's sticky ContentBar (64px). The
+    // unit is explicit: JSS's default-unit plugin has no scroll-margin entry, so
+    // a bare number emits a declaration the browser drops.
     scrollMarginTop: `${64 + t.spacing(2)}px`,
   },
   activity: {
@@ -51,11 +49,9 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: 0,
     top: 0,
-    // Motion is the only honest progress signal available: the registry stores
-    // an opaque S3 resume cursor, never a denominator. An indeterminate strip
-    // says "work is moving" without implying how much is left. Frozen it would
-    // have to sit either empty or full, and a full bar claims the completion
-    // this panel cannot know -- so drop it and let the label carry the state.
+    // Motion is the only honest progress signal: the registry stores an opaque
+    // S3 resume cursor, never a denominator. Frozen, the strip would sit empty or
+    // full, and full claims the completion this panel cannot know.
     '@media (prefers-reduced-motion: reduce)': {
       display: 'none',
     },
@@ -71,7 +67,7 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1.5),
   },
   mono: {
-    fontFamily: 'Roboto Mono, monospace',
+    fontFamily: "'Roboto Mono', monospace",
     wordBreak: 'break-all',
   },
   numeric: {
@@ -126,10 +122,8 @@ function useBulkScannerJobs(pollMs: number) {
       // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
       const data = (await Promise.race([
         req({ endpoint: '/bulk_scanner_jobs', method: 'GET', signal: ctl.signal }),
-        // A request that never settles changes no state: no banner, stale rows,
-        // and an activity strip still animating over minutes-old data. The race
-        // is what rejects -- the abort only frees the socket, since nothing here
-        // guarantees the transport honours a signal.
+        // The race is what rejects; the abort only frees the socket, since
+        // nothing here guarantees the transport honours a signal.
         new Promise<never>((_resolve, reject) => {
           timer = window.setTimeout(() => {
             ctl.abort()
@@ -139,7 +133,10 @@ function useBulkScannerJobs(pollMs: number) {
       ])) as { results?: ScannerJob[] }
       // Discard superseded responses (Refresh racing the poll loop).
       if (seq !== seqRef.current) return
-      setJobs(data.results ?? [])
+      // A malformed payload must not land as the reassuring "no scanner jobs
+      // queued" state, which an admin reads as a fact about the cluster.
+      if (!data || !Array.isArray(data.results)) throw new Error('Malformed response')
+      setJobs(data.results)
       setError(null)
     } catch (e) {
       if (seq !== seqRef.current) return
@@ -152,10 +149,9 @@ function useBulkScannerJobs(pollMs: number) {
     }
   }, [req])
 
-  // The gap is measured from the previous answer rather than from a fixed
-  // interval: against a slow registry the requests would otherwise stack, and
-  // each timeout would be superseded by a newer in-flight poll -- suppressed by
-  // the `seq` guard above -- so the banner would never appear.
+  // The gap is measured from the previous answer, not a fixed interval: against
+  // a slow registry, stacked requests would each be superseded by a newer poll,
+  // and the `seq` guard would suppress the banner forever.
   React.useEffect(() => {
     let stopped = false
     let timer = 0
@@ -179,9 +175,8 @@ function useBulkScannerJobs(pollMs: number) {
 type Movement = { cursor: string; seenAt: number; moved: boolean }
 
 // The resume cursor advancing between polls is the only evidence this endpoint
-// offers that a scan is actually running -- `retries_remaining` merely says the
-// job has not given up. So remember each job's cursor and compare, which is the
-// same check the panel's own caveat asks the admin to perform by eye.
+// offers that a scan is running; `retries_remaining` merely says the job has not
+// given up.
 function useCursorMovement(jobs: ScannerJob[] | null) {
   const seen = React.useRef(new Map<number, Movement>())
 
@@ -212,9 +207,6 @@ function useCursorMovement(jobs: ScannerJob[] | null) {
     // without bound across a long-lived Status tab.
     seen.current = next
     return moving
-    // Every poll now settles into either a fresh `jobs` array or an error, so
-    // the wall-clock TTL above is re-read on a real schedule without a second
-    // timer to drive re-renders.
   }, [jobs])
 }
 
@@ -250,9 +242,9 @@ export default function Indexing() {
     if (!jobs) return []
     const names = new Set<string>()
     for (const job of jobs) {
-      // Full-bucket wipe only: no prefix and not a top-level-only (ignore_dirs)
-      // job. The prefix test is falsy rather than `!== ''` because the re-index
-      // dialog sends no prefix field, which the registry stores as null.
+      // Full-bucket wipe only: a whole-bucket job carries prefix '' (the column
+      // is NOT NULL, default ''), while a prefix or top-level-only scan leaves
+      // the rest of the index in place.
       if (job.prefix || job.ignore_dirs) continue
       // An exhausted job is not going to finish, so promising that search comes
       // back "when the rescan finishes" would be false.
@@ -286,22 +278,33 @@ export default function Indexing() {
 
       <div className={classes.titleRow}>
         <M.Typography variant="h5">Indexing</M.Typography>
-        <M.Button size="small" onClick={reload} disabled={busy}>
+        <M.Button size="small" onClick={reload} disabled={busy && !error}>
           Refresh
         </M.Button>
       </div>
 
-      {jobs && !error && (
-        <M.Typography variant="body2" className={classes.activeLabel}>
-          {outstanding === 0
-            ? 'No jobs outstanding'
-            : `${outstanding} ${outstanding === 1 ? 'job' : 'jobs'} queued · ${
-                advancing > 0
-                  ? `${advancing} advancing, no completion estimate`
-                  : 'no cursor movement observed yet'
-              }`}
-        </M.Typography>
-      )}
+      {/* The strip is decorative, so this is the only channel for a state
+          change; it stays mounted because a region that appears with its own
+          content is not announced. */}
+      <div aria-live="polite" className={classes.activeLabel}>
+        {error ? (
+          <M.Typography variant="body2" color="error">
+            {error} &mdash; retry with Refresh.
+          </M.Typography>
+        ) : (
+          jobs && (
+            <M.Typography variant="body2" color="inherit">
+              {outstanding === 0
+                ? 'No jobs outstanding'
+                : `${outstanding} ${outstanding === 1 ? 'job' : 'jobs'} queued · ${
+                    advancing > 0
+                      ? `${advancing} advancing, no completion estimate`
+                      : 'no cursor movement observed yet'
+                  }`}
+            </M.Typography>
+          )
+        )}
+      </div>
 
       <div className={classes.caveatBlock}>
         <M.Typography variant="body2" className={classes.caveat}>
@@ -333,18 +336,11 @@ export default function Indexing() {
       {!error && emptySearchBuckets.length > 0 && (
         <div className={classes.warning}>
           <M.Typography variant="body2" color="inherit">
-            Full-bucket re-index in progress for{' '}
-            <span className={classes.mono}>{emptySearchBuckets.join(', ')}</span>. Search
+            Full-bucket re-index in progress for {emptySearchBuckets.join(', ')}. Search
             for {emptySearchBuckets.length === 1 ? 'that bucket' : 'those buckets'}{' '}
             returns nothing until the rescan finishes.
           </M.Typography>
         </div>
-      )}
-
-      {error && (
-        <M.Typography color="error" gutterBottom>
-          {error} — retry with Refresh.
-        </M.Typography>
       )}
 
       {loading && <LoadingRows />}
@@ -381,12 +377,11 @@ export default function Indexing() {
                   key={job.id}
                   className={exhausted ? classes.exhausted : undefined}
                 >
-                  <M.TableCell className={classes.mono}>{job.name}</M.TableCell>
+                  <M.TableCell>{job.name}</M.TableCell>
                   <M.TableCell>{scopeLabel(job)}</M.TableCell>
-                  {/* The cursor wraps rather than truncating: it is the one value
-                      on this panel an admin compares across refreshes, and a
-                      tooltip would be the only copy of it -- unreachable without
-                      a pointer. */}
+                  {/* Wraps rather than truncating: a tooltip would be the only
+                      copy of the one value an admin compares across refreshes,
+                      and is unreachable without a pointer. */}
                   <M.TableCell className={classes.mono}>{cursor}</M.TableCell>
                   <M.TableCell>
                     {dateFns.isValid(created)

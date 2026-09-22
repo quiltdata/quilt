@@ -27,7 +27,7 @@ type JobOverrides = {
   retries_remaining?: number
   id?: number
   next_key_marker?: string | null
-  prefix?: string | null
+  prefix?: string
   ignore_dirs?: boolean | null
   time_created?: string
 }
@@ -120,7 +120,7 @@ describe('containers/Admin/Status/Indexing', () => {
     expect(strip(container)).toBeNull()
     expect(screen.getByText(/no cursor movement observed yet/)).toBeTruthy()
     expect(screen.queryByText(/\d+ advancing/)).toBeNull()
-    // The copy this panel shipped with called any unexhausted job "in flight".
+    // "in flight" would claim a worker holds the job; this endpoint cannot say.
     expect(screen.queryByText(/in flight|scanning/i)).toBeNull()
   })
 
@@ -184,6 +184,15 @@ describe('containers/Admin/Status/Indexing', () => {
     )
     expect(strip(container)).toBeNull()
     expect(screen.queryByText(/job queued/)).toBeNull()
+
+    // The banner names Refresh as the way out, so the retry it triggers must
+    // not be what disables it.
+    mocks.req.mockReturnValue(new Promise(() => {}))
+    await poll()
+    const refresh = screen.getByRole('button', {
+      name: /refresh/i,
+    }) as HTMLButtonElement
+    expect(refresh.disabled).toBe(false)
   })
 
   it('drops the liveness claim when the advancing job exhausts its retries', async () => {
@@ -234,12 +243,12 @@ describe('containers/Admin/Status/Indexing', () => {
     }
   })
 
-  it('warns about empty search when the full-bucket job carries no prefix field', async () => {
+  it('warns about empty search while a whole bucket is being re-indexed', async () => {
     mocks.req.mockReset()
-    // The re-index dialog omits prefix entirely, so the registry stores null.
-    // Comparing against '' would have missed exactly the jobs this warns about.
+    // prefix '' with ignore_dirs false is the only shape that empties the whole
+    // index; a prefix scan or a top-level-only scan must not raise this.
     mocks.req.mockResolvedValue({
-      results: [job({ prefix: null, ignore_dirs: false })],
+      results: [job({ prefix: '', ignore_dirs: false })],
     })
     renderPanel()
 
@@ -251,12 +260,25 @@ describe('containers/Admin/Status/Indexing', () => {
   it('does not promise search comes back for a job that ran out of attempts', async () => {
     mocks.req.mockReset()
     mocks.req.mockResolvedValue({
-      results: [job({ prefix: null, ignore_dirs: false, retries_remaining: 0 })],
+      results: [job({ prefix: '', ignore_dirs: false, retries_remaining: 0 })],
     })
     renderPanel()
 
     await waitFor(() => expect(screen.getByText('No jobs outstanding')).toBeTruthy())
     expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
+  })
+
+  it('reports a malformed payload instead of calling the queue empty', async () => {
+    mocks.req.mockReset()
+    // Rendering this as "No scanner jobs queued" would read to an admin as a
+    // fact about the cluster.
+    mocks.req.mockResolvedValue({ jobs: [] })
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
+    expect(screen.queryByText(/No scanner jobs queued/)).toBeNull()
   })
 
   it('renders a placeholder rather than "Invalid Date" for an unparseable timestamp', async () => {
