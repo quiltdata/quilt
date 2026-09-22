@@ -15,6 +15,10 @@ import DevTools from './DevTools'
 import Input from './Input'
 import Instructions from './Instructions'
 import MessageAction from './MessageAction'
+import { toCurrentStack } from './links'
+
+// Module-level so `getRenderer` memoizes on a stable identity.
+const processLink = (href: string) => toCurrentStack(href, window.location.origin)
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   align_left: {},
@@ -253,7 +257,7 @@ function MessageEvent({
       timestamp={timestamp}
     >
       {Model.Content.MessageContentBlock.$match(content, {
-        Text: ({ text }) => <Markdown data={text} />,
+        Text: ({ text }) => <Markdown data={text} processLink={processLink} />,
         Image: ({ format }) => `${format} image`,
         Document: ({ name, format }) => `${format} document "${name}"`,
       })}
