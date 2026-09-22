@@ -940,12 +940,17 @@ type RoleAssigned {
   _: Boolean
 }
 
+type RoleOwnsDataProducts {
+  _: Boolean
+}
+
 union RoleDeleteResult =
     RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
   | RoleNameUsedBySsoConfig
   | RoleAssigned
+  | RoleOwnsDataProducts
 
 type SsoConfigConflict {
   _: Boolean

@@ -5658,6 +5658,10 @@ export default {
             kind: 'OBJECT',
             name: 'RoleNameUsedBySsoConfig',
           },
+          {
+            kind: 'OBJECT',
+            name: 'RoleOwnsDataProducts',
+          },
         ],
       },
       {
@@ -5791,6 +5795,22 @@ export default {
       {
         kind: 'OBJECT',
         name: 'RoleNameUsedBySsoConfig',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleOwnsDataProducts',
         fields: [
           {
             name: '_',

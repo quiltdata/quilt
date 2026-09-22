@@ -8,7 +8,7 @@ Quilt packages unify data and metadata. Quilt data packages are reproducible, di
 A package manifest includes both *metadata* and physical keys to primary data.
 
 All package metadata and data are stored in your S3 buckets. A slice of the 
-package-level metadata, as well as S3 object contents, are sent to an ElasticSearch
+package-level metadata, as well as S3 object contents, are sent to an Elasticsearch
 cluster managed by Quilt. All Quilt package manifests are accessible via SQL
 using AWS Athena.
 
@@ -18,7 +18,7 @@ using AWS Athena.
 
 Each Quilt instance consists of a CloudFormation stack that is privately hosted in your 
 AWS account. The stack includes backend services for the web catalog, single sign-on,
-user identification and access, an ElasticSearch cluster, and more.
+user identification and access, an Elasticsearch cluster, and more.
 
 Quilt uses subnets and security groups to isolate network services and runs key
 services within the VPC.
