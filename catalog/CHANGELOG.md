@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Admin status: the indexing panel animates only for jobs whose resume marker actually moved, so a stalled scan and an unanswered poll no longer read as live scanning ([#5309](https://github.com/quiltdata/quilt/pull/5309))
 - [Changed] Admin status: the indexing panel shows an indeterminate activity strip and a job count while scans run, instead of leaving an admin unable to tell a live scan from an idle queue ([#5308](https://github.com/quiltdata/quilt/pull/5308))
 - [Added] Admin buckets: a bucket's bulk scan scope is editable on the add and edit forms, so an admin can limit which prefixes the scanner enqueues without the SDK ([#5305](https://github.com/quiltdata/quilt/pull/5305))
 - [Added] Package revisions can be deleted in bulk: select revisions on the revision list and delete them together, or delete a whole package from the revision menu ([#5303](https://github.com/quiltdata/quilt/pull/5303))

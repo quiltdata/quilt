@@ -30,6 +30,11 @@ const POLL_MS = 10_000
 // or dropped response does not flip a working scan to "no movement".
 const PROGRESS_TTL_MS = 3 * POLL_MS
 
+// Two polls' worth of patience before a request is called dead. Long enough that
+// a merely slow registry still answers, short enough that the panel stops
+// claiming anything on the strength of a reading it can no longer refresh.
+const REQUEST_TIMEOUT_MS = 2 * POLL_MS
+
 const CAVEATS_ID = 'indexing-caveats'
 
 const BUCKET_SHARD_DEPTHS_QUERY = urql.gql`
@@ -126,13 +131,24 @@ function useBulkScannerJobs(pollMs: number) {
 
   const load = React.useCallback(async () => {
     const seq = ++seqRef.current
+    const ctl = new AbortController()
+    let timer = 0
     try {
       // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
-      const data = (await req({
-        endpoint: '/bulk_scanner_jobs',
-        method: 'GET',
-      })) as { results?: ScannerJob[] }
-      // Discard superseded responses (overlapping polls / rapid Refresh).
+      const data = (await Promise.race([
+        req({ endpoint: '/bulk_scanner_jobs', method: 'GET', signal: ctl.signal }),
+        // A request that never settles changes no state: no banner, stale rows,
+        // and an activity strip still animating over minutes-old data. The race
+        // is what rejects -- the abort only frees the socket, since nothing here
+        // guarantees the transport honours a signal.
+        new Promise<never>((_resolve, reject) => {
+          timer = window.setTimeout(() => {
+            ctl.abort()
+            reject(new Error('Timed out'))
+          }, REQUEST_TIMEOUT_MS)
+        }),
+      ])) as { results?: ScannerJob[] }
+      // Discard superseded responses (Refresh racing the poll loop).
       if (seq !== seqRef.current) return
       setJobs(data.results ?? [])
       setError(null)
@@ -141,13 +157,27 @@ function useBulkScannerJobs(pollMs: number) {
       // eslint-disable-next-line no-console
       console.error(e)
       setError('Could not load scanner jobs')
+    } finally {
+      window.clearTimeout(timer)
     }
   }, [req])
 
+  // The gap is measured from the previous answer rather than from a fixed
+  // interval: against a slow registry the requests would otherwise stack, and
+  // each timeout would be superseded by a newer in-flight poll -- suppressed by
+  // the `seq` guard above -- so the banner would never appear.
   React.useEffect(() => {
-    load()
-    const id = window.setInterval(load, pollMs)
-    return () => window.clearInterval(id)
+    let stopped = false
+    let timer = 0
+    const cycle = async () => {
+      await load()
+      if (!stopped) timer = window.setTimeout(cycle, pollMs)
+    }
+    cycle()
+    return () => {
+      stopped = true
+      window.clearTimeout(timer)
+    }
   }, [load, pollMs])
 
   return { jobs, error, reload: load }
@@ -168,6 +198,10 @@ function useCursorMovement(jobs: ScannerJob[] | null) {
     const next = new Map<number, Movement>()
     let moving = 0
     for (const job of jobs) {
+      // An exhausted job will not advance again, so it must not keep a recent
+      // advance alive -- that would animate the strip past the point where the
+      // label has already dropped the job from the queue count.
+      if (job.retries_remaining <= 0) continue
       const cursor = `${job.next_key_marker ?? ''}\u0000${job.next_version_id_marker ?? ''}`
       const prev = seen.current.get(job.id)
       // First sight has no baseline to compare against, so it counts as neither
@@ -185,6 +219,9 @@ function useCursorMovement(jobs: ScannerJob[] | null) {
     // without bound across a long-lived Status tab.
     seen.current = next
     return moving
+    // Every poll now settles into either a fresh `jobs` array or an error, so
+    // the wall-clock TTL above is re-read on a real schedule without a second
+    // timer to drive re-renders.
   }, [jobs])
 }
 
@@ -271,8 +308,9 @@ export default function Indexing() {
       <div className={classes.caveatBlock}>
         <M.Typography variant="body2" className={classes.caveat}>
           Position is the S3 list resume cursor, not a percentage. A job counts as
-          advancing once that cursor moves between refreshes — until then it is queued,
-          which looks the same here whether a worker has picked it up or not.
+          advancing while that cursor keeps moving between refreshes; when it stops, or
+          the job runs out of attempts, it reads as queued again — which looks the same
+          here whether a worker has picked it up or not.
         </M.Typography>
         <M.Button
           className={classes.disclosure}
