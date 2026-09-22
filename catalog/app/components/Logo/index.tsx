@@ -27,8 +27,14 @@ interface LogoProps {
 }
 
 const useStyles = M.makeStyles(() => ({
+  // A customer's lockup is arbitrarily wide at a given height, so height alone
+  // lets it overrun a narrow slot -- the folded rail clips its container, which
+  // would cut the logo off mid-word. Bound it on both axes and let the aspect
+  // ratio pick which one binds.
   custom: ({ height }: { height: string }) => ({
     height,
+    maxWidth: '100%',
+    objectFit: 'contain' as const,
   }),
   quilt: ({
     height,

@@ -1,0 +1,226 @@
+import * as VB from './viewBox'
+
+export const CONTROLS_CLASS = 'mermaid-fence-controls'
+export const VIEWPORT_CLASS = 'mermaid-fence-viewport'
+export const ZOOMED_CLASS = 'mermaid-fence-zoomed'
+
+interface Control {
+  label: string
+  action: 'in' | 'out' | 'reset'
+  glyph: string
+}
+
+const CONTROLS: Control[] = [
+  { label: 'Zoom in', action: 'in', glyph: '+' },
+  { label: 'Zoom out', action: 'out', glyph: '−' },
+  { label: 'Reset zoom', action: 'reset', glyph: '↻' },
+]
+
+/**
+ * Map a client point into the diagram's own coordinates.
+ *
+ * Goes through the SVG's CTM rather than measuring the element, so it stays exact
+ * however the diagram is letterboxed inside its box by preserveAspectRatio.
+ */
+function toDiagram(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number,
+): VB.Point | null {
+  const ctm = svg.getScreenCTM()
+  if (!ctm) return null
+  const pt = svg.createSVGPoint()
+  pt.x = clientX
+  pt.y = clientY
+  const mapped = pt.matrixTransform(ctm.inverse())
+  return { x: mapped.x, y: mapped.y }
+}
+
+/**
+ * Give a rendered mermaid SVG cursor-anchored zoom and drag-to-pan.
+ *
+ * Drives the SVG's `viewBox` rather than a CSS transform, so the diagram stays
+ * crisp at every zoom level and text keeps its own layout. Returns a teardown.
+ */
+export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
+  const base = VB.parse(svg.getAttribute('viewBox'))
+  // No viewBox means no coordinate system to zoom within: leave the diagram be.
+  if (!base) return () => {}
+
+  let view: VB.ViewBox = { ...base }
+  // `at` is the grabbed diagram point; a drag keeps it under the cursor.
+  let drag: { at: VB.Point } | null = null
+
+  // mermaid caps the svg at the diagram's natural width. Keep that cap so a small
+  // diagram is not blown up to the column, and fit a wide one to the column
+  // instead of letting it scroll.
+  const natural = svg.style.maxWidth
+  if (natural) svg.style.maxWidth = `min(${natural}, 100%)`
+
+  const apply = (next: VB.ViewBox) => {
+    view = next
+    svg.setAttribute('viewBox', VB.format(view))
+    const zoomed = !VB.isFit(base, view)
+    host.classList.toggle(ZOOMED_CLASS, zoomed)
+    // A fit diagram is not draggable, so it should not advertise a grab cursor --
+    // but a drag in progress owns the cursor, and every pointermove lands here.
+    if (!drag) svg.style.cursor = zoomed ? 'grab' : ''
+  }
+
+  const zoomAt = (factor: number, clientX?: number, clientY?: number) => {
+    const rect = svg.getBoundingClientRect()
+    const at =
+      clientX != null && clientY != null
+        ? toDiagram(svg, clientX, clientY)
+        : toDiagram(svg, rect.left + rect.width / 2, rect.top + rect.height / 2)
+    apply(VB.zoomAbout(base, view, at ?? VB.center(view), factor))
+  }
+
+  const onWheel = (e: WheelEvent) => {
+    // Plain wheel keeps scrolling the document: a diagram mid-page must not trap
+    // the reader's scroll. Ctrl/⌘ is the platform gesture for zooming content,
+    // and is also what a pinch on a trackpad sends.
+    if (!e.ctrlKey && !e.metaKey) return
+    e.preventDefault()
+    // A pinch is a stream of small deltas, a mouse notch one large one: scale by
+    // the delta so both zoom smoothly. Line-mode deltas count lines, not pixels.
+    const dy = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 40 : e.deltaY
+    if (!dy) return
+    zoomAt(Math.exp(-dy * VB.WHEEL_ZOOM), e.clientX, e.clientY)
+  }
+
+  const onPointerDown = (e: PointerEvent) => {
+    if (e.button !== 0 || VB.isFit(base, view)) return
+    const at = toDiagram(svg, e.clientX, e.clientY)
+    if (!at) return
+    drag = { at }
+    // Capture keeps a drag alive when the cursor leaves the diagram, but throws if
+    // the pointer is already gone. The drag works without it (pointerup is heard
+    // on the window), so never let that throw escape the handler.
+    try {
+      svg.setPointerCapture(e.pointerId)
+    } catch {
+      // no capture: pointermove still tracks while the cursor stays over the svg
+    }
+    svg.style.cursor = 'grabbing'
+  }
+
+  const onPointerMove = (e: PointerEvent) => {
+    if (!drag) return
+    e.preventDefault()
+    // Map the cursor through the CTM, as zoom does, so a letterboxed svg pans
+    // true; then move the view so the grabbed point sits under the cursor again.
+    const now = toDiagram(svg, e.clientX, e.clientY)
+    if (!now) return
+    apply(VB.panBy(base, view, now.x - drag.at.x, now.y - drag.at.y))
+  }
+
+  const endDrag = (e: PointerEvent) => {
+    if (!drag) return
+    drag = null
+    if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId)
+    svg.style.cursor = VB.isFit(base, view) ? '' : 'grab'
+  }
+
+  const onDblClick = (e: MouseEvent) => {
+    e.preventDefault()
+    zoomAt(VB.STEP, e.clientX, e.clientY)
+  }
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    // ⌘/Ctrl+0, ⌘/Ctrl+- and the like are the browser's own page zoom: leave them.
+    if (e.ctrlKey || e.metaKey || e.altKey) return
+    // A fit diagram has nowhere to pan, so the arrows must stay the reader's page
+    // scroll -- every diagram is a tab stop, and swallowing them would strand a
+    // keyboard reader mid-document. Same rule the wheel handler follows.
+    if (VB.isFit(base, view) && e.key.startsWith('Arrow')) return
+    const pan = (dx: number, dy: number) => {
+      apply(VB.panBy(base, view, dx * view.w * 0.1, dy * view.h * 0.1))
+    }
+    switch (e.key) {
+      case '+':
+      case '=':
+        zoomAt(VB.STEP)
+        break
+      case '-':
+      case '_':
+        zoomAt(1 / VB.STEP)
+        break
+      case '0':
+        apply({ ...base })
+        break
+      case 'ArrowLeft':
+        pan(1, 0)
+        break
+      case 'ArrowRight':
+        pan(-1, 0)
+        break
+      case 'ArrowUp':
+        pan(0, 1)
+        break
+      case 'ArrowDown':
+        pan(0, -1)
+        break
+      default:
+        return
+    }
+    e.preventDefault()
+  }
+
+  const controls = document.createElement('div')
+  controls.className = CONTROLS_CLASS
+  const onControlClick = (e: MouseEvent) => {
+    const target = (e.target as HTMLElement)?.closest('button')
+    if (!target) return
+    e.preventDefault()
+    const action = target.dataset.action
+    if (action === 'in') zoomAt(VB.STEP)
+    else if (action === 'out') zoomAt(1 / VB.STEP)
+    else if (action === 'reset') apply({ ...base })
+  }
+  CONTROLS.forEach(({ label, action, glyph }) => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.dataset.action = action
+    // Icon-only control: the glyph is decorative, the label is what AT reads.
+    button.setAttribute('aria-label', label)
+    button.title = label
+    button.textContent = glyph
+    controls.appendChild(button)
+  })
+  controls.addEventListener('click', onControlClick)
+
+  host.classList.add(VIEWPORT_CLASS)
+  host.appendChild(controls)
+
+  // Focusable so the keyboard shortcuts are reachable without a pointer.
+  host.tabIndex = 0
+  host.setAttribute('role', 'group')
+  host.setAttribute('aria-label', 'Diagram, zoomable')
+
+  svg.addEventListener('wheel', onWheel, { passive: false })
+  svg.addEventListener('pointerdown', onPointerDown)
+  svg.addEventListener('pointermove', onPointerMove)
+  // On the window, not the svg: a release outside the diagram must still end the
+  // drag when pointer capture was refused.
+  window.addEventListener('pointerup', endDrag)
+  window.addEventListener('pointercancel', endDrag)
+  svg.addEventListener('dblclick', onDblClick)
+  host.addEventListener('keydown', onKeyDown)
+
+  return () => {
+    svg.removeEventListener('wheel', onWheel)
+    svg.removeEventListener('pointerdown', onPointerDown)
+    svg.removeEventListener('pointermove', onPointerMove)
+    window.removeEventListener('pointerup', endDrag)
+    window.removeEventListener('pointercancel', endDrag)
+    svg.removeEventListener('dblclick', onDblClick)
+    host.removeEventListener('keydown', onKeyDown)
+    controls.removeEventListener('click', onControlClick)
+    controls.remove()
+    host.classList.remove(VIEWPORT_CLASS, ZOOMED_CLASS)
+    host.removeAttribute('tabindex')
+    host.removeAttribute('role')
+    host.removeAttribute('aria-label')
+  }
+}
