@@ -21,7 +21,11 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] A custom logo now scales to fit its slot instead of being clipped by it, so a wide lockup stays readable in the folded sidebar ([#5319](https://github.com/quiltdata/quilt/pull/5319))
 - [Added] Mermaid: a ```mermaid fence in any Markdown the catalog renders draws as a zoomable diagram, with a Markdown view to read its source ([#5269](https://github.com/quiltdata/quilt/pull/5269))
+- [Added] The sidebar folds to an icon rail and back — the chevron on its edge or `[` — and remembers the choice, giving wide tables and previews the room; typing `[` in a metadata cell still starts an array ([#5289](https://github.com/quiltdata/quilt/pull/5289))
+- [Changed] The sidebar's fold control moves to a detent on the rail's own edge, holding one position in both states instead of shifting with the logo ([#5293](https://github.com/quiltdata/quilt/pull/5293))
+- [Fixed] Expanding the folded sidebar no longer makes the workspace box and nav rows jump before settling: the section label fades in place instead of reopening from zero height ([#5300](https://github.com/quiltdata/quilt/pull/5300))
 - [Removed] The OPEN-mode landing no longer renders its own hero search above the global ContentBar search, leaving one search bar and the Volumes list at the top of the page ([#5315](https://github.com/quiltdata/quilt/pull/5315))
 - [Added] Admin roles: deleting a role that owns data products is refused, and the screen names that reason instead of reporting a generic "Error deleting role" ([#5299](https://github.com/quiltdata/quilt/pull/5299))
 - [Fixed] Queries: the query selector announces its label to assistive tech, and no longer claims "Custom" is loaded while its helper text reports the query failed to load ([#5260](https://github.com/quiltdata/quilt/pull/5260))
