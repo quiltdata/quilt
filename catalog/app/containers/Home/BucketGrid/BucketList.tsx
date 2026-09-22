@@ -17,8 +17,9 @@ export const useGridStyles = M.makeStyles((t) => ({
     display: 'grid',
     gap: t.spacing(2),
     // `min(340px, 100%)` so the track collapses below its own minimum rather
-    // than overflowing a narrower column — the shell clips overflow-x, so an
-    // overrun is lost pixels, not a scrollbar.
+    // than overflowing a narrower column: `.main` scrolls on one axis, which
+    // makes the other `auto` too, so an overrun is a horizontal scrollbar on
+    // the whole page pane.
     gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
   },
 }))

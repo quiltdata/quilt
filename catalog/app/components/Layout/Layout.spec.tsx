@@ -48,6 +48,8 @@ vi.mock('./ContentBar', () => ({
 // real one needs router and named-route providers that have no bearing on it.
 vi.mock('./BareHeader', () => ({ default: () => <header data-testid="bare-header" /> }))
 
+import WebsiteLayout from 'website/components/Layout'
+
 import { Layout } from './Layout'
 
 const last = (calls: Record<string, unknown>[]) => calls[calls.length - 1]
@@ -99,9 +101,7 @@ describe('components/Layout/Layout (shell adaptation)', () => {
     expect(last(sidebarProps).open).toBe(false)
   })
 
-  // The inset is on by default and `flush` is the only opt-out. Three website
-  // pages once carried `flush={false}` to undo a hard-coded `flush` one layer
-  // up; nothing failed when it was there, so pin the default here.
+  // The inset is on by default; `flush` is the only opt-out.
   it('insets page content unless the page asks to be flush', () => {
     // By class, not computed style: jsdom does not resolve JSS-injected rules.
     const padded = renderShell(<Layout>content</Layout>)
@@ -109,6 +109,14 @@ describe('components/Layout/Layout (shell adaptation)', () => {
     cleanup()
     const flush = renderShell(<Layout flush>content</Layout>)
     expect(flush.container.querySelector('[class*="padded"]')).toBeNull()
+  })
+
+  // Asserted through the website wrapper, not the shell: a wrapper that pins
+  // `flush` for its callers is invisible at their call sites, and the shell's
+  // own default stays green when one does.
+  it('leaves the inset alone when a website page goes through the wrapper', () => {
+    const { container } = renderShell(<WebsiteLayout>content</WebsiteLayout>)
+    expect(container.querySelector('[class*="padded"]')).not.toBeNull()
   })
 
   // `bare` pages (sign-in) mount neither the rail nor the header band, so the
