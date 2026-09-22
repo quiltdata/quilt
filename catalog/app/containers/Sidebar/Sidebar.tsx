@@ -22,8 +22,6 @@ import useRoleSwitcher from './RoleSwitcher'
 import * as Subscription from './Subscription'
 import useCollapsed from './useCollapsed'
 
-const NAV_ID = 'sidebar-nav'
-
 // Motion is decoration on chrome: every transition attaches only inside this
 // query, so reduced-motion users get the instant swap.
 const MOTION = '@media (prefers-reduced-motion: no-preference)'
@@ -678,6 +676,15 @@ function Version({ collapsed }: { collapsed: boolean }) {
     },
     [handleCopy],
   )
+  // `tabIndex={-1}` keeps it out of the tab order but does not unfocus an
+  // element already focused, and the fold puts it under `aria-hidden` --
+  // which browsers refuse to apply while it holds focus. Hand focus back.
+  const ref = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (collapsed && ref.current && document.activeElement === ref.current) {
+      ref.current.blur()
+    }
+  }, [collapsed])
   if (!cfg.stackVersion) return null
   // The version is a readout, not a destination: collapsed it closes up
   // rather than becoming an icon row nobody could read, and leaves the tab
@@ -685,6 +692,7 @@ function Version({ collapsed }: { collapsed: boolean }) {
   return (
     <Fold closed={collapsed}>
       <div
+        ref={ref}
         className={classes.version}
         onClick={handleCopy}
         onKeyDown={handleKeyDown}
@@ -711,6 +719,10 @@ export interface SidebarProps {
 
 // The collapse control: a detent on the rail's right edge. `[` toggles it from
 // anywhere except while typing, the same guard the search band's `/` uses.
+// No `aria-expanded`/`aria-controls`: nothing is disclosed. Every row stays
+// rendered and clickable in both states -- only the rail's width and the
+// labels' opacity change -- so naming the nav list as a controlled region
+// would announce a state the DOM doesn't have.
 function CollapseToggle({
   collapsed,
   onToggle,
@@ -753,8 +765,6 @@ function CollapseToggle({
         onClick={onToggle}
         aria-label={label}
         aria-keyshortcuts="["
-        aria-expanded={!collapsed}
-        aria-controls={NAV_ID}
       >
         <M.Icon fontSize="small">{collapsed ? 'chevron_right' : 'chevron_left'}</M.Icon>
       </M.IconButton>
@@ -954,7 +964,7 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
             </>
           )}
 
-          <M.List disablePadding className={classes.nav} id={NAV_ID}>
+          <M.List disablePadding className={classes.nav}>
             <NavRow
               icon={<OutlinedIcon>storage</OutlinedIcon>}
               label="Volumes"

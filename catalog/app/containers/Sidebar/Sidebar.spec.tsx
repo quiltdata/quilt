@@ -84,14 +84,11 @@ describe('containers/Sidebar/Sidebar (the fold)', () => {
   it('starts expanded and folds from the chevron, persisting the choice', () => {
     renderRail()
     const t = toggle()
-    expect(t.getAttribute('aria-expanded')).toBe('true')
-    expect(t.getAttribute('aria-controls')).toBe('sidebar-nav')
     const width = () => window.getComputedStyle(rail()).width
 
     expect(width()).toBe('256px')
     fireEvent.click(t)
     expect(width()).toBe('72px')
-    expect(toggle().getAttribute('aria-expanded')).toBe('false')
     expect(toggle().getAttribute('aria-label')).toBe('Expand sidebar')
     expect(store[COLLAPSED_STORAGE_KEY]).toBe('1')
   })
@@ -114,6 +111,18 @@ describe('containers/Sidebar/Sidebar (the fold)', () => {
     const version = screen.getByTitle(/copy platform release version/i)
     expect(version.getAttribute('tabindex')).toBe('-1')
     expect(version.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  // `aria-hidden` over a focused element is refused by the browser, so the
+  // fold has to take focus back rather than just leave the tab order.
+  it('releases focus from the version readout when folding', () => {
+    renderRail()
+    const version = screen.getByTitle(/copy platform release version/i) as HTMLElement
+    version.focus()
+    expect(document.activeElement).toBe(version)
+
+    fireEvent.click(toggle())
+    expect(document.activeElement).not.toBe(version)
   })
 
   it('toggles on `[` except while typing in a field', () => {
