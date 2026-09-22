@@ -60,6 +60,13 @@ describe('components/Assistant/UI/Chat/links', () => {
         'mailto:someone@example.com',
       )
       expect(toCurrentStack('s3://my-bucket/k', NIGHTLY)).toBe('s3://my-bucket/k')
+      // a key starting with `b/` must not be mistaken for a bucket route
+      expect(toCurrentStack('s3://my-bucket/b/report.csv', NIGHTLY)).toBe(
+        's3://my-bucket/b/report.csv',
+      )
+      expect(toCurrentStack('quilt+s3://my-bucket/b/y', NIGHTLY)).toBe(
+        'quilt+s3://my-bucket/b/y',
+      )
     })
 
     it('passes unparseable hrefs through', () => {
