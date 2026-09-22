@@ -50,10 +50,11 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   let view: VB.ViewBox = { ...base }
   let drag: { x: number; y: number; from: VB.ViewBox } | null = null
 
-  // mermaid caps the SVG's width to the diagram's natural size, which makes a
-  // zoomed-in view scale the box instead of showing more detail inside it.
-  svg.style.maxWidth = '100%'
-  svg.style.width = '100%'
+  // mermaid caps the svg at the diagram's natural width. Keep that cap so a small
+  // diagram is not blown up to the column, and fit a wide one to the column
+  // instead of letting it scroll.
+  const natural = svg.style.maxWidth
+  if (natural) svg.style.maxWidth = `min(${natural}, 100%)`
 
   const apply = (next: VB.ViewBox) => {
     view = next
@@ -80,15 +81,19 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
     // and is also what a pinch on a trackpad sends.
     if (!e.ctrlKey && !e.metaKey) return
     e.preventDefault()
-    zoomAt(e.deltaY < 0 ? VB.STEP : 1 / VB.STEP, e.clientX, e.clientY)
+    // A pinch is a stream of small deltas, a mouse notch one large one: scale by
+    // the delta so both zoom smoothly. Line-mode deltas count lines, not pixels.
+    const dy = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 40 : e.deltaY
+    if (!dy) return
+    zoomAt(Math.exp(-dy * VB.WHEEL_ZOOM), e.clientX, e.clientY)
   }
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0 || VB.isFit(base, view)) return
     drag = { x: e.clientX, y: e.clientY, from: { ...view } }
     // Capture keeps a drag alive when the cursor leaves the diagram, but throws if
-    // the pointer is already gone. The drag works without it, so never let that
-    // throw escape the handler.
+    // the pointer is already gone. The drag works without it (pointerup is heard
+    // on the window), so never let that throw escape the handler.
     try {
       svg.setPointerCapture(e.pointerId)
     } catch {
@@ -129,6 +134,8 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
+    // ⌘/Ctrl+0, ⌘/Ctrl+- and the like are the browser's own page zoom: leave them.
+    if (e.ctrlKey || e.metaKey || e.altKey) return
     // A fit diagram has nowhere to pan, so the arrows must stay the reader's page
     // scroll -- every diagram is a tab stop, and swallowing them would strand a
     // keyboard reader mid-document. Same rule the wheel handler follows.
@@ -200,8 +207,10 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
   svg.addEventListener('wheel', onWheel, { passive: false })
   svg.addEventListener('pointerdown', onPointerDown)
   svg.addEventListener('pointermove', onPointerMove)
-  svg.addEventListener('pointerup', endDrag)
-  svg.addEventListener('pointercancel', endDrag)
+  // On the window, not the svg: a release outside the diagram must still end the
+  // drag when pointer capture was refused.
+  window.addEventListener('pointerup', endDrag)
+  window.addEventListener('pointercancel', endDrag)
   svg.addEventListener('dblclick', onDblClick)
   host.addEventListener('keydown', onKeyDown)
 
@@ -209,8 +218,8 @@ export function attach(svg: SVGSVGElement, host: HTMLElement): () => void {
     svg.removeEventListener('wheel', onWheel)
     svg.removeEventListener('pointerdown', onPointerDown)
     svg.removeEventListener('pointermove', onPointerMove)
-    svg.removeEventListener('pointerup', endDrag)
-    svg.removeEventListener('pointercancel', endDrag)
+    window.removeEventListener('pointerup', endDrag)
+    window.removeEventListener('pointercancel', endDrag)
     svg.removeEventListener('dblclick', onDblClick)
     host.removeEventListener('keydown', onKeyDown)
     controls.removeEventListener('click', onControlClick)

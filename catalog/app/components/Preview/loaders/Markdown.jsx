@@ -3,7 +3,7 @@ import { dirname, resolve } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import { getRenderer } from 'components/Markdown'
+import { getRenderer, hasMermaidFence } from 'components/Markdown'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import HljsBoundary from 'utils/HljsBoundary'
@@ -68,13 +68,16 @@ function useLinkProcessor(handle) {
 // options: { processLink }: optional override for the default (bucket-route)
 // link processing — consumers rendering outside the bucket UI (e.g. data
 // products) map link hrefs themselves
+// options: { mode, hasFence }: the view mode, and whether the document has a
+// mermaid fence for it to act on
 export function useMarkdownRenderer(contentsResult, handle, options) {
   const processImg = useImgProcessor(handle)
   const defaultProcessLink = useLinkProcessor(handle)
   const processLink = options?.processLink ?? defaultProcessLink
   // Markdown mode leaves mermaid fences as their source; Mermaid mode (the default
-  // when a fence is present) draws them.
-  const drawMermaid = options?.mode !== FileType.Markdown
+  // when a fence is present) draws them. A document with no fence renders the
+  // same either way, so it must not be re-rendered when the mode settles.
+  const drawMermaid = options?.mode !== FileType.Markdown || !options?.hasFence
   return utils.useProcessing(
     contentsResult,
     getRenderer({ processImg, processLink, drawMermaid }),
@@ -83,10 +86,6 @@ export function useMarkdownRenderer(contentsResult, handle, options) {
 }
 
 export const detect = utils.extIn(['.md', '.rmd'])
-
-// A fenced block labelled `mermaid`, at the start of a line, case-insensitive to
-// match the fence handler.
-const MERMAID_FENCE_RE = /^[ \t]*(?:```|~~~)[ \t]*mermaid\b/im
 
 function MarkdownLoader({ gated, handle, options, children }) {
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
@@ -97,17 +96,17 @@ function MarkdownLoader({ gated, handle, options, children }) {
       })(data.result),
     [data.result],
   )
-  const markdowned = useMarkdownRenderer(contents, handle, options)
   // Only offer the Mermaid/Markdown switch when the file actually has a fence to
   // draw -- a dead mode on every other README is worse than no mode.
   const hasFence = React.useMemo(
-    () =>
-      AsyncResult.case(
-        { Ok: (text) => MERMAID_FENCE_RE.test(text), _: () => false },
-        contents,
-      ),
+    () => AsyncResult.case({ Ok: hasMermaidFence, _: () => false }, contents),
     [contents],
   )
+  const rendererOptions = React.useMemo(
+    () => ({ ...options, hasFence }),
+    [options, hasFence],
+  )
+  const markdowned = useMarkdownRenderer(contents, handle, rendererOptions)
   const processed = React.useMemo(
     () =>
       AsyncResult.mapCase({

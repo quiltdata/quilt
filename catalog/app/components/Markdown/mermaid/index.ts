@@ -1,4 +1,5 @@
 import type MarkdownIt from 'markdown-it'
+import type { Token } from 'markdown-it'
 import * as React from 'react'
 
 import log from 'utils/Logging'
@@ -12,6 +13,14 @@ export const FENCE_LANG = 'mermaid'
 export const FENCE_CLASS = 'mermaid-fence'
 export const FENCE_RENDERED_CLASS = 'mermaid-fence-rendered'
 
+/** A fence whose label's first word is `mermaid`, case-insensitive as on GitHub. */
+export const isMermaidFence = (token: Token) =>
+  token.type === 'fence' && token.info.trim().split(/\s+/)[0].toLowerCase() === FENCE_LANG
+
+// Re-rendering while a Chat reply streams would parse the half-written fence on
+// every token; wait for the source to settle instead.
+const RERENDER_DEBOUNCE_MS = 200
+
 /**
  * Render a ```mermaid fence as a <pre> holding the diagram source.
  *
@@ -24,7 +33,7 @@ export const fenceHandler = (md: MarkdownIt) => {
   const inherited = md.renderer.rules.fence
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx]
-    if (token.info.trim().split(/\s+/)[0].toLowerCase() !== FENCE_LANG) {
+    if (!isMermaidFence(token)) {
       return inherited
         ? inherited(tokens, idx, options, env, self)
         : self.renderToken(tokens, idx, options)
@@ -41,8 +50,11 @@ export const fenceHandler = (md: MarkdownIt) => {
 export function useMermaidFences<T extends HTMLElement>(html?: string) {
   const ref = React.useRef<T | null>(null)
   const idPrefix = useId()
+  const firstRun = React.useRef(true)
 
   React.useEffect(() => {
+    const immediate = firstRun.current
+    firstRun.current = false
     const root = ref.current
     if (!root) return
     const nodes = Array.from(
@@ -102,9 +114,12 @@ export function useMermaidFences<T extends HTMLElement>(html?: string) {
     // The import and initialize sit outside render()'s own try, and a floating
     // rejection would reach Sentry as a bare error: a stale chunk after a redeploy
     // must degrade to the visible source, as utils/hljs does for its grammars.
-    render().catch((e) => log.error(e))
+    const start = () => render().catch((e) => log.error(e))
+    const timer = immediate ? null : setTimeout(start, RERENDER_DEBOUNCE_MS)
+    if (immediate) start()
     return () => {
       stale = true
+      if (timer) clearTimeout(timer)
       dropTempNodes()
       detachers.forEach((detach) => detach())
     }
