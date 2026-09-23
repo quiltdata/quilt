@@ -3,22 +3,29 @@ import { describe, expect, it, vi } from 'vitest'
 import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
-const mocks = vi.hoisted(() => ({ req: vi.fn(), bucketConfigsError: { current: false } }))
+const mocks = vi.hoisted(() => ({
+  req: vi.fn(),
+  // 'none' is the healthy query; 'cold' has never answered; 'cached' is a failed
+  // refresh that still holds the last good config.
+  bucketConfigs: { error: 'none' as 'none' | 'cold' | 'cached' },
+}))
 
 vi.mock('utils/APIConnector', () => ({ use: () => mocks.req }))
 // The panel reads bucketConfigs only to gate the empty-search warning, and
 // only unsharded buckets qualify. Every job here is bucket-a, so one entry at
 // null depth is what lets the warning tests reach that gate at all.
 vi.mock('utils/GraphQL', () => ({
-  useQuery: () =>
-    mocks.bucketConfigsError.current
-      ? { data: undefined, error: new Error('bucketConfigs failed'), fetching: false }
-      : {
-          data: {
-            bucketConfigs: [{ name: 'bucket-a', scannerParallelShardsDepth: null }],
-          },
-          fetching: false,
-        },
+  useQuery: () => ({
+    data:
+      mocks.bucketConfigs.error === 'cold'
+        ? undefined
+        : { bucketConfigs: [{ name: 'bucket-a', scannerParallelShardsDepth: null }] },
+    error:
+      mocks.bucketConfigs.error === 'none'
+        ? undefined
+        : new Error('bucketConfigs failed'),
+    fetching: false,
+  }),
 }))
 
 import Indexing from './Indexing'
@@ -351,7 +358,7 @@ describe('containers/Admin/Status/Indexing', () => {
 
   it('says the wipe check is unavailable when bucket configuration cannot be read', async () => {
     mocks.req.mockReset()
-    mocks.bucketConfigsError.current = true
+    mocks.bucketConfigs.error = 'cold'
     // Without the shard depths the wipe check skips every bucket, which is
     // indistinguishable from "no bucket is emptied" unless the panel says so.
     mocks.req.mockResolvedValue({ results: [job({ prefix: '', ignore_dirs: false })] })
@@ -361,7 +368,22 @@ describe('containers/Admin/Status/Indexing', () => {
       expect(screen.getByText(/Bucket configuration could not be read/)).toBeTruthy(),
     )
     expect(screen.queryByText(/Full-bucket re-index outstanding/)).toBeNull()
-    mocks.bucketConfigsError.current = false
+    mocks.bucketConfigs.error = 'none'
+  })
+
+  it('warns definitively when a failed config refresh still has the last good config', async () => {
+    mocks.req.mockReset()
+    mocks.bucketConfigs.error = 'cached'
+    // The check ran, against config that holds, so claiming it could not run
+    // beside a definitive warning would contradict itself.
+    mocks.req.mockResolvedValue({ results: [job({ prefix: '', ignore_dirs: false })] })
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Full-bucket re-index outstanding/)).toBeTruthy(),
+    )
+    expect(screen.queryByText(/Bucket configuration could not be read/)).toBeNull()
+    mocks.bucketConfigs.error = 'none'
   })
 
   it('renders a placeholder rather than "Invalid Date" for an unparseable timestamp', async () => {

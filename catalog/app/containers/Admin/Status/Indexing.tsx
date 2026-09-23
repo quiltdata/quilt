@@ -250,9 +250,10 @@ function useBucketShardDepths() {
     return next
   }, [result.data])
 
-  // A failed query yields no depths, which the wipe check cannot tell apart from
-  // "no bucket is sharded" -- it would then stay silent about an emptied index.
-  return { depths, unavailable: result.error != null }
+  // Only a query with nothing cached leaves the wipe check unable to run, and
+  // silence there is indistinguishable from "no bucket is sharded". A failed
+  // refresh that still has depths has run the check, against config that holds.
+  return { depths, unavailable: result.error != null && result.data == null }
 }
 
 function Warning({
