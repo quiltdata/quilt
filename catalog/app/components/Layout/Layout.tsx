@@ -17,7 +17,9 @@ const useRootStyles = M.makeStyles({
   },
 })
 
-interface RootProps {
+// Extends `BoxProps` because the body already spreads the rest onto `M.Box`;
+// the narrower declaration just hid that.
+interface RootProps extends M.BoxProps {
   dark?: boolean
   children: React.ReactNode
 }
@@ -111,9 +113,11 @@ export function Layout({
   const openNav = React.useCallback(() => setNavOpen(true), [])
 
   // `bare` pages (e.g. sign-in) keep the minimal standalone header, no sidebar.
+  // The gutter still applies: the error fallback is `bare` but renders inside a
+  // mounted assistant, so the rail is on screen with no shell to hold space.
   if (bare) {
     return (
-      <Root dark={dark}>
+      <Root dark={dark} pr={gutter ?? undefined}>
         <Container.FullWidthProvider>
           <BareHeader />
           {!!pre && pre}
