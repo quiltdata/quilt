@@ -34,9 +34,11 @@ const REQUEST_TIMEOUT_MS = 2 * POLL_MS
 
 const CAVEATS_ID = 'indexing-caveats'
 
-// The fields whose absence would be read as a value rather than as missing data:
-// a job with no `prefix` would otherwise pass for a whole-bucket wipe and raise
-// a warning about an index nothing has emptied.
+// Every field the render path trusts. A missing one is read as a value rather
+// than as missing data: a job with no `prefix` passes for a whole-bucket wipe
+// and raises a warning about an index nothing has emptied.
+const isNullableString = (v: unknown) => v == null || typeof v === 'string'
+
 function isScannerJob(job: unknown): job is ScannerJob {
   if (typeof job !== 'object' || job === null) return false
   const j = job as Record<string, unknown>
@@ -44,7 +46,11 @@ function isScannerJob(job: unknown): job is ScannerJob {
     typeof j.id === 'number' &&
     typeof j.name === 'string' &&
     typeof j.prefix === 'string' &&
-    typeof j.retries_remaining === 'number'
+    (j.ignore_dirs == null || typeof j.ignore_dirs === 'boolean') &&
+    typeof j.retries_remaining === 'number' &&
+    typeof j.time_created === 'string' &&
+    isNullableString(j.next_key_marker) &&
+    isNullableString(j.next_version_id_marker)
   )
 }
 
