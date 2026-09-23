@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { Sidebar } from 'containers/Sidebar'
-import { PANEL_WIDTH, usePanelReflow } from 'components/Assistant/UI/PanelReflow'
+import { MOTION, usePanelGutter } from 'components/Assistant/UI/PanelReflow'
 
 import BareHeader from './BareHeader'
 import * as Container from './Container'
@@ -47,28 +47,15 @@ const useCompactShell = () => {
   return M.useMediaQuery(t.breakpoints.down('sm'))
 }
 
-// Motion is decoration on chrome: transitions attach only inside this query,
-// so reduced-motion users get the instant swap (containers/Sidebar).
-const MOTION = '@media (prefers-reduced-motion: no-preference)'
-
 const useShellStyles = M.makeStyles((t) => ({
   shell: {
     display: 'flex',
     height: '100vh',
     overflowX: 'hidden',
     position: 'relative',
-    [MOTION]: {
-      transition: t.transitions.create('padding-right', {
-        duration: t.transitions.duration.leavingScreen,
-        easing: t.transitions.easing.sharp,
-      }),
-    },
-  },
-  // Qurator's docked paper is `position: fixed` and reserves no space, so the
-  // gutter that lets it push content aside has to be held here. Durations
-  // match the drawer's own Slide, or the content lags the paper.
-  shellReflowed: {
-    paddingRight: PANEL_WIDTH,
+    // Qurator's docked paper is `position: fixed` and reserves no space, so the
+    // gutter it takes out of the content has to be held here. Duration and
+    // easing match the paper's own width transition, or the content lags it.
     [MOTION]: {
       transition: t.transitions.create('padding-right', {
         duration: t.transitions.duration.enteringScreen,
@@ -118,7 +105,7 @@ export function Layout({
 }: LayoutProps) {
   const classes = useShellStyles()
   const compact = useCompactShell()
-  const reflow = usePanelReflow()
+  const gutter = usePanelGutter()
   const [navOpen, setNavOpen] = React.useState(false)
   const closeNav = React.useCallback(() => setNavOpen(false), [])
   const openNav = React.useCallback(() => setNavOpen(true), [])
@@ -144,7 +131,8 @@ export function Layout({
   return (
     <SearchInputProvider>
       <M.Box
-        className={cx(classes.shell, reflow && classes.shellReflowed)}
+        className={classes.shell}
+        style={{ paddingRight: gutter ?? undefined }}
         bgcolor={dark ? 'primary.main' : 'background.default'}
       >
         <Sidebar compact={compact} open={navOpen} onClose={closeNav} />
