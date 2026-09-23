@@ -3,6 +3,7 @@ import * as React from 'react'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import * as AuthSelectors from 'containers/Auth/selectors'
 import type { CatalogSettings } from 'utils/CatalogSettings'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -19,7 +20,13 @@ vi.mock('utils/CatalogSettings', () => ({
 }))
 
 let isAdmin = false
-vi.mock('react-redux', () => ({ useSelector: () => isAdmin }))
+let username: string | undefined = 'alice'
+// The hooks select two different things; a single-value mock would feed the
+// username to `isAdmin` as well.
+vi.mock('react-redux', () => ({
+  useSelector: (sel: unknown) =>
+    sel === AuthSelectors.username ? username : sel === AuthSelectors.isAdmin && isAdmin,
+}))
 
 import * as Context from './Context'
 import * as Conversation from './Conversation'
@@ -64,9 +71,14 @@ function setupBoth() {
 }
 
 describe('components/Assistant/Model/UserInstructions', () => {
+  /** Notes are stored per signed-in user, so tests address the owner's key. */
+  const textKey = (owner = username) =>
+    `${UserInstructions.PERSONAL_STORAGE_KEY}:${owner}`
+
   beforeEach(() => {
     settings = null
     isAdmin = false
+    username = 'alice'
     writeSettings.mockReset()
     writeSettings.mockResolvedValue(undefined)
     window.localStorage.clear()
@@ -188,23 +200,47 @@ describe('components/Assistant/Model/UserInstructions', () => {
       expect(current().active).toBe(false)
     })
 
-    it('reads notes written before this session, under #5310 keys', () => {
-      window.localStorage.setItem(
-        UserInstructions.PERSONAL_STORAGE_KEY,
-        'I work on RNA-seq',
-      )
+    it('reads notes written before this session', () => {
+      window.localStorage.setItem(textKey(), 'I work on RNA-seq')
       const current = personal()
       expect(current().text).toBe('I work on RNA-seq')
       expect(current().active).toBe(true)
+    })
+
+    it("never reads another account's notes in the same browser", () => {
+      window.localStorage.setItem(textKey('alice'), 'I work on RNA-seq')
+      username = 'bob'
+      expect(personal()().text).toBe('')
+    })
+
+    it('swaps notes when the account changes under a live panel', async () => {
+      window.localStorage.setItem(textKey('bob'), "bob's notes")
+      const current = personal()
+      await act(() => current().setText("alice's notes"))
+      expect(current().text).toBe("alice's notes")
+
+      username = 'bob'
+      cleanup()
+      expect(personal()().text).toBe("bob's notes")
+      expect(window.localStorage.getItem(textKey('alice'))).toBe("alice's notes")
+    })
+
+    it('signed out, notes are neither read nor written', async () => {
+      window.localStorage.setItem(textKey('alice'), 'I work on RNA-seq')
+      username = undefined
+      const current = personal()
+      expect(current().text).toBe('')
+      await act(() => current().setText('anonymous note'))
+      // Held in memory for the session, but never persisted to an ownerless key.
+      expect(window.localStorage.getItem(textKey(undefined))).toBeNull()
+      expect(window.localStorage.getItem(textKey('alice'))).toBe('I work on RNA-seq')
     })
 
     it('setText persists and survives a remount', async () => {
       const current = personal()
       await act(() => current().setText('Prefer Parquet'))
       expect(current().text).toBe('Prefer Parquet')
-      expect(window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY)).toBe(
-        'Prefer Parquet',
-      )
+      expect(window.localStorage.getItem(textKey())).toBe('Prefer Parquet')
 
       cleanup()
       expect(personal()().text).toBe('Prefer Parquet')
@@ -217,9 +253,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
       expect(current().text).toBe('Prefer Parquet')
       expect(current().enabled).toBe(false)
       expect(current().active).toBe(false)
-      expect(window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY)).toBe(
-        'Prefer Parquet',
-      )
+      expect(window.localStorage.getItem(textKey())).toBe('Prefer Parquet')
     })
 
     it('whitespace-only notes do not count as active', async () => {
@@ -233,9 +267,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
       await act(() => current().setText('Prefer Parquet'))
       await act(() => current().clear())
       expect(current().text).toBe('')
-      expect(
-        window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY),
-      ).toBeNull()
+      expect(window.localStorage.getItem(textKey())).toBeNull()
     })
 
     it('is always editable, admin or not', () => {
@@ -284,9 +316,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
         settings,
       )
       expect(both().personal.text).toBe('Prefer Parquet')
-      expect(window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY)).toBe(
-        'Prefer Parquet',
-      )
+      expect(window.localStorage.getItem(textKey())).toBe('Prefer Parquet')
     })
 
     it('muting one layer leaves the other injecting', async () => {

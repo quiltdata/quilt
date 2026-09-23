@@ -2,7 +2,13 @@
 // stack serves is another deployment's copy, not a deliberate cross-stack link.
 // ponytail: bucket routes only; other catalog routes rely on the prompt rule in
 // GlobalContext/navigation.
-const BUCKET_PATH = /^\/b\/([^/]+)/
+//
+// `/b/` is nobody's namespace, so the path alone cannot say a foreign host is a
+// catalog. Matching a full bucket subroute (see constants/routes) instead of any
+// `/b/<x>` is what keeps an unrelated site's `/b/` path — a store aisle, a blog
+// editor — from being redirected at this stack's data.
+const BUCKET_PATH =
+  /^\/b\/([^/]+)(?:\/(?:tree|packages|search|queries|workflows)(?:\/|$)|\/?$)/
 
 // An S3 object key may itself begin with `b/`, so a presigned or direct S3 URL
 // can look like a catalog bucket route. Dropping its host voids the signature

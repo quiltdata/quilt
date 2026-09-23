@@ -54,6 +54,18 @@ describe('components/Assistant/UI/Chat/links', () => {
       untouched.forEach((href) => expect(rewrite(href)).toBe(href))
     })
 
+    it('needs a real bucket subroute, not just any /b/<name> path', () => {
+      // a bucket-name collision alone must not redirect an unrelated site's
+      // page at this stack
+      const untouched = [
+        'https://www.amazon.com/b/my-bucket/ref=sr_pg_1',
+        'https://example.com/b/my-bucket/post-create',
+        'https://example.com/b/my-bucket/treehouse',
+        'https://example.com/b/quilt-example/about/team',
+      ]
+      untouched.forEach((href) => expect(rewrite(href)).toBe(href))
+    })
+
     it('leaves buckets this stack does not serve on their original host', () => {
       // rewriting would 404 here and destroy a link that works
       const href = `${STABLE}/b/somebody-elses-bucket/tree/x`
@@ -106,6 +118,19 @@ describe('components/Assistant/UI/Chat/links', () => {
       expect(rewrite('https://notamazonaws.com/b/my-bucket/tree/x')).toBe(
         '/b/my-bucket/tree/x',
       )
+    })
+
+    it('covers the bucket subroutes the catalog serves', () => {
+      const paths = [
+        '/b/my-bucket',
+        '/b/my-bucket/',
+        '/b/my-bucket/tree/data/x.csv',
+        '/b/my-bucket/packages/team/pkg',
+        '/b/my-bucket/search?q=x',
+        '/b/my-bucket/queries/athena',
+        '/b/my-bucket/workflows/',
+      ]
+      paths.forEach((path) => expect(rewrite(`${STABLE}${path}`)).toBe(path))
     })
 
     it('passes unparseable hrefs through', () => {
