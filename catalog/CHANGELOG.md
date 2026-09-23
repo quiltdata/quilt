@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin Status: an indexing panel lists queued scanner jobs with their scope, position, age and attempts left, and reports movement rather than a percentage the backend cannot supply ([#5321](https://github.com/quiltdata/quilt/pull/5321))
 - [Fixed] Website pages no longer force full-bleed content, so the OPEN-mode landing's Volumes list carries the standard horizontal page inset instead of running edge to edge ([#5316](https://github.com/quiltdata/quilt/pull/5316))
 - [Fixed] A custom logo now scales to fit its slot instead of being clipped by it, so a wide lockup stays readable in the folded sidebar ([#5319](https://github.com/quiltdata/quilt/pull/5319))
 - [Added] Mermaid: a ```mermaid fence in any Markdown the catalog renders draws as a zoomable diagram, with a Markdown view to read its source ([#5269](https://github.com/quiltdata/quilt/pull/5269))
