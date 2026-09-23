@@ -125,7 +125,7 @@ export function Layout({
   // mounted assistant, so the rail is on screen with no shell to hold space.
   if (bare) {
     return (
-      <Root dark={dark} pr={gutter ?? undefined}>
+      <Root dark={dark} style={{ paddingRight: gutter ?? undefined }}>
         <Container.FullWidthProvider>
           <BareHeader />
           {!!pre && pre}
