@@ -44,4 +44,18 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     expect(result.current.state.error).toContain('nope')
     expect(result.current.state.opened).toBe(true)
   })
+
+  it('reports how many were already deleted when it stops', async () => {
+    deleteRevision.mockResolvedValueOnce(ok).mockResolvedValueOnce(fail('nope'))
+    const result = selecting('h1', 'h2', 'h3')
+    await act(() => result.current.run())
+    expect(result.current.state.error).toContain('1 already deleted')
+  })
+
+  it('names the failing revision when the mutation throws', async () => {
+    deleteRevision.mockRejectedValueOnce(new Error('offline'))
+    const result = selecting('h1')
+    await act(() => result.current.run())
+    expect(result.current.state.error).toContain('h1')
+  })
 })

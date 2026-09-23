@@ -463,7 +463,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const scrollRef = React.useRef<HTMLSpanElement>(null)
 
-  // One gate for both the toolbar and the row checkboxes, so they cannot drift.
+  // Needed outside the toolbar's own match, to gate the per-row checkboxes.
   const canDelete = BucketPreferences.Result.match(
     { Ok: ({ ui: { actions } }) => actions.deleteRevision, _: () => false },
     prefs,

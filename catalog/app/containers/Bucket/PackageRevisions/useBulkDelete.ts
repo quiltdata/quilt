@@ -39,11 +39,14 @@ export function useBulkDelete(bucket: string, name: string) {
         }
         done.add(hash)
       } catch (e: any) {
-        error = `Unexpected error: ${e.message ?? e}`
+        error = `Unexpected error: ${e.message ?? e} (${hash})`
         break
       }
     }
     setSelected((s) => new Set([...s].filter((h) => !done.has(h))))
+    // The dialog's title tracks the selection, which just shrank by whatever
+    // succeeded, so the error carries the only record of the partial result.
+    if (error && done.size) error = `${error}. ${done.size} already deleted`
     setState({ error, loading: false, opened: !!error })
   }, [bucket, name, selected, deleteRevision])
 
