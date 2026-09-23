@@ -22,8 +22,9 @@ type ScannerJob = {
 
 const POLL_MS = 10_000
 
-// How long a cursor advance keeps counting as progress. Three polls, so one slow
-// or dropped response does not flip a working scan to "no movement".
+// How long a cursor advance keeps counting as progress. Three polls, so a slow
+// response that still lands inside the request deadline does not flip a working
+// scan to "no movement".
 const PROGRESS_TTL_MS = 3 * POLL_MS
 
 // Two polls' worth of patience before a request is called dead. Long enough that
@@ -33,14 +34,16 @@ const REQUEST_TIMEOUT_MS = 2 * POLL_MS
 
 const CAVEATS_ID = 'indexing-caveats'
 
-// Every field the panel reads unguarded. A bad element would otherwise throw
-// mid-render and blank the whole Status tab.
+// The fields whose absence would be read as a value rather than as missing data:
+// a job with no `prefix` would otherwise pass for a whole-bucket wipe and raise
+// a warning about an index nothing has emptied.
 function isScannerJob(job: unknown): job is ScannerJob {
   if (typeof job !== 'object' || job === null) return false
   const j = job as Record<string, unknown>
   return (
     typeof j.id === 'number' &&
     typeof j.name === 'string' &&
+    typeof j.prefix === 'string' &&
     typeof j.retries_remaining === 'number'
   )
 }
@@ -92,6 +95,15 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1.5),
     padding: t.spacing(1, 1.5),
   },
+  // An emptied index nothing is still working on needs the louder register: it
+  // is terminal until an admin starts the re-index again.
+  error: {
+    background: fade(t.palette.error.main, 0.12),
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.error.dark,
+    marginBottom: t.spacing(1.5),
+    padding: t.spacing(1, 1.5),
+  },
   caveat: {
     color: t.palette.text.secondary,
     maxWidth: '75ch',
@@ -132,8 +144,8 @@ function useBulkScannerJobs(pollMs: number) {
       // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
       const data = (await Promise.race([
         req({ endpoint: '/bulk_scanner_jobs', method: 'GET', signal: ctl.signal }),
-        // The race is what rejects; the abort only frees the socket, since
-        // nothing here guarantees the transport honours a signal.
+        // The race is what rejects, not the abort: the deadline must hold even
+        // if the injected transport ignores the signal.
         new Promise<never>((_resolve, reject) => {
           timer = window.setTimeout(() => {
             ctl.abort()
@@ -233,10 +245,13 @@ function useBucketShardDepths() {
   }, [result.data])
 }
 
-function Warning({ children }: React.PropsWithChildren<{}>) {
+function Warning({
+  children,
+  severity = 'warning',
+}: React.PropsWithChildren<{ severity?: 'warning' | 'error' }>) {
   const classes = useStyles()
   return (
-    <div className={classes.warning}>
+    <div className={severity === 'error' ? classes.error : classes.warning}>
       <M.Typography variant="body2" color="inherit">
         {children}
       </M.Typography>
@@ -264,9 +279,8 @@ export default function Indexing() {
     const live = new Set<string>()
     const stalled = new Set<string>()
     for (const job of jobs ?? []) {
-      // Full-bucket wipe only: a whole-bucket job carries prefix '' (the column
-      // is NOT NULL, default ''), while a prefix or top-level-only scan leaves
-      // the rest of the index in place.
+      // Full-bucket wipe only: a prefix or top-level-only scan leaves the rest
+      // of the index in place.
       if (job.prefix || job.ignore_dirs) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
@@ -369,7 +383,7 @@ export default function Indexing() {
       )}
 
       {emptySearchBuckets.stalled.length > 0 && (
-        <Warning>
+        <Warning severity="error">
           Full-bucket re-index out of attempts for {emptySearchBuckets.stalled.join(', ')}
           . Search for{' '}
           {emptySearchBuckets.stalled.length === 1 ? 'that bucket' : 'those buckets'}{' '}
