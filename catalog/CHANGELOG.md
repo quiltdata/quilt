@@ -23,7 +23,7 @@ complete sentence without it.
 
 - [Changed] Qurator stays on screen as a collapsed rail on the right instead of vanishing when closed, so it is always one click away like the left sidebar ([#5324](https://github.com/quiltdata/quilt/pull/5324))
 - [Changed] Qurator opens as a right side panel that pushes page content aside instead of an overlay that covers it, so the chat and the data it is about are readable at once; narrow viewports keep the overlay ([#5312](https://github.com/quiltdata/quilt/pull/5312))
-- [Changed] Qurator instructions are a stack-wide setting that admins edit from Admin → Settings or the chat strip, so every user's Qurator follows one steer instead of per-browser notes ([#5311](https://github.com/quiltdata/quilt/pull/5311))
+- [Changed] Qurator takes standing instructions in two independent layers, both sent with every message: a stack-wide steer admins set from Admin → Settings or the chat strip, and each user's own notes kept in their browser ([#5310](https://github.com/quiltdata/quilt/pull/5310), [#5311](https://github.com/quiltdata/quilt/pull/5311), [#5313](https://github.com/quiltdata/quilt/pull/5313))
 - [Fixed] Website pages no longer force full-bleed content, so the OPEN-mode landing's Volumes list carries the standard horizontal page inset instead of running edge to edge ([#5316](https://github.com/quiltdata/quilt/pull/5316))
 - [Fixed] A custom logo now scales to fit its slot instead of being clipped by it, so a wide lockup stays readable in the folded sidebar ([#5319](https://github.com/quiltdata/quilt/pull/5319))
 - [Added] Mermaid: a ```mermaid fence in any Markdown the catalog renders draws as a zoomable diagram, with a Markdown view to read its source ([#5269](https://github.com/quiltdata/quilt/pull/5269))
