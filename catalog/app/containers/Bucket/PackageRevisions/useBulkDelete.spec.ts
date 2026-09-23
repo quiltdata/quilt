@@ -52,6 +52,16 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     expect(result.current.state.error).toContain('1 already deleted')
   })
 
+  it('drops the selection when the package changes', () => {
+    const { result, rerender } = renderHook(({ name }) => useBulkDelete('b', name), {
+      initialProps: { name: 'foo/bar' },
+    })
+    act(() => result.current.toggle('h1'))
+    expect([...result.current.selected]).toEqual(['h1'])
+    rerender({ name: 'foo/other' })
+    expect([...result.current.selected]).toEqual([])
+  })
+
   it('names the failing revision when the mutation throws', async () => {
     deleteRevision.mockRejectedValueOnce(new Error('offline'))
     const result = selecting('h1')
