@@ -471,7 +471,6 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const bulk = useBulkDelete(bucket, name)
 
-  // scroll to top and drop selection on page change
   usePrevious(actualPage, (prev) => {
     if (prev && actualPage !== prev) {
       scrollRef.current?.scrollIntoView()
