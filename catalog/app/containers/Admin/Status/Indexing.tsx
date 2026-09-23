@@ -22,8 +22,9 @@ type ScannerJob = {
 
 const POLL_MS = 10_000
 
-// How long a cursor advance keeps counting as progress. Three polls, so one slow
-// or dropped response does not flip a working scan to "no movement".
+// How long a cursor advance keeps counting as progress. Three polls, so a slow
+// response that still lands inside the request deadline does not flip a working
+// scan to "no movement".
 const PROGRESS_TTL_MS = 3 * POLL_MS
 
 // Two polls' worth of patience before a request is called dead. Long enough that
@@ -32,6 +33,26 @@ const PROGRESS_TTL_MS = 3 * POLL_MS
 const REQUEST_TIMEOUT_MS = 2 * POLL_MS
 
 const CAVEATS_ID = 'indexing-caveats'
+
+// Every field the render path trusts. A missing one is read as a value rather
+// than as missing data: a job with no `prefix` passes for a whole-bucket wipe
+// and raises a warning about an index nothing has emptied.
+const isNullableString = (v: unknown) => v == null || typeof v === 'string'
+
+function isScannerJob(job: unknown): job is ScannerJob {
+  if (typeof job !== 'object' || job === null) return false
+  const j = job as Record<string, unknown>
+  return (
+    typeof j.id === 'number' &&
+    typeof j.name === 'string' &&
+    typeof j.prefix === 'string' &&
+    (j.ignore_dirs == null || typeof j.ignore_dirs === 'boolean') &&
+    typeof j.retries_remaining === 'number' &&
+    typeof j.time_created === 'string' &&
+    isNullableString(j.next_key_marker) &&
+    isNullableString(j.next_version_id_marker)
+  )
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -67,7 +88,7 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1.5),
   },
   mono: {
-    fontFamily: "'Roboto Mono', monospace",
+    ...t.typography.monospace,
     wordBreak: 'break-all',
   },
   numeric: {
@@ -77,6 +98,15 @@ const useStyles = M.makeStyles((t) => ({
     background: fade(t.palette.warning.main, 0.12),
     borderRadius: t.shape.borderRadius,
     color: t.palette.warning.dark,
+    marginBottom: t.spacing(1.5),
+    padding: t.spacing(1, 1.5),
+  },
+  // An emptied index nothing is still working on needs the louder register: it
+  // is terminal until an admin starts the re-index again.
+  error: {
+    background: fade(t.palette.error.main, 0.12),
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.error.dark,
     marginBottom: t.spacing(1.5),
     padding: t.spacing(1, 1.5),
   },
@@ -110,20 +140,18 @@ function useBulkScannerJobs(pollMs: number) {
   const req = APIConnector.use()
   const [jobs, setJobs] = React.useState<ScannerJob[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
-  const [busy, setBusy] = React.useState(false)
   const seqRef = React.useRef(0)
 
   const load = React.useCallback(async () => {
     const seq = ++seqRef.current
     const ctl = new AbortController()
     let timer = 0
-    setBusy(true)
     try {
       // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
       const data = (await Promise.race([
         req({ endpoint: '/bulk_scanner_jobs', method: 'GET', signal: ctl.signal }),
-        // The race is what rejects; the abort only frees the socket, since
-        // nothing here guarantees the transport honours a signal.
+        // The race is what rejects, not the abort: the deadline must hold even
+        // if the injected transport ignores the signal.
         new Promise<never>((_resolve, reject) => {
           timer = window.setTimeout(() => {
             ctl.abort()
@@ -135,7 +163,9 @@ function useBulkScannerJobs(pollMs: number) {
       if (seq !== seqRef.current) return
       // A malformed payload must not land as the reassuring "no scanner jobs
       // queued" state, which an admin reads as a fact about the cluster.
-      if (!data || !Array.isArray(data.results)) throw new Error('Malformed response')
+      if (!data || !Array.isArray(data.results) || !data.results.every(isScannerJob)) {
+        throw new Error('Malformed response')
+      }
       setJobs(data.results)
       setError(null)
     } catch (e) {
@@ -145,7 +175,6 @@ function useBulkScannerJobs(pollMs: number) {
       setError('Could not load scanner jobs')
     } finally {
       window.clearTimeout(timer)
-      if (seq === seqRef.current) setBusy(false)
     }
   }, [req])
 
@@ -169,7 +198,7 @@ function useBulkScannerJobs(pollMs: number) {
     }
   }, [load, pollMs])
 
-  return { jobs, error, busy, reload: load }
+  return { jobs, error, reload: load }
 }
 
 type Movement = { cursor: string; seenAt: number; moved: boolean }
@@ -222,6 +251,20 @@ function useBucketShardDepths() {
   }, [result.data])
 }
 
+function Warning({
+  children,
+  severity = 'warning',
+}: React.PropsWithChildren<{ severity?: 'warning' | 'error' }>) {
+  const classes = useStyles()
+  return (
+    <div className={severity === 'error' ? classes.error : classes.warning}>
+      <M.Typography variant="body2" color="inherit">
+        {children}
+      </M.Typography>
+    </div>
+  )
+}
+
 function LoadingRows() {
   return (
     <M.Box py={1}>
@@ -234,30 +277,31 @@ function LoadingRows() {
 
 export default function Indexing() {
   const classes = useStyles()
-  const { jobs, error, busy, reload } = useBulkScannerJobs(POLL_MS)
+  const { jobs, error, reload } = useBulkScannerJobs(POLL_MS)
   const shardDepths = useBucketShardDepths()
   const [detailsOpen, setDetailsOpen] = React.useState(false)
 
   const emptySearchBuckets = React.useMemo(() => {
-    if (!jobs) return []
-    const names = new Set<string>()
-    for (const job of jobs) {
-      // Full-bucket wipe only: a whole-bucket job carries prefix '' (the column
-      // is NOT NULL, default ''), while a prefix or top-level-only scan leaves
-      // the rest of the index in place.
+    const live = new Set<string>()
+    const stalled = new Set<string>()
+    for (const job of jobs ?? []) {
+      // Full-bucket wipe only: a prefix or top-level-only scan leaves the rest
+      // of the index in place.
       if (job.prefix || job.ignore_dirs) continue
-      // An exhausted job is not going to finish, so promising that search comes
-      // back "when the rescan finishes" would be false.
-      if (job.retries_remaining <= 0) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
       const depth = shardDepths[job.name]
       // Only warn where grounding is honest: unsharded buckets.
-      if (depth == null || depth === 0) {
-        names.add(job.name)
-      }
+      if (depth != null && depth !== 0) continue
+      if (job.retries_remaining > 0) live.add(job.name)
+      else stalled.add(job.name)
     }
-    return [...names].sort()
+    return {
+      // A bucket with another job still trying is covered by the live warning;
+      // it must not also read as abandoned.
+      stalled: [...stalled].filter((n) => !live.has(n)).sort(),
+      live: [...live].sort(),
+    }
   }, [jobs, shardDepths])
 
   // `retries_remaining > 0` only means "not exhausted" -- true of a stalled job
@@ -278,7 +322,7 @@ export default function Indexing() {
 
       <div className={classes.titleRow}>
         <M.Typography variant="h5">Indexing</M.Typography>
-        <M.Button size="small" onClick={reload} disabled={busy && !error}>
+        <M.Button size="small" onClick={reload} disabled={loading}>
           Refresh
         </M.Button>
       </div>
@@ -333,14 +377,24 @@ export default function Indexing() {
         </M.Collapse>
       </div>
 
-      {!error && emptySearchBuckets.length > 0 && (
-        <div className={classes.warning}>
-          <M.Typography variant="body2" color="inherit">
-            Full-bucket re-index in progress for {emptySearchBuckets.join(', ')}. Search
-            for {emptySearchBuckets.length === 1 ? 'that bucket' : 'those buckets'}{' '}
-            returns nothing until the rescan finishes.
-          </M.Typography>
-        </div>
+      {/* Both warnings outlive a failed poll: unlike the activity strip, they
+          describe a state that persists whether or not the panel can refresh. */}
+      {emptySearchBuckets.live.length > 0 && (
+        <Warning>
+          Full-bucket re-index outstanding for {emptySearchBuckets.live.join(', ')}.
+          Search for{' '}
+          {emptySearchBuckets.live.length === 1 ? 'that bucket' : 'those buckets'} returns
+          nothing until it completes, which the queue cannot promise.
+        </Warning>
+      )}
+
+      {emptySearchBuckets.stalled.length > 0 && (
+        <Warning severity="error">
+          Full-bucket re-index out of attempts for {emptySearchBuckets.stalled.join(', ')}
+          . Search for{' '}
+          {emptySearchBuckets.stalled.length === 1 ? 'that bucket' : 'those buckets'}{' '}
+          stays empty until the re-index is started again.
+        </Warning>
       )}
 
       {loading && <LoadingRows />}
@@ -349,6 +403,14 @@ export default function Indexing() {
         <M.Typography className={classes.empty}>
           No scanner jobs queued. Start one from a bucket&apos;s Re-index action under
           Admin&nbsp;→&nbsp;Buckets.
+        </M.Typography>
+      )}
+
+      {/* Age keeps counting up against timestamps nobody re-fetched, so the
+          surviving rows must not read as current. */}
+      {jobs && jobs.length > 0 && error && (
+        <M.Typography variant="body2" color="textSecondary" gutterBottom>
+          Showing the last successful reading.
         </M.Typography>
       )}
 

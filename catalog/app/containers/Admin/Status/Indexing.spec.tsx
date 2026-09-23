@@ -252,20 +252,83 @@ describe('containers/Admin/Status/Indexing', () => {
     })
     renderPanel()
 
+    // Attempts left says the job is not exhausted, never that it is moving, so
+    // the copy must not promise the rescan finishes.
     await waitFor(() =>
-      expect(screen.getByText(/returns nothing until the rescan finishes/)).toBeTruthy(),
+      expect(screen.getByText(/which the queue cannot promise/)).toBeTruthy(),
     )
+    expect(screen.queryByText(/until the rescan finishes/)).toBeNull()
   })
 
-  it('does not promise search comes back for a job that ran out of attempts', async () => {
+  it('escalates rather than hides a wiped index whose re-index ran out of attempts', async () => {
     mocks.req.mockReset()
     mocks.req.mockResolvedValue({
       results: [job({ prefix: '', ignore_dirs: false, retries_remaining: 0 })],
     })
     renderPanel()
 
-    await waitFor(() => expect(screen.getByText('No jobs outstanding')).toBeTruthy())
+    // The index is empty and nothing is going to refill it: the state an admin
+    // most needs to see, and the one a "finishes" promise would misreport.
+    await waitFor(() =>
+      expect(
+        screen.getByText(/stays empty until the re-index is started again/),
+      ).toBeTruthy(),
+    )
     expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
+  })
+
+  it('leaves Refresh usable when the very first load fails', async () => {
+    mocks.req.mockReset()
+    // A registry that was already down at page load: `jobs` never becomes
+    // non-null, so `loading` would pin the button off and strand the admin with
+    // a banner naming the control it disabled.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
+    const refresh = screen.getByRole('button', { name: /refresh/i }) as HTMLButtonElement
+    expect(refresh.disabled).toBe(false)
+  })
+
+  it('marks the job rows stale while a poll is failing', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValueOnce({ results: [job({ next_key_marker: 'a/1' })] })
+    renderPanel()
+    await waitFor(() => expect(screen.getByText('bucket-a')).toBeTruthy())
+
+    // The rows stay so the warnings keep their evidence, but Age goes on
+    // counting up against a timestamp nobody re-fetched.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    await poll()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Showing the last successful reading/)).toBeTruthy(),
+    )
+    expect(screen.getByText('bucket-a')).toBeTruthy()
+  })
+
+  it('keeps the wipe warning up when a poll fails', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValueOnce({
+      results: [job({ prefix: '', ignore_dirs: false })],
+    })
+    renderPanel()
+    await waitFor(() =>
+      expect(screen.getByText(/Full-bucket re-index outstanding/)).toBeTruthy(),
+    )
+
+    // The index stays empty whether or not the panel can reach the registry, so
+    // a failed poll must not retract the warning while the rows it came from
+    // are still on screen.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    await poll()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
+    expect(screen.getByText(/Full-bucket re-index outstanding/)).toBeTruthy()
   })
 
   it('reports a malformed payload instead of calling the queue empty', async () => {
