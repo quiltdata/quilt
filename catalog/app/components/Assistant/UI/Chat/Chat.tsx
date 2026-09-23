@@ -18,14 +18,21 @@ import Instructions from './Instructions'
 import MessageAction from './MessageAction'
 import { toCurrentStack } from './links'
 
-// `getRenderer` memoizes on the processor's identity, so this must stay stable;
-// `useIsInStack` returns a callback keyed on the bucket list, which does.
+// `getRenderer` caches on the processor's identity and clears the whole cache at
+// 16 entries, so every message must share one: a per-message identity would
+// rebuild MarkdownIt and DOMPurify for each message on every render.
+const PROCESS_LINK = new WeakMap<object, (href: string) => string>()
+
 function useProcessLink() {
   const isInStack = Buckets.useIsInStack()
-  return React.useCallback(
-    (href: string) => toCurrentStack(href, window.location.origin, isInStack),
-    [isInStack],
-  )
+  return React.useMemo(() => {
+    const cached = PROCESS_LINK.get(isInStack)
+    if (cached) return cached
+    const processLink = (href: string) =>
+      toCurrentStack(href, window.location.origin, isInStack)
+    PROCESS_LINK.set(isInStack, processLink)
+    return processLink
+  }, [isInStack])
 }
 
 const useMessageContainerStyles = M.makeStyles((t) => ({

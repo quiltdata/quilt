@@ -94,6 +94,9 @@ describe('components/Assistant/UI/Chat/links', () => {
         // signed by a proxy on some other host
         `https://files.example.com/b/my-bucket/x.csv?${sig}`,
         'https://files.example.com/b/my-bucket/x.csv?Signature=abc&Expires=1',
+        // a signer that spells the parameter its own way
+        'https://files.example.com/b/my-bucket/x.csv?signature=abc&Expires=1',
+        'https://files.example.com/b/my-bucket/x.csv?x-amz-signature=abc',
       ]
       untouched.forEach((href) => expect(rewrite(href)).toBe(href))
     })

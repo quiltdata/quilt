@@ -8,7 +8,13 @@ const BUCKET_PATH = /^\/b\/([^/]+)/
 // can look like a catalog bucket route. Dropping its host voids the signature
 // and leaves a dead link, so AWS hosts and signed URLs are never rewritten.
 const AWS_HOST = /(^|\.)amazonaws\.com(\.cn)?$/
-const SIGNATURE_PARAMS = ['X-Amz-Signature', 'Signature']
+// Compared lowercased: a non-AWS signer may spell the parameter `signature`,
+// and `searchParams.has` would miss it.
+const SIGNATURE_PARAMS = ['x-amz-signature', 'signature']
+const isSigned = (url: URL) =>
+  Array.from(url.searchParams.keys()).some((k) =>
+    SIGNATURE_PARAMS.includes(k.toLowerCase()),
+  )
 
 export function toCurrentStack(
   href: string,
@@ -24,7 +30,7 @@ export function toCurrentStack(
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return href
   if (url.origin === origin) return href
   if (AWS_HOST.test(url.hostname)) return href
-  if (SIGNATURE_PARAMS.some((p) => url.searchParams.has(p))) return href
+  if (isSigned(url)) return href
   const bucket = url.pathname.match(BUCKET_PATH)?.[1]
   if (!bucket || !isInStack(decodeBucket(bucket))) return href
   return `${url.pathname}${url.search}${url.hash}`
