@@ -274,6 +274,38 @@ describe('containers/Admin/Status/Indexing', () => {
     expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
   })
 
+  it('leaves Refresh usable when the very first load fails', async () => {
+    mocks.req.mockReset()
+    // A registry that was already down at page load: `jobs` never becomes
+    // non-null, so `loading` would pin the button off and strand the admin with
+    // a banner naming the control it disabled.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
+    const refresh = screen.getByRole('button', { name: /refresh/i }) as HTMLButtonElement
+    expect(refresh.disabled).toBe(false)
+  })
+
+  it('marks the job rows stale while a poll is failing', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValueOnce({ results: [job({ next_key_marker: 'a/1' })] })
+    renderPanel()
+    await waitFor(() => expect(screen.getByText('bucket-a')).toBeTruthy())
+
+    // The rows stay so the warnings keep their evidence, but Age goes on
+    // counting up against a timestamp nobody re-fetched.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    await poll()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Showing the last successful reading/)).toBeTruthy(),
+    )
+    expect(screen.getByText('bucket-a')).toBeTruthy()
+  })
+
   it('keeps the wipe warning up when a poll fails', async () => {
     mocks.req.mockReset()
     mocks.req.mockResolvedValueOnce({

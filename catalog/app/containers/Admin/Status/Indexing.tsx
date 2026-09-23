@@ -406,6 +406,15 @@ export default function Indexing() {
         </M.Typography>
       )}
 
+      {/* The rows survive a failed poll so the warnings above keep their
+          evidence, but Age keeps counting up against timestamps nobody
+          re-fetched, so they must not read as current. */}
+      {jobs && jobs.length > 0 && error && (
+        <M.Typography variant="body2" color="textSecondary" gutterBottom>
+          Showing the last successful reading.
+        </M.Typography>
+      )}
+
       {jobs && jobs.length > 0 && (
         <M.Table size="small">
           <M.TableHead>
