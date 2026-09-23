@@ -252,9 +252,12 @@ describe('containers/Admin/Status/Indexing', () => {
     })
     renderPanel()
 
+    // Attempts left says the job is not exhausted, never that it is moving, so
+    // the copy must not promise the rescan finishes.
     await waitFor(() =>
-      expect(screen.getByText(/returns nothing until the rescan finishes/)).toBeTruthy(),
+      expect(screen.getByText(/which the queue cannot promise/)).toBeTruthy(),
     )
+    expect(screen.queryByText(/until the rescan finishes/)).toBeNull()
   })
 
   it('escalates rather than hides a wiped index whose re-index ran out of attempts', async () => {
@@ -313,7 +316,7 @@ describe('containers/Admin/Status/Indexing', () => {
     })
     renderPanel()
     await waitFor(() =>
-      expect(screen.getByText(/returns nothing until the rescan finishes/)).toBeTruthy(),
+      expect(screen.getByText(/Full-bucket re-index outstanding/)).toBeTruthy(),
     )
 
     // The index stays empty whether or not the panel can reach the registry, so
@@ -325,7 +328,7 @@ describe('containers/Admin/Status/Indexing', () => {
     await waitFor(() =>
       expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
     )
-    expect(screen.getByText(/returns nothing until the rescan finishes/)).toBeTruthy()
+    expect(screen.getByText(/Full-bucket re-index outstanding/)).toBeTruthy()
   })
 
   it('reports a malformed payload instead of calling the queue empty', async () => {

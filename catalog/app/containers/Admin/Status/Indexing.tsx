@@ -381,10 +381,10 @@ export default function Indexing() {
           describe a state that persists whether or not the panel can refresh. */}
       {emptySearchBuckets.live.length > 0 && (
         <Warning>
-          Full-bucket re-index in progress for {emptySearchBuckets.live.join(', ')}.
+          Full-bucket re-index outstanding for {emptySearchBuckets.live.join(', ')}.
           Search for{' '}
           {emptySearchBuckets.live.length === 1 ? 'that bucket' : 'those buckets'} returns
-          nothing until the rescan finishes.
+          nothing until it completes, which the queue cannot promise.
         </Warning>
       )}
 
