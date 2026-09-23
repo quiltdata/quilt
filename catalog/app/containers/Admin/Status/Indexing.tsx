@@ -242,13 +242,17 @@ function useCursorMovement(jobs: ScannerJob[] | null) {
 function useBucketShardDepths() {
   const result = useQuery(BUCKET_CONFIGS_QUERY)
 
-  return React.useMemo(() => {
+  const depths = React.useMemo(() => {
     const next: Record<string, number | null> = {}
     for (const b of result.data?.bucketConfigs ?? []) {
       next[b.name] = b.scannerParallelShardsDepth
     }
     return next
   }, [result.data])
+
+  // A failed query yields no depths, which the wipe check cannot tell apart from
+  // "no bucket is sharded" -- it would then stay silent about an emptied index.
+  return { depths, unavailable: result.error != null }
 }
 
 function Warning({
@@ -278,7 +282,8 @@ function LoadingRows() {
 export default function Indexing() {
   const classes = useStyles()
   const { jobs, error, reload } = useBulkScannerJobs(POLL_MS)
-  const shardDepths = useBucketShardDepths()
+  const { depths: shardDepths, unavailable: shardDepthsUnavailable } =
+    useBucketShardDepths()
   const [detailsOpen, setDetailsOpen] = React.useState(false)
 
   const emptySearchBuckets = React.useMemo(() => {
@@ -376,6 +381,13 @@ export default function Indexing() {
           </M.Typography>
         </M.Collapse>
       </div>
+
+      {shardDepthsUnavailable && (
+        <Warning>
+          Bucket configuration could not be read, so this panel cannot tell whether a
+          full-bucket re-index has emptied a bucket&apos;s search index.
+        </Warning>
+      )}
 
       {/* Both warnings outlive a failed poll: unlike the activity strip, they
           describe a state that persists whether or not the panel can refresh. */}

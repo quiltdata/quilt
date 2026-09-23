@@ -3,17 +3,22 @@ import { describe, expect, it, vi } from 'vitest'
 import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
-const mocks = vi.hoisted(() => ({ req: vi.fn() }))
+const mocks = vi.hoisted(() => ({ req: vi.fn(), bucketConfigsError: { current: false } }))
 
 vi.mock('utils/APIConnector', () => ({ use: () => mocks.req }))
 // The panel reads bucketConfigs only to gate the empty-search warning, and
 // only unsharded buckets qualify. Every job here is bucket-a, so one entry at
 // null depth is what lets the warning tests reach that gate at all.
 vi.mock('utils/GraphQL', () => ({
-  useQuery: () => ({
-    data: { bucketConfigs: [{ name: 'bucket-a', scannerParallelShardsDepth: null }] },
-    fetching: false,
-  }),
+  useQuery: () =>
+    mocks.bucketConfigsError.current
+      ? { data: undefined, error: new Error('bucketConfigs failed'), fetching: false }
+      : {
+          data: {
+            bucketConfigs: [{ name: 'bucket-a', scannerParallelShardsDepth: null }],
+          },
+          fetching: false,
+        },
 }))
 
 import Indexing from './Indexing'
@@ -342,6 +347,21 @@ describe('containers/Admin/Status/Indexing', () => {
       expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
     )
     expect(screen.queryByText(/No scanner jobs queued/)).toBeNull()
+  })
+
+  it('says the wipe check is unavailable when bucket configuration cannot be read', async () => {
+    mocks.req.mockReset()
+    mocks.bucketConfigsError.current = true
+    // Without the shard depths the wipe check skips every bucket, which is
+    // indistinguishable from "no bucket is emptied" unless the panel says so.
+    mocks.req.mockResolvedValue({ results: [job({ prefix: '', ignore_dirs: false })] })
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Bucket configuration could not be read/)).toBeTruthy(),
+    )
+    expect(screen.queryByText(/Full-bucket re-index outstanding/)).toBeNull()
+    mocks.bucketConfigsError.current = false
   })
 
   it('renders a placeholder rather than "Invalid Date" for an unparseable timestamp', async () => {
