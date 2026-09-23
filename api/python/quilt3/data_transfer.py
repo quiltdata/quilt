@@ -876,6 +876,10 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
             raise ValueError("`size` does not make sense for directories")
 
         for rel_path, size in list_url(src):
+            if not rel_path:
+                # S3's directory marker for the prefix itself. Copying it would
+                # mean writing to the destination directory's own path.
+                continue
             sanity_check(rel_path)
             url_list.append((src.join(rel_path), dest.join(rel_path), size))
         if not url_list:

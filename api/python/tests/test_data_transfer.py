@@ -3,6 +3,7 @@
 import io
 import os
 import pathlib
+import tempfile
 import time
 import unittest
 from contextlib import redirect_stderr
@@ -934,6 +935,38 @@ class DataTransferTest(QuiltTestCase):
             src,
             PhysicalKey.from_path('some-file'),
         )
+
+    def test_copy_dir_skips_prefix_directory_marker(self):
+        # A zero-byte object whose key is the prefix itself is S3's directory
+        # marker. list_url() yields it as rel_path '', which sanity_check()
+        # rejects, failing the whole copy instead of copying the real objects.
+        bucket = 'example'
+        prefix = 'dir/'
+        key = prefix + 'foo.csv'
+        size = 3
+
+        self.s3_stubber.add_response(
+            'list_objects_v2',
+            service_response={
+                'Contents': [
+                    {'Key': prefix, 'Size': 0},
+                    {'Key': key, 'Size': size},
+                ],
+            },
+            expected_params={'Bucket': bucket, 'Prefix': prefix},
+        )
+        self.s3_stubber.add_response(
+            'get_object',
+            service_response={'Body': io.BytesIO(b'0' * size)},
+            expected_params={'Bucket': bucket, 'Key': key},
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data_transfer.copy_file(
+                PhysicalKey(bucket, prefix, None),
+                PhysicalKey.from_path(tmp_dir + '/'),
+            )
+            assert (pathlib.Path(tmp_dir) / 'foo.csv').is_file()
 
 
 class Success(Exception):
