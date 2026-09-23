@@ -4,12 +4,12 @@
 // GlobalContext/navigation.
 const BUCKET_PATH = /^\/b\/([^/]+)/
 
-/**
- * Strip a foreign http(s) origin off a link to a bucket this stack serves.
- * Everything else -- other hosts' `/b/` paths (Amazon and Blogger use them),
- * buckets absent here, other schemes, same-origin and relative hrefs -- is
- * passed through, so a working external link is never hijacked.
- */
+// An S3 object key may itself begin with `b/`, so a presigned or direct S3 URL
+// can look like a catalog bucket route. Dropping its host voids the signature
+// and leaves a dead link, so AWS hosts and signed URLs are never rewritten.
+const AWS_HOST = /(^|\.)amazonaws\.com(\.cn)?$/
+const SIGNATURE_PARAMS = ['X-Amz-Signature', 'Signature']
+
 export function toCurrentStack(
   href: string,
   origin: string,
@@ -23,7 +23,19 @@ export function toCurrentStack(
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return href
   if (url.origin === origin) return href
+  if (AWS_HOST.test(url.hostname)) return href
+  if (SIGNATURE_PARAMS.some((p) => url.searchParams.has(p))) return href
   const bucket = url.pathname.match(BUCKET_PATH)?.[1]
-  if (!bucket || !isInStack(decodeURIComponent(bucket))) return href
+  if (!bucket || !isInStack(decodeBucket(bucket))) return href
   return `${url.pathname}${url.search}${url.hash}`
+}
+
+// Markdown's handleLink drops the href when a link processor throws, so a
+// malformed escape would cost the user a working link.
+function decodeBucket(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
 }

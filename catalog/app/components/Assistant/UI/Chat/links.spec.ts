@@ -82,8 +82,37 @@ describe('components/Assistant/UI/Chat/links', () => {
       )
     })
 
+    it('leaves presigned S3 links alone', () => {
+      // an object key may itself begin with `b/`, and rewriting voids the
+      // signature the URL was issued with
+      const sig = 'X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=abc123'
+      const untouched = [
+        `https://my-bucket.s3.amazonaws.com/data/x.csv?${sig}`,
+        `https://my-bucket.s3.amazonaws.com/b/my-bucket/x.csv?${sig}`,
+        `https://s3.us-east-1.amazonaws.com/my-bucket/b/my-bucket/x.csv?${sig}`,
+        'https://s3.cn-north-1.amazonaws.com.cn/my-bucket/b/my-bucket/x',
+        // signed by a proxy on some other host
+        `https://files.example.com/b/my-bucket/x.csv?${sig}`,
+        'https://files.example.com/b/my-bucket/x.csv?Signature=abc&Expires=1',
+      ]
+      untouched.forEach((href) => expect(rewrite(href)).toBe(href))
+    })
+
+    it('still rewrites an unsigned catalog link on a lookalike host', () => {
+      expect(rewrite(`${STABLE}/b/my-bucket/tree/x`)).toBe('/b/my-bucket/tree/x')
+      expect(rewrite('https://notamazonaws.com/b/my-bucket/tree/x')).toBe(
+        '/b/my-bucket/tree/x',
+      )
+    })
+
     it('passes unparseable hrefs through', () => {
       expect(rewrite('http://[bad')).toBe('http://[bad')
+    })
+
+    it('does not throw on a malformed escape in the bucket segment', () => {
+      // Markdown's handleLink drops the href when a processor throws
+      expect(() => rewrite(`${STABLE}/b/my-bucket%/x`)).not.toThrow()
+      expect(rewrite(`${STABLE}/b/a%2/x`)).toBe(`${STABLE}/b/a%2/x`)
     })
 
     it('decodes the bucket segment before matching', () => {
