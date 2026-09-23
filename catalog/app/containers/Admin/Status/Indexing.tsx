@@ -2,11 +2,12 @@ import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
-import * as urql from 'urql'
 
 import Skeleton from 'components/Skeleton'
 import * as APIConnector from 'utils/APIConnector'
 import { useQuery } from 'utils/GraphQL'
+
+import BUCKET_CONFIGS_QUERY from '../Buckets/gql/BucketConfigs.generated'
 
 type ScannerJob = {
   id: number
@@ -19,37 +20,26 @@ type ScannerJob = {
   next_version_id_marker?: string | null
 }
 
-type BucketShardInfo = {
-  name: string
-  scannerParallelShardsDepth: number | null
-}
-
 const POLL_MS = 10_000
 
 // How long a cursor advance keeps counting as progress. Three polls, so one slow
 // or dropped response does not flip a working scan to "no movement".
 const PROGRESS_TTL_MS = 3 * POLL_MS
 
-const CAVEATS_ID = 'indexing-caveats'
+// Two polls' worth of patience before a request is called dead. Long enough that
+// a merely slow registry still answers, short enough that the panel stops
+// claiming anything on the strength of a reading it can no longer refresh.
+const REQUEST_TIMEOUT_MS = 2 * POLL_MS
 
-const BUCKET_SHARD_DEPTHS_QUERY = urql.gql`
-  query {
-    bucketConfigs {
-      name
-      scannerParallelShardsDepth
-    }
-  }
-`
+const CAVEATS_ID = 'indexing-caveats'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2),
     position: 'relative',
-    // The re-index dialog deep-links to #indexing, and the page scrolls under
-    // Layout's sticky ContentBar (64px min-height), which would otherwise cover
-    // this panel's heading on arrival. The unit is explicit because JSS's
-    // default-unit plugin has no scroll-margin entry, so a bare number here
-    // would emit an invalid declaration that the browser drops.
+    // Deep-link target scrolling under Layout's sticky ContentBar (64px). The
+    // unit is explicit: JSS's default-unit plugin has no scroll-margin entry, so
+    // a bare number emits a declaration the browser drops.
     scrollMarginTop: `${64 + t.spacing(2)}px`,
   },
   activity: {
@@ -59,11 +49,9 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: 0,
     top: 0,
-    // Motion is the only honest progress signal available: the registry stores
-    // an opaque S3 resume cursor, never a denominator. An indeterminate strip
-    // says "work is moving" without implying how much is left. Frozen it would
-    // have to sit either empty or full, and a full bar claims the completion
-    // this panel cannot know -- so drop it and let the label carry the state.
+    // Motion is the only honest progress signal: the registry stores an opaque
+    // S3 resume cursor, never a denominator. Frozen, the strip would sit empty or
+    // full, and full claims the completion this panel cannot know.
     '@media (prefers-reduced-motion: reduce)': {
       display: 'none',
     },
@@ -79,7 +67,7 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1.5),
   },
   mono: {
-    fontFamily: 'Roboto Mono, monospace',
+    fontFamily: "'Roboto Mono', monospace",
     wordBreak: 'break-all',
   },
   numeric: {
@@ -122,43 +110,73 @@ function useBulkScannerJobs(pollMs: number) {
   const req = APIConnector.use()
   const [jobs, setJobs] = React.useState<ScannerJob[] | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const [busy, setBusy] = React.useState(false)
   const seqRef = React.useRef(0)
 
   const load = React.useCallback(async () => {
     const seq = ++seqRef.current
+    const ctl = new AbortController()
+    let timer = 0
+    setBusy(true)
     try {
       // APIConnector base is `${registryUrl}/api`, so endpoint is relative to /api.
-      const data = (await req({
-        endpoint: '/bulk_scanner_jobs',
-        method: 'GET',
-      })) as { results?: ScannerJob[] }
-      // Discard superseded responses (overlapping polls / rapid Refresh).
+      const data = (await Promise.race([
+        req({ endpoint: '/bulk_scanner_jobs', method: 'GET', signal: ctl.signal }),
+        // The race is what rejects; the abort only frees the socket, since
+        // nothing here guarantees the transport honours a signal.
+        new Promise<never>((_resolve, reject) => {
+          timer = window.setTimeout(() => {
+            ctl.abort()
+            reject(new Error('Timed out'))
+          }, REQUEST_TIMEOUT_MS)
+        }),
+      ])) as { results?: ScannerJob[] }
+      // Discard superseded responses (Refresh racing the poll loop).
       if (seq !== seqRef.current) return
-      setJobs(data.results ?? [])
+      // A malformed payload must not land as the reassuring "no scanner jobs
+      // queued" state, which an admin reads as a fact about the cluster.
+      if (!data || !Array.isArray(data.results)) throw new Error('Malformed response')
+      setJobs(data.results)
       setError(null)
     } catch (e) {
       if (seq !== seqRef.current) return
       // eslint-disable-next-line no-console
       console.error(e)
       setError('Could not load scanner jobs')
+    } finally {
+      window.clearTimeout(timer)
+      if (seq === seqRef.current) setBusy(false)
     }
   }, [req])
 
+  // The gap is measured from the previous answer, not a fixed interval: against
+  // a slow registry, stacked requests would each be superseded by a newer poll,
+  // and the `seq` guard would suppress the banner forever.
   React.useEffect(() => {
-    load()
-    const id = window.setInterval(load, pollMs)
-    return () => window.clearInterval(id)
+    let stopped = false
+    let timer = 0
+    const cycle = async () => {
+      await load()
+      if (!stopped) timer = window.setTimeout(cycle, pollMs)
+    }
+    cycle()
+    return () => {
+      stopped = true
+      // Supersede any in-flight request so its response cannot set state on an
+      // unmounted component; the guards in `load` already discard stale seqs.
+      seqRef.current += 1
+      window.clearTimeout(timer)
+    }
   }, [load, pollMs])
 
-  return { jobs, error, reload: load }
+  return { jobs, error, busy, reload: load }
 }
 
 type Movement = { cursor: string; seenAt: number; moved: boolean }
 
 // The resume cursor advancing between polls is the only evidence this endpoint
-// offers that a scan is actually running -- `retries_remaining` merely says the
-// job has not given up. So remember each job's cursor and compare, which is the
-// same check the panel's own caveat asks the admin to perform by eye.
+// offers that a scan is running; `retries_remaining` merely says the job has not
+// given up.
 function useCursorMovement(jobs: ScannerJob[] | null) {
   const seen = React.useRef(new Map<number, Movement>())
 
@@ -168,6 +186,10 @@ function useCursorMovement(jobs: ScannerJob[] | null) {
     const next = new Map<number, Movement>()
     let moving = 0
     for (const job of jobs) {
+      // An exhausted job will not advance again, so it must not keep a recent
+      // advance alive -- that would animate the strip past the point where the
+      // label has already dropped the job from the queue count.
+      if (job.retries_remaining <= 0) continue
       const cursor = `${job.next_key_marker ?? ''}\u0000${job.next_version_id_marker ?? ''}`
       const prev = seen.current.get(job.id)
       // First sight has no baseline to compare against, so it counts as neither
@@ -189,7 +211,7 @@ function useCursorMovement(jobs: ScannerJob[] | null) {
 }
 
 function useBucketShardDepths() {
-  const result = useQuery<{ bucketConfigs: BucketShardInfo[] }>(BUCKET_SHARD_DEPTHS_QUERY)
+  const result = useQuery(BUCKET_CONFIGS_QUERY)
 
   return React.useMemo(() => {
     const next: Record<string, number | null> = {}
@@ -212,7 +234,7 @@ function LoadingRows() {
 
 export default function Indexing() {
   const classes = useStyles()
-  const { jobs, error, reload } = useBulkScannerJobs(POLL_MS)
+  const { jobs, error, busy, reload } = useBulkScannerJobs(POLL_MS)
   const shardDepths = useBucketShardDepths()
   const [detailsOpen, setDetailsOpen] = React.useState(false)
 
@@ -220,8 +242,13 @@ export default function Indexing() {
     if (!jobs) return []
     const names = new Set<string>()
     for (const job of jobs) {
-      // Full-bucket wipe only: empty prefix and not a top-level-only (ignore_dirs) job.
-      if (job.prefix !== '' || job.ignore_dirs) continue
+      // Full-bucket wipe only: a whole-bucket job carries prefix '' (the column
+      // is NOT NULL, default ''), while a prefix or top-level-only scan leaves
+      // the rest of the index in place.
+      if (job.prefix || job.ignore_dirs) continue
+      // An exhausted job is not going to finish, so promising that search comes
+      // back "when the rescan finishes" would be false.
+      if (job.retries_remaining <= 0) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
       const depth = shardDepths[job.name]
@@ -251,28 +278,40 @@ export default function Indexing() {
 
       <div className={classes.titleRow}>
         <M.Typography variant="h5">Indexing</M.Typography>
-        <M.Button size="small" onClick={reload} disabled={loading}>
+        <M.Button size="small" onClick={reload} disabled={busy && !error}>
           Refresh
         </M.Button>
       </div>
 
-      {jobs && !error && (
-        <M.Typography variant="body2" className={classes.activeLabel}>
-          {outstanding === 0
-            ? 'No jobs outstanding'
-            : `${outstanding} ${outstanding === 1 ? 'job' : 'jobs'} queued · ${
-                advancing > 0
-                  ? `${advancing} advancing, no completion estimate`
-                  : 'no cursor movement observed yet'
-              }`}
-        </M.Typography>
-      )}
+      {/* The strip is decorative, so this is the only channel for a state
+          change; it stays mounted because a region that appears with its own
+          content is not announced. */}
+      <div aria-live="polite" className={classes.activeLabel}>
+        {error ? (
+          <M.Typography variant="body2" color="error">
+            {error} &mdash; retry with Refresh.
+          </M.Typography>
+        ) : (
+          jobs && (
+            <M.Typography variant="body2" color="inherit">
+              {outstanding === 0
+                ? 'No jobs outstanding'
+                : `${outstanding} ${outstanding === 1 ? 'job' : 'jobs'} queued · ${
+                    advancing > 0
+                      ? `${advancing} advancing, no completion estimate`
+                      : 'no cursor movement observed yet'
+                  }`}
+            </M.Typography>
+          )
+        )}
+      </div>
 
       <div className={classes.caveatBlock}>
         <M.Typography variant="body2" className={classes.caveat}>
           Position is the S3 list resume cursor, not a percentage. A job counts as
-          advancing once that cursor moves between refreshes — until then it is queued,
-          which looks the same here whether a worker has picked it up or not.
+          advancing while that cursor keeps moving between refreshes; when it stops, or
+          the job runs out of attempts, it reads as queued again — which looks the same
+          here whether a worker has picked it up or not.
         </M.Typography>
         <M.Button
           className={classes.disclosure}
@@ -294,21 +333,14 @@ export default function Indexing() {
         </M.Collapse>
       </div>
 
-      {emptySearchBuckets.length > 0 && (
+      {!error && emptySearchBuckets.length > 0 && (
         <div className={classes.warning}>
           <M.Typography variant="body2" color="inherit">
-            Full-bucket re-index in progress for{' '}
-            <span className={classes.mono}>{emptySearchBuckets.join(', ')}</span>. Search
+            Full-bucket re-index in progress for {emptySearchBuckets.join(', ')}. Search
             for {emptySearchBuckets.length === 1 ? 'that bucket' : 'those buckets'}{' '}
             returns nothing until the rescan finishes.
           </M.Typography>
         </div>
-      )}
-
-      {error && (
-        <M.Typography color="error" gutterBottom>
-          {error} — retry with Refresh.
-        </M.Typography>
       )}
 
       {loading && <LoadingRows />}
@@ -345,15 +377,16 @@ export default function Indexing() {
                   key={job.id}
                   className={exhausted ? classes.exhausted : undefined}
                 >
-                  <M.TableCell className={classes.mono}>{job.name}</M.TableCell>
+                  <M.TableCell>{job.name}</M.TableCell>
                   <M.TableCell>{scopeLabel(job)}</M.TableCell>
-                  {/* The cursor wraps rather than truncating: it is the one value
-                      on this panel an admin compares across refreshes, and a
-                      tooltip would be the only copy of it -- unreachable without
-                      a pointer. */}
+                  {/* Wraps rather than truncating: a tooltip would be the only
+                      copy of the one value an admin compares across refreshes,
+                      and is unreachable without a pointer. */}
                   <M.TableCell className={classes.mono}>{cursor}</M.TableCell>
                   <M.TableCell>
-                    {dateFns.formatDistanceToNow(created, { addSuffix: true })}
+                    {dateFns.isValid(created)
+                      ? dateFns.formatDistanceToNow(created, { addSuffix: true })
+                      : '—'}
                     {exhausted && ' · exhausted'}
                   </M.TableCell>
                   <M.TableCell align="right" className={classes.numeric}>
