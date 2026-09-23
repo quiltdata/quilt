@@ -29,7 +29,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function QuratorSettings() {
   const classes = useStyles()
-  const instructions = UserInstructions.useUserInstructions()
+  const instructions = UserInstructions.useGlobalInstructions()
   const { enabled } = instructions
   const { draft, setDraft, dirty, pending, error, save, toggle } =
     UserInstructions.useInstructionsEditor(instructions)

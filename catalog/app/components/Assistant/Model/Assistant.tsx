@@ -97,7 +97,7 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
  * If React aborts the render before commit (Suspense unwind, Error
  * Boundary, concurrent-mode discard), the cleanup `useEffect` never
  * fires and the lifecycle fibers leak. Mitigation: in
- * `useConstructAssistantAPI`, `useUserInstructionsContext` (the only
+ * `useConstructAssistantAPI`, `useDualInstructionsContext` (the only
  * suspending hook, via `CatalogSettings.use()`) runs before this one, so
  * a cold-load suspend throws before `useConst` allocates; keep that
  * order. Proper fix is to defer allocation into `useEffect` and expose a
@@ -174,34 +174,44 @@ function useRecording() {
 }
 
 /**
- * Feed the sticky user instructions into the prompt through the same
- * aggregation path as every other context contribution, so they show up in
- * the `<context>` block (and in DevTools) instead of being a hidden system
- * string. The `userInstructions` marker lets other surfaces observe whether
- * instructions are in effect.
+ * Feed both instruction layers into the prompt through the same aggregation
+ * path as every other context contribution, so they show up in the
+ * `<context>` block (and in DevTools) instead of being hidden system strings.
+ * Each layer is independent: either, both or neither can be active, and each
+ * carries its own tag so the model can tell the stack's steer from the user's
+ * own notes. Global goes first — the deployment's frame, then the user's.
+ * The `userInstructions`/`personalInstructions` markers let other surfaces
+ * observe which layers are in effect.
  */
-function useUserInstructionsContext(): UserInstructions.UserInstructions {
-  const instructions = UserInstructions.useUserInstructions()
-  const { active, text } = instructions
+function useDualInstructionsContext(): UserInstructions.DualInstructions {
+  const global = UserInstructions.useGlobalInstructions()
+  const personal = UserInstructions.usePersonalInstructions()
+
   Context.usePushContext(
-    React.useMemo(
-      () =>
-        active
-          ? {
-              messages: [UserInstructions.toPromptBlock(text)],
-              markers: { userInstructions: true },
-            }
-          : {},
-      [active, text],
-    ),
+    React.useMemo(() => {
+      const messages = []
+      if (global.active) messages.push(UserInstructions.toPromptBlock(global.text))
+      if (personal.active)
+        messages.push(UserInstructions.toPersonalPromptBlock(personal.text))
+      return messages.length
+        ? {
+            messages,
+            markers: {
+              userInstructions: global.active,
+              personalInstructions: personal.active,
+            },
+          }
+        : {}
+    }, [global.active, global.text, personal.active, personal.text]),
   )
-  return instructions
+
+  return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride] = useModelIdOverride()
   const [record, recording] = useRecording()
-  const instructions = useUserInstructionsContext()
+  const instructions = useDualInstructionsContext()
 
   const platformConfig = usePlatformConnectorConfig()
   const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
