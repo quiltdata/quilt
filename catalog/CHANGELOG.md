@@ -21,6 +21,9 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Qurator docks as a right side panel that pushes page content aside instead of an overlay covering it, and narrow viewports keep the overlay ([#5326](https://github.com/quiltdata/quilt/pull/5326))
+- [Added] Qurator instructions are a stack-wide setting admins edit from Admin → Settings or the chat strip, layered with each user's own personal instructions ([#5326](https://github.com/quiltdata/quilt/pull/5326))
+- [Fixed] Qurator's catalog links stay on the stack you are using instead of sometimes pointing at another deployment's copy of a bucket; links to buckets this stack does not serve, and download and presigned S3 links, are left untouched ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Fixed] Website pages no longer force full-bleed content, so the OPEN-mode landing's Volumes list carries the standard horizontal page inset instead of running edge to edge ([#5316](https://github.com/quiltdata/quilt/pull/5316))
 - [Fixed] A custom logo now scales to fit its slot instead of being clipped by it, so a wide lockup stays readable in the folded sidebar ([#5319](https://github.com/quiltdata/quilt/pull/5319))
 - [Added] Mermaid: a ```mermaid fence in any Markdown the catalog renders draws as a zoomable diagram, with a Markdown view to read its source ([#5269](https://github.com/quiltdata/quilt/pull/5269))
