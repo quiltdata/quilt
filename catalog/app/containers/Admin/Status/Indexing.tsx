@@ -262,7 +262,9 @@ function Warning({
 }: React.PropsWithChildren<{ severity?: 'warning' | 'error' }>) {
   const classes = useStyles()
   return (
-    <div className={severity === 'error' ? classes.error : classes.warning}>
+    // The tint is the only other signal these carry, and the strip is
+    // aria-hidden, so without a role an emptied index reaches nobody.
+    <div className={severity === 'error' ? classes.error : classes.warning} role="alert">
       <M.Typography variant="body2" color="inherit">
         {children}
       </M.Typography>
@@ -412,7 +414,10 @@ export default function Indexing() {
 
       {loading && <LoadingRows />}
 
-      {jobs && jobs.length === 0 && (
+      {/* Only while the reading holds: an empty queue an admin cannot refresh
+          reads as a fact about the cluster, which is what the error plus the
+          staleness marker below say it is not. */}
+      {jobs && jobs.length === 0 && !error && (
         <M.Typography className={classes.empty}>
           No scanner jobs queued. Start one from a bucket&apos;s Re-index action under
           Admin&nbsp;→&nbsp;Buckets.
@@ -421,7 +426,7 @@ export default function Indexing() {
 
       {/* Age keeps counting up against timestamps nobody re-fetched, so the
           surviving rows must not read as current. */}
-      {jobs && jobs.length > 0 && error && (
+      {jobs && error && (
         <M.Typography variant="body2" color="textSecondary" gutterBottom>
           Showing the last successful reading.
         </M.Typography>

@@ -304,6 +304,24 @@ describe('containers/Admin/Status/Indexing', () => {
     expect(refresh.disabled).toBe(false)
   })
 
+  it('retracts the empty-queue claim when a poll fails', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValueOnce({ results: [] })
+    renderPanel()
+    await waitFor(() => expect(screen.getByText(/No scanner jobs queued/)).toBeTruthy())
+
+    // Left standing, the empty queue reads as a current fact about the cluster
+    // -- the same reading the malformed-payload guard exists to prevent.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    await poll()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
+    expect(screen.queryByText(/No scanner jobs queued/)).toBeNull()
+    expect(screen.getByText(/Showing the last successful reading/)).toBeTruthy()
+  })
+
   it('marks the job rows stale while a poll is failing', async () => {
     mocks.req.mockReset()
     mocks.req.mockResolvedValueOnce({ results: [job({ next_key_marker: 'a/1' })] })
