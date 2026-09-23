@@ -619,7 +619,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface ChatProps {
-  id?: string
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
@@ -629,7 +628,6 @@ interface ChatProps {
 }
 
 export default function Chat({
-  id,
   state,
   dispatch,
   devTools,
@@ -688,7 +686,7 @@ export default function Chat({
   )
 
   return (
-    <div id={id} className={classes.chat}>
+    <div className={classes.chat}>
       <div className={classes.header}>
         <span className={classes.qicon}>
           <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>

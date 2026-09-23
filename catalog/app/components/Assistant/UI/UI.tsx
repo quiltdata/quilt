@@ -9,7 +9,9 @@ import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
 import { MOTION, PANEL_WIDTH, RAIL_WIDTH, Context as ReflowContext } from './PanelReflow'
 
-// The rail button names the region it expands, so both need one id.
+// The rail button names the region it expands, so both need one id. The paper
+// carries it, not the chat: the chat unmounts in the very state where the
+// button names it, and `aria-controls` must resolve to something on screen.
 const PANEL_ID = 'qurator-panel'
 
 // The left rail drops to an overlay at the same threshold: under 960px a
@@ -39,13 +41,16 @@ function useEscapeToCollapse(active: boolean, hide: () => void) {
 }
 
 // Collapsing unmounts the chat, and the browser drops focus to `<body>` when the
-// focused node goes with it -- so the rail button has to claim it back.
-function useFocusRail(collapsed: boolean, ref: React.RefObject<HTMLElement>) {
-  const had = React.useRef(false)
+// focused node goes with it -- so the rail button has to claim it back. Armed
+// only by a docked chat that was open: widening past the breakpoint also ends
+// `compact`, and focusing there would pull the caret out of whatever has it.
+function useFocusRail(docked: boolean, open: boolean, ref: React.RefObject<HTMLElement>) {
+  const showedChat = React.useRef(false)
   React.useEffect(() => {
-    if (collapsed && had.current) ref.current?.focus()
-    had.current = !collapsed
-  }, [collapsed, ref])
+    const showing = docked && open
+    if (!showing && showedChat.current) ref.current?.focus()
+    showedChat.current = showing
+  }, [docked, open, ref])
 }
 
 const usePanelStyles = M.makeStyles((t) => ({
@@ -88,7 +93,7 @@ function Panel({ api, compact, open }: PanelProps) {
   // instead of leaving. Below it, a rail plus a 40rem panel both lose, so the
   // old overlay stands.
   const expanded = compact || open
-  useFocusRail(!expanded, railRef)
+  useFocusRail(!compact, open, railRef)
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer
@@ -96,6 +101,7 @@ function Panel({ api, compact, open }: PanelProps) {
         variant={compact ? 'temporary' : 'permanent'}
         open={open}
         onClose={api.hide}
+        PaperProps={{ id: PANEL_ID }}
         classes={{ paper: cx(classes.paper, !expanded && classes.paperRail) }}
         // `timeout` overrides the Drawer's own Slide duration -- it spreads
         // SlideProps last.
@@ -103,7 +109,6 @@ function Panel({ api, compact, open }: PanelProps) {
       >
         {expanded ? (
           <Chat
-            id={PANEL_ID}
             state={api.state}
             dispatch={api.dispatch}
             devTools={api.devTools}

@@ -10,12 +10,20 @@ import * as Container from './Container'
 import { ContentBar } from './ContentBar'
 import { SearchInputProvider } from './SearchInput'
 
-const useRootStyles = M.makeStyles({
+const useRootStyles = M.makeStyles((t) => ({
   root: {
     overflowX: 'hidden',
     position: 'relative',
+    // Bare pages hold Qurator's gutter here, so it needs the shell's own
+    // transition -- otherwise the gutter snaps while the paper animates.
+    [MOTION]: {
+      transition: t.transitions.create('padding-right', {
+        duration: t.transitions.duration.enteringScreen,
+        easing: t.transitions.easing.easeOut,
+      }),
+    },
   },
-})
+}))
 
 // Extends `BoxProps` because the body already spreads the rest onto `M.Box`;
 // the narrower declaration just hid that.
