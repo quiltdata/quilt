@@ -21,6 +21,9 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Qurator sits on the right as a collapsed rail instead of vanishing when closed, expanding to the full panel on click and pushing page content aside rather than covering it; narrow viewports keep the overlay ([#5326](https://github.com/quiltdata/quilt/pull/5326))
+- [Added] Qurator instructions are a stack-wide setting admins edit from Admin → Settings or the chat strip, layered with each user's own personal instructions ([#5326](https://github.com/quiltdata/quilt/pull/5326))
+- [Fixed] Qurator's catalog links stay on the stack you are using instead of sometimes pointing at another deployment's copy of a bucket; links to buckets this stack does not serve, and download and presigned S3 links, are left untouched ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Added] Package revisions can be deleted in bulk: select revisions on the revision list and delete them together, or delete a whole package from the revision menu ([#5328](https://github.com/quiltdata/quilt/pull/5328))
 - [Added] Admin Status: an indexing panel lists queued scanner jobs with their scope, position, age and attempts left, and reports movement rather than a percentage the backend cannot supply ([#5321](https://github.com/quiltdata/quilt/pull/5321))
 - [Fixed] Website pages no longer force full-bleed content, so the OPEN-mode landing's Volumes list carries the standard horizontal page inset instead of running edge to edge ([#5316](https://github.com/quiltdata/quilt/pull/5316))
