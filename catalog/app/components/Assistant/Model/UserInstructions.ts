@@ -7,21 +7,57 @@ import * as CatalogSettings from 'utils/CatalogSettings'
 import * as XML from 'utils/XML'
 
 /**
- * Stack-wide standing instructions ("Qurator config"): free-text guidance
- * that rides along with every prompt for everyone on the stack. Persisted in
- * `CatalogSettings` (`catalog/settings.json` in the service bucket) so one
- * steer covers the whole deployment. Only admins write; every user receives
- * the injection. When active, the text lands in the prompt as a visible
- * `<user-instructions>` block through the regular Assistant context
- * aggregation (see `Assistant.tsx`), so it is inspectable in DevTools like
- * any other context contribution rather than a silent system string.
+ * Standing instructions that ride along with every Qurator prompt, in two
+ * independent layers:
+ *
+ * - **Global** — one steer for the whole deployment, persisted in
+ *   `CatalogSettings` (`catalog/settings.json` in the service bucket). Admins
+ *   write; every user receives the injection.
+ * - **Personal** — the signed-in user's own notes for their own work, in
+ *   `localStorage`: a reversible browser preference, nobody else's business.
+ *
+ * Both are independent: muting or clearing one leaves the other untouched.
+ * When active, each lands in the prompt as its own visible block through the
+ * regular Assistant context aggregation (see `Assistant.tsx`), so they are
+ * inspectable in DevTools like any other context contribution rather than a
+ * silent system string.
  */
 
 /**
- * Render the instructions as a prompt block. A dedicated top-level tag (not
- * prose smuggled into another message) so the model can attribute it: these
- * are the stack's standing instructions for the whole conversation, distinct
- * from the current question.
+ * Keys are #5310's, so notes written before the global layer landed come back
+ * rather than reading as lost. The mute flag lives under its own key: muting
+ * never destroys the text.
+ */
+export const PERSONAL_STORAGE_KEY = 'qurator.userInstructions'
+/** Absent means enabled — notes are on by default once written. */
+export const PERSONAL_ENABLED_STORAGE_KEY = 'qurator.userInstructions.enabled'
+
+function readLocal(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    // localStorage may be unavailable (private mode, blocked storage)
+    return null
+  }
+}
+
+function writeLocal(key: string, value: string | null) {
+  try {
+    if (value === null) window.localStorage.removeItem(key)
+    else window.localStorage.setItem(key, value)
+  } catch {
+    // ignore persistence failures; in-memory state still works this session
+  }
+}
+
+export const readPersonalText = () => readLocal(PERSONAL_STORAGE_KEY) || ''
+export const readPersonalEnabled = () => readLocal(PERSONAL_ENABLED_STORAGE_KEY) !== '0'
+
+/**
+ * Render a layer as a prompt block. Dedicated top-level tags (not prose
+ * smuggled into another message) so the model can attribute each one: whose
+ * standing instructions these are, distinct from each other and from the
+ * current question.
  */
 export const toPromptBlock = (text: string) =>
   XML.tag(
@@ -32,10 +68,20 @@ export const toPromptBlock = (text: string) =>
     text,
   ).toString()
 
-export interface UserInstructions {
+export const toPersonalPromptBlock = (text: string) =>
+  XML.tag(
+    'personal-instructions',
+    {},
+    'The user has configured the following personal instructions for their own work.',
+    'Apply them to every response in this conversation:',
+    text,
+  ).toString()
+
+/** One layer's state and controls. Both layers share this shape so the strip
+ * and the editor hook are written once. */
+export interface Instructions {
   /** The raw instructions text as written. */
   text: string
-  /** Writes hit the stack settings; rejects with `SettingsConflictError` on a stale read. */
   setText: (text: string) => Promise<void>
   /** Muting keeps the text but stops injecting it. */
   enabled: boolean
@@ -43,11 +89,18 @@ export interface UserInstructions {
   clear: () => Promise<void>
   /** True when non-empty and enabled, i.e. injected into prompts. */
   active: boolean
-  /** Admins only; the same population as Admin → Settings. */
+  /** Global: admins only. Personal: always the user's own. */
   canEdit: boolean
 }
 
-export function useUserInstructions(): UserInstructions {
+/** The two layers, as handed to the UI. */
+export interface DualInstructions {
+  global: Instructions
+  personal: Instructions
+}
+
+/** Stack-wide layer: `CatalogSettings`, admin-writable, everyone receives it. */
+export function useGlobalInstructions(): Instructions {
   const settings = CatalogSettings.use()
   const writeSettings = CatalogSettings.useWriteSettings()
   const canEdit = !!redux.useSelector(AuthSelectors.isAdmin)
@@ -62,7 +115,7 @@ export function useUserInstructions(): UserInstructions {
             { ...settings, qurator: { ...settings?.qurator, ...patch } },
             settings,
           )
-        : Promise.reject(new Error('Only admins can change Qurator instructions')),
+        : Promise.reject(new Error('Only admins can change global Qurator instructions')),
     [canEdit, settings, writeSettings],
   )
 
@@ -84,18 +137,46 @@ export function useUserInstructions(): UserInstructions {
   )
 }
 
+/**
+ * Personal layer: this browser's `localStorage`. Async setters (the writes are
+ * synchronous) only so both layers share `useInstructionsEditor`.
+ */
+export function usePersonalInstructions(): Instructions {
+  const [text, setTextState] = React.useState(readPersonalText)
+  const [enabled, setEnabledState] = React.useState(readPersonalEnabled)
+
+  const setText = React.useCallback(async (next: string) => {
+    setTextState(next)
+    writeLocal(PERSONAL_STORAGE_KEY, next || null)
+  }, [])
+
+  const setEnabled = React.useCallback(async (next: boolean) => {
+    setEnabledState(next)
+    writeLocal(PERSONAL_ENABLED_STORAGE_KEY, next ? null : '0')
+  }, [])
+
+  const clear = React.useCallback(() => setText(''), [setText])
+
+  const active = enabled && !!text.trim()
+
+  return React.useMemo(
+    () => ({ text, setText, enabled, setEnabled, clear, active, canEdit: true }),
+    [text, setText, enabled, setEnabled, clear, active],
+  )
+}
+
 const errorMessage = (e: unknown) =>
   e instanceof CatalogSettings.SettingsConflictError
     ? e.message
     : "Couldn't save instructions, see console for details"
 
 /**
- * Editor state shared by the in-chat strip and Admin → Settings: a local draft
- * (so typing does not PUT settings.json per keystroke), one in-flight write
- * at a time, and the failure surfaced inline. Both surfaces render the same
- * stack value, so the draft is dropped whenever it moves underneath.
+ * Editor state for one layer, shared by the in-chat strip and Admin →
+ * Settings: a local draft (so typing does not PUT settings.json per
+ * keystroke), one in-flight write at a time, and the failure surfaced inline.
+ * The draft is dropped whenever the stored value moves underneath.
  */
-export function useInstructionsEditor(instructions: UserInstructions) {
+export function useInstructionsEditor(instructions: Instructions) {
   const { text, setText, setEnabled, clear } = instructions
 
   const [draft, setDraft] = React.useState(text)

@@ -26,14 +26,16 @@ import * as Conversation from './Conversation'
 import * as UserInstructions from './UserInstructions'
 
 /**
- * Render the hook and hand the latest value back through a ref-like box, so
+ * Render a hook and hand the latest value back through a ref-like box, so
  * tests can call the setters inside `act` and assert on the re-rendered
  * state (RTL v12 has no `renderHook`).
  */
-function setupHook() {
-  const box: { current: UserInstructions.UserInstructions | null } = { current: null }
+function setupHook(
+  useHook: () => UserInstructions.Instructions = UserInstructions.useGlobalInstructions,
+) {
+  const box: { current: UserInstructions.Instructions | null } = { current: null }
   function Harness() {
-    box.current = UserInstructions.useUserInstructions()
+    box.current = useHook()
     return null
   }
   render(<Harness />)
@@ -44,16 +46,34 @@ function setupHook() {
   return current
 }
 
+/** Both layers at once, as `Assistant.tsx` mounts them. */
+function setupBoth() {
+  const box: { current: UserInstructions.DualInstructions | null } = { current: null }
+  function Harness() {
+    box.current = {
+      global: UserInstructions.useGlobalInstructions(),
+      personal: UserInstructions.usePersonalInstructions(),
+    }
+    return null
+  }
+  render(<Harness />)
+  return () => {
+    if (!box.current) throw new Error('hook not rendered')
+    return box.current
+  }
+}
+
 describe('components/Assistant/Model/UserInstructions', () => {
   beforeEach(() => {
     settings = null
     isAdmin = false
     writeSettings.mockReset()
     writeSettings.mockResolvedValue(undefined)
+    window.localStorage.clear()
   })
   afterEach(cleanup)
 
-  describe('persistence (stack settings)', () => {
+  describe('global layer: persistence (stack settings)', () => {
     it('defaults to empty text, enabled, inactive when the stack has no settings', () => {
       const current = setupHook()
       expect(current().text).toBe('')
@@ -129,7 +149,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
     })
   })
 
-  describe('admin gate', () => {
+  describe('global layer: admin gate', () => {
     it('non-admins cannot edit but still receive the instructions', () => {
       settings = { qurator: { instructions: 'Be terse' } }
       const current = setupHook()
@@ -144,50 +164,211 @@ describe('components/Assistant/Model/UserInstructions', () => {
       expect(writeSettings).not.toHaveBeenCalled()
     })
 
+    it('non-admin mute and clear are rejected too', async () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      const current = setupHook()
+      await expect(current().setEnabled(false)).rejects.toThrow(/admins/)
+      await expect(current().clear()).rejects.toThrow(/admins/)
+      expect(writeSettings).not.toHaveBeenCalled()
+    })
+
     it('admins can edit', () => {
       isAdmin = true
       expect(setupHook()().canEdit).toBe(true)
     })
   })
 
-  describe('toPromptBlock', () => {
-    it('wraps the text in a user-instructions tag', () => {
+  describe('personal layer: persistence (localStorage)', () => {
+    const personal = () => setupHook(UserInstructions.usePersonalInstructions)
+
+    it('defaults to empty text, enabled, inactive', () => {
+      const current = personal()
+      expect(current().text).toBe('')
+      expect(current().enabled).toBe(true)
+      expect(current().active).toBe(false)
+    })
+
+    it('reads notes written before this session, under #5310 keys', () => {
+      window.localStorage.setItem(
+        UserInstructions.PERSONAL_STORAGE_KEY,
+        'I work on RNA-seq',
+      )
+      const current = personal()
+      expect(current().text).toBe('I work on RNA-seq')
+      expect(current().active).toBe(true)
+    })
+
+    it('setText persists and survives a remount', async () => {
+      const current = personal()
+      await act(() => current().setText('Prefer Parquet'))
+      expect(current().text).toBe('Prefer Parquet')
+      expect(window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY)).toBe(
+        'Prefer Parquet',
+      )
+
+      cleanup()
+      expect(personal()().text).toBe('Prefer Parquet')
+    })
+
+    it('muting keeps the text under its own key', async () => {
+      const current = personal()
+      await act(() => current().setText('Prefer Parquet'))
+      await act(() => current().setEnabled(false))
+      expect(current().text).toBe('Prefer Parquet')
+      expect(current().enabled).toBe(false)
+      expect(current().active).toBe(false)
+      expect(window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY)).toBe(
+        'Prefer Parquet',
+      )
+    })
+
+    it('whitespace-only notes do not count as active', async () => {
+      const current = personal()
+      await act(() => current().setText('  \n '))
+      expect(current().active).toBe(false)
+    })
+
+    it('clear removes the stored note', async () => {
+      const current = personal()
+      await act(() => current().setText('Prefer Parquet'))
+      await act(() => current().clear())
+      expect(current().text).toBe('')
+      expect(
+        window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY),
+      ).toBeNull()
+    })
+
+    it('is always editable, admin or not', () => {
+      expect(personal()().canEdit).toBe(true)
+      cleanup()
+      isAdmin = true
+      expect(personal()().canEdit).toBe(true)
+    })
+
+    it('never writes to the stack settings', async () => {
+      const current = personal()
+      await act(() => current().setText('Prefer Parquet'))
+      expect(writeSettings).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('layer independence', () => {
+    it('a non-admin sets personal notes while global stays admin-only', async () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      const both = setupBoth()
+      await act(() => both().personal.setText('Prefer Parquet'))
+      expect(both().personal.active).toBe(true)
+      expect(both().global.text).toBe('Be terse')
+      expect(both().global.canEdit).toBe(false)
+      expect(writeSettings).not.toHaveBeenCalled()
+    })
+
+    it('clearing personal leaves global intact', async () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      const both = setupBoth()
+      await act(() => both().personal.setText('Prefer Parquet'))
+      await act(() => both().personal.clear())
+      expect(both().personal.text).toBe('')
+      expect(both().global.text).toBe('Be terse')
+      expect(both().global.active).toBe(true)
+    })
+
+    it('clearing global leaves personal notes intact', async () => {
+      isAdmin = true
+      settings = { qurator: { instructions: 'Be terse' } }
+      const both = setupBoth()
+      await act(() => both().personal.setText('Prefer Parquet'))
+      await act(() => both().global.clear())
+      expect(writeSettings).toHaveBeenCalledWith(
+        { qurator: { instructions: '' } },
+        settings,
+      )
+      expect(both().personal.text).toBe('Prefer Parquet')
+      expect(window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY)).toBe(
+        'Prefer Parquet',
+      )
+    })
+
+    it('muting one layer leaves the other injecting', async () => {
+      settings = { qurator: { instructions: 'Be terse' } }
+      const both = setupBoth()
+      await act(() => both().personal.setText('Prefer Parquet'))
+      await act(() => both().personal.setEnabled(false))
+      expect(both().personal.active).toBe(false)
+      expect(both().global.active).toBe(true)
+    })
+  })
+
+  describe('prompt blocks', () => {
+    it('wraps global text in a user-instructions tag', () => {
       const block = UserInstructions.toPromptBlock('Answer in French')
       expect(block).toContain('<user-instructions>')
       expect(block).toContain('Answer in French')
       expect(block).toContain('</user-instructions>')
     })
+
+    it('wraps personal text in a distinct personal-instructions tag', () => {
+      const block = UserInstructions.toPersonalPromptBlock('Prefer Parquet')
+      expect(block).toContain('<personal-instructions>')
+      expect(block).toContain('Prefer Parquet')
+      expect(block).toContain('</personal-instructions>')
+      expect(block).not.toContain('<user-instructions>')
+    })
   })
 
   describe('prompt injection', () => {
+    const promptText = async (ctx: Partial<Context.ContextShape>) => {
+      const prompt = await Eff.Effect.runPromise(
+        Conversation.constructPrompt([], Context.merge(ctx)),
+      )
+      const first = prompt.messages[0]
+      expect(first.role).toBe('user')
+      if (first.content._tag !== 'Text') throw new Error('expected text block')
+      return { text: first.content.text, system: prompt.system }
+    }
+
     it('lands in the prompt context as a visible <user-instructions> block, not in the system prompt', async () => {
-      const ctx = Context.merge({
+      const { text, system } = await promptText({
         messages: [UserInstructions.toPromptBlock('Answer in French')],
         markers: { userInstructions: true },
       })
-      const prompt = await Eff.Effect.runPromise(Conversation.constructPrompt([], ctx))
-
       // the preamble (first user message) carries the block inside <context>
-      const first = prompt.messages[0]
-      expect(first.role).toBe('user')
-      expect(first.content._tag).toBe('Text')
-      if (first.content._tag !== 'Text') return
-      const { text } = first.content
       expect(text).toContain('<user-instructions>')
       expect(text).toContain('Answer in French')
       expect(text.indexOf('<context>')).toBeLessThan(text.indexOf('<user-instructions>'))
-
       // visible context contribution, not a silent system string
-      expect(prompt.system).not.toContain('Answer in French')
+      expect(system).not.toContain('Answer in French')
     })
 
-    it('does not mention user-instructions when none are provided', async () => {
-      const prompt = await Eff.Effect.runPromise(
-        Conversation.constructPrompt([], Context.merge({})),
+    it('injects both layers as separate blocks, global first', async () => {
+      const { text, system } = await promptText({
+        messages: [
+          UserInstructions.toPromptBlock('Answer in French'),
+          UserInstructions.toPersonalPromptBlock('Prefer Parquet'),
+        ],
+        markers: { userInstructions: true, personalInstructions: true },
+      })
+      expect(text).toContain('Answer in French')
+      expect(text).toContain('Prefer Parquet')
+      expect(text.indexOf('<user-instructions>')).toBeLessThan(
+        text.indexOf('<personal-instructions>'),
       )
-      const first = prompt.messages[0]
-      if (first.content._tag !== 'Text') throw new Error('expected text block')
-      expect(first.content.text).not.toContain('<user-instructions>')
+      expect(system).not.toContain('Prefer Parquet')
+    })
+
+    it('injects personal alone when no global instructions are set', async () => {
+      const { text } = await promptText({
+        messages: [UserInstructions.toPersonalPromptBlock('Prefer Parquet')],
+        markers: { personalInstructions: true },
+      })
+      expect(text).toContain('<personal-instructions>')
+      expect(text).not.toContain('<user-instructions>')
+    })
+
+    it('mentions neither tag when no layer is active', async () => {
+      const { text } = await promptText({})
+      expect(text).not.toContain('<user-instructions>')
+      expect(text).not.toContain('<personal-instructions>')
     })
   })
 })

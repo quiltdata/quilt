@@ -37,8 +37,9 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(1),
     padding: t.spacing(2),
   },
-  // Sticky instructions are state, so the readout wears the amber stroke
-  // (Indicator Rule): an outlined chip, never a fill.
+  // Active instructions are state, so each readout wears the amber stroke
+  // (Indicator Rule): an outlined chip, never a fill. Global and personal are
+  // separate layers, so they get separate chips.
   instructionsChip: {
     borderColor: t.palette.secondary.main,
     color: t.palette.secondary.main,
@@ -123,11 +124,21 @@ export default function QuratorPanel({ query, onRun, onJustSearch }: QuratorPane
           <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>
         </span>
         <M.Typography className={classes.title}>Qurator</M.Typography>
-        {instructions?.active && (
-          <M.Tooltip title="Stack instructions set by an admin are sent along when Qurator runs.">
+        {instructions?.global.active && (
+          <M.Tooltip title="Global instructions set by an admin are sent along when Qurator runs.">
             <M.Chip
               className={classes.instructionsChip}
-              label="Instructions on"
+              label="Global on"
+              size="small"
+              variant="outlined"
+            />
+          </M.Tooltip>
+        )}
+        {instructions?.personal.active && (
+          <M.Tooltip title="Your personal notes are sent along when Qurator runs. Edit them in the assistant panel.">
+            <M.Chip
+              className={classes.instructionsChip}
+              label="Personal on"
               size="small"
               variant="outlined"
             />
