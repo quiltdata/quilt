@@ -207,6 +207,21 @@ describe('components/Assistant/Model/UserInstructions', () => {
       expect(current().active).toBe(true)
     })
 
+    it('drops notes left under the old unscoped key rather than adopting them', () => {
+      window.localStorage.setItem(UserInstructions.PERSONAL_STORAGE_KEY, "someone's note")
+      window.localStorage.setItem(UserInstructions.PERSONAL_ENABLED_STORAGE_KEY, '0')
+      const current = personal()
+      // not read as this user's, and not left behind for the next one
+      expect(current().text).toBe('')
+      expect(current().enabled).toBe(true)
+      expect(
+        window.localStorage.getItem(UserInstructions.PERSONAL_STORAGE_KEY),
+      ).toBeNull()
+      expect(
+        window.localStorage.getItem(UserInstructions.PERSONAL_ENABLED_STORAGE_KEY),
+      ).toBeNull()
+    })
+
     it("never reads another account's notes in the same browser", () => {
       window.localStorage.setItem(textKey('alice'), 'I work on RNA-seq')
       username = 'bob'

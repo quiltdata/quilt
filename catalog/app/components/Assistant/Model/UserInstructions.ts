@@ -58,6 +58,17 @@ function writeLocal(key: string, value: string | null) {
   }
 }
 
+/**
+ * Notes written before keys were scoped belong to whoever was signed in then,
+ * and nothing recorded who that was — so they cannot be migrated to an owner,
+ * and leaving them would keep one user's text sitting in the next user's
+ * browser. Dropped rather than adopted.
+ */
+export function dropUnscopedPersonal() {
+  writeLocal(PERSONAL_STORAGE_KEY, null)
+  writeLocal(PERSONAL_ENABLED_STORAGE_KEY, null)
+}
+
 export const readPersonalText = (username: string) =>
   username ? readLocal(scopeKey(PERSONAL_STORAGE_KEY, username)) || '' : ''
 export const readPersonalEnabled = (username: string) =>
@@ -155,6 +166,8 @@ export function usePersonalInstructions(): Instructions {
   const username: string = redux.useSelector(AuthSelectors.username) || ''
   const [text, setTextState] = React.useState(() => readPersonalText(username))
   const [enabled, setEnabledState] = React.useState(() => readPersonalEnabled(username))
+
+  React.useEffect(dropUnscopedPersonal, [])
 
   // Signing in or switching account under a live panel must swap the notes with
   // it, not carry the previous owner's into the new session.
