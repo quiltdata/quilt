@@ -257,15 +257,43 @@ describe('containers/Admin/Status/Indexing', () => {
     )
   })
 
-  it('does not promise search comes back for a job that ran out of attempts', async () => {
+  it('escalates rather than hides a wiped index whose re-index ran out of attempts', async () => {
     mocks.req.mockReset()
     mocks.req.mockResolvedValue({
       results: [job({ prefix: '', ignore_dirs: false, retries_remaining: 0 })],
     })
     renderPanel()
 
-    await waitFor(() => expect(screen.getByText('No jobs outstanding')).toBeTruthy())
+    // The index is empty and nothing is going to refill it: the state an admin
+    // most needs to see, and the one a "finishes" promise would misreport.
+    await waitFor(() =>
+      expect(
+        screen.getByText(/stays empty until the re-index is started again/),
+      ).toBeTruthy(),
+    )
     expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
+  })
+
+  it('keeps the wipe warning up when a poll fails', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValueOnce({
+      results: [job({ prefix: '', ignore_dirs: false })],
+    })
+    renderPanel()
+    await waitFor(() =>
+      expect(screen.getByText(/returns nothing until the rescan finishes/)).toBeTruthy(),
+    )
+
+    // The index stays empty whether or not the panel can reach the registry, so
+    // a failed poll must not retract the warning while the rows it came from
+    // are still on screen.
+    mocks.req.mockRejectedValue(new Error('registry down'))
+    await poll()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
+    expect(screen.getByText(/returns nothing until the rescan finishes/)).toBeTruthy()
   })
 
   it('reports a malformed payload instead of calling the queue empty', async () => {
