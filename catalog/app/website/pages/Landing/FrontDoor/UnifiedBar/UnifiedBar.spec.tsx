@@ -20,6 +20,7 @@ vi.mock('components/Assistant', () => ({
   Model: {
     useIsEnabled: () => useIsEnabled(),
     useAssistant: () => assist,
+    useAssistantAPI: () => null,
   },
 }))
 

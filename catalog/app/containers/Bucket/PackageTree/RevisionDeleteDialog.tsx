@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
+import * as Format from 'utils/format'
 import * as packageHandleUtils from 'utils/packageHandle'
 
 const useStyles = M.makeStyles((t) => ({
@@ -30,28 +31,80 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+export type DeleteScope =
+  | { type: 'revision'; hash: string }
+  | { type: 'revisions'; count: number }
+  | { type: 'package' }
+
 interface PackageDeleteDialogProps {
   error?: React.ReactNode
   loading: boolean
+  name: string
   onClose: () => void
-  onDelete: (handle: packageHandleUtils.PackageHandle) => void
+  onDelete: () => void
   open: boolean
-  packageHandle: packageHandleUtils.PackageHandle
+  scope: DeleteScope
 }
+
+function Title({ name, scope }: { name: string; scope: DeleteScope }) {
+  switch (scope.type) {
+    case 'package':
+      return (
+        <>
+          Really delete package <Code>{name}</Code> and all of its revisions?
+        </>
+      )
+    case 'revisions':
+      return (
+        <>
+          Really delete {scope.count}{' '}
+          <Format.Plural value={scope.count} one="revision" other="revisions" /> of{' '}
+          <Code>{name}</Code>?
+        </>
+      )
+    case 'revision':
+      return (
+        <>
+          Really delete revision{' '}
+          <Code>{packageHandleUtils.shortenRevision(scope.hash)}</Code> of{' '}
+          <Code>{name}</Code>?
+        </>
+      )
+  }
+}
+
+const LOST = {
+  package: 'Every revision of this package will be lost forever.',
+  revisions: 'These package revisions will be lost forever.',
+  revision: 'This package revision will be lost forever.',
+}
+
+const RECORDS = {
+  package: '',
+  revisions: ' of these revisions',
+  revision: ' of this revision',
+}
+
+const CONFIRM = {
+  package: 'it',
+  revisions: 'them',
+  revision: 'it',
+}
+
+// A one-revision selection reads as a single revision, not "1 revisions".
+const textKey = (scope: DeleteScope) =>
+  scope.type === 'revisions' && scope.count === 1 ? 'revision' : scope.type
 
 export default function PackageDeleteDialog({
   error,
   loading,
+  name,
   onClose,
   onDelete,
   open,
-  packageHandle,
+  scope,
 }: PackageDeleteDialogProps) {
   const classes = useStyles()
-
-  const onConfirm = React.useCallback(() => {
-    onDelete(packageHandle)
-  }, [packageHandle, onDelete])
 
   const onCancel = React.useCallback(() => {
     if (!loading) onClose()
@@ -65,15 +118,14 @@ export default function PackageDeleteDialog({
       onClose={onCancel}
     >
       <M.DialogTitle id="alert-dialog-title">
-        Really delete revision{' '}
-        <Code>{packageHandleUtils.shortenRevision(packageHandle.hash)}</Code> of{' '}
-        <Code>{packageHandle.name}</Code>?
+        <Title name={name} scope={scope} />
       </M.DialogTitle>
       <M.DialogContent id="alert-dialog-description">
         <M.DialogContentText>
-          This package revision will be lost forever. Package deletion does not delete
-          objects in the package, but it does delete all metadata and all records of the
-          contents of this revision. Are you sure you want to delete it?
+          {LOST[textKey(scope)]} Package deletion does not delete objects in the package,
+          but it does delete all metadata and all records of the contents
+          {RECORDS[textKey(scope)]}. Are you sure you want to delete{' '}
+          {CONFIRM[textKey(scope)]}?
         </M.DialogContentText>
 
         {!!error && <Lab.Alert severity="error">{error}</Lab.Alert>}
@@ -83,7 +135,7 @@ export default function PackageDeleteDialog({
         <M.Button onClick={onCancel} color="primary" autoFocus disabled={loading}>
           Cancel
         </M.Button>
-        <M.Button onClick={onConfirm} className={classes.danger} disabled={loading}>
+        <M.Button onClick={onDelete} className={classes.danger} disabled={loading}>
           Yes, delete it
         </M.Button>
       </M.DialogActions>

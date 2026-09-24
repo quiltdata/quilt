@@ -3,20 +3,31 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { Sidebar } from 'containers/Sidebar'
+import { MOTION, usePanelGutter } from 'components/Assistant/UI/PanelReflow'
 
 import BareHeader from './BareHeader'
 import * as Container from './Container'
 import { ContentBar } from './ContentBar'
 import { SearchInputProvider } from './SearchInput'
 
-const useRootStyles = M.makeStyles({
+const useRootStyles = M.makeStyles((t) => ({
   root: {
     overflowX: 'hidden',
     position: 'relative',
+    // Bare pages hold Qurator's gutter here, so it needs the shell's own
+    // transition -- otherwise the gutter snaps while the paper animates.
+    [MOTION]: {
+      transition: t.transitions.create('padding-right', {
+        duration: t.transitions.duration.enteringScreen,
+        easing: t.transitions.easing.easeOut,
+      }),
+    },
   },
-})
+}))
 
-interface RootProps {
+// Extends `BoxProps` because the body already spreads the rest onto `M.Box`;
+// the narrower declaration just hid that.
+interface RootProps extends M.BoxProps {
   dark?: boolean
   children: React.ReactNode
 }
@@ -52,6 +63,15 @@ const useShellStyles = M.makeStyles((t) => ({
     height: '100vh',
     overflowX: 'hidden',
     position: 'relative',
+    // Qurator's docked paper is `position: fixed` and reserves no space, so the
+    // gutter it takes out of the content has to be held here. Duration and
+    // easing match the paper's own width transition, or the content lags it.
+    [MOTION]: {
+      transition: t.transitions.create('padding-right', {
+        duration: t.transitions.duration.enteringScreen,
+        easing: t.transitions.easing.easeOut,
+      }),
+    },
   },
   // `.main` is the scroll container; the sticky ContentBar pins to its top.
   main: {
@@ -95,14 +115,17 @@ export function Layout({
 }: LayoutProps) {
   const classes = useShellStyles()
   const compact = useCompactShell()
+  const gutter = usePanelGutter()
   const [navOpen, setNavOpen] = React.useState(false)
   const closeNav = React.useCallback(() => setNavOpen(false), [])
   const openNav = React.useCallback(() => setNavOpen(true), [])
 
   // `bare` pages (e.g. sign-in) keep the minimal standalone header, no sidebar.
+  // The gutter still applies: the error fallback is `bare` but renders inside a
+  // mounted assistant, so the rail is on screen with no shell to hold space.
   if (bare) {
     return (
-      <Root dark={dark}>
+      <Root dark={dark} pr={gutter ?? undefined}>
         <Container.FullWidthProvider>
           <BareHeader />
           {!!pre && pre}
@@ -121,6 +144,7 @@ export function Layout({
     <SearchInputProvider>
       <M.Box
         className={classes.shell}
+        style={{ paddingRight: gutter ?? undefined }}
         bgcolor={dark ? 'primary.main' : 'background.default'}
       >
         <Sidebar compact={compact} open={navOpen} onClose={closeNav} />
