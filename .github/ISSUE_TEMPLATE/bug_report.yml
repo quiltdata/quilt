@@ -1,0 +1,118 @@
+name: Bug report
+description: Report something that is broken or behaving incorrectly in Quilt.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for taking the time to file a bug report! A clear report with
+        reproduction steps is the fastest path to a fix.
+
+
+        Not sure whether this is a bug, or have a usage question? Please ask in
+        the [Quilt Slack community](https://slack.quilt.bio) instead of opening
+        an issue.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you file
+      options:
+        - label: I searched [existing issues](https://github.com/quiltdata/quilt/issues) and this hasn't been reported.
+          required: true
+        - label: This is a bug (something broken), not a feature request or a usage question.
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Which part of Quilt is affected? (See the README repository map.)
+      options:
+        - Python SDK / CLI (quilt3, api/python)
+        - Web catalog (catalog)
+        - Lambda services (lambdas)
+        - Documentation (docs)
+        - Infrastructure / deployment / CI (core-team owned — see note below)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug. What did you observe?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: >-
+        Minimal, reliable steps to reproduce. Include a code snippet, CLI
+        command, or click-path. Sample data or a screenshot helps a lot.
+      placeholder: |
+        1. Run `quilt3 ...`
+        2. Open the catalog at ...
+        3. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: Paste any relevant traceback or console output. This is automatically formatted as code.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >-
+        Where did this happen? Include versions where relevant.
+      value: |
+        - quilt3 version (`quilt3 --version`):
+        - Python version:
+        - Browser (for catalog bugs):
+        - Deployment type (open.quiltdata.com / enterprise stack / local):
+    validations:
+      required: false
+
+  - type: dropdown
+    id: open-variant
+    attributes:
+      label: Does this affect the Open (open-source) variant?
+      description: >-
+        Quilt ships an Open variant. If you know whether this reproduces there,
+        tell us — it helps us scope the fix. "Not sure" is fine.
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: >-
+        **A note on infrastructure & deployment bugs.** Bugs in CloudFormation /
+        deployment templates, IAM and AWS resource configuration, CI workflows
+        (`.github/workflows/`), or release/packaging tooling are owned by the
+        Quilt core team because they are coupled to the internal release and
+        enterprise-deployment process. Please still file the report here so we
+        can track it — but expect the core team to drive the fix rather than
+        accepting an external PR against those surfaces. See `CONTRIBUTING.md`.
