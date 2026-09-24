@@ -290,6 +290,15 @@ const usePaginationStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexGrow: 1,
     height: TOOLBAR_INNER_HEIGHT,
+    // Touch targets can carry the row past a narrow column, whose overflow is
+    // hidden rather than scrollable: wrapping keeps the last page reachable, and
+    // a fixed height would clip the line it wraps onto.
+    [Pointer.COARSE]: {
+      flexWrap: 'wrap',
+      height: 'auto',
+      justifyContent: 'flex-end',
+      rowGap: t.spacing(0.5),
+    },
   },
   select: {
     alignItems: 'center',
@@ -334,6 +343,14 @@ function Pagination({
   loadMore,
 }: PaginationProps) {
   const classes = usePaginationStyles()
+  // Ten slots plus the arrows need ~528px once each carries the touch floor,
+  // which a phone-width column does not have. The wrap in `root` is what keeps
+  // the last control reachable; this only trims the run near either end, since
+  // the middle of a long range emits eight slots whatever the cap. 5 is the
+  // floor: at 4 `displayRange` emits page 0.
+  const xs = Column.useDown('xs')
+  const coarse = Pointer.useCoarse()
+  const maxPages = xs && coarse ? 6 : 10
 
   const options = DG.useGridSelector(apiRef, optionsSelector)
 
@@ -403,7 +420,7 @@ function Pagination({
       >
         <M.Icon fontSize="small">chevron_left</M.Icon>
       </M.IconButton>
-      {renderPageRange({ page, pages, renderPage, renderGap, max: 10 })}
+      {renderPageRange({ page, pages, renderPage, renderGap, max: maxPages })}
       {truncated && !!loadMore && (
         <M.Button
           size="small"
