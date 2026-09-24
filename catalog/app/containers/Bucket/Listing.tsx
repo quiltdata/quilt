@@ -1276,8 +1276,8 @@ export function Listing({
       // finger gets no hover, so they stand at rest (ListingActions) and need
       // a cell of their own -- otherwise they cover the size readout.
       width: coarse ? actionsWidth : 0,
-      // An empty `headerName` falls back to the field name, which only became
-      // visible once the column had width.
+      // An empty `headerName` falls back to the field name, which is visible
+      // once the column has width.
       renderHeader: () => <></>,
       disableColumnMenu: true,
       sortable: false,

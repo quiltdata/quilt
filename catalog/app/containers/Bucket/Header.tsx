@@ -203,8 +203,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexShrink: 1,
     // A `0` floor lets flex squeeze the name narrower than its own longest
-    // word, so a short-landscape phone broke "quilt-example" across two lines
-    // with empty space beside it.
+    // word, which wraps it rather than shrinking the row.
     minWidth: 'min-content',
   },
   settings: {

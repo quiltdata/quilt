@@ -18,9 +18,8 @@ const useStyles = M.makeStyles((t) => ({
     margin: 'auto',
     marginTop: t.spacing(2),
     maxWidth: '30rem',
-    // A 15rem floor is wider than a 320px phone's content column, so the row
-    // could not shrink and the secondary line ran off the edge. It stacks
-    // under the button instead, and keeps the floor once there is room.
+    // A 15rem floor outgrows a 320px phone's content column, so the row cannot
+    // shrink to fit it. It stacks instead, and keeps the floor once there is room.
     [Column.down('xs')]: {
       flexDirection: 'column',
       minWidth: 0,
