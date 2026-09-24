@@ -39,6 +39,10 @@ class RoleAssignedError(Quilt3AdminError):
     pass
 
 
+class RoleOwnsDataProductsError(Quilt3AdminError):
+    pass
+
+
 class RoleSsoConfigConflictError(Quilt3AdminError):
     pass
 

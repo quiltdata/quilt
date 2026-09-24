@@ -571,6 +571,7 @@ export interface Mutation {
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketUpdate: BucketUpdateResult
   readonly packageConstruct: PackageConstructResult
+  readonly packageDelete: PackageDeleteResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
   readonly policyCreateManaged: PolicyResult
@@ -639,6 +640,11 @@ export interface MutationbucketUpdateArgs {
 export interface MutationpackageConstructArgs {
   params: PackagePushParams
   src: PackageConstructSource
+}
+
+export interface MutationpackageDeleteArgs {
+  bucket: Scalars['String']['input']
+  name: Scalars['String']['input']
 }
 
 export interface MutationpackagePromoteArgs {
@@ -836,6 +842,8 @@ export type PackageConstructResult = InvalidInput | OperationError | PackagePush
 export interface PackageConstructSource {
   readonly entries: ReadonlyArray<PackageConstructEntry>
 }
+
+export type PackageDeleteResult = Ok | OperationError
 
 export interface PackageDir {
   readonly __typename: 'PackageDir'
@@ -1223,6 +1231,7 @@ export type RoleDeleteResult =
   | RoleDoesNotExist
   | RoleNameReserved
   | RoleNameUsedBySsoConfig
+  | RoleOwnsDataProducts
 
 export interface RoleDeleteSuccess {
   readonly __typename: 'RoleDeleteSuccess'
@@ -1266,6 +1275,11 @@ export interface RoleNameReserved {
 
 export interface RoleNameUsedBySsoConfig {
   readonly __typename: 'RoleNameUsedBySsoConfig'
+  readonly _: Maybe<Scalars['Boolean']['output']>
+}
+
+export interface RoleOwnsDataProducts {
+  readonly __typename: 'RoleOwnsDataProducts'
   readonly _: Maybe<Scalars['Boolean']['output']>
 }
 

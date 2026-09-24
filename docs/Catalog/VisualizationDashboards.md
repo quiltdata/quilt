@@ -16,6 +16,7 @@ exploration:
 * [Vega](#vega-and-vega-lite)
 * [Vega-lite](#vega-and-vega-lite)
 * [ECharts](#echarts)
+* [Mermaid](#mermaid)
 * [Voila](#voila) (Developer preview)
 * [Perspective](#perspective)
 * [IGV](#integrative-genomics-viewer-igv)
@@ -73,11 +74,14 @@ or an object with one or more of the following properties:
 - `width` - column width either in pixels or ratio (default is ratio `1`)
 - `types` - a list of render types (at present only singleton lists are supported):
     - `["echarts"]` to render JSON as an EChart
-    - `["perspective"]` to render tabular data (csv, xlsx etc.) with Perspective
-    - `["igv"]` to render JSON with Integrative Genomics Viewer
-    - `["voila"]` to render a Jupyter notebook as an interactive Voila dashboard
     - `["html"]` to render HTML in iframes. See also [Advanced HTML rendering](./Preview.md#advanced-html-rendering-and-quilt-package-file-server)
+    - `["igv"]` to render JSON with Integrative Genomics Viewer
+    - `["json"]` to render as interactive JSON
+    - `["jupyter"]` to render a Jupyter notebook as a static preview
+    - `["perspective"]` to render tabular data (csv, xlsx etc.) with Perspective
     - `["text"]` to render anything as text with syntax highlighting
+    - `["vega"]` to render JSON as a Vega or Vega-Lite visualization
+    - `["voila"]` to render a Jupyter notebook as an interactive Voila dashboard
 
 If you need to control the height of an element (useful for Voila dashboards),
 use the following extended syntax:
@@ -284,6 +288,42 @@ are not available.
 
 ### Live packages
 - [Various EChart types](https://open.quiltdata.com/b/quilt-example/packages/examples/echarts)
+
+## Mermaid
+The Quilt catalog renders [Mermaid](https://mermaid.js.org/) diagrams — flowcharts,
+sequence diagrams, ER diagrams, Gantt charts, state diagrams, and the other graph
+types Mermaid supports — written as fenced code blocks inside your Markdown.
+See [package.json](https://github.com/quiltdata/quilt/blob/master/catalog/package.json)
+for the specific library version.
+
+Label a fence `mermaid` and it draws as a diagram wherever the catalog renders
+Markdown: a `README.md` on a bucket or package, any `.md` file you open, and
+Markdown referenced from `quilt_summarize.json`.
+
+### Example
+
+````markdown
+# Processing pipeline
+
+```mermaid
+flowchart LR
+  raw[Raw reads] --> qc[Quality control]
+  qc --> align[Alignment]
+  align --> counts[Count matrix]
+  counts --> report[Report]
+```
+````
+
+A fence whose diagram definition does not parse keeps showing its source, so the
+text can be corrected.
+
+### Limitations
+
+Diagram definitions are rendered with Mermaid's `strict` security level, so
+directives that would inject scripts or click handlers into the diagram are
+ignored. Mermaid diagrams do not read external data: unlike Vega and ECharts, the
+diagram is fully described by the fence itself, and relative paths to package
+files are not resolved.
 
 ## Voila
 *This feature is a Developer preview, details are subject to change.*

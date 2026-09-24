@@ -619,7 +619,7 @@ Succeeds once on stack bring-up, fails on subsequent stack upgrades.
 
 - `requestParameters`
   - `env: bool` - Pass account info in environment variables
-  - `role_name: str` (optional) - Name for Quilt T4 Role
+  - `role_name: str` (optional) - Name for the Quilt role
   - `email: str`
   - `password: "***"` (optional)
 
