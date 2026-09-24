@@ -192,6 +192,9 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     [Column.up('sm')]: {
       flexDirection: 'row',
+      // The stats and the create button drop to their own line rather than
+      // squeezing the name, which is the header's subject.
+      flexWrap: 'wrap',
       justifyContent: 'space-between',
     },
   },
@@ -199,7 +202,11 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexShrink: 1,
-    minWidth: 0,
+    // A `0` floor lets flex squeeze the name narrower than its own longest
+    // word, so a short-landscape phone broke "quilt-example" across two lines
+    // with empty space beside it. `min-content` still allows the ellipsis a
+    // very long name needs.
+    minWidth: 'min-content',
   },
   settings: {
     marginLeft: t.spacing(1),
