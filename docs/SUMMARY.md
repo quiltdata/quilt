@@ -3,14 +3,16 @@
 * [About Quilt](README.md)
 * [Architecture](Architecture.md)
 * [Mental Model](MentalModel.md)
-* [Metadata Management](Catalog/Metadata.md)
-* [Metadata Workflows](advanced-features/workflows.md)
+* [Frequently Asked Questions](FAQ.md)
+* [Troubleshooting](Troubleshooting.md)
 
-## Quilt Platform (Catalog) User
+## Quilt Platform
 
 * [About the Catalog](walkthrough/working-with-the-catalog.md)
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
+* [Metadata Management](Catalog/Metadata.md)
+* [Metadata Workflows](advanced-features/workflows.md)
 * [Packaging Engine](Catalog/Packaging.md)
 * [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
@@ -24,7 +26,7 @@
   * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
   * [Removing Stacks](Catalog/RemovingStacks.md)
 
-## Quilt Platform Administrator
+## Quilt Platform Administration
 
 * [Catalog Installation](Catalog/Installation.md)
 * [Admin Settings UI](Catalog/Admin.md)
@@ -34,6 +36,7 @@
 * [Enterprise Installs](technical-reference.md)
 * [quilt3.admin Python API](api-reference/Admin.md)
 * **Advanced**
+  * [Checksums & Hashing](CHUNKED_CHECKSUMS.md)
   * [Package Events](advanced-features/package-events.md)
   * [Private Endpoints](advanced-features/private-endpoint-access.md)
   * [Restrict Access by Bucket Prefix](advanced-features/s3-prefix-permissions.md)
@@ -76,9 +79,7 @@
 * **More**
   * [Changelog](CHANGELOG.md)
   * [Contributing](CONTRIBUTING.md)
-  * [Frequently Asked Questions](FAQ.md)
-  * [Troubleshooting](Troubleshooting.md)
-  
+
 ## Quilt Ecosystem Integrations
 
 * [Benchling Packager](examples/benchling.md)

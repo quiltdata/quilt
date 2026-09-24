@@ -1,0 +1,8 @@
+mutation ($bucket: String!, $name: String!) {
+  packageDelete(bucket: $bucket, name: $name) {
+    __typename
+    ... on OperationError {
+      message
+    }
+  }
+}
