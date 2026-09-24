@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { Model as AssistantModel } from 'components/Assistant'
+
 import { extractCriteria } from './extractCriteria'
 
 // The panel shown when the bar routes to Qurator: a preview of what the query
@@ -31,8 +33,16 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
+    flexWrap: 'wrap',
     gap: t.spacing(1),
     padding: t.spacing(2),
+  },
+  // Active instructions are state, so each readout wears the amber stroke
+  // (Indicator Rule): an outlined chip, never a fill. Global and personal are
+  // separate layers, so they get separate chips.
+  instructionsChip: {
+    borderColor: t.palette.secondary.main,
+    color: t.palette.secondary.main,
   },
   qicon: {
     alignItems: 'center',
@@ -66,14 +76,13 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(2),
   },
   lbl: {
+    ...t.typography.overline,
     alignItems: 'center',
     color: t.palette.text.secondary,
     display: 'flex',
-    fontSize: t.typography.caption.fontSize,
     gap: t.spacing(0.5),
-    letterSpacing: '.07em',
+    lineHeight: 1.5,
     marginBottom: t.spacing(1),
-    textTransform: 'uppercase',
   },
   crit: {
     display: 'flex',
@@ -106,6 +115,7 @@ interface QuratorPanelProps {
 export default function QuratorPanel({ query, onRun, onJustSearch }: QuratorPanelProps) {
   const classes = useStyles()
   const criteria = React.useMemo(() => extractCriteria(query), [query])
+  const instructions = AssistantModel.useAssistantAPI()?.instructions
 
   return (
     <M.Paper className={classes.root} elevation={0} aria-label="Qurator">
@@ -114,6 +124,26 @@ export default function QuratorPanel({ query, onRun, onJustSearch }: QuratorPane
           <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>
         </span>
         <M.Typography className={classes.title}>Qurator</M.Typography>
+        {instructions?.global.active && (
+          <M.Tooltip title="Global instructions set by an admin are sent along when Qurator runs.">
+            <M.Chip
+              className={classes.instructionsChip}
+              label="Global on"
+              size="small"
+              variant="outlined"
+            />
+          </M.Tooltip>
+        )}
+        {instructions?.personal.active && (
+          <M.Tooltip title="Your personal notes are sent along when Qurator runs. Edit them in the assistant panel.">
+            <M.Chip
+              className={classes.instructionsChip}
+              label="Personal on"
+              size="small"
+              variant="outlined"
+            />
+          </M.Tooltip>
+        )}
         <span className={classes.right}>Claude on Bedrock, with your permissions</span>
       </div>
       <div className={classes.interp}>

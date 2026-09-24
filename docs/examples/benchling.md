@@ -44,7 +44,7 @@ automatically:
 - **Copies attachments** from that notebook into Amazon S3 as part of the
   package.
 - **Enables organizational data discovery** by making contents available in
-  ElasticSearch, and metadata available in Amazon Athena.
+  Elasticsearch, and metadata available in Amazon Athena.
 
 ### Bucketless Deployments
 

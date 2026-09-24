@@ -35,7 +35,13 @@ export async function renderTable(
   viewer: HTMLPerspectiveViewerElement,
 ) {
   const table = await worker.table(data)
-  await viewer.load(table)
+  // Until this returns, the table has no other reference to release it by
+  try {
+    await viewer.load(table)
+  } catch (e) {
+    await table.delete()
+    throw e
+  }
   return table
 }
 
@@ -52,17 +58,28 @@ function usePerspective(
     // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
     let table: Table | null = null
     let viewer: HTMLPerspectiveViewerElement | null = null
+    // NOTE: `data` is a dep, so "Load more" re-runs this effect. Without the
+    //       flag, the aborted run's outcome would land on the run that replaced
+    //       it -- an error over a preview that is loading fine.
+    let cancelled = false
+
+    // The abandoned run and the cleanup both reach a loaded table; taking the
+    // reference keeps the release single -- a second `delete()` rejects
+    async function releaseTable() {
+      const released = table
+      table = null
+      await released?.delete()
+    }
 
     async function renderData() {
       if (!container) return
 
-      try {
-        viewer = renderViewer(container, attrs)
-        table = await renderTable(data, viewer)
-      } catch (e) {
-        const error = e instanceof Error ? e : new Error((e as any).message || `${e}`)
-        setState(error)
-        log.error(error)
+      viewer = renderViewer(container, attrs)
+      table = await renderTable(data, viewer)
+      // NOTE: a cleanup that ran during the load saw `table` as null and had
+      //       nothing to release, so release it here -- the viewer is gone
+      if (cancelled) {
+        await releaseTable()
         return
       }
 
@@ -74,10 +91,18 @@ function usePerspective(
       }
 
       if (config) {
-        await viewer.restore(config)
+        // Perspective resets a config it can validate away; one that rejects
+        // instead -- a plugin or theme the build lacks -- gets the same
+        // fallback rather than costing the reader a table that loaded fine
+        try {
+          await viewer.restore(config)
+        } catch (e) {
+          log.error(e)
+        }
       }
 
       const size = await table.size()
+      if (cancelled) return
       setState({
         rotateThemes: async () => {
           const settings = await viewer?.save()
@@ -94,14 +119,28 @@ function usePerspective(
 
     async function disposeTable() {
       viewer?.parentNode?.removeChild(viewer)
-      await viewer?.delete()
-      await table?.delete()
+      // NOTE: a viewer whose `load` never finished rejects on `delete` -- that
+      //       must not strand the table
+      try {
+        await viewer?.delete()
+      } finally {
+        await releaseTable()
+      }
     }
 
-    renderData()
+    // NOTE: catch the whole thing, not just the load: `size()` and `onRender`
+    //       reject too, and an unhandled rejection here leaves the preview
+    //       blank with nothing to show for it
+    renderData().catch((e) => {
+      if (cancelled) return
+      const error = e instanceof Error ? e : new Error((e as any)?.message || `${e}`)
+      setState(error)
+      log.error(error)
+    })
 
     return () => {
-      disposeTable()
+      cancelled = true
+      disposeTable().catch((e) => log.error(e))
     }
   }, [attrs, config, container, data, onRender])
 

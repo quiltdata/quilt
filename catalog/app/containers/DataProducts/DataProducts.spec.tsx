@@ -202,6 +202,14 @@ describe('containers/DataProducts', () => {
       expect(getByTestId('where').textContent).toBe('/buckets')
     })
 
+    it('says on screen that the data is illustrative', () => {
+      // Every screen here reads the fixture adapter, and the rows are shaped
+      // exactly like real ones — an access request or a connection error would
+      // otherwise be taken at face value. Remove with the fixture adapter.
+      const { getByText } = mount(dataProduct.url(fixtures.PACKAGE_PRODUCT.id))
+      expect(getByText(/Example data/)).toBeTruthy()
+    })
+
     it('sends the bare path to the volume grid rather than a second list', () => {
       // A data product is a volume, so the volume grid is the one place they are
       // browsed. A standalone list at its own URL would be a parallel index of
@@ -542,7 +550,7 @@ describe('containers/DataProducts', () => {
         // not happen.
         const { getByText } = mount(DATAZONE)
         expect(
-          getByText('Revoked · requested by former-contractor@example.com'),
+          getByText('Revoked · requested by past.contractor@example.com'),
         ).toBeTruthy()
         expect(getByText(/retained the underlying permissions/)).toBeTruthy()
         expect(getByText(/access may still be in force/)).toBeTruthy()
@@ -554,7 +562,7 @@ describe('containers/DataProducts', () => {
         const { getByText } = mount(DATAZONE)
         expect(
           getByText(
-            /Approving this grants Clinical Data Platform — the whole project, not only rita@quiltdata.io/,
+            /Approving this grants Clinical Data Platform — the whole project, not only r.chen@example.com/,
           ),
         ).toBeTruthy()
       })
@@ -570,7 +578,7 @@ describe('containers/DataProducts', () => {
         )
         expect(
           getByText(
-            /Approving this grants acme_analytics — everyone using that share, not only priya@quiltdata.io/,
+            /Approving this grants acme_analytics — everyone using that share, not only p.nair@example.com/,
           ),
         ).toBeTruthy()
       })

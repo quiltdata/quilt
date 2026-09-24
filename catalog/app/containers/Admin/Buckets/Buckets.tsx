@@ -6,8 +6,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
-import { useDebounce } from 'use-debounce'
-import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -79,104 +77,62 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
 
 const useStickyActionsStyles = M.makeStyles((t) => ({
   actions: {
-    animation: `$show 150ms ease-out`,
-    padding: t.spacing(3, 0, 0),
     alignItems: 'center',
+    bottom: 0,
     display: 'flex',
     justifyContent: 'flex-end',
+    position: 'sticky',
+    transition: t.transitions.create(['box-shadow', 'padding'], { duration: 150 }),
     '& > * + *': {
       // Spacing between direct children
       marginLeft: t.spacing(2),
     },
   },
-  sticky: {
-    animation: `$sticking 150ms ease-out`,
-    bottom: 0,
-    left: '50%',
-    position: 'fixed',
-    transform: `translateX(-50%)`,
-    '& $actions': {
-      padding: t.spacing(2),
-    },
+  floating: {
+    backgroundColor: t.palette.background.paper,
+    borderRadius: t.shape.borderRadius,
+    boxShadow: t.shadows[8],
+    padding: t.spacing(2),
   },
-  '@keyframes show': {
-    '0%': {
-      opacity: 0.3,
-    },
-    '100%': {
-      opacity: '1',
-    },
+  resting: {
+    padding: t.spacing(3, 0, 0),
   },
-  '@keyframes sticking': {
-    '0%': {
-      transform: 'translate(-50%, 10%)',
-    },
-    '100%': {
-      transform: 'translate(-50%, 0)',
-    },
+  sentinel: {
+    height: 1,
+    marginTop: -1,
   },
 }))
 
 interface StickyActionsProps {
   children: React.ReactNode
-  parentRef: React.RefObject<HTMLElement>
 }
 
-function StickyActions({ children, parentRef }: StickyActionsProps) {
+function StickyActions({ children }: StickyActionsProps) {
   const classes = useStickyActionsStyles()
 
-  const [size, setSize] = React.useState<DOMRect | null>(null)
-  const [parentSize, setParentSize] = React.useState<DOMRect | null>(null)
-  const ref = React.useRef<HTMLDivElement>(null)
-  const handleScroll = React.useCallback(() => {
-    const rect = ref.current?.getBoundingClientRect()
-    if (!rect || !rect.height) return
-    setSize(rect)
-    const parent = parentRef.current?.getBoundingClientRect()
-    if (!parent || !parent.height) return
-    setParentSize(parent)
-  }, [parentRef])
+  const sentinelRef = React.useRef<HTMLDivElement>(null)
+  const [pinned, setPinned] = React.useState(false)
+
+  // The sentinel sits just past the bar's resting place, so it is out of view
+  // for exactly as long as the bar is pinned. 1px, not 0: a zero-area target's
+  // intersection is unreliable.
   React.useEffect(() => {
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
-  const { height: parentHeight } = useResizeObserver({ ref: parentRef })
-  React.useEffect(() => handleScroll(), [handleScroll, parentHeight])
-
-  const DEBOUNCE_TIMEOUT = 50
-  const [debouncedSize] = useDebounce(size, DEBOUNCE_TIMEOUT)
-  const [debouncedParentSize] = useDebounce(parentSize, DEBOUNCE_TIMEOUT)
-  const sticky = React.useMemo(() => {
-    const winHeight = window.innerHeight || document.documentElement.clientHeight
-
-    const containerBottom = debouncedSize?.bottom || 0
-    const containerHeight = debouncedSize?.height || 0
-    const parentTop = debouncedParentSize?.top || 0
-
-    return (
-      // Container's bottom (relative to viewport) is below the viewport's bottom
-      containerBottom >= winHeight + containerHeight &&
-      // Parent's top is inside the viewport
-      parentTop >= 0 &&
-      parentTop <= winHeight - containerHeight
+    const sentinel = sentinelRef.current
+    if (!sentinel) return undefined
+    const observer = new IntersectionObserver(([entry]) =>
+      setPinned(!entry.isIntersecting),
     )
-  }, [debouncedSize, debouncedParentSize])
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <div ref={ref}>
-      {sticky ? (
-        <>
-          <M.Container className={classes.sticky} maxWidth="lg">
-            <M.Paper className={classes.actions} elevation={8}>
-              {children}
-            </M.Paper>
-          </M.Container>
-          <div style={{ height: debouncedSize?.height }}>{/* height placeholder */}</div>
-        </>
-      ) : (
-        <div className={classes.actions}>{children}</div>
-      )}
-    </div>
+    <>
+      <div className={cx(classes.actions, pinned ? classes.floating : classes.resting)}>
+        {children}
+      </div>
+      <div className={classes.sentinel} ref={sentinelRef} />
+    </>
   )
 }
 
@@ -759,7 +715,6 @@ interface PrimaryCardProps {
 
 function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps) {
   const initialValues = bucketToPrimaryValues(bucket)
-  const ref = React.useRef<HTMLElement>(null)
   const { urls } = NamedRoutes.use()
   const configPath = quiltConfigs.bucketPreferences[0]
   const configHref = urls.bucketFile(bucket.name, configPath, {
@@ -772,13 +727,12 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
           className={className}
           disabled={disabled}
           error={submitFailed}
-          ref={ref}
           title="Display settings"
         >
           <form onSubmit={handleSubmit}>
             <PrimaryForm bucket={bucket} />
           </form>
-          <StickyActions parentRef={ref}>
+          <StickyActions>
             <CardActions<PrimaryFormValues>
               action={<StyledLink to={configHref}>Configure Bucket UI</StyledLink>}
               disabled={disabled}
@@ -836,7 +790,6 @@ interface MetadataCardProps {
 
 function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardProps) {
   const initialValues = bucketToMetadataValues(bucket)
-  const ref = React.useRef<HTMLElement>(null)
   return (
     <RF.Form<MetadataFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, form, submitFailed }) => (
@@ -844,13 +797,12 @@ function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardPro
           className={className}
           disabled={disabled}
           error={submitFailed}
-          ref={ref}
           title="Metadata"
         >
           <form onSubmit={handleSubmit}>
             <MetadataForm />
           </form>
-          <StickyActions parentRef={ref}>
+          <StickyActions>
             <CardActions<MetadataFormValues> disabled={disabled} form={form} />
           </StickyActions>
         </Card>
@@ -1065,7 +1017,6 @@ function IndexingAndNotificationsCard({
   const settings = data.config.contentIndexingSettings
 
   const initialValues = bucketToIndexingAndNotificationsValues(bucket)
-  const ref = React.useRef<HTMLFormElement>(null)
 
   return (
     <RF.Form<IndexingAndNotificationsFormValues>
@@ -1077,13 +1028,12 @@ function IndexingAndNotificationsCard({
           className={className}
           disabled={disabled}
           error={submitFailed}
-          ref={ref}
           title="Indexing and notifications"
         >
           <form onSubmit={handleSubmit}>
             <IndexingAndNotificationsForm bucket={bucket} settings={settings} />
           </form>
-          <StickyActions parentRef={ref}>
+          <StickyActions>
             <CardActions<IndexingAndNotificationsFormValues>
               action={
                 <M.Button
@@ -1200,12 +1150,11 @@ interface AddPageSkeletonProps {
 
 function AddPageSkeleton({ back }: AddPageSkeletonProps) {
   const classes = useStyles()
-  const formRef = React.useRef<HTMLDivElement>(null)
   return (
-    <div ref={formRef}>
+    <div>
       <SubPageHeader back={back}>Add a bucket</SubPageHeader>
       <CardsPlaceholder className={classes.fields} />
-      <StickyActions parentRef={formRef}>
+      <StickyActions>
         <Buttons.Skeleton />
         <Buttons.Skeleton />
       </StickyActions>
@@ -1286,7 +1235,6 @@ function Add({ back, settings, submit }: AddProps) {
     },
     [back, submit],
   )
-  const scrollingRef = React.useRef<HTMLFormElement>(null)
   const guardNavigation = React.useCallback(
     () => 'You have unsaved changes. Discard changes and leave the page?',
     [],
@@ -1307,7 +1255,7 @@ function Add({ back, settings, submit }: AddProps) {
           <SubPageHeader back={back} disabled={submitting}>
             Add a bucket
           </SubPageHeader>
-          <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
+          <form className={classes.fields} onSubmit={handleSubmit}>
             <Card className={classes.card} title="Display settings">
               <PrimaryForm />
             </Card>
@@ -1327,7 +1275,7 @@ function Add({ back, settings, submit }: AddProps) {
             </Card>
             <input type="submit" style={{ display: 'none' }} />
           </form>
-          <StickyActions parentRef={scrollingRef}>
+          <StickyActions>
             {submitFailed && (
               <Form.FormError
                 className={classes.error}

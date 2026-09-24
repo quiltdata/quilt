@@ -41,7 +41,12 @@ quilt3.login()  # Opens browser for OAuth/SSO
 
 # OR use an API key (for automation, CI/CD, scripts)
 import os
-quilt3.login_with_api_key(os.environ["QUILT_API_KEY"])
+
+# QUILT_REGISTRY_URL is the `registryUrl` from your catalog's /config.json
+quilt3.login_with_api_key(
+    os.environ["QUILT_API_KEY"],
+    registry_url=os.environ["QUILT_REGISTRY_URL"],
+)
 ```
 
 **📚 Learn more**: See the [Authentication Guide](api-reference/authentication.md) for detailed setup instructions, best practices, and use cases.
@@ -62,9 +67,14 @@ print(pkg)
 ### 4. **Access Your First File**
 <!-- pytest-codeblocks:cont -->
 ```python
-# Download and read a file (using pkg from previous step)
+# Access a file (using pkg from previous step)
 data_file = pkg["README_NF_QUILT.md"]
-content = data_file.get()
+
+# get() returns the file's physical location (an S3 URI), not its contents
+print(data_file.get())
+
+# Read the file contents into memory as a string
+content = data_file.get_as_string()
 print(content)
 ```
 

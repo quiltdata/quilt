@@ -54,15 +54,15 @@ Below is an example of how you might organize three data domains according to a 
 | Domain2 | s3://domain2-raw | s3://domain2-refined | s3://domain2-curated |
 | Domain3 | s3://domain3-raw | s3://domain3-refined | s3://domain3-curated |
 
-In addition to the three lifecycle phases above it is useful to have on or more
+In addition to the three lifecycle phases above it is useful to have one or more
 "sandbox" buckets where users can create experimental packages without fear of
 overwriting or disrupting business data.
 
 ## How enterprises organize instrument, scientist, ELN data
 
-See [Bringing Scientific Data Management Systems Into the Cloud](https://blog.quiltdata.com/bringing-scientific-data-management-systems-into-the-cloud-video-41be228a41b9)
-from Bio-IT world for a in-depth view of organizing scientific data in the cloud
-from instrument, to scientist, to ELN.
+The diagram below shows how data typically flows through an enterprise
+deployment: from instruments, to scientists, to the electronic lab notebook
+(ELN), with Quilt packages capturing each stage.
 
 ![](../imgs/data-lifecycle.png)
 

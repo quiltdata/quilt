@@ -36,31 +36,23 @@ vi.mock('./useResults', () => ({
 
 vi.mock('../NoResults', () => ({
   Skeleton: () => <div>Loading…</div>,
-  Error: ({ children, kind }: { children?: React.ReactNode; kind?: string }) => {
-    switch (kind) {
-      case 'syntax':
-        return (
-          <section>
-            <h1>Syntax error</h1>
-            <details>{children}</details>
-          </section>
-        )
-      case 'timeout':
-        return (
-          <section>
-            <h1>Timeout error</h1>
-            <details>{children}</details>
-          </section>
-        )
-      default:
-        return (
-          <section>
-            <h1>Unexpected error</h1>
-            <details>{children}</details>
-          </section>
-        )
-    }
-  },
+  UnexpectedError: ({ children }: { children?: React.ReactNode }) => (
+    <section>
+      <h1>Unexpected error</h1>
+      <details>{children}</details>
+    </section>
+  ),
+  SyntaxError: ({ children }: { children?: React.ReactNode }) => (
+    <section>
+      <h1>Syntax error</h1>
+      <details>{children}</details>
+    </section>
+  ),
+  TimeoutError: () => (
+    <section>
+      <h1>Timeout error</h1>
+    </section>
+  ),
 }))
 
 vi.mock('./Table', () => ({

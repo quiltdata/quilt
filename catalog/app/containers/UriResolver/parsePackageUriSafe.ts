@@ -5,6 +5,6 @@ export default function parsePackageUriSafe(decoded: string) {
     return PackageUri.parse(decoded)
   } catch (e) {
     if (e instanceof PackageUri.PackageUriError) return e
-    return new PackageUri.PackageUriError('unknown error: ${e}', decoded)
+    return new PackageUri.PackageUriError(`unknown error: ${e}`, decoded)
   }
 }

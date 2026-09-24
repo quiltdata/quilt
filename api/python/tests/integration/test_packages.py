@@ -939,10 +939,13 @@ class PackageTest(QuiltTestCase):
             },
         )
 
-    def setup_s3_stubber_pkg_install(self, pkg_registry, pkg_name, *, top_hash=None, manifest=None, entries=()):
+    def setup_s3_stubber_pkg_install(
+        self, pkg_registry, pkg_name, *, top_hash=None, manifest=None, entries=(), pointer='latest'
+    ):
         top_hash = top_hash or self.default_test_top_hash
 
-        self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=top_hash)
+        if pointer is not None:
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer=pointer, top_hash=top_hash)
 
         if manifest:
             self.s3_stubber.add_response(
@@ -1103,11 +1106,11 @@ class PackageTest(QuiltTestCase):
                 # Verify latest points to the new location.
                 assert Path(local_registry.pointer_latest_pk(pkg_name).path).read_text() == top_hash
 
-    @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
+    @patch('quilt3.Package._browse', lambda name, registry, top_hash, pointer=None: Package())
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
-        self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.Package._build') as build_mock:
+        shorten_top_hash = self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
+        with patch('quilt3.Package._build', return_value='installed-top-hash') as build_mock:
             pkg_name = 'Quilt/nice-name'
             Package.install(pkg_name, registry='s3://my-test-bucket')
 
@@ -1116,6 +1119,7 @@ class PackageTest(QuiltTestCase):
                 registry=self.LocalPackageRegistryDefault(PhysicalKey.from_url(quilt3.util.get_install_location())),
                 message=None,
             )
+            shorten_top_hash.assert_called_once_with(pkg_name, 'installed-top-hash')
 
     def test_read_manifest(self):
         """Verify reading serialized manifest from disk."""
@@ -1194,6 +1198,109 @@ class PackageTest(QuiltTestCase):
 
         with pytest.raises(QuiltException, match='Found zero matches'):
             Package.browse(pkg_name, top_hash='123456', registry=registry)
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_package_uri_selectors_and_paths(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+        top_hash = self.default_test_top_hash
+
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            pkg_name,
+            top_hash=top_hash,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+        pkg = Package.browse('quilt+s3://test-bucket#package=Quilt/test&catalog=https%3A%2F%2Fexample.com')
+        assert isinstance(pkg, Package)
+        assert 'foo' in pkg
+
+        self.setup_s3_stubber_resolve_pointer(
+            pkg_registry,
+            pkg_name,
+            pointer='release',
+            top_hash=top_hash,
+        )
+        subpackage = Package.browse('quilt+s3://test-bucket#package=Quilt/test:release&path=baz')
+        assert isinstance(subpackage, Package)
+        assert 'bat' in subpackage
+
+        entry = Package.browse(f'quilt+s3://test-bucket#package=Quilt/test@{top_hash}&path=baz%2Fbat')
+        assert isinstance(entry, PackageEntry)
+
+        self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, pkg_name, (top_hash, 'a' * 64))
+        short_hash_entry = Package.browse(f'quilt+s3://test-bucket#package=Quilt/test@{top_hash[:6]}&path=baz%2Fbat')
+        assert isinstance(short_hash_entry, PackageEntry)
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_package_uri_directory_trailing_slash(self):
+        # The catalog points at a directory with a trailing slash, e.g. `&path=baz%2F`.
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            'Quilt/test',
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        subpackage = Package.browse('quilt+s3://test-bucket#package=Quilt/test&path=baz%2F')
+
+        assert isinstance(subpackage, Package)
+        assert 'bat' in subpackage
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_package_uri_path_through_entry(self):
+        # Descending through an entry reaches for _children on a PackageEntry.
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            'Quilt/test',
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        with pytest.raises(QuiltException, match="doesn't contain 'baz/bat/nope'"):
+            Package.browse('quilt+s3://test-bucket#package=Quilt/test&path=baz%2Fbat%2Fnope')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_package_uri_missing_tag(self):
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+        self.setup_s3_stubber_resolve_pointer_not_found(pkg_registry, 'Quilt/test', pointer='missing')
+
+        with pytest.raises(QuiltException, match="has no pointer 'missing'"):
+            Package.browse('quilt+s3://test-bucket#package=Quilt/test:missing')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    def test_remote_browse_package_uri_missing_path(self):
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            'Quilt/test',
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+
+        with pytest.raises(QuiltException, match="doesn't contain 'missing'"):
+            Package.browse('quilt+s3://test-bucket#package=Quilt/test&path=missing')
+
+    def test_package_uri_conflicts(self):
+        cases = [
+            (Package.browse, {'registry': 's3://other'}, 'registry'),
+            (Package.browse, {'top_hash': 'a' * 64}, 'top_hash'),
+            (Package.install, {'registry': 's3://other'}, 'registry'),
+            (Package.install, {'top_hash': 'a' * 64}, 'top_hash'),
+            (Package.install, {'path': 'data'}, 'path'),
+        ]
+        for method, kwargs, conflict in cases:
+            with self.subTest(method=method.__name__, conflict=conflict):
+                with pytest.raises(QuiltException, match=conflict):
+                    method('quilt+s3://test-bucket#package=Quilt/test', **kwargs)
+
+    def test_package_api_malformed_uri_has_uri_specific_error(self):
+        with pytest.raises(QuiltException, match='Invalid package URI'):
+            Package.browse('quilt+http://test-bucket#package=Quilt/test')
+
+    def test_legacy_browse_missing_package_preserves_file_not_found(self):
+        with pytest.raises(FileNotFoundError):
+            Package.browse('missing/package', registry=LOCAL_REGISTRY)
 
     @pytest.mark.usefixtures('isolate_packages_cache')
     def test_remote_browse_rejects_manifest_top_hash_mismatch(self):
@@ -2673,6 +2780,117 @@ class PackageTest(QuiltTestCase):
             PhysicalKey.from_path(path).path,
         )
         assert path.read_bytes() == entry_content
+
+    def _assert_install_package_uri_path(self, mocked_cache_set, uri_path):
+        registry = 's3://my-test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/Foo'
+        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
+        entry_content = b'42'
+        dest = 'package'
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            pkg_name,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+            entries=((entry_url, entry_content),),
+        )
+
+        Package.install(f'quilt+s3://my-test-bucket#package=Quilt/Foo&path={uri_path}', dest=dest)
+
+        installed_path = pathlib.Path.cwd() / dest / 'bat'
+        mocked_cache_set.assert_called_once_with(entry_url, PhysicalKey.from_path(installed_path).path)
+        assert installed_path.read_bytes() == entry_content
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_package_uri_directory(self, mocked_cache_set):
+        self._assert_install_package_uri_path(mocked_cache_set, 'baz')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_package_uri_directory_trailing_slash(self, mocked_cache_set):
+        # The catalog points at a directory with a trailing slash, e.g. `&path=baz%2F`.
+        self._assert_install_package_uri_path(mocked_cache_set, 'baz%2F')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_package_uri_entry(self, mocked_cache_set):
+        self._assert_install_package_uri_path(mocked_cache_set, 'baz%2Fbat')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_package_uri_selectors_report_resolved_hash(self, mocked_cache_set):
+        pkg_name = 'Quilt/Foo'
+        top_hash = self.default_test_top_hash
+        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
+        entry_content = b'42'
+        cases = [
+            ('implicit-latest', '', 'latest', False),
+            ('explicit-latest', ':latest', 'latest', False),
+            ('named-tag', ':release', 'release', False),
+            ('full-hash', f'@{top_hash}', None, False),
+            ('hash-prefix', f'@{top_hash[:6]}', None, True),
+        ]
+
+        for index, (label, selector, pointer, resolve_prefix) in enumerate(cases):
+            with self.subTest(selector=label):
+                bucket = f'my-test-bucket-{index}'
+                pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(f's3://{bucket}'))
+                if resolve_prefix:
+                    self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, pkg_name, (top_hash, 'a' * 64))
+                self.setup_s3_stubber_pkg_install(
+                    pkg_registry,
+                    pkg_name,
+                    top_hash=top_hash,
+                    manifest=REMOTE_MANIFEST.read_bytes(),
+                    entries=((entry_url, entry_content),),
+                    pointer=pointer,
+                )
+
+                dest = f'package-{index}'
+                uri = f'quilt+s3://{bucket}#package={pkg_name}{selector}&path=baz%2Fbat'
+                with patch('builtins.print') as mocked_print:
+                    Package.install(uri, dest=dest)
+
+                installed_path = pathlib.Path.cwd() / dest / 'bat'
+                assert installed_path.read_bytes() == entry_content
+                local_registry = self.LocalPackageRegistryDefault(
+                    PhysicalKey.from_url(quilt3.util.get_install_location())
+                )
+                installed_hash = pathlib.Path(local_registry.pointer_latest_pk(pkg_name).path).read_text()
+                assert f'tophash={installed_hash[:7]}' in mocked_print.call_args.args[0]
+
+        assert mocked_cache_set.call_count == len(cases)
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_full_package_uri(self, mocked_cache_set):
+        bucket = 'full-install-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(f's3://{bucket}'))
+        entries = (
+            ('s3://my_bucket/my_data_pkg/bar.csv', b'bar'),
+            ('s3://my_bucket/my_data_pkg/baz/bat', b'bat'),
+            ('s3://my_bucket/my_data_pkg/foo', b'foo'),
+        )
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry,
+            'Quilt/Foo',
+            manifest=REMOTE_MANIFEST.read_bytes(),
+            entries=entries,
+        )
+
+        Package.install(f'quilt+s3://{bucket}#package=Quilt/Foo', dest='full-package')
+
+        dest = pathlib.Path.cwd() / 'full-package'
+        assert (dest / 'foo').read_bytes() == b'foo'
+        assert (dest / 'bar.csv').read_bytes() == b'bar'
+        assert (dest / 'baz' / 'bat').read_bytes() == b'bat'
+        assert mocked_cache_set.call_count == len(entries)
 
     def test_install_bad_name(self):
         with self.assertRaisesRegex(QuiltException, 'Invalid package name'):

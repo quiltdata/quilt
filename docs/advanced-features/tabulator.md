@@ -31,7 +31,7 @@ outlined below.
 
 ```yaml
 schema:
-  - name: name  # must match ^[a-z_][a-z0-9_]*$
+  - name: name  # must match ^[A-Za-z][A-Za-z0-9_-]*$
     type: STRING  # usually BOOLEAN, INT, FLOAT, DOUBLE, STRING, DATE, TIMESTAMP
   - name: length
     type: INT
@@ -54,7 +54,9 @@ continue_on_error: true
 
 1. **Schema**: The schema defines the columns in the table. Each column must
    have a name and a type. The name must match the regular expression
-   `^[a-z_][a-z0-9_]*$`. For CSV/TSVs, these names do not need to match the
+   `^[A-Za-z][A-Za-z0-9_-]*$` (start with a letter; letters, digits,
+   underscores, and hyphens; at most 255 characters). For CSV/TSVs, these
+   names do not need to match the
    column names in the document. For Parquet, they must match except for case.
    However, if column names are present in a CSV/TSV, you must set `header` to
    `true` in the parser configuration.
