@@ -954,7 +954,7 @@ const useConfigureColumnsStyles = M.makeStyles((t) => ({
   popup: {
     borderRadius: `0 ${t.shape.borderRadius}px ${t.shape.borderRadius}px 0`,
     boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
-    minWidth: t.spacing(40),
+    minWidth: `min(${t.spacing(40)}px, 100%)`,
     position: 'absolute',
   },
   help: {

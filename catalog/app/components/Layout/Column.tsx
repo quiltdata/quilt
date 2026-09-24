@@ -37,6 +37,14 @@ const bandOf = (width: number): Breakpoint => {
 // the hooks then fall back to the viewport, which is what those cases mean.
 const Ctx = React.createContext<Breakpoint | null>(null)
 
+const ElCtx = React.createContext<HTMLElement | null>(null)
+
+/**
+ * The main column element. `.main` is the scroll container, not the window, so
+ * anything reading or setting scroll position has to address this instead.
+ */
+export const useElement = () => React.useContext(ElCtx)
+
 interface ProviderProps {
   // The element, not a ref: a parent's ref is attached after its children's
   // layout effects run, so a ref read there is still null.
@@ -54,7 +62,11 @@ export function Provider({ target, children }: ProviderProps) {
     ro.observe(target)
     return () => ro.disconnect()
   }, [target])
-  return <Ctx.Provider value={band}>{children}</Ctx.Provider>
+  return (
+    <ElCtx.Provider value={target}>
+      <Ctx.Provider value={band}>{children}</Ctx.Provider>
+    </ElCtx.Provider>
+  )
 }
 
 /** Column-width twin of `useMediaQuery(theme.breakpoints.down(key))`. */

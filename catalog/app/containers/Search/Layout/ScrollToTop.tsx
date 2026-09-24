@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Layout from 'components/Layout'
+import * as Column from 'components/Layout/Column'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -34,9 +35,10 @@ const useStyles = M.makeStyles((t) => ({
 
 function Inner() {
   const classes = useStyles()
+  const column = Column.useElement()
   const onClick = React.useCallback(
-    () => window.scrollTo({ top: 0, left: 0, behavior: 'smooth' }),
-    [],
+    () => (column ?? window).scrollTo({ top: 0, left: 0, behavior: 'smooth' }),
+    [column],
   )
   return (
     <Layout.Container className={classes.root}>
@@ -49,6 +51,10 @@ function Inner() {
 }
 
 export default function ScrollToTop() {
-  const trigger = M.useScrollTrigger({ disableHysteresis: true })
+  const column = Column.useElement()
+  const trigger = M.useScrollTrigger({
+    disableHysteresis: true,
+    target: column ?? undefined,
+  })
   return trigger ? <Inner /> : null
 }
