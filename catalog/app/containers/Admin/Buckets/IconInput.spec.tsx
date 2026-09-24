@@ -160,17 +160,47 @@ describe('containers/Admin/Buckets/IconInput', () => {
     expect(q.getByText('Not a URL')).toBeDefined()
   })
 
-  it('names the constraint a rejected drop actually failed', () => {
+  // Each rejection names the constraint that actually failed: told "wrong format"
+  // after dropping two correctly-typed files, an admin cannot find the real one.
+  it.each([
+    [
+      'the wrong format',
+      [new File(['x'], 'notes.txt', { type: 'text/plain' })],
+      'Choose a PNG, JPEG, WebP or GIF image',
+    ],
+    [
+      'more than one file',
+      [
+        new File(['x'], 'a.png', { type: 'image/png' }),
+        new File(['x'], 'b.png', { type: 'image/png' }),
+      ],
+      'Choose one image',
+    ],
+  ])('reports %s by its own constraint', async (_label, files, message) => {
     const q = render(<Harness initial="" />)
     const input = q.getByLabelText(
       'Upload a bucket icon: PNG, JPEG, WebP or GIF',
     ) as HTMLInputElement
-    // react-dropzone screens by type before onDrop, so a text file is rejected.
-    const file = new File(['x'], 'notes.txt', { type: 'text/plain' })
-    Object.defineProperty(input, 'files', { value: [file] })
-    fireEvent.drop(input)
-    expect(input.accept).toContain('image/png')
-    expect(input.accept).not.toContain('image/svg+xml')
+    Object.defineProperty(input, 'files', { value: files, configurable: true })
+    await act(async () => {
+      fireEvent.drop(input)
+    })
+    expect(q.getByText(message)).toBeDefined()
+    expect(q.queryByText('Crop icon')).toBeNull()
+  })
+
+  it('refuses a file over the source byte cap by its size, not its type', async () => {
+    const q = render(<Harness initial="" />)
+    const input = q.getByLabelText(
+      'Upload a bucket icon: PNG, JPEG, WebP or GIF',
+    ) as HTMLInputElement
+    const big = new File(['x'], 'huge.png', { type: 'image/png' })
+    Object.defineProperty(big, 'size', { value: 13 * 1024 * 1024 })
+    Object.defineProperty(input, 'files', { value: [big], configurable: true })
+    await act(async () => {
+      fireEvent.drop(input)
+    })
+    expect(q.getByText('Choose an image under 12MB')).toBeDefined()
   })
 
   it('gives the file input an accessible name', () => {
