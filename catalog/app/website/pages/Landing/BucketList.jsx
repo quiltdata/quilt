@@ -11,7 +11,7 @@ import Layout from 'website/components/Layout'
 // flips.
 export default function BucketList() {
   return (
-    <Layout flush={false}>
+    <Layout>
       <MetaTitle>Volumes</MetaTitle>
       <Buckets />
     </Layout>

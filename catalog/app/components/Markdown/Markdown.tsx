@@ -13,6 +13,16 @@ import log from 'utils/Logging'
 import hljs, { ensureLanguages } from 'utils/hljs'
 import { linkStyle } from 'utils/StyledLink'
 
+import {
+  CONTROLS_CLASS,
+  FENCE_CLASS,
+  FENCE_RENDERED_CLASS,
+  VIEWPORT_CLASS,
+  ZOOMED_CLASS,
+  fenceHandler,
+  isMermaidFence,
+  useMermaidFences,
+} from './mermaid'
 import * as tasklist from './parseTasklist'
 
 /* Most of what's in the commonmark spec for HTML blocks;
@@ -164,17 +174,40 @@ interface RendererArgs {
   processImg?: AttributeProcessor
   processLink?: AttributeProcessor
   win?: Window
+  /** Draw mermaid fences as diagrams; false leaves them as their source. */
+  drawMermaid?: boolean
 }
 
-export const getRenderer = memoize(
-  ({ processImg, processLink, win = window }: RendererArgs) => {
-    const md = new MarkdownIt({
-      highlight,
-      html: true,
-      linkify: true,
-      typographer: true,
-    })
+// memoize needs a primitive key, but the renderer is selected by object identity
+// (the two processors and the window); this gives each a stable id.
+const ids = new WeakMap<object, number>()
+let nextId = 0
+const idOf = (v: unknown): number | null => {
+  if (v == null) return null
+  const key = v as object
+  if (!ids.has(key)) ids.set(key, (nextId += 1))
+  return ids.get(key) as number
+}
+
+// Same options as the renderer: `html: true` changes what is a fence (one inside
+// an unbroken html block is not), so the two must not disagree.
+const MD_OPTS = { highlight, html: true, linkify: true, typographer: true }
+
+// Whether `data` holds a mermaid fence, decided by the same parser and predicate
+// that draw one, so a nested example fence or an indented list fence agree.
+const bare = new MarkdownIt(MD_OPTS)
+export const hasMermaidFence = (data: string) => bare.parse(data, {}).some(isMermaidFence)
+
+// The processors are per file, so a session that browses many files would
+// otherwise pin one MarkdownIt + DOMPurify pair per file for its lifetime.
+// ponytail: clear-all at a cap; LRU if a hot renderer gets evicted mid-session.
+const MAX_RENDERERS = 16
+
+const buildRenderer = memoize(
+  ({ processImg, processLink, win = window, drawMermaid = true }: RendererArgs) => {
+    const md = new MarkdownIt(MD_OPTS)
     md.use(checkboxHandler)
+    if (drawMermaid) md.use(fenceHandler)
     const purify = createDOMPurify(win as $TSFixMe)
     purify.addHook(
       'uponSanitizeElement',
@@ -194,14 +227,29 @@ export const getRenderer = memoize(
       return purify.sanitize(md.renderer.render(tokens, md.options, env), SANITIZE_OPTS)
     }
   },
+  // memoize keys on the first argument, and every caller builds a fresh object
+  // literal: without a resolver the cache never hits.
+  ({ processImg, processLink, win, drawMermaid = true }: RendererArgs) =>
+    JSON.stringify([
+      idOf(processImg),
+      idOf(processLink),
+      idOf(win ?? window),
+      drawMermaid,
+    ]),
 )
+
+export const getRenderer = (args: RendererArgs) => {
+  const cache = buildRenderer.cache as Map<string, unknown>
+  if (cache.size >= MAX_RENDERERS) cache.clear()
+  return buildRenderer(args)
+}
 
 interface ContainerProps {
   children?: string
   className?: string
 }
 
-const useContainerStyles = M.makeStyles({
+const useContainerStyles = M.makeStyles((t: M.Theme) => ({
   root: {
     overflow: 'auto',
 
@@ -214,6 +262,86 @@ const useContainerStyles = M.makeStyles({
     /* prevent horizontal overflow */
     '& img': {
       maxWidth: '100%',
+    },
+
+    /* A mermaid fence holds its source until the diagram is drawn into it, then
+     * carries an svg -- so it keeps `pre` wrapping for the text and loses the
+     * code-block chrome once rendered. */
+    [`& pre.${FENCE_CLASS}`]: {
+      overflowX: 'auto',
+      whiteSpace: 'pre-wrap',
+    },
+    [`& pre.${FENCE_RENDERED_CLASS}`]: {
+      backgroundColor: 'transparent',
+      border: 'none',
+      padding: 0,
+      textAlign: 'center',
+      whiteSpace: 'normal',
+      '& svg': {
+        height: 'auto',
+        maxWidth: '100%',
+      },
+    },
+
+    /* The zoom viewport: controls sit over the diagram, and a zoomed diagram is
+     * clipped to its box so panning reveals the rest rather than growing the page. */
+    [`& pre.${VIEWPORT_CLASS}`]: {
+      position: 'relative',
+      /* Both new focusable targets carry a visible focus ring: the diagram itself
+       * is a tab stop, and the controls are reachable from it. */
+      '&:focus-visible': {
+        outline: `2px solid ${t.palette.primary.main}`,
+        outlineOffset: '2px',
+      },
+      [`&:hover .${CONTROLS_CLASS}, &:focus-within .${CONTROLS_CLASS}`]: {
+        opacity: 1,
+      },
+    },
+    [`& pre.${ZOOMED_CLASS}`]: {
+      overflow: 'hidden',
+      /* A dragged diagram must not select the prose around it, and on touch the
+       * drag is the pan, not a page scroll. */
+      touchAction: 'none',
+      userSelect: 'none',
+    },
+    [`& .${CONTROLS_CLASS}`]: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+      opacity: 0,
+      position: 'absolute',
+      right: t.spacing(1),
+      top: t.spacing(1),
+      transition: 'opacity 150ms ease',
+      /* Keyboard users get the controls the moment they focus one. */
+      '&:focus-within': {
+        opacity: 1,
+      },
+      '& button': {
+        alignItems: 'center',
+        background: t.palette.background.paper,
+        border: `1px solid ${t.palette.divider}`,
+        borderRadius: t.shape.borderRadius,
+        color: t.palette.text.secondary,
+        cursor: 'pointer',
+        display: 'flex',
+        font: 'inherit',
+        height: '24px',
+        justifyContent: 'center',
+        lineHeight: 1,
+        padding: 0,
+        width: '24px',
+        '&:hover': {
+          background: t.palette.action.hover,
+          color: t.palette.text.primary,
+        },
+        '&:focus-visible': {
+          borderColor: t.palette.primary.main,
+          color: t.palette.text.primary,
+          outline: `2px solid ${t.palette.primary.main}`,
+          outlineOffset: '1px',
+        },
+      },
     },
 
     '& * + h1, & * + h2, & * + h3, & * + h4, & * + h5, & * + h6': {
@@ -243,12 +371,16 @@ const useContainerStyles = M.makeStyles({
       },
     },
   },
-})
+}))
 
 export function Container({ className, children }: ContainerProps) {
   const classes = useContainerStyles()
+  // Diagrams are drawn after the sanitizer has run: SANITIZE_OPTS carries no svg
+  // tags, so a diagram emitted into the HTML string would be stripped.
+  const ref = useMermaidFences<HTMLDivElement>(children)
   return (
     <div
+      ref={ref}
       className={cx(className, classes.root)}
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: children ?? '' }}
@@ -282,10 +414,17 @@ function LoadingSkeleton({ className }: Pick<ContainerProps, 'className'>) {
 
 // Separate child so getRenderer's Suspense throw lands inside HljsBoundary — an
 // inline call would throw during Markdown's own render, above the boundary.
-function MarkdownContent({ data, processImg, processLink, ...props }: MarkdownProps) {
+function MarkdownContent({
+  data,
+  processImg,
+  processLink,
+  win,
+  drawMermaid,
+  ...props
+}: MarkdownProps) {
   return (
     <Container {...props}>
-      {getRenderer({ processImg, processLink })(data || '')}
+      {getRenderer({ processImg, processLink, win, drawMermaid })(data || '')}
     </Container>
   )
 }

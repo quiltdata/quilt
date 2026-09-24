@@ -8,12 +8,14 @@ interface RevisionMenuProps {
   className: string
   onCreateFile: () => void
   onDelete: () => void
+  onDeletePackage: () => void
 }
 
 export default function RevisionMenu({
   className,
   onCreateFile,
   onDelete,
+  onDeletePackage,
 }: RevisionMenuProps) {
   const { prefs } = BucketPreferences.use()
 
@@ -34,6 +36,11 @@ export default function RevisionMenu({
                 onClick: onDelete,
                 title: 'Delete revision',
               })
+              // Same gate: anyone who may delete each revision may delete them all.
+              menu.push({
+                onClick: onDeletePackage,
+                title: 'Delete package',
+              })
             }
             return menu
           },
@@ -41,7 +48,7 @@ export default function RevisionMenu({
         },
         prefs,
       ),
-    [onCreateFile, onDelete, prefs],
+    [onCreateFile, onDelete, onDeletePackage, prefs],
   )
 
   if (!items.length) return null

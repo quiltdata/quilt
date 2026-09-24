@@ -412,6 +412,11 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.invalidate({ __typename: 'PackageRevision', hash })
               cache.invalidate({ __typename: 'Package', bucket, name }, 'revisions')
             },
+            packageDelete: (result, { bucket, name }, cache) => {
+              if ((result.packageDelete as any).__typename !== 'Ok') return
+              cache.invalidate({ __typename: 'Package', bucket, name })
+              invalidateRootField(cache, 'packages')
+            },
             packageConstruct: (result, _vars, cache) => {
               handlePackageCreation(result.packageConstruct, cache)
             },

@@ -53,8 +53,10 @@ const loaderChain = [
 function findLoader(key, options) {
   if (options?.mode) {
     // Detect by user selected mode
+    // A loader may serve extra view modes of its own (MODES) beyond its FILE_TYPE.
     const found = loaderChain.find(
-      ({ FILE_TYPE }) => FILE_TYPE && options?.mode === FILE_TYPE,
+      ({ FILE_TYPE, MODES }) =>
+        (FILE_TYPE && options.mode === FILE_TYPE) || MODES?.includes(options.mode),
     )
     if (found) return found
   }
