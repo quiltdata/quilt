@@ -1,5 +1,5 @@
 <!-- markdownlint-disable -->
-Quilt allows you to create, read, and write packages both on your local filesystem and on S3 buckets configured to work with Quilt3. For convenience, we provide a simple API for working with S3 buckets that serves as an alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
+Quilt allows you to create, read, and write packages both on your local filesystem and on S3 buckets configured to work with quilt3. For convenience, we provide a simple API for working with S3 buckets that serves as an alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
 
 ## Connecting to a bucket
 
