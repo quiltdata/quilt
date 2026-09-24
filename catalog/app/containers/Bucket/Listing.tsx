@@ -1118,6 +1118,7 @@ export function Listing({
 }: ListingProps) {
   const classes = useStyles()
   const sm = Column.useDown('sm')
+  const xs = Column.useDown('xs')
   const coarse = Pointer.useCoarse()
   const { prefs } = BucketPreferences.use()
 
@@ -1220,7 +1221,12 @@ export function Listing({
         },
       })
     }
-    if (items.some(({ modified }) => !!modified)) {
+    // The name is what a listing is scanned for, and it is the flex column: with
+    // size and the timestamp both holding fixed width there is nothing left for
+    // it on a phone (~40px of 320), so names truncate to three characters. The
+    // timestamp is the secondary readout, so it yields the width back; it
+    // returns in landscape and on a tablet.
+    if (!xs && items.some(({ modified }) => !!modified)) {
       columnsWithValues.push({
         field: 'modified',
         headerName: 'Last modified',
@@ -1249,7 +1255,15 @@ export function Listing({
       field: 'actions',
       headerName: '',
       align: 'right',
-      width: 0,
+      // Zero because the actions float over the trailing cells on hover. A
+      // finger gets no hover, so they stand at rest (ListingActions) and need
+      // a cell of their own -- otherwise they cover the size readout.
+      width: coarse ? 44 : 0,
+      // An empty `headerName` falls back to the field name, which only became
+      // visible once the column had width.
+      renderHeader: () => <></>,
+      disableColumnMenu: true,
+      sortable: false,
       renderCell: (params: DG.GridCellParams) =>
         params.id === '..' ? (
           <></>
@@ -1272,7 +1286,7 @@ export function Listing({
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, items, sm, prefs, onReload, hideSize])
+  }, [classes, CellComponent, coarse, items, sm, xs, prefs, onReload, hideSize])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''

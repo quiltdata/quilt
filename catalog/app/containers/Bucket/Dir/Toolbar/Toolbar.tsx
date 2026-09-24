@@ -22,6 +22,11 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     alignItems: 'center',
     gap: t.spacing(1),
+    // Four controls do not fit a 320px phone in one line, and the row they sit
+    // in is the last thing before the listing: overflow here pushes the whole
+    // page wide rather than clipping quietly.
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
   },
 }))
 

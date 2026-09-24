@@ -152,6 +152,13 @@ const useStyles = M.makeStyles((t) => ({
     [Column.down('sm')]: {
       marginTop: t.spacing(0.5),
     },
+    // `auto` pins the group to the trailing edge, which on a phone starts it
+    // past the point where its widest control still fits. Once the row wraps
+    // the group owns the line, so it leads instead.
+    [Column.down('xs')]: {
+      marginLeft: 0,
+      width: '100%',
+    },
   },
   tooltip: {
     padding: t.spacing(0, 1),
