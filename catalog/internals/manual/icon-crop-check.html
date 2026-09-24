@@ -121,6 +121,44 @@ const check = (name, pass, detail) => results.push({ name, pass, detail })
   )
 }
 
+// 3c. Alpha actually survives the PNG path. Every other source here is opaque, so
+// without a transparent one nothing distinguishes "alpha kept" from "no alpha".
+{
+  const src = makeSource(200, 200, (ctx) => {
+    ctx.clearRect(0, 0, 200, 200)
+    ctx.fillStyle = '#1b5e20'
+    ctx.beginPath(); ctx.arc(100, 100, 60, 0, Math.PI * 2); ctx.fill()
+  })
+  const out = await cropToDataUrl(src, { x: 0, y: 0, width: 200, height: 200 })
+  const { ctx } = await pixels(out)
+  check('PNG keeps the transparent ground', at(ctx, 2, 2)[3] === 0, String(at(ctx, 2, 2)))
+  check('and the opaque subject', at(ctx, 48, 48)[3] === 255, String(at(ctx, 48, 48)))
+}
+
+// 3d. A transparent source too detailed for PNG is REFUSED rather than sent down
+// the JPEG path, which has no alpha channel and would ground it on white — a white
+// disc behind the glyph, since the icon renders in a circular clip.
+{
+  const src = makeSource(500, 500, (ctx, w, h) => {
+    ctx.clearRect(0, 0, w, h)
+    const img = ctx.createImageData(w, h)
+    let seed = 21
+    for (let i = 0; i < img.data.length; i += 4) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      img.data[i] = seed % 256
+      img.data[i + 1] = (seed >> 9) % 256
+      img.data[i + 2] = (seed >> 18) % 256
+      // Left quarter fully transparent, the rest opaque noise so PNG overshoots.
+      img.data[i + 3] = (i / 4) % w < w / 4 ? 0 : 255
+    }
+    ctx.putImageData(img, 0, 0)
+  })
+  let threw = ''
+  try { await cropToDataUrl(src, { x: 0, y: 0, width: 500, height: 500 }) }
+  catch (e) { threw = e.message }
+  check('transparent-and-oversized is refused', /transparent/.test(threw), threw || '(no throw)')
+}
+
 // 4. Photographic noise: PNG overshoots, so it falls back to JPEG and still fits.
 {
   const src = makeSource(600, 600, (ctx, w, h) => {

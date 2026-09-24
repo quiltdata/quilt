@@ -10,9 +10,9 @@ Exercises `Admin/Buckets/iconCrop.ts` — the crop, the encode, and the JPEG
 fallback — against a real canvas, asserting on decoded pixels. Covers what the
 unit tests cannot: that the nine `drawImage` arguments are in the right order,
 that a crop slid back inside an image edge stays square rather than being
-stretched into the square output, that the white fill precedes the redraw in the
-JPEG path, and that every encoding the canvas actually produces respects the size
-bound.
+stretched into the square output, that the PNG path keeps a transparent ground
+while a transparent source too detailed for it is refused rather than flattened,
+and that every encoding the canvas actually produces respects the size bound.
 
 ```sh
 npm run check:icon-crop

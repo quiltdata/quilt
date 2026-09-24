@@ -98,10 +98,25 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
+ * True when the drawn canvas has any pixel that is not fully opaque.
+ *
+ * One pass over 96x96, which is what makes refusing cheaper than flattening: the
+ * JPEG fallback has no alpha channel, so it would silently ground transparency on
+ * white — a white disc behind the glyph, since the icon renders in a circular clip.
+ */
+function hasTransparency(ctx: CanvasRenderingContext2D): boolean {
+  const { data } = ctx.getImageData(0, 0, ICON_SIZE, ICON_SIZE)
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 255) return true
+  }
+  return false
+}
+
+/**
  * Render the selected crop to a square `data:` URI at ICON_SIZE.
  *
- * JPEG composites the transparent ground to white, so it is only reached when
- * PNG overshoots the budget -- a photographic crop, which has no alpha to lose.
+ * The JPEG fallback flattens alpha, so a transparent source that overshoots the
+ * budget is refused rather than quietly given a white ground.
  */
 export async function cropToDataUrl(src: string, area: Area): Promise<string> {
   const img = await loadImage(src)
@@ -135,6 +150,13 @@ export async function cropToDataUrl(src: string, area: Area): Promise<string> {
 
   draw()
   const png = canvas.toDataURL('image/png')
+  const transparent = hasTransparency(ctx)
+
+  if (transparent && png.length > MAX_ICON_DATA_URL_LENGTH) {
+    throw new Error(
+      'This transparent image is too detailed to store as an icon — try a simpler one, or one without transparency',
+    )
+  }
 
   const asJpeg = (quality: number) => () => {
     ctx.clearRect(0, 0, ICON_SIZE, ICON_SIZE)

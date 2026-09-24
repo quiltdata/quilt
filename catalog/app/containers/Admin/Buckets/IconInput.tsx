@@ -62,11 +62,7 @@ function CropDialog({ file, onCancel, onConfirm }: CropDialogProps) {
   React.useEffect(() => {
     const url = URL.createObjectURL(file)
     setSrc(url)
-    // Deferred past the current task so an encode already reading this URL is not
-    // cut off by an unmount that lands mid-flight.
-    return () => {
-      setTimeout(() => URL.revokeObjectURL(url), 0)
-    }
+    return () => URL.revokeObjectURL(url)
   }, [file])
 
   const onCropComplete = React.useCallback(
@@ -232,18 +228,27 @@ export default function IconInput({
   const [rejected, setRejected] = React.useState<string | null>(null)
   const disabled = meta.submitting || meta.submitSucceeded
 
+  // Which selection the pending probe belongs to. Probes take as long as the image
+  // is big, so a slow first pick would otherwise resolve after a fast second one
+  // and open the dialog on the file the admin had already replaced.
+  const selection = React.useRef(0)
+
   // Screened before the dialog mounts: the cropper renders the file in an `<img>`,
   // which decodes the whole bitmap, so a budget checked after that point would run
   // once the memory had already gone.
   const onDrop = React.useCallback(async (files: FileWithPath[]) => {
     if (!files.length) return
     setRejected(null)
+    selection.current += 1
+    const seq = selection.current
     const url = URL.createObjectURL(files[0])
     try {
-      if (await probeWithinPixelBudget(url)) setFile(files[0])
+      const fits = await probeWithinPixelBudget(url)
+      if (seq !== selection.current) return
+      if (fits) setFile(files[0])
       else setRejected('Choose an image with fewer pixels')
     } catch {
-      setRejected('Could not read that image')
+      if (seq === selection.current) setRejected('Could not read that image')
     } finally {
       URL.revokeObjectURL(url)
     }
@@ -324,8 +329,12 @@ export default function IconInput({
               ? 'Uploaded image. Drop another to replace it, or clear this to enter a URL.'
               : 'Drop an image to upload and crop it, or paste a URL.')
           }
-          value={uploaded ? '' : value}
+          // A data: URI is thousands of characters, so it is described rather than
+          // shown; read-only because a keystroke in a field showing a truncation
+          // would replace the whole stored value with that one character.
+          value={uploaded ? `Uploaded image (${value.length} characters)` : value}
           onChange={(e) => {
+            if (uploaded) return
             // The drop message describes a file, not this field, so typing here
             // retires it rather than leaving red text under unrelated input.
             setRejected(null)
@@ -335,14 +344,19 @@ export default function IconInput({
             // Trailing whitespace is trimmed on commit rather than per keystroke,
             // so a space can still be typed mid-value; the field this replaced
             // trimmed both ends and the stored config must not start carrying it.
-            const trimmed = e.target.value.trim()
-            if (trimmed !== e.target.value) input.onChange(trimmed)
+            // Skipped while uploaded, where the field shows a description of the
+            // value rather than the value.
+            if (!uploaded) {
+              const trimmed = e.target.value.trim()
+              if (trimmed !== e.target.value) input.onChange(trimmed)
+            }
             input.onBlur(e)
           }}
           onFocus={input.onFocus}
           disabled={disabled}
           InputLabelProps={{ shrink: true }}
           InputProps={{
+            readOnly: uploaded,
             endAdornment: value ? (
               <M.InputAdornment position="end">
                 <M.IconButton
