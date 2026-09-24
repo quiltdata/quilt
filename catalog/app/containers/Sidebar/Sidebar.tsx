@@ -13,12 +13,18 @@ import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
+import isTypingTarget from 'utils/isTypingTarget'
 
 import * as NavMenu from './AuthState'
 import OutlinedIcon from './OutlinedIcon'
 import { Rail } from './Rail'
 import useRoleSwitcher from './RoleSwitcher'
 import * as Subscription from './Subscription'
+import useCollapsed from './useCollapsed'
+
+// Motion is decoration on chrome: every transition attaches only inside this
+// query, so reduced-motion users get the instant swap.
+const MOTION = '@media (prefers-reduced-motion: no-preference)'
 
 const useStyles = M.makeStyles((t) => {
   const box = {
@@ -31,6 +37,22 @@ const useStyles = M.makeStyles((t) => {
       minWidth: 34,
     },
   }
+  // Collapsed rail: one 44px row centered in a 72px column. The row keeps its
+  // markup and only changes inset: 18px lands the 20px glyph dead-center in
+  // the 56px row, 2px from where the expanded 16px inset already had it, so
+  // the icons hold their axis while the rail's edge sweeps in around them.
+  const COLLAPSED = t.spacing(9)
+  const collapsedRow = {
+    overflow: 'hidden',
+    padding: t.spacing(0, 0, 0, 2.25),
+    '& $icon': {
+      minWidth: 0,
+    },
+  }
+  const widthTransition = t.transitions.create('width', {
+    duration: t.transitions.duration.shorter,
+    easing: t.transitions.easing.easeOut,
+  })
   const rowHover = {
     '&:hover': {
       backgroundColor: fade(t.palette.common.white, 0.06),
@@ -57,6 +79,15 @@ const useStyles = M.makeStyles((t) => {
       height: '100%',
       maxWidth: '100%',
       width: t.spacing(32),
+      // Width is the one animated layout property, deliberately: the rail has
+      // to reflow the content column so the page reclaims the freed space as
+      // the rail narrows. A transform would slide the rail and leave a gap.
+      [MOTION]: {
+        transition: widthTransition,
+      },
+    },
+    rootCollapsed: {
+      width: COLLAPSED,
     },
     // The overlay copy of the rail. 85vw keeps a strip of the page visible so
     // the scrim reads as dismissable rather than as a new screen. The paper
@@ -66,6 +97,15 @@ const useStyles = M.makeStyles((t) => {
       border: 0,
       width: `min(${t.spacing(32)}px, 85vw)`,
     },
+    // The brand row is brand only: the collapse control rides the rail's right
+    // edge instead, so folding doesn't reshuffle this row.
+    brand: {
+      alignItems: 'center',
+      display: 'flex',
+    },
+    brandCollapsed: {
+      justifyContent: 'center',
+    },
     // Match the 64px pseudo-header height so the logo and search bar align.
     // minHeight, not height: at 200% zoom the row has to be able to grow rather
     // than clip the mark. (The bar it aligns with grows too, though not in
@@ -74,19 +114,153 @@ const useStyles = M.makeStyles((t) => {
     logo: {
       alignItems: 'center',
       display: 'flex',
+      flexGrow: 1,
       minHeight: 64,
+      minWidth: 0,
       padding: t.spacing(0, 2),
       ...focusRing,
+    },
+    logoCollapsed: {
+      flexGrow: 0,
+      justifyContent: 'center',
+      padding: 0,
+      width: '100%',
+    },
+    // Both brand variants occupy one box and crossfade, so the swap settles on
+    // the rail's clock instead of hard-cutting at frame 0. The wordmark is the
+    // flow element; the mark is overlaid and fades in only when collapsed. The
+    // box clips so the wordmark wipes out as the rail narrows instead of
+    // overflowing the column.
+    logoStack: {
+      height: 32,
+      overflow: 'hidden',
+      position: 'relative',
+      width: '100%',
+    },
+    logoStackCollapsed: {
+      width: 32,
+    },
+    logoVariant: {
+      [MOTION]: {
+        transition: t.transitions.create('opacity', {
+          duration: t.transitions.duration.shorter,
+        }),
+      },
+    },
+    logoMark: {
+      left: 0,
+      position: 'absolute',
+      top: 0,
+    },
+    logoDim: {
+      opacity: 0,
+    },
+    // A customer's lockup has no square variant: collapsed it gets the whole
+    // column (Logo fits it inside by height and width) rather than the mark's
+    // 32px box, since a wide lockup squeezed into a square is a smear.
+    logoStackCustomCollapsed: {
+      width: `calc(100% - ${t.spacing(2)}px)`,
+    },
+    // A detent on the seam the control moves. It straddles the rail's right
+    // border, centered on the 64px header line, so it holds one position in
+    // both states -- a control that relocates when pressed can't be aimed
+    // twice. Deeper than the rail and carrying the border's own hairline, it
+    // reads as part of the edge rather than as a glyph floating in the brand
+    // row. Half of it overhangs the content column; the rail's own zIndex
+    // (appBar + 1, see Rail) is what carries it over the header.
+    toggle: {
+      backgroundColor: t.palette.primary.dark,
+      border: `1px solid ${fade(t.palette.common.white, 0.12)}`,
+      color: t.palette.navigation.text,
+      padding: 3,
+      position: 'absolute',
+      // The rail's own border is the axis: half the 28px control each side.
+      right: -14,
+      top: 32,
+      transform: 'translateY(-50%)',
+      [MOTION]: {
+        transition: t.transitions.create(['color', 'background-color', 'border-color'], {
+          duration: 150,
+        }),
+      },
+      '&:hover': {
+        backgroundColor: t.palette.primary.main,
+        borderColor: fade(t.palette.common.white, 0.32),
+      },
+      ...focusRing,
+    },
+    // Keycap in the toggle's tooltip: the search band's `/` hint, on a dark
+    // ground.
+    keycap: {
+      border: `1px solid ${fade(t.palette.common.white, 0.4)}`,
+      borderRadius: 2,
+      display: 'inline-block',
+      fontFamily: t.typography.monospace.fontFamily,
+      lineHeight: '14px',
+      marginLeft: t.spacing(0.75),
+      padding: '0 4px',
     },
     workspaceBox: {
       ...box,
       margin: t.spacing(0, 1, 1),
+      [MOTION]: {
+        transition: t.transitions.create('background-color', {
+          duration: t.transitions.duration.shorter,
+        }),
+      },
     },
     icon: {
       color: 'inherit',
       '& .material-icons': {
         fontSize: 20,
       },
+    },
+    // Text that only exists in the expanded rail. It stays mounted so nothing
+    // remounts on toggle: collapsed it fades and slides under the row's clip,
+    // and it stops flexing so the row's shrink never ellipsizes it mid-fade.
+    // Out is quick (gone before the rail's edge reaches it); in is delayed so
+    // the words arrive once the rail has opened room for them.
+    label: {
+      [MOTION]: {
+        transition: t.transitions.create(['opacity', 'transform'], {
+          duration: t.transitions.duration.shorter,
+          easing: t.transitions.easing.easeOut,
+          delay: 60,
+        }),
+      },
+    },
+    labelHidden: {
+      flex: '0 0 auto',
+      opacity: 0,
+      transform: `translateX(-${t.spacing(1)}px)`,
+      [MOTION]: {
+        transition: t.transitions.create(['opacity', 'transform'], {
+          duration: 100,
+          easing: t.transitions.easing.easeIn,
+        }),
+      },
+    },
+    // Rows that exist only in the expanded rail (the section label, the
+    // version readout) close up through a 1fr -> 0fr grid track: it animates
+    // to the content's real height, so text scaling can never overrun a
+    // ceiling, and the inner box (min-height 0) is what actually shrinks.
+    // Padding stays on the child so the closed track can reach zero.
+    fold: {
+      display: 'grid',
+      gridTemplateRows: '1fr',
+      [MOTION]: {
+        transition: t.transitions.create(['grid-template-rows', 'opacity'], {
+          duration: t.transitions.duration.shorter,
+        }),
+      },
+    },
+    foldClosed: {
+      gridTemplateRows: '0fr',
+      opacity: 0,
+    },
+    foldInner: {
+      minHeight: 0,
+      overflow: 'hidden',
     },
     sectionLabel: {
       color: t.palette.navigation.textMuted,
@@ -96,9 +270,33 @@ const useStyles = M.makeStyles((t) => {
       lineHeight: '16px',
       padding: t.spacing(1, 2.5, 0.5),
       textTransform: 'uppercase',
+      [MOTION]: {
+        transition: t.transitions.create('opacity', {
+          duration: t.transitions.duration.shorter,
+          easing: t.transitions.easing.easeOut,
+          delay: 60,
+        }),
+      },
+    },
+    // Folding changes width, not the rows' y. The section label is the one
+    // expanded-only row *above* the nav, so it fades in place (on the row
+    // labels' timing) instead of closing up: its box holds the same height in
+    // both states, which is what keeps every row below it registered.
+    // Animating the height instead would have to restore it from zero on
+    // expand, hopping the rows a frame before sliding them back. (The version
+    // readout folds at the foot, where there is nothing beneath it to shift.)
+    sectionLabelHidden: {
+      opacity: 0,
+      [MOTION]: {
+        transition: t.transitions.create('opacity', {
+          duration: 100,
+          easing: t.transitions.easing.easeIn,
+        }),
+      },
     },
     wsRow: {
-      padding: t.spacing(1, 1.5, 1, 2),
+      minHeight: 44,
+      padding: t.spacing(0, 1.5, 0, 2),
       ...iconCol,
     },
     wsRowClickable: {
@@ -115,6 +313,11 @@ const useStyles = M.makeStyles((t) => {
     identityBox: {
       ...box,
       margin: t.spacing(0, 1, 1.5),
+      [MOTION]: {
+        transition: t.transitions.create('background-color', {
+          duration: t.transitions.duration.shorter,
+        }),
+      },
     },
     // minHeight, not height: 44px is the touch-target floor, not a ceiling. A
     // hard height clips the label when text scales on its own (text-only zoom,
@@ -125,6 +328,10 @@ const useStyles = M.makeStyles((t) => {
       ...iconCol,
       ...rowHover,
       ...focusRing,
+    },
+    // Tooltip needs a DOM-reachable child; a disabled ListItem swallows events.
+    tipAnchor: {
+      display: 'block',
     },
     // Accepted via impeccable live (2026-07-21): inset rounded nav rows —
     // 8px side inset, 4px radius, 44px rows, 16px icon-label gap, flush items.
@@ -171,8 +378,14 @@ const useStyles = M.makeStyles((t) => {
     spacer: {
       flexGrow: 1,
     },
+    // Same 8px inset as the nav list so the warning glyph shares the icon axis.
     account: {
-      padding: t.spacing(0.5, 0),
+      padding: t.spacing(0.5, 1),
+    },
+    unlicensedRow: {
+      minHeight: 44,
+      padding: t.spacing(0, 1.5, 0, 2),
+      ...iconCol,
     },
     version: {
       ...t.typography.caption,
@@ -183,7 +396,9 @@ const useStyles = M.makeStyles((t) => {
       gap: t.spacing(0.5),
       opacity: 0.55,
       padding: t.spacing(0.5, 2, 1.5),
-      transition: 'opacity 150ms',
+      [MOTION]: {
+        transition: t.transitions.create('opacity', { duration: 150 }),
+      },
       '&:hover': {
         opacity: 0.9,
       },
@@ -209,6 +424,15 @@ const useStyles = M.makeStyles((t) => {
     },
     badgeDot: {
       backgroundColor: t.palette.navigation.indicator,
+    },
+    // Last on purpose: these override the inset, icon column and ground of
+    // every row and box class above them, and at equal specificity JSS order
+    // is the tiebreak.
+    rowCollapsed: collapsedRow,
+    // Collapsed, the boxed rows shed their ground and read as bare icon rows,
+    // one vocabulary with the nav beneath.
+    boxCollapsed: {
+      backgroundColor: 'transparent',
     },
   }
 })
@@ -242,14 +466,111 @@ function NavShell({
   )
 }
 
+// A block that closes to zero height when the rail folds (see `fold` styles).
+// Only for a block with nothing beneath it: closing changes the height of the
+// flow, so anything below would move with it.
+function Fold({ closed, children }: { closed: boolean; children: React.ReactNode }) {
+  const classes = useStyles()
+  return (
+    <div className={cx(classes.fold, closed && classes.foldClosed)} aria-hidden={closed}>
+      <div className={classes.foldInner}>{children}</div>
+    </div>
+  )
+}
+
+// Collapsed rows keep their label in the DOM (faded, under the row's clip) so
+// the accessible name never changes; the tooltip is the sighted user's copy of
+// it. An empty title is MUI's "no tooltip", so the wrapper is unconditional
+// and the row never remounts on toggle.
+function RowTip({
+  collapsed,
+  title,
+  children,
+}: {
+  collapsed: boolean
+  title: string
+  children: React.ReactElement
+}) {
+  return (
+    <M.Tooltip
+      arrow
+      placement="right"
+      title={collapsed ? title : ''}
+      enterDelay={300}
+      enterNextDelay={100}
+    >
+      {children}
+    </M.Tooltip>
+  )
+}
+
+interface NavRowProps {
+  icon: React.ReactNode
+  label: string
+  collapsed: boolean
+  selected?: boolean
+  disabled?: boolean
+  to?: string
+  onClick?: () => void
+}
+
+// A single primary-nav row. Collapsed it drops to its icon (label faded, not
+// unmounted) and grows a tooltip so the destination stays discoverable.
+function NavRow({
+  icon,
+  label,
+  collapsed,
+  selected = false,
+  disabled = false,
+  to,
+  onClick,
+}: NavRowProps) {
+  const classes = useStyles()
+  const className = cx(classes.navItem, collapsed && classes.rowCollapsed)
+  const content = (
+    <>
+      <M.ListItemIcon className={classes.icon}>{icon}</M.ListItemIcon>
+      <M.ListItemText
+        primary={label}
+        className={cx(classes.label, collapsed && classes.labelHidden)}
+        classes={{ primary: classes.navLabel }}
+      />
+    </>
+  )
+  // Two elements, not one with a conditional `component`: ListItem's
+  // overloads won't type `to` against an undefined component.
+  const row = to ? (
+    <M.ListItem button component={Link} to={to} selected={selected} className={className}>
+      {content}
+    </M.ListItem>
+  ) : (
+    <M.ListItem
+      button
+      onClick={onClick}
+      disabled={disabled}
+      selected={selected}
+      className={className}
+    >
+      {content}
+    </M.ListItem>
+  )
+  return (
+    <RowTip collapsed={collapsed} title={label}>
+      {disabled ? <span className={classes.tipAnchor}>{row}</span> : row}
+    </RowTip>
+  )
+}
+
 function AccountMenu({
   name,
   signOutUrl,
   interactive,
+  collapsed,
 }: {
   name: string
   signOutUrl: string
   interactive: boolean
+  collapsed: boolean
 }) {
   const classes = useStyles()
   const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
@@ -258,20 +579,24 @@ function AccountMenu({
     [],
   )
   const close = React.useCallback(() => setAnchor(null), [])
+  const rowClass = cx(classes.identityRow, collapsed && classes.rowCollapsed)
+  const textClass = cx(classes.wsText, classes.label, collapsed && classes.labelHidden)
 
   if (!interactive) {
     return (
       <M.List disablePadding>
-        <M.ListItem className={classes.identityRow}>
-          <M.ListItemIcon className={classes.icon}>
-            <OutlinedIcon>account_circle</OutlinedIcon>
-          </M.ListItemIcon>
-          <M.ListItemText
-            primary={name}
-            className={classes.wsText}
-            primaryTypographyProps={{ noWrap: true }}
-          />
-        </M.ListItem>
+        <RowTip collapsed={collapsed} title={name}>
+          <M.ListItem className={rowClass}>
+            <M.ListItemIcon className={classes.icon}>
+              <OutlinedIcon>account_circle</OutlinedIcon>
+            </M.ListItemIcon>
+            <M.ListItemText
+              primary={name}
+              className={textClass}
+              primaryTypographyProps={{ noWrap: true }}
+            />
+          </M.ListItem>
+        </RowTip>
       </M.List>
     )
   }
@@ -279,23 +604,33 @@ function AccountMenu({
   return (
     <>
       <M.List disablePadding>
-        <M.ListItem
-          button
-          onClick={open}
-          aria-haspopup="true"
-          aria-label={`Account: ${name}`}
-          className={classes.identityRow}
-        >
-          <M.ListItemIcon className={classes.icon}>
-            <OutlinedIcon>account_circle</OutlinedIcon>
-          </M.ListItemIcon>
-          <M.ListItemText
-            primary={name}
-            className={classes.wsText}
-            primaryTypographyProps={{ noWrap: true }}
-          />
-          <M.Icon className={classes.trailing}>expand_more</M.Icon>
-        </M.ListItem>
+        <RowTip collapsed={collapsed} title={name}>
+          <M.ListItem
+            button
+            onClick={open}
+            aria-haspopup="true"
+            aria-label={`Account: ${name}`}
+            className={rowClass}
+          >
+            <M.ListItemIcon className={classes.icon}>
+              <OutlinedIcon>account_circle</OutlinedIcon>
+            </M.ListItemIcon>
+            <M.ListItemText
+              primary={name}
+              className={textClass}
+              primaryTypographyProps={{ noWrap: true }}
+            />
+            <M.Icon
+              className={cx(
+                classes.trailing,
+                classes.label,
+                collapsed && classes.labelHidden,
+              )}
+            >
+              expand_more
+            </M.Icon>
+          </M.ListItem>
+        </RowTip>
       </M.List>
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu
@@ -319,7 +654,7 @@ function AccountMenu({
   )
 }
 
-function Version() {
+function Version({ collapsed }: { collapsed: boolean }) {
   const classes = useStyles()
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
@@ -341,19 +676,35 @@ function Version() {
     },
     [handleCopy],
   )
+  // `tabIndex={-1}` keeps it out of the tab order but does not unfocus an
+  // element already focused, and the fold puts it under `aria-hidden` --
+  // which browsers refuse to apply while it holds focus. Hand focus back.
+  const ref = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (collapsed && ref.current && document.activeElement === ref.current) {
+      ref.current.blur()
+    }
+  }, [collapsed])
   if (!cfg.stackVersion) return null
+  // The version is a readout, not a destination: collapsed it closes up
+  // rather than becoming an icon row nobody could read, and leaves the tab
+  // order with it.
   return (
-    <div
-      className={classes.version}
-      onClick={handleCopy}
-      onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
-      title="Copy Platform release version to clipboard"
-    >
-      <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
-      <OutlinedIcon className={classes.copyIcon}>content_copy</OutlinedIcon>
-    </div>
+    <Fold closed={collapsed}>
+      <div
+        ref={ref}
+        className={classes.version}
+        onClick={handleCopy}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={collapsed ? -1 : 0}
+        aria-hidden={collapsed}
+        title="Copy Platform release version to clipboard"
+      >
+        <span className={classes.versionText}>Version: {cfg.stackVersion}</span>
+        <OutlinedIcon className={classes.copyIcon}>content_copy</OutlinedIcon>
+      </div>
+    </Fold>
   )
 }
 
@@ -366,6 +717,61 @@ export interface SidebarProps {
   onClose?: () => void
 }
 
+// The collapse control: a detent on the rail's right edge. `[` toggles it from
+// anywhere except while typing, the same guard the search band's `/` uses.
+// No `aria-expanded`/`aria-controls`: nothing is disclosed. Every row stays
+// rendered and clickable in both states -- only the rail's width and the
+// labels' opacity change -- so naming the nav list as a controlled region
+// would announce a state the DOM doesn't have.
+function CollapseToggle({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  const classes = useStyles()
+  React.useEffect(() => {
+    const onKeyDown = (evt: KeyboardEvent) => {
+      if (evt.key !== '[') return
+      // Cmd/Ctrl+[ is the browser's (or someone else's). Alt stays allowed:
+      // on German, Nordic and Spanish layouts `[` is only reachable as Option+5
+      // or AltGr+8, which report altKey (and, for AltGr, ctrlKey too).
+      if (evt.metaKey || (evt.ctrlKey && !evt.altKey)) return
+      // A held key auto-repeats; a toggle must not strobe.
+      if (evt.repeat || isTypingTarget(evt)) return
+      evt.preventDefault()
+      onToggle()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onToggle])
+
+  const label = collapsed ? 'Expand sidebar' : 'Collapse sidebar'
+  return (
+    <M.Tooltip
+      arrow
+      placement="right"
+      title={
+        <>
+          {label}
+          <kbd className={classes.keycap}>[</kbd>
+        </>
+      }
+    >
+      <M.IconButton
+        size="small"
+        className={classes.toggle}
+        onClick={onToggle}
+        aria-label={label}
+        aria-keyshortcuts="["
+      >
+        <M.Icon fontSize="small">{collapsed ? 'chevron_right' : 'chevron_left'}</M.Icon>
+      </M.IconButton>
+    </M.Tooltip>
+  )
+}
+
 export function Sidebar({ compact = false, open = false, onClose }: SidebarProps) {
   const classes = useStyles()
   const { urls, paths } = NamedRoutes.use()
@@ -375,6 +781,12 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
   const assistant = Assistant.Model.useAssistantAPI()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
+  const [collapsedPref, toggleCollapsed] = useCollapsed()
+  // The overlay rail (compact shell) is always the full rail: there is nothing
+  // beside it to make room for. The preference survives underneath and applies
+  // again once the viewport is wide enough for a column.
+  const canCollapse = !compact
+  const collapsed = canCollapse && collapsedPref
 
   // Volumes also owns bucket-browsing routes (`/b/*`), since that's where
   // clicking into a volume from the list leads. `/` counts too: with
@@ -414,6 +826,9 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
     auth,
   )
 
+  const labelClass = cx(classes.label, collapsed && classes.labelHidden)
+  const wsRowClass = cx(classes.wsRow, collapsed && classes.rowCollapsed)
+
   const workspaceContent = user && (
     <>
       <M.ListItemIcon className={classes.icon}>
@@ -421,7 +836,7 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
       </M.ListItemIcon>
       <M.ListItemText
         primary={user.role.name}
-        className={classes.wsText}
+        className={cx(classes.wsText, labelClass)}
         primaryTypographyProps={{ noWrap: true }}
       />
     </>
@@ -435,52 +850,114 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
         onClose={onClose}
         paperClass={classes.drawerPaper}
       >
-        <Rail className={classes.root}>
-          <Link to={urls.home()} className={classes.logo}>
-            {/* Default branding is the full quilt.bio wordmark: white text plus
-                the coral dot, which reads on the midnight rail. The rail slot is
-                wide, so the brand should read as a name rather than a dot. A
-                customer's own logo still renders via `src` as before. */}
-            <Logo
-              height="32px"
-              width="100%"
-              src={settings?.logo?.url}
-              variant="wordmark"
-            />
-          </Link>
+        <Rail className={cx(classes.root, collapsed && classes.rootCollapsed)}>
+          <div className={cx(classes.brand, collapsed && classes.brandCollapsed)}>
+            <Link
+              to={urls.home()}
+              className={cx(classes.logo, collapsed && classes.logoCollapsed)}
+            >
+              {/* Default branding is the full quilt.bio wordmark: white text plus
+                  the coral dot, which reads on the midnight rail. The rail slot is
+                  wide, so the brand should read as a name rather than a dot;
+                  collapsed it crossfades to the square Q mark. A customer's own
+                  logo still renders via `src` as before. */}
+              <div
+                className={cx(
+                  classes.logoStack,
+                  collapsed &&
+                    (settings?.logo?.url
+                      ? classes.logoStackCustomCollapsed
+                      : classes.logoStackCollapsed),
+                )}
+              >
+                {settings?.logo?.url ? (
+                  <Logo
+                    height="32px"
+                    width="100%"
+                    src={settings.logo.url}
+                    variant={collapsed ? 'icon' : 'wordmark'}
+                  />
+                ) : (
+                  <>
+                    <Logo
+                      className={cx(classes.logoVariant, collapsed && classes.logoDim)}
+                      height="32px"
+                      width="100%"
+                      variant="wordmark"
+                    />
+                    <Logo
+                      className={cx(
+                        classes.logoVariant,
+                        classes.logoMark,
+                        !collapsed && classes.logoDim,
+                      )}
+                      height="32px"
+                      width="32px"
+                      variant="icon"
+                    />
+                  </>
+                )}
+              </div>
+            </Link>
+          </div>
+          {canCollapse && (
+            <CollapseToggle collapsed={collapsed} onToggle={toggleCollapsed} />
+          )}
 
           {(user || cfg.mode !== 'LOCAL') && (
             <>
-              <div className={classes.sectionLabel}>Workspace</div>
-              <div className={classes.workspaceBox}>
+              <div
+                className={cx(
+                  classes.sectionLabel,
+                  collapsed && classes.sectionLabelHidden,
+                )}
+                aria-hidden={collapsed}
+              >
+                Workspace
+              </div>
+              <div
+                className={cx(classes.workspaceBox, collapsed && classes.boxCollapsed)}
+              >
                 <M.List disablePadding>
                   {user ? (
                     user.roles.length > 1 ? (
-                      <M.ListItem
-                        button
-                        onClick={() => switchRole(user)}
-                        className={cx(classes.wsRow, classes.wsRowClickable)}
+                      <RowTip
+                        collapsed={collapsed}
+                        title={`Workspace: ${user.role.name}`}
                       >
-                        {workspaceContent}
-                        <M.Icon className={classes.trailing}>expand_more</M.Icon>
-                      </M.ListItem>
+                        <M.ListItem
+                          button
+                          onClick={() => switchRole(user)}
+                          className={cx(wsRowClass, classes.wsRowClickable)}
+                        >
+                          {workspaceContent}
+                          <M.Icon className={cx(classes.trailing, labelClass)}>
+                            expand_more
+                          </M.Icon>
+                        </M.ListItem>
+                      </RowTip>
                     ) : (
-                      <M.ListItem className={classes.wsRow}>
-                        {workspaceContent}
-                      </M.ListItem>
+                      <RowTip
+                        collapsed={collapsed}
+                        title={`Workspace: ${user.role.name}`}
+                      >
+                        <M.ListItem className={wsRowClass}>{workspaceContent}</M.ListItem>
+                      </RowTip>
                     )
                   ) : (
-                    <M.ListItem
-                      button
-                      component={Link}
-                      to={urls.signIn()}
-                      className={cx(classes.wsRow, classes.wsRowClickable)}
-                    >
-                      <M.ListItemIcon className={classes.icon}>
-                        <OutlinedIcon>work_outline</OutlinedIcon>
-                      </M.ListItemIcon>
-                      <M.ListItemText primary="Sign in" />
-                    </M.ListItem>
+                    <RowTip collapsed={collapsed} title="Sign in">
+                      <M.ListItem
+                        button
+                        component={Link}
+                        to={urls.signIn()}
+                        className={cx(wsRowClass, classes.wsRowClickable)}
+                      >
+                        <M.ListItemIcon className={classes.icon}>
+                          <OutlinedIcon>work_outline</OutlinedIcon>
+                        </M.ListItemIcon>
+                        <M.ListItemText primary="Sign in" className={labelClass} />
+                      </M.ListItem>
+                    </RowTip>
                   )}
                 </M.List>
               </div>
@@ -488,49 +965,29 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
           )}
 
           <M.List disablePadding className={classes.nav}>
-            <M.ListItem
-              button
-              component={Link}
+            <NavRow
+              icon={<OutlinedIcon>storage</OutlinedIcon>}
+              label="Volumes"
               to={urls.buckets()}
               selected={volumesActive}
-              className={classes.navItem}
-            >
-              <M.ListItemIcon className={classes.icon}>
-                <OutlinedIcon>storage</OutlinedIcon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Volumes" classes={{ primary: classes.navLabel }} />
-            </M.ListItem>
-            <M.ListItem
-              button
-              component={Link}
+              collapsed={collapsed}
+            />
+            <NavRow
+              icon={<OutlinedIcon>search</OutlinedIcon>}
+              label="Search"
               to={searchTo}
               selected={searchActive}
-              className={classes.navItem}
-            >
-              <M.ListItemIcon className={classes.icon}>
-                <OutlinedIcon>search</OutlinedIcon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Search" classes={{ primary: classes.navLabel }} />
-            </M.ListItem>
-            <M.ListItem
-              button
-              component={Link}
+              collapsed={collapsed}
+            />
+            <NavRow
+              icon={<OutlinedIcon>table_chart</OutlinedIcon>}
+              label="Queries"
               to={urls.queries()}
               selected={queriesActive}
-              className={classes.navItem}
-            >
-              <M.ListItemIcon className={classes.icon}>
-                <OutlinedIcon>table_chart</OutlinedIcon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Queries" classes={{ primary: classes.navLabel }} />
-            </M.ListItem>
-            <M.ListItem
-              button
-              onClick={bookmarks?.show}
-              disabled={!bookmarks}
-              className={classes.navItem}
-            >
-              <M.ListItemIcon className={classes.icon}>
+              collapsed={collapsed}
+            />
+            <NavRow
+              icon={
                 <M.Badge
                   variant="dot"
                   invisible={!bookmarks?.hasUpdates}
@@ -538,61 +995,58 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                 >
                   <OutlinedIcon>bookmarks</OutlinedIcon>
                 </M.Badge>
-              </M.ListItemIcon>
-              <M.ListItemText
-                primary="Bookmarks"
-                classes={{ primary: classes.navLabel }}
-              />
-            </M.ListItem>
+              }
+              label="Bookmarks"
+              onClick={bookmarks?.show}
+              disabled={!bookmarks}
+              collapsed={collapsed}
+            />
             {assistant && (
-              <M.ListItem button onClick={assistant.show} className={classes.navItem}>
-                <M.ListItemIcon className={classes.icon}>
-                  <OutlinedIcon>assistant</OutlinedIcon>
-                </M.ListItemIcon>
-                <M.ListItemText
-                  primary="Ask Qurator"
-                  classes={{ primary: classes.navLabel }}
-                />
-              </M.ListItem>
+              <NavRow
+                icon={<OutlinedIcon>assistant</OutlinedIcon>}
+                label="Ask Qurator"
+                onClick={assistant.show}
+                collapsed={collapsed}
+              />
             )}
             {user?.isAdmin && (
-              <M.ListItem
-                button
-                component={Link}
+              <NavRow
+                icon={<OutlinedIcon>security</OutlinedIcon>}
+                label="Admin"
                 to={urls.admin()}
                 selected={adminActive}
-                className={classes.navItem}
-              >
-                <M.ListItemIcon className={classes.icon}>
-                  <OutlinedIcon>security</OutlinedIcon>
-                </M.ListItemIcon>
-                <M.ListItemText primary="Admin" classes={{ primary: classes.navLabel }} />
-              </M.ListItem>
+                collapsed={collapsed}
+              />
             )}
           </M.List>
 
           <div className={classes.spacer} />
 
           {subscription.invalid && (
-            <M.List disablePadding dense className={classes.account}>
-              <M.ListItem>
-                <M.ListItemIcon className={classes.icon}>
-                  <OutlinedIcon color="error">warning</OutlinedIcon>
-                </M.ListItemIcon>
-                <M.ListItemText primary="Unlicensed" />
-              </M.ListItem>
+            <M.List disablePadding className={classes.account}>
+              <RowTip collapsed={collapsed} title="Unlicensed">
+                <M.ListItem
+                  className={cx(classes.unlicensedRow, collapsed && classes.rowCollapsed)}
+                >
+                  <M.ListItemIcon className={classes.icon}>
+                    <OutlinedIcon color="error">warning</OutlinedIcon>
+                  </M.ListItemIcon>
+                  <M.ListItemText primary="Unlicensed" className={labelClass} />
+                </M.ListItem>
+              </RowTip>
             </M.List>
           )}
           {user && (
-            <div className={classes.identityBox}>
+            <div className={cx(classes.identityBox, collapsed && classes.boxCollapsed)}>
               <AccountMenu
                 name={user.name}
                 signOutUrl={urls.signOut()}
                 interactive={cfg.mode !== 'LOCAL'}
+                collapsed={collapsed}
               />
             </div>
           )}
-          <Version />
+          <Version collapsed={collapsed} />
         </Rail>
       </NavShell>
       <Bookmarks.Drawer />
