@@ -1,7 +1,9 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Dependency updates. See
+# https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# Renovate (renovate.json) owns npm and Dockerfile version updates, but security
+# updates ignore that split and ignore open-pull-requests-limit: only an
+# applies-to: security-updates group batches them, and only per directory.
 
 version: 2
 updates:
@@ -9,3 +11,41 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+
+  # Limit 0 leaves version updates to Renovate; the group below still lands.
+  - package-ecosystem: "npm"
+    directory: "/catalog"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      catalog-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # Grouping is per-directory, so a shared advisory still lands once per tree.
+  # group-by: dependency-name would collapse that, but it is version-updates-only
+  # and its pull requests can never be rebased — dependabot-core#14780.
+  - package-ecosystem: "uv"
+    directories:
+      - "/lambdas/*"
+      - "/api/python"
+      - "/api/python/quilt3-graphql"
+      - "/py-shared"
+      - "/gendocs"
+      - "/testdocs"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      python-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
