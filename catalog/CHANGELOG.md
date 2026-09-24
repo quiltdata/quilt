@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] ECharts previews of chart JSON in a bucket draw with ECharts 6's default theme, so a chart that did not set its own colors or legend position changes palette and puts the legend at the bottom ([#5073](https://github.com/quiltdata/quilt/pull/5073))
 - [Changed] Qurator sits on the right as a collapsed rail instead of vanishing when closed, expanding to the full panel on click and pushing page content aside rather than covering it; narrow viewports keep the overlay ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Added] Qurator instructions are a stack-wide setting admins edit from Admin → Settings or the chat strip, layered with each user's own personal instructions ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Fixed] Qurator's catalog links stay on the stack you are using instead of sometimes pointing at another deployment's copy of a bucket; links to buckets this stack does not serve, and download and presigned S3 links, are left untouched ([#5326](https://github.com/quiltdata/quilt/pull/5326))
