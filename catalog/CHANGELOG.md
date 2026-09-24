@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin buckets: a re-index can be scoped to a key prefix, so an admin can re-scan part of a bucket without recreating its search indices, and a refused re-index reports the registry's own reason instead of a generic "already in progress" ([#5295](https://github.com/quiltdata/quilt/pull/5295))
 - [Added] Bucket: the header card's beta gate is covered by tests, so the bucket name cannot silently disappear from the tabs again ([#5246](https://github.com/quiltdata/quilt/pull/5246))
 - [Fixed] Revise package: renaming the destination to a different existing package no longer replaces that package's contents with the loaded ones ([#5245](https://github.com/quiltdata/quilt/pull/5245))
 - [Fixed] A legacy `/b/<bucket>/queries/athena/<workgroup>` or `.../<execution>` link keeps its bucket scope across the redirect to the workspace-global console, instead of arriving with no bucket selected. The bare-console redirect already promoted the bucket to `?bucket=`; its two siblings did not. The `?bucket=` and `?table=` params now belong to the `queriesAthena*` url builders rather than being assembled at each redirect, so the three routes cannot disagree about which params survive, and a bucket named in the path wins over a stale `?bucket=` in the query string. An execution route deliberately does not take `?table=`: its editor is populated from the execution's own SQL, which the Tabulator autofill would overwrite ([#5234](https://github.com/quiltdata/quilt/pull/5234))
