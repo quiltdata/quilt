@@ -19,6 +19,10 @@ const useStyles = M.makeStyles((t) => ({
     // Collapse parent
     position: 'absolute',
     bottom: 0,
+    // The parent is full-bleed, so it centers nothing: absolute with no
+    // horizontal rule put the button at its left edge, behind the rail.
+    left: '50%',
+    transform: 'translateX(-50%)',
   },
   icon: {
     marginRight: t.spacing(1),
