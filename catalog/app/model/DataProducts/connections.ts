@@ -21,6 +21,64 @@ export type AuthMethod = 'IAM_ROLE' | 'OAUTH_M2M' | 'OAUTH_U2M' | 'API_KEY'
 
 export type ConnectionState = 'READY' | 'UNVERIFIED' | 'ERROR'
 
+/**
+ * What kind of exchange a connector reaches.
+ *
+ * Coarser than `PlatformKind`, which is the *binding* shape and splits
+ * Databricks in two. There is deliberately no peer-stack member: sharing beyond
+ * a stack goes through one of these exchanges, never Quilt-to-Quilt. `local` is
+ * the exchange built into the stack, which is why it has no `PlatformKind` and
+ * no connection row.
+ */
+export type ConnectorType = 'local' | 'datazone' | 'databricks' | 'snowflake'
+
+export const CONNECTOR_TYPE_LABEL: Record<ConnectorType, string> = {
+  local: 'Local exchange',
+  datazone: 'DataZone',
+  databricks: 'Databricks',
+  snowflake: 'Snowflake',
+}
+
+const CONNECTOR_TYPE_OF: Record<PlatformKind, ConnectorType> = {
+  datazone: 'datazone',
+  'unity-schema': 'databricks',
+  'unity-share': 'databricks',
+  'snowflake-listing': 'snowflake',
+}
+
+/** Falls back to the stored kind: settings can name a platform this build does not know. */
+export function connectorTypeLabelFor(platform: PlatformKind): string {
+  const type = CONNECTOR_TYPE_OF[platform]
+  return type ? CONNECTOR_TYPE_LABEL[type] : platform
+}
+
+/**
+ * Which direction a connector is allowed to move products.
+ *
+ * Not derivable from the platform: the same Databricks workspace can be a
+ * read-only source for one stack and a publish target for another. It is also
+ * the first thing the `@admin` gate cannot express — that directive is one
+ * all-or-nothing boolean, so the access level has to be stored per connector.
+ */
+export type ConnectorAccess = 'SUBSCRIBE' | 'PUBLISH' | 'BOTH'
+
+export const CONNECTOR_ACCESS_LABEL: Record<ConnectorAccess, string> = {
+  SUBSCRIBE: 'Subscribe only',
+  PUBLISH: 'Publish only',
+  BOTH: 'Publish and subscribe',
+}
+
+/** Least to most access, which is the order the picker offers them in. */
+export const CONNECTOR_ACCESS_ORDER: ConnectorAccess[] = ['SUBSCRIBE', 'PUBLISH', 'BOTH']
+
+/**
+ * Never an empty string: a bare middot after the type would read as "no
+ * restriction" rather than "not recorded".
+ */
+export function connectorAccessLabelFor(access: ConnectorAccess): string {
+  return CONNECTOR_ACCESS_LABEL[access] ?? 'Direction not recorded'
+}
+
 export interface Connection {
   id: string
   /** Admin-facing label, not an identifier. */
@@ -32,6 +90,8 @@ export interface Connection {
    * platform does not reshape this type.
    */
   endpoint: string
+  /** Publish target, subscribe source, or both. */
+  access: ConnectorAccess
   authMethod: AuthMethod
   /** Pointer to where the credential lives. Never the credential. */
   secretRef: string | null

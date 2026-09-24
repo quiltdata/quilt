@@ -76,6 +76,32 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
       expect(container.textContent).toContain('credential stored outside Quilt')
     })
 
+    it('shows what each connector reaches and which way it may move products', () => {
+      const { getByText } = mount()
+      expect(getByText('DataZone · Subscribe only')).toBeTruthy()
+      expect(getByText('Databricks · Publish and subscribe')).toBeTruthy()
+      expect(getByText('Snowflake · Publish only')).toBeTruthy()
+    })
+
+    it('lists the local exchange, and that there is no stack-to-stack connector', () => {
+      // The stack's own exchange has no endpoint and no credential, so it is not
+      // a Connection. Omitting it would read as "sharing requires a vendor
+      // catalog", and this is where the absence of a Quilt-to-Quilt connector is
+      // visible rather than merely unbuilt.
+      const { getByText } = mount()
+      expect(getByText(/Local exchange/)).toBeTruthy()
+      expect(getByText(/there is no stack-to-stack connector/)).toBeTruthy()
+    })
+
+    it('says these are connectors, not Connect', () => {
+      // Two different things that both sound like "letting something outside in".
+      const { getByText } = mount()
+      // No `s` flag: the default normalizer already collapses the source's
+      // newlines to spaces, and the flag needs an es2018 target this build
+      // does not set.
+      expect(getByText(/Connect.+is a different thing/)).toBeTruthy()
+    })
+
     it('disables the check action, with the reason', () => {
       // No resolver exists. A live-looking Check button that did nothing would be
       // worse than a disabled one.
@@ -113,19 +139,18 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
     }
 
     /**
-     * Pick a catalog the way a user does: open the select, click the option.
+     * Pick a select's option the way a user does: open it, click the option.
      *
      * Not `fireEvent.change` on the input — MUI v4 renders a hidden native input
      * the label is not associated with, so both `getByLabelText` and a synthetic
      * change on it miss the component's own state. Clicking the rendered option
      * exercises the real `onChange`.
      */
-    function pickCatalog(utils: ReturnType<typeof mount>, label: string) {
+    function pick(utils: ReturnType<typeof mount>, testId: string, label: string) {
       // The testid sits on the InputBase wrapper (a plain div); the element that
-      // opens the menu is the inner [role="button"]. Query within the wrapper so
-      // this keeps working when the form grows a second select.
+      // opens the menu is the inner [role="button"], so query within the wrapper.
       const trigger = utils
-        .getByTestId('dpc-platform')
+        .getByTestId(testId)
         .querySelector('[role="button"]') as HTMLElement
       fireEvent.mouseDown(trigger)
       // Options render in a portal; scope to the listbox so the trigger's own
@@ -152,7 +177,7 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
       // be inventing a capability. The explanation is what stops an admin hunting
       // for a button that cannot exist.
       const utils = openForm()
-      pickCatalog(utils, 'AWS DataZone')
+      pick(utils, 'dpc-platform', 'AWS DataZone')
       expect(utils.queryByText('Sign in with Databricks')).toBeNull()
       expect(utils.getByText(/There is no OAuth flow to offer/)).toBeTruthy()
     })
@@ -162,7 +187,7 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
       // not leave OAUTH_U2M selected, or an admin could submit a method the
       // platform does not support. DataZone's only method is an assumed role.
       const utils = openForm()
-      pickCatalog(utils, 'AWS DataZone')
+      pick(utils, 'dpc-platform', 'AWS DataZone')
       expect(utils.getByText(/A role ARN Quilt may assume/)).toBeTruthy()
     })
 
@@ -170,8 +195,39 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
       // Snowflake has no U2M option, so this is the pointer path. The helper text
       // is the contract: Quilt stores the reference and never the secret.
       const utils = openForm()
-      pickCatalog(utils, 'Snowflake')
+      pick(utils, 'dpc-platform', 'Snowflake')
       expect(utils.getByText(/Quilt stores the reference, never the secret/)).toBeTruthy()
+    })
+
+    it('derives the connector type from the catalog rather than asking twice', () => {
+      // A second select the admin has to keep in sync with the first can only
+      // ever disagree with it.
+      const utils = openForm()
+      expect(utils.getByText('Connector type: Databricks')).toBeTruthy()
+      pick(utils, 'dpc-platform', 'Snowflake')
+      expect(utils.getByText('Connector type: Snowflake')).toBeTruthy()
+    })
+
+    it('asks which way the connector may move products, separately', () => {
+      // Access does not follow from the catalog, so unlike type it is asked.
+      // Defaults to the reversible half.
+      const utils = openForm()
+      const access = utils.getByTestId('dpc-access')
+      expect(access.textContent).toContain('Subscribe only')
+      pick(utils, 'dpc-access', 'Publish and subscribe')
+      expect(access.textContent).toContain('Publish and subscribe')
+    })
+
+    it('reserves the administrator field instead of guessing its grain', () => {
+      // Omitting the field would read as "an exchange has no administrator".
+      // Offering choices would decide the undecided grain by accident.
+      const utils = openForm()
+      expect(utils.getByText(/^Reserved\./)).toBeTruthy()
+      const field = utils.getByPlaceholderText('Reserved') as HTMLInputElement
+      // Read-only, not disabled: it must stay in the tab order for the helper
+      // text to reach a keyboard reader.
+      expect(field.readOnly).toBe(true)
+      expect(field.disabled).toBe(false)
     })
 
     it('disables saving, with the reason', () => {
