@@ -153,8 +153,7 @@ const useStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(0.5),
     },
     // `auto` pins the group to the trailing edge, which on a phone starts it
-    // past the point where its widest control still fits. Once the row wraps
-    // the group owns the line, so it leads instead.
+    // past the point where its widest control still fits.
     [Column.down('xs')]: {
       marginLeft: 0,
       width: '100%',

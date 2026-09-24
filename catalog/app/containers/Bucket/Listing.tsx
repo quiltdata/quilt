@@ -1226,11 +1226,8 @@ export function Listing({
         },
       })
     }
-    // The name is what a listing is scanned for, and it is the flex column: with
-    // size and the timestamp both holding fixed width there is nothing left for
-    // it on a phone (~40px of 320), so names truncate to three characters. The
-    // timestamp is the secondary readout, so it yields the width back; it
-    // returns in landscape and on a tablet.
+    // Name is the flex column, so the fixed-width size and timestamp cells leave
+    // it ~40px of a 320px phone. The timestamp yields; name is what is scanned.
     if (!xs && items.some(({ modified }) => !!modified)) {
       columnsWithValues.push({
         field: 'modified',
