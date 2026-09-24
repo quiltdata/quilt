@@ -20,7 +20,7 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
-import RowActions from './ListingActions'
+import RowActions, { useMaxRowActionCount } from './ListingActions'
 import * as Selection from './Selection'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
@@ -1127,6 +1127,23 @@ export function Listing({
   const coarse = Pointer.useCoarse()
   const { prefs } = BucketPreferences.use()
 
+  // Reserving width for the row actions means asking the component that renders
+  // them how many there are: the count follows the route and the rows, not the
+  // object preferences alone. `..` never carries actions, so it is not a witness.
+  const actionRows = items.filter(({ name }) => name !== '..')
+  const actionCount = useMaxRowActionCount(
+    actionRows[0]?.to,
+    BucketPreferences.Result.match(
+      { Ok: ({ ui: { actions } }) => actions, _: () => null },
+      prefs,
+    ),
+    actionRows.length > 0 && actionRows.every(({ archived }) => archived),
+  )
+  // Name keeps priority: where the actions claim more than one slot there is no
+  // room for the size readout beside them on a phone. The footer's own size total
+  // reads the same predicate, or it would sum a column the grid is not showing.
+  const sizeYields = xs && coarse && actionCount > 1
+
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
   const handleFilterModelChange = React.useCallback(
@@ -1166,19 +1183,10 @@ export function Listing({
   const columns: DG.GridColumns = React.useMemo(() => {
     // Each row action is a touch-floor square with an 8px gap between them, and
     // the grid's cells are `overflow: hidden`, so the cell has to be wide enough
-    // for the actions this bucket's preferences actually enable.
-    const actionCount = BucketPreferences.Result.match(
-      {
-        Ok: ({ ui: { actions } }) =>
-          1 + (actions.deleteObject ? 1 : 0) + (actions.downloadObject ? 1 : 0),
-        _: () => 1,
-      },
-      prefs,
-    )
-    const actionsWidth = actionCount * Pointer.TOUCH_TARGET + (actionCount - 1) * 8
-    // Name keeps priority: where the actions claim more than one slot there is
-    // no room for the size readout beside them on a phone.
-    const sizeYields = xs && coarse && actionCount > 1
+    // for every action a row of this listing renders.
+    const actionsWidth = actionCount
+      ? actionCount * Pointer.TOUCH_TARGET + (actionCount - 1) * 8
+      : 0
     const columnsWithValues: DG.GridColumns = [
       {
         field: 'name',
@@ -1303,7 +1311,19 @@ export function Listing({
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, coarse, items, sm, xs, prefs, onReload, hideSize])
+  }, [
+    classes,
+    CellComponent,
+    actionCount,
+    coarse,
+    items,
+    sm,
+    xs,
+    prefs,
+    onReload,
+    hideSize,
+    sizeYields,
+  ])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
@@ -1337,7 +1357,13 @@ export function Listing({
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
           toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
-          footer: { truncated, locked, loadMore, items, hideSize },
+          footer: {
+            truncated,
+            locked,
+            loadMore,
+            items,
+            hideSize: hideSize || sizeYields,
+          },
         }}
         getRowId={(row) => row.name.replaceAll("'", "\\'")}
         pagination

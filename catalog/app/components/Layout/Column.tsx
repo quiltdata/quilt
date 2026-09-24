@@ -59,7 +59,11 @@ export function Provider({ target, children }: ProviderProps) {
     // No seed: observing fires the callback immediately, and its `contentRect`
     // is the box a `container-type: inline-size` query resolves against --
     // `clientWidth` would include padding and disagree with the stylesheet.
-    const ro = new ResizeObserver(([entry]) => setBand(bandOf(entry.contentRect.width)))
+    const ro = new ResizeObserver(([entry]) => {
+      // A throw here kills every later delivery, so the column would freeze at
+      // whatever band it last saw: an empty batch is spec-legal.
+      if (entry) setBand(bandOf(entry.contentRect.width))
+    })
     ro.observe(target)
     return () => ro.disconnect()
   }, [target])

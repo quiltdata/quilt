@@ -287,6 +287,30 @@ interface ListingRowActionsProps {
   // TODO: selected
 }
 
+/**
+ * The most controls any row of this listing renders, for a caller reserving width
+ * for them: the branches below decide that, not the object preferences alone -- a
+ * package listing renders one control, and an archived row renders none. `to` is
+ * any row's target; every row of one listing matches the same route.
+ */
+export function useMaxRowActionCount(
+  to: string | undefined,
+  prefs: Pick<
+    BucketPreferences.ActionPreferences,
+    'deleteObject' | 'downloadObject' | 'downloadPackage'
+  > | null,
+  allArchived: boolean,
+): number {
+  // An empty directory has no row to sample, so there is nothing to reserve for.
+  const { location, handle } = useMatchedParams(to ?? '')
+  if (!to || !prefs || allArchived) return 0
+  if (location) {
+    return 1 + (prefs.deleteObject ? 1 : 0) + (prefs.downloadObject ? 1 : 0)
+  }
+  if (handle && prefs.downloadPackage) return 1
+  return 0
+}
+
 export default function ListingRowActions({
   archived,
   physicalKey,
