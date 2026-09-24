@@ -63,6 +63,7 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
+import DELETE_PACKAGE from './gql/DeletePackage.generated'
 
 interface RouteArgs {
   bucket: string
@@ -287,10 +288,16 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
     error: undefined as React.ReactNode | undefined,
     loading: false,
     opened: false,
+    scope: 'revision' as 'revision' | 'package',
   })
 
   const confirmDelete = React.useCallback(
-    () => setDeletionState(R.assoc('opened', true)),
+    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'revision' })),
+    [],
+  )
+
+  const confirmDeletePackage = React.useCallback(
+    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'package' })),
     [],
   )
 
@@ -304,12 +311,17 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
   }, [])
 
   const deleteRevision = GQL.useMutation(DELETE_REVISION)
+  const deletePackage = GQL.useMutation(DELETE_PACKAGE)
 
   const handlePackageDeletion = React.useCallback(async () => {
     setDeletionState(R.assoc('loading', true))
     try {
-      const { packageRevisionDelete: r } = await deleteRevision({ bucket, name, hash })
+      const r =
+        deletionState.scope === 'package'
+          ? (await deletePackage({ bucket, name })).packageDelete
+          : (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
       switch (r.__typename) {
+        case 'Ok':
         case 'PackageRevisionDeleteSuccess':
           setDeletionState(R.mergeLeft({ opened: false, loading: false }))
           redirectToPackagesList()
@@ -325,7 +337,16 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
       if (e.message) error = `${error}: ${e.message}`
       setDeletionState(R.mergeLeft({ error, loading: false }))
     }
-  }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
+  }, [
+    bucket,
+    hash,
+    name,
+    deletionState.scope,
+    deletePackage,
+    deleteRevision,
+    redirectToPackagesList,
+    setDeletionState,
+  ])
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
@@ -360,10 +381,15 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
       <RevisionDeleteDialog
         error={deletionState.error}
         open={deletionState.opened}
-        packageHandle={packageHandle}
+        name={name}
         onClose={onPackageDeleteDialogClose}
         loading={deletionState.loading}
         onDelete={handlePackageDeletion}
+        scope={
+          deletionState.scope === 'package'
+            ? { type: 'package' }
+            : { type: 'revision', hash }
+        }
       />
 
       {updateDialog.render({
@@ -492,6 +518,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
                         <RevisionMenu
                           className={classes.button}
                           onDelete={confirmDelete}
+                          onDeletePackage={confirmDeletePackage}
                           onCreateFile={prompt.open}
                         />
                       </>

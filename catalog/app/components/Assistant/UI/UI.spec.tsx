@@ -1,7 +1,8 @@
 import * as React from 'react'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
+import { PANEL_WIDTH, RAIL_WIDTH, usePanelGutter } from './PanelReflow'
 import { WithAssistantUI, Trigger } from './UI'
 
 const useAssistantAPI = vi.fn()
@@ -10,9 +11,14 @@ vi.mock('../Model', () => ({
   useAssistantAPI: () => useAssistantAPI(),
 }))
 
-// Render the Chat subtree as a no-op; these tests only assert Fab/Drawer presence.
+// Render the Chat subtree as a no-op; these tests assert the panel host, not
+// the chat. Props are recorded so the wiring handed down can be checked.
+let chatProps: Record<string, any> | null = null
 vi.mock('./Chat', () => ({
-  default: () => null,
+  default: (props: Record<string, any>) => {
+    chatProps = props
+    return null
+  },
 }))
 
 let inlined = false
@@ -30,7 +36,14 @@ function makeAPI() {
     dispatch: vi.fn(),
     devTools: {},
     connectors: {},
+    instructions: {},
   }
+}
+
+// The gutter Layout reserves is driven by this context, so read it the way
+// Layout does rather than asserting on the paper's own fixed width.
+function Reflow() {
+  return <span data-testid="reflow">{String(usePanelGutter())}</span>
 }
 
 describe('components/Assistant/UI Trigger', () => {
@@ -67,28 +80,120 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     cleanup()
     vi.clearAllMocks()
     inlined = false
+    chatProps = null
+    delete (window as any).matchMedia
   })
 
-  it('keeps the sidebar closed while an inline chat is active, even when visible', () => {
+  // Above the breakpoint the paper is always on screen -- collapsed to a rail
+  // or expanded. Only the overlay variant takes it away.
+  const paper = (el: HTMLElement) => el.querySelector('.MuiDrawer-paper')
+
+  // jsdom ships no matchMedia, so MUI reports false for every query -- a wide
+  // viewport with no motion preference. The compact branch needs the opposite
+  // answer for the width query alone: the panel asks two.
+  const narrowViewport = () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('max-width'),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as any
+  }
+
+  it('stays on screen as a rail when not visible, and expands from it', () => {
+    const api = makeAPI()
+    useAssistantAPI.mockReturnValue(api)
+    const { baseElement, getByTestId, getByLabelText } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(paper(baseElement)).toBeTruthy()
+    expect(chatProps).toBeNull()
+    expect(getByTestId('reflow').textContent).toBe(RAIL_WIDTH)
+    fireEvent.click(getByLabelText('Ask Qurator'))
+    expect(api.show).toHaveBeenCalled()
+  })
+
+  it('renders no panel at all while an inline chat is active, even when visible', () => {
     inlined = true
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
-    const { baseElement } = render(<WithAssistantUI />)
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
     expect(baseElement.querySelector('.MuiDrawer-root')).toBeFalsy()
+    expect(getByTestId('reflow').textContent).toBe('null')
   })
 
-  it('opens the sidebar when visible and no inline chat is active', () => {
+  it('expands to the full panel and widens the gutter when visible', () => {
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
-    const { baseElement } = render(<WithAssistantUI />)
-    expect(baseElement.querySelector('.MuiDrawer-root')).toBeTruthy()
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(baseElement.querySelector('.MuiDrawer-docked')).toBeTruthy()
+    expect(paper(baseElement)).toBeTruthy()
+    expect(chatProps).toBeTruthy()
+    expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
   })
 
-  it('does not render a trigger button (trigger is now inline in the top bar)', () => {
+  it('stays an overlay below 960px and reserves no gutter', () => {
+    narrowViewport()
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(paper(baseElement)).toBeTruthy()
+    expect(baseElement.querySelector('.MuiDrawer-docked')).toBeFalsy()
+    expect(getByTestId('reflow').textContent).toBe('null')
+  })
+
+  it('takes the panel away entirely below 960px when not visible', () => {
+    narrowViewport()
     useAssistantAPI.mockReturnValue(makeAPI())
-    const { queryByRole } = render(<WithAssistantUI />)
-    expect(queryByRole('button')).toBeFalsy()
+    const { baseElement } = render(<WithAssistantUI />)
+    expect(paper(baseElement)).toBeFalsy()
+  })
+
+  it('collapses the docked panel to a rail on Escape', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    render(<WithAssistantUI />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(api.hide).toHaveBeenCalled()
+  })
+
+  it('hands the chat its wiring and a way to collapse the panel', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    render(<WithAssistantUI />)
+    expect(chatProps?.instructions).toBe(api.instructions)
+    expect(chatProps?.connectors).toBe(api.connectors)
+    chatProps?.onClose()
+    expect(api.hide).toHaveBeenCalled()
+  })
+
+  it('offers the rail button as the only affordance, with no second trigger', () => {
+    useAssistantAPI.mockReturnValue(makeAPI())
+    const { getAllByRole, getByLabelText } = render(<WithAssistantUI />)
+    expect(getAllByRole('button')).toHaveLength(1)
+    expect(getByLabelText('Ask Qurator').getAttribute('aria-expanded')).toBe('false')
   })
 })
