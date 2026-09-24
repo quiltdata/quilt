@@ -46,6 +46,16 @@ export interface CatalogSettings {
   logo?: {
     url: string
   }
+  /**
+   * Stack-wide standing instructions for Qurator, injected into every
+   * prompt as a visible `<user-instructions>` block. Admins edit; everyone
+   * on the stack receives them.
+   */
+  qurator?: {
+    instructions?: string
+    /** Absent means enabled: instructions are on by default once written. */
+    instructionsEnabled?: boolean
+  }
   search?: {
     mode?: 'packages' | 'objects' | null
   }

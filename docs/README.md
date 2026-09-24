@@ -10,15 +10,14 @@ packages.
 
 Quilt consists of three main elements:
 
-- [Quilt Platform](#quilt-platform-overview) which is a cloud platform for
-  interacting with, visualizing, searching and querying Quilt Packages, which is
-  hosted in an organization's AWS Account.
-- [Quilt Python SDK](#quilt-python-sdk) which provides the ability to create,
-  push, install and delete Quilt Packages.
-- [Quilt Ecosystem](#quilt-ecosystem-and-integrations) which provide extension
-  of the core Quilt Capabilities to enable typical elements of life sciences
-  workflows, such as incorporating orchestration data, and connecting packages
-  to Electronic Lab Notebooks.
+- The [Quilt Platform](#quilt-platform-overview), a web catalog hosted in your
+  organization's AWS account for browsing, visualizing, searching, and querying
+  Quilt packages.
+- The [Quilt Python SDK](#quilt-python-sdk), for creating, pushing, installing,
+  and deleting Quilt packages programmatically.
+- The [Quilt Ecosystem](#quilt-ecosystem-and-integrations), integrations that
+  extend Quilt for common life-science workflows, such as capturing pipeline
+  outputs and connecting packages to electronic lab notebooks.
 
 To dive deeper into the capabilities of Quilt, start with our [Quick Start
 Guide](Quickstart.md) or explore the [Installation

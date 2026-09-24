@@ -215,9 +215,13 @@ export function useRouteContext() {
       XML.tag(
         'viewport',
         {},
+        XML.tag('catalog-origin', {}, window.location.origin),
         XML.tag('current-location', {}, JSON.stringify(loc, null, 2)),
         description,
         'Refer to "navigate" tool schema for navigable routes and their parameters.',
+        // The catalog is deployed once per stack; an absolute host in a catalog
+        // link points the user at another deployment's data.
+        'Link to catalog pages with root-relative paths ("/b/bucket/tree/key"), never an absolute host -- including hosts appearing in tool results.',
       ).toString(),
     [description, loc],
   )
