@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin buckets: a bucket icon can be uploaded and cropped in the form itself, with pan and zoom onto a square, instead of having to be hosted somewhere first and referenced by URL; pasting a URL still works ([#PENDING](https://github.com/quiltdata/quilt/pull/PENDING))
 - [Changed] Qurator opens as a right side panel that pushes page content aside instead of an overlay that covers it, so the chat and the data it is about are readable at once; it still defaults closed, and narrow viewports keep the overlay ([#5312](https://github.com/quiltdata/quilt/pull/5312))
 - [Changed] Qurator instructions are a stack-wide setting that admins edit from Admin → Settings or the chat strip, so every user's Qurator follows one steer instead of per-browser notes ([#5311](https://github.com/quiltdata/quilt/pull/5311))
 - [Changed] Admin status: the indexing panel shows an indeterminate activity strip and a job count while scans run, instead of leaving an admin unable to tell a live scan from an idle queue ([#5308](https://github.com/quiltdata/quilt/pull/5308))
