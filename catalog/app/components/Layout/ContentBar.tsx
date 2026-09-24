@@ -27,13 +27,15 @@ const useStyles = M.makeStyles((t) => ({
   },
   // minHeight only: a hard height clips the row when text scales on its own
   // (text-only zoom, or a user minimum font size) instead of letting it grow.
+  // Full-bleed, so unlike the content column below it this row owes the safe
+  // area itself -- its menu button is the only way back to navigation.
   toolbar: {
     minHeight: 64,
-    paddingLeft: t.spacing(3),
-    paddingRight: t.spacing(3),
+    paddingLeft: `max(${t.spacing(3)}px, env(safe-area-inset-left))`,
+    paddingRight: `max(${t.spacing(3)}px, env(safe-area-inset-right))`,
     [Column.down('xs')]: {
-      paddingLeft: t.spacing(2),
-      paddingRight: t.spacing(2),
+      paddingLeft: `max(${t.spacing(2)}px, env(safe-area-inset-left))`,
+      paddingRight: `max(${t.spacing(2)}px, env(safe-area-inset-right))`,
     },
   },
   // Only rendered in the compact shell, where the rail is an overlay: this is

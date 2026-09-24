@@ -23,9 +23,6 @@ const retarget = (media: string) => media.replace('@media', `@container ${NAME}`
 // tuned to a pixel width keeps that width instead of being rounded to a band.
 export const up = (key: Breakpoint | number) => retarget(bp.up(key))
 export const down = (key: Breakpoint | number) => retarget(bp.down(key))
-export const between = (start: Breakpoint | number, end: Breakpoint | number) =>
-  retarget(bp.between(start, end))
-export const only = (key: Breakpoint) => retarget(bp.only(key))
 
 const KEYS = bp.keys
 
@@ -59,7 +56,9 @@ export function Provider({ target, children }: ProviderProps) {
   const [band, setBand] = React.useState<Breakpoint | null>(null)
   React.useLayoutEffect(() => {
     if (!target || typeof ResizeObserver === 'undefined') return
-    setBand(bandOf(target.clientWidth))
+    // No seed: observing fires the callback immediately, and its `contentRect`
+    // is the box a `container-type: inline-size` query resolves against --
+    // `clientWidth` would include padding and disagree with the stylesheet.
     const ro = new ResizeObserver(([entry]) => setBand(bandOf(entry.contentRect.width)))
     ro.observe(target)
     return () => ro.disconnect()
@@ -77,12 +76,4 @@ export function useDown(key: Breakpoint): boolean {
   const t = M.useTheme()
   const viewport = M.useMediaQuery(t.breakpoints.down(key))
   return band === null ? viewport : KEYS.indexOf(band) <= KEYS.indexOf(key)
-}
-
-/** Column-width twin of `useMediaQuery(theme.breakpoints.up(key))`. */
-export function useUp(key: Breakpoint): boolean {
-  const band = React.useContext(Ctx)
-  const t = M.useTheme()
-  const viewport = M.useMediaQuery(t.breakpoints.up(key))
-  return band === null ? viewport : KEYS.indexOf(band) >= KEYS.indexOf(key)
 }

@@ -40,9 +40,8 @@ export function Root({ dark = false, ...props }: RootProps) {
 // Under 960px there is no room for a 256px column beside the content, so the
 // rail becomes an overlay reached from a menu button in the header band. In MUI
 // v4 `down('sm')` is max-width 959.95px -- i.e. everything below the `md`
-// breakpoint, not just the `sm` band. Same call the search page's own mobile
-// switch uses (Search/Layout/Main.tsx), so the two can't disagree about when the
-// viewport is narrow.
+// breakpoint, not just the `sm` band. The viewport, not the column: the rail
+// sits outside the column it would be measuring.
 const useCompactShell = () => {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))

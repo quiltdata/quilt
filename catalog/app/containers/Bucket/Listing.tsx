@@ -1164,6 +1164,21 @@ export function Listing({
 
   // NOTE: after dependencies change fourth empty column appears
   const columns: DG.GridColumns = React.useMemo(() => {
+    // Each row action is a touch-floor square with an 8px gap between them, and
+    // the grid's cells are `overflow: hidden`, so the cell has to be wide enough
+    // for the actions this bucket's preferences actually enable.
+    const actionCount = BucketPreferences.Result.match(
+      {
+        Ok: ({ ui: { actions } }) =>
+          1 + (actions.deleteObject ? 1 : 0) + (actions.downloadObject ? 1 : 0),
+        _: () => 1,
+      },
+      prefs,
+    )
+    const actionsWidth = actionCount * Pointer.TOUCH_TARGET + (actionCount - 1) * 8
+    // Name keeps priority: where the actions claim more than one slot there is
+    // no room for the size readout beside them on a phone.
+    const sizeYields = xs && coarse && actionCount > 1
     const columnsWithValues: DG.GridColumns = [
       {
         field: 'name',
@@ -1206,7 +1221,7 @@ export function Listing({
         },
       },
     ]
-    if (!hideSize && items.some(({ size }) => size != null)) {
+    if (!hideSize && !sizeYields && items.some(({ size }) => size != null)) {
       columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
@@ -1260,7 +1275,7 @@ export function Listing({
       // Zero because the actions float over the trailing cells on hover. A
       // finger gets no hover, so they stand at rest (ListingActions) and need
       // a cell of their own -- otherwise they cover the size readout.
-      width: coarse ? Pointer.TOUCH_TARGET : 0,
+      width: coarse ? actionsWidth : 0,
       // An empty `headerName` falls back to the field name, which only became
       // visible once the column had width.
       renderHeader: () => <></>,
