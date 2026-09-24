@@ -22,6 +22,7 @@ complete sentence without it.
 ## Changes
 
 - [Changed] Package top bar: the breadcrumbs and action cluster lay out on two explicit tiers — one row when wide (crumbs truncate first, actions never squash), and at medium widths the whole action cluster moves onto its own right-anchored row below full-width crumbs, wrapping with even gaps instead of crushing ([#5227](https://github.com/quiltdata/quilt/pull/5227))
+- [Changed] Bucket header: the title, stats readouts, and actions lay out on explicit responsive tiers — one calm row when wide (the title truncates first), stats on their own line at medium widths, a compact readout grid on narrow screens — and the settings sprocket moves to the card's far edge behind a hairline divider ([#5226](https://github.com/quiltdata/quilt/pull/5226))
 - [Changed] ECharts previews of chart JSON in a bucket draw with ECharts 6's default theme, so a chart that did not set its own colors or legend position changes palette and puts the legend at the bottom ([#5073](https://github.com/quiltdata/quilt/pull/5073))
 - [Changed] Qurator sits on the right as a collapsed rail instead of vanishing when closed, expanding to the full panel on click and pushing page content aside rather than covering it; narrow viewports keep the overlay ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Added] Qurator instructions are a stack-wide setting admins edit from Admin → Settings or the chat strip, layered with each user's own personal instructions ([#5326](https://github.com/quiltdata/quilt/pull/5326))
