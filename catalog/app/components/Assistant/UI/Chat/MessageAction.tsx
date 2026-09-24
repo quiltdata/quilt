@@ -2,15 +2,26 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const useStyles = M.makeStyles({
+// An inline text action inside a message footer. A real button, so it is
+// reachable from the keyboard and takes the focus ring; it inherits the
+// footer's font and color and only underlines to signal the affordance.
+const useStyles = M.makeStyles((t) => ({
   action: {
-    cursor: 'pointer',
-    opacity: 0.7,
+    color: 'inherit',
+    font: 'inherit',
+    textDecoration: 'underline',
+    textDecorationColor: t.palette.text.disabled,
+    textUnderlineOffset: 2,
     '&:hover': {
-      opacity: 1,
+      color: t.palette.text.primary,
+      textDecorationColor: 'currentColor',
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 2,
     },
   },
-})
+}))
 
 interface MessageActionProps {
   children: React.ReactNode
@@ -25,8 +36,8 @@ export default function MessageAction({
 }: MessageActionProps) {
   const classes = useStyles()
   return (
-    <span className={cx(classes.action, className)} onClick={onClick}>
+    <M.ButtonBase className={cx(classes.action, className)} onClick={onClick}>
       {children}
-    </span>
+    </M.ButtonBase>
   )
 }

@@ -16,6 +16,7 @@ import * as Form from '../Form'
 import DataProductConnections from './DataProductConnections'
 import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
 import PackagerSettings from './PackagerSettings'
+import QuratorSettings from './QuratorSettings'
 import SearchSettings from './SearchSettings'
 import SupportDiagnostics from './SupportDiagnostics'
 import TabulatorSettings from './TabulatorSettings'
@@ -398,6 +399,16 @@ export default function Settings() {
               Enable beta features
             </M.Typography>
             <BetaSwitch />
+          </M.Paper>
+        </M.Grid>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
+              Qurator instructions
+            </M.Typography>
+            <React.Suspense fallback={<M.CircularProgress />}>
+              <QuratorSettings />
+            </React.Suspense>
           </M.Paper>
         </M.Grid>
         {/* Absent entirely when this build declares no preview capabilities,
