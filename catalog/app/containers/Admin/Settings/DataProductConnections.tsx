@@ -93,6 +93,13 @@ function ConnectionRow({ connection }: { connection: DP.Connection }) {
         <M.Typography className={classes.endpoint} color="textSecondary">
           {connection.endpoint}
         </M.Typography>
+        {/* Both, because access does not follow from the type: the same
+            workspace is a read-only source for one stack and a publish target
+            for another. */}
+        <M.Typography className={classes.note} variant="body2" color="textSecondary">
+          {DP.connectorTypeLabelFor(connection.platform)} ·{' '}
+          {DP.connectorAccessLabelFor(connection.access)}
+        </M.Typography>
         <M.Typography className={classes.note} variant="body2" color="textSecondary">
           {method?.label ?? connection.authMethod}
           {/* A pointer, never a value. Shown so an admin can confirm *which*
@@ -138,11 +145,19 @@ function ConnectionRow({ connection }: { connection: DP.Connection }) {
  * uniform "Connect with OAuth" button would be inventing a capability for two of
  * the three.
  */
+// The form is rendered once at a time, so fixed ids are enough to tie each
+// select's description to the node that takes focus.
+const PLATFORM_HELPER_ID = 'dpc-platform-helper-text'
+const ACCESS_HELPER_ID = 'dpc-access-helper-text'
+
 function AddConnection({ onClose }: { onClose: () => void }) {
   const classes = useStyles()
   const [platform, setPlatform] = React.useState<DP.PlatformKind>('unity-schema')
   const methods = DP.AUTH_METHODS[platform]
   const [method, setMethod] = React.useState<DP.AuthMethod>(methods[0].method)
+  // Subscribe-only is the honest default: reading someone else's catalog is the
+  // reversible half, and publishing into it is not.
+  const [access, setAccess] = React.useState<DP.ConnectorAccess>('SUBSCRIBE')
 
   // Changing platform can strand a method the new platform does not offer (pick
   // Databricks + OAUTH_U2M, switch to DataZone). Reset rather than submit
@@ -163,9 +178,21 @@ function AddConnection({ onClose }: { onClose: () => void }) {
         value={platform}
         onChange={(e) => handlePlatform(e.target.value as DP.PlatformKind)}
         size="small"
+        // The connector type follows from the catalog, so it is shown rather
+        // than asked for: a second select the admin has to keep in sync with
+        // this one can only ever disagree with it.
+        helperText={`Connector type: ${DP.connectorTypeLabelFor(platform)}`}
+        FormHelperTextProps={{ id: PLATFORM_HELPER_ID }}
         // MUI v4's `select` renders a hidden input the label is not associated
-        // with, so a testid on the visible trigger is the stable handle.
-        SelectProps={{ 'data-testid': 'dpc-platform' } as $TSFixMe}
+        // with, so a testid on the visible trigger is the stable handle. The
+        // description goes on that same trigger, not on the Select: the hidden
+        // input is not what a keyboard reader focuses.
+        SelectProps={
+          {
+            'data-testid': 'dpc-platform',
+            SelectDisplayProps: { 'aria-describedby': PLATFORM_HELPER_ID },
+          } as $TSFixMe
+        }
       >
         {(Object.keys(CONNECTION_LABEL) as DP.PlatformKind[]).map((k) => (
           <M.MenuItem key={k} value={k}>
@@ -173,6 +200,44 @@ function AddConnection({ onClose }: { onClose: () => void }) {
           </M.MenuItem>
         ))}
       </M.TextField>
+
+      <M.TextField
+        select
+        label="Access"
+        value={access}
+        onChange={(e) => setAccess(e.target.value as DP.ConnectorAccess)}
+        size="small"
+        helperText="Whether this stack may publish to the catalog, subscribe from it, or both."
+        FormHelperTextProps={{ id: ACCESS_HELPER_ID }}
+        SelectProps={
+          {
+            'data-testid': 'dpc-access',
+            SelectDisplayProps: { 'aria-describedby': ACCESS_HELPER_ID },
+          } as $TSFixMe
+        }
+      >
+        {DP.CONNECTOR_ACCESS_ORDER.map((a) => (
+          <M.MenuItem key={a} value={a}>
+            {DP.CONNECTOR_ACCESS_LABEL[a]}
+          </M.MenuItem>
+        ))}
+      </M.TextField>
+
+      {/* Reserved, not omitted: the field is known to belong here, and leaving
+          the row out would read as "an exchange has no administrator". What is
+          undecided is the grain, so nothing is offered to pick from.
+          Read-only and not disabled so the sentence stays reachable; MUI only
+          emits the helper text's `aria-describedby` when the field carries an
+          `id`, so one is set here. */}
+      <M.TextField
+        id="dpc-administered-by"
+        label="Administered by"
+        value=""
+        placeholder="Reserved"
+        size="small"
+        InputProps={{ readOnly: true }}
+        helperText="Reserved. Whether an exchange is administered per stack, per user or per role is not decided yet."
+      />
 
       <M.TextField
         label="Endpoint"
@@ -278,12 +343,34 @@ export default function DataProductConnections() {
     <>
       <M.Typography variant="body2" color="textSecondary">
         Data products are defined in these catalogs. Quilt reads them; each catalog keeps
-        every access decision.
+        every access decision. These are connectors — the exchanges this stack shares
+        products through, each publishing, subscribing or both as its access level says.
+        Connect, which lets agents outside the VPC reach this stack, is a different thing
+        and is not configured here.
       </M.Typography>
 
-      {connections.map((c, i) => (
+      {/* The stack's own exchange. It has no endpoint and no credential, so it is
+          not a `Connection` and never will be -- but leaving it out makes the list
+          read as "sharing requires a vendor catalog", and it is where the absence
+          of a Quilt-to-Quilt connector belongs on screen. */}
+      <div className={classes.row}>
+        <div className={classes.rowBody}>
+          <M.Typography variant="subtitle2">
+            {DP.CONNECTOR_TYPE_LABEL.local} · Built in
+          </M.Typography>
+          <M.Typography className={classes.note} variant="body2" color="textSecondary">
+            {DP.CONNECTOR_ACCESS_LABEL.BOTH} · always on, nothing to configure
+          </M.Typography>
+          <M.Typography className={classes.note} variant="caption" color="textSecondary">
+            Products shared within this stack. Sharing beyond it goes through one of the
+            catalogs below — there is no stack-to-stack connector.
+          </M.Typography>
+        </div>
+      </div>
+
+      {connections.map((c) => (
         <React.Fragment key={c.id}>
-          {i > 0 && <M.Divider />}
+          <M.Divider />
           <ConnectionRow connection={c} />
         </React.Fragment>
       ))}

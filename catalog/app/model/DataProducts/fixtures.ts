@@ -805,6 +805,9 @@ export function requestsFor(product: DataProduct): AccessRequest[] {
  * that has never been checked, and one that is failing. A fixture set of three
  * READY connections would leave the two states that need admin attention
  * untested and unrendered.
+ *
+ * The three `ConnectorAccess` levels are spread across the same three rows for
+ * the same reason.
  */
 
 /** DataZone, working. IAM_ROLE because there is no OAuth path on this platform. */
@@ -813,6 +816,7 @@ export const DATAZONE_CONNECTION: Connection = {
   title: 'Clinical DataZone (us-east-1)',
   platform: 'datazone',
   endpoint: 'dzd_4xample',
+  access: 'SUBSCRIBE',
   authMethod: 'IAM_ROLE',
   secretRef: null, // an assumed role needs no stored secret
   state: 'READY',
@@ -833,6 +837,7 @@ export const UNITY_CONNECTION: Connection = {
   title: 'Databricks (acme-prod)',
   platform: 'unity-schema',
   endpoint: 'https://acme-prod.cloud.databricks.com',
+  access: 'BOTH',
   authMethod: 'OAUTH_U2M',
   secretRef:
     'arn:aws:secretsmanager:us-east-1:123456789012:secret:databricks-oauth-Ab3xY9',
@@ -847,6 +852,7 @@ export const SNOWFLAKE_CONNECTION: Connection = {
   title: 'Snowflake (ACME_PROD)',
   platform: 'snowflake-listing',
   endpoint: 'acme-prod.us-east-1.snowflakecomputing.com',
+  access: 'PUBLISH',
   authMethod: 'OAUTH_M2M',
   secretRef:
     'arn:aws:secretsmanager:us-east-1:123456789012:secret:snowflake-oauth-Kp7mQ2',
