@@ -207,10 +207,11 @@ function AddConnection({ onClose }: { onClose: () => void }) {
       {/* Reserved, not omitted: the field is known to belong here, and leaving
           the row out would read as "an exchange has no administrator". What is
           undecided is the grain, so nothing is offered to pick from.
-          `readOnly` rather than `disabled`: the helper text is the whole point of
-          the field, and a disabled input leaves the tab order, taking its
-          `aria-describedby` out of reach of a keyboard reader. */}
+          Read-only and not disabled so the sentence stays reachable; MUI only
+          emits the helper text's `aria-describedby` when the field carries an
+          `id`, so one is set here. */}
       <M.TextField
+        id="dpc-administered-by"
         label="Administered by"
         value=""
         placeholder="Reserved"

@@ -225,9 +225,14 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
       expect(utils.getByText(/^Reserved\./)).toBeTruthy()
       const field = utils.getByPlaceholderText('Reserved') as HTMLInputElement
       // Read-only, not disabled: it must stay in the tab order for the helper
-      // text to reach a keyboard reader.
+      // text to reach a keyboard reader, which needs the description wired up.
       expect(field.readOnly).toBe(true)
       expect(field.disabled).toBe(false)
+      const describedBy = field.getAttribute('aria-describedby')
+      expect(describedBy).toBeTruthy()
+      expect(document.getElementById(describedBy as string)?.textContent).toMatch(
+        /^Reserved\./,
+      )
     })
 
     it('disables saving, with the reason', () => {

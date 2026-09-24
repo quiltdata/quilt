@@ -48,8 +48,7 @@ const CONNECTOR_TYPE_OF: Record<PlatformKind, ConnectorType> = {
 
 /** Falls back to the stored kind: settings can name a platform this build does not know. */
 export function connectorTypeLabelFor(platform: PlatformKind): string {
-  const type = CONNECTOR_TYPE_OF[platform]
-  return type ? CONNECTOR_TYPE_LABEL[type] : platform
+  return CONNECTOR_TYPE_LABEL[CONNECTOR_TYPE_OF[platform]] ?? platform
 }
 
 /**
@@ -68,8 +67,21 @@ export const CONNECTOR_ACCESS_LABEL: Record<ConnectorAccess, string> = {
   BOTH: 'Publish and subscribe',
 }
 
-/** Least to most access, which is the order the picker offers them in. */
-export const CONNECTOR_ACCESS_ORDER: ConnectorAccess[] = ['SUBSCRIBE', 'PUBLISH', 'BOTH']
+/**
+ * Least to most access, which is the order the picker offers them in.
+ *
+ * Keyed by `ConnectorAccess` so a new level cannot be added without being given
+ * a position, which a bare array would let it miss.
+ */
+const CONNECTOR_ACCESS_RANK: Record<ConnectorAccess, number> = {
+  SUBSCRIBE: 0,
+  PUBLISH: 1,
+  BOTH: 2,
+}
+
+export const CONNECTOR_ACCESS_ORDER: ConnectorAccess[] = (
+  Object.keys(CONNECTOR_ACCESS_RANK) as ConnectorAccess[]
+).sort((a, b) => CONNECTOR_ACCESS_RANK[a] - CONNECTOR_ACCESS_RANK[b])
 
 /**
  * Never an empty string: a bare middot after the type would read as "no
