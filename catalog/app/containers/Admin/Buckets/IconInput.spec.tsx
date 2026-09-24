@@ -1,18 +1,44 @@
 import * as React from 'react'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import * as RF from 'react-final-form'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
 // The cropper needs layout and a canvas, neither of which jsdom has; the crop
-// itself is covered by iconCrop.spec.ts and the browser harness.
-vi.mock('react-easy-crop', () => ({ default: () => null }))
+// itself is covered by iconCrop.spec.ts and the browser harness. The stub reports
+// a crop area on mount, which is what enables the dialog's confirm button.
+const CROP_AREA = { x: 0, y: 0, width: 200, height: 200 }
+vi.mock('react-easy-crop', () => {
+  // Named, because the hook below is only legal inside a component the linter can
+  // recognise as one.
+  function CropperStub({
+    onCropComplete,
+  }: {
+    onCropComplete: (a: unknown, b: unknown) => void
+  }) {
+    React.useEffect(() => {
+      onCropComplete(CROP_AREA, CROP_AREA)
+    }, [onCropComplete])
+    return <div data-testid="cropper" />
+  }
+  return { default: CropperStub }
+})
 
 vi.mock('components/BucketIcon', () => ({
   default: ({ src, tintKey }: { src: string | null; tintKey: string }) => (
     <div data-testid="preview" data-src={src ?? ''} data-tint={tintKey} />
   ),
+}))
+
+// The canvas work is covered by iconCrop.spec.ts and the browser harness; here it
+// is stubbed so the dialog's own wiring can be exercised in jsdom, which has no
+// canvas and would fail every encode.
+const cropToDataUrl = vi.fn<(src: string, area: unknown) => Promise<string>>()
+const probeWithinPixelBudget = vi.fn<(src: string) => Promise<boolean>>()
+vi.mock('./iconCrop', () => ({
+  cropToDataUrl: (src: string, area: unknown) => cropToDataUrl(src, area),
+  probeWithinPixelBudget: (src: string) => probeWithinPixelBudget(src),
 }))
 
 import IconInput from './IconInput'
@@ -48,6 +74,11 @@ const urlField = (q: ReturnType<typeof render>) =>
   q.getByPlaceholderText('e.g. https://some-cdn.com/icon.png') as HTMLInputElement
 
 describe('containers/Admin/Buckets/IconInput', () => {
+  beforeEach(() => {
+    cropToDataUrl.mockReset()
+    probeWithinPixelBudget.mockReset()
+    probeWithinPixelBudget.mockResolvedValue(true)
+  })
   afterEach(cleanup)
 
   it('tints the preview by bucket name, not by title', () => {
@@ -147,5 +178,99 @@ describe('containers/Admin/Buckets/IconInput', () => {
     // without this the focusable target announces only its caption.
     const q = render(<Harness initial="" />)
     expect(q.getByLabelText('Upload a bucket icon: PNG, JPEG, WebP or GIF')).toBeDefined()
+  })
+
+  describe('the crop dialog', () => {
+    const png = (name = 'logo.png') => new File(['binary'], name, { type: 'image/png' })
+
+    async function drop(q: ReturnType<typeof render>, file: File) {
+      const input = q.getByLabelText(
+        'Upload a bucket icon: PNG, JPEG, WebP or GIF',
+      ) as HTMLInputElement
+      Object.defineProperty(input, 'files', { value: [file], configurable: true })
+      await act(async () => {
+        fireEvent.drop(input)
+      })
+    }
+
+    it('opens on an accepted drop, once the pixel screen passes', async () => {
+      probeWithinPixelBudget.mockResolvedValue(true)
+      const q = render(<Harness initial="" />)
+      await drop(q, png())
+      expect(q.getByText('Crop icon')).toBeDefined()
+    })
+
+    it('stays shut and names the constraint when the screen refuses', async () => {
+      probeWithinPixelBudget.mockResolvedValue(false)
+      const q = render(<Harness initial="" />)
+      await drop(q, png())
+      expect(q.queryByText('Crop icon')).toBeNull()
+      expect(q.getByText('Choose an image with fewer pixels')).toBeDefined()
+    })
+
+    it('reports a source it cannot read at all', async () => {
+      probeWithinPixelBudget.mockRejectedValue(new Error('decode failed'))
+      const q = render(<Harness initial="" />)
+      await drop(q, png())
+      expect(q.getByText('Could not read that image')).toBeDefined()
+    })
+
+    it('forwards the encoded crop to the field', async () => {
+      probeWithinPixelBudget.mockResolvedValue(true)
+      cropToDataUrl.mockResolvedValue('data:image/png;base64,ENCODED')
+      const q = render(<Harness initial="" />)
+      await drop(q, png())
+      await act(async () => {
+        fireEvent.click(q.getByText('Use icon'))
+      })
+      expect(cropToDataUrl).toHaveBeenCalledWith(expect.any(String), CROP_AREA)
+      expect(q.getByTestId('preview').dataset.src).toBe('data:image/png;base64,ENCODED')
+      expect(q.queryByText('Crop icon')).toBeNull()
+    })
+
+    it('leaves the field alone on cancel', async () => {
+      probeWithinPixelBudget.mockResolvedValue(true)
+      const q = render(<Harness initial="https://cdn.example.com/i.png" />)
+      await drop(q, png())
+      await act(async () => {
+        fireEvent.click(q.getByText('Cancel'))
+      })
+      expect(cropToDataUrl).not.toHaveBeenCalled()
+      expect(urlField(q).value).toBe('https://cdn.example.com/i.png')
+      expect(q.queryByText('Crop icon')).toBeNull()
+    })
+
+    it('keeps a failed encode readable after the dialog closes', async () => {
+      // The refusal is the admin's cue to pick another image, so it has to outlive
+      // the dialog that reported it rather than vanishing with it.
+      probeWithinPixelBudget.mockResolvedValue(true)
+      cropToDataUrl.mockRejectedValue(new Error('This image is too detailed'))
+      const q = render(<Harness initial="" />)
+      await drop(q, png())
+      await act(async () => {
+        fireEvent.click(q.getByText('Use icon'))
+      })
+      // Reported in the dialog first, and retained once it is dismissed.
+      expect(q.getByText('This image is too detailed')).toBeDefined()
+      await act(async () => {
+        fireEvent.click(q.getByText('Cancel'))
+      })
+      expect(q.queryByText('Crop icon')).toBeNull()
+      expect(q.getByText('This image is too detailed')).toBeDefined()
+    })
+
+    it('warns that only a GIF first frame survives', async () => {
+      probeWithinPixelBudget.mockResolvedValue(true)
+      const q = render(<Harness initial="" />)
+      await drop(q, new File(['x'], 'anim.gif', { type: 'image/gif' }))
+      expect(q.getByText(/only this GIF's first frame is kept/)).toBeDefined()
+    })
+
+    it('says nothing about frames for a still image', async () => {
+      probeWithinPixelBudget.mockResolvedValue(true)
+      const q = render(<Harness initial="" />)
+      await drop(q, png())
+      expect(q.queryByText(/first frame/)).toBeNull()
+    })
   })
 })
