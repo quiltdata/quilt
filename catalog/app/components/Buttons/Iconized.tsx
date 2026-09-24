@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 
 import type * as SvgIcons from '@material-ui/icons'
 
+import * as Column from 'components/Layout/Column'
+
 export type SvgIcon = typeof SvgIcons.AddOutlined | typeof SvgIcons.GetAppOutlined
 
 export type StrIcon =
@@ -60,8 +62,7 @@ export default function ButtonIconized({
   variant = 'outlined',
   ...props
 }: ButtonIconizedProps) {
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const sm = Column.useDown('sm')
 
   return sm ? (
     <M.IconButton className={className} edge="end" size="small" title={label} {...props}>

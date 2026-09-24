@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Buttons from 'components/Buttons'
+import * as Column from 'components/Layout/Column'
 import * as Preview from 'components/Preview'
 import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
 import AsyncResult from 'utils/AsyncResult'
@@ -36,10 +37,10 @@ const extractSummary = R.applySpec({
 const Container = M.styled(M.Card)(({ theme: t }) => ({
   position: 'relative',
   zIndex: 1,
-  [t.breakpoints.down('xs')]: {
+  [Column.down('xs')]: {
     borderRadius: 0,
   },
-  [t.breakpoints.up('sm')]: {
+  [Column.up('sm')]: {
     marginTop: t.spacing(2),
   },
 }))

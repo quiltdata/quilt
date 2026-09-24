@@ -124,7 +124,7 @@ export function Layout({
   const classes = useShellStyles()
   const compact = useCompactShell()
   const reflow = usePanelReflow()
-  const mainRef = React.useRef<HTMLElement>(null)
+  const [mainEl, setMainEl] = React.useState<HTMLElement | null>(null)
   const [navOpen, setNavOpen] = React.useState(false)
   const closeNav = React.useCallback(() => setNavOpen(false), [])
   const openNav = React.useCallback(() => setNavOpen(true), [])
@@ -154,8 +154,8 @@ export function Layout({
         bgcolor={dark ? 'primary.main' : 'background.default'}
       >
         <Sidebar compact={compact} open={navOpen} onClose={closeNav} />
-        <M.Box component="main" className={classes.main} {...{ ref: mainRef }}>
-          <Column.Provider target={mainRef}>
+        <M.Box component="main" className={classes.main} {...{ ref: setMainEl }}>
+          <Column.Provider target={mainEl}>
             {/* The menu button exists only in the compact shell: on a wide
                 viewport the rail is always on screen, so it would toggle nothing. */}
             <ContentBar onMenu={compact ? openNav : undefined} />

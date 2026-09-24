@@ -5,6 +5,7 @@ import * as R from 'ramda'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import * as Pagination from 'components/Pagination'
 import Thumbnail from 'components/Thumbnail'
 import Skel from 'components/Skeleton'
@@ -21,13 +22,13 @@ const useImageGridStyles = M.makeStyles((t) => ({
     gridColumnGap: t.spacing(2),
     gridRowGap: t.spacing(2),
     gridTemplateColumns: '1fr',
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       gridTemplateColumns: '1fr 1fr 1fr',
     },
-    [t.breakpoints.up('md')]: {
+    [Column.up('md')]: {
       gridTemplateColumns: '1fr 1fr 1fr 1fr',
     },
-    [t.breakpoints.up('lg')]: {
+    [Column.up('lg')]: {
       gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
     },
   },

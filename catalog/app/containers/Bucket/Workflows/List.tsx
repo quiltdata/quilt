@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import * as GQL from 'utils/GraphQL'
 import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -222,11 +223,11 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(2),
     gridTemplateColumns: 'repeat(3, 1fr)',
 
-    [t.breakpoints.down(1100)]: {
+    [Column.down('md')]: {
       gridTemplateColumns: 'repeat(2, 1fr)',
     },
 
-    [t.breakpoints.down(700)]: {
+    [Column.down('xs')]: {
       gridTemplateColumns: '1fr',
     },
   },

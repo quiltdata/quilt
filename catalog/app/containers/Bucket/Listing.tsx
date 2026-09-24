@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
+import * as Column from 'components/Layout/Column'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -294,7 +295,7 @@ const usePaginationStyles = M.makeStyles((t) => ({
     fontSize: 'inherit',
     marginRight: t.spacing(2),
 
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       display: 'none',
     },
   },
@@ -737,7 +738,7 @@ const useFooterStyles = M.makeStyles((t) => ({
     alignItems: 'inherit',
     display: 'inherit',
 
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       display: 'none',
     },
   },
@@ -762,7 +763,7 @@ const useFooterStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     width: COL_MODIFIED_W,
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       width: COL_MODIFIED_W_SM,
     },
   },
@@ -961,7 +962,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     zIndex: 1, // to prevent receiveing shadow from footer
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
   },
@@ -1099,8 +1100,7 @@ export function Listing({
   hideSize = false,
 }: ListingProps) {
   const classes = useStyles()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const sm = Column.useDown('sm')
   const { prefs } = BucketPreferences.use()
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)

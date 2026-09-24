@@ -225,6 +225,7 @@
     "webpack-dev-server": "^5.2.5"
   },
   "overrides": {
-    "jss": "$jss"
+    "jss": "$jss",
+    "rrweb-cssom": "0.8.0"
   }
 }

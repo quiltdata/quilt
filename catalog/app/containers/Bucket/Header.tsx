@@ -3,6 +3,7 @@ import * as RRDom from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -104,8 +105,12 @@ const useStatsStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
     display: 'flex',
-    gap: t.spacing(4),
+    flexWrap: 'wrap',
+    gap: t.spacing(2),
     justifyContent: 'flex-end',
+    [Column.up('sm')]: {
+      gap: t.spacing(4),
+    },
   },
 }))
 
@@ -185,7 +190,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       flexDirection: 'row',
       justifyContent: 'space-between',
     },

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Column from 'components/Layout/Column'
 import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
 import useSearchState from 'components/SearchBar/State'
 import * as style from 'constants/style'
@@ -29,6 +30,10 @@ const useStyles = M.makeStyles((t) => ({
     minHeight: 64,
     paddingLeft: t.spacing(3),
     paddingRight: t.spacing(3),
+    [Column.down('xs')]: {
+      paddingLeft: t.spacing(2),
+      paddingRight: t.spacing(2),
+    },
   },
   // Only rendered in the compact shell, where the rail is an overlay: this is
   // the only way back to navigation, so it leads the bar.
@@ -80,6 +85,9 @@ const useStyles = M.makeStyles((t) => ({
     height: 20,
     justifyContent: 'center',
     width: 20,
+    [Column.down('xs')]: {
+      display: 'none',
+    },
   },
   // The dropdown is portaled (M.Popper) so it floats above the per-bucket tabs
   // bar instead of being clipped by it.

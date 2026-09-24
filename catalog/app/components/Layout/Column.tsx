@@ -38,7 +38,9 @@ const bandOf = (width: number): Breakpoint => {
 const Ctx = React.createContext<Breakpoint | null>(null)
 
 interface ProviderProps {
-  target: React.RefObject<HTMLElement>
+  // The element, not a ref: a parent's ref is attached after its children's
+  // layout effects run, so a ref read there is still null.
+  target: HTMLElement | null
   children: React.ReactNode
 }
 
@@ -46,11 +48,10 @@ interface ProviderProps {
 export function Provider({ target, children }: ProviderProps) {
   const [band, setBand] = React.useState<Breakpoint | null>(null)
   React.useLayoutEffect(() => {
-    const el = target.current
-    if (!el || typeof ResizeObserver === 'undefined') return
-    setBand(bandOf(el.clientWidth))
+    if (!target || typeof ResizeObserver === 'undefined') return
+    setBand(bandOf(target.clientWidth))
     const ro = new ResizeObserver(([entry]) => setBand(bandOf(entry.contentRect.width)))
-    ro.observe(el)
+    ro.observe(target)
     return () => ro.disconnect()
   }, [target])
   return <Ctx.Provider value={band}>{children}</Ctx.Provider>
