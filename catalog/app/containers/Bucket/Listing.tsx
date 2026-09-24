@@ -9,6 +9,7 @@ import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
 import * as Column from 'components/Layout/Column'
+import * as Pointer from 'components/Layout/Pointer'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -179,6 +180,10 @@ const usePrefixFilterStyles = M.makeStyles((t) => ({
     minWidth: 'auto',
     paddingBottom: 0,
     paddingTop: 2,
+    [Pointer.COARSE]: {
+      minHeight: Pointer.TOUCH_TARGET,
+      paddingBottom: 2,
+    },
   },
   clearIcon: {
     // `!important` beats MUI's own `.MuiSvgIcon-fontSizeSmall` rule on the
@@ -302,6 +307,12 @@ const usePaginationStyles = M.makeStyles((t) => ({
   button: {
     color: t.palette.action.active,
     minWidth: t.spacing(4),
+    // The pager is a row of small squares -- the one control a finger is most
+    // likely to miss.
+    [Pointer.COARSE]: {
+      minHeight: Pointer.TOUCH_TARGET,
+      minWidth: Pointer.TOUCH_TARGET,
+    },
   },
   current: {
     color: t.palette.text.primary,
@@ -384,6 +395,7 @@ function Pagination({
         </M.Select>
       )}
       <M.IconButton
+        className={classes.button}
         size="small"
         disabled={page === 1}
         onClick={() => setPage(page - 1)}
@@ -403,6 +415,7 @@ function Pagination({
         </M.Button>
       )}
       <M.IconButton
+        className={classes.button}
         size="small"
         disabled={page === pages}
         onClick={() => setPage(page + 1)}
@@ -976,6 +989,10 @@ const useStyles = M.makeStyles((t) => ({
     },
     '& .MuiDataGrid-checkboxInput': {
       padding: 7,
+      // Grows the hit area, not the glyph: 18px + 2x13 clears the touch floor.
+      [Pointer.COARSE]: {
+        padding: 13,
+      },
       '& svg': {
         fontSize: 18,
       },
@@ -1101,6 +1118,7 @@ export function Listing({
 }: ListingProps) {
   const classes = useStyles()
   const sm = Column.useDown('sm')
+  const coarse = Pointer.useCoarse()
   const { prefs } = BucketPreferences.use()
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
@@ -1298,7 +1316,9 @@ export function Listing({
         onPageChange={handlePageChange}
         loading={locked || filteredToZero}
         headerHeight={36}
-        rowHeight={36}
+        // A prop, not a style: the grid computes its scroll geometry from this,
+        // so a CSS override would desynchronise virtualisation from the rows.
+        rowHeight={coarse ? Pointer.TOUCH_TARGET : 36}
         disableSelectionOnClick
         disableColumnSelector
         disableColumnResize

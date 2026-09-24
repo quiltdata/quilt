@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as Column from 'components/Layout/Column'
+import * as Pointer from 'components/Layout/Pointer'
 import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
 import useSearchState from 'components/SearchBar/State'
 import * as style from 'constants/style'
@@ -53,6 +54,10 @@ const useStyles = M.makeStyles((t) => ({
   field: {
     backgroundColor: t.palette.common.white,
     fontSize: t.typography.body2.fontSize,
+    // The one field in the chrome: a finger has to land in it, not near it.
+    [Pointer.COARSE]: {
+      minHeight: Pointer.TOUCH_TARGET,
+    },
     '& $outline': {
       borderColor: fade(t.palette.common.black, 0.38),
       transition: t.transitions.create('border-color', { duration: 150 }),

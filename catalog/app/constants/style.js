@@ -73,6 +73,34 @@ const overrides = {
       },
     },
   },
+  // The touch floor, applied once at the theme: `size="small"` controls land at
+  // 26-37px, which a finger misses. A coarse pointer cannot be aimed like a
+  // mouse, so the query -- not the viewport -- decides; a narrow column on a
+  // desktop keeps the dense instrument. Padding, not height: it grows the hit
+  // area without moving the glyph, and it reaches controls inside dialogs and
+  // menus, which a container query cannot see.
+  MuiIconButton: {
+    sizeSmall: {
+      '@media (pointer: coarse)': {
+        padding: 12,
+      },
+    },
+  },
+  MuiButton: {
+    root: {
+      '@media (pointer: coarse)': {
+        minHeight: 44,
+      },
+    },
+  },
+  MuiToggleButton: {
+    sizeSmall: {
+      '@media (pointer: coarse)': {
+        height: 44,
+        minWidth: 44,
+      },
+    },
+  },
 }
 
 const mixins = {

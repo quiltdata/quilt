@@ -22,6 +22,7 @@ complete sentence without it.
 ## Changes
 
 - [Added] Admin buckets: a bucket icon can be uploaded and cropped in the form itself, so an admin with an image file no longer has to host it somewhere first and paste its URL ([#5333](https://github.com/quiltdata/quilt/pull/5333))
+- [Fixed] Touch targets on phones and tablets clear 44px — listing rows, row actions, pagination, toolbar buttons and the search field — while a mouse keeps the dense layout at any width; the rail, the Qurator panel and the scroll-to-top button clear a notched phone's safe areas ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Fixed] Search: the "scroll to the top" button appears again and works, after the page content moved into its own scrolling column ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Fixed] Page layouts respond to the width of the content column instead of the viewport, so opening the Qurator panel no longer squashes the file listing, package pages and search into a wide-screen layout at a phone's width; the docked panel is capped at 40% of the viewport and the phone overlay takes the full width ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Changed] Qurator opens as a right side panel that pushes page content aside instead of an overlay that covers it, so the chat and the data it is about are readable at once; it still defaults closed, and narrow viewports keep the overlay ([#5312](https://github.com/quiltdata/quilt/pull/5312))

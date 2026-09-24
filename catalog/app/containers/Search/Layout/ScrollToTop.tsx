@@ -8,7 +8,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'fixed',
     left: '50%',
-    bottom: t.spacing(3),
+    bottom: `calc(${t.spacing(3)}px + env(safe-area-inset-bottom))`,
     transform: `translateX(-50%)`,
     animation: t.transitions.create('$slide'),
     zIndex: 1,

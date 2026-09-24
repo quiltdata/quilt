@@ -42,6 +42,8 @@ const usePanelStyles = M.makeStyles((t) => ({
   },
   // The overlay takes the whole phone; on a tablet it stops at the chat's cap.
   paperCompact: {
+    paddingBottom: 'env(safe-area-inset-bottom)',
+    paddingRight: 'env(safe-area-inset-right)',
     width: 'min(40rem, 100vw)',
   },
 }))

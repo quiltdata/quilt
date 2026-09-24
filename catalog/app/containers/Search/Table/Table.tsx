@@ -7,6 +7,7 @@ import * as Icons from '@material-ui/icons'
 import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
+import * as Pointer from 'components/Layout/Pointer'
 import { docs } from 'constants/urls'
 import * as Buckets from 'utils/Buckets'
 import StyledLink from 'utils/StyledLink'
@@ -896,6 +897,10 @@ const useConfigureColumnsButtonStyles = M.makeStyles((t) => ({
     color: t.palette.primary.main,
     height: t.spacing(5),
     width: t.spacing(5),
+    [Pointer.COARSE]: {
+      height: Pointer.TOUCH_TARGET,
+      width: Pointer.TOUCH_TARGET,
+    },
   },
   badge: {
     background: t.palette.secondary.main,

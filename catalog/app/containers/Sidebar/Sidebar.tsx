@@ -95,6 +95,8 @@ const useStyles = M.makeStyles((t) => {
     drawerPaper: {
       background: t.palette.primary.main,
       border: 0,
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      paddingLeft: 'env(safe-area-inset-left)',
       width: `min(${t.spacing(32)}px, 85vw)`,
     },
     // The brand row is brand only: the collapse control rides the rail's right

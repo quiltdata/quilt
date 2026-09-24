@@ -11,6 +11,7 @@ import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Pointer from 'components/Layout/Pointer'
 import * as s3paths from 'utils/s3paths'
 
 import DeleteDialog, { type DeleteResult } from './Toolbar/DeleteDialog'
@@ -24,6 +25,10 @@ import * as FileView from './FileView'
 const useButtonStyles = M.makeStyles({
   root: {
     padding: '5px',
+    // Row actions are the smallest thing a finger has to hit in a listing.
+    [Pointer.COARSE]: {
+      padding: '10px',
+    },
   },
 })
 
