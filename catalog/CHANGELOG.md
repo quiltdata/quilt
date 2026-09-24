@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Bucket header: the title, stats readouts, and actions lay out on explicit responsive tiers — one calm row when wide (the title truncates first), stats on their own line at medium widths, a compact readout grid on narrow screens — and the settings sprocket moves to the card's far edge behind a hairline divider ([#5226](https://github.com/quiltdata/quilt/pull/5226))
 - [Changed] ECharts previews of chart JSON in a bucket draw with ECharts 6's default theme, so a chart that did not set its own colors or legend position changes palette and puts the legend at the bottom ([#5073](https://github.com/quiltdata/quilt/pull/5073))
 - [Changed] Qurator sits on the right as a collapsed rail instead of vanishing when closed, expanding to the full panel on click and pushing page content aside rather than covering it; narrow viewports keep the overlay ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Added] Qurator instructions are a stack-wide setting admins edit from Admin → Settings or the chat strip, layered with each user's own personal instructions ([#5326](https://github.com/quiltdata/quilt/pull/5326))

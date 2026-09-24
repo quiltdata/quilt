@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as redux from 'react-redux'
@@ -103,10 +104,28 @@ function TabulatorItemWrapper({ bucket }: { bucket: string }) {
 const useStatsStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
+    columnGap: t.spacing(3),
     display: 'flex',
-    gap: t.spacing(4),
+    flexWrap: 'nowrap',
     justifyContent: 'flex-end',
+    rowGap: t.spacing(1),
+    [t.breakpoints.down(1300)]: {
+      flexWrap: 'wrap',
+      justifyContent: 'flex-start',
+      '& $create': {
+        marginLeft: 'auto',
+      },
+    },
+    [t.breakpoints.down(640)]: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+      '& $create': {
+        gridColumn: '1 / -1',
+        marginLeft: 0,
+      },
+    },
   },
+  create: {},
 }))
 
 interface StatsProps {
@@ -148,16 +167,17 @@ function Stats({ bucket, stats }: StatsProps) {
         <StatsItemSkeleton />
       )}
       {queriesEnabled && <TabulatorItemWrapper bucket={bucket} />}
-      <CreatePackage bucket={bucket} />
+      <CreatePackage bucket={bucket} className={classes.create} />
     </div>
   )
 }
 
 interface CreatePackageProps {
   bucket: string
+  className?: string
 }
 
-function CreatePackage({ bucket }: CreatePackageProps) {
+function CreatePackage({ bucket, className }: CreatePackageProps) {
   const dst = React.useMemo(() => ({ bucket }), [bucket])
   const createDialog = PD.useCreateDialog({
     dst,
@@ -166,7 +186,12 @@ function CreatePackage({ bucket }: CreatePackageProps) {
   })
   return (
     <>
-      <M.Button color="primary" variant="contained" onClick={() => createDialog.open()}>
+      <M.Button
+        className={className}
+        color="primary"
+        variant="contained"
+        onClick={() => createDialog.open()}
+      >
         Create package
       </M.Button>
       {createDialog.render({
@@ -181,23 +206,65 @@ function CreatePackage({ bucket }: CreatePackageProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  // Tier cutoffs are viewport-based, but the card's width is viewport minus
+  // the shell chrome (256px rail above 960px + paddings), so the never-wrap
+  // row engages only where it always fits (≥1300px ≈ 950px of card). Below
+  // that the stacked tiers tolerate any width.
   root: {
     alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    [t.breakpoints.up('sm')]: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+    columnGap: t.spacing(3),
+    display: 'grid',
+    gridTemplateAreas: '"title stats"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto',
+    [t.breakpoints.down(1300)]: {
+      gridTemplateAreas: '"title" "stats"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: t.spacing(1),
+    },
+  },
+  // The settings column exists only when the settings control renders —
+  // an unconditional track would leave non-admins a phantom 24px gutter.
+  withSettings: {
+    gridTemplateAreas: '"title stats settings"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
+    [t.breakpoints.down(1300)]: {
+      gridTemplateAreas: '"title settings" "stats stats"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
     },
   },
   title: {
-    alignItems: 'center',
-    display: 'flex',
-    flexShrink: 1,
+    gridArea: 'title',
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  // Truncation needs the hover tooltip as its escape hatch; on narrow
+  // (mostly touch) screens there is no hover, so the name wraps instead.
+  titleText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    [t.breakpoints.down(640)]: {
+      overflowWrap: 'anywhere',
+      whiteSpace: 'normal',
+    },
+  },
+  stats: {
+    gridArea: 'stats',
     minWidth: 0,
   },
+  // Settings sits at the card's far edge behind a hairline divider — config
+  // set apart from the bucket's readout, muted until hovered.
   settings: {
-    marginLeft: t.spacing(1),
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    borderLeft: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    gridArea: 'settings',
+    paddingLeft: t.spacing(2),
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
   },
 }))
 
@@ -213,18 +280,24 @@ export default function Header({ bucket }: HeaderProps) {
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   const stats = useStats(bucket)
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, isAdmin && classes.withSettings)}>
       <div className={classes.title}>
-        <M.Typography variant="h5">{bucket}</M.Typography>
-        {isAdmin && (
-          <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-            <M.IconButton size="small" color="inherit">
-              <M.Icon>settings</M.Icon>
-            </M.IconButton>
-          </RRDom.Link>
-        )}
+        <M.Typography variant="h5" className={classes.titleText} title={bucket}>
+          {bucket}
+        </M.Typography>
       </div>
-      <Stats bucket={bucket} stats={stats} />
+      <div className={classes.stats}>
+        <Stats bucket={bucket} stats={stats} />
+      </div>
+      {isAdmin && (
+        <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
+          <M.Tooltip arrow title="Bucket settings" disableTouchListener>
+            <M.IconButton size="small" color="inherit" aria-label="Bucket settings">
+              <M.Icon fontSize="small">settings</M.Icon>
+            </M.IconButton>
+          </M.Tooltip>
+        </RRDom.Link>
+      )}
     </div>
   )
 }
