@@ -195,6 +195,11 @@ const useCopyableIdStyles = M.makeStyles((t) => ({
     '$root:hover &, &:focus-visible': {
       visibility: 'visible',
     },
+    // A finger raises neither hover nor focus-visible, so with no pointer to
+    // reveal it the affordance has to stand at rest instead.
+    '@media (hover: none)': {
+      visibility: 'visible',
+    },
   },
   icon: {
     fontSize: t.typography.body2.fontSize,

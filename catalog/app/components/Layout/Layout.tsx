@@ -55,7 +55,12 @@ const MOTION = '@media (prefers-reduced-motion: no-preference)'
 const useShellStyles = M.makeStyles((t) => ({
   shell: {
     display: 'flex',
-    height: '100vh',
+    // A mobile URL bar counts inside vh but not inside the visible viewport, so
+    // vh alone puts the shell's foot under browser chrome. `fallbacks` (not a
+    // second `height` key, which a JS object would silently drop) keeps vh for
+    // engines without dvh.
+    fallbacks: { height: '100vh' },
+    height: '100dvh',
     overflowX: 'hidden',
     position: 'relative',
     [MOTION]: {
