@@ -2823,6 +2823,41 @@ export default {
             ],
           },
           {
+            name: 'packageDelete',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackageDeleteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'packagePromote',
             type: {
               kind: 'NON_NULL',
@@ -3792,6 +3827,20 @@ export default {
       {
         kind: 'SCALAR',
         name: 'PackageContentsFlatMap',
+      },
+      {
+        kind: 'UNION',
+        name: 'PackageDeleteResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
