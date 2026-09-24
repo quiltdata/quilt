@@ -174,6 +174,8 @@ def delete(id_or_name: str) -> None:
         raise exceptions.RoleNameReservedError(result)
     if typename == "RoleAssigned":
         raise exceptions.RoleAssignedError(result)
+    if typename == "RoleOwnsDataProducts":
+        raise exceptions.RoleOwnsDataProductsError(result)
     if typename == "RoleNameUsedBySsoConfig":
         raise exceptions.RoleSsoConfigConflictError(result)
     raise exceptions.Quilt3AdminError(result)

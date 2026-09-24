@@ -940,12 +940,17 @@ type RoleAssigned {
   _: Boolean
 }
 
+type RoleOwnsDataProducts {
+  _: Boolean
+}
+
 union RoleDeleteResult =
     RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
   | RoleNameUsedBySsoConfig
   | RoleAssigned
+  | RoleOwnsDataProducts
 
 type SsoConfigConflict {
   _: Boolean
@@ -1026,6 +1031,8 @@ union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
   | OperationError
+
+union PackageDeleteResult = Ok | OperationError
 
 union BrowsingSessionCreateResult =
     BrowsingSession
@@ -1126,6 +1133,7 @@ type Mutation {
     name: String!
     hash: String!
   ): PackageRevisionDeleteResult!
+  packageDelete(bucket: String!, name: String!): PackageDeleteResult!
 
   admin: AdminMutations! @admin
 
