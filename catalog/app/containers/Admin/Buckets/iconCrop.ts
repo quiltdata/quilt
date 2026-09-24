@@ -1,8 +1,9 @@
 import type { Area } from 'react-easy-crop'
 
-// No React, MUI or catalog-config imports in this module: the canvas path cannot
-// be exercised under jsdom (getContext('2d') returns null), so it is kept
-// bundleable on its own for a real-browser check.
+// No React, MUI or catalog-config imports in this module, so it compiles on its
+// own for the real-browser check at internals/manual/icon-crop-check.html
+// (`npm run check:icon-crop`) — which is where the canvas path is verified,
+// jsdom having no canvas for the unit tests to use.
 
 // The disc renders at 32px (44px on the Home cards), so 96px covers 2x of the
 // largest slot. Anything bigger just pays bytes in every `buckets` query.
@@ -14,14 +15,16 @@ export const ICON_SIZE = 96
 export const MAX_ICON_DATA_URL_LENGTH = 16 * 1024
 
 /**
- * Clamp a crop rectangle into the source image's real pixel bounds.
+ * Clamp a crop rectangle into the source image's real pixel bounds, keeping it
+ * square.
  *
- * react-easy-crop reports `croppedAreaPixels` from floating-point gesture state,
- * so a crop panned to the edge can land a pixel outside the image (negative
- * origin, or width past naturalWidth). `drawImage` reads those as transparent,
- * putting a hairline of nothing along one edge of the disc. Returns null when
- * nothing usable is left, so the caller reports a failure rather than encoding a
- * blank canvas.
+ * Two reasons it cannot pass the cropper's rect through. A crop panned to the
+ * edge lands a pixel outside the image, and `drawImage` reads outside as
+ * transparent, putting a hairline of nothing along one edge of the disc. And the
+ * caller draws into a fixed square, so trimming the axes independently would hand
+ * it a non-square rect to stretch. Both are why the result is one side: the
+ * largest square that still fits. Null when nothing usable is left, so the caller
+ * reports a failure rather than encoding a blank canvas.
  */
 export function clampArea(
   area: Area,
@@ -30,32 +33,34 @@ export function clampArea(
   if (media.width <= 0 || media.height <= 0) return null
   const x = Math.max(0, Math.min(Math.round(area.x), media.width))
   const y = Math.max(0, Math.min(Math.round(area.y), media.height))
-  const width = Math.min(Math.round(area.width), media.width - x)
-  const height = Math.min(Math.round(area.height), media.height - y)
-  if (width <= 0 || height <= 0) return null
-  return { x, y, width, height }
+  const side = Math.min(
+    Math.round(area.width),
+    Math.round(area.height),
+    media.width - x,
+    media.height - y,
+  )
+  if (side <= 0) return null
+  return { x, y, width: side, height: side }
 }
 
 /**
- * First candidate encoding that fits `budget`, else the smallest one offered.
+ * First candidate encoding that fits `budget`, or null when none does.
  *
  * Candidates are ordered best-fidelity-first (PNG, then JPEG at falling
- * quality). At 96px the last candidate always fits in practice; returning the
- * smallest rather than failing keeps a pathological source from blocking a save
- * outright.
+ * quality). The budget is a bound rather than a preference: the icon is read for
+ * every bucket at once on the volumes landing, so returning an oversized
+ * encoding would defeat the reason the bound exists. A source that cannot be
+ * compressed under it is refused, and the admin is told to pick another image.
  */
 export function pickUnderBudget(
   candidates: readonly (() => string)[],
   budget: number,
 ): string | null {
-  let smallest: string | null = null
   for (const encode of candidates) {
     const out = encode()
-    if (!out) continue
-    if (out.length <= budget) return out
-    if (smallest === null || out.length < smallest.length) smallest = out
+    if (out && out.length <= budget) return out
   }
-  return smallest
+  return null
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -112,9 +117,11 @@ export async function cropToDataUrl(src: string, area: Area): Promise<string> {
   }
 
   const out = pickUnderBudget(
-    [() => png, asJpeg(0.82), asJpeg(0.6)],
+    [() => png, asJpeg(0.82), asJpeg(0.6), asJpeg(0.4)],
     MAX_ICON_DATA_URL_LENGTH,
   )
-  if (!out) throw new Error('Could not encode image')
+  if (!out) {
+    throw new Error('This image is too detailed to store as an icon — try a simpler one')
+  }
   return out
 }

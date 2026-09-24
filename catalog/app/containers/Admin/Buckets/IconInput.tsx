@@ -1,14 +1,25 @@
 import * as React from 'react'
-import { FileWithPath, useDropzone } from 'react-dropzone'
+import { FileRejection, FileWithPath, useDropzone } from 'react-dropzone'
 import Cropper from 'react-easy-crop'
 import type { Area, Point } from 'react-easy-crop'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import BucketIcon from 'components/BucketIcon'
-import { ACCEPTED_LOGO_MIME_TYPES } from 'utils/CatalogSettings'
 
 import { cropToDataUrl } from './iconCrop'
+
+// What the canvas decoder handles and can re-encode, which is this path's only
+// constraint: the crop never reaches S3, so the logo upload's IAM-pinned
+// extension allowlist is not the same list. SVG is out because canvas cannot
+// decode one without a same-origin document; an animated GIF is accepted but
+// only its first frame survives the crop.
+const ACCEPTED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+
+// A 96px square never needs megabytes of source. The cap is on the file rather
+// than the decoded bitmap because decoding is what a huge image kills the tab
+// doing, and only the file size is known before that.
+const MAX_SOURCE_BYTES = 12 * 1024 * 1024
 
 const useCropDialogStyles = M.makeStyles((t) => ({
   cropper: {
@@ -165,27 +176,44 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 type IconInputProps = RF.FieldRenderProps<string> & {
-  bucketTitle?: string
+  // The bucket's name, not its title: it is the tint key every other surface
+  // hashes, so the preview disc matches the row behind it. Absent on the add form,
+  // where there is no bucket yet.
+  bucketName?: string
 }
 
-export default function IconInput({ input, meta, bucketTitle }: IconInputProps) {
+export default function IconInput({ input, meta, bucketName }: IconInputProps) {
   const classes = useStyles()
+  // The live Title, so the initials track what is being typed rather than the last
+  // saved value -- which on the add form does not exist yet.
+  const title = RF.useField<string>('title', { subscription: { value: true } }).input
+    .value
   const [file, setFile] = React.useState<FileWithPath | null>(null)
-  const [rejected, setRejected] = React.useState(false)
+  const [rejected, setRejected] = React.useState<string | null>(null)
   const disabled = meta.submitting || meta.submitSucceeded
 
   const onDrop = React.useCallback((files: FileWithPath[]) => {
     if (!files.length) return
-    setRejected(false)
+    setRejected(null)
     setFile(files[0])
   }, [])
 
+  const onDropRejected = React.useCallback((rejections: FileRejection[]) => {
+    // Name the constraint that actually failed: told "wrong format" after
+    // dropping two correctly-typed files, an admin has no way to find the real one.
+    const code = rejections[0]?.errors[0]?.code
+    if (code === 'too-many-files') setRejected('Choose one image')
+    else if (code === 'file-too-large') setRejected('Choose an image under 12MB')
+    else setRejected('Choose a PNG, JPEG, WebP or GIF image')
+  }, [])
+
   const { getInputProps, getRootProps, isDragActive } = useDropzone({
-    accept: Object.fromEntries(ACCEPTED_LOGO_MIME_TYPES.map((t) => [t, []])),
+    accept: Object.fromEntries(ACCEPTED_IMAGE_MIME_TYPES.map((t) => [t, []])),
     disabled,
     maxFiles: 1,
+    maxSize: MAX_SOURCE_BYTES,
     onDrop,
-    onDropRejected: () => setRejected(true),
+    onDropRejected,
   })
 
   const onConfirm = React.useCallback(
@@ -200,6 +228,11 @@ export default function IconInput({ input, meta, bucketTitle }: IconInputProps) 
   const value: string = input.value || ''
   const uploaded = value.startsWith('data:')
 
+  // Same rule Admin/Form's Field applies, so a validator or a server error mapped
+  // to this field surfaces here as it does on every sibling field.
+  const fieldError =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
+
   return (
     <>
       <div className={classes.root}>
@@ -212,7 +245,8 @@ export default function IconInput({ input, meta, bucketTitle }: IconInputProps) 
           <BucketIcon
             className={classes.preview}
             src={value || null}
-            label={bucketTitle}
+            label={title}
+            tintKey={bucketName || title}
             size={44}
           />
           <M.Typography variant="caption" color="textSecondary">
@@ -223,10 +257,12 @@ export default function IconInput({ input, meta, bucketTitle }: IconInputProps) 
           className={classes.field}
           label="Icon URL (optional)"
           placeholder="e.g. https://some-cdn.com/icon.png"
+          error={!!fieldError}
           helperText={
-            uploaded
+            fieldError ||
+            (uploaded
               ? 'Uploaded image. Drop another to replace it, or clear this to enter a URL.'
-              : 'Drop an image to upload and crop it, or paste a URL.'
+              : 'Drop an image to upload and crop it, or paste a URL.')
           }
           value={uploaded ? '' : value}
           onChange={(e) => input.onChange(e.target.value.trim().slice(0, 1024))}
@@ -253,7 +289,7 @@ export default function IconInput({ input, meta, bucketTitle }: IconInputProps) 
       </div>
       {rejected && (
         <M.FormHelperText error className={classes.note}>
-          Choose a PNG, JPEG, WebP or GIF image
+          {rejected}
         </M.FormHelperText>
       )}
       {file && (

@@ -673,7 +673,7 @@ function PrimaryForm({ bucket }: PrimaryFormProps) {
         fullWidth
         margin={bucket ? 'none' : 'normal'}
       />
-      <RF.Field component={IconInput} name="iconUrl" bucketTitle={bucket?.title} />
+      <RF.Field component={IconInput} name="iconUrl" bucketName={bucket?.name} />
       <RF.Field
         component={Form.Field}
         name="description"

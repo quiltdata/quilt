@@ -6,20 +6,24 @@ describe('containers/Admin/Buckets/iconCrop', () => {
   describe('clampArea', () => {
     const media = { width: 200, height: 100 }
 
-    it('passes an in-bounds area through, rounded', () => {
-      expect(clampArea({ x: 10.4, y: 20.6, width: 50.2, height: 30.8 }, media)).toEqual({
+    it('rounds a fractional in-bounds area to whole pixels', () => {
+      expect(clampArea({ x: 10.4, y: 20.6, width: 40.2, height: 40.2 }, media)).toEqual({
         x: 10,
         y: 21,
-        width: 50,
-        height: 31,
+        width: 40,
+        height: 40,
       })
     })
 
     it('pulls a negative origin back to zero without keeping the overshoot', () => {
       // A crop panned past the left edge: drawImage would read the negative
       // strip as transparent and leave a hairline down the disc.
-      const clamped = clampArea({ x: -8, y: -3, width: 60, height: 60 }, media)
-      expect(clamped).toEqual({ x: 0, y: 0, width: 60, height: 60 })
+      expect(clampArea({ x: -8, y: -3, width: 60, height: 60 }, media)).toEqual({
+        x: 0,
+        y: 0,
+        width: 60,
+        height: 60,
+      })
     })
 
     it('trims an area that runs past the right and bottom edges', () => {
@@ -28,6 +32,37 @@ describe('containers/Admin/Buckets/iconCrop', () => {
         y: 80,
         width: 20,
         height: 20,
+      })
+    })
+
+    it('stays square when only one axis overshoots', () => {
+      // The caller draws into a fixed square, so an area trimmed on one axis
+      // alone would be stretched into it. 20 wide and 60 tall renders as a 3x
+      // horizontal stretch with nothing reporting a problem.
+      expect(clampArea({ x: 180, y: 0, width: 60, height: 60 }, media)).toEqual({
+        x: 180,
+        y: 0,
+        width: 20,
+        height: 20,
+      })
+      expect(clampArea({ x: 0, y: 60, width: 80, height: 80 }, media)).toEqual({
+        x: 0,
+        y: 60,
+        width: 40,
+        height: 40,
+      })
+    })
+
+    it('returns a square for every area it accepts', () => {
+      const areas = [
+        { x: 0, y: 0, width: 10, height: 90 },
+        { x: -40, y: 70, width: 150, height: 150 },
+        { x: 199, y: 0, width: 5, height: 99 },
+        { x: 12.7, y: 3.2, width: 61.9, height: 8.4 },
+      ]
+      areas.forEach((a) => {
+        const out = clampArea(a, media)
+        if (out) expect(out.width).toBe(out.height)
       })
     })
 
@@ -66,8 +101,10 @@ describe('containers/Admin/Buckets/iconCrop', () => {
       expect(pickUnderBudget([of(100), of(30), of(10)], 50)).toHaveLength(30)
     })
 
-    it('returns the smallest candidate when none fit, rather than blocking a save', () => {
-      expect(pickUnderBudget([of(100), of(70), of(90)], 50)).toHaveLength(70)
+    it('refuses rather than returning an oversized encoding', () => {
+      // The budget is a bound: the icon is read for every bucket at once on the
+      // volumes landing, so handing back the smallest overshoot would defeat it.
+      expect(pickUnderBudget([of(100), of(70), of(90)], 50)).toBeNull()
     })
 
     it('skips candidates that encode to nothing', () => {
