@@ -316,7 +316,10 @@ export default function IconInput({
           placeholder="e.g. https://some-cdn.com/icon.png"
           error={!!fieldError}
           helperText={
-            (fieldError && (errors[fieldError as string] || fieldError)) ||
+            (fieldError &&
+              (typeof fieldError === 'string'
+                ? errors[fieldError] || fieldError
+                : fieldError)) ||
             (uploaded
               ? 'Uploaded image. Drop another to replace it, or clear this to enter a URL.'
               : 'Drop an image to upload and crop it, or paste a URL.')

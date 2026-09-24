@@ -24,12 +24,16 @@ export function fitsPixelBudget(media: { width: number; height: number }): boole
 }
 
 /**
- * Decode `src` far enough to read its dimensions and report whether it is within
- * the pixel budget.
+ * Report whether `src` is within the pixel budget.
  *
- * The caller screens a file here, before the cropper renders it: an `<img>` the
- * cropper mounts decodes the whole bitmap, so a guard downstream of that would
- * run after the memory was already spent.
+ * Called before the crop dialog mounts, which is what makes it worth having: the
+ * cropper and the encode each decode the image again, so screening here turns
+ * three decodes of an oversized source into one.
+ *
+ * ponytail: that one decode still allocates the full bitmap, so a source far past
+ * the budget can exhaust the tab inside this probe. Reading the intrinsic size
+ * without decoding needs `ImageDecoder`, or parsing dimensions out of the
+ * container header; either is the upgrade if this guard proves insufficient.
  */
 export async function probeWithinPixelBudget(src: string): Promise<boolean> {
   const img = await loadImage(src)
