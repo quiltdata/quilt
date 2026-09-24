@@ -145,6 +145,11 @@ function ConnectionRow({ connection }: { connection: DP.Connection }) {
  * uniform "Connect with OAuth" button would be inventing a capability for two of
  * the three.
  */
+// The form is rendered once at a time, so fixed ids are enough to tie each
+// select's description to the node that takes focus.
+const PLATFORM_HELPER_ID = 'dpc-platform-helper-text'
+const ACCESS_HELPER_ID = 'dpc-access-helper-text'
+
 function AddConnection({ onClose }: { onClose: () => void }) {
   const classes = useStyles()
   const [platform, setPlatform] = React.useState<DP.PlatformKind>('unity-schema')
@@ -177,9 +182,17 @@ function AddConnection({ onClose }: { onClose: () => void }) {
         // than asked for: a second select the admin has to keep in sync with
         // this one can only ever disagree with it.
         helperText={`Connector type: ${DP.connectorTypeLabelFor(platform)}`}
+        FormHelperTextProps={{ id: PLATFORM_HELPER_ID }}
         // MUI v4's `select` renders a hidden input the label is not associated
-        // with, so a testid on the visible trigger is the stable handle.
-        SelectProps={{ 'data-testid': 'dpc-platform' } as $TSFixMe}
+        // with, so a testid on the visible trigger is the stable handle. The
+        // description goes on that same trigger, not on the Select: the hidden
+        // input is not what a keyboard reader focuses.
+        SelectProps={
+          {
+            'data-testid': 'dpc-platform',
+            SelectDisplayProps: { 'aria-describedby': PLATFORM_HELPER_ID },
+          } as $TSFixMe
+        }
       >
         {(Object.keys(CONNECTION_LABEL) as DP.PlatformKind[]).map((k) => (
           <M.MenuItem key={k} value={k}>
@@ -195,7 +208,13 @@ function AddConnection({ onClose }: { onClose: () => void }) {
         onChange={(e) => setAccess(e.target.value as DP.ConnectorAccess)}
         size="small"
         helperText="Whether this stack may publish to the catalog, subscribe from it, or both."
-        SelectProps={{ 'data-testid': 'dpc-access' } as $TSFixMe}
+        FormHelperTextProps={{ id: ACCESS_HELPER_ID }}
+        SelectProps={
+          {
+            'data-testid': 'dpc-access',
+            SelectDisplayProps: { 'aria-describedby': ACCESS_HELPER_ID },
+          } as $TSFixMe
+        }
       >
         {DP.CONNECTOR_ACCESS_ORDER.map((a) => (
           <M.MenuItem key={a} value={a}>
@@ -324,9 +343,10 @@ export default function DataProductConnections() {
     <>
       <M.Typography variant="body2" color="textSecondary">
         Data products are defined in these catalogs. Quilt reads them; each catalog keeps
-        every access decision. These are connectors — the exchanges this stack publishes
-        to and subscribes from. Connect, which lets agents outside the VPC reach this
-        stack, is a different thing and is not configured here.
+        every access decision. These are connectors — the exchanges this stack shares
+        products through, each publishing, subscribing or both as its access level says.
+        Connect, which lets agents outside the VPC reach this stack, is a different thing
+        and is not configured here.
       </M.Typography>
 
       {/* The stack's own exchange. It has no endpoint and no credential, so it is

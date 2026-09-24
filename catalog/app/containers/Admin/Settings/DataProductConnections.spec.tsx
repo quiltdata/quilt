@@ -235,6 +235,22 @@ describe('containers/Admin/Settings/DataProductConnections', () => {
       )
     })
 
+    it('announces what each select governs to a keyboard reader', () => {
+      // The description has to hang off the focusable trigger, not the hidden
+      // native input MUI renders for a select.
+      const utils = openForm()
+      const described = (testId: string) => {
+        const trigger = utils
+          .getByTestId(testId)
+          .querySelector('[role="button"]') as HTMLElement
+        const id = trigger.getAttribute('aria-describedby')
+        expect(id).toBeTruthy()
+        return document.getElementById(id as string)?.textContent ?? ''
+      }
+      expect(described('dpc-platform')).toMatch(/^Connector type:/)
+      expect(described('dpc-access')).toMatch(/publish to the catalog/)
+    })
+
     it('disables saving, with the reason', () => {
       const { getByText } = openForm()
       const save = getByText('Add connection').closest('button')
