@@ -83,6 +83,17 @@ export class SourceManifestNotLoaded extends BucketError {
   }
 }
 
+/** The loaded manifest describes a package other than the one being published to. */
+export class DestinationManifestMismatch extends BucketError {
+  static displayName = 'DestinationManifestMismatch'
+
+  constructor() {
+    super(
+      'The loaded contents belong to a different package, so pushing is disabled to keep the existing contents of this one from being replaced. Use "load and revise it" beside the name to load this package instead, or enter a name that does not exist yet to create a new package.',
+    )
+  }
+}
+
 interface WhenAuthCases {
   true: () => React.ReactElement
   false: () => React.ReactElement
