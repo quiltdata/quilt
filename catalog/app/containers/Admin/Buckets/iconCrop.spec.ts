@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { MAX_ICON_DATA_URL_LENGTH, clampArea, pickUnderBudget } from './iconCrop'
+import {
+  MAX_ICON_DATA_URL_LENGTH,
+  MAX_SOURCE_PIXELS,
+  clampArea,
+  fitsPixelBudget,
+  pickUnderBudget,
+} from './iconCrop'
 
 describe('containers/Admin/Buckets/iconCrop', () => {
   describe('clampArea', () => {
@@ -26,12 +32,15 @@ describe('containers/Admin/Buckets/iconCrop', () => {
       })
     })
 
-    it('trims an area that runs past the right and bottom edges', () => {
+    it('slides an area that runs past the right and bottom edges back inside', () => {
+      // Kept at 60 rather than trimmed to 20: the output is a fixed square, so a
+      // trimmed region would be upscaled and reach the admin blurrier than the
+      // circle they positioned.
       expect(clampArea({ x: 180, y: 80, width: 60, height: 60 }, media)).toEqual({
-        x: 180,
-        y: 80,
-        width: 20,
-        height: 20,
+        x: 140,
+        y: 40,
+        width: 60,
+        height: 60,
       })
     })
 
@@ -40,16 +49,26 @@ describe('containers/Admin/Buckets/iconCrop', () => {
       // alone would be stretched into it. 20 wide and 60 tall renders as a 3x
       // horizontal stretch with nothing reporting a problem.
       expect(clampArea({ x: 180, y: 0, width: 60, height: 60 }, media)).toEqual({
-        x: 180,
+        x: 140,
         y: 0,
-        width: 20,
-        height: 20,
+        width: 60,
+        height: 60,
       })
       expect(clampArea({ x: 0, y: 60, width: 80, height: 80 }, media)).toEqual({
         x: 0,
-        y: 60,
-        width: 40,
-        height: 40,
+        y: 20,
+        width: 80,
+        height: 80,
+      })
+    })
+
+    it('shrinks only to the smaller image dimension', () => {
+      // The image itself is the floor: 100 tall cannot yield a 150 square.
+      expect(clampArea({ x: 0, y: 0, width: 150, height: 150 }, media)).toEqual({
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
       })
     })
 
@@ -66,8 +85,16 @@ describe('containers/Admin/Buckets/iconCrop', () => {
       })
     })
 
+    it('slides an origin past the far edge fully back inside', () => {
+      expect(clampArea({ x: 200, y: 0, width: 40, height: 40 }, media)).toEqual({
+        x: 160,
+        y: 0,
+        width: 40,
+        height: 40,
+      })
+    })
+
     it('rejects an area that leaves nothing to draw', () => {
-      expect(clampArea({ x: 200, y: 0, width: 40, height: 40 }, media)).toBeNull()
       expect(clampArea({ x: 0, y: 0, width: 0, height: 40 }, media)).toBeNull()
     })
 
@@ -116,9 +143,32 @@ describe('containers/Admin/Buckets/iconCrop', () => {
     })
   })
 
-  it('budgets an inline icon small enough to ship in every buckets query', () => {
-    // BucketConfig.iconUrl is read on the volumes landing for every bucket at
-    // once, so the per-bucket ceiling has to stay in kilobytes.
-    expect(MAX_ICON_DATA_URL_LENGTH).toBeLessThanOrEqual(16 * 1024)
+  describe('fitsPixelBudget', () => {
+    it('accepts a source an admin would plausibly pick', () => {
+      expect(fitsPixelBudget({ width: 4000, height: 3000 })).toBe(true)
+    })
+
+    it('refuses a bitmap whose decode would exhaust the tab', () => {
+      // Decode cost is pixels * 4 bytes, so a flat 30000x30000 arrives well under
+      // the dropzone's file cap and still decodes to gigabytes.
+      expect(fitsPixelBudget({ width: 30000, height: 30000 })).toBe(false)
+    })
+
+    it('accepts exactly the budget', () => {
+      expect(fitsPixelBudget({ width: MAX_SOURCE_PIXELS, height: 1 })).toBe(true)
+      expect(fitsPixelBudget({ width: MAX_SOURCE_PIXELS + 1, height: 1 })).toBe(false)
+    })
+  })
+
+  it('refuses a candidate over the shipped budget', () => {
+    // Asserted through the budget rather than against a copy of its literal: the
+    // bound only matters because iconUrl is read for every bucket at once on the
+    // volumes landing, and this fails if the constant stops being enforced.
+    const over = () => 'x'.repeat(MAX_ICON_DATA_URL_LENGTH + 1)
+    const under = () => 'x'.repeat(MAX_ICON_DATA_URL_LENGTH)
+    expect(pickUnderBudget([over], MAX_ICON_DATA_URL_LENGTH)).toBeNull()
+    expect(pickUnderBudget([under], MAX_ICON_DATA_URL_LENGTH)).toHaveLength(
+      MAX_ICON_DATA_URL_LENGTH,
+    )
   })
 })

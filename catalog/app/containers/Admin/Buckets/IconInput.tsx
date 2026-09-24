@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 
 import BucketIcon from 'components/BucketIcon'
 
-import { cropToDataUrl } from './iconCrop'
+import { cropToDataUrl, probeWithinPixelBudget } from './iconCrop'
 
 // What the canvas decoder handles and can re-encode, which is this path's only
 // constraint: the crop never reaches S3, so the logo upload's IAM-pinned
@@ -36,11 +36,17 @@ const useCropDialogStyles = M.makeStyles((t) => ({
   error: {
     padding: t.spacing(0, 3),
   },
+  gifNote: {
+    marginBottom: 0,
+    padding: t.spacing(0, 3),
+  },
 }))
 
 interface CropDialogProps {
   file: FileWithPath
-  onCancel: () => void
+  // Carries the last encode failure out, so a refusal an admin has to act on
+  // does not vanish with the dialog that reported it.
+  onCancel: (reason?: string) => void
   onConfirm: (dataUrl: string) => void
 }
 
@@ -56,7 +62,11 @@ function CropDialog({ file, onCancel, onConfirm }: CropDialogProps) {
   React.useEffect(() => {
     const url = URL.createObjectURL(file)
     setSrc(url)
-    return () => URL.revokeObjectURL(url)
+    // Deferred past the current task so an encode already reading this URL is not
+    // cut off by an unmount that lands mid-flight.
+    return () => {
+      setTimeout(() => URL.revokeObjectURL(url), 0)
+    }
   }, [file])
 
   const onCropComplete = React.useCallback(
@@ -70,21 +80,39 @@ function CropDialog({ file, onCancel, onConfirm }: CropDialogProps) {
     [],
   )
 
+  // A ref rather than the `busy` state: two clicks in one frame both read the
+  // state as false from the same render and both encode.
+  const running = React.useRef(false)
+
   const confirm = React.useCallback(async () => {
-    if (!src || !area || busy) return
+    if (!src || !area || running.current) return
+    running.current = true
     setBusy(true)
     setError(null)
     try {
       onConfirm(await cropToDataUrl(src, area))
+      // No state reset on success: onConfirm unmounts this dialog, and setting
+      // state afterwards is an update on an unmounted component.
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not process image')
       setBusy(false)
+      running.current = false
     }
-  }, [area, busy, onConfirm, src])
+  }, [area, onConfirm, src])
 
   return (
-    <M.Dialog open onClose={busy ? undefined : onCancel} fullWidth maxWidth="sm">
+    <M.Dialog
+      open
+      onClose={busy ? undefined : () => onCancel(error ?? undefined)}
+      fullWidth
+      maxWidth="sm"
+    >
       <M.DialogTitle>Crop icon</M.DialogTitle>
+      {file.type === 'image/gif' && (
+        <M.DialogContentText className={classes.gifNote}>
+          The icon is a still image, so only this GIF's first frame is kept.
+        </M.DialogContentText>
+      )}
       <div className={classes.cropper}>
         {src && (
           <Cropper
@@ -121,7 +149,11 @@ function CropDialog({ file, onCancel, onConfirm }: CropDialogProps) {
         </M.FormHelperText>
       )}
       <M.DialogActions>
-        <M.Button onClick={onCancel} color="primary" disabled={busy}>
+        <M.Button
+          onClick={() => onCancel(error ?? undefined)}
+          color="primary"
+          disabled={busy}
+        >
           Cancel
         </M.Button>
         <M.Button
@@ -180,9 +212,17 @@ type IconInputProps = RF.FieldRenderProps<string> & {
   // hashes, so the preview disc matches the row behind it. Absent on the add form,
   // where there is no bucket yet.
   bucketName?: string
+  // Same shape Admin/Form's Field takes, so a validator key resolves to a sentence
+  // here as it does on every sibling field.
+  errors?: Record<string, React.ReactNode>
 }
 
-export default function IconInput({ input, meta, bucketName }: IconInputProps) {
+export default function IconInput({
+  input,
+  meta,
+  bucketName,
+  errors = {},
+}: IconInputProps) {
   const classes = useStyles()
   // The live Title, so the initials track what is being typed rather than the last
   // saved value -- which on the add form does not exist yet.
@@ -192,10 +232,21 @@ export default function IconInput({ input, meta, bucketName }: IconInputProps) {
   const [rejected, setRejected] = React.useState<string | null>(null)
   const disabled = meta.submitting || meta.submitSucceeded
 
-  const onDrop = React.useCallback((files: FileWithPath[]) => {
+  // Screened before the dialog mounts: the cropper renders the file in an `<img>`,
+  // which decodes the whole bitmap, so a budget checked after that point would run
+  // once the memory had already gone.
+  const onDrop = React.useCallback(async (files: FileWithPath[]) => {
     if (!files.length) return
     setRejected(null)
-    setFile(files[0])
+    const url = URL.createObjectURL(files[0])
+    try {
+      if (await probeWithinPixelBudget(url)) setFile(files[0])
+      else setRejected('Choose an image with fewer pixels')
+    } catch {
+      setRejected('Could not read that image')
+    } finally {
+      URL.revokeObjectURL(url)
+    }
   }, [])
 
   const onDropRejected = React.useCallback((rejections: FileRejection[]) => {
@@ -241,7 +292,13 @@ export default function IconInput({ input, meta, bucketName }: IconInputProps) {
             className: `${classes.dropzone}${isDragActive ? ` ${classes.active}` : ''}`,
           })}
         >
-          <input {...getInputProps()} />
+          {/* The root is `role="presentation"` and the preview disc has no text, so
+              without this the focusable dropzone announces only its caption. */}
+          <input
+            {...getInputProps({
+              'aria-label': 'Upload a bucket icon: PNG, JPEG, WebP or GIF',
+            })}
+          />
           <BucketIcon
             className={classes.preview}
             src={value || null}
@@ -259,14 +316,26 @@ export default function IconInput({ input, meta, bucketName }: IconInputProps) {
           placeholder="e.g. https://some-cdn.com/icon.png"
           error={!!fieldError}
           helperText={
-            fieldError ||
+            (fieldError && (errors[fieldError as string] || fieldError)) ||
             (uploaded
               ? 'Uploaded image. Drop another to replace it, or clear this to enter a URL.'
               : 'Drop an image to upload and crop it, or paste a URL.')
           }
           value={uploaded ? '' : value}
-          onChange={(e) => input.onChange(e.target.value.trim().slice(0, 1024))}
-          onBlur={input.onBlur}
+          onChange={(e) => {
+            // The drop message describes a file, not this field, so typing here
+            // retires it rather than leaving red text under unrelated input.
+            setRejected(null)
+            input.onChange(e.target.value.replace(/^\s+/, '').slice(0, 1024))
+          }}
+          onBlur={(e) => {
+            // Trailing whitespace is trimmed on commit rather than per keystroke,
+            // so a space can still be typed mid-value; the field this replaced
+            // trimmed both ends and the stored config must not start carrying it.
+            const trimmed = e.target.value.trim()
+            if (trimmed !== e.target.value) input.onChange(trimmed)
+            input.onBlur(e)
+          }}
           onFocus={input.onFocus}
           disabled={disabled}
           InputLabelProps={{ shrink: true }}
@@ -277,7 +346,10 @@ export default function IconInput({ input, meta, bucketName }: IconInputProps) {
                   aria-label="Remove icon"
                   size="small"
                   disabled={disabled}
-                  onClick={() => input.onChange('')}
+                  onClick={() => {
+                    setRejected(null)
+                    input.onChange('')
+                  }}
                 >
                   <M.Icon fontSize="small">clear</M.Icon>
                 </M.IconButton>
@@ -293,7 +365,14 @@ export default function IconInput({ input, meta, bucketName }: IconInputProps) {
         </M.FormHelperText>
       )}
       {file && (
-        <CropDialog file={file} onCancel={() => setFile(null)} onConfirm={onConfirm} />
+        <CropDialog
+          file={file}
+          onCancel={(reason) => {
+            setFile(null)
+            if (reason) setRejected(reason)
+          }}
+          onConfirm={onConfirm}
+        />
       )}
     </>
   )

@@ -85,17 +85,19 @@ const check = (name, pass, detail) => results.push({ name, pass, detail })
   )
 }
 
-// 3b. A rect overshooting ONE axis stays undistorted: the clamp squares it off
-// rather than letting drawImage stretch a 20x60 source into the 96x96 output.
+// 3b. A rect overshooting ONE axis stays undistorted: the clamp slides the
+// square inward rather than letting drawImage stretch a 50x80 source into 96x96.
 {
   // The rect overshoots only the x axis: 80 wide from x=150 has just 50 left,
-  // while 80 tall from y=10 fits. Trimming per-axis yields 50x80 -> stretched.
+  // while 80 tall from y=10 fits. Trimming per-axis yields 50x80 -> stretched;
+  // sliding yields 80x80 at x=120.
   const src = makeSource(200, 100, (ctx) => {
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 200, 100)
     ctx.fillStyle = '#0d47a1'
-    // Centred in the 50x50 square the clamp should produce (x 150-200, y 10-60),
-    // and small enough that its colour run is measurably short of the full frame.
-    ctx.beginPath(); ctx.arc(175, 35, 15, 0, Math.PI * 2); ctx.fill()
+    // Centred in the 80x80 square the clamp should produce (x 120-200, y 10-90),
+    // so both probe lines below cross the circle's middle, and small enough that
+    // its colour run is measurably short of the full frame.
+    ctx.beginPath(); ctx.arc(160, 50, 15, 0, Math.PI * 2); ctx.fill()
   })
   const out = await cropToDataUrl(src, { x: 150, y: 10, width: 80, height: 80 })
   const { ctx } = await pixels(out)
@@ -175,12 +177,44 @@ const check = (name, pass, detail) => results.push({ name, pass, detail })
 {
   const src = makeSource(100, 100, (ctx) => { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 100, 100) })
   let threw = ''
-  try { await cropToDataUrl(src, { x: 100, y: 0, width: 50, height: 50 }) }
+  try { await cropToDataUrl(src, { x: 0, y: 0, width: 0, height: 50 }) }
   catch (e) { threw = e.message }
   check('degenerate rect rejected', threw === 'Nothing to crop', threw || '(no throw)')
 }
 
+// 5b. An origin fully past the far edge slides back in rather than being
+// rejected: the requested side is available, only its position was not.
+{
+  const src = makeSource(100, 100, (ctx) => {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 100, 100)
+    ctx.fillStyle = '#ad1457'; ctx.fillRect(50, 0, 50, 100)  // right half
+  })
+  const out = await cropToDataUrl(src, { x: 100, y: 0, width: 50, height: 50 })
+  const { ctx } = await pixels(out)
+  // Slid to x=50, so the crop is the right half: magenta across the frame.
+  check(
+    'origin past the edge slides inward',
+    near(at(ctx, 48, 48), [173, 20, 87]),
+    String(at(ctx, 48, 48)),
+  )
+}
+
+// The pixel budget is not exercised here: building a source past it costs more
+// time to encode than the check is worth, and `fitsPixelBudget` is arithmetic the
+// unit tests cover.
+
 window.__RESULTS__ = results
 document.title = results.every((r) => r.pass) ? 'ALL PASS' : 'FAILURES'
+
+// Rendered, not just left on `window`: the point of the harness is that a person
+// (or a headless dump) can read which check failed and on what measurement.
+document.body.appendChild(
+  Object.assign(document.createElement('pre'), {
+    id: 'results',
+    textContent: results
+      .map((r) => `${r.pass ? 'PASS' : 'FAIL'}  ${r.name}  [${r.detail}]`)
+      .join('\n'),
+  }),
+)
 </script>
 </body></html>

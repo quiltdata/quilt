@@ -14,32 +14,53 @@ export const ICON_SIZE = 96
 // for flat artwork; photographic crops overshoot it and fall back to JPEG.
 export const MAX_ICON_DATA_URL_LENGTH = 16 * 1024
 
+// Decode costs pixels * 4 bytes regardless of file size, so flat artwork can pass
+// a byte cap and still exhaust memory: 30000x30000 of one colour is a few hundred
+// KB compressed and ~3.6GB decoded.
+export const MAX_SOURCE_PIXELS = 64 * 1000 * 1000
+
+export function fitsPixelBudget(media: { width: number; height: number }): boolean {
+  return media.width * media.height <= MAX_SOURCE_PIXELS
+}
+
+/**
+ * Decode `src` far enough to read its dimensions and report whether it is within
+ * the pixel budget.
+ *
+ * The caller screens a file here, before the cropper renders it: an `<img>` the
+ * cropper mounts decodes the whole bitmap, so a guard downstream of that would
+ * run after the memory was already spent.
+ */
+export async function probeWithinPixelBudget(src: string): Promise<boolean> {
+  const img = await loadImage(src)
+  return fitsPixelBudget({ width: img.naturalWidth, height: img.naturalHeight })
+}
+
 /**
  * Clamp a crop rectangle into the source image's real pixel bounds, keeping it
  * square.
  *
- * Two reasons it cannot pass the cropper's rect through. A crop panned to the
- * edge lands a pixel outside the image, and `drawImage` reads outside as
- * transparent, putting a hairline of nothing along one edge of the disc. And the
- * caller draws into a fixed square, so trimming the axes independently would hand
- * it a non-square rect to stretch. Both are why the result is one side: the
- * largest square that still fits. Null when nothing usable is left, so the caller
- * reports a failure rather than encoding a blank canvas.
+ * Outside the bounds `drawImage` reads transparent, leaving a hairline along the
+ * disc's edge; and the caller draws into a fixed square, so trimming the axes
+ * independently would hand it a non-square rect to stretch. An out-of-bounds
+ * square is therefore slid back inside rather than trimmed — trimming shrinks the
+ * region, which the fixed-size output then upscales — and the side shrinks only
+ * when the image is smaller than the crop. Null when nothing usable is left.
  */
 export function clampArea(
   area: Area,
   media: { width: number; height: number },
 ): Area | null {
   if (media.width <= 0 || media.height <= 0) return null
-  const x = Math.max(0, Math.min(Math.round(area.x), media.width))
-  const y = Math.max(0, Math.min(Math.round(area.y), media.height))
   const side = Math.min(
     Math.round(area.width),
     Math.round(area.height),
-    media.width - x,
-    media.height - y,
+    media.width,
+    media.height,
   )
   if (side <= 0) return null
+  const x = Math.max(0, Math.min(Math.round(area.x), media.width - side))
+  const y = Math.max(0, Math.min(Math.round(area.y), media.height - side))
   return { x, y, width: side, height: side }
 }
 
@@ -80,6 +101,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  */
 export async function cropToDataUrl(src: string, area: Area): Promise<string> {
   const img = await loadImage(src)
+  if (!fitsPixelBudget({ width: img.naturalWidth, height: img.naturalHeight })) {
+    throw new Error('This image has too many pixels to crop — try a smaller one')
+  }
   const clamped = clampArea(area, {
     width: img.naturalWidth,
     height: img.naturalHeight,
@@ -116,6 +140,9 @@ export async function cropToDataUrl(src: string, area: Area): Promise<string> {
     return canvas.toDataURL('image/jpeg', quality)
   }
 
+  // PNG is already encoded rather than encoded on demand like the JPEGs: they
+  // composite white into this same canvas, so a lazy PNG candidate would read
+  // whatever a preceding one left behind and flatten its alpha.
   const out = pickUnderBudget(
     [() => png, asJpeg(0.82), asJpeg(0.6), asJpeg(0.4)],
     MAX_ICON_DATA_URL_LENGTH,
