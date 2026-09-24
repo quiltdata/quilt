@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -39,6 +40,10 @@ const usePanelStyles = M.makeStyles((t) => ({
     background: t.palette.background.default,
     width: PANEL_WIDTH,
   },
+  // The overlay takes the whole phone; on a tablet it stops at the chat's cap.
+  paperCompact: {
+    width: 'min(40rem, 100vw)',
+  },
 }))
 
 interface PanelProps {
@@ -58,7 +63,7 @@ function Panel({ api, compact, open }: PanelProps) {
         variant={compact ? 'temporary' : 'persistent'}
         open={open}
         onClose={api.hide}
-        classes={{ paper: classes.paper }}
+        classes={{ paper: cx(classes.paper, compact && classes.paperCompact) }}
         // A persistent drawer stays in the tree when closed; without this its
         // contents keep their tab stops offscreen. `timeout` overrides the
         // Drawer's own Slide duration -- it spreads SlideProps last.

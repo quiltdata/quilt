@@ -6,6 +6,7 @@ import { Sidebar } from 'containers/Sidebar'
 import { PANEL_WIDTH, usePanelReflow } from 'components/Assistant/UI/PanelReflow'
 
 import BareHeader from './BareHeader'
+import * as Column from './Column'
 import * as Container from './Container'
 import { ContentBar } from './ContentBar'
 import { SearchInputProvider } from './SearchInput'
@@ -77,7 +78,11 @@ const useShellStyles = M.makeStyles((t) => ({
     },
   },
   // `.main` is the scroll container; the sticky ContentBar pins to its top.
+  // The column is a size container so page styles can key on its width
+  // (components/Layout/Column) rather than the viewport's.
   main: {
+    containerName: Column.NAME,
+    containerType: 'inline-size',
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
@@ -119,6 +124,7 @@ export function Layout({
   const classes = useShellStyles()
   const compact = useCompactShell()
   const reflow = usePanelReflow()
+  const mainRef = React.useRef<HTMLElement>(null)
   const [navOpen, setNavOpen] = React.useState(false)
   const closeNav = React.useCallback(() => setNavOpen(false), [])
   const openNav = React.useCallback(() => setNavOpen(true), [])
@@ -148,17 +154,19 @@ export function Layout({
         bgcolor={dark ? 'primary.main' : 'background.default'}
       >
         <Sidebar compact={compact} open={navOpen} onClose={closeNav} />
-        <M.Box component="main" className={classes.main}>
-          {/* The menu button exists only in the compact shell: on a wide
-              viewport the rail is always on screen, so it would toggle nothing. */}
-          <ContentBar onMenu={compact ? openNav : undefined} />
-          <div className={cx(classes.content, !flush && classes.padded)}>
-            <Container.FullWidthProvider>
-              {!!pre && pre}
-              {!!children && <M.Box py={4}>{children}</M.Box>}
-              <M.Box flexGrow={1} />
-            </Container.FullWidthProvider>
-          </div>
+        <M.Box component="main" className={classes.main} {...{ ref: mainRef }}>
+          <Column.Provider target={mainRef}>
+            {/* The menu button exists only in the compact shell: on a wide
+                viewport the rail is always on screen, so it would toggle nothing. */}
+            <ContentBar onMenu={compact ? openNav : undefined} />
+            <div className={cx(classes.content, !flush && classes.padded)}>
+              <Container.FullWidthProvider>
+                {!!pre && pre}
+                {!!children && <M.Box py={4}>{children}</M.Box>}
+                <M.Box flexGrow={1} />
+              </Container.FullWidthProvider>
+            </div>
+          </Column.Provider>
         </M.Box>
       </M.Box>
     </SearchInputProvider>
