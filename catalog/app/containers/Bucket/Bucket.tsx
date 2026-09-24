@@ -69,14 +69,10 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
       pre={
         <Container className={classes.content}>
           <M.Paper className={classes.headerCard}>
-            {settings?.beta && (
-              <>
-                <div className={classes.headerTop}>
-                  <Header bucket={bucket} />
-                </div>
-                <M.Divider />
-              </>
-            )}
+            <div className={classes.headerTop}>
+              <Header bucket={bucket} withStats={!!settings?.beta} />
+            </div>
+            <M.Divider />
             <div className={classes.tabsRow}>
               <BucketNav.Tabs bucket={bucket} />
             </div>

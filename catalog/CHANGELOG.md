@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] A bucket's name and its admin-settings link show on every stack, not only those with the `beta` setting — the Packages and Workflows tabs identified the bucket nowhere on a default stack. Only the stats row stays behind `beta`. The Overview hero no longer draws its own copy of either, so they appear once per page, and a long name ellipsizes instead of overflowing the card ([#5235](https://github.com/quiltdata/quilt/pull/5235))
 - [Changed] ECharts previews of chart JSON in a bucket draw with ECharts 6's default theme, so a chart that did not set its own colors or legend position changes palette and puts the legend at the bottom ([#5073](https://github.com/quiltdata/quilt/pull/5073))
 - [Changed] Qurator sits on the right as a collapsed rail instead of vanishing when closed, expanding to the full panel on click and pushing page content aside rather than covering it; narrow viewports keep the overlay ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Added] Qurator instructions are a stack-wide setting admins edit from Admin → Settings or the chat strip, layered with each user's own personal instructions ([#5326](https://github.com/quiltdata/quilt/pull/5326))
