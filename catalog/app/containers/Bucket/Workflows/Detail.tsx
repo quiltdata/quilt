@@ -103,7 +103,7 @@ const usePackagesStyles = M.makeStyles((t) => ({
     gridTemplateColumns: '1fr',
     marginBottom: t.spacing(2),
 
-    [Column.up('md')]: {
+    [Column.up(1100)]: {
       gridTemplateColumns: '1fr 1fr',
     },
   },

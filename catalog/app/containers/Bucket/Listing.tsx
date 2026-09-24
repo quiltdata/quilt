@@ -779,6 +779,11 @@ const useFooterStyles = M.makeStyles((t) => ({
     [Column.down('sm')]: {
       width: COL_MODIFIED_W_SM,
     },
+    // The grid drops its own `modified` column here, so a reserved cell would
+    // leave the footer's totals out of line with the columns above them.
+    [Column.down('xs')]: {
+      display: 'none',
+    },
   },
 }))
 
@@ -1258,7 +1263,7 @@ export function Listing({
       // Zero because the actions float over the trailing cells on hover. A
       // finger gets no hover, so they stand at rest (ListingActions) and need
       // a cell of their own -- otherwise they cover the size readout.
-      width: coarse ? 44 : 0,
+      width: coarse ? Pointer.TOUCH_TARGET : 0,
       // An empty `headerName` falls back to the field name, which only became
       // visible once the column had width.
       renderHeader: () => <></>,

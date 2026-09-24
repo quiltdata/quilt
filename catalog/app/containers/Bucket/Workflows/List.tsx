@@ -223,11 +223,11 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(2),
     gridTemplateColumns: 'repeat(3, 1fr)',
 
-    [Column.down('md')]: {
+    [Column.down(1100)]: {
       gridTemplateColumns: 'repeat(2, 1fr)',
     },
 
-    [Column.down('xs')]: {
+    [Column.down(700)]: {
       gridTemplateColumns: '1fr',
     },
   },

@@ -1,6 +1,8 @@
 /* constants for use in CSS. prefer integers over strings so we can do math */
 import { colors, createMuiTheme } from '@material-ui/core'
 
+import { COARSE, TOUCH_TARGET } from 'components/Layout/Pointer'
+
 const defaultTheme = createMuiTheme()
 
 const appPalette = {
@@ -81,23 +83,24 @@ const overrides = {
   // menus, which a container query cannot see.
   MuiIconButton: {
     sizeSmall: {
-      '@media (pointer: coarse)': {
+      [COARSE]: {
+        // Grows the hit area without moving the glyph: 20px + 2x12 clears it.
         padding: 12,
       },
     },
   },
   MuiButton: {
     root: {
-      '@media (pointer: coarse)': {
-        minHeight: 44,
+      [COARSE]: {
+        minHeight: TOUCH_TARGET,
       },
     },
   },
   MuiToggleButton: {
     sizeSmall: {
-      '@media (pointer: coarse)': {
-        height: 44,
-        minWidth: 44,
+      [COARSE]: {
+        height: TOUCH_TARGET,
+        minWidth: TOUCH_TARGET,
       },
     },
   },

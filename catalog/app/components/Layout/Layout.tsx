@@ -98,9 +98,12 @@ const useShellStyles = M.makeStyles((t) => ({
   // page content alike). Skipped for full-bleed pages via the `flush` prop.
   // The inset now lives on the inner content column, not `main`, so the
   // sticky ContentBar above it can run full-bleed.
+  // `viewport-fit=cover` (index.html) lets the page reach under the notch and
+  // the rounded corners, so the one horizontal inset in the column owes the
+  // safe area as well as its own gutter.
   padded: {
-    paddingLeft: t.spacing(3),
-    paddingRight: t.spacing(3),
+    paddingLeft: `max(${t.spacing(3)}px, env(safe-area-inset-left))`,
+    paddingRight: `max(${t.spacing(3)}px, env(safe-area-inset-right))`,
   },
   // The page content column: carries the horizontal inset (so the sticky
   // ContentBar above it can run full-bleed) and grows to push the footer down.

@@ -227,5 +227,14 @@
   "overrides": {
     "jss": "$jss",
     "rrweb-cssom": "0.8.0"
-  }
+  },
+  "browserslist": [
+    "chrome >= 105",
+    "edge >= 105",
+    "firefox >= 110",
+    "safari >= 16",
+    "ios_saf >= 16",
+    "samsung >= 20",
+    "not dead"
+  ]
 }

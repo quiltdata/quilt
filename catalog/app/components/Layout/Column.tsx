@@ -19,9 +19,11 @@ export const NAME = 'main'
 const bp = createBreakpoints({})
 const retarget = (media: string) => media.replace('@media', `@container ${NAME}`)
 
-export const up = (key: Breakpoint) => retarget(bp.up(key))
-export const down = (key: Breakpoint) => retarget(bp.down(key))
-export const between = (start: Breakpoint, end: Breakpoint) =>
+// A number passes through to the same threshold MUI would emit, so a layout
+// tuned to a pixel width keeps that width instead of being rounded to a band.
+export const up = (key: Breakpoint | number) => retarget(bp.up(key))
+export const down = (key: Breakpoint | number) => retarget(bp.down(key))
+export const between = (start: Breakpoint | number, end: Breakpoint | number) =>
   retarget(bp.between(start, end))
 export const only = (key: Breakpoint) => retarget(bp.only(key))
 

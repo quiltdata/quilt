@@ -177,7 +177,9 @@ const useRowActionsStyles = M.makeStyles((t) => ({
     padding: t.spacing(0, 2, 0, 10),
     // The 80px lead-in is room for the gradient to fade in under a pointer. A
     // finger never triggers that reveal, so it is width the row does not have.
-    '@media (hover: none)': {
+    // Keyed on the same query as the grid's reserved actions cell (Listing):
+    // two predicates for one decision break the layout wherever they disagree.
+    [Pointer.COARSE]: {
       background: 'none',
       padding: 0,
     },
@@ -194,7 +196,7 @@ const useRowActionsStyles = M.makeStyles((t) => ({
     },
     // On touch the grid reserves a cell for the actions (Listing's `actions`
     // column), so they sit in it rather than floating over the size readout.
-    '@media (hover: none)': {
+    [Pointer.COARSE]: {
       background: 'none',
     },
     background: `linear-gradient(

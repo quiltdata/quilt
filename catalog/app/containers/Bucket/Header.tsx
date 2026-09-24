@@ -204,8 +204,7 @@ const useStyles = M.makeStyles((t) => ({
     flexShrink: 1,
     // A `0` floor lets flex squeeze the name narrower than its own longest
     // word, so a short-landscape phone broke "quilt-example" across two lines
-    // with empty space beside it. `min-content` still allows the ellipsis a
-    // very long name needs.
+    // with empty space beside it.
     minWidth: 'min-content',
   },
   settings: {
