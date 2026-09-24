@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -16,7 +18,16 @@ const useStyles = M.makeStyles((t) => ({
     margin: 'auto',
     marginTop: t.spacing(2),
     maxWidth: '30rem',
-    minWidth: '15rem',
+    // A 15rem floor is wider than a 320px phone's content column, so the row
+    // could not shrink and the secondary line ran off the edge. It stacks
+    // under the button instead, and keeps the floor once there is room.
+    [Column.down('xs')]: {
+      flexDirection: 'column',
+      minWidth: 0,
+    },
+    [Column.up('sm')]: {
+      minWidth: '15rem',
+    },
     paddingBottom: t.spacing(2),
   },
   primary: {
@@ -25,6 +36,12 @@ const useStyles = M.makeStyles((t) => ({
   secondary: {
     marginLeft: t.spacing(2),
     flexBasis: '40%',
+    [Column.down('xs')]: {
+      flexBasis: 'auto',
+      marginLeft: 0,
+      marginTop: t.spacing(1),
+      textAlign: 'center',
+    },
   },
   main: {
     ...t.typography.body1,

@@ -22,6 +22,7 @@ complete sentence without it.
 ## Changes
 
 - [Added] Admin buckets: a bucket icon can be uploaded and cropped in the form itself, so an admin with an image file no longer has to host it somewhere first and paste its URL ([#5333](https://github.com/quiltdata/quilt/pull/5333))
+- [Fixed] Empty states on a phone no longer run their explanatory line off the right edge: it sits under the action instead of beside it ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Fixed] A bucket's name no longer breaks across two lines with empty space beside it on a phone held sideways; the stats and Create package move to their own line instead of squeezing it ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Fixed] Small phones: file and directory names are no longer truncated to a few characters (the timestamp column yields its width below 600px and returns in landscape and on tablets), each row's bookmark and download actions stay on screen instead of sitting past the right edge, and the directory toolbar wraps instead of overflowing the page ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
 - [Fixed] On a touch device the app fills the visible viewport instead of running under the browser's URL bar, and the copy-value buttons on search results are visible at rest instead of waiting for a hover a finger cannot produce ([#TBD](https://github.com/quiltdata/quilt/pull/TBD))
