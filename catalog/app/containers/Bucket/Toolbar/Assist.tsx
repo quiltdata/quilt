@@ -1,21 +1,37 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
+
+// A class, not an inline style: toolbars neutralize their children's margins
+// at stacked breakpoints, and inline styles are unreachable from a stylesheet.
+const useStyles = M.makeStyles({
+  root: {
+    marginBottom: -12,
+    marginTop: -12,
+  },
+})
 
 interface AssistButtonProps extends M.IconButtonProps {
   title?: string
   message?: string
 }
 
-export default function AssistButton({ message, title, ...props }: AssistButtonProps) {
+export default function AssistButton({
+  className,
+  message,
+  title,
+  ...props
+}: AssistButtonProps) {
+  const classes = useStyles()
   const assist = Assistant.use()
   if (!assist) return null
   return (
     <M.IconButton
+      className={cx(classes.root, className)}
       color="primary"
       onClick={() => assist(message || 'Summarize this document')}
-      style={{ marginTop: '-12px', marginBottom: '-12px' }}
       edge="end"
       {...props}
     >

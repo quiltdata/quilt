@@ -21,6 +21,8 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Package revision line: the package name, "@ revision" selector and its shortcuts lay out on two explicit tiers — one line when wide (the name truncates first; the revision control and shortcuts never separate), and at narrow widths the name takes its own wrapping line with the revision cluster grouped beneath, instead of arbitrary inline wrapping ([#5228](https://github.com/quiltdata/quilt/pull/5228))
+- [Changed] Package top bar: the breadcrumbs and action cluster lay out on two explicit tiers — one row when wide (crumbs truncate first, actions never squash), and at medium widths the whole action cluster moves onto its own right-anchored row below full-width crumbs, wrapping with even gaps instead of crushing ([#5227](https://github.com/quiltdata/quilt/pull/5227))
 - [Changed] ECharts previews of chart JSON in a bucket draw with ECharts 6's default theme, so a chart that did not set its own colors or legend position changes palette and puts the legend at the bottom ([#5073](https://github.com/quiltdata/quilt/pull/5073))
 - [Changed] Qurator sits on the right as a collapsed rail instead of vanishing when closed, expanding to the full panel on click and pushing page content aside rather than covering it; narrow viewports keep the overlay ([#5326](https://github.com/quiltdata/quilt/pull/5326))
 - [Added] Qurator instructions are a stack-wide setting admins edit from Admin → Settings or the chat strip, layered with each user's own personal instructions ([#5326](https://github.com/quiltdata/quilt/pull/5326))
