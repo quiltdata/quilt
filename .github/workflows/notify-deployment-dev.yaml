@@ -2,9 +2,9 @@ name: Notify deployment that dev images are ready
 
 # The deployment repo pins bleeding-edge SHAs onto https://dev.quilttest.com, but
 # it can only pin a SHA whose artifacts already exist -- so it has to learn when
-# an image build finishes, not when the commit lands. Without this it falls back
+# the image builds finish, not when the commit lands. Without this it falls back
 # to a poll (pin-dev.yml's schedule), which means a dev push waits for the next
-# tick even though the image was ready in minutes.
+# tick even though the images were ready in minutes.
 #
 # workflow_run, not push: push fires while the images are still building, and a
 # pin attempted then finds no artifact and silently changes nothing.
@@ -23,59 +23,108 @@ on:
 
 permissions: {}
 
-# Serialized, and deliberately without cancel-in-progress: the three deploy
-# workflows finish at different times for one commit, and a later commit's
-# notification must not cancel an earlier one that deployment has not yet acted
-# on. Each send is cheap, and pin-dev.yml is idempotent when nothing is pinnable.
+# One dispatch per commit, not per workflow. The three deploy workflows finish
+# minutes apart -- catalog at 19:27:30Z and lambdas at 19:40:54Z for dev SHA
+# 5536c5f8 -- and pin_quilt_versions.py pins each key independently, so a
+# dispatch sent on catalog alone pins catalog and deploys it against the
+# previous commit's lambdas. That push IS the deploy trigger, so one dev commit
+# would land two or three sequential mixed-version deploys on the dev stack.
+#
+# So every completing run asks whether it is the last one for its commit, and
+# only the last dispatches. The group is keyed on the commit, not the workflow,
+# because runs for different commits must not displace each other: GitHub keeps
+# one pending run per group and drops the previously-pending one, so a shared
+# group would silently lose an earlier commit's notification.
 concurrency:
-  group: notify-deployment-dev
+  group: notify-deployment-dev-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 jobs:
   notify:
-    # A failed image build leaves no artifact to pin, so notifying would only
-    # make deployment do the work of discovering that.
+    # A failed image build leaves nothing coherent to pin. The commit's other
+    # builds may have succeeded, but pinning a partial set is the problem this
+    # workflow exists to avoid.
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch quilt-dev-updated
+      - name: Dispatch quilt-dev-updated once every build for this commit is done
         env:
           # A cross-repo repository_dispatch cannot use GITHUB_TOKEN: it is
           # scoped to the repo that issued it. This needs contents:write on
           # quiltdata/deployment and nothing else.
-          #
-          # When the secret is absent -- a fork, or before it is provisioned --
-          # skip rather than fail: deployment's schedule still picks the images
-          # up, so a missing token costs latency, not correctness. A red X on
-          # every dev push would train people to ignore this workflow.
           GH_TOKEN: ${{ secrets.DEPLOYMENT_DISPATCH_TOKEN }}
           SHA: ${{ github.event.workflow_run.head_sha }}
           SOURCE_WORKFLOW: ${{ github.event.workflow_run.name }}
         run: |
           set -euo pipefail
 
+          # Absent secret: skip rather than fail. deployment's schedule still
+          # picks the images up, so a missing token costs latency, not
+          # correctness, and a red X on every dev push would train people to
+          # ignore this workflow.
           if [ -z "${GH_TOKEN:-}" ]; then
             echo "::warning::DEPLOYMENT_DISPATCH_TOKEN is not set; skipping." \
                  "https://dev.quilttest.com will pick these images up on" \
-                 "pin-dev.yml's next scheduled run instead of within the minute."
+                 "pin-dev.yml's next scheduled run instead."
             exit 0
           fi
 
-          echo "Notifying deployment: $SOURCE_WORKFLOW succeeded for $SHA"
+          echo "$SOURCE_WORKFLOW finished for $SHA; checking its siblings."
 
-          # client_payload is informational -- pin-dev.yml resolves
+          # A workflow with no run for this commit was skipped by its path
+          # filter, not left pending -- s3-proxy has no run at all for
+          # 5536c5f8, so waiting for all three would wait forever. Only runs
+          # that exist are waited on.
+          pending=0
+          failed=0
+          for wf in deploy-catalog.yaml deploy-lambdas.yaml deploy-s3-proxy.yaml; do
+            runs="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/${wf}/runs?head_sha=${SHA}&per_page=20" \
+              --jq '[.workflow_runs[] | {status, conclusion}]')" || {
+                echo "::warning::Could not read ${wf} runs; leaving this commit to the scheduled pin."
+                exit 0
+              }
+
+            total="$(jq 'length' <<<"$runs")"
+            if [ "$total" = 0 ]; then
+              echo "  ${wf}: no run for this commit (path-filtered)"
+              continue
+            fi
+
+            incomplete="$(jq '[.[] | select(.status != "completed")] | length' <<<"$runs")"
+            unsuccessful="$(jq '[.[] | select(.status == "completed" and .conclusion != "success")] | length' <<<"$runs")"
+            echo "  ${wf}: ${total} run(s), ${incomplete} still running, ${unsuccessful} not successful"
+            pending=$((pending + incomplete))
+            failed=$((failed + unsuccessful))
+          done
+
+          if [ "$pending" -gt 0 ]; then
+            echo "Still building; the last run to finish will dispatch."
+            exit 0
+          fi
+
+          if [ "$failed" -gt 0 ]; then
+            echo "::warning::A build for ${SHA} did not succeed, so its artifact set is" \
+                 "incomplete. Not dispatching: a partial pin would deploy mixed versions." \
+                 "The scheduled pin will take this commit once the artifacts exist."
+            exit 0
+          fi
+
+          echo "All builds for ${SHA} succeeded; dispatching."
+
+          # client_payload is informational: pin-dev.yml resolves
           # quiltdata/quilt@dev itself rather than trusting a payload, so a
-          # notification for a superseded commit still pins the current tip.
-          # Sent anyway because it is what makes a dispatch legible in the run
-          # log when someone is working out why a pin happened.
+          # notification for a commit that dev has already moved past still
+          # pins the current tip. Sent because it is what makes a dispatch
+          # legible when someone is working out why a pin happened.
           if ! gh api "repos/quiltdata/deployment/dispatches" \
             --method POST \
             --field event_type=quilt-dev-updated \
             --field "client_payload[sha]=$SHA" \
             --field "client_payload[workflow]=$SOURCE_WORKFLOW"; then
             echo "::warning::Dispatch to quiltdata/deployment failed." \
-                 "The scheduled pin job remains the fallback, so this is a" \
-                 "latency problem rather than a lost deploy."
+                 "The scheduled pin remains the fallback, so this is a latency" \
+                 "problem rather than a lost deploy."
             exit 0
           fi
 
