@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { act, renderHook } from '@testing-library/react-hooks'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as routes from 'constants/routes'
 import noop from 'utils/noop'
@@ -97,15 +97,23 @@ function mockAthena() {
       abort: noop,
     }
   })
+  // A resolvable catalog and database: `submit` refuses to run without them.
   listDataCatalogs.mockImplementation(() => ({
-    promise: () => Promise.resolve({ DataCatalogsSummary: [] }),
+    promise: () =>
+      Promise.resolve({ DataCatalogsSummary: [{ CatalogName: 'AwsDataCatalog' }] }),
   }))
   listDatabases.mockImplementation(() => ({
-    promise: () => Promise.resolve({ DatabaseList: [] }),
+    promise: () => Promise.resolve({ DatabaseList: [{ Name: 'default' }] }),
   }))
 }
 
 describe('app/containers/Queries/Athena/model/state', () => {
+  beforeEach(() => {
+    useParams.mockReturnValue({ workgroup: 'w' })
+    search.mockReturnValue('')
+    redirectedTo = null
+  })
+
   it('load workgroups and set current workgroup', async () => {
     mockAthena()
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -135,6 +143,40 @@ describe('app/containers/Queries/Athena/model/state', () => {
     })
 
     expect(redirectedTo).toBe('/queries/athena/bar?bucket=my-bucket&table=drugs')
+    unmount()
+  })
+
+  // The editor on an execution route is populated from that execution's own SQL,
+  // which TabulatorTables' `?table=` autofill would overwrite with an unrelated
+  // SELECT.
+  it('redirects a submitted query to its execution, keeping the bucket and dropping ?table=', async () => {
+    mockAthena()
+    search.mockReturnValue('?bucket=my-bucket&table=drugs')
+    startQueryExecution.mockImplementation(() => ({
+      promise: () => Promise.resolve({ QueryExecutionId: 'exec-1' }),
+    }))
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <Model.Provider>{children}</Model.Provider>
+    )
+    const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
+    await act(async () => {
+      await waitFor(() => Model.hasData(result.current.database.value))
+    })
+    await act(async () => {
+      result.current.queryBody.setValue('SELECT 1')
+    })
+    await act(async () => {
+      await waitFor(() => result.current.queryRun === null)
+    })
+    await act(async () => {
+      await result.current.submit(false)
+    })
+    await act(async () => {
+      await waitFor(() => redirectedTo !== null)
+    })
+
+    expect(redirectedTo).toBe('/queries/athena/w/exec-1?bucket=my-bucket')
     unmount()
   })
 })
