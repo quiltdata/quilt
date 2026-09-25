@@ -77,16 +77,23 @@ export function useParams({
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
       return Invalid(new ERRORS.SourceManifestNotLoaded())
     }
-    // The loaded manifest describes `src`, so any `dst` neither confirmed absent ('new')
-    // nor confirmed to be `src` ('new-revision') would get this one's entries as its
-    // complete replacement list. An unusable name is left to the gate below to word.
+    // Loaded entries describe `src`, so a `dst` naming anything else would get them as its
+    // complete replacement list. The handle comparison is not enough on its own: a name
+    // still being looked up cannot be trusted to be absent, and 'new-revision' is reported
+    // for any existing package once disableRestore is set.
     if (
       src &&
-      name.status._tag !== 'new' &&
-      name.status._tag !== 'new-revision' &&
-      name.status._tag !== 'error'
+      name.value &&
+      name.status._tag !== 'error' &&
+      manifest._tag === 'ready' &&
+      manifest.manifest?.entries
     ) {
-      return Invalid(new ERRORS.DestinationManifestMismatch())
+      const isSrc = dst.bucket === src.bucket && dst.name === src.name
+      const confirmedNew = name.status._tag === 'new'
+      const confirmedSrc = name.status._tag === 'new-revision' && isSrc
+      if (!confirmedNew && !confirmedSrc) {
+        return Invalid(new ERRORS.DestinationManifestMismatch())
+      }
     }
     if (!workflow.value || workflow.status._tag === 'error') {
       return Invalid(new Error('Valid workflow required'))

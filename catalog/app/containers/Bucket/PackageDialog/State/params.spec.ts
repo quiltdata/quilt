@@ -14,6 +14,13 @@ vi.mock('constants/config', () => ({ default: {} }))
 // A ready manifest is also what a dialog with no source package to load reports, so the
 // defaults below describe plain package creation.
 const MANIFEST_READY = { _tag: 'ready' as const }
+// A revise loads the entries that a push sends as its replacement list. The copy dialog
+// fetches with skipEntries, so its ready manifest carries none and MANIFEST_READY stands
+// in for it.
+const MANIFEST_WITH_ENTRIES = {
+  _tag: 'ready' as const,
+  manifest: { entries: { 'a.txt': {} } as never },
+}
 
 describe('containers/Bucket/PackageDialog/State/params', () => {
   const onChange = vi.fn()
@@ -317,6 +324,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'test-bucket', name: 'other' },
+          manifest: MANIFEST_WITH_ENTRIES,
           name: existsElsewhere,
           src,
         }),
@@ -329,16 +337,14 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     })
 
     it('is invalid when only the bucket differs', () => {
+      // The same package name in another bucket is another package. 'new-revision' is what
+      // useNameExistence reports here once disableRestore is set, so the tag alone would
+      // pass it: only the handle comparison catches it.
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'other-bucket', name: 'test-package' },
-          name: {
-            ...name,
-            status: {
-              _tag: 'exists' as const,
-              dst: { bucket: 'other-bucket', name: 'test-package' },
-            },
-          },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, status: { _tag: 'new-revision' as const } },
           src,
         }),
       )
@@ -358,7 +364,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'test-bucket', name: 'other' },
-          name: { ...name, status },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, value: 'other', status },
           src,
         }),
       )
@@ -369,14 +376,15 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    it('reports an unusable name as such, not as a mismatch', () => {
+    it.each([
+      ['error', { _tag: 'error' as const, error: new Error('Invalid package name') }],
+      ['idle, before the name is prefilled', { _tag: 'idle' as const }],
+    ])('reports an unusable name as such, not as a mismatch (%s)', (_tag, status) => {
       const { result } = renderHook(() =>
         useParamsWith({
-          dst: { bucket: 'test-bucket', name: 'bad name' },
-          name: {
-            ...name,
-            status: { _tag: 'error' as const, error: new Error('Invalid package name') },
-          },
+          dst: { bucket: 'test-bucket', name: undefined },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, value: undefined, status },
           src,
         }),
       )
@@ -384,10 +392,29 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
+    it.each([
+      ['while its name check is in flight', { _tag: 'loading' as const }],
+      ['when the name resolves elsewhere', { _tag: 'new-revision' as const }],
+    ])('permits a copy, which loads no entries to overwrite (%s)', (_tag, status) => {
+      // Copy fetches its manifest with skipEntries and promotes server-side by hash, so
+      // there is nothing loaded for this gate to protect.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'other-bucket', name: 'test-package' },
+          manifest: MANIFEST_READY,
+          name: { ...name, status },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+
     it('permits the plain revise, where dst and src name the same package', () => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: src,
+          manifest: MANIFEST_WITH_ENTRIES,
           name: { ...name, status: { _tag: 'new-revision' as const } },
           src,
         }),
@@ -400,7 +427,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'test-bucket', name: 'brand-new' },
-          name: { ...name, status: { _tag: 'new' as const } },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, value: 'brand-new', status: { _tag: 'new' as const } },
           src,
         }),
       )
