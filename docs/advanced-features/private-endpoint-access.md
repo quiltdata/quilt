@@ -4,6 +4,21 @@
 > This page describes a feature that is not enabled by default.
 You can ask your Quilt account manager to enable it.
 
+## Before you begin
+
+When you request private endpoints, plan and provision these network
+prerequisites **before** deploying or updating your Quilt CloudFormation
+stack. Skipping this planning step is the most common cause of failed
+private-endpoint deployments: ECS tasks that cannot reach Amazon ECR will
+fail to pull Quilt's container images, and the stack will appear to hang on
+ECS service creation with no useful log output.
+
+> **Note for customers with an existing permissive-VPC deployment:** a stack
+> that worked in a VPC with an Internet Gateway and public subnets will
+> **not** work unchanged when redeployed into a locked-down VPC. Treat the
+> private-endpoint deployment as a fresh network design, not a copy of your
+> POC environment.
+
 ## Data perimeters 
 
 A **data perimeter** ensures that only **trusted principals** on **expected networks**
@@ -18,8 +33,44 @@ In order for Quilt to function properly with expected private networks, your Qui
 account manager must configure your CloudFormation stack to run its services
 (e.g. Lambda, API Gateway) on private IPs.
 
-Additionally you will need to create and configure the following AWS resources,
-or equivalents depending on your network architecture:
+## Network prerequisites
+
+Before configuring private endpoints, decide how your VPC will reach AWS
+service APIs — most importantly **Amazon ECR**, which ECS tasks must reach
+to pull Quilt's container images:
+
+| Your VPC has… | What to do |
+| --- | --- |
+| Internet Gateway + public subnets | No egress changes needed. |
+| NAT Gateway or Transit Gateway with egress | No egress changes needed. |
+| Neither (fully isolated VPC) | Create VPC interface endpoints for the AWS services Quilt uses (see step 4 below). |
+
+Both NAT/Transit Gateway egress and a complete VPC-endpoint set are
+supported. Choose whichever matches your security posture:
+
+- **NAT or Transit Gateway** is simpler to set up and maintain — one
+  egress path covers every current and future AWS service Quilt calls.
+  See [Amazon's guide on NAT gateways](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating).
+- **Pure VPC endpoints** keep all traffic on the AWS backbone with no
+  public egress, at the cost of provisioning and maintaining an endpoint
+  for each service. Use this path when your security policy disallows
+  any form of internet routing from the VPC.
+
+## Required AWS resources
+
+Create and configure the following AWS resources, or equivalents depending
+on your network architecture:
+
+1. **Provide egress to AWS service APIs.**
+
+    Quilt's ECS tasks and Lambdas require access to Amazon ECR (for image
+    pulls), Amazon S3, CloudWatch Logs, Amazon SNS, and other AWS service
+    APIs. Without egress, ECS task startup will fail silently from the
+    customer's perspective — CloudFormation will appear to hang on service
+    creation.
+
+    Use a NAT Gateway, Transit Gateway, or — for fully isolated VPCs — the
+    full set of VPC interface endpoints listed in step 4.
 
 1. Create an [interface VPC endpoint](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-private-apis.html)
 for Amazon API Gateway.
@@ -41,11 +92,44 @@ for Amazon API Gateway.
     > If you wish to connect buckets from multiple stacks to Quilt, a transit
     VPC or similar design is required.
 
-1. Provide a NAT gateway (or similar).
+1. **(Fully isolated VPC only)** Create interface VPC endpoints for the
+   AWS services Quilt's ECS tasks need.
 
-    Quilt's private endpoints require access to public Internet services like Amazon ECR and Amazon SNS.
+    **Required for ECS task startup** (without these, CloudFormation hangs
+    on ECS service creation because the container cannot start):
 
-    > See [Amazon's guide on NAT gateways](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating).
+    | Service | Endpoint type | Why |
+    | --- | --- | --- |
+    | ECR API (`com.amazonaws.<region>.ecr.api`) | Interface | Image manifest pull |
+    | ECR DKR (`com.amazonaws.<region>.ecr.dkr`) | Interface | Image layer pull |
+    | S3 | Gateway | ECR stores image layers in S3 |
+    | CloudWatch Logs (`com.amazonaws.<region>.logs`) | Interface | Tasks use the `awslogs` driver and fail to start if Logs is unreachable |
+
+    **Required at runtime** for application functionality (without these the
+    task starts but specific features will return errors):
+
+    - From the registry (ECS): STS, SQS, Athena, Glue, KMS, CloudFormation,
+      CloudTrail, Firehose, IAM, Marketplace Metering
+    - From the lambdas: Athena, SQS, EventBridge (`events`)
+
+    All Lambda functions also need CloudWatch Logs reachability to emit
+    logs.
+
+    <!-- TODO: confirm completeness with the platform team — the lists
+         above were assembled from `boto3.client(...)` calls in
+         enterprise/registry and quilt/lambdas, but do not include any
+         services accessed transitively (e.g. via Quilt's quilt3 client or
+         third-party libraries). Ideally generated from the CloudFormation
+         template. See quiltdata/quiltx#52. -->
+
+    > **Diagnosing endpoint gaps:** a forthcoming `quiltx ecs reachability`
+    > diagnostic will test which AWS services your VPC can actually reach
+    > from inside an ECS task. Tracked in
+    > [quiltdata/quiltx#52](https://github.com/quiltdata/quiltx/issues/52).
+
+    > If you can't enumerate every runtime endpoint, NAT or Transit Gateway
+    > egress (step 1) is a lower-maintenance alternative that covers all
+    > current and future AWS service calls.
 
 1. Test and apply policies to enforce your data perimeter.
 
