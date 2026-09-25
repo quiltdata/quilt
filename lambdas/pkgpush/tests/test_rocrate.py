@@ -507,6 +507,10 @@ def test_parse_part_entities_are_not_package_metadata():
         ("ftp://example.com/x.txt", "RoCrateInvalidPart"),
         ("./", "RoCrateInvalidPart"),
         ("s3://other-bucket", "RoCrateInvalidPart"),
+        # A malformed authority makes urlparse raise a bare ValueError.
+        ("s3://[bad/key", "RoCrateInvalidPart"),
+        # A fragment is not part of the key; packaging "key" would be another object.
+        ("s3://other-bucket/key#fragment", "RoCrateInvalidPart"),
         (42, "RoCrateInvalidPart"),
     ],
 )
@@ -917,6 +921,80 @@ def test_package_prefix_dir_list_denied_is_pkgpush_exception(mocker, packager_st
         )
     assert excinfo.value.name == "RoCrateFailedToListPrefix"
     assert excinfo.value.context["logical_key"] == "out/"
+
+
+def test_package_prefix_dir_list_failing_mid_listing_is_pkgpush_exception(mocker, packager_stubs):
+    """The listing is consumed lazily, so a page that fails after the first still surfaces structurally."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": "out/"}]
+    get_object_stub(mocker, doc)
+    mocker.patch.object(t4_lambda_pkgpush, "get_user_s3_client")
+
+    def listing(*args):
+        yield {"Key": "experiments/260908_ale_ELNID/out/a.csv", "Size": 1, "VersionId": "va"}
+        raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied", "Message": "denied"}}, "List")
+
+    mocker.patch.object(t4_lambda_pkgpush, "list_prefix_latest_versions", side_effect=listing)
+
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
+        t4_lambda_pkgpush.package_prefix(
+            json.dumps(
+                {
+                    "source_prefix": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                    "metadata_uri": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                }
+            ),
+            None,
+        )
+    assert excinfo.value.name == "RoCrateFailedToListPrefix"
+
+
+def test_package_prefix_file_entity_inside_directory_part_keeps_meta(mocker, packager_stubs):
+    """A File entity for an object a directory part expands to keeps its metadata, as a listed file does."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": "out/"}]
+    doc["@graph"] += [
+        {"@id": "out/a.csv", "@type": "File", "name": "a.csv", "dateCreated": "2026-01-01"},
+        # Outside every directory part, so it is not packaged and cannot fail the crate.
+        {"@id": "elsewhere.csv", "@type": "File", "contentSize": float("nan")},
+    ]
+    mocker.patch.object(
+        t4_lambda_pkgpush.s3,
+        "get_object",
+        return_value={"Body": io.BytesIO(json.dumps(doc).encode())},
+    )
+    mocker.patch.object(t4_lambda_pkgpush, "get_user_s3_client")
+    mocker.patch.object(
+        t4_lambda_pkgpush,
+        "list_prefix_latest_versions",
+        return_value=[
+            {"Key": "experiments/260908_ale_ELNID/out/a.csv", "Size": 1, "VersionId": "va"},
+            {"Key": "experiments/260908_ale_ELNID/out/b.csv", "Size": 2, "VersionId": "vb"},
+        ],
+    )
+
+    t4_lambda_pkgpush.package_prefix(
+        json.dumps(
+            {
+                "source_prefix": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+                "metadata_uri": "s3://bucket/experiments/260908_ale_ELNID/ro-crate-metadata.json",
+            }
+        ),
+        None,
+    )
+
+    pkg, _ = built_package(packager_stubs)
+    assert pkg["out/a.csv"].meta == {"dateCreated": "2026-01-01"}
+    assert pkg["out/b.csv"].meta == {}
+
+
+def test_parse_file_entity_inside_directory_part_rejects_non_json_meta():
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": "out/"}]
+    doc["@graph"].append({"@id": "out/a.csv", "@type": "File", "contentSize": float("nan")})
+    with pytest.raises(rocrate.RoCrateError) as excinfo:
+        parse(doc)
+    assert excinfo.value.name == "RoCrateInvalidEntryMeta"
 
 
 def test_package_prefix_file_and_dir_same_name_is_pkgpush_exception(mocker, packager_stubs):

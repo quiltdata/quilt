@@ -28,7 +28,7 @@ import re
 import typing as T
 import urllib.parse
 
-from quilt3.util import PACKAGE_NAME_FORMAT, PhysicalKey, QuiltException, URLParseError, validate_key
+from quilt3.util import PACKAGE_NAME_FORMAT, PhysicalKey, QuiltException, validate_key
 
 CRATE_FILENAME = "ro-crate-metadata.json"
 ROOT_ID = "./"
@@ -72,6 +72,9 @@ class Crate:
     # Role -> human-readable values; the caller adds the name it publishes under.
     user_meta: dict[str, list[str]]
     entries: list[CrateEntry]
+    # Entry metadata for File entities beneath a directory part, by (bucket, key):
+    # the caller expands directories, so it matches them to the objects it lists.
+    nested_meta: dict[tuple[str, str], dict[str, T.Any]]
 
 
 def _types(entity: dict[str, T.Any]) -> list[str]:
@@ -277,9 +280,14 @@ def _resolve_part(part_id: str, folder: PhysicalKey, is_dir: bool) -> tuple[str,
     directory both end in "/" and the physical key is a prefix to expand.
     """
     if part_id.startswith("s3://"):
+        # As in a relative id, a "#" that belongs to the key arrives percent-encoded;
+        # a fragment means nothing for an object, and dropping it would package another key.
+        if "#" in part_id:
+            raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
         try:
             pk = PhysicalKey.from_url(part_id)
-        except URLParseError as e:
+        # URLParseError is a ValueError, and urlparse raises a bare one for a malformed authority.
+        except ValueError as e:
             raise RoCrateError("RoCrateInvalidPart", {"id": part_id}) from e
         if not pk.path or (pk.path.endswith("/") and not is_dir):
             raise RoCrateError("RoCrateInvalidPart", {"id": part_id})
@@ -311,6 +319,36 @@ def _resolve_part(part_id: str, folder: PhysicalKey, is_dir: bool) -> tuple[str,
     if is_dir and not rel.endswith("/"):
         rel += "/"
     return rel, PhysicalKey(folder.bucket, folder.path + rel, None)
+
+
+def _nested_meta(
+    by_id: dict[str, dict[str, T.Any]], folder: PhysicalKey, entries: dict[str, CrateEntry]
+) -> dict[tuple[str, str], dict[str, T.Any]]:
+    """
+    A File entity describing an object inside a directory part keeps its metadata
+    the way a listed file does. Only those are read: a File entity outside every
+    directory part is not packaged, so it cannot fail the crate.
+    """
+    prefixes = [(e.physical_key.bucket, e.physical_key.path) for e in entries.values() if e.is_dir]
+    found: dict[tuple[str, str], dict[str, T.Any]] = {}
+    if not prefixes:
+        return found
+    for entity in by_id.values():
+        # The raw id, which _resolve_part decodes; by_id's keys are already decoded.
+        entity_id = entity["@id"]
+        if "File" not in _types(entity) or _is_web_uri(entity_id):
+            continue
+        try:
+            _, pk = _resolve_part(entity_id, folder, False)
+        except RoCrateError:
+            continue
+        if not any(pk.bucket == bucket and pk.path.startswith(prefix) for bucket, prefix in prefixes):
+            continue
+        meta = {k: v for k, v in entity.items() if k not in _FILE_STRUCTURAL_PROPS}
+        if meta:
+            _reject_non_json(meta, entity_id)
+            found[(pk.bucket, pk.path)] = meta
+    return found
 
 
 def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey, default_name: str) -> Crate:
@@ -395,4 +433,4 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey, default_name: str) -> Cr
         False,
     )
 
-    return Crate(package_name, user_meta, list(entries.values()))
+    return Crate(package_name, user_meta, list(entries.values()), _nested_meta(by_id, folder, entries))

@@ -1075,11 +1075,29 @@ def package_prefix(event, context):
         for entry in sorted(crate.entries, key=lambda e: not e.is_dir):
             if entry.is_dir:
                 # A crate can name any bucket, so this LIST is reachable with credentials
-                # that cannot read it; surface that the way an entry's HEAD does.
+                # that cannot read it; surface that the way an entry's HEAD does. Pages are
+                # consumed as they arrive, so a large prefix is never held twice in memory.
                 try:
-                    swept = list(
-                        list_prefix_latest_versions(entry.physical_key.bucket, entry.physical_key.path, user_s3_client)
-                    )
+                    for obj in list_prefix_latest_versions(
+                        entry.physical_key.bucket, entry.physical_key.path, user_s3_client
+                    ):
+                        key = obj["Key"]
+                        logical_key = entry.logical_key + key[len(entry.physical_key.path) :]
+                        physical_key = PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId"))
+                        # Only directories have been expanded so far, so an existing key means two
+                        # prefixes overlap. Naming a different object, that would otherwise resolve
+                        # by graph order; the version is excluded because a nested pair of prefixes
+                        # legitimately sweeps one object twice and it may be rewritten in between.
+                        collision = pkg_entries.get(logical_key)
+                        if collision is not None and (
+                            collision.physical_key.bucket,
+                            collision.physical_key.path,
+                        ) != (physical_key.bucket, physical_key.path):
+                            raise PkgpushException("RoCrateDuplicateEntry", {"logical_key": logical_key})
+                        nested_meta = crate.nested_meta.get((physical_key.bucket, key))
+                        pkg_entries[logical_key] = quilt3.packages.PackageEntry(
+                            physical_key, obj["Size"], None, {"user_meta": nested_meta} if nested_meta else None
+                        )
                 except botocore.exceptions.ClientError as e:
                     raise PkgpushException(
                         "RoCrateFailedToListPrefix",
@@ -1089,21 +1107,6 @@ def package_prefix(event, context):
                             "error": str(e),
                         },
                     ) from e
-                for obj in swept:
-                    key = obj["Key"]
-                    logical_key = entry.logical_key + key[len(entry.physical_key.path) :]
-                    physical_key = PhysicalKey(entry.physical_key.bucket, key, obj.get("VersionId"))
-                    # Only directories have been expanded so far, so an existing key means two
-                    # prefixes overlap. Naming a different object, that would otherwise resolve
-                    # by graph order; the version is excluded because a nested pair of prefixes
-                    # legitimately sweeps one object twice and it may be rewritten in between.
-                    collision = pkg_entries.get(logical_key)
-                    if collision is not None and (collision.physical_key.bucket, collision.physical_key.path) != (
-                        physical_key.bucket,
-                        physical_key.path,
-                    ):
-                        raise PkgpushException("RoCrateDuplicateEntry", {"logical_key": logical_key})
-                    pkg_entries[logical_key] = quilt3.packages.PackageEntry(physical_key, obj["Size"], None, None)
                 continue
             # An explicit File keeps its crate metadata. When a prefix already swept this same
             # object, its pinned version and size are kept so the snapshot matches its
