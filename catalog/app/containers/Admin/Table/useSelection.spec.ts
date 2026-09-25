@@ -63,6 +63,21 @@ describe('containers/Admin/Table/useSelection', () => {
     expect(result.current.selectedRows).toEqual([])
   })
 
+  // Fails if the effect that prunes off-page ids is dropped: the id would survive in
+  // the stored set and come back selected.
+  it('does not restore a selection made on a page the admin left', () => {
+    const { result, rerender } = render([row('a'), row('b')])
+
+    act(() => {
+      result.current.toggle('a')
+    })
+
+    rerender({ rows: [row('c'), row('d')] })
+    rerender({ rows: [row('a'), row('b')] })
+
+    expect(result.current.count).toBe(0)
+  })
+
   it('reports a partial selection after deselecting one of all', () => {
     const { result } = render([row('a'), row('b')])
 
