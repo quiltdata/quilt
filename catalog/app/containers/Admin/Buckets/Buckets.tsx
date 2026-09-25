@@ -82,7 +82,10 @@ const useStickyActionsStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'flex-end',
     position: 'sticky',
-    transition: t.transitions.create(['box-shadow', 'padding'], { duration: 150 }),
+    // Shadow only: padding differs on all three edges between the two states, so
+    // it cannot move as a transform, and animating it runs layout on every frame
+    // while the user is mid-scroll. The fading shadow carries the state change.
+    transition: t.transitions.create('box-shadow', { duration: 150 }),
     '& > * + *': {
       // Spacing between direct children
       marginLeft: t.spacing(2),

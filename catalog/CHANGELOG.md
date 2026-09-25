@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Admin buckets: the sticky actions bar no longer animates its padding when it pins, so scrolling a long bucket form stays smooth ([#5349](https://github.com/quiltdata/quilt/pull/5349))
 - [Fixed] Revise package: retyping the destination can no longer publish the loaded package's files over a different package while the new name is still being checked ([#5337](https://github.com/quiltdata/quilt/pull/5337))
 - [Fixed] Admin users: re-sorting the table, or deleting a row the admin had not picked, no longer clears the rows selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Fixed] Qurator on a phone opens across the full screen instead of a narrow strip down one side, and keeps clear of the home bar ([#5332](https://github.com/quiltdata/quilt/pull/5332))
