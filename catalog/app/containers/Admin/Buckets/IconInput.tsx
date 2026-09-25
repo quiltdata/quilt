@@ -212,8 +212,8 @@ const useStyles = M.makeStyles((t) => ({
 
 type IconInputProps = RF.FieldRenderProps<string> & {
   // The bucket's name, not its title: it is the tint key every other surface
-  // hashes, so the preview disc matches the row behind it. Absent on the add form,
-  // where there is no bucket yet.
+  // hashes, so the preview disc matches the row behind it. Undefined on the add
+  // form, where no bucket is saved yet; the live `name` field stands in.
   bucketName?: string
   // Same shape Admin/Form's Field takes, so a validator key resolves to a sentence
   // here as it does on every sibling field.
@@ -230,6 +230,11 @@ export default function IconInput({
   // The live Title, so the initials track what is being typed rather than the last
   // saved value -- which on the add form does not exist yet.
   const title = RF.useField<string>('title', { subscription: { value: true } }).input
+    .value
+  // The add form's own Name field, so the preview wears the tint the bucket will
+  // actually get: the hash avalanches, so keying off Title instead would run the
+  // disc through unrelated colours per keystroke and settle on none of them.
+  const liveName = RF.useField<string>('name', { subscription: { value: true } }).input
     .value
   const [file, setFile] = React.useState<FileWithPath | null>(null)
   const [rejected, setRejected] = React.useState<string | null>(null)
@@ -318,7 +323,7 @@ export default function IconInput({
           <BucketIcon
             src={value || null}
             label={title}
-            tintKey={bucketName || title}
+            tintKey={bucketName || liveName || title}
             size={44}
           />
           <M.Typography variant="caption" color="textSecondary">

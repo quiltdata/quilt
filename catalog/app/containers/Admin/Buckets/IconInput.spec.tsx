@@ -49,13 +49,18 @@ import IconInput from './IconInput'
 interface HarnessProps {
   initial?: string
   bucketName?: string
+  // The add form's own Name field, which the component reads for the preview tint.
+  name?: string
   errors?: Record<string, React.ReactNode>
   validate?: (v?: string) => string | undefined
 }
 
-function Harness({ initial, bucketName, errors, validate }: HarnessProps) {
+function Harness({ initial, bucketName, name, errors, validate }: HarnessProps) {
   return (
-    <RF.Form onSubmit={() => {}} initialValues={{ iconUrl: initial, title: 'Prod data' }}>
+    <RF.Form
+      onSubmit={() => {}}
+      initialValues={{ iconUrl: initial, title: 'Prod data', name }}
+    >
       {({ handleSubmit }) => (
         <form onSubmit={handleSubmit}>
           <RF.Field
@@ -91,7 +96,14 @@ describe('containers/Admin/Buckets/IconInput', () => {
     expect(q.getByTestId('preview').dataset.tint).toBe('prod-analytics')
   })
 
-  it('falls back to the live title on the add form, where no bucket exists yet', () => {
+  it("keys off the add form's own Name field before the bucket is saved", () => {
+    // The tint the bucket will actually get. Keyed on the title instead, the hash
+    // avalanches and the disc runs through unrelated colours per keystroke.
+    const q = render(<Harness name="prod-analytics" />)
+    expect(q.getByTestId('preview').dataset.tint).toBe('prod-analytics')
+  })
+
+  it('falls back to the live title while the add form has no name yet', () => {
     const q = render(<Harness />)
     expect(q.getByTestId('preview').dataset.tint).toBe('Prod data')
   })
