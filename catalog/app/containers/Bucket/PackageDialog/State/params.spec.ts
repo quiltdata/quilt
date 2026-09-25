@@ -336,15 +336,25 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    it('is invalid when only the bucket differs', () => {
-      // The same package name in another bucket is another package, so the handle
-      // comparison has to catch it rather than the tag. Defensive: in the revise dialog
-      // 'new-revision' comes from the dst === src short-circuit, which cannot reach here.
+    it.each([
+      // Reachable: the Successors dropdown moves `dst` to another bucket, where the
+      // existence check finds a package of the same name.
+      [
+        'it exists there',
+        {
+          _tag: 'exists' as const,
+          dst: { bucket: 'other-bucket', name: 'test-package' },
+        },
+      ],
+      // Defensive: in the revise dialog 'new-revision' comes from the dst === src
+      // short-circuit, which cannot produce a differing bucket.
+      ['the tag alone would pass it', { _tag: 'new-revision' as const }],
+    ])('is invalid when only the bucket differs (%s)', (_label, status) => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'other-bucket', name: 'test-package' },
           manifest: MANIFEST_WITH_ENTRIES,
-          name: { ...name, status: { _tag: 'new-revision' as const } },
+          name: { ...name, status },
           src,
         }),
       )
