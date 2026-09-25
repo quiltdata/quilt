@@ -43,9 +43,14 @@ The crate's graph decides what the package contains:
 
 * **Entries** are exactly the root dataset's `hasPart` list, plus the crate
   itself, which records the graph the package was built from. A relative `@id`
-  resolves against the crate's folder; an `s3://` URI may point outside it. A
+  resolves against the crate's folder and keeps its path; an `s3://` URI may
+  point outside it and is entered under its file name alone, so two such parts
+  that share a file name collide and the crate is rejected. A
   directory part (a `Dataset` entity, or an `@id` ending in `/`) includes
-  everything under it. Paths that climb out of the folder are rejected.
+  everything under it. Paths that climb out of the folder are rejected, as is a
+  part whose scheme names data the packager cannot read. An `@id` that
+  identifies rather than locates — a URL, a URN, a DOI — has no object to
+  package and is skipped.
 * **Entry metadata** for each `File` entity is every property other than `@id`,
   `@type` and `name`, so `dateCreated`, `dateModified` and `sha256` survive the
   upload. This holds whether the file is listed in `hasPart` itself or reached

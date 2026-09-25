@@ -45,6 +45,7 @@ ELN_ENTRY_TERM = f"{PROFILE_URI}#ELNEntry"
 # people, so the name half derived from it is sanitized instead.
 _NAMESPACE_RE = re.compile(r"[\w-]+")
 _NAME_UNSAFE_RE = re.compile(r"[^\w-]")
+_URI_SCHEME_RE = re.compile(r"([a-zA-Z][a-zA-Z0-9+.\-]*):")
 
 # Structural properties of a File entity; everything else is entry metadata.
 _FILE_STRUCTURAL_PROPS = frozenset(("@id", "@type", "name"))
@@ -120,7 +121,7 @@ def _normalize_id(entity_id: str) -> str:
     A trailing slash is left alone: "x" and "x/" can be a File and a Dataset that
     both legally exist.
     """
-    if entity_id == ROOT_ID or entity_id.startswith("s3://"):
+    if entity_id == ROOT_ID:
         return entity_id
     return urllib.parse.unquote(entity_id[2:] if entity_id.startswith("./") else entity_id)
 
@@ -146,8 +147,27 @@ def _entity_body(entity: dict[str, T.Any]) -> dict[str, T.Any]:
     return {k: v for k, v in entity.items() if k != "@id"}
 
 
-def _is_web_uri(part_id: str) -> bool:
-    return part_id.startswith(("http://", "https://"))
+def _is_reference_uri(part_id: str) -> bool:
+    """
+    An id that names something other than an object to package: a license URL, a
+    URN, a DOI. There is nothing behind it to put in a package, so it is not an entry.
+
+    An opaque scheme ("urn:uuid:...", "doi:10...") is an identifier, never a
+    location, and carries no "//" -- so matching "http://" alone resolved one as a
+    relative path and built an S3 key out of it. A relative path's first segment
+    cannot contain ":" per RFC 3986 4.2 (it arrives as "./a:b"), so a scheme here
+    is never part of a key. Scheme names are case-insensitive.
+
+    A hierarchical scheme that is neither http(s) nor s3 ("ftp://", "gs://") names
+    data this consumer cannot fetch: `_resolve_part` rejects it, rather than
+    silently dropping a part the producer meant to include.
+    """
+    if part_id.startswith("./"):
+        return False
+    match = _URI_SCHEME_RE.match(part_id)
+    if match is None:
+        return False
+    return match.group(1).lower() in ("http", "https") or not part_id[match.end() :].startswith("//")
 
 
 def _sanitize_name(name: str | None) -> str | None:
@@ -336,7 +356,7 @@ def _nested_meta(
     for entity in by_id.values():
         # The raw id, which _resolve_part decodes; by_id's keys are already decoded.
         entity_id = entity["@id"]
-        if "File" not in _types(entity) or _is_web_uri(entity_id):
+        if "File" not in _types(entity) or _is_reference_uri(entity_id):
             continue
         try:
             _, pk = _resolve_part(entity_id, folder, False)
@@ -392,7 +412,7 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey, default_name: str) -> Cr
         # A web-based data entity (e.g. a license URL, idiomatic in nf-prov
         # WRROC) is legal RO-Crate but is a reference, not an object a package
         # entry can point at, so it is left out rather than failing the crate.
-        if _is_web_uri(part_id):
+        if _is_reference_uri(part_id):
             continue
         entity = _lookup_part(by_id, part_id)
         is_dir = "Dataset" in _types(entity) or part_id.endswith("/")

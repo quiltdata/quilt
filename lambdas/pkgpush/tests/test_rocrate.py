@@ -528,6 +528,57 @@ def test_parse_haspart_rejects(part_id, error):
     assert excinfo.value.name == error
 
 
+@pytest.mark.parametrize(
+    "part_id, entity_id",
+    [
+        ("s3://other/a%20b.csv", "s3://other/a b.csv"),
+        ("s3://other/a b.csv", "s3://other/a%20b.csv"),
+    ],
+    ids=["part-encoded", "entity-encoded"],
+)
+def test_parse_haspart_s3_percent_encoding_still_finds_entity(part_id, entity_id):
+    """An s3:// id is a URI reference: entity lookup decodes it as `_resolve_part` does.
+
+    Keying `by_id` by the raw spelling instead dropped the File's metadata whenever
+    the two disagreed, which is the metadata the crate exists to carry.
+    """
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"] = [{"@id": part_id}]
+    doc["@graph"].append({"@id": entity_id, "@type": "File", "dateCreated": "2026-01-01"})
+
+    entries = {e.logical_key: e for e in parse(doc).entries}
+    assert entries["a b.csv"].physical_key == PhysicalKey("other", "a b.csv", None)
+    assert entries["a b.csv"].user_meta == {"dateCreated": "2026-01-01"}
+
+
+@pytest.mark.parametrize(
+    "part_id",
+    ["urn:uuid:1f2c-aa", "doi:10.1234/abc", "mailto:data@example.org", "HTTPS://spdx.org/licenses/MIT"],
+    ids=["urn", "doi", "mailto", "uppercase-scheme"],
+)
+def test_parse_haspart_reference_uri_is_skipped(part_id):
+    """An identifier, or a web URI in any case, is a reference with no object to package.
+
+    Matching only lowercase "http://" resolved an opaque scheme as a relative path,
+    so "urn:uuid:..." became an S3 key that failed a HEAD much later.
+    """
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"].append({"@id": part_id})
+    doc["@graph"].append({"@id": part_id, "@type": "CreativeWork"})
+
+    assert [e.logical_key for e in parse(doc).entries] == ["test_file.txt", "ro-crate-metadata.json"]
+
+
+@pytest.mark.parametrize("part_id", ["ftp://example.com/x.txt", "gs://bucket/key.csv"])
+def test_parse_haspart_unfetchable_location_still_rejected(part_id):
+    """A scheme that locates data this consumer cannot read fails, rather than vanishing."""
+    doc = copy.deepcopy(SAMPLE)
+    root_of(doc)["hasPart"].append({"@id": part_id})
+    with pytest.raises(rocrate.RoCrateError) as excinfo:
+        parse(doc)
+    assert excinfo.value.name == "RoCrateInvalidPart"
+
+
 @pytest.mark.parametrize("web_id", ["https://spdx.org/licenses/MIT", "http://example.com/x.txt"])
 def test_parse_haspart_web_uri_is_skipped(web_id):
     """A web-based data entity is legal RO-Crate but has no object to package."""
