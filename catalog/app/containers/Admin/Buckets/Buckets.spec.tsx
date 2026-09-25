@@ -34,6 +34,14 @@ vi.stubGlobal(
   },
 )
 
+// The dialog's own request, so a refusal can be driven through it. The rest of the module
+// is real: `HTTPError` is what `serverMessage` and the catch's status checks read.
+const req = vi.fn()
+vi.mock('utils/APIConnector', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('utils/APIConnector')>()),
+  use: () => req,
+}))
+
 vi.mock('containers/Notifications', () => ({ use: () => ({ push: vi.fn() }) }))
 // `constants/config` reads window.QUILT_CATALOG_CONFIG at module load, so without
 // this the suite fails to import at all.
@@ -140,5 +148,31 @@ describe('containers/Admin/Buckets/EditPage', () => {
     // a failing query) cannot pass as a closed dialog.
     expect(getByText('s3://bucket-b')).toBeTruthy()
     expect(queryByPlaceholderText(/whole bucket/)).toBe(null)
+  })
+
+  it.each([
+    [
+      'the registry’s own reason for a refusal it names',
+      httpError(JSON.stringify({ message: "'prefix' was unexpected" }), 400),
+      "'prefix' was unexpected",
+    ],
+    [
+      'a generic error when the message did not come from the registry',
+      httpError('<html><body>502 Bad Gateway</body></html>', 502),
+      'Unexpected error',
+    ],
+  ])('shows %s', async (_name, rejection, shown) => {
+    req.mockRejectedValueOnce(rejection)
+    const history = createMemoryHistory({ initialEntries: ['/admin/buckets/bucket-a'] })
+    const { getByText } = renderEditRoute(history)
+
+    await act(async () => {
+      fireEvent.click(getByText('Re-index and repair'))
+    })
+    await act(async () => {
+      fireEvent.click(getByText('Re-index'))
+    })
+
+    expect(getByText(shown)).toBeTruthy()
   })
 })
