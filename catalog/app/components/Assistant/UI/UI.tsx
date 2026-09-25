@@ -7,6 +7,7 @@ import * as style from 'constants/style'
 import * as Model from '../Model'
 import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
+import PanelBoundary from './PanelBoundary'
 import { MOTION, PANEL_WIDTH, RAIL_WIDTH, Context as ReflowContext } from './PanelReflow'
 
 // The rail button names the region it expands, so both need one id. The paper
@@ -94,6 +95,12 @@ function Panel({ api, compact, open }: PanelProps) {
   // old overlay stands.
   const expanded = compact || open
   useFocusRail(!compact, open, railRef)
+  // The events Chat renders live above the boundary, so clearing them is what
+  // makes Retry able to succeed.
+  const clearConversation = React.useCallback(
+    () => api.dispatch(Model.Conversation.Action.Clear()),
+    [api],
+  )
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer
@@ -108,14 +115,16 @@ function Panel({ api, compact, open }: PanelProps) {
         SlideProps={{ timeout: instant ? 0 : undefined }}
       >
         {expanded ? (
-          <Chat
-            state={api.state}
-            dispatch={api.dispatch}
-            devTools={api.devTools}
-            connectors={api.connectors}
-            instructions={api.instructions}
-            onClose={api.hide}
-          />
+          <PanelBoundary onRetry={clearConversation}>
+            <Chat
+              state={api.state}
+              dispatch={api.dispatch}
+              devTools={api.devTools}
+              connectors={api.connectors}
+              instructions={api.instructions}
+              onClose={api.hide}
+            />
+          </PanelBoundary>
         ) : (
           <div className={classes.rail}>
             {/* One string for both, as the rail's own rows do: the tooltip is
