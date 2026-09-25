@@ -126,6 +126,19 @@ describe('containers/Bucket/Header', () => {
     expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
   })
 
+  it('names the focused settings control once, without a duplicate description', () => {
+    isAdmin = true
+    const { getByRole, container } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    link.focus()
+    expect(document.activeElement).toBe(link)
+    expect(container.querySelectorAll('[tabindex]:not([tabindex="-1"])')).toHaveLength(2)
+    // A native title or aria-describedby here would repeat the label as the
+    // control's description.
+    expect(link.getAttribute('title')).toBeNull()
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+  })
+
   it('does not link the total-size stat', () => {
     const { getAllByText } = renderHeader()
     // readableBytes(1024) renders "1 kB" split across text nodes

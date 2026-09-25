@@ -253,13 +253,14 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 0,
   },
   // Settings sits at the card's far edge behind a hairline divider — config
-  // set apart from the bucket's readout, muted until hovered.
+  // set apart from the bucket's readout, muted until hovered. The divider and
+  // its padding belong to the link itself, so the area that reacts to hover is
+  // the area that navigates.
   settings: {
-    alignItems: 'center',
     alignSelf: 'stretch',
     borderLeft: `1px solid ${t.palette.divider}`,
+    borderRadius: 0,
     color: t.palette.text.secondary,
-    display: 'flex',
     gridArea: 'settings',
     paddingLeft: t.spacing(2),
     '&:hover': {
@@ -293,20 +294,19 @@ export default function Header({ bucket }: HeaderProps) {
         // On the button itself the tooltip would write its title beside the
         // aria-label, naming and describing the control with one string.
         <M.Tooltip arrow title="Bucket settings" disableTouchListener>
-          <div className={classes.settings}>
-            <M.IconButton
-              component={RRDom.Link}
-              to={urls.adminBucketEdit(bucket)}
-              size="small"
-              color="inherit"
-              aria-label="Bucket settings"
-              // ButtonBase only trusts a literal `component="a"` to be a link, so
-              // without this the anchor is announced as a button, promising Space.
-              role="link"
-            >
-              <M.Icon fontSize="small">settings</M.Icon>
-            </M.IconButton>
-          </div>
+          <M.IconButton
+            className={classes.settings}
+            component={RRDom.Link}
+            to={urls.adminBucketEdit(bucket)}
+            size="small"
+            color="inherit"
+            aria-label="Bucket settings"
+            // ButtonBase only trusts a literal `component="a"` to be a link, so
+            // without this the anchor is announced as a button, promising Space.
+            role="link"
+          >
+            <M.Icon fontSize="small">settings</M.Icon>
+          </M.IconButton>
         </M.Tooltip>
       )}
     </div>
