@@ -69,15 +69,10 @@ const usePanelStyles = M.makeStyles((t) => ({
   paperRail: {
     width: RAIL_WIDTH,
   },
-  // The overlay is the whole panel on a phone, and it is the one Qurator
-  // surface that reaches the screen edge -- the docked paper stops at the
-  // gutter. On a tablet it stops at the chat's own cap instead.
-  //
-  // `&&` (0,2,0) beats `paper`'s own width outright. Both are single classes on
-  // the same element, so without it the winner is JSS injection order, and
-  // reordering these keys would silently put a phone back on the docked
-  // `min(40rem, 50vw)` -- half the screen (Sidebar's Focus Ring note, same
-  // reasoning).
+  // The overlay is the whole panel on a phone; the docked paper stops at the
+  // gutter. `&&` (0,2,0) is what beats `paper`'s own width -- at equal
+  // specificity the winner would be JSS injection order, so reordering these
+  // keys would put a phone back on the docked `min(40rem, 50vw)`.
   paperCompact: {
     '&&': {
       paddingBottom: 'env(safe-area-inset-bottom)',

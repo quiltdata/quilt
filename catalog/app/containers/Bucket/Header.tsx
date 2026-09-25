@@ -207,13 +207,9 @@ function CreatePackage({ bucket, className }: CreatePackageProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  // Cutoffs are the card's own width (components/Layout/Column), not the
-  // viewport's: the chrome the old viewport tiers had to allow for -- the
-  // 256px rail, and now Qurator's gutter -- is already outside what the column
-  // measures. Each threshold is the column width the equivalent viewport tier
-  // engaged at: 1300px of viewport minus the rail is 1044px of column. Below
-  // 960px the rail is an overlay and the column is the viewport, so the
-  // narrow tier's number is unchanged.
+  // Cutoffs measure the card, not the viewport (components/Layout/Column), so
+  // the rail and Qurator's gutter are already outside them. 1044px is the
+  // column the old 1300px viewport tier engaged at, once the 256px rail is out.
   root: {
     alignItems: 'center',
     columnGap: t.spacing(3),

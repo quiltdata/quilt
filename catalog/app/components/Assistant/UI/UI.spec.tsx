@@ -163,12 +163,8 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(getByTestId('reflow').textContent).toBe('null')
   })
 
-  // The docked paper's width is the gutter's, so it needs none of its own; the
-  // overlay is the only Qurator surface that reaches the screen edge, and
-  // without its own width it inherits the docked `min(40rem, 50vw)` -- half a
-  // phone. Asserted on the applied rule name (JSS keeps the style key in the
-  // generated class) rather than the sheet, which carries every rule whether or
-  // not it is used.
+  // Read from the applied class name, not the sheet: the sheet carries every
+  // rule whether or not it is used.
   const hasRule = (el: Element, key: string) =>
     el.className.split(' ').some((c) => c.startsWith(`makeStyles-${key}-`))
 
