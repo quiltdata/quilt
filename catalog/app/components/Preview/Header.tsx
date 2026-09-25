@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Buttons from 'components/Buttons'
+import * as Column from 'components/Layout/Column'
 import type * as Model from 'model'
 
 import Menu from './Menu'
@@ -13,7 +14,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'flex-start',
     display: 'flex',
     lineHeight: 1.75,
-    [t.breakpoints.up('md')]: {
+    [Column.up('md')]: {
       ...t.typography.h5,
     },
   },
