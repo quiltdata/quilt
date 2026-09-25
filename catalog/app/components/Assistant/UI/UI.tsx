@@ -96,11 +96,13 @@ function Panel({ api, compact, open }: PanelProps) {
   const expanded = compact || open
   useFocusRail(!compact, open, railRef)
   // The events Chat renders live above the boundary, so clearing them is what
-  // makes Retry able to succeed.
-  const clearConversation = React.useCallback(
-    () => api.dispatch(Model.Conversation.Action.Clear()),
-    [api],
-  )
+  // makes Retry able to succeed. Abort first: `Clear` has no transition out of
+  // WaitingForAssistant or ToolUse, and an unhandled action leaves the state as
+  // it was (utils/Actor.ts), so on its own it would be a no-op mid-request.
+  const clearConversation = React.useCallback(() => {
+    api.dispatch(Model.Conversation.Action.Abort())
+    api.dispatch(Model.Conversation.Action.Clear())
+  }, [api])
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer

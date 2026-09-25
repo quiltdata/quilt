@@ -13,7 +13,9 @@ vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
 const useAssistantAPI = vi.fn()
 vi.mock('../Model', () => ({
   useAssistantAPI: () => useAssistantAPI(),
-  Conversation: { Action: { Clear: () => ({ _tag: 'Clear' }) } },
+  Conversation: {
+    Action: { Clear: () => ({ _tag: 'Clear' }), Abort: () => ({ _tag: 'Abort' }) },
+  },
 }))
 
 vi.mock('./InlinePresence', () => ({
@@ -46,12 +48,17 @@ vi.mock('./Chat', () => ({
   },
 }))
 
-// Stands in for the actor above the boundary: Clear empties the events, and the
-// re-render that follows is what a real dispatch would cause.
-function renderPanel() {
+// Stands in for the actor above the boundary, including the part that decides
+// whether Retry can work at all: the real machine has no `Clear` transition out
+// of WaitingForAssistant or ToolUse and leaves the state untouched when an
+// action is unhandled (utils/Actor.ts), so `Clear` lands only once `Abort` has
+// returned the conversation to idle.
+function renderPanel({ busy = false }: { busy?: boolean } = {}) {
   const rerenderRef: { current: () => void } = { current: () => {} }
+  const idle = { current: !busy }
   const dispatch = vi.fn((action: { _tag?: string }) => {
-    if (action?._tag === 'Clear') {
+    if (action?._tag === 'Abort') idle.current = true
+    if (action?._tag === 'Clear' && idle.current) {
       conversation.events = []
       rerenderRef.current()
     }
@@ -125,6 +132,16 @@ describe('components/Assistant/UI PanelBoundary', () => {
     expect(getByText('Qurator could not load')).toBeTruthy()
     fireEvent.click(getByText('Retry'))
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ _tag: 'Clear' }))
+    expect(queryByText('chat body')).toBeTruthy()
+    expect(queryByText('Qurator could not load')).toBeNull()
+  })
+
+  it('recovers when the chat fails mid-request, where Clear alone does nothing', () => {
+    conversation.events = ['poison']
+    const { queryByText, getByText, dispatch } = renderPanel({ busy: true })
+    expect(getByText('Qurator could not load')).toBeTruthy()
+    fireEvent.click(getByText('Retry'))
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ _tag: 'Abort' }))
     expect(queryByText('chat body')).toBeTruthy()
     expect(queryByText('Qurator could not load')).toBeNull()
   })
