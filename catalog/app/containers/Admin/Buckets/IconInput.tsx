@@ -257,6 +257,9 @@ export default function IconInput({
   }, [])
 
   const onDropRejected = React.useCallback((rejections: FileRejection[]) => {
+    // Retires a probe still running on an earlier pick, which would otherwise open
+    // the dialog on that file while this rejection is on screen naming another.
+    selection.current += 1
     // Name the constraint that actually failed: told "wrong format" after
     // dropping two correctly-typed files, an admin has no way to find the real one.
     const code = rejections[0]?.errors[0]?.code
@@ -341,11 +344,19 @@ export default function IconInput({
             // retires it rather than leaving red text under unrelated input.
             setRejected(null)
             const next = e.target.value.replace(/^\s+/, '')
-            // A pasted data: URI is capped at what the crop path stores, not at the
-            // URL length: truncating one to 1024 leaves an undecodable value that
-            // then reads as uploaded, which locks the field against repairing it.
-            const cap = next.startsWith('data:') ? MAX_ICON_DATA_URL_LENGTH : 1024
-            input.onChange(next.slice(0, cap))
+            // A data: URI is refused rather than truncated: any cut leaves a value
+            // that cannot decode but still reads as uploaded, which hides it behind
+            // a description and locks the field against repairing it. A URL is safe
+            // to cut -- it stays visible and editable.
+            if (next.startsWith('data:')) {
+              if (next.length > MAX_ICON_DATA_URL_LENGTH) {
+                setRejected('That image data is too long to store as an icon')
+                return
+              }
+              input.onChange(next)
+              return
+            }
+            input.onChange(next.slice(0, 1024))
           }}
           onBlur={(e) => {
             // Trimmed on commit rather than per keystroke, so a space stays

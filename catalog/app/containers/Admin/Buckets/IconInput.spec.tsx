@@ -135,13 +135,23 @@ describe('containers/Admin/Buckets/IconInput', () => {
     expect(field.value).toBe('https://cdn.example.com/i.png')
   })
 
-  it('keeps a pasted data: URI decodable rather than cutting it at the URL cap', () => {
+  it('keeps a pasted data: URI whole rather than cutting it at the URL cap', () => {
     // Cut to 1024 the value still reads as uploaded, so the field locks read-only
     // over a truncated URI the admin can no longer repair by typing.
     const uri = `data:image/png;base64,${'A'.repeat(4000)}`
     const q = render(<Harness initial="" />)
     fireEvent.change(urlField(q), { target: { value: uri } })
     expect(q.getByTestId('preview').dataset.src).toBe(uri)
+  })
+
+  it('refuses a data: URI past the stored bound instead of truncating it', () => {
+    // Any cut yields a value that cannot decode but still reads as uploaded, so an
+    // over-long paste is refused outright rather than stored in part.
+    const uri = `data:image/png;base64,${'A'.repeat(20 * 1024)}`
+    const q = render(<Harness initial="" />)
+    fireEvent.change(urlField(q), { target: { value: uri } })
+    expect(q.getByText('That image data is too long to store as an icon')).toBeDefined()
+    expect(q.getByTestId('preview').dataset.src).toBe('')
   })
 
   it('clears either kind of value', () => {
@@ -213,6 +223,35 @@ describe('containers/Admin/Buckets/IconInput', () => {
       fireEvent.drop(input)
     })
     expect(q.getByText('Choose an image under 12MB')).toBeDefined()
+  })
+
+  it('retires a probe still running when a later drop is rejected', async () => {
+    // Otherwise the slow pick's dialog opens over the rejection naming another file,
+    // leaving no way to tell which image is being cropped.
+    let settle: (v: boolean) => void = () => {}
+    probeWithinPixelBudget.mockReturnValueOnce(
+      new Promise<boolean>((res) => {
+        settle = res
+      }),
+    )
+    const q = render(<Harness initial="" />)
+    const input = q.getByLabelText(
+      'Upload a bucket icon: PNG, JPEG, WebP or GIF',
+    ) as HTMLInputElement
+    const good = new File(['x'], 'slow.png', { type: 'image/png' })
+    Object.defineProperty(input, 'files', { value: [good], configurable: true })
+    fireEvent.drop(input)
+
+    const bad = new File(['x'], 'notes.txt', { type: 'text/plain' })
+    Object.defineProperty(input, 'files', { value: [bad], configurable: true })
+    await act(async () => {
+      fireEvent.drop(input)
+    })
+    await act(async () => {
+      settle(true)
+    })
+    expect(q.getByText('Choose a PNG, JPEG, WebP or GIF image')).toBeDefined()
+    expect(q.queryByText('Crop icon')).toBeNull()
   })
 
   it('gives the file input an accessible name', () => {
