@@ -21,7 +21,6 @@ WRROC_PATH = pathlib.Path(__file__).parent / "data" / "wrroc-canonical.json"
 # quiltdata/quilt-ro-crate-profile 0.1/example1/ro-crate-metadata.json at 3af25f4.
 PROFILE_EXAMPLE = json.loads((pathlib.Path(__file__).parent / "data" / "quilt-profile-example1.json").read_text())
 PROFILE_EXAMPLE_PK = PhysicalKey("bucket", "runs/2026-09-08-assay-01/ro-crate-metadata.json", "v1")
-PROFILE_ID = "https://w3id.org/quilt/ro-crate/0.1"
 ACTION_ID = "urn:uuid:9f1c4e2a-5b73-4a1e-8c0d-2e7f6a3b9d41"
 INSTRUMENT_ID = "https://example.org/instruments/INST-000123"
 ELN_ID = "https://eln.example.org/entries/etr_AbC123"
@@ -187,130 +186,71 @@ def _append(new_entity):
     return lambda doc: doc["@graph"].append(new_entity)
 
 
-PROFILE_VIOLATIONS = {
-    "ro-crate-1.1": (
-        _set("ro-crate-metadata.json", "conformsTo", {"@id": "https://w3id.org/ro/crate/1.1"}),
-        ("ro-crate-metadata.json", "conformsTo must be RO-Crate 1.2 or 1.3"),
-    ),
-    "context-mismatch": (
-        lambda doc: doc.__setitem__("@context", "https://w3id.org/ro/crate/1.1/context"),
-        ("@context", "must include https://w3id.org/ro/crate/1.2/context"),
-    ),
-    "null": (_set("./", "dateCreated", None), ("./", "dateCreated must be omitted rather than null")),
-    "not-flattened": (
-        _set("01-Well-A1.fcs", "variableMeasured", {"@type": "PropertyValue", "propertyID": "x", "value": "A1"}),
-        ("01-Well-A1.fcs", 'variableMeasured must reference entities as {"@id": ...} only'),
-    ),
-    "no-description": (_del("./", "description"), ("./", "description is required")),
-    "no-date-published": (_del("./", "datePublished"), ("./", "datePublished is required")),
-    "no-license": (_del("./", "license"), ("./", "license is required")),
-    "profile-entity-untyped": (
-        _set(PROFILE_ID, "@type", "CreativeWork"),
-        (PROFILE_ID, "a declared profile needs an entity typed CreativeWork and Profile"),
-    ),
-    "part-not-a-file": (
-        lambda doc: root_of(doc)["hasPart"].append({"@id": "orphan.fcs"}),
-        ("orphan.fcs", "a hasPart member must be a File or Dataset"),
-    ),
-    "person-fragment-id": (
-        _append({"@id": "#jdoe", "@type": "Person", "name": "Jane Doe"}),
-        ("#jdoe", "a Person @id must be an absolute URI"),
-    ),
-    "person-no-name": (
-        _append({"@id": "https://orcid.org/0000-0000-0000-0000", "@type": "Person", "alternateName": "anon"}),
-        ("https://orcid.org/0000-0000-0000-0000", "a Person needs a name"),
-    ),
-    "instrument-no-identifier": (
-        _del(INSTRUMENT_ID, "identifier"),
-        (INSTRUMENT_ID, "an instrument needs an identifier"),
-    ),
-    "action-not-mentioned": (
-        _del("./", "mentions"),
-        (ACTION_ID, "a CreateAction must be listed in the root's mentions"),
-    ),
-    "action-no-end-time": (_del(ACTION_ID, "endTime"), (ACTION_ID, "a CreateAction needs endTime")),
-    "action-software-instrument": (
-        _set(ACTION_ID, "instrument", {"@id": "#eln-vendor"}),
-        ("#eln-vendor", "an instrument must be an IndividualProduct"),
-    ),
-    "eln-no-provider": (
-        _del(ELN_ID, "provider"),
-        (ELN_ID, "an ELN entry's provider must be an Organization or SoftwareApplication"),
-    ),
-    "eln-person-provider": (
-        _set(ELN_ID, "provider", {"@id": "https://orcid.org/0000-0002-1825-0097"}),
-        (ELN_ID, "an ELN entry's provider must be an Organization or SoftwareApplication"),
-    ),
-}
-
-
-@pytest.mark.parametrize("mutate, violation", PROFILE_VIOLATIONS.values(), ids=PROFILE_VIOLATIONS.keys())
-def test_parse_profile_violation_rejects(mutate, violation):
-    """A crate that claims the profile and breaks it is rejected, not partially ingested."""
-    with pytest.raises(rocrate.RoCrateError) as excinfo:
-        parse(profile_crate(mutate))
-    assert excinfo.value.name == "RoCrateNotConforming"
-    assert excinfo.value.context["profile"] == PROFILE_ID
-    assert {"id": violation[0], "requirement": violation[1]} in excinfo.value.context["violations"]
-
-
-def test_parse_profile_violations_are_all_reported():
-    """A producer fixes a crate in one pass only if it hears about every problem at once."""
-
-    def mutate(doc):
-        for m, _ in (
-            PROFILE_VIOLATIONS["no-license"],
-            PROFILE_VIOLATIONS["null"],
-            PROFILE_VIOLATIONS["person-fragment-id"],
-        ):
-            m(doc)
-
-    with pytest.raises(rocrate.RoCrateError) as excinfo:
-        parse(profile_crate(mutate))
-    assert excinfo.value.context["violations"] == [
-        {"id": "./", "requirement": "dateCreated must be omitted rather than null"},
-        {"id": "./", "requirement": "license is required"},
-        {"id": "#jdoe", "requirement": "a Person @id must be an absolute URI"},
+def _add_software_step(doc):
+    """A compensation step beside the acquisition, as Process Run Crate describes one."""
+    root_of(doc)["mentions"] = [root_of(doc)["mentions"], {"@id": "#compensation"}]
+    doc["@graph"] += [
+        {
+            "@id": "#compensation",
+            "@type": "CreateAction",
+            "instrument": {"@id": "#flowjo"},
+            "object": {"@id": "01-Well-A1.fcs"},
+        },
+        {"@id": "#flowjo", "@type": "SoftwareApplication", "name": "FlowJo"},
     ]
 
 
-@pytest.mark.parametrize("mutate", [m for m, _ in PROFILE_VIOLATIONS.values()], ids=PROFILE_VIOLATIONS.keys())
-def test_parse_undeclared_profile_is_best_effort(mutate):
-    """The same defects in a crate that claims no profile are packaged anyway."""
+# Ways a crate declaring the profile can depart from its recommendations. None stops
+# Quilt from building the package the crate describes, so none is grounds to reject.
+PRODUCER_CHOICES = {
+    "ro-crate-1.1": _set("ro-crate-metadata.json", "conformsTo", {"@id": "https://w3id.org/ro/crate/1.1"}),
+    "context-mismatch": lambda doc: doc.__setitem__("@context", "https://w3id.org/ro/crate/1.1/context"),
+    "null": _set("./", "dateCreated", None),
+    "inline-entity": _set("01-Well-A1.fcs", "variableMeasured", {"@type": "PropertyValue", "value": "A1"}),
+    "no-description": _del("./", "description"),
+    "no-license": _del("./", "license"),
+    "part-without-entity": lambda doc: root_of(doc)["hasPart"].append({"@id": "orphan.fcs"}),
+    "person-fragment-id": _append({"@id": "#jdoe", "@type": "Person", "name": "Jane Doe"}),
+    "instrument-no-identifier": _del(INSTRUMENT_ID, "identifier"),
+    "action-not-mentioned": _del("./", "mentions"),
+    "action-no-end-time": _del(ACTION_ID, "endTime"),
+    "eln-no-provider": _del(ELN_ID, "provider"),
+    "software-step": _add_software_step,
+}
 
-    def undeclared(doc):
-        mutate(doc)
-        root_of(doc)["conformsTo"] = [{"@id": "https://w3id.org/ro/wfrun/process/0.6"}]
 
-    crate = parse(profile_crate(undeclared))
+@pytest.mark.parametrize("mutate", PRODUCER_CHOICES.values(), ids=PRODUCER_CHOICES.keys())
+def test_parse_profile_recommendations_are_not_enforced(mutate):
+    """Quilt rejects only what it cannot package as written; the rest is the producer's call."""
+    crate = parse(profile_crate(mutate))
+    assert crate.package_name == "assay-dev/2026-09-08-assay-01"
     assert "01-Well-A1.fcs" in [e.logical_key for e in crate.entries]
 
 
-@pytest.mark.parametrize(
-    "iri, declares",
-    [
-        ("https://w3id.org/quilt/ro-crate", True),
-        ("https://w3id.org/quilt/ro-crate/0.1", True),
-        ("https://w3id.org/quilt/ro-crate/0.2/", True),
-        # The term namespace and a term are not the profile.
-        ("https://w3id.org/quilt/ro-crate#", False),
-        ("https://w3id.org/quilt/ro-crate#packageName", False),
-        ("https://w3id.org/quilt/ro-crate-extras", False),
-    ],
-)
-def test_parse_profile_declaration(iri, declares):
-    """Conformance is on the root, bare or versioned; the check runs only when it is claimed."""
+def test_parse_software_step_instrument_is_projected():
+    """Role, not type: a software instrument under mentions is an instrument too."""
+    meta = parse(profile_crate(PRODUCER_CHOICES["software-step"])).user_meta
+    assert meta["instrument"] == ["Flow Cytometer 1", "FlowJo"]
+    assert meta["instrument_id"] == ["INST-000123"]
 
-    def mutate(doc):
-        root_of(doc)["conformsTo"] = {"@id": iri}
-        entity(doc, PROFILE_ID)["@id"] = iri
-        del root_of(doc)["license"]
 
-    if declares:
-        with pytest.raises(rocrate.RoCrateError, match="RoCrateNotConforming"):
-            parse(profile_crate(mutate))
-    else:
-        assert parse(profile_crate(mutate)).package_name == "assay-dev/2026-09-08-assay-01"
+def test_parse_inline_entities_are_read():
+    """An entity written inline instead of referenced still names the package and fills roles."""
+    doc = copy.deepcopy(SAMPLE)
+    doc["@graph"] = [e for e in doc["@graph"] if e["@id"] not in ("#quilt-namespace", "#lab-subgroup")]
+    root_of(doc)["identifier"] = {
+        "@type": "PropertyValue",
+        "propertyID": rocrate.PACKAGE_NAMESPACE_TERM,
+        "value": "inline",
+    }
+    root_of(doc)["producer"] = {
+        "@type": "Organization",
+        "name": "ADQC",
+        "parentOrganization": {"@id": "#lab-group"},
+    }
+    crate = parse(doc)
+    assert crate.package_name == "inline/260908_ale_ELNID"
+    assert crate.user_meta == EXPECTED_META
 
 
 # --- Package naming ------------------------------------------------------------------
@@ -718,29 +658,6 @@ def test_package_prefix_crate_with_utf8_bom(mocker, packager_stubs):
 
     _, kwargs = built_package(packager_stubs)
     assert kwargs["name"] == "assay-dev/2026-09-08-assay-01"
-
-
-def test_package_prefix_not_conforming_is_pkgpush_exception(mocker, packager_stubs):
-    doc = copy.deepcopy(PROFILE_EXAMPLE)
-    del root_of(doc)["license"]
-    get_object_stub(mocker, doc)
-
-    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-        t4_lambda_pkgpush.package_prefix(
-            json.dumps(
-                {
-                    "source_prefix": "s3://bucket/runs/2026-09-08-assay-01/ro-crate-metadata.json",
-                    "metadata_uri": "s3://bucket/runs/2026-09-08-assay-01/ro-crate-metadata.json",
-                }
-            ),
-            None,
-        )
-    assert excinfo.value.name == "RoCrateNotConforming"
-    assert excinfo.value.context == {
-        "profile": PROFILE_ID,
-        "violations": [{"id": "./", "requirement": "license is required"}],
-    }
-    packager_stubs.assert_not_called()
 
 
 def test_parse_canonical_nf_prov_wrroc():
