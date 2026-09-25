@@ -32,6 +32,7 @@ import * as Form from '../Form'
 import * as OnDirty from './OnDirty'
 import TabulatorForm from './Tabulator'
 
+import IconInput from './IconInput'
 import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
 import Reindex from './ReindexDialog'
 
@@ -672,16 +673,7 @@ function PrimaryForm({ bucket }: PrimaryFormProps) {
         fullWidth
         margin={bucket ? 'none' : 'normal'}
       />
-      <RF.Field
-        component={Form.Field}
-        name="iconUrl"
-        label="Icon URL (optional)"
-        placeholder="e.g. https://some-cdn.com/icon.png"
-        helperText="Recommended size: 80x80px"
-        parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
-        fullWidth
-        margin="normal"
-      />
+      <RF.Field component={IconInput} name="iconUrl" bucketName={bucket?.name} />
       <RF.Field
         component={Form.Field}
         name="description"
