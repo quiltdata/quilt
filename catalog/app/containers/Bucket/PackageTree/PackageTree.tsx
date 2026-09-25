@@ -157,8 +157,9 @@ const useTopBarStyles = M.makeStyles((t) => ({
       display: 'none',
     },
     // Zeroed so the seam above is the whole gap in both views: the file view's
-    // first child (FileProperties) carries no marginLeft, a button does. The
-    // doubled selector outranks the children's own single-class margin rules.
+    // first child (FileProperties) carries no marginLeft, a button does. Doubled
+    // selectors (&&) outrank the children's single-class margin rules regardless
+    // of JSS sheet insertion order.
     '&& > :first-child': {
       marginLeft: 0,
     },
