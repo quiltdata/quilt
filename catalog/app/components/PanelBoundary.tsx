@@ -204,24 +204,29 @@ export default function PanelBoundary({
   resetKeys,
   onRetry,
 }: PanelBoundaryProps) {
-  const Fallback = React.useCallback(
-    (props: FallbackProps) => (
-      <PanelFallback
-        {...props}
-        title={title}
-        retryLabel={retryLabel}
-        variant={variant}
-        onRetry={onRetry}
-      />
-    ),
-    [title, retryLabel, variant, onRetry],
+  // `fallbackRender`, not `FallbackComponent`: the latter is an element *type*,
+  // so a new function identity remounts the fallback subtree and takes focus off
+  // Retry with it. `onRetry` churns on every provider render at the Qurator call
+  // site, which would make that constant.
+  const fallbackRender = (props: FallbackProps) => (
+    <PanelFallback
+      {...props}
+      title={title}
+      retryLabel={retryLabel}
+      variant={variant}
+      onRetry={onRetry}
+    />
   )
   // Suspense is unconditional: a call site that forgot it would let a cold read
   // unwind to the Suspense above and replace the whole page, which is the
   // failure this component exists to prevent. Without `suspenseFallback` the
   // panel goes blank while it reads -- contained, if unlovely.
   return (
-    <ErrorBoundary FallbackComponent={Fallback} onError={onError} resetKeys={resetKeys}>
+    <ErrorBoundary
+      fallbackRender={fallbackRender}
+      onError={onError}
+      resetKeys={resetKeys}
+    >
       <React.Suspense
         fallback={
           busyLabel === undefined ? (

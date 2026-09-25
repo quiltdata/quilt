@@ -1,9 +1,9 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import PanelBoundary from 'components/PanelBoundary'
+import Skeleton from 'components/Skeleton'
 import * as style from 'constants/style'
 
 import * as Model from '../Model'
@@ -67,9 +67,9 @@ function ChatPlaceholder() {
   const classes = usePlaceholderStyles()
   return (
     <div aria-hidden className={classes.skeletons}>
-      <Lab.Skeleton height={40} variant="rect" />
-      <Lab.Skeleton height={24} width="60%" />
-      <Lab.Skeleton height={24} width="80%" />
+      <Skeleton borderRadius={4} height={40} width="100%" />
+      <Skeleton borderRadius={4} height={24} width="60%" />
+      <Skeleton borderRadius={4} height={24} width="80%" />
     </div>
   )
 }

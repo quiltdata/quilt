@@ -92,7 +92,7 @@ function renderPanel({ busy = false }: { busy?: boolean } = {}) {
   }
 }
 
-describe('components/Assistant/UI PanelBoundary', () => {
+describe('components/Assistant/UI Panel boundary', () => {
   let consoleError: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {

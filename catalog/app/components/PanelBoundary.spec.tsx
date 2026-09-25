@@ -4,7 +4,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 
 import PanelBoundary from './PanelBoundary'
 
-// The call-site specs (Overview.boundary, File.boundary, Assistant/UI/PanelBoundary)
+// The call-site specs (Overview.boundary, File.boundary, Assistant/UI/Panel.boundary)
 // cover containment through their own pages. These cover what only the shared
 // component decides: which chrome each variant gets, and the busy state, so the
 // two call sites cannot silently converge on one look.
@@ -118,6 +118,25 @@ describe('components/PanelBoundary', () => {
       </PanelBoundary>,
     )
     expect(getByText('recovered')).toBeTruthy()
+  })
+
+  // A fresh `onRetry` identity every render is the normal case at the Qurator
+  // call site, whose provider hands down an unmemoized object. Rendering the
+  // fallback through an element *type* would remount it each time and take focus
+  // off the button with it.
+  it('keeps the same retry button across an onRetry identity change', () => {
+    const { getByText, rerender } = render(
+      <PanelBoundary title="Panel unavailable" onRetry={() => {}}>
+        <Boom />
+      </PanelBoundary>,
+    )
+    const before = getByText('Retry')
+    rerender(
+      <PanelBoundary title="Panel unavailable" onRetry={() => {}}>
+        <Boom />
+      </PanelBoundary>,
+    )
+    expect(getByText('Retry')).toBe(before)
   })
 
   describe('while a child suspends', () => {
