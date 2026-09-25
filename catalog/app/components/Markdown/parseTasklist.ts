@@ -1,4 +1,4 @@
-import type { StateInline } from 'markdown-it'
+import type { StateInline } from './markdownItTypes'
 
 export const CHECKED = 'tasklist_checked'
 export const UNCHECKED = 'tasklist_unchecked'

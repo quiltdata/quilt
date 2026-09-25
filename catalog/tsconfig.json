@@ -1,15 +1,25 @@
 {
   "compilerOptions": {
+    // target stays ES5 + downlevelIteration (with ignoreDeprecations) until the
+    // aws-sdk v2 -> v3 migration: aws-sdk v2 invokes subclass constructors
+    // without `new` (ES5 inheritance), which native ES2020 classes reject.
+    // The ES2020 target bump rides along with that migration.
     "ignoreDeprecations": "6.0",
-    "baseUrl": "./app/",
     "paths": {
-      "*": ["*", "../../shared/*"]
+      // @finos/perspective 1.9.4 ships an `exports` map with no `types`
+      // condition, so `bundler` resolution can't see its shipped declarations.
+      // Point TS at them directly. Removable once Perspective -> 3.x (qhq-u477).
+      "@finos/perspective": ["./node_modules/@finos/perspective/index.d.ts"],
+      "@finos/perspective-viewer": [
+        "./node_modules/@finos/perspective-viewer/dist/esm/perspective-viewer.d.ts"
+      ],
+      "*": ["./app/*", "../shared/*"]
     },
     "sourceMap": true,
     "module": "ESNext",
     "target": "ES5",
     "downlevelIteration": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "jsx": "react",
