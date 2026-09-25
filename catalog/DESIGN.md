@@ -378,6 +378,29 @@ Every control uses the same vocabulary on every screen.
   Material tab anatomy; the active tab's underline is the same selection
   vocabulary as the rail's bracket (Indicator Rule).
 
+### Named Rules
+
+**The Touch Floor Rule.** A control a finger has to hit is at least 44px in both
+axes, and the query is `pointer: coarse` — never a width. Density serves the
+scientist, so a narrow column on a desktop keeps the compact instrument; only a
+finger or stylus pays for the larger target. The floor lives on the theme so it
+reaches controls inside dialogs and menus too, and it grows the hit area with
+padding rather than moving the glyph.
+
+**The Column Rule.** Page layouts respond to the width of the main content
+column, not the viewport: the rail takes 256px and the Qurator panel up to 40vw,
+so the column can be phone-width on a desktop. Page styles key on it through
+`components/Layout/Column`, whose keys mirror `theme.breakpoints` against the
+column. The chrome is the exception — the rail and the search band sit outside
+the column they would be measuring, so they keep the viewport. Anything through
+a portal keeps it too: a container query never crosses one.
+
+**The Safe Area Rule.** The app draws to the edges of a notched screen, so every
+element that owns a screen edge carries its own `env(safe-area-inset-*)` — the
+content column, the full-bleed search band, the rail overlay, the Qurator panel.
+A gutter takes `max()` against the inset rather than adding to it; a fixed-width
+surface adds the inset to its width rather than spending its content on it.
+
 ### Data Identity (signature)
 
 - Hashes, URIs, package handles, and versions render in Roboto Mono at Body
@@ -400,6 +423,8 @@ Every control uses the same vocabulary on every screen.
   affordances.
 - **Do** give every interactive element a visible keyboard focus (the Focus
   Ring Rule).
+- **Do** size touch targets from the pointer, not the viewport (the Touch Floor
+  Rule), and lay pages out against the content column (the Column Rule).
 
 ### Don't
 
@@ -414,3 +439,8 @@ Every control uses the same vocabulary on every screen.
   (the One-Register Rule); there is one dark and it is the Midnight Chassis.
 - **Don't** signal state with color alone; pair color with text or iconography.
 - **Don't** use display sizes or the 300 weight inside the app.
+- **Don't** key a page layout on the viewport, or a touch target on a width: the
+  column carries the space and the pointer carries the aim (the Column and Touch
+  Floor Rules).
+- **Don't** reveal an affordance on hover alone — a finger raises neither hover
+  nor focus-visible, so it has to stand at rest where there is no pointer.

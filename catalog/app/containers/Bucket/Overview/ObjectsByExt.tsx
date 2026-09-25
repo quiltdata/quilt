@@ -3,6 +3,7 @@ import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import AsyncResult from 'utils/AsyncResult'
 import { readableBytes, readableQuantity } from 'utils/string'
@@ -44,7 +45,7 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
     `,
     gridTemplateColumns: 'minmax(30px, max-content) 1fr minmax(30px, max-content)',
     gridTemplateRows: 'auto',
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       gridTemplateAreas: `
         "heading heading heading"
       `,
@@ -53,7 +54,7 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
   heading: {
     gridArea: 'heading',
     marginBottom: t.spacing(1),
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       textAlign: 'center',
     },
   },

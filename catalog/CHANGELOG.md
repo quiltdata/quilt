@@ -21,6 +21,13 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator on a phone opens across the full screen instead of a narrow strip down one side, and keeps clear of the home bar ([#5332](https://github.com/quiltdata/quilt/pull/5332))
+- [Fixed] Empty states on a phone no longer run their explanatory line off the right edge: it sits under the action instead of beside it ([#5332](https://github.com/quiltdata/quilt/pull/5332))
+- [Fixed] On a small phone, file names are no longer truncated to a few characters, each row's actions stay on screen instead of being clipped (the size and timestamp columns yield the width they need), and the directory toolbar wraps instead of widening the page ([#5332](https://github.com/quiltdata/quilt/pull/5332))
+- [Fixed] On a touch device the app fills the visible viewport instead of running under the browser's URL bar, and what a hover used to reveal is shown at rest instead: the copy-value buttons on search results, and a long bucket name that would otherwise truncate behind a tooltip a finger cannot open ([#5332](https://github.com/quiltdata/quilt/pull/5332))
+- [Fixed] Controls on a touch device are big enough to hit, and the app keeps clear of a notched phone's rounded corners; a mouse still gets the dense layout at any width ([#5332](https://github.com/quiltdata/quilt/pull/5332))
+- [Fixed] Search: the "scroll to the top" button appears again and works, after the page content moved into its own scrolling column ([#5332](https://github.com/quiltdata/quilt/pull/5332))
+- [Fixed] Page layouts follow the width of the content column rather than the viewport, so opening the Qurator panel no longer leaves the bucket header, package pages, listings and search in a wide-screen layout at a phone's width ([#5332](https://github.com/quiltdata/quilt/pull/5332))
 - [Fixed] Get popover: it no longer crashes when its Code tab disappears while selected, and its active-tab underline and panel switch honor `prefers-reduced-motion` ([#5335](https://github.com/quiltdata/quilt/pull/5335))
 - [Added] Admin users: select rows and apply one action to all of them (enable, disable, grant or revoke admin rights, delete), with a per-user result so one failure does not hide the rest ([#5296](https://github.com/quiltdata/quilt/pull/5296))
 - [Added] Admin buckets: a re-index can be scoped to a key prefix, so an admin can re-scan part of a bucket without recreating its search indices, and a refused re-index reports the registry's own reason instead of a generic "already in progress" ([#5295](https://github.com/quiltdata/quilt/pull/5295))

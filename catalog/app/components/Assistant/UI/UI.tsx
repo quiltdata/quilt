@@ -69,6 +69,14 @@ const usePanelStyles = M.makeStyles((t) => ({
   paperRail: {
     width: RAIL_WIDTH,
   },
+  // The overlay is the whole panel on a phone, and it is the one Qurator
+  // surface that reaches the screen edge -- the docked paper stops at the
+  // gutter. On a tablet it stops at the chat's own cap instead.
+  paperCompact: {
+    paddingBottom: 'env(safe-area-inset-bottom)',
+    paddingRight: 'env(safe-area-inset-right)',
+    width: 'min(40rem, 100vw)',
+  },
   rail: {
     alignItems: 'center',
     display: 'flex',
@@ -102,7 +110,13 @@ function Panel({ api, compact, open }: PanelProps) {
         open={open}
         onClose={api.hide}
         PaperProps={{ id: PANEL_ID }}
-        classes={{ paper: cx(classes.paper, !expanded && classes.paperRail) }}
+        classes={{
+          paper: cx(
+            classes.paper,
+            !expanded && classes.paperRail,
+            compact && classes.paperCompact,
+          ),
+        }}
         // `timeout` overrides the Drawer's own Slide duration -- it spreads
         // SlideProps last.
         SlideProps={{ timeout: instant ? 0 : undefined }}

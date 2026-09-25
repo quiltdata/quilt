@@ -4,6 +4,7 @@ import * as RRDom from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -109,14 +110,14 @@ const useStatsStyles = M.makeStyles((t) => ({
     flexWrap: 'nowrap',
     justifyContent: 'flex-end',
     rowGap: t.spacing(1),
-    [t.breakpoints.down(1300)]: {
+    [Column.down(950)]: {
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
       '& $create': {
         marginLeft: 'auto',
       },
     },
-    [t.breakpoints.down(640)]: {
+    [Column.down(590)]: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
       '& $create': {
@@ -206,17 +207,18 @@ function CreatePackage({ bucket, className }: CreatePackageProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  // Tier cutoffs are viewport-based, but the card's width is viewport minus
-  // the shell chrome (256px rail above 960px + paddings), so the never-wrap
-  // row engages only where it always fits (≥1300px ≈ 950px of card). Below
-  // that the stacked tiers tolerate any width.
+  // Cutoffs are the card's own width (components/Layout/Column), not the
+  // viewport's: the shell chrome it used to allow for -- the rail, the
+  // paddings and now Qurator's gutter -- is already outside what the column
+  // measures. 950px is the width the never-wrap row needs, which is what the
+  // old 1300px viewport tier was reaching for.
   root: {
     alignItems: 'center',
     columnGap: t.spacing(3),
     display: 'grid',
     gridTemplateAreas: '"title stats"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto',
-    [t.breakpoints.down(1300)]: {
+    [Column.down(950)]: {
       gridTemplateAreas: '"title" "stats"',
       gridTemplateColumns: 'minmax(0, 1fr)',
       rowGap: t.spacing(1),
@@ -227,7 +229,7 @@ const useStyles = M.makeStyles((t) => ({
   withSettings: {
     gridTemplateAreas: '"title stats settings"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
-    [t.breakpoints.down(1300)]: {
+    [Column.down(950)]: {
       gridTemplateAreas: '"title settings" "stats stats"',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
     },
@@ -237,13 +239,14 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 0,
     overflow: 'hidden',
   },
-  // Truncation needs the hover tooltip as its escape hatch; on narrow
-  // (mostly touch) screens there is no hover, so the name wraps instead.
+  // Truncation needs the hover tooltip as its escape hatch, so where there is
+  // no hover the name wraps instead. Keyed on the pointer, not a width: a
+  // narrow column on a desktop still has one (components/Layout/Pointer).
   titleText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    [t.breakpoints.down(640)]: {
+    '@media (hover: none)': {
       overflowWrap: 'anywhere',
       whiteSpace: 'normal',
     },

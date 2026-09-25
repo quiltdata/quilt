@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 
 // import Message from 'components/Message'
 import * as Buttons from 'components/Buttons'
+import * as Column from 'components/Layout/Column'
 import SelectDropdown from 'components/SelectDropdown'
 import cfg from 'constants/config'
 import { tokens as tokensSelector } from 'containers/Auth/selectors'
@@ -39,8 +40,7 @@ const useViewModeSelectorStyles = M.makeStyles((t) => ({
 
 export function ViewModeSelector({ className, ...props }) {
   const classes = useViewModeSelectorStyles()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const sm = Column.useDown('sm')
   return (
     <SelectDropdown className={cx(classes.root, className)} shrink={sm} {...props}>
       {sm ? <M.Icon>visibility</M.Icon> : <span className={classes.label}>View as:</span>}
