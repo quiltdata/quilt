@@ -38,15 +38,15 @@ export function useSelection<Row>({ rows, getId }: UseSelectionProps<Row>) {
   const ids = useMemoEq(rows.map(getId), R.identity)
 
   // Scoped to the rows on screen so a bulk action can never reach a row the admin
-  // stopped seeing after paginating or filtering. Intersecting covers the render
-  // before the reset effect runs.
+  // stopped seeing after paginating or filtering.
   const selected = React.useMemo(
     () => new Set(ids.filter((id) => stored.has(id))),
     [ids, stored],
   )
 
+  // Keeps `stored` from growing without bound as the admin ticks rows across pages.
   React.useEffect(() => {
-    setStored(EMPTY_SELECTION)
+    setStored((prev) => new Set(ids.filter((id) => prev.has(id))))
   }, [ids])
 
   const toggle = React.useCallback((id: string) => {
