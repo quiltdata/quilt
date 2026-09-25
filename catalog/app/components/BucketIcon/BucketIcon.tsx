@@ -40,8 +40,8 @@ const useStyles = M.makeStyles((t) => ({
   // driven from the disc so the initials scale with it.
   initials: {
     alignItems: 'center',
-    // inline-flex, not flex: centres the initials and keeps the disc an
-    // inline-level box, so `root`'s vertical-align still applies to it.
+    // inline-level so `root`'s vertical-align applies; the flex centres
+    // the initials
     display: 'inline-flex',
     fontFamily: t.typography.fontFamily,
     fontWeight: 500,
