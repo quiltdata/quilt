@@ -136,6 +136,9 @@ describe('containers/Admin/Buckets/EditPage', () => {
       history.push('/admin/buckets/bucket-b')
     })
 
+    // Asserted alongside the absence so a page that rendered nothing at all (a redirect,
+    // a failing query) cannot pass as a closed dialog.
+    expect(getByText('s3://bucket-b')).toBeTruthy()
     expect(queryByPlaceholderText(/whole bucket/)).toBe(null)
   })
 })
