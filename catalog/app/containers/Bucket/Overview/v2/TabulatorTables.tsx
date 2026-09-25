@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -53,7 +54,10 @@ const useRowStyles = M.makeStyles((t) => ({
     cursor: 'help',
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.caption.fontSize,
+    minWidth: 0,
+    overflow: 'hidden',
     textDecoration: 'underline dotted',
+    textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   cols: {
@@ -183,7 +187,7 @@ function TableRow({ table, queryUrl }: TableRowProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
   },

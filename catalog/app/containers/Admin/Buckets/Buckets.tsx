@@ -13,6 +13,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
+import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as quiltConfigs from 'constants/quiltConfigs'
@@ -139,10 +140,15 @@ function StickyActions({ children, parentRef }: StickyActionsProps) {
     if (!parent || !parent.height) return
     setParentSize(parent)
   }, [parentRef])
+  // `.main` is the scroll container, not the window, so a window listener here
+  // never fires (components/Layout/Column). The bottom the sticky test compares
+  // against is still the viewport's: the column runs its full height.
+  const column = Column.useElement()
   React.useEffect(() => {
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
+    const target: HTMLElement | Window = column ?? window
+    target.addEventListener('scroll', handleScroll)
+    return () => target.removeEventListener('scroll', handleScroll)
+  }, [column, handleScroll])
   const { height: parentHeight } = useResizeObserver({ ref: parentRef })
   React.useEffect(() => handleScroll(), [handleScroll, parentHeight])
 

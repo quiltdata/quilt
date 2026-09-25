@@ -95,7 +95,11 @@ const useStyles = M.makeStyles((t) => {
     drawerPaper: {
       background: t.palette.primary.main,
       border: 0,
-      width: `min(${t.spacing(32)}px, 85vw)`,
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      paddingLeft: 'env(safe-area-inset-left)',
+      // Added to the width, not taken out of it: the rail keeps its labels'
+      // room on a notched phone in landscape.
+      width: `calc(min(${t.spacing(32)}px, 85vw) + env(safe-area-inset-left))`,
     },
     // The brand row is brand only: the collapse control rides the rail's right
     // edge instead, so folding doesn't reshuffle this row.

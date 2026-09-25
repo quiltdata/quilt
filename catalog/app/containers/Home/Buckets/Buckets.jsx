@@ -7,6 +7,7 @@ import { fade } from '@material-ui/core/styles'
 import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
+import * as Column from 'components/Layout/Column'
 import Pagination from 'components/Pagination2'
 import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
@@ -163,7 +164,7 @@ const useStyles = M.makeStyles((t) => ({
     // instead of overflowing.
     flexWrap: 'wrap',
     gap: t.spacing(2),
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       alignItems: 'flex-start',
       flexDirection: 'column',
     },
@@ -190,7 +191,7 @@ const useStyles = M.makeStyles((t) => ({
     flexShrink: 0,
     marginBottom: 0,
     marginTop: 0,
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       maxWidth: 360,
     },
   },
@@ -206,7 +207,7 @@ const useStyles = M.makeStyles((t) => ({
     marginLeft: 'auto',
     marginTop: 0,
     minWidth: 200,
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       marginLeft: 0,
       width: '100%',
     },
@@ -243,7 +244,7 @@ const useStyles = M.makeStyles((t) => ({
   controls: {
     display: 'flex',
     justifyContent: 'space-between',
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       alignItems: 'center',
       flexDirection: 'column-reverse',
       flexWrap: 'wrap',

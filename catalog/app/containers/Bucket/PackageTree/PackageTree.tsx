@@ -10,6 +10,7 @@ import * as Assistant from 'components/Assistant'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
+import * as Column from 'components/Layout/Column'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -133,7 +134,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     maxWidth: 'calc(100% - 160px)',
     overflowWrap: 'break-word',
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       maxWidth: 'calc(100% - 40px)',
     },
   },
