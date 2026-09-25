@@ -126,11 +126,9 @@ describe('containers/Bucket/Header', () => {
     expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
   })
 
-  // The tooltip must not describe the control with the control's own name, and
-  // MUI can do that two ways: a native `title` at rest, or `aria-describedby`
-  // once open. Both are checked at rest and after the tooltip has opened, and on
-  // the settings cell as well as the link — moving the tooltip to a wrapper
-  // relocates the attributes rather than removing them.
+  // MUI writes a native `title` at rest and `aria-describedby` once open, and
+  // wrapping moves them rather than removing them, so both states and both
+  // elements are checked.
   it('never describes the settings control with its own name', async () => {
     isAdmin = true
     const { getByRole } = renderHeader()

@@ -290,9 +290,8 @@ export default function Header({ bucket }: HeaderProps) {
         <Stats bucket={bucket} stats={stats} />
       </div>
       {isAdmin && (
-        // The tooltip wraps the cell so its `title` and `aria-describedby` land on
-        // a generic, not on the link, whose name they would merely repeat. A node
-        // title keeps MUI from writing the string as a native `title` as well.
+        // On the link MUI would write this text as the link's own description. It
+        // wraps the cell instead, and a node title is never written as a `title`.
         <M.Tooltip arrow title={<>Bucket settings</>} disableTouchListener>
           <div className={classes.settings}>
             <M.IconButton
