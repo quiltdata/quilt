@@ -1,14 +1,20 @@
 """
-Map an RO-Crate 1.1 metadata document onto a Quilt package.
+Map an RO-Crate metadata document onto a Quilt package, as the consumer
+described by the Quilt RO-Crate profile (https://w3id.org/quilt/ro-crate).
 
-Package-level metadata is `lower(@type).@id -> name` for every contextual
-entity, so two entities of the same type (e.g. lab group and lab subgroup,
-both `Organization`) get distinct keys and the value is what people search on.
 Package entries are exactly the root dataset's `hasPart`, with each `File`
 entity's remaining properties attached as entry metadata; that is how
 `dateCreated` survives S3, which only knows when an object landed. A part
 that is a web URI (nf-prov WRROC lists the license there) is a reference
 with no object behind it, so it is not an entry.
+
+Package metadata is a flat projection keyed by the role an entity plays for
+the root (creator, producer, instrument, ELN entry) rather than by its
+`@type`, so a search schema built on those keys does not freeze the crate's
+shape. The crate itself ships in the package as the verbatim graph.
+
+A crate that declares the profile and breaks it is rejected rather than
+partially ingested; any other crate is packaged best-effort.
 """
 
 from __future__ import annotations
@@ -19,13 +25,26 @@ import re
 import typing as T
 import urllib.parse
 
-from quilt3.util import PhysicalKey, QuiltException, URLParseError, validate_key
+from quilt3.util import PACKAGE_NAME_FORMAT, PhysicalKey, QuiltException, URLParseError, validate_key
 
 CRATE_FILENAME = "ro-crate-metadata.json"
 ROOT_ID = "./"
 
-# Package names are validated against PACKAGE_NAME_FORMAT, but crate names are
-# written for people, so a name half is sanitized the way an inferred one is.
+PROFILE_URI = "https://w3id.org/quilt/ro-crate"
+# Conformance may name the profile bare or at a version ("/0.1"); the "#" term
+# namespace is not a profile.
+_PROFILE_IRI_RE = re.compile(re.escape(PROFILE_URI) + r"(/[^/?#]+)?/?")
+# The profile's terms appear only as propertyID / additionalType values, never
+# as JSON-LD keys, so they survive expansion under the stock RO-Crate context.
+PACKAGE_NAME_TERM = f"{PROFILE_URI}#packageName"
+PACKAGE_NAMESPACE_TERM = f"{PROFILE_URI}#packageNamespace"
+ELN_ENTRY_TERM = f"{PROFILE_URI}#ELNEntry"
+_RO_CRATE_SPEC_RE = re.compile(r"https://w3id\.org/ro/crate/(1\.[23])")
+
+# An explicit package name or namespace is the producer's to get right, so it is
+# rejected rather than corrected. The root's `name` is a title written for
+# people, so the name half derived from it is sanitized instead.
+_NAMESPACE_RE = re.compile(r"[\w-]+")
 _NAME_UNSAFE_RE = re.compile(r"[^\w-]")
 
 # Structural properties of a File entity; everything else is entry metadata.
@@ -50,9 +69,9 @@ class CrateEntry:
 
 @dataclasses.dataclass(frozen=True)
 class Crate:
-    name_prefix: str | None
-    name_suffix: str | None
-    user_meta: dict[str, T.Any]
+    package_name: str
+    # Role -> human-readable values; the caller adds the name it publishes under.
+    user_meta: dict[str, list[str]]
     entries: list[CrateEntry]
 
 
@@ -138,6 +157,215 @@ def _sanitize_name(name: str | None) -> str | None:
     return sanitized if sanitized.strip("-") else None
 
 
+def _as_list(value: T.Any) -> list[T.Any]:
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _text(value: T.Any) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def _is_ref(value: T.Any) -> bool:
+    return isinstance(value, dict) and set(value) == {"@id"} and isinstance(value["@id"], str)
+
+
+def _iris(value: T.Any) -> list[str]:
+    """
+    The IRIs a property states. `propertyID` and `additionalType` are written
+    both as `{"@id": iri}` and as a plain string, and both mean the same term.
+    """
+    iris = []
+    for v in _as_list(value):
+        iri = v.get("@id") if isinstance(v, dict) else v
+        if isinstance(iri, str):
+            iris.append(iri)
+    return iris
+
+
+def _entities(by_id: dict[str, dict[str, T.Any]], value: T.Any) -> list[dict[str, T.Any]]:
+    """The entities a property references; literals and dangling references say nothing to follow."""
+    found = []
+    for v in _as_list(value):
+        if isinstance(v, dict) and isinstance(v.get("@id"), str):
+            entity = by_id.get(_normalize_id(v["@id"]))
+            if entity is not None:
+                found.append(entity)
+    return found
+
+
+def _identifiers(by_id: dict[str, dict[str, T.Any]], entity: dict[str, T.Any]) -> list[str]:
+    """`identifier` is a plain string or, like a DOI, a PropertyValue carrying the string as `value`."""
+    ids = [v for v in _as_list(entity.get("identifier")) if isinstance(v, str)]
+    ids += [v["value"] for v in _entities(by_id, entity.get("identifier")) if isinstance(v.get("value"), str)]
+    return ids
+
+
+def _is_absolute(entity_id: str) -> bool:
+    return bool(urllib.parse.urlsplit(entity_id).scheme)
+
+
+def _package_name(by_id: dict[str, dict[str, T.Any]], root: dict[str, T.Any], default_name: str) -> str:
+    """
+    An explicit packageName; else packageNamespace joined to the root's name;
+    else `default_name`. Both terms are PropertyValues under the root's
+    `identifier`, the way the base spec expresses a DOI.
+    """
+    declared: dict[str, set[str]] = {PACKAGE_NAME_TERM: set(), PACKAGE_NAMESPACE_TERM: set()}
+    for entity in _entities(by_id, root.get("identifier")):
+        for term in set(_iris(entity.get("propertyID"))) & declared.keys():
+            value = entity.get("value")
+            if not isinstance(value, str):
+                raise RoCrateError("RoCrateInvalidPackageName", {"term": term, "value": value})
+            declared[term].add(value)
+
+    for term, pattern in ((PACKAGE_NAME_TERM, PACKAGE_NAME_FORMAT), (PACKAGE_NAMESPACE_TERM, _NAMESPACE_RE)):
+        if len(declared[term]) > 1:
+            raise RoCrateError("RoCrateInvalidPackageName", {"term": term, "values": sorted(declared[term])})
+        for value in declared[term]:
+            if not re.fullmatch(pattern, value):
+                raise RoCrateError("RoCrateInvalidPackageName", {"term": term, "value": value})
+
+    if declared[PACKAGE_NAME_TERM]:
+        return next(iter(declared[PACKAGE_NAME_TERM]))
+    if declared[PACKAGE_NAMESPACE_TERM]:
+        (namespace,) = declared[PACKAGE_NAMESPACE_TERM]
+        return f"{namespace}/{_sanitize_name(_text(root.get('name'))) or default_name.split('/')[1]}"
+    return default_name
+
+
+def _project(by_id: dict[str, dict[str, T.Any]], root: dict[str, T.Any]) -> dict[str, list[str]]:
+    """
+    Package metadata keyed by the property that links an entity to the root.
+    That is what tells a lab group from its parent, both `Organization`, without
+    compounding their ids into keys.
+    """
+    producer = []
+    seen: set[str] = set()
+    queue = _entities(by_id, root.get("producer"))
+    while queue:
+        org = queue.pop(0)
+        if org["@id"] in seen:
+            continue
+        seen.add(org["@id"])
+        producer.append(org.get("name"))
+        # A parent organization is the same role, one level up.
+        queue += _entities(by_id, org.get("parentOrganization"))
+
+    # Acquisition actions are reachable only through `mentions`; each names its instrument.
+    instruments = [i for a in _entities(by_id, root.get("mentions")) for i in _entities(by_id, a.get("instrument"))]
+
+    projection = {
+        "creator": [e.get("name") for e in _entities(by_id, root.get("creator"))],
+        "producer": producer,
+        "instrument": [e.get("name") for e in instruments],
+        "instrument_id": [i for e in instruments for i in _identifiers(by_id, e)],
+        "eln_entry": [
+            e.get("name")
+            for e in _entities(by_id, root.get("subjectOf"))
+            if ELN_ENTRY_TERM in _iris(e.get("additionalType"))
+        ],
+    }
+    projection = {role: list(dict.fromkeys(v for v in values if _text(v))) for role, values in projection.items()}
+    return {role: values for role, values in projection.items() if values}
+
+
+def _declared_profiles(root: dict[str, T.Any]) -> list[str]:
+    # The descriptor's conformsTo is the RO-Crate version; profiles go on the root.
+    return [iri for iri in _iris(root.get("conformsTo")) if _PROFILE_IRI_RE.fullmatch(iri)]
+
+
+def _violations(
+    doc: dict[str, T.Any],
+    by_id: dict[str, dict[str, T.Any]],
+    root: dict[str, T.Any],
+    profiles: list[str],
+) -> list[dict[str, str]]:
+    """
+    Every mechanically checkable MUST in the profile, collected rather than
+    stopping at the first, so a producer can fix a crate in one pass.
+    """
+    found: dict[tuple[str, str], None] = {}
+
+    def check(ok: bool, entity_id: str, requirement: str) -> None:
+        if not ok:
+            found[(entity_id, requirement)] = None
+
+    descriptor = by_id.get(CRATE_FILENAME, {})
+    versions = [m[1] for iri in _iris(descriptor.get("conformsTo")) if (m := _RO_CRATE_SPEC_RE.fullmatch(iri))]
+    check(bool(versions), CRATE_FILENAME, "conformsTo must be RO-Crate 1.2 or 1.3")
+    if versions:
+        context = f"https://w3id.org/ro/crate/{versions[0]}/context"
+        check(context in _as_list(doc.get("@context")), "@context", f"must include {context}")
+
+    check(
+        all(isinstance(e, dict) and isinstance(e.get("@id"), str) for e in doc["@graph"]),
+        "@graph",
+        "every entity needs an @id",
+    )
+    for entity_id, entity in by_id.items():
+        for key, value in entity.items():
+            items = value if isinstance(value, list) else [value]
+            check(all(i is not None for i in items), entity_id, f"{key} must be omitted rather than null")
+            check(
+                all(_is_ref(i) for i in items if isinstance(i, (dict, list))),
+                entity_id,
+                f"{key} must reference entities as {{\"@id\": ...}} only",
+            )
+
+    for prop in ("name", "description", "datePublished"):
+        check(_text(root.get(prop)) is not None, ROOT_ID, f"{prop} is required")
+    check(bool(_iris(root.get("license"))), ROOT_ID, "license is required")
+    for iri in profiles:
+        profile_types = set(_types(by_id.get(_normalize_id(iri), {})))
+        check(
+            {"CreativeWork", "Profile"} <= profile_types,
+            iri,
+            "a declared profile needs an entity typed CreativeWork and Profile",
+        )
+
+    parts = _as_list(root.get("hasPart"))
+    check(bool(parts), ROOT_ID, "hasPart must list the files to package")
+    for part in parts:
+        part_id = part.get("@id") if isinstance(part, dict) else None
+        part_types = set(_types(_lookup_part(by_id, part_id))) if isinstance(part_id, str) else set()
+        check(
+            bool(part_types & {"File", "Dataset"}), str(part_id or part), "a hasPart member must be a File or Dataset"
+        )
+
+    mentioned = {_normalize_id(i) for i in _iris(root.get("mentions"))}
+    for entity_id, entity in by_id.items():
+        types = _types(entity)
+        if "Person" in types:
+            check(_is_absolute(entity_id), entity_id, "a Person @id must be an absolute URI")
+            check(_text(entity.get("name")) is not None, entity_id, "a Person needs a name")
+        if "IndividualProduct" in types:
+            check(_is_absolute(entity_id), entity_id, "an instrument @id must be an absolute URI")
+            check(_text(entity.get("name")) is not None, entity_id, "an instrument needs a name")
+            check(bool(_identifiers(by_id, entity)), entity_id, "an instrument needs an identifier")
+        if "CreateAction" in types:
+            check(entity_id in mentioned, entity_id, "a CreateAction must be listed in the root's mentions")
+            for prop in ("instrument", "agent", "result", "endTime"):
+                check(bool(_as_list(entity.get(prop))), entity_id, f"a CreateAction needs {prop}")
+            for instrument_id in _iris(entity.get("instrument")):
+                instrument_types = _types(by_id.get(_normalize_id(instrument_id), {}))
+                check(
+                    "IndividualProduct" in instrument_types,
+                    instrument_id,
+                    "an instrument must be an IndividualProduct",
+                )
+        if ELN_ENTRY_TERM in _iris(entity.get("additionalType")):
+            providers = _entities(by_id, entity.get("provider"))
+            check(
+                bool(providers) and all({"Organization", "SoftwareApplication"} & set(_types(p)) for p in providers),
+                entity_id,
+                "an ELN entry's provider must be an Organization or SoftwareApplication",
+            )
+
+    return [{"id": entity_id, "requirement": requirement} for entity_id, requirement in found]
+
+
 def _resolve_part(part_id: str, folder: PhysicalKey, is_dir: bool) -> tuple[str, PhysicalKey]:
     """
     Return (logical_key, physical_key) for a `hasPart` reference. For a
@@ -180,10 +408,11 @@ def _resolve_part(part_id: str, folder: PhysicalKey, is_dir: bool) -> tuple[str,
     return rel, PhysicalKey(folder.bucket, folder.path + rel, None)
 
 
-def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
+def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey, default_name: str) -> Crate:
     """
     `crate_pk` is the crate document's own location; relative `hasPart` ids
-    resolve against its folder.
+    resolve against its folder. `default_name` is the name the caller would
+    otherwise infer, used when the crate names no package.
     """
     graph = _graph(doc)
     assert graph is not None
@@ -206,44 +435,13 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         by_id[entity_id] = entity
     root = by_id[ROOT_ID]
 
-    name_prefix = None
-    name_suffix = root.get("name") if isinstance(root.get("name"), str) and root.get("name") else None
-    user_meta: dict[str, T.Any] = {}
+    # A crate that claims the profile is held to it before any work is done on it.
+    profiles = _declared_profiles(root)
+    if profiles and (violations := _violations(doc, by_id, root, profiles)):
+        raise RoCrateError("RoCrateNotConforming", {"profile": profiles[0], "violations": violations})
 
-    raw_parts = root.get("hasPart") or []
-    if not isinstance(raw_parts, list):
-        raw_parts = [raw_parts]
-    # An entity the root lists as a part is data, whatever it is typed; its properties
-    # are entry metadata and its name must not also become a package-level key.
-    part_ids = {
-        _normalize_id(p.get("@id") if isinstance(p, dict) else p)
-        for p in raw_parts
-        if isinstance(p.get("@id") if isinstance(p, dict) else p, str)
-    }
-
-    # by_id, not graph: an identical duplicate must not read as a name clash.
-    # Its keys are already normalized, so a "./"-spelled descriptor is still
-    # recognized and a relative id does not key metadata as "type../id".
-    for entity_id, entity in by_id.items():
-        if entity_id in (ROOT_ID, CRATE_FILENAME) or entity_id in part_ids:
-            continue
-        types = _types(entity)
-        if not types or "File" in types:
-            continue
-        if "Namespace" in types:
-            if isinstance(entity.get("name"), str) and entity["name"]:
-                name_prefix = entity["name"]
-            continue
-
-        value = entity.get("name")
-        if not isinstance(value, str) or not value:
-            value = entity.get("identifier")
-        if not isinstance(value, str) or not value:
-            continue
-        key = f"{types[0].lower()}.{entity_id[1:] if entity_id.startswith('#') else entity_id}"
-        if key in user_meta:
-            raise RoCrateError("RoCrateDuplicateKey", {"key": key})
-        user_meta[key] = value
+    package_name = _package_name(by_id, root, default_name)
+    user_meta = _project(by_id, root)
 
     entries: dict[str, CrateEntry] = {}
     parts = root.get("hasPart") or []
@@ -297,4 +495,4 @@ def parse(doc: dict[str, T.Any], crate_pk: PhysicalKey) -> Crate:
         False,
     )
 
-    return Crate(_sanitize_name(name_prefix), _sanitize_name(name_suffix), user_meta, list(entries.values()))
+    return Crate(package_name, user_meta, list(entries.values()))

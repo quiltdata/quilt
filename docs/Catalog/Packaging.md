@@ -36,26 +36,43 @@ same bucket with the name `omics-quilt/3395667`.
 
 When enabled, this will create a package from the crate when an
 `ro-crate-metadata.json` file is written to a bucket that is already part of the
-stack. The crate's graph decides what the package contains:
+stack. The engine is a consumer of the
+[Quilt RO-Crate profile](https://w3id.org/quilt/ro-crate), which defines how a
+crate states its package name, files, people, instrument and lab notebook entry.
+The crate's graph decides what the package contains:
 
 * **Entries** are exactly the root dataset's `hasPart` list, plus the crate
-  itself. A relative `@id` resolves against the crate's folder; an `s3://` URI
-  may point outside it. A directory part (a `Dataset` entity, or an `@id` ending
-  in `/`) includes everything under it. Paths that climb out of the folder are
-  rejected.
-* **Package metadata** is one key per contextual entity, `<type>.<id> → name`
-  with the type lower-cased and a leading `#` dropped from the id — for example
-  `{"@id": "#lab-group", "@type": "Organization", "name": "TechOps"}` becomes
-  `organization.lab-group: "TechOps"`. Two entities of the same type therefore
-  never collide, and the value is what people search for.
+  itself, which records the graph the package was built from. A relative `@id`
+  resolves against the crate's folder; an `s3://` URI may point outside it. A
+  directory part (a `Dataset` entity, or an `@id` ending in `/`) includes
+  everything under it. Paths that climb out of the folder are rejected.
 * **Entry metadata** for each `File` entity is every property other than `@id`,
-  `@type` and `name`, so `dateCreated` and `dateModified` survive the upload.
-* **Package name** is `<Namespace entity name>/<root dataset name>`, each half
-  sanitized to the package-name grammar; either half falls back to the name
-  inferred from the S3 key (below).
+  `@type` and `name`, so `dateCreated`, `dateModified` and `sha256` survive the
+  upload.
+* **Package metadata** is a flat projection keyed by the role an entity plays
+  for the root dataset, not by its `@type`, with human-readable values:
 
-A metadata file that is not an RO-Crate (no `./` entity of type `Dataset`)
-packages the whole enclosing folder and is used verbatim as package metadata.
+  * `package_name`: the name the package is published under
+  * `creator`: each root `creator`
+  * `producer`: each root `producer`, then its `parentOrganization` chain
+  * `instrument`: the `instrument` of each action in the root's `mentions`
+  * `instrument_id`: the `identifier` of those same instruments
+  * `eln_entry`: each root `subjectOf` whose `additionalType` is the
+    profile's `ELNEntry`
+
+  Values are entity `name`s except `instrument_id`. Roles the crate does not
+  state are omitted.
+* **Package name** comes from a `PropertyValue` under the root's `identifier`:
+  a `packageName` gives the full name, which must already be a valid package
+  name and is rejected otherwise; a `packageNamespace` is joined to the root
+  dataset's `name`, sanitized to the package-name grammar. Without either, the
+  name is inferred from the S3 key (below).
+
+A crate whose root dataset declares `conformsTo` the profile and breaks one of
+its requirements is rejected, with every violation listed, rather than partially
+packaged. Any other crate is packaged on a best-effort basis. A metadata file
+that is not an RO-Crate (no `./` entity of type `Dataset`) packages the whole
+enclosing folder and is used verbatim as package metadata.
 
 [RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
 describing research data.  The Workflow Run working group adds three additional
@@ -89,9 +106,9 @@ prov {
 Note that Research Objects identify people using an ORCID iD, which anyone can
 get for free at [the ORCID website](https://orcid.org/).
 
-The package will be created in the same bucket as the `outdir`. Without a
-`Namespace` entity and a root dataset `name`, the package name is inferred from
-the S3 key: for `my/s3/folder/ro-crate-metadata.json` it is `my_s3/folder`.
+The package will be created in the same bucket as the `outdir`. Unless the
+crate names the package as described above, the name is inferred from the S3
+key: for `my/s3/folder/ro-crate-metadata.json` it is `my_s3/folder`.
 
 ## Architecture
 
