@@ -1725,12 +1725,14 @@ export function EditPage({ back }: EditPageProps) {
   )
   if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
   return (
-    <OnDirty.Provider>
-      {/* Keyed because this route renders in place when navigation swaps the bucket: the
-          re-index dialog's own state is reset by `onExited`, which does not run then, so
-          without a remount the dialog stays open with the previous bucket's prefix. */}
+    // Keyed because this route renders in place when navigation swaps the bucket: the
+    // re-index dialog's state is reset by `onExited`, which does not run then, so without
+    // a remount the dialog stays open with the previous bucket's prefix. The key sits on
+    // the provider rather than on `Edit` because the dirty count only decrements on a
+    // form's change event and unmounting the forms sends none, so a count left here would
+    // guard the next bucket's pristine forms.
+    <OnDirty.Provider key={bucket.name}>
       <Edit
-        key={bucket.name}
         bucket={bucket}
         back={back}
         submit={submit}

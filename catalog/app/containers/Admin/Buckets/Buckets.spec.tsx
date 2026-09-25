@@ -150,6 +150,42 @@ describe('containers/Admin/Buckets/EditPage', () => {
     expect(queryByPlaceholderText(/whole bucket/)).toBe(null)
   })
 
+  it('does not guard the next bucket with the previous one’s unsaved changes', async () => {
+    const confirmNavigation = vi.fn(() => true)
+    const history = createMemoryHistory({
+      initialEntries: ['/admin/buckets/bucket-a'],
+      getUserConfirmation: (_m, cb) => cb(confirmNavigation()),
+    })
+    const { getByPlaceholderText } = renderEditRoute(history)
+
+    // Two cards, because the count is per-card: with one edit the surplus happens to
+    // cancel out, and only a second leaves a count the next bucket inherits.
+    await act(async () => {
+      fireEvent.change(getByPlaceholderText(/Production analytics data/), {
+        target: { value: 'edited' },
+      })
+    })
+    await act(async () => {
+      fireEvent.change(getByPlaceholderText(/Higher numbers appear first/), {
+        target: { value: '5' },
+      })
+    })
+
+    // This navigation is correctly guarded: bucket-a really does have unsaved edits.
+    await act(async () => {
+      history.push('/admin/buckets/bucket-b')
+    })
+    confirmNavigation.mockClear()
+
+    // `Prompt` installs a history block only while the tree is dirty, and the router asks
+    // `getUserConfirmation` only when one is installed -- so a call here would mean
+    // bucket-b's pristine forms inherited bucket-a's dirty count.
+    await act(async () => {
+      history.push('/admin/buckets')
+    })
+    expect(confirmNavigation).not.toHaveBeenCalled()
+  })
+
   it.each([
     [
       'the registry’s own reason for a refusal it names',
