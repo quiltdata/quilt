@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import * as KTree from 'utils/KeyedTree'
+import Log from 'utils/Logging'
 
 import * as model from './model'
 
@@ -209,19 +210,28 @@ describe('containers/Search/model', () => {
         ])
       })
 
-      it('offers exactly the options the two controls render', () => {
-        // Each control maps over its own list, so every entry needs a label and the
-        // default has to name a real option on both axes.
-        expect(model.FACET_ORDER_BY).toContain(model.DEFAULT_FACET_ORDERING.by)
-        expect(model.FACET_ORDER_DIRECTIONS).toContain(
-          model.DEFAULT_FACET_ORDERING.direction,
+      it('offers every combination of the two axes, exactly once', () => {
+        const combinations = model.FACET_ORDER_BY.flatMap((by) =>
+          model.FACET_ORDER_DIRECTIONS.map((direction) => `${by}:${direction}`),
         )
-        model.FACET_ORDER_BY.forEach((by) => {
-          expect(model.FACET_ORDER_BY_LABELS[by]).toBeTruthy()
-        })
-        model.FACET_ORDER_DIRECTIONS.forEach((d) => {
-          expect(model.FACET_ORDER_DIRECTION_LABELS[d]).toBeTruthy()
-        })
+        const offered = model.FACET_ORDERINGS.map((o) =>
+          model.serializeFacetOrdering(o.ordering),
+        )
+        expect(offered.slice().sort()).toEqual(combinations.slice().sort())
+        expect(new Set(offered).size).toBe(offered.length)
+      })
+
+      it('names every option, and the default is one of them', () => {
+        model.FACET_ORDERINGS.forEach((o) => expect(o.label).toBeTruthy())
+        expect(model.FACET_ORDERINGS.map((o) => o.label)).toEqual([
+          'Name A → Z',
+          'Name Z → A',
+          'Type A → Z',
+          'Type Z → A',
+        ])
+        expect(
+          model.FACET_ORDERINGS.map((o) => model.serializeFacetOrdering(o.ordering)),
+        ).toContain(model.serializeFacetOrdering(model.DEFAULT_FACET_ORDERING))
       })
     })
   })
@@ -303,6 +313,86 @@ describe('containers/Search/model', () => {
         expect(model.orderingToResultOrder('sys:size:asc')).toBe(
           model.GQLResultOrder.BEST_MATCH,
         )
+      })
+    })
+  })
+
+  describe('Predicates: malformed filter JSON', () => {
+    const silenced = (f: () => void) => {
+      const level = Log.getLevel()
+      Log.setLevel('silent')
+      try {
+        f()
+      } finally {
+        Log.setLevel(level)
+      }
+    }
+
+    it('names the filter when a date range will not parse', () => {
+      silenced(() =>
+        expect(() => model.Predicates.Datetime.fromString('{"gte":')).toThrow(
+          'Invalid date range in the search URL',
+        ),
+      )
+    })
+
+    it('names the filter when a number range will not parse', () => {
+      silenced(() =>
+        expect(() => model.Predicates.Number.fromString('{oops}')).toThrow(
+          'Invalid number range in the search URL',
+        ),
+      )
+    })
+
+    it('names the filter when a keyword list will not parse', () => {
+      silenced(() =>
+        expect(() => model.Predicates.KeywordEnum.fromString('"a",,')).toThrow(
+          'Invalid keyword list in the search URL',
+        ),
+      )
+    })
+
+    // The filter's URL param is its key, unprefixed.
+    it('reports the filter when parsing a whole search URL', () => {
+      silenced(() => {
+        expect(() => model.parseSearchParams('modified={')).toThrow(
+          'Invalid date range in the search URL',
+        )
+        expect(() => model.parseSearchParams('size={oops}')).toThrow(
+          'Invalid number range in the search URL',
+        )
+        expect(() => model.parseSearchParams('workflow="a",,')).toThrow(
+          'Invalid keyword list in the search URL',
+        )
+      })
+    })
+
+    it('logs the value that failed to parse, not just the SyntaxError', () => {
+      const level = Log.getLevel()
+      Log.setLevel('error')
+      const spy = vi.spyOn(Log, 'error').mockImplementation(() => {})
+      try {
+        expect(() => model.parseSearchParams('modified={')).toThrow()
+        expect(spy).toHaveBeenCalledWith(
+          expect.stringContaining('JSON.parse failed on "{"'),
+          expect.any(SyntaxError),
+        )
+      } finally {
+        spy.mockRestore()
+        Log.setLevel(level)
+      }
+    })
+
+    it('leaves well-formed filter params parsing as before', () => {
+      expect(
+        model.Predicates.Datetime.fromString('{"gte":"2020-01-02T00:00:00.000Z"}'),
+      ).toMatchObject({ gte: new Date('2020-01-02T00:00:00.000Z'), lte: null })
+      expect(model.Predicates.Number.fromString('{"gte":1,"lte":5}')).toMatchObject({
+        gte: 1,
+        lte: 5,
+      })
+      expect(model.Predicates.KeywordEnum.fromString('"a","b"')).toMatchObject({
+        terms: ['a', 'b'],
       })
     })
   })

@@ -45,6 +45,11 @@ describe('containers/Bucket/PackageTree/RevisionDeleteDialog', () => {
     )
   })
 
+  it('asks for confirmation in the plural for a multi-revision scope', () => {
+    const dialog = mount({ type: 'revisions', count: 3 })
+    expect(dialog.getByText(/Are you sure/).textContent).toContain('delete them?')
+  })
+
   it('confirms and does not close while loading', () => {
     const onDelete = vi.fn()
     const onClose = vi.fn()

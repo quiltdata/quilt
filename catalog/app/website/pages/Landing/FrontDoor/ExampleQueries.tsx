@@ -1,6 +1,8 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import type { ExampleQuery } from './useExampleQueries'
 import useExampleQueries from './useExampleQueries'
 
 // Seed queries under the bar. The prototype drew these as translucent chips on
@@ -32,8 +34,14 @@ const useStyles = M.makeStyles((t) => ({
       outlineOffset: -2,
     },
   },
+  // MuiChip sizes its icon only for `size="small"`, so at the default size it
+  // needs one; body1 is what the bar's own chip icon takes.
   chipIcon: {
     color: t.palette.text.secondary,
+    fontSize: t.typography.body1.fontSize,
+  },
+  code: {
+    fontFamily: t.typography.monospace.fontFamily,
   },
 }))
 
@@ -46,17 +54,38 @@ export default function ExampleQueries({ onSelect }: ExampleQueriesProps) {
   const examples = useExampleQueries()
   return (
     <div className={classes.root} aria-label="Example queries">
-      {examples.map(({ icon, label }) => (
+      {examples.map((example) => (
         <M.Chip
-          key={label}
+          key={example.label}
           className={classes.chip}
           variant="outlined"
-          icon={<M.Icon className={classes.chipIcon}>{icon}</M.Icon>}
-          label={label}
+          icon={
+            <M.Icon className={cx('material-icons-outlined', classes.chipIcon)}>
+              {example.icon}
+            </M.Icon>
+          }
+          label={<Label example={example} className={classes.code} />}
           clickable
-          onClick={() => onSelect(label)}
+          onClick={() => onSelect(example.label)}
         />
       ))}
     </div>
+  )
+}
+
+interface LabelProps {
+  example: ExampleQuery
+  className: string
+}
+
+function Label({ example: { label, code }, className }: LabelProps) {
+  const at = code ? label.indexOf(code) : -1
+  if (at < 0 || !code) return <>{label}</>
+  return (
+    <>
+      {label.slice(0, at)}
+      <span className={className}>{code}</span>
+      {label.slice(at + code.length)}
+    </>
   )
 }

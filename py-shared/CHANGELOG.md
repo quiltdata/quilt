@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Changed] `QueryRunner` retries `ICEBERG_COMMIT_ERROR` with bounded backoff, and Athena's failure reason now appears in the raised exception ([#5291](https://github.com/quiltdata/quilt/pull/5291))
+- [Changed] `QueryRunner` retries `ICEBERG_COMMIT_ERROR` with bounded backoff, and Athena's failure reason now appears in the raised exception ([#5325](https://github.com/quiltdata/quilt/pull/5325))
 - [Removed] Drop the `typing-extensions` dependency from the `pydantic` extra ([#5149](https://github.com/quiltdata/quilt/pull/5149))
 - [Changed] **BREAKING**: Raise minimum Python to 3.12 ([#5018](https://github.com/quiltdata/quilt/pull/5018))
 - [Changed] **BREAKING**: Retarget `QueryMaker` to per-bucket Iceberg tables (`{bucket}_{table}`) ([#4930](https://github.com/quiltdata/quilt/pull/4930))

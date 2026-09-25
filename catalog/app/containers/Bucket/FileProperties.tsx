@@ -115,7 +115,7 @@ export default function Wrapper({ className, data }: FilePropertiesProps) {
         }),
         Err: (e: Error) => (
           <M.Icon title={`Fetching object info failed: ${e.message}`} color="error">
-            warning_outline
+            warning
           </M.Icon>
         ),
         _: () => <FilePropertiesSkeleton className={className} />,

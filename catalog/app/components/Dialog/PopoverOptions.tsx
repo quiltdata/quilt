@@ -25,6 +25,20 @@ const useTabStyles = M.makeStyles((t) => ({
       right: 0,
       height: '2px',
       backgroundColor: t.palette.secondary.main,
+      // Keyframes end on the static state, so dropping them needs no override.
+      '@media (prefers-reduced-motion: reduce)': {
+        animation: 'none',
+      },
+    },
+  },
+  // JSS resolves $keyframe refs per sheet, so these must live in the same
+  // makeStyles call as the $activate reference above.
+  '@keyframes activate': {
+    '0%': {
+      transform: 'scaleX(0.5)',
+    },
+    '100%': {
+      transform: 'scaleX(1)',
     },
   },
 }))
@@ -74,6 +88,10 @@ const useTabPanelStyles = M.makeStyles((t) => ({
     animation: `$show 150ms ease-out`,
     minWidth: t.spacing(40),
     padding: t.spacing(2, 2, 1),
+    // Keyframes end on the static state, so dropping them needs no override.
+    '@media (prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
   },
   '@keyframes show': {
     '0%': {
@@ -95,21 +113,14 @@ function TabPanel({ children, className }: TabPanelProps) {
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles(() => ({
+  // Tab widths differ (via the per-tab className), but a container width
+  // can't animate off the main thread -- the switch relies on the panel's
+  // opacity fade instead of a width transition (the panel is keyed so the
+  // fade replays on every switch). The clip guards the popover edge while
+  // the container snaps between per-tab widths.
   root: {
     overflow: 'hidden',
-    transition: t.transitions.create('width', {
-      duration: t.transitions.duration.short,
-      easing: t.transitions.easing.easeOut,
-    }),
-  },
-  '@keyframes activate': {
-    '0%': {
-      transform: 'scaleX(0.5)',
-    },
-    '100%': {
-      transform: 'scaleX(1)',
-    },
   },
 }))
 
@@ -126,7 +137,10 @@ export function Tabs({ tabs }: TabsProps) {
 
   const classes = useStyles()
   const [activeIndex, setActiveIndex] = React.useState<number>(0)
-  const activeTab = tabs[activeIndex]
+  // Tabs are derived from props, so a tab can disappear while it is selected
+  // (GetOptions drops its Code tab when the `code` prop goes away).
+  const selected = Math.min(activeIndex, tabs.length - 1)
+  const activeTab = tabs[selected]
   return (
     <div className={cx(classes.root, activeTab.className)}>
       {tabs.length > 1 && (
@@ -134,7 +148,7 @@ export function Tabs({ tabs }: TabsProps) {
           {tabs.map(({ label }, index) => (
             <Tab
               key={index}
-              active={activeIndex === index}
+              active={selected === index}
               onClick={() => setActiveIndex(index)}
             >
               {label}
@@ -142,7 +156,7 @@ export function Tabs({ tabs }: TabsProps) {
           ))}
         </TabsContainer>
       )}
-      <TabPanel>{activeTab.panel}</TabPanel>
+      <TabPanel key={selected}>{activeTab.panel}</TabPanel>
     </div>
   )
 }

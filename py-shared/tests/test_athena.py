@@ -249,6 +249,21 @@ def test_should_retry_matches_reason_with_leading_text():
     assert QueryRunner._should_retry(query_execution, 1) is True
 
 
+def test_should_retry_ignores_the_code_inside_an_echoed_statement():
+    """Athena echoes the statement after the code, so a payload carrying the term is not a conflict."""
+    query_execution = {
+        "Status": {
+            "State": "FAILED",
+            "StateChangeReason": (
+                "SYNTAX_ERROR: line 1:1: mismatched input 'MERGE'. "
+                "Statement: MERGE INTO t USING (SELECT 'ICEBERG_COMMIT_ERROR' AS pkg_name)"
+            ),
+        },
+    }
+
+    assert QueryRunner._should_retry(query_execution, 1) is False
+
+
 def test_run_multiple_queries(query_runner, stubbed_athena_client):
     queries = ["SELECT * FROM table1", "SELECT * FROM table2"]
     execution_ids = ["exec_id_1", "exec_id_2"]
