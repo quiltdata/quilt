@@ -114,9 +114,16 @@ describe('containers/Bucket/Header', () => {
 
   it('renders an accessibly-labeled settings link to admin bucket edit for admins', () => {
     isAdmin = true
-    const { getByLabelText } = renderHeader()
-    const button = getByLabelText('Bucket settings')
-    expect(button.closest('a')?.getAttribute('href')).toBe('/admin/test-bucket')
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('gives admins one focusable settings control, not a button inside a link', () => {
+    isAdmin = true
+    const { getAllByLabelText, queryByRole } = renderHeader()
+    expect(getAllByLabelText('Bucket settings')).toHaveLength(1)
+    expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
   })
 
   it('does not link the total-size stat', () => {
