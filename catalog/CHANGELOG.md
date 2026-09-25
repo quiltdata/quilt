@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Athena console: the bucket scope survives moving between a workgroup, a query execution and the history, instead of being lost after the first hop ([#PRNUM](https://github.com/quiltdata/quilt/pull/PRNUM))
 - [Fixed] Revise package: retyping the destination can no longer publish the loaded package's files over a different package while the new name is still being checked ([#5337](https://github.com/quiltdata/quilt/pull/5337))
 - [Fixed] Admin users: re-sorting the table, or deleting a row the admin had not picked, no longer clears the rows selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Fixed] Get popover: it no longer crashes when its Code tab disappears while selected, and its active-tab underline and panel switch honor `prefers-reduced-motion` ([#5335](https://github.com/quiltdata/quilt/pull/5335))
