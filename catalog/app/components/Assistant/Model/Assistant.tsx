@@ -8,7 +8,8 @@ import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
-import * as authSelectors from 'containers/Auth/selectors'
+import * as authActions from 'containers/Auth/actions'
+import defer from 'utils/defer'
 
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
@@ -84,7 +85,7 @@ const PLATFORM_AUTOLOAD: ReadonlySet<string> = new Set([
  * maps a `null` token to an internal auth error.
  */
 function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
-  const store = redux.useStore()
+  const getToken = useSessionToken()
   return React.useMemo(
     () => ({
       id: 'platform',
@@ -93,11 +94,35 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
       autoload: PLATFORM_AUTOLOAD,
       backend: Mcp.bearerPassthru({
         url: getPlatformMcpUrl(),
-        getToken: () =>
-          Eff.Effect.sync(() => authSelectors.token(store.getState()) ?? null),
+        getToken,
       }),
     }),
-    [store],
+    [getToken],
+  )
+}
+
+/**
+ * The catalog session token, resolved through the auth saga so an expired
+ * session is refreshed rather than handed over stale. Reading the store
+ * directly would 401 forever after an idle tab, where the Bedrock path used to
+ * self-heal through the credential refresh. `null` when there is no session.
+ */
+function useSessionToken(): () => Eff.Effect.Effect<string | null> {
+  const dispatch = redux.useDispatch()
+  return React.useCallback(
+    () =>
+      Eff.Effect.tryPromise({
+        try: () => {
+          const { resolver, promise } = defer<{ token?: string } | undefined>()
+          dispatch(authActions.getTokens(resolver))
+          return promise
+        },
+        catch: () => null,
+      }).pipe(
+        Eff.Effect.map((tokens) => tokens?.token ?? null),
+        Eff.Effect.catchAll(() => Eff.Effect.succeed(null)),
+      ),
+    [dispatch],
   )
 }
 
@@ -231,7 +256,7 @@ function useConstructAssistantAPI() {
   const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
   const connectors = useConnectors(connectorConfigs)
 
-  const store = redux.useStore()
+  const getToken = useSessionToken()
   const passThru = usePassThru({
     context: Context.useLayer(),
     connectors,
@@ -239,13 +264,7 @@ function useConstructAssistantAPI() {
 
   const layerEff = Eff.Effect.sync(() =>
     Eff.Layer.mergeAll(
-      Relay.LLMRelay({
-        url: getInferenceUrl(),
-        modelId,
-        record,
-        getToken: () =>
-          Eff.Effect.sync(() => authSelectors.token(store.getState()) ?? null),
-      }),
+      Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken }),
       passThru.current.context,
       Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
     ),

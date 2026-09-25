@@ -5,8 +5,6 @@ import * as Content from './Content'
 import * as LLM from './LLM'
 import * as Relay from './Relay'
 
-vi.mock('constants/config', () => ({ default: {} }))
-
 const okBody = (text: string) =>
   JSON.stringify({ output: { message: { role: 'assistant', content: [{ text }] } } })
 
@@ -119,6 +117,31 @@ describe('Relay', () => {
     await expect(
       run(layer(), { system: 's', messages: [userText('x')] }),
     ).rejects.toThrow(/Inference error \(HTTP 404\): AI Gateway \| OperationNotFound/)
+  })
+
+  it('retries a throttle and returns the eventual answer', async () => {
+    let n = 0
+    const spy = install(async () => {
+      n += 1
+      return n === 1
+        ? new Response(JSON.stringify({ message: 'Too many requests' }), { status: 429 })
+        : new Response(okBody('after retry'), { status: 200 })
+    })
+    const res = await run(layer(), { system: 's', messages: [userText('x')] })
+    expect(spy).toHaveBeenCalledTimes(2)
+    expect(Eff.Option.getOrThrow(res.content)).toEqual([
+      Content.ResponseMessageContentBlock.Text({ text: 'after retry' }),
+    ])
+  })
+
+  it('does not retry a client error', async () => {
+    const spy = install(
+      async () => new Response(JSON.stringify({ message: 'bad' }), { status: 400 }),
+    )
+    await expect(
+      run(layer(), { system: 's', messages: [userText('x')] }),
+    ).rejects.toThrow(/HTTP 400/)
+    expect(spy).toHaveBeenCalledOnce()
   })
 
   it('fails without a session and never fetches', async () => {

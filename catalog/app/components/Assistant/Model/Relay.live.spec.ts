@@ -5,13 +5,11 @@
  * a relay base (e.g. http://127.0.0.1:8940/inference) to enable.
  */
 import * as Eff from 'effect'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import * as Content from './Content'
 import * as LLM from './LLM'
 import * as Relay from './Relay'
-
-vi.mock('constants/config', () => ({ default: {} }))
 
 const URL = process.env.QUILT_LIVE_INFERENCE_URL
 const MODEL = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'

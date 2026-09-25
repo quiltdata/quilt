@@ -8,6 +8,18 @@ import * as LLM from './LLM'
 
 const MODULE = 'Relay'
 
+// What the SDK client did and a bare fetch does not: a request deadline, and
+// a retry with backoff on a throttle or a server error.
+const REQUEST_TIMEOUT_MS = 120_000
+const RETRY_SCHEDULE = Eff.Schedule.exponential('300 millis').pipe(
+  Eff.Schedule.intersect(Eff.Schedule.recurs(3)),
+)
+
+class Retryable {
+  readonly _tag = 'Retryable'
+  constructor(readonly message: string) {}
+}
+
 /**
  * The same `LLM` service `Bedrock.ts` provides, but the request goes to the
  * platform's inference relay instead of straight to Bedrock from the browser.
@@ -183,29 +195,43 @@ export function LLMRelay(options: RelayOptions) {
           ...opts,
         }
 
-        const backendResponse: BedrockRuntime.ConverseResponse =
-          yield* Eff.Effect.tryPromise({
-            try: async () => {
-              const r = await fetch(
-                `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'content-type': 'application/json',
-                    authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify(requestBody),
+        const attempt = Eff.Effect.tryPromise({
+          try: async () => {
+            const r = await fetch(
+              `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
+              {
+                method: 'POST',
+                headers: {
+                  'content-type': 'application/json',
+                  authorization: `Bearer ${token}`,
                 },
-              )
-              const text = await r.text()
-              if (!r.ok) throw new Error(describeFailure(r.status, text))
-              return JSON.parse(text)
-            },
-            catch: (e) =>
-              new LLM.LLMError({
-                message: e instanceof Error ? e.message : `Unexpected error: ${e}`,
-              }),
-          })
+                body: JSON.stringify(requestBody),
+                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+              },
+            )
+            const text = await r.text()
+            if (r.status === 429 || r.status >= 500) {
+              throw new Retryable(describeFailure(r.status, text))
+            }
+            if (!r.ok) throw new Error(describeFailure(r.status, text))
+            return JSON.parse(text) as BedrockRuntime.ConverseResponse
+          },
+          catch: (e) =>
+            e instanceof Retryable
+              ? e
+              : new LLM.LLMError({
+                  message: e instanceof Error ? e.message : `Unexpected error: ${e}`,
+                }),
+        })
+        const backendResponse = yield* attempt.pipe(
+          Eff.Effect.retry({
+            schedule: RETRY_SCHEDULE,
+            while: (e) => e instanceof Retryable,
+          }),
+          Eff.Effect.mapError((e) =>
+            e instanceof Retryable ? new LLM.LLMError({ message: e.message }) : e,
+          ),
+        )
 
         const responseTimestamp = new Date(yield* Eff.Clock.currentTimeMillis)
         if (options.record) {
