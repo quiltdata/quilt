@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Admin users: sorting the table or editing one row no longer clears the rows an admin has selected for a bulk action ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+- [Fixed] Admin users: sorting the table or editing one row no longer clears the rows an admin has selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Added] Admin users: select rows and apply one action to all of them (enable, disable, grant or revoke admin rights, delete), with a per-user result so one failure does not hide the rest ([#5296](https://github.com/quiltdata/quilt/pull/5296))
 - [Added] Admin buckets: a re-index can be scoped to a key prefix, so an admin can re-scan part of a bucket without recreating its search indices, and a refused re-index reports the registry's own reason instead of a generic "already in progress" ([#5295](https://github.com/quiltdata/quilt/pull/5295))
 - [Added] Bucket: the header card's beta gate is covered by tests, so the bucket name cannot silently disappear from the tabs again ([#5246](https://github.com/quiltdata/quilt/pull/5246))
