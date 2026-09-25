@@ -1581,7 +1581,7 @@ interface EditProps {
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
-export function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
+function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
   const closeReindex = React.useCallback(() => setReindexOpen(false), [])
@@ -1693,7 +1693,7 @@ interface EditPageProps {
   back: () => void
 }
 
-function EditPage({ back }: EditPageProps) {
+export function EditPage({ back }: EditPageProps) {
   const { bucketName } = RRDom.useParams<EditRouteParams>()
   const { urls } = NamedRoutes.use()
   const update = GQL.useMutation(UPDATE_MUTATION)
