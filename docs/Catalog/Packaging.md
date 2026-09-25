@@ -68,11 +68,14 @@ The crate's graph decides what the package contains:
   dataset's `name`, sanitized to the package-name grammar. Without either, the
   name is inferred from the S3 key (below).
 
-A crate whose root dataset declares `conformsTo` the profile and breaks one of
-its requirements is rejected, with every violation listed, rather than partially
-packaged. Any other crate is packaged on a best-effort basis. A metadata file
-that is not an RO-Crate (no `./` entity of type `Dataset`) packages the whole
-enclosing folder and is used verbatim as package metadata.
+A crate is rejected only when it cannot be packaged as written: a `hasPart`
+member that cannot be resolved, an invalid explicit package name, or two
+conflicting entities with one `@id`. Nothing is packaged in that case, rather
+than part of the crate. How the crate models people, instruments, actions and
+anything else is up to its producer; the profile's recommendations only decide
+which of the metadata keys above can be filled in. A metadata file that is not
+an RO-Crate (no `./` entity of type `Dataset`) packages the whole enclosing
+folder and is used verbatim as package metadata.
 
 [RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
 describing research data.  The Workflow Run working group adds three additional
