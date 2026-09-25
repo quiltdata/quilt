@@ -125,6 +125,21 @@ describe('components/PanelBoundary', () => {
       throw new Promise<void>(() => {})
     }
 
+    // Suspense is unconditional so a call site cannot forget it and let a cold
+    // read unwind to the boundary above, replacing the whole page.
+    it('contains a suspension even with no placeholder passed', () => {
+      const { queryByText } = render(
+        <React.Suspense fallback={<div>page-level placeholder</div>}>
+          <PanelBoundary title="Panel unavailable">
+            <Suspending />
+          </PanelBoundary>
+          <div>the page</div>
+        </React.Suspense>,
+      )
+      expect(queryByText('page-level placeholder')).toBeNull()
+      expect(queryByText('the page')).toBeTruthy()
+    })
+
     it('holds the caller placeholder without announcing a decorative one', () => {
       const { getByText, container } = render(
         <PanelBoundary

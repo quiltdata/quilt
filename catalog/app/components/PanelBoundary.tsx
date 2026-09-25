@@ -116,10 +116,11 @@ function PanelFallback({
   const classes = useStyles()
   const detail = errorMessage(error)
   const paper = variant === 'paper'
-  // Resetting only remounts the reader, so it retries nothing where the failed
-  // state outlives the boundary (File's `useData` result, the conversation);
-  // `onRetry` is what makes the next attempt different. PRODUCT.md calls a
-  // retry that cannot succeed a defect.
+  // `onRetry` refetches or clears state that outlives the boundary, where a
+  // reset alone remounts onto the same value. Known defect, predating this
+  // component and equally present in both modules it replaced: neither call
+  // site recovers, because the reset lands before the new value does. Fixing it
+  // means resetting on arrival, not on click.
   const retry = React.useCallback(() => {
     onRetry?.()
     resetErrorBoundary()
@@ -182,18 +183,13 @@ interface PanelBoundaryProps {
   /** Names what the retry does where it is more than a reload. */
   retryLabel?: string
   variant?: Variant
-  /**
-   * Holds the panel's silhouette while its data is in flight. Pass this whenever
-   * anything below suspends: an error boundary does *not* catch suspension, so
-   * without it a cold read unwinds to a Suspense boundary above and replaces the
-   * whole page.
-   */
+  /** Holds the panel's silhouette while its data is in flight. */
   suspenseFallback?: React.ReactNode
   /** Announced while `suspenseFallback` stands in. Omit for a decorative one. */
   busyLabel?: string
   /** Bumping any of these clears the error state. */
   resetKeys?: unknown[]
-  /** Makes the next attempt different where the failure outlives the boundary. */
+  /** Refetches or clears state that outlives the boundary. See the retry note. */
   onRetry?: () => void
 }
 
@@ -220,26 +216,25 @@ export default function PanelBoundary({
     ),
     [title, retryLabel, variant, onRetry],
   )
-  const content = render ? <Invoke render={render} /> : children
+  // Suspense is unconditional: a call site that forgot it would let a cold read
+  // unwind to the Suspense above and replace the whole page, which is the
+  // failure this component exists to prevent. Without `suspenseFallback` the
+  // panel goes blank while it reads -- contained, if unlovely.
   return (
     <ErrorBoundary FallbackComponent={Fallback} onError={onError} resetKeys={resetKeys}>
-      {suspenseFallback === undefined ? (
-        content
-      ) : (
-        <React.Suspense
-          fallback={
-            busyLabel === undefined ? (
-              suspenseFallback
-            ) : (
-              <Busy label={busyLabel} variant={variant}>
-                {suspenseFallback}
-              </Busy>
-            )
-          }
-        >
-          {content}
-        </React.Suspense>
-      )}
+      <React.Suspense
+        fallback={
+          busyLabel === undefined ? (
+            (suspenseFallback ?? null)
+          ) : (
+            <Busy label={busyLabel} variant={variant}>
+              {suspenseFallback}
+            </Busy>
+          )
+        }
+      >
+        {render ? <Invoke render={render} /> : children}
+      </React.Suspense>
     </ErrorBoundary>
   )
 }
