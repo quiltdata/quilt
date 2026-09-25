@@ -252,16 +252,19 @@ const useStyles = M.makeStyles((t) => ({
     gridArea: 'stats',
     minWidth: 0,
   },
+  settingsCell: {
+    alignSelf: 'stretch',
+    display: 'flex',
+    gridArea: 'settings',
+  },
   // Settings sits at the card's far edge behind a hairline divider — config
   // set apart from the bucket's readout, muted until hovered. The divider and
-  // its padding belong to the link itself, so the area that reacts to hover is
-  // the area that navigates.
+  // its padding belong to the link, so the area that reacts to hover is the
+  // area that navigates.
   settings: {
-    alignSelf: 'stretch',
     borderLeft: `1px solid ${t.palette.divider}`,
     borderRadius: 0,
     color: t.palette.text.secondary,
-    gridArea: 'settings',
     paddingLeft: t.spacing(2),
     '&:hover': {
       color: t.palette.text.primary,
@@ -291,22 +294,24 @@ export default function Header({ bucket }: HeaderProps) {
         <Stats bucket={bucket} stats={stats} />
       </div>
       {isAdmin && (
-        // On the button itself the tooltip would write its title beside the
-        // aria-label, naming and describing the control with one string.
+        // The tooltip wraps the cell, not the link: on the link MUI writes the
+        // title onto it, which would name and describe the control alike.
         <M.Tooltip arrow title="Bucket settings" disableTouchListener>
-          <M.IconButton
-            className={classes.settings}
-            component={RRDom.Link}
-            to={urls.adminBucketEdit(bucket)}
-            size="small"
-            color="inherit"
-            aria-label="Bucket settings"
-            // ButtonBase only trusts a literal `component="a"` to be a link, so
-            // without this the anchor is announced as a button, promising Space.
-            role="link"
-          >
-            <M.Icon fontSize="small">settings</M.Icon>
-          </M.IconButton>
+          <div className={classes.settingsCell}>
+            <M.IconButton
+              className={classes.settings}
+              component={RRDom.Link}
+              to={urls.adminBucketEdit(bucket)}
+              size="small"
+              color="inherit"
+              aria-label="Bucket settings"
+              // ButtonBase only trusts a literal `component="a"` to be a link, so
+              // without this the anchor is announced as a button, promising Space.
+              role="link"
+            >
+              <M.Icon fontSize="small">settings</M.Icon>
+            </M.IconButton>
+          </div>
         </M.Tooltip>
       )}
     </div>

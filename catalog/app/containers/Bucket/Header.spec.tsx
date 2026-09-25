@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, act } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -126,15 +126,15 @@ describe('containers/Bucket/Header', () => {
     expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
   })
 
-  it('names the focused settings control once, without a duplicate description', () => {
+  it('gives the focused settings control a name but no duplicate description', () => {
     isAdmin = true
     const { getByRole, container } = renderHeader()
     const link = getByRole('link', { name: 'Bucket settings' })
-    link.focus()
+    act(() => link.focus())
     expect(document.activeElement).toBe(link)
     expect(container.querySelectorAll('[tabindex]:not([tabindex="-1"])')).toHaveLength(2)
-    // A native title or aria-describedby here would repeat the label as the
-    // control's description.
+    // MUI writes the tooltip's text as a native title on whatever it wraps, so
+    // on the link itself the name and the description would be one string.
     expect(link.getAttribute('title')).toBeNull()
     expect(link.getAttribute('aria-describedby')).toBeNull()
   })
