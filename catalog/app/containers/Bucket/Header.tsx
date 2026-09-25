@@ -252,19 +252,15 @@ const useStyles = M.makeStyles((t) => ({
     gridArea: 'stats',
     minWidth: 0,
   },
-  settingsCell: {
+  // Settings sits at the card's far edge behind a hairline divider — config
+  // set apart from the bucket's readout, muted until hovered.
+  settings: {
+    alignItems: 'center',
     alignSelf: 'stretch',
+    borderLeft: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
     display: 'flex',
     gridArea: 'settings',
-  },
-  // Settings sits at the card's far edge behind a hairline divider — config
-  // set apart from the bucket's readout, muted until hovered. The divider and
-  // its padding belong to the link, so the area that reacts to hover is the
-  // area that navigates.
-  settings: {
-    borderLeft: `1px solid ${t.palette.divider}`,
-    borderRadius: 0,
-    color: t.palette.text.secondary,
     paddingLeft: t.spacing(2),
     '&:hover': {
       color: t.palette.text.primary,
@@ -294,12 +290,12 @@ export default function Header({ bucket }: HeaderProps) {
         <Stats bucket={bucket} stats={stats} />
       </div>
       {isAdmin && (
-        // The tooltip wraps the cell, not the link: on the link MUI writes the
-        // title onto it, which would name and describe the control alike.
-        <M.Tooltip arrow title="Bucket settings" disableTouchListener>
-          <div className={classes.settingsCell}>
+        // The tooltip wraps the cell so its `title` and `aria-describedby` land on
+        // a generic, not on the link, whose name they would merely repeat. A node
+        // title keeps MUI from writing the string as a native `title` as well.
+        <M.Tooltip arrow title={<>Bucket settings</>} disableTouchListener>
+          <div className={classes.settings}>
             <M.IconButton
-              className={classes.settings}
               component={RRDom.Link}
               to={urls.adminBucketEdit(bucket)}
               size="small"

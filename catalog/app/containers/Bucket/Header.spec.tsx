@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup, act } from '@testing-library/react'
+import { render, cleanup, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -126,17 +126,39 @@ describe('containers/Bucket/Header', () => {
     expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
   })
 
-  it('gives the focused settings control a name but no duplicate description', () => {
+  // The tooltip must not describe the control with the control's own name, and
+  // MUI can do that two ways: a native `title` at rest, or `aria-describedby`
+  // once open. Both are checked at rest and after the tooltip has opened, and on
+  // the settings cell as well as the link — moving the tooltip to a wrapper
+  // relocates the attributes rather than removing them.
+  it('never describes the settings control with its own name', async () => {
     isAdmin = true
-    const { getByRole, container } = renderHeader()
+    const { getByRole } = renderHeader()
     const link = getByRole('link', { name: 'Bucket settings' })
-    act(() => link.focus())
-    expect(document.activeElement).toBe(link)
-    expect(container.querySelectorAll('[tabindex]:not([tabindex="-1"])')).toHaveLength(2)
-    // MUI writes the tooltip's text as a native title on whatever it wraps, so
-    // on the link itself the name and the description would be one string.
+    const cell = link.closest('div') as HTMLElement
+
+    for (const el of [link, cell]) {
+      expect(el.getAttribute('title')).toBeNull()
+    }
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+
+    fireEvent.mouseOver(link)
+    await waitFor(() => expect(screen.getByRole('tooltip')).toBeTruthy())
+
     expect(link.getAttribute('title')).toBeNull()
     expect(link.getAttribute('aria-describedby')).toBeNull()
+  })
+
+  it('gives the settings cell exactly one focusable control', () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    const cell = link.closest('div') as HTMLElement
+    expect(
+      cell.querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])'),
+    ).toHaveLength(1)
+    act(() => link.focus())
+    expect(document.activeElement).toBe(link)
   })
 
   it('does not link the total-size stat', () => {
