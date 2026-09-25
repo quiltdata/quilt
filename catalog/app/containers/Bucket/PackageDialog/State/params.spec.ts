@@ -295,8 +295,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       ['new-revision', { _tag: 'new-revision' as const }],
       ['exists', { _tag: 'exists' as const, dst: { bucket: 'b', name: 'n' } }],
     ])('stays valid for an existing destination once loaded (%s)', (_tag, status) => {
-      // The path the gate must not block: revising a package whose manifest did load.
-      // Without it, a gate that refuses everything but brand-new names passes the suite.
+      // The path the manifest gate must not block. Passes no `src`, so the mismatch gate
+      // below it is not what these cases cover.
       const { result } = renderHook(() =>
         useParamsWith({ manifest: MANIFEST_READY, name: { ...name, status } }),
       )
@@ -347,6 +347,41 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       if (result.current._tag === 'invalid') {
         expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
       }
+    })
+
+    it.each([
+      ['loading', { _tag: 'loading' as const }],
+      ['idle', { _tag: 'idle' as const }],
+    ])('is invalid while the destination is still unresolved (%s)', (_tag, status) => {
+      // The 300ms name debounce: submitting inside it published the loaded entries over
+      // whatever the retyped name turned out to name.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'other' },
+          name: { ...name, status },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+      }
+    })
+
+    it('reports an unusable name as such, not as a mismatch', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'bad name' },
+          name: {
+            ...name,
+            status: { _tag: 'error' as const, error: new Error('Invalid package name') },
+          },
+          src,
+        }),
+      )
+
+      expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
     it('permits the plain revise, where dst and src name the same package', () => {

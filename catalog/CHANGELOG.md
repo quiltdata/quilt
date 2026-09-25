@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Revise package: retyping the destination can no longer publish the loaded package's files over a different package while the new name is still being checked ([#PRNUM](https://github.com/quiltdata/quilt/pull/PRNUM))
 - [Fixed] Admin users: re-sorting the table, or deleting a row the admin had not picked, no longer clears the rows selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Fixed] Get popover: it no longer crashes when its Code tab disappears while selected, and its active-tab underline and panel switch honor `prefers-reduced-motion` ([#5335](https://github.com/quiltdata/quilt/pull/5335))
 - [Added] Admin users: select rows and apply one action to all of them (enable, disable, grant or revoke admin rights, delete), with a per-user result so one failure does not hide the rest ([#5296](https://github.com/quiltdata/quilt/pull/5296))

@@ -77,13 +77,14 @@ export function useParams({
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
       return Invalid(new ERRORS.SourceManifestNotLoaded())
     }
-    // The loaded manifest describes `src`, so a `dst` naming a different package that
-    // already exists would get this one's entries as its complete replacement list.
-    // Compared against `src` rather than trusting 'exists' to imply the mismatch.
+    // The loaded manifest describes `src`, so any `dst` neither confirmed absent ('new')
+    // nor confirmed to be `src` ('new-revision') would get this one's entries as its
+    // complete replacement list. An unusable name is left to the gate below to word.
     if (
       src &&
-      name.status._tag === 'exists' &&
-      (dst.bucket !== src.bucket || dst.name !== src.name)
+      name.status._tag !== 'new' &&
+      name.status._tag !== 'new-revision' &&
+      name.status._tag !== 'error'
     ) {
       return Invalid(new ERRORS.DestinationManifestMismatch())
     }
