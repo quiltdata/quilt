@@ -163,6 +163,33 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(getByTestId('reflow').textContent).toBe('null')
   })
 
+  // The docked paper's width is the gutter's, so it needs none of its own; the
+  // overlay is the only Qurator surface that reaches the screen edge, and
+  // without its own width it inherits the docked `min(40rem, 50vw)` -- half a
+  // phone. Asserted on the applied rule name (JSS keeps the style key in the
+  // generated class) rather than the sheet, which carries every rule whether or
+  // not it is used.
+  const hasRule = (el: Element, key: string) =>
+    el.className.split(' ').some((c) => c.startsWith(`makeStyles-${key}-`))
+
+  it('gives the overlay a full-width paper the docked panel does not take', () => {
+    narrowViewport()
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    const { baseElement } = render(<WithAssistantUI />)
+    expect(hasRule(paper(baseElement)!, 'paperCompact')).toBe(true)
+  })
+
+  it('leaves the docked paper on the gutter width, with no overlay override', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    const { baseElement } = render(<WithAssistantUI />)
+    expect(hasRule(paper(baseElement)!, 'paperCompact')).toBe(false)
+    expect(hasRule(paper(baseElement)!, 'paper')).toBe(true)
+  })
+
   it('takes the panel away entirely below 960px when not visible', () => {
     narrowViewport()
     useAssistantAPI.mockReturnValue(makeAPI())
