@@ -4,14 +4,13 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as AWS from 'utils/AWS'
 import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 
-import * as Bedrock from './Bedrock'
+import * as Relay from './Relay'
 import * as Connectors from './Connectors'
 import * as Mcp from './Connectors/Mcp'
 import * as Context from './Context'
@@ -34,6 +33,7 @@ export const DEFAULT_MODEL_ID =
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
 
 const MCP_URL_KEY = 'QUILT_MCP_URL'
+const INFERENCE_URL_KEY = 'QUILT_INFERENCE_URL'
 
 /**
  * MCP endpoint for the platform connector. Defaults to the registry-
@@ -46,6 +46,20 @@ function getPlatformMcpUrl(): string {
     if (override) return override
   }
   return `${cfg.registryUrl}/mcp/platform/mcp`
+}
+
+/**
+ * Inference relay on the platform MCP service. The model call is issued from
+ * there rather than from the browser, so a deployment's gateway credential
+ * never reaches the client. `localStorage.QUILT_INFERENCE_URL` overrides for
+ * local dev, as `QUILT_MCP_URL` does.
+ */
+function getInferenceUrl(): string {
+  if (typeof localStorage !== 'undefined') {
+    const override = localStorage.getItem(INFERENCE_URL_KEY)
+    if (override) return override
+  }
+  return `${cfg.registryUrl}/mcp/platform/inference`
 }
 
 const PLATFORM_CONNECTOR_HINT =
@@ -217,15 +231,21 @@ function useConstructAssistantAPI() {
   const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
   const connectors = useConnectors(connectorConfigs)
 
+  const store = redux.useStore()
   const passThru = usePassThru({
-    bedrock: AWS.Bedrock.useClient(),
     context: Context.useLayer(),
     connectors,
   })
 
   const layerEff = Eff.Effect.sync(() =>
     Eff.Layer.mergeAll(
-      Bedrock.LLMBedrock(passThru.current.bedrock, { modelId, record }),
+      Relay.LLMRelay({
+        url: getInferenceUrl(),
+        modelId,
+        record,
+        getToken: () =>
+          Eff.Effect.sync(() => authSelectors.token(store.getState()) ?? null),
+      }),
       passThru.current.context,
       Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
     ),
