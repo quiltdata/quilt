@@ -1,0 +1,164 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.2/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": { "@id": "./" },
+      "conformsTo": { "@id": "https://w3id.org/ro/crate/1.2" },
+      "dateCreated": "2026-09-08T21:00:11Z",
+      "sdPublisher": { "@id": "#assay-development" }
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "2026-09-08-assay-01",
+      "description": "Flow cytometry acquisition for ASSAY-1234, Assay Development, Flow Cytometer 1.",
+      "datePublished": "2026-09-08",
+      "license": { "@id": "https://example.org/legal/internal-research-use/1.0" },
+      "copyrightHolder": { "@id": "https://example.org/org/example-institute" },
+      "copyrightYear": "2026",
+      "conditionsOfAccess": "Internal use only. Access governed by the owning group.",
+      "isAccessibleForFree": false,
+      "conformsTo": [
+        { "@id": "https://w3id.org/quilt/ro-crate/0.1" },
+        { "@id": "https://w3id.org/ro/wfrun/process/0.6" }
+      ],
+      "identifier": { "@id": "#quilt-package-name" },
+      "creator": { "@id": "https://orcid.org/0000-0002-1825-0097" },
+      "producer": { "@id": "#assay-development" },
+      "subjectOf": { "@id": "https://eln.example.org/entries/etr_AbC123" },
+      "mentions": { "@id": "urn:uuid:9f1c4e2a-5b73-4a1e-8c0d-2e7f6a3b9d41" },
+      "keywords": "flow cytometry, assay development, ASSAY-1234",
+      "hasPart": [{ "@id": "01-Well-A1.fcs" }]
+    },
+
+    {
+      "@id": "https://w3id.org/quilt/ro-crate/0.1",
+      "@type": ["CreativeWork", "Profile"],
+      "name": "Quilt RO-Crate profile",
+      "version": "0.1.0"
+    },
+    {
+      "@id": "https://w3id.org/ro/wfrun/process/0.6",
+      "@type": ["CreativeWork", "Profile"],
+      "name": "Process Run Crate",
+      "version": "0.6"
+    },
+
+    {
+      "@id": "#quilt-package-name",
+      "@type": "PropertyValue",
+      "propertyID": "https://w3id.org/quilt/ro-crate#packageName",
+      "name": "Quilt package name",
+      "value": "assay-dev/2026-09-08-assay-01"
+    },
+
+    {
+      "@id": "https://example.org/legal/internal-research-use/1.0",
+      "@type": "CreativeWork",
+      "name": "Example Institute internal research use v1.0",
+      "description": "Proprietary and confidential. All rights reserved by Example Institute. Internal research use only; no redistribution or publication without written authorization.",
+      "sameAs": "http://rightsstatements.org/vocab/InC/1.0/"
+    },
+    {
+      "@id": "https://example.org/org/example-institute",
+      "@type": "Organization",
+      "name": "Example Institute"
+    },
+
+    {
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "@type": "Person",
+      "name": "Jane Doe",
+      "alternateName": "jdoe",
+      "affiliation": { "@id": "#assay-development" }
+    },
+
+    {
+      "@id": "#assay-development",
+      "@type": "Organization",
+      "name": "Assay Development",
+      "url": "https://example.org/org/assay-development",
+      "parentOrganization": { "@id": "#laboratory-operations" },
+      "owns": { "@id": "https://example.org/instruments/INST-000123" }
+    },
+    {
+      "@id": "#laboratory-operations",
+      "@type": "Organization",
+      "name": "Laboratory Operations"
+    },
+
+    {
+      "@id": "https://eln.example.org/entries/etr_AbC123",
+      "@type": "CreativeWork",
+      "additionalType": { "@id": "https://w3id.org/quilt/ro-crate#ELNEntry" },
+      "name": "ASSAY-1234",
+      "identifier": "etr_AbC123",
+      "url": "https://eln.example.org/entries/etr_AbC123",
+      "provider": { "@id": "#eln-vendor" }
+    },
+    {
+      "@id": "#eln-vendor",
+      "@type": "SoftwareApplication",
+      "name": "Example ELN",
+      "url": "https://eln.example.org/"
+    },
+
+    {
+      "@id": "https://example.org/instruments/INST-000123",
+      "@type": "IndividualProduct",
+      "additionalType": { "@id": "http://purl.obolibrary.org/obo/OBI_0400044" },
+      "name": "Flow Cytometer 1",
+      "identifier": "INST-000123",
+      "model": "Example FC-5000",
+      "manufacturer": { "@id": "#instrument-vendor" }
+    },
+    {
+      "@id": "#instrument-vendor",
+      "@type": "Organization",
+      "name": "Example Instruments Inc."
+    },
+    {
+      "@id": "http://purl.obolibrary.org/obo/OBI_0400044",
+      "@type": "DefinedTerm",
+      "name": "flow cytometer",
+      "inDefinedTermSet": { "@id": "http://purl.obolibrary.org/obo/obi.owl" }
+    },
+    {
+      "@id": "http://purl.obolibrary.org/obo/obi.owl",
+      "@type": "DefinedTermSet",
+      "name": "Ontology for Biomedical Investigations (OBI)",
+      "url": "https://obofoundry.org/ontology/obi.html"
+    },
+
+    {
+      "@id": "urn:uuid:9f1c4e2a-5b73-4a1e-8c0d-2e7f6a3b9d41",
+      "@type": "CreateAction",
+      "name": "Flow cytometry acquisition, plate 01",
+      "endTime": "2026-09-08T20:57:29Z",
+      "instrument": { "@id": "https://example.org/instruments/INST-000123" },
+      "agent": { "@id": "https://orcid.org/0000-0002-1825-0097" },
+      "result": { "@id": "01-Well-A1.fcs" }
+    },
+
+    {
+      "@id": "01-Well-A1.fcs",
+      "@type": "File",
+      "name": "01-Well-A1.fcs",
+      "encodingFormat": "application/vnd.isac.fcs",
+      "contentSize": "2405376",
+      "sha256": "f3278e796c687371cc63a600b6f12ea32167067fed3ef98099d0c1aad2426531",
+      "dateCreated": "2026-09-08T20:57:29Z",
+      "dateModified": "2026-09-08T20:57:29Z",
+      "variableMeasured": { "@id": "#well-a1" }
+    },
+    {
+      "@id": "#well-a1",
+      "@type": "PropertyValue",
+      "propertyID": "https://example.org/terms#wellPosition",
+      "name": "Well position",
+      "value": "A1"
+    }
+  ]
+}
