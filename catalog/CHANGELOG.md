@@ -21,6 +21,8 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Revise package: retyping the destination can no longer publish the loaded package's files over a different package while the new name is still being checked ([#5337](https://github.com/quiltdata/quilt/pull/5337))
+- [Fixed] Admin users: re-sorting the table, or deleting a row the admin had not picked, no longer clears the rows selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Fixed] Qurator on a phone opens across the full screen instead of a narrow strip down one side, and keeps clear of the home bar ([#5332](https://github.com/quiltdata/quilt/pull/5332))
 - [Fixed] Empty states on a phone no longer run their explanatory line off the right edge: it sits under the action instead of beside it ([#5332](https://github.com/quiltdata/quilt/pull/5332))
 - [Fixed] On a small phone, file names are no longer truncated to a few characters, each row's actions stay on screen instead of being clipped (the size and timestamp columns yield the width they need), and the directory toolbar wraps instead of widening the page ([#5332](https://github.com/quiltdata/quilt/pull/5332))

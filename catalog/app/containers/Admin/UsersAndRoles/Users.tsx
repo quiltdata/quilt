@@ -1378,7 +1378,7 @@ export default function Users() {
         title: op.title,
         icon: <M.Icon>{op.icon}</M.Icon>,
         fn: () =>
-          openDialog(
+          openDialog<boolean>(
             ({ close }) => <BulkAction {...{ close, op, users: selectedRows }} />,
             // Not dismissible: the run keeps going after the dialog unmounts, so a
             // stray Escape would leave an irreversible action with no record of which
