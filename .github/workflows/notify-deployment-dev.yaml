@@ -1,0 +1,82 @@
+name: Notify deployment that dev images are ready
+
+# The deployment repo pins bleeding-edge SHAs onto https://dev.quilttest.com, but
+# it can only pin a SHA whose artifacts already exist -- so it has to learn when
+# an image build finishes, not when the commit lands. Without this it falls back
+# to a poll (pin-dev.yml's schedule), which means a dev push waits for the next
+# tick even though the image was ready in minutes.
+#
+# workflow_run, not push: push fires while the images are still building, and a
+# pin attempted then finds no artifact and silently changes nothing.
+#
+# This only sends a notification. Deciding what is pinnable, writing the
+# changelog entry and deploying all stay in deployment/pin-dev.yml -- one place
+# that reads the artifacts, rather than two that could disagree.
+on:
+  workflow_run:
+    workflows:
+      - Deploy catalog to ECR
+      - Deploy lambdas to S3 and ECR
+      - Deploy S3 Proxy to ECR
+    types: [completed]
+    branches: [dev]
+
+permissions: {}
+
+# Serialized, and deliberately without cancel-in-progress: the three deploy
+# workflows finish at different times for one commit, and a later commit's
+# notification must not cancel an earlier one that deployment has not yet acted
+# on. Each send is cheap, and pin-dev.yml is idempotent when nothing is pinnable.
+concurrency:
+  group: notify-deployment-dev
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    # A failed image build leaves no artifact to pin, so notifying would only
+    # make deployment do the work of discovering that.
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch quilt-dev-updated
+        env:
+          # A cross-repo repository_dispatch cannot use GITHUB_TOKEN: it is
+          # scoped to the repo that issued it. This needs contents:write on
+          # quiltdata/deployment and nothing else.
+          #
+          # When the secret is absent -- a fork, or before it is provisioned --
+          # skip rather than fail: deployment's schedule still picks the images
+          # up, so a missing token costs latency, not correctness. A red X on
+          # every dev push would train people to ignore this workflow.
+          GH_TOKEN: ${{ secrets.DEPLOYMENT_DISPATCH_TOKEN }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_WORKFLOW: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::DEPLOYMENT_DISPATCH_TOKEN is not set; skipping." \
+                 "https://dev.quilttest.com will pick these images up on" \
+                 "pin-dev.yml's next scheduled run instead of within the minute."
+            exit 0
+          fi
+
+          echo "Notifying deployment: $SOURCE_WORKFLOW succeeded for $SHA"
+
+          # client_payload is informational -- pin-dev.yml resolves
+          # quiltdata/quilt@dev itself rather than trusting a payload, so a
+          # notification for a superseded commit still pins the current tip.
+          # Sent anyway because it is what makes a dispatch legible in the run
+          # log when someone is working out why a pin happened.
+          if ! gh api "repos/quiltdata/deployment/dispatches" \
+            --method POST \
+            --field event_type=quilt-dev-updated \
+            --field "client_payload[sha]=$SHA" \
+            --field "client_payload[workflow]=$SOURCE_WORKFLOW"; then
+            echo "::warning::Dispatch to quiltdata/deployment failed." \
+                 "The scheduled pin job remains the fallback, so this is a" \
+                 "latency problem rather than a lost deploy."
+            exit 0
+          fi
+
+          echo "Dispatched."
