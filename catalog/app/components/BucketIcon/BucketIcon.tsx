@@ -8,10 +8,9 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: '50%',
     height: t.spacing(4),
     width: t.spacing(4),
-    // Every variant is an inline-level box aligned the same way, so a column
-    // of icons lands at one height whichever variant fills a given row. An
-    // <img> is the one that needs `display`; it is otherwise baseline-aligned.
-    display: 'inline-block',
+    // Every variant is inline-level -- the img and the stub already are, the
+    // disc by `initials` below -- so one alignment holds a column of icons at
+    // a single height whichever variant fills a given row.
     verticalAlign: 'middle',
   },
   // the stub artwork is an inscribed circle, so only custom icons need cropping

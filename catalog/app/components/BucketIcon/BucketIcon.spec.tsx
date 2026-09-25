@@ -217,11 +217,12 @@ describe('components/BucketIcon', () => {
     })
   })
 
-  // Each variant reaches its box model a different way -- the img from `root`,
-  // the disc from `initials`, the stub from SvgIcon -- so a later rule on one
-  // of them can silently stop matching the others. jsdom has no layout engine,
-  // so this pins the declarations that produce one height, not the height.
-  it('renders every variant as an inline-level box with the same alignment', () => {
+  // One alignment on the shared class only holds the variants together while
+  // each stays inline-level, and each gets there its own way. jsdom has no
+  // layout engine and no UA stylesheet, so this pins those declarations rather
+  // than the resulting height -- the disc's exactly, because `inline-flex`
+  // also carries the centring that `alignItems` below it depends on.
+  it('aligns every variant the same way, each inline-level', () => {
     const { container, getByAltText, getByText } = render(
       <div>
         <BucketIcon alt="custom" src="https://custom-src" />
@@ -229,18 +230,12 @@ describe('components/BucketIcon', () => {
         <BucketIcon src="" />
       </div>,
     )
-    const variants = [
-      getByAltText('custom'),
-      getByText('BE'),
-      container.querySelector('svg')!,
-    ]
+    const disc = getByText('BE')
+    const variants = [getByAltText('custom'), disc, container.querySelector('svg')!]
     variants.forEach((el) => {
-      const { display, verticalAlign } = getComputedStyle(el)
-      // a block-level box would drop out of the row's line box, and
-      // vertical-align would not apply to it
-      expect(display.startsWith('inline')).toBe(true)
-      expect(verticalAlign).toBe('middle')
+      expect(getComputedStyle(el).verticalAlign).toBe('middle')
     })
+    expect(getComputedStyle(disc).display).toBe('inline-flex')
   })
 
   describe('class names', () => {
