@@ -41,7 +41,7 @@ export const FEATURES = {
   'data-products': {
     label: 'Data products',
     description:
-      'Browse data products defined in an enterprise catalog (AWS DataZone, Databricks Unity, Snowflake). Off, no data-product route or nav entry exists. Reads fixture data until catalog adapters land.',
+      'Define, publish and subscribe to data products — virtual volumes this stack’s own registry holds, defined by a SQL definition over buckets a workspace already holds. Adds the exchange, product creation, and per-product definition, sharing and access screens. Off, a bucket behaves exactly as it does today and no product route or nav entry exists. Reads example data: nothing is written to a registry and no access is granted.',
   },
 } satisfies Record<string, Feature>
 
