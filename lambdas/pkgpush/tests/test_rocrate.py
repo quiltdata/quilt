@@ -17,6 +17,12 @@ CRATE_PK = PhysicalKey("bucket", "experiments/260908_ale_ELNID/ro-crate-metadata
 # lists its license URL as a part, both of which parse() has to survive.
 WRROC_PATH = pathlib.Path(__file__).parent / "data" / "wrroc-canonical.json"
 
+# A pre-profile emitter, the shape labs are writing today: it states creator,
+# producer and per-file provenance, but reaches its instrument only from each
+# File's isBasedOn, and names the package with a bare root name. Synthetic, and
+# reduced from crates in the field.
+PRE_PROFILE_PATH = pathlib.Path(__file__).parent / "data" / "pre-profile-emitter.json"
+
 # The Quilt RO-Crate profile's conforming example, copied verbatim from
 # quiltdata/quilt-ro-crate-profile 0.1/example1/ro-crate-metadata.json at 3af25f4.
 PROFILE_EXAMPLE = json.loads((pathlib.Path(__file__).parent / "data" / "quilt-profile-example1.json").read_text())
@@ -664,6 +670,38 @@ def test_package_prefix_crate_with_utf8_bom(mocker, packager_stubs):
     assert kwargs["name"] == "assay-dev/2026-09-08-assay-01"
 
 
+def test_parse_pre_profile_emitter():
+    """A pre-profile emitter parses, and its unreachable instrument is dropped, not guessed.
+
+    `instrument` is projected from the acquisition actions the root `mentions`. This
+    crate states the same instrument on each File's `isBasedOn` and lists no
+    `mentions`, so the role is absent from package metadata while the reference
+    survives verbatim in entry metadata.
+    """
+    doc = json.loads(PRE_PROFILE_PATH.read_text())
+    crate_pk = PhysicalKey("bucket", "experiments/20260214_jdoe/ro-crate-metadata.json", "v1")
+
+    assert rocrate.is_rocrate(doc)
+    crate = rocrate.parse(doc, crate_pk, "experiments/20260214_jdoe")
+
+    # A bare root name does not name the package; the caller's default stands.
+    assert crate.package_name == "experiments/20260214_jdoe"
+    validate_package_name(crate.package_name)
+    assert crate.user_meta == {
+        "creator": ["jdoe"],
+        "producer": ["Assay Development", "Laboratory Operations"],
+    }
+
+    entries = {e.logical_key: e for e in crate.entries}
+    assert sorted(entries) == ["01-Well-A1.fcs", "01-Well-A2.fcs", "ro-crate-metadata.json"]
+    assert entries["01-Well-A1.fcs"].user_meta == {
+        "dateCreated": "2026-02-14T20:33:09Z",
+        "dateModified": "2026-02-14T22:06:57Z",
+        "creator": {"@id": "#person-jdoe"},
+        "isBasedOn": {"@id": "#instrument-cytometer-001"},
+    }
+
+
 def test_parse_canonical_nf_prov_wrroc():
     """The canonical nf-prov WRROC parses; its root hasPart becomes the package."""
     doc = json.loads(WRROC_PATH.read_text())
@@ -769,6 +807,44 @@ def get_object_stub(mocker, doc):
 def built_package(build_mock):
     (pkg,), kwargs = build_mock.call_args
     return pkg, kwargs
+
+
+def test_package_prefix_pre_profile_emitter(mocker, packager_stubs):
+    """End to end on a pre-profile emitter: crate mode, no folder sweep, per-file meta."""
+    doc = json.loads(PRE_PROFILE_PATH.read_text())
+    get_object_stub(mocker, doc)
+    list_prefix = mocker.patch.object(t4_lambda_pkgpush, "list_prefix_latest_versions")
+
+    t4_lambda_pkgpush.package_prefix(
+        json.dumps(
+            {
+                "source_prefix": "s3://bucket/experiments/20260214_jdoe/ro-crate-metadata.json",
+                "metadata_uri": "s3://bucket/experiments/20260214_jdoe/ro-crate-metadata.json",
+            }
+        ),
+        None,
+    )
+
+    # hasPart replaces the sweep, so an unlisted sibling object stays out of the package.
+    list_prefix.assert_not_called()
+    pkg, kwargs = built_package(packager_stubs)
+    assert kwargs["name"] == "experiments/20260214_jdoe"
+    assert pkg.meta == {
+        "package_name": "experiments/20260214_jdoe",
+        "creator": ["jdoe"],
+        "producer": ["Assay Development", "Laboratory Operations"],
+    }
+    assert sorted(lk for lk, _ in pkg.walk()) == [
+        "01-Well-A1.fcs",
+        "01-Well-A2.fcs",
+        "ro-crate-metadata.json",
+    ]
+    assert pkg["01-Well-A2.fcs"].meta == {
+        "dateCreated": "2026-02-14T20:41:02Z",
+        "dateModified": "2026-02-14T22:07:11Z",
+        "creator": {"@id": "#person-jdoe"},
+        "isBasedOn": {"@id": "#instrument-cytometer-001"},
+    }
 
 
 def test_package_prefix_crate_mode(mocker, packager_stubs):
