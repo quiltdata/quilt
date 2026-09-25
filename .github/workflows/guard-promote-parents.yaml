@@ -21,9 +21,12 @@ permissions:
   contents: read
   issues: write
 
-concurrency:
-  group: guard-promote-parents
-  cancel-in-progress: false
+# No concurrency group, deliberately. GitHub keeps only one pending run per
+# group, so a promote pushed while another run is in flight would have its run
+# dropped before it ever executed -- and this guard only ever inspects its own
+# HEAD, so that commit would never be checked by any later run.
+# back-merge-dev.yaml can serialize because its replacement run subsumes the
+# work; here every commit needs its own inspection.
 
 jobs:
   guard:
@@ -58,38 +61,42 @@ jobs:
           # master is correct and must not trip this. Matched on the subject
           # because a squashed promote keeps no ref to the branch it came from --
           # which is exactly the information this guard is missing.
+          #
+          # nocasematch because the subject is prefilled from the PR title and
+          # typed by a person: "Promote Dev to Master" is the same mistake as
+          # "promote dev to master" and must trip the same check.
+          shopt -s nocasematch
           case "$subject" in
-            *[Pp]romote*dev*|*promote*to*master*) ;;
+            *promote*dev*|*promote*to*master*) ;;
             *)
               echo "Not a dev promote; nothing to check."
               exit 0
               ;;
           esac
+          shopt -u nocasematch
 
           echo "Promote detected: $head ($parents parent(s))"
           echo "  $subject"
 
-          # The real invariant, checked directly rather than inferred from the
-          # parent count: whatever dev was promoted must now be reachable from
-          # master. A merge commit satisfies this; a squash cannot.
-          #
-          # Compared against the promote's own second parent when it has one,
-          # because origin/dev has usually moved on by the time this runs and its
-          # current tip is legitimately ahead of master.
+          # The parent count IS the check. An earlier version of this workflow
+          # also asserted `is-ancestor "$head^2" "$head"`, which is true of every
+          # merge commit by construction -- a tautology that read like a second,
+          # stronger test. There is no post-hoc way to prove which branch a
+          # squashed promote came from, so nothing stronger is available here:
+          # two parents means dev's history is reachable, one means it is not.
           if [ "$parents" -ge 2 ]; then
-            promoted="$(git rev-parse "${head}^2")"
-            if git merge-base --is-ancestor "$promoted" "$head"; then
-              echo "OK: promoted dev revision $promoted is an ancestor of master."
-              exit 0
-            fi
-            echo "::error::Promote $head has $parents parents but $promoted is not an ancestor."
-            exit 1
+            echo "OK: merge commit, so the promoted dev revision stays an ancestor."
+            exit 0
           fi
 
           # One parent on a promote: the squash case. Report how much dev work was
           # re-authored, so the issue says what it will cost rather than just
           # naming the mistake.
-          behind="$(git rev-list --count master..origin/dev)"
+          #
+          # Guarded because `set -e` aborts on a failing assignment: without the
+          # fallback a missing origin/dev ref would kill the run here, losing the
+          # escalation entirely -- the one thing this workflow exists to deliver.
+          behind="$(git rev-list --count origin/master..origin/dev 2>/dev/null)" || behind='an unknown number of'
 
           title="Promote $head was squashed -- dev's history is detached from master"
           body="$(cat <<EOF
