@@ -128,7 +128,7 @@ describe('containers/Admin/Buckets/IconInput', () => {
     expect(field.value).toBe('https://cdn.example.com/i.png')
   })
 
-  it('strips leading whitespace as the field it replaced did', () => {
+  it('strips leading whitespace from a pasted URL', () => {
     const q = render(<Harness initial="" />)
     const field = urlField(q)
     fireEvent.change(field, { target: { value: '   https://cdn.example.com/i.png' } })
