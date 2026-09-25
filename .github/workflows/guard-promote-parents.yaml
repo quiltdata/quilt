@@ -1,0 +1,127 @@
+name: Guard dev promotes against squashing
+
+# A `dev` -> `master` promote merged with "Squash and merge" re-authors dev's
+# commits as new SHAs on master. Dev's originals never become ancestors, so the
+# merge base freezes and every later back-merge sees files both branches
+# "independently invented" -- git reports them as add/add conflicts with no
+# common ancestor. That is what froze the base at a38c41606 for 33 days in
+# September 2026, past 44 consecutive back-merge failures.
+#
+# Nothing in GitHub's PR UI can force which merge button a human clicks, so this
+# catches the mistake on the next push to master and escalates to an issue.
+# Detection is one `git rev-list --parents` away; the escalation is the point.
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: guard-promote-parents
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to a SHA to match back-merge-dev.yaml: a moved tag would execute
+      # new code against a token that can open issues.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: ancestry and parent counts need real history, and a
+          # shallow clone reports every commit as parentless.
+          fetch-depth: 0
+
+      - name: Check the promote kept dev as an ancestor
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git fetch --quiet origin dev master
+
+          head="$(git rev-parse HEAD)"
+          subject="$(git log -1 --format=%s "$head")"
+
+          # Parent count distinguishes the two promote shapes: a merge commit has
+          # two, a squash has one. Counted from rev-list rather than %p so an
+          # empty parent list (root commit) is not mistaken for one parent.
+          parents="$(git rev-list --parents -n 1 "$head" | wc -w)"
+          parents=$((parents - 1))
+
+          # Only dev promotes are in scope. A normal feature-branch squash onto
+          # master is correct and must not trip this. Matched on the subject
+          # because a squashed promote keeps no ref to the branch it came from --
+          # which is exactly the information this guard is missing.
+          case "$subject" in
+            *[Pp]romote*dev*|*promote*to*master*) ;;
+            *)
+              echo "Not a dev promote; nothing to check."
+              exit 0
+              ;;
+          esac
+
+          echo "Promote detected: $head ($parents parent(s))"
+          echo "  $subject"
+
+          # The real invariant, checked directly rather than inferred from the
+          # parent count: whatever dev was promoted must now be reachable from
+          # master. A merge commit satisfies this; a squash cannot.
+          #
+          # Compared against the promote's own second parent when it has one,
+          # because origin/dev has usually moved on by the time this runs and its
+          # current tip is legitimately ahead of master.
+          if [ "$parents" -ge 2 ]; then
+            promoted="$(git rev-parse "${head}^2")"
+            if git merge-base --is-ancestor "$promoted" "$head"; then
+              echo "OK: promoted dev revision $promoted is an ancestor of master."
+              exit 0
+            fi
+            echo "::error::Promote $head has $parents parents but $promoted is not an ancestor."
+            exit 1
+          fi
+
+          # One parent on a promote: the squash case. Report how much dev work was
+          # re-authored, so the issue says what it will cost rather than just
+          # naming the mistake.
+          behind="$(git rev-list --count master..origin/dev)"
+
+          title="Promote $head was squashed -- dev's history is detached from master"
+          body="$(cat <<EOF
+          \`$head\` looks like a \`dev\` -> \`master\` promote but has **one parent**, so it
+          was merged with *Squash and merge*.
+
+          > $subject
+
+          Dev's commits were re-authored as new SHAs on \`master\`. They are not
+          ancestors of it, so the merge base will not advance and
+          \`back-merge-dev.yaml\` will now fail on add/add conflicts in every file
+          both branches touched. \`dev\` is currently **$behind commit(s)** ahead of
+          \`master\`.
+
+          Fix going forward: promote \`dev\` with **Create a merge commit**, never
+          squash. Reconciling the already-detached history is a hand merge -- see
+          the September 2026 convergence, which took 39 conflicted files.
+
+          Raised by \`.github/workflows/guard-promote-parents.yaml\`.
+          EOF
+          )"
+
+          echo "::error::$title"
+
+          # One issue per offending commit: re-running this workflow, or a later
+          # push that re-detects the same promote, must not open duplicates.
+          existing="$(gh issue list --state open --search "$head in:body" --json number --jq '.[].number' | head -1)" || existing=''
+          if [ -n "$existing" ]; then
+            echo "Issue #$existing already tracks this promote."
+            exit 1
+          fi
+
+          gh issue create --title "$title" --body "$body" || \
+            echo "::warning::Could not open an issue; the failure above is the only signal."
+          exit 1
