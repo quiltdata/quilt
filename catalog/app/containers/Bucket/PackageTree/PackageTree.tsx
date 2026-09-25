@@ -151,10 +151,17 @@ const useTopBarStyles = M.makeStyles((t) => ({
     marginBottom: -3,
     // The crumbs seam sits on this cell rather than on the grid, so it collapses
     // with the cell on the renders that pass no actions.
-    marginLeft: t.spacing(1),
+    marginLeft: t.spacing(2),
     marginTop: -3,
     '&:empty': {
       display: 'none',
+    },
+    // First children differ in what they bring (a button carries marginLeft,
+    // FileProperties does not), so the seam above is the whole of it. Doubled
+    // selectors (&&) outrank the children's single-class margin rules regardless
+    // of JSS sheet insertion order.
+    '&& > :first-child': {
+      marginLeft: 0,
     },
     [t.breakpoints.down(1100)]: {
       flexWrap: 'wrap',
