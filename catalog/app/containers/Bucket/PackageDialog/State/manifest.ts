@@ -27,7 +27,9 @@ export function useManifestRequest(
   open: boolean,
   src?: PackageSrc,
   // Promote copies entries server-side by hash, so fetching them here would only expose
-  // the copy dialog to a failure it has no use for.
+  // the copy dialog to a failure it has no use for. Absent entries are also what exempts
+  // the copy dialog from useParams' destination gate, which has no replacement list to
+  // protect: fetching them here would start blocking legitimate copies.
   skipEntries: boolean = false,
 ): ManifestStatus {
   const notOpened = !open

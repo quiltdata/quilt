@@ -77,15 +77,22 @@ export function useParams({
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
       return Invalid(new ERRORS.SourceManifestNotLoaded())
     }
-    // The loaded manifest describes `src`, so a `dst` naming a different package that
-    // already exists would get this one's entries as its complete replacement list.
-    // Compared against `src` rather than trusting 'exists' to imply the mismatch.
+    // Loaded entries describe `src`, so a `dst` naming anything else would get them as its
+    // complete replacement list. A name still being looked up cannot be trusted to be
+    // absent, so being resolved is required on top of naming `src`.
     if (
       src &&
-      name.status._tag === 'exists' &&
-      (dst.bucket !== src.bucket || dst.name !== src.name)
+      name.value &&
+      name.status._tag !== 'error' &&
+      manifest._tag === 'ready' &&
+      manifest.manifest?.entries
     ) {
-      return Invalid(new ERRORS.DestinationManifestMismatch())
+      const isSrc = dst.bucket === src.bucket && dst.name === src.name
+      const confirmedNew = name.status._tag === 'new'
+      const confirmedSrc = name.status._tag === 'new-revision' && isSrc
+      if (!confirmedNew && !confirmedSrc) {
+        return Invalid(new ERRORS.DestinationManifestMismatch())
+      }
     }
     if (!workflow.value || workflow.status._tag === 'error') {
       return Invalid(new Error('Valid workflow required'))

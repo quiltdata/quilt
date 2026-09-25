@@ -61,5 +61,15 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
       queryState = { data: { package: null }, error: new Error('resolver failed') }
       expect(run()._tag).toBe('loading')
     })
+
+    it.each([
+      ['an absence', { package: null }],
+      ['a package', { package: { __typename: 'Package', name: 'other/package' } }],
+    ])('withholds %s that describes the previous name', (_label, data) => {
+      // What urql yields right after a variables change: the prior name's response, kept
+      // while the new one is in flight.
+      queryState = { data, fetching: true }
+      expect(run()._tag).toBe('loading')
+    })
   })
 })
