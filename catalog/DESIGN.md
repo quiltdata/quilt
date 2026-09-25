@@ -395,6 +395,13 @@ column. The chrome is the exception — the rail and the search band sit outside
 the column they would be measuring, so they keep the viewport. Anything through
 a portal keeps it too: a container query never crosses one.
 
+The floor this rests on is a pin, not a preference: JSS drops an at-rule it does
+not recognise, and `@container` reaches its `keyRegExp` only in 10.10 — MUI v4
+asks for 10.6, which would take every rule above silently. `catalog/package.json`
+pins `jss` and overrides it across the tree for that reason, and pins
+`rrweb-cssom` to a version whose `CSSContainerRule` lets jsdom parse the rules a
+spec asserts on.
+
 **The Safe Area Rule.** The app draws to the edges of a notched screen, so every
 element that owns a screen edge carries its own `env(safe-area-inset-*)` — the
 content column, the full-bleed search band, the rail overlay, the Qurator panel.

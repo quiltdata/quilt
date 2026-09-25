@@ -110,14 +110,14 @@ const useStatsStyles = M.makeStyles((t) => ({
     flexWrap: 'nowrap',
     justifyContent: 'flex-end',
     rowGap: t.spacing(1),
-    [Column.down(950)]: {
+    [Column.down(1044)]: {
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
       '& $create': {
         marginLeft: 'auto',
       },
     },
-    [Column.down(590)]: {
+    [Column.down(640)]: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
       '& $create': {
@@ -208,17 +208,19 @@ function CreatePackage({ bucket, className }: CreatePackageProps) {
 
 const useStyles = M.makeStyles((t) => ({
   // Cutoffs are the card's own width (components/Layout/Column), not the
-  // viewport's: the shell chrome it used to allow for -- the rail, the
-  // paddings and now Qurator's gutter -- is already outside what the column
-  // measures. 950px is the width the never-wrap row needs, which is what the
-  // old 1300px viewport tier was reaching for.
+  // viewport's: the chrome the old viewport tiers had to allow for -- the
+  // 256px rail, and now Qurator's gutter -- is already outside what the column
+  // measures. Each threshold is the column width the equivalent viewport tier
+  // engaged at: 1300px of viewport minus the rail is 1044px of column. Below
+  // 960px the rail is an overlay and the column is the viewport, so the
+  // narrow tier's number is unchanged.
   root: {
     alignItems: 'center',
     columnGap: t.spacing(3),
     display: 'grid',
     gridTemplateAreas: '"title stats"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto',
-    [Column.down(950)]: {
+    [Column.down(1044)]: {
       gridTemplateAreas: '"title" "stats"',
       gridTemplateColumns: 'minmax(0, 1fr)',
       rowGap: t.spacing(1),
@@ -229,7 +231,7 @@ const useStyles = M.makeStyles((t) => ({
   withSettings: {
     gridTemplateAreas: '"title stats settings"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
-    [Column.down(950)]: {
+    [Column.down(1044)]: {
       gridTemplateAreas: '"title settings" "stats stats"',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
     },

@@ -126,8 +126,10 @@ const isStillBrowsingPackage = (
 const useTopBarStyles = M.makeStyles((t) => ({
   // The stacked tier keeps the wide tier's right anchor so the (often
   // icon-collapsed) action strip doesn't sit parked at the left edge.
-  // Tiers measure the column, not the viewport (components/Layout/Column):
-  // the crumbs wrap when this card narrows, whatever took the width.
+  // Tiers measure the column, not the viewport (components/Layout/Column), so
+  // the crumbs stack when this card narrows, whatever took the width. 844px is
+  // the column the old 1100px viewport tier engaged at, once the 256px rail is
+  // out of the measurement.
   topBar: {
     alignItems: 'end',
     columnGap: t.spacing(2),
@@ -136,7 +138,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     gridTemplateColumns: 'minmax(0, 1fr) auto',
     marginBottom: t.spacing(2),
     marginTop: t.spacing(0.5),
-    [Column.down(1100)]: {
+    [Column.down(844)]: {
       gridTemplateAreas: '"crumbs" "actions"',
       gridTemplateColumns: 'minmax(0, 1fr)',
     },
@@ -164,7 +166,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     '&& > :first-child': {
       marginLeft: 0,
     },
-    [Column.down(1100)]: {
+    [Column.down(844)]: {
       flexWrap: 'wrap',
       gap: t.spacing(1),
       justifyContent: 'flex-end',

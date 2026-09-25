@@ -172,13 +172,32 @@ describe('components/Assistant/UI WithAssistantUI', () => {
   const hasRule = (el: Element, key: string) =>
     el.className.split(' ').some((c) => c.startsWith(`makeStyles-${key}-`))
 
+  // The winning declaration for `width` among the rules this element carries.
+  // Read from the sheet rather than `getComputedStyle`: jsdom does not cascade
+  // author stylesheets, so computed style reports nothing for either rule.
+  const widthFor = (el: Element, key: string) => {
+    const cls = el.className.split(' ').find((c) => c.startsWith(`makeStyles-${key}-`))
+    if (!cls) return null
+    const css = [...document.querySelectorAll('style')]
+      .map((s) => s.textContent || '')
+      .join('\n')
+    // `&&` compiles to the class doubled, which is the rule that has to win.
+    const rule = css.split('}').find((r) => r.includes(`.${cls}.${cls}`))
+    const m = rule?.match(/width:\s*([^;]+)/)
+    return m ? m[1].trim() : null
+  }
+
   it('gives the overlay a full-width paper the docked panel does not take', () => {
     narrowViewport()
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
     const { baseElement } = render(<WithAssistantUI />)
-    expect(hasRule(paper(baseElement)!, 'paperCompact')).toBe(true)
+    const el = paper(baseElement)!
+    expect(hasRule(el, 'paperCompact')).toBe(true)
+    // Not just applied: it has to win the width. `paper` sets one too, at equal
+    // specificity, so a class on the element proves nothing about the cascade.
+    expect(widthFor(el, 'paperCompact')).toBe('min(40rem, 100vw)')
   })
 
   it('leaves the docked paper on the gutter width, with no overlay override', () => {
