@@ -171,10 +171,12 @@ describe('containers/Admin/Buckets/EditPage', () => {
       })
     })
 
-    // This navigation is correctly guarded: bucket-a really does have unsaved edits.
+    // Asserted, not assumed: if the edits stopped registering as dirty the guard below
+    // would pass for the wrong reason.
     await act(async () => {
       history.push('/admin/buckets/bucket-b')
     })
+    expect(confirmNavigation).toHaveBeenCalled()
     confirmNavigation.mockClear()
 
     // `Prompt` installs a history block only while the tree is dirty, and the router asks
