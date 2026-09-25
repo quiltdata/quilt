@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Package: the breadcrumbs no longer lose 16px of width while the page is loading, so the path does not shift when the action buttons appear ([#XXXX](https://github.com/quiltdata/quilt/pull/XXXX))
+- [Fixed] Package: the breadcrumbs no longer lose 16px of width while the page is loading, so the path does not shift when the action buttons appear ([#5342](https://github.com/quiltdata/quilt/pull/5342))
 - [Fixed] Revise package: retyping the destination can no longer publish the loaded package's files over a different package while the new name is still being checked ([#5337](https://github.com/quiltdata/quilt/pull/5337))
 - [Fixed] Admin users: re-sorting the table, or deleting a row the admin had not picked, no longer clears the rows selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Fixed] Get popover: it no longer crashes when its Code tab disappears while selected, and its active-tab underline and panel switch honor `prefers-reduced-motion` ([#5335](https://github.com/quiltdata/quilt/pull/5335))
