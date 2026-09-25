@@ -8,9 +8,9 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: '50%',
     height: t.spacing(4),
     width: t.spacing(4),
-    // An <img> is inline by default and sits on the text baseline, so a custom
-    // icon rode a few pixels lower than the initials disc (flex) and the stub
-    // (inline-block) in the same column. One display mode for all three.
+    // One line box for all three variants: an <img> is inline and would
+    // otherwise sit on the text baseline, below the flex disc and the
+    // inline-block stub sharing its row.
     display: 'inline-block',
     verticalAlign: 'middle',
   },

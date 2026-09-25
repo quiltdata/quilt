@@ -217,10 +217,8 @@ describe('components/BucketIcon', () => {
     })
   })
 
-  // An <img> is inline and baseline-aligned by default; the disc is flex and
-  // the stub inline-block. Left to their defaults a custom icon sat lower in
-  // the admin table than its neighbours. Rendered in a real table cell because
-  // the JSS rule alone cannot show that the three variants agree.
+  // In a real table cell because asserting the JSS rule cannot show that the
+  // three variants, which reach their box model three different ways, agree.
   it('keeps a custom icon on the same line as the disc and the stub', () => {
     const { container, getByAltText, getByText } = render(
       <M.Table>
