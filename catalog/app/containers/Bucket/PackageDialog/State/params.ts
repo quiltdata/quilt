@@ -78,9 +78,8 @@ export function useParams({
       return Invalid(new ERRORS.SourceManifestNotLoaded())
     }
     // Loaded entries describe `src`, so a `dst` naming anything else would get them as its
-    // complete replacement list. The handle comparison is not enough on its own: a name
-    // still being looked up cannot be trusted to be absent, and 'new-revision' is reported
-    // for any existing package once disableRestore is set.
+    // complete replacement list. A name still being looked up cannot be trusted to be
+    // absent, so being resolved is required on top of naming `src`.
     if (
       src &&
       name.value &&

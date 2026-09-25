@@ -337,9 +337,9 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     })
 
     it('is invalid when only the bucket differs', () => {
-      // The same package name in another bucket is another package. 'new-revision' is what
-      // useNameExistence reports here once disableRestore is set, so the tag alone would
-      // pass it: only the handle comparison catches it.
+      // The same package name in another bucket is another package, so the handle
+      // comparison has to catch it rather than the tag. Defensive: in the revise dialog
+      // 'new-revision' comes from the dst === src short-circuit, which cannot reach here.
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'other-bucket', name: 'test-package' },
@@ -376,15 +376,31 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    it.each([
-      ['error', { _tag: 'error' as const, error: new Error('Invalid package name') }],
-      ['idle, before the name is prefilled', { _tag: 'idle' as const }],
-    ])('reports an unusable name as such, not as a mismatch (%s)', (_tag, status) => {
+    it('reports an invalid name as such, not as a mismatch', () => {
+      // A typed-out name that failed validation: it never reached the existence check, so
+      // it is unresolved, but the mismatch wording would be wrong about why.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'bad name' },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: {
+            ...name,
+            value: 'bad name',
+            status: { _tag: 'error' as const, error: new Error('Invalid package name') },
+          },
+          src,
+        }),
+      )
+
+      expect(result.current).toEqual(Invalid(new Error('Valid name required')))
+    })
+
+    it('reports a missing name as such, not as a mismatch', () => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'test-bucket', name: undefined },
           manifest: MANIFEST_WITH_ENTRIES,
-          name: { ...name, value: undefined, status },
+          name: { ...name, value: undefined, status: { _tag: 'idle' as const } },
           src,
         }),
       )
