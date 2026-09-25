@@ -1,13 +1,14 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
+import PanelBoundary from 'components/PanelBoundary'
 import * as style from 'constants/style'
 
 import * as Model from '../Model'
 import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
-import PanelBoundary from './PanelBoundary'
 import { MOTION, PANEL_WIDTH, RAIL_WIDTH, Context as ReflowContext } from './PanelReflow'
 
 // The rail button names the region it expands, so both need one id. The paper
@@ -52,6 +53,25 @@ function useFocusRail(docked: boolean, open: boolean, ref: React.RefObject<HTMLE
     if (!showing && showedChat.current) ref.current?.focus()
     showedChat.current = showing
   }, [docked, open, ref])
+}
+
+const usePlaceholderStyles = M.makeStyles((t) => ({
+  skeletons: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(2),
+  },
+}))
+
+function ChatPlaceholder() {
+  const classes = usePlaceholderStyles()
+  return (
+    <div aria-hidden className={classes.skeletons}>
+      <Lab.Skeleton height={40} variant="rect" />
+      <Lab.Skeleton height={24} width="60%" />
+      <Lab.Skeleton height={24} width="80%" />
+    </div>
+  )
 }
 
 const usePanelStyles = M.makeStyles((t) => ({
@@ -117,7 +137,15 @@ function Panel({ api, compact, open }: PanelProps) {
         SlideProps={{ timeout: instant ? 0 : undefined }}
       >
         {expanded ? (
-          <PanelBoundary onRetry={clearConversation}>
+          // `plain`, not the default card: the drawer paper already is the panel.
+          <PanelBoundary
+            title="Qurator could not load"
+            retryLabel="Clear and retry"
+            variant="plain"
+            suspenseFallback={<ChatPlaceholder />}
+            busyLabel="Loading Qurator"
+            onRetry={clearConversation}
+          >
             <Chat
               state={api.state}
               dispatch={api.dispatch}
