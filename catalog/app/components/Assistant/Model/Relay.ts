@@ -21,8 +21,8 @@ class Retryable {
 }
 
 /**
- * The same `LLM` service `Bedrock.ts` provides, but the request goes to the
- * platform's inference relay instead of straight to Bedrock from the browser.
+ * The same `LLM` service `Bedrock.ts` provided, but the request goes to the
+ * registry's inference relay instead of straight to Bedrock from the browser.
  *
  * The relay signs with the caller's own credentials on the default path and
  * bears a gateway credential when a deployment configures one, so the browser
@@ -31,7 +31,7 @@ class Retryable {
  * the signer differ.
  */
 export interface RelayOptions {
-  /** Base URL of the relay, e.g. `${registryUrl}/mcp/platform/inference`. */
+  /** Base URL of the relay, e.g. `${registryUrl}/api/inference`. */
   url: string
   modelId: Eff.Effect.Effect<string>
   /**

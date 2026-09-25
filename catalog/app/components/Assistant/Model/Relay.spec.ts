@@ -24,7 +24,7 @@ const run = (layer: Eff.Layer.Layer<LLM.LLM>, prompt: LLM.Prompt) =>
 
 const layer = (over: Partial<Relay.RelayOptions> = {}) =>
   Relay.LLMRelay({
-    url: 'https://reg.example/mcp/platform/inference',
+    url: 'https://reg.example/api/inference',
     modelId: Eff.Effect.succeed('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     getToken: () => Eff.Effect.succeed('session-jwt'),
     ...over,
@@ -46,7 +46,7 @@ describe('Relay', () => {
     const [url, init] = spy.mock.calls[0]
     // The model id carries a ':' and is one path segment; the relay forwards it as sent.
     expect(url).toBe(
-      'https://reg.example/mcp/platform/inference/model/us.anthropic.claude-sonnet-4-5-20250929-v1%3A0/converse',
+      'https://reg.example/api/inference/model/us.anthropic.claude-sonnet-4-5-20250929-v1%3A0/converse',
     )
     expect((init.headers as Record<string, string>).authorization).toBe(
       'Bearer session-jwt',

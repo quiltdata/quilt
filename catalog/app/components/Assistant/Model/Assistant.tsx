@@ -50,17 +50,17 @@ function getPlatformMcpUrl(): string {
 }
 
 /**
- * Inference relay on the platform MCP service. The model call is issued from
- * there rather than from the browser, so a deployment's gateway credential
- * never reaches the client. `localStorage.QUILT_INFERENCE_URL` overrides for
- * local dev, as `QUILT_MCP_URL` does.
+ * The registry's inference relay. The model call is issued from there rather
+ * than from the browser, so a deployment's gateway credential never reaches
+ * the client. `localStorage.QUILT_INFERENCE_URL` overrides for local dev, as
+ * `QUILT_MCP_URL` does.
  */
 function getInferenceUrl(): string {
   if (typeof localStorage !== 'undefined') {
     const override = localStorage.getItem(INFERENCE_URL_KEY)
     if (override) return override
   }
-  return `${cfg.registryUrl}/mcp/platform/inference`
+  return `${cfg.registryUrl}/api/inference`
 }
 
 const PLATFORM_CONNECTOR_HINT =
