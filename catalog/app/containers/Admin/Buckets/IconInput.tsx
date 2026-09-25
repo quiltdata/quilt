@@ -7,7 +7,11 @@ import * as M from '@material-ui/core'
 
 import BucketIcon from 'components/BucketIcon'
 
-import { cropToDataUrl, probeWithinPixelBudget } from './iconCrop'
+import {
+  MAX_ICON_DATA_URL_LENGTH,
+  cropToDataUrl,
+  probeWithinPixelBudget,
+} from './iconCrop'
 
 // What the canvas decoder handles and can re-encode, which is this path's only
 // constraint: the crop never reaches S3, so the logo upload's IAM-pinned
@@ -169,7 +173,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     gap: t.spacing(2),
-    marginTop: t.spacing(2),
+    // Both margins, matching the `margin="normal"` every sibling field carries:
+    // top alone leaves this field 8px closer to Description than the rest.
+    margin: t.spacing(2, 0, 1),
   },
   dropzone: {
     alignItems: 'center',
@@ -191,10 +197,6 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   active: {},
-  preview: {
-    height: 44,
-    width: 44,
-  },
   field: {
     flexGrow: 1,
   },
@@ -259,7 +261,8 @@ export default function IconInput({
     // dropping two correctly-typed files, an admin has no way to find the real one.
     const code = rejections[0]?.errors[0]?.code
     if (code === 'too-many-files') setRejected('Choose one image')
-    else if (code === 'file-too-large') setRejected('Choose an image under 12MB')
+    else if (code === 'file-too-large')
+      setRejected(`Choose an image under ${MAX_SOURCE_BYTES / 1024 / 1024}MB`)
     else setRejected('Choose a PNG, JPEG, WebP or GIF image')
   }, [])
 
@@ -305,7 +308,6 @@ export default function IconInput({
             })}
           />
           <BucketIcon
-            className={classes.preview}
             src={value || null}
             label={title}
             tintKey={bucketName || title}
@@ -338,7 +340,12 @@ export default function IconInput({
             // The drop message describes a file, not this field, so typing here
             // retires it rather than leaving red text under unrelated input.
             setRejected(null)
-            input.onChange(e.target.value.replace(/^\s+/, '').slice(0, 1024))
+            const next = e.target.value.replace(/^\s+/, '')
+            // A pasted data: URI is capped at what the crop path stores, not at the
+            // URL length: truncating one to 1024 leaves an undecodable value that
+            // then reads as uploaded, which locks the field against repairing it.
+            const cap = next.startsWith('data:') ? MAX_ICON_DATA_URL_LENGTH : 1024
+            input.onChange(next.slice(0, cap))
           }}
           onBlur={(e) => {
             // Trimmed on commit rather than per keystroke, so a space stays

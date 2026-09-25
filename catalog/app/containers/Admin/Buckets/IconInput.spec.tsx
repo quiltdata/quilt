@@ -37,6 +37,9 @@ vi.mock('components/BucketIcon', () => ({
 const cropToDataUrl = vi.fn<(src: string, area: unknown) => Promise<string>>()
 const probeWithinPixelBudget = vi.fn<(src: string) => Promise<boolean>>()
 vi.mock('./iconCrop', () => ({
+  // The real bound: mocking it smaller would make the paste cap agree with the
+  // mock rather than with what the crop path actually stores.
+  MAX_ICON_DATA_URL_LENGTH: 16 * 1024,
   cropToDataUrl: (src: string, area: unknown) => cropToDataUrl(src, area),
   probeWithinPixelBudget: (src: string) => probeWithinPixelBudget(src),
 }))
@@ -130,6 +133,15 @@ describe('containers/Admin/Buckets/IconInput', () => {
     const field = urlField(q)
     fireEvent.change(field, { target: { value: '   https://cdn.example.com/i.png' } })
     expect(field.value).toBe('https://cdn.example.com/i.png')
+  })
+
+  it('keeps a pasted data: URI decodable rather than cutting it at the URL cap', () => {
+    // Cut to 1024 the value still reads as uploaded, so the field locks read-only
+    // over a truncated URI the admin can no longer repair by typing.
+    const uri = `data:image/png;base64,${'A'.repeat(4000)}`
+    const q = render(<Harness initial="" />)
+    fireEvent.change(urlField(q), { target: { value: uri } })
+    expect(q.getByTestId('preview').dataset.src).toBe(uri)
   })
 
   it('clears either kind of value', () => {
