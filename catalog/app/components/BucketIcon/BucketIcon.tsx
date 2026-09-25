@@ -8,9 +8,9 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: '50%',
     height: t.spacing(4),
     width: t.spacing(4),
-    // One line box for all three variants: an <img> is inline and would
-    // otherwise sit on the text baseline, below the flex disc and the
-    // inline-block stub sharing its row.
+    // Every variant is an inline-level box aligned the same way, so a column
+    // of icons lands at one height whichever variant fills a given row. An
+    // <img> is the one that needs `display`; it is otherwise baseline-aligned.
     display: 'inline-block',
     verticalAlign: 'middle',
   },
@@ -41,7 +41,9 @@ const useStyles = M.makeStyles((t) => ({
   // driven from the disc so the initials scale with it.
   initials: {
     alignItems: 'center',
-    display: 'flex',
+    // inline-flex, not flex: centres the initials and keeps the disc an
+    // inline-level box, so `root`'s vertical-align still applies to it.
+    display: 'inline-flex',
     fontFamily: t.typography.fontFamily,
     fontWeight: 500,
     justifyContent: 'center',

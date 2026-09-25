@@ -217,34 +217,30 @@ describe('components/BucketIcon', () => {
     })
   })
 
-  // In a real table cell because asserting the JSS rule cannot show that the
-  // three variants, which reach their box model three different ways, agree.
-  it('keeps a custom icon on the same line as the disc and the stub', () => {
+  // Each variant reaches its box model a different way -- the img from `root`,
+  // the disc from `initials`, the stub from SvgIcon -- so a later rule on one
+  // of them can silently stop matching the others. jsdom has no layout engine,
+  // so this pins the declarations that produce one height, not the height.
+  it('renders every variant as an inline-level box with the same alignment', () => {
     const { container, getByAltText, getByText } = render(
-      <M.Table>
-        <M.TableBody>
-          <M.TableRow>
-            <M.TableCell align="center">
-              <BucketIcon alt="custom" src="https://custom-src" />
-            </M.TableCell>
-            <M.TableCell align="center">
-              <BucketIcon src={null} label="Beta" tintKey="beta" />
-            </M.TableCell>
-            <M.TableCell align="center">
-              <BucketIcon src="" />
-            </M.TableCell>
-          </M.TableRow>
-        </M.TableBody>
-      </M.Table>,
+      <div>
+        <BucketIcon alt="custom" src="https://custom-src" />
+        <BucketIcon src={null} label="Beta" tintKey="beta" />
+        <BucketIcon src="" />
+      </div>,
     )
-    const align = (el: Element) => {
-      const s = getComputedStyle(el)
-      return `${s.display}/${s.verticalAlign}`
-    }
-    const img = align(getByAltText('custom'))
-    expect(img).toBe('inline-block/middle')
-    expect(align(container.querySelector('svg')!)).toBe(img)
-    expect(getComputedStyle(getByText('BE')).verticalAlign).toBe('middle')
+    const variants = [
+      getByAltText('custom'),
+      getByText('BE'),
+      container.querySelector('svg')!,
+    ]
+    variants.forEach((el) => {
+      const { display, verticalAlign } = getComputedStyle(el)
+      // a block-level box would drop out of the row's line box, and
+      // vertical-align would not apply to it
+      expect(display.startsWith('inline')).toBe(true)
+      expect(verticalAlign).toBe('middle')
+    })
   })
 
   describe('class names', () => {
