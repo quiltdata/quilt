@@ -48,7 +48,8 @@ The crate's graph decides what the package contains:
   everything under it. Paths that climb out of the folder are rejected.
 * **Entry metadata** for each `File` entity is every property other than `@id`,
   `@type` and `name`, so `dateCreated`, `dateModified` and `sha256` survive the
-  upload.
+  upload. This holds whether the file is listed in `hasPart` itself or reached
+  by expanding a directory part; an object with no `File` entity gets none.
 * **Package metadata** is a flat projection keyed by the role an entity plays
   for the root dataset, not by its `@type`, with human-readable values:
 
