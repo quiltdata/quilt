@@ -9,6 +9,7 @@ import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as FileEditor from 'components/FileEditor'
 import * as Hash from 'components/Hash'
 import Message from 'components/Message'
+import PanelBoundary from 'components/PanelBoundary'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
@@ -28,7 +29,6 @@ import { readableBytes } from 'utils/string'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import FallbackToDir from '../FallbackToDir'
-import PanelBoundary from '../PanelBoundary'
 import Section from '../Section'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
@@ -454,11 +454,10 @@ function File() {
           expression: as JSX children it would be evaluated in *this* render
           pass, above the boundary, and the throw would sail past it.
 
-          Retry is `handleReload`, not `resetErrorBoundary`: the failed result
-          is held in `useData` state *above* this boundary, so a plain reset
-          would re-render the very same failure. `handleReload` bumps
-          `resetKey` and refetches; `resetKeys` then clears the error state as
-          the new attempt lands. */}
+          Retry is `handleReload` because the failed result is held in `useData`
+          state *above* this boundary, so a reset alone re-renders the same
+          failure. It does not recover yet -- see the retry note in
+          components/PanelBoundary. */}
       <PanelBoundary
         title="This object could not be loaded"
         onRetry={handleReload}

@@ -2,9 +2,8 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import PanelBoundary from 'components/PanelBoundary'
 import Skeleton from 'components/Skeleton'
-
-import PanelBoundary from '../../PanelBoundary'
 
 import Header from './Header'
 import Summaries from './Summaries'
