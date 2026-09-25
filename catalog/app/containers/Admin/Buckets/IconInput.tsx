@@ -341,11 +341,9 @@ export default function IconInput({
             input.onChange(e.target.value.replace(/^\s+/, '').slice(0, 1024))
           }}
           onBlur={(e) => {
-            // Trailing whitespace is trimmed on commit rather than per keystroke,
-            // so a space can still be typed mid-value; the field this replaced
-            // trimmed both ends and the stored config must not start carrying it.
-            // Skipped while uploaded, where the field shows a description of the
-            // value rather than the value.
+            // Trimmed on commit rather than per keystroke, so a space stays
+            // typable mid-value. Skipped while uploaded, where the field shows a
+            // description of the value rather than the value.
             if (!uploaded) {
               const trimmed = e.target.value.trim()
               if (trimmed !== e.target.value) input.onChange(trimmed)

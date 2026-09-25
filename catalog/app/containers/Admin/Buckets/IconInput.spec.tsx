@@ -118,7 +118,7 @@ describe('containers/Admin/Buckets/IconInput', () => {
     const q = render(<Harness initial="" />)
     const field = urlField(q)
     fireEvent.change(field, { target: { value: 'https://cdn.example.com/my icon.png' } })
-    // A space inside the value survives: trimming per keystroke made one untypable.
+    // A space inside the value survives; trimming per keystroke makes it untypable.
     expect(field.value).toBe('https://cdn.example.com/my icon.png')
     fireEvent.change(field, { target: { value: 'https://cdn.example.com/i.png  ' } })
     fireEvent.blur(field)
