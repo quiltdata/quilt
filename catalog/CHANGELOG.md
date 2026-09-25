@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Bucket icons: a custom icon and an initials disc line up with each other and centre in the admin bucket list's icon column ([#5339](https://github.com/quiltdata/quilt/pull/5339))
 - [Added] Admin buckets: a bucket icon can be uploaded and cropped in the form itself, so an admin with an image file no longer has to host it somewhere first and paste its URL ([#5333](https://github.com/quiltdata/quilt/pull/5333))
 - [Fixed] Empty states on a phone no longer run their explanatory line off the right edge: it sits under the action instead of beside it ([#5332](https://github.com/quiltdata/quilt/pull/5332))
 - [Fixed] A bucket's name no longer breaks across two lines with empty space beside it on a phone held sideways; the stats and Create package move to their own line instead of squeezing it ([#5332](https://github.com/quiltdata/quilt/pull/5332))
