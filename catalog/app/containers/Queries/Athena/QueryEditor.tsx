@@ -6,6 +6,7 @@ import * as Lab from '@material-ui/lab'
 import 'ace-builds/src-noconflict/mode-sql'
 import 'ace-builds/src-noconflict/theme-eclipse'
 
+import * as Column from 'components/Layout/Column'
 import Lock from 'components/Lock'
 import Skeleton from 'components/Skeleton'
 import * as Dialogs from 'utils/GlobalDialogs'
@@ -212,18 +213,18 @@ const useFormStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'space-between',
     margin: t.spacing(2, 0, 4),
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       alignItems: 'center',
     },
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       flexDirection: 'column',
     },
   },
   database: {
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       width: '50%',
     },
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       marginBottom: t.spacing(2),
     },
   },

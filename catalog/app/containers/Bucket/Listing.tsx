@@ -8,6 +8,8 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
+import * as Column from 'components/Layout/Column'
+import * as Pointer from 'components/Layout/Pointer'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -18,7 +20,7 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
-import RowActions from './ListingActions'
+import RowActions, { useMaxRowActionCount } from './ListingActions'
 import * as Selection from './Selection'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
@@ -178,6 +180,10 @@ const usePrefixFilterStyles = M.makeStyles((t) => ({
     minWidth: 'auto',
     paddingBottom: 0,
     paddingTop: 2,
+    [Pointer.COARSE]: {
+      minHeight: Pointer.TOUCH_TARGET,
+      paddingBottom: 2,
+    },
   },
   clearIcon: {
     // `!important` beats MUI's own `.MuiSvgIcon-fontSizeSmall` rule on the
@@ -284,6 +290,15 @@ const usePaginationStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexGrow: 1,
     height: TOOLBAR_INNER_HEIGHT,
+    // Touch targets can carry the row past a narrow column, whose overflow is
+    // hidden rather than scrollable: wrapping keeps the last page reachable, and
+    // a fixed height would clip the line it wraps onto.
+    [Pointer.COARSE]: {
+      flexWrap: 'wrap',
+      height: 'auto',
+      justifyContent: 'flex-end',
+      rowGap: t.spacing(0.5),
+    },
   },
   select: {
     alignItems: 'center',
@@ -294,13 +309,19 @@ const usePaginationStyles = M.makeStyles((t) => ({
     fontSize: 'inherit',
     marginRight: t.spacing(2),
 
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       display: 'none',
     },
   },
   button: {
     color: t.palette.action.active,
     minWidth: t.spacing(4),
+    // The pager is a row of small squares -- the one control a finger is most
+    // likely to miss.
+    [Pointer.COARSE]: {
+      minHeight: Pointer.TOUCH_TARGET,
+      minWidth: Pointer.TOUCH_TARGET,
+    },
   },
   current: {
     color: t.palette.text.primary,
@@ -322,6 +343,12 @@ function Pagination({
   loadMore,
 }: PaginationProps) {
   const classes = usePaginationStyles()
+  // Ten slots plus the arrows need ~528px once each carries the touch floor,
+  // which a phone-width column does not have. 5 is the floor: at 4
+  // `displayRange` emits page 0.
+  const xs = Column.useDown('xs')
+  const coarse = Pointer.useCoarse()
+  const maxPages = xs && coarse ? 6 : 10
 
   const options = DG.useGridSelector(apiRef, optionsSelector)
 
@@ -383,6 +410,7 @@ function Pagination({
         </M.Select>
       )}
       <M.IconButton
+        className={classes.button}
         size="small"
         disabled={page === 1}
         onClick={() => setPage(page - 1)}
@@ -390,7 +418,7 @@ function Pagination({
       >
         <M.Icon fontSize="small">chevron_left</M.Icon>
       </M.IconButton>
-      {renderPageRange({ page, pages, renderPage, renderGap, max: 10 })}
+      {renderPageRange({ page, pages, renderPage, renderGap, max: maxPages })}
       {truncated && !!loadMore && (
         <M.Button
           size="small"
@@ -402,6 +430,7 @@ function Pagination({
         </M.Button>
       )}
       <M.IconButton
+        className={classes.button}
         size="small"
         disabled={page === pages}
         onClick={() => setPage(page + 1)}
@@ -737,7 +766,7 @@ const useFooterStyles = M.makeStyles((t) => ({
     alignItems: 'inherit',
     display: 'inherit',
 
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       display: 'none',
     },
   },
@@ -762,8 +791,13 @@ const useFooterStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     width: COL_MODIFIED_W,
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       width: COL_MODIFIED_W_SM,
+    },
+    // The grid drops its own `modified` column here, so a reserved cell would
+    // leave the footer's totals out of line with the columns above them.
+    [Column.down('xs')]: {
+      display: 'none',
     },
   },
 }))
@@ -961,7 +995,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     zIndex: 1, // to prevent receiveing shadow from footer
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
   },
@@ -975,6 +1009,10 @@ const useStyles = M.makeStyles((t) => ({
     },
     '& .MuiDataGrid-checkboxInput': {
       padding: 7,
+      // Grows the hit area, not the glyph: 18px + 2x13 clears the touch floor.
+      [Pointer.COARSE]: {
+        padding: 13,
+      },
       '& svg': {
         fontSize: 18,
       },
@@ -1099,9 +1137,27 @@ export function Listing({
   hideSize = false,
 }: ListingProps) {
   const classes = useStyles()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const sm = Column.useDown('sm')
+  const xs = Column.useDown('xs')
+  const coarse = Pointer.useCoarse()
   const { prefs } = BucketPreferences.use()
+
+  // Reserving width for the row actions means asking the component that renders
+  // them how many there are: the count follows the route and the rows, not the
+  // object preferences alone. `..` never carries actions, so it is not a witness.
+  const actionRows = items.filter(({ name }) => name !== '..')
+  const actionCount = useMaxRowActionCount(
+    actionRows[0]?.to,
+    BucketPreferences.Result.match(
+      { Ok: ({ ui: { actions } }) => actions, _: () => null },
+      prefs,
+    ),
+    actionRows.length > 0 && actionRows.every(({ archived }) => archived),
+  )
+  // Name keeps priority: where the actions claim more than one slot there is no
+  // room for the size readout beside them on a phone. The footer's own size total
+  // reads the same predicate, or it would sum a column the grid is not showing.
+  const sizeYields = xs && coarse && actionCount > 1
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
@@ -1140,6 +1196,12 @@ export function Listing({
 
   // NOTE: after dependencies change fourth empty column appears
   const columns: DG.GridColumns = React.useMemo(() => {
+    // Each row action is a touch-floor square with an 8px gap between them, and
+    // the grid's cells are `overflow: hidden`, so the cell has to be wide enough
+    // for every action a row of this listing renders.
+    const actionsWidth = actionCount
+      ? actionCount * Pointer.TOUCH_TARGET + (actionCount - 1) * 8
+      : 0
     const columnsWithValues: DG.GridColumns = [
       {
         field: 'name',
@@ -1182,7 +1244,7 @@ export function Listing({
         },
       },
     ]
-    if (!hideSize && items.some(({ size }) => size != null)) {
+    if (!hideSize && !sizeYields && items.some(({ size }) => size != null)) {
       columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
@@ -1202,7 +1264,9 @@ export function Listing({
         },
       })
     }
-    if (items.some(({ modified }) => !!modified)) {
+    // Name is the flex column, so the fixed-width size and timestamp cells leave
+    // it ~40px of a 320px phone. The timestamp yields; name is what is scanned.
+    if (!xs && items.some(({ modified }) => !!modified)) {
       columnsWithValues.push({
         field: 'modified',
         headerName: 'Last modified',
@@ -1231,7 +1295,15 @@ export function Listing({
       field: 'actions',
       headerName: '',
       align: 'right',
-      width: 0,
+      // Zero because the actions float over the trailing cells on hover. A
+      // finger gets no hover, so they stand at rest (ListingActions) and need
+      // a cell of their own -- otherwise they cover the size readout.
+      width: coarse ? actionsWidth : 0,
+      // An empty `headerName` falls back to the field name, which is visible
+      // once the column has width.
+      renderHeader: () => <></>,
+      disableColumnMenu: true,
+      sortable: false,
       renderCell: (params: DG.GridCellParams) =>
         params.id === '..' ? (
           <></>
@@ -1254,7 +1326,19 @@ export function Listing({
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, items, sm, prefs, onReload, hideSize])
+  }, [
+    classes,
+    CellComponent,
+    actionCount,
+    coarse,
+    items,
+    sm,
+    xs,
+    prefs,
+    onReload,
+    hideSize,
+    sizeYields,
+  ])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
@@ -1288,7 +1372,13 @@ export function Listing({
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
           toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
-          footer: { truncated, locked, loadMore, items, hideSize },
+          footer: {
+            truncated,
+            locked,
+            loadMore,
+            items,
+            hideSize: hideSize || sizeYields,
+          },
         }}
         getRowId={(row) => row.name.replaceAll("'", "\\'")}
         pagination
@@ -1298,7 +1388,9 @@ export function Listing({
         onPageChange={handlePageChange}
         loading={locked || filteredToZero}
         headerHeight={36}
-        rowHeight={36}
+        // A prop, not a style: the grid computes its scroll geometry from this,
+        // so a CSS override would desynchronise virtualisation from the rows.
+        rowHeight={coarse ? Pointer.TOUCH_TARGET : 36}
         disableSelectionOnClick
         disableColumnSelector
         disableColumnResize

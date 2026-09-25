@@ -10,6 +10,7 @@ import * as Assistant from 'components/Assistant'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
+import * as Column from 'components/Layout/Column'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -125,6 +126,10 @@ const isStillBrowsingPackage = (
 const useTopBarStyles = M.makeStyles((t) => ({
   // The stacked tier keeps the wide tier's right anchor so the (often
   // icon-collapsed) action strip doesn't sit parked at the left edge.
+  // Tiers measure the column, not the viewport (components/Layout/Column), so
+  // the crumbs stack when this card narrows, whatever took the width. 844px is
+  // the column the old 1100px viewport tier engaged at, once the 256px rail is
+  // out of the measurement.
   topBar: {
     alignItems: 'end',
     columnGap: t.spacing(2),
@@ -133,7 +138,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     gridTemplateColumns: 'minmax(0, 1fr) auto',
     marginBottom: t.spacing(2),
     marginTop: t.spacing(0.5),
-    [t.breakpoints.down(1100)]: {
+    [Column.down(844)]: {
       gridTemplateAreas: '"crumbs" "actions"',
       gridTemplateColumns: 'minmax(0, 1fr)',
     },
@@ -161,7 +166,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     '&& > :first-child': {
       marginLeft: 0,
     },
-    [t.breakpoints.down(1100)]: {
+    [Column.down(844)]: {
       flexWrap: 'wrap',
       gap: t.spacing(1),
       justifyContent: 'flex-end',

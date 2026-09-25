@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Column from 'components/Layout/Column'
+import * as Pointer from 'components/Layout/Pointer'
 import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
 import useSearchState from 'components/SearchBar/State'
 import * as style from 'constants/style'
@@ -24,10 +26,16 @@ const useStyles = M.makeStyles((t) => ({
   },
   // minHeight only: a hard height clips the row when text scales on its own
   // (text-only zoom, or a user minimum font size) instead of letting it grow.
+  // Full-bleed, so unlike the content column below it this row owes the safe
+  // area itself -- its menu button is the only way back to navigation.
   toolbar: {
     minHeight: 64,
-    paddingLeft: t.spacing(3),
-    paddingRight: t.spacing(3),
+    paddingLeft: `max(${t.spacing(3)}px, env(safe-area-inset-left))`,
+    paddingRight: `max(${t.spacing(3)}px, env(safe-area-inset-right))`,
+    [Column.down('xs')]: {
+      paddingLeft: `max(${t.spacing(2)}px, env(safe-area-inset-left))`,
+      paddingRight: `max(${t.spacing(2)}px, env(safe-area-inset-right))`,
+    },
   },
   // Only rendered in the compact shell, where the rail is an overlay: this is
   // the only way back to navigation, so it leads the bar.
@@ -47,6 +55,10 @@ const useStyles = M.makeStyles((t) => ({
   field: {
     backgroundColor: t.palette.common.white,
     fontSize: t.typography.body2.fontSize,
+    // The one field in the chrome: a finger has to land in it, not near it.
+    [Pointer.COARSE]: {
+      minHeight: Pointer.TOUCH_TARGET,
+    },
     '& $outline': {
       borderColor: fade(t.palette.common.black, 0.38),
       transition: t.transitions.create('border-color', { duration: 150 }),
@@ -79,6 +91,9 @@ const useStyles = M.makeStyles((t) => ({
     height: 20,
     justifyContent: 'center',
     width: 20,
+    [Column.down('xs')]: {
+      display: 'none',
+    },
   },
   // The dropdown is portaled (M.Popper) so it floats above the per-bucket tabs
   // bar instead of being clipped by it.
