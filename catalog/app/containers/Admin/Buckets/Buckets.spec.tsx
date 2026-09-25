@@ -59,12 +59,14 @@ const bucket = {
   browsable: false,
 } as unknown as React.ComponentProps<typeof Edit>['bucket']
 
-// `EditPage` wraps `Edit` in this provider; without it the dirty-state spy throws.
+// Mirrors what `EditPage` renders for a bucket, including the `key` under test and the
+// provider the dirty-state spy needs.
 const edit = (name: string) => (
   <MemoryRouter>
     <ThemeProvider theme={theme}>
       <OnDirty.Provider>
         <Edit
+          key={name}
           bucket={{ ...bucket, name }}
           back={() => {}}
           submit={async () => undefined}
@@ -98,8 +100,10 @@ describe('containers/Admin/Buckets/serverMessage', () => {
 })
 
 describe('containers/Admin/Buckets/Edit', () => {
-  it('does not carry a typed re-index prefix to the next bucket', async () => {
-    const { getByPlaceholderText, getByText, rerender } = render(edit('bucket-a'))
+  it('leaves no re-index dialog open on the next bucket', async () => {
+    const { getByPlaceholderText, getByText, queryByPlaceholderText, rerender } = render(
+      edit('bucket-a'),
+    )
     // Queried by placeholder: MUI v4's TextField sets no `id`, so its label is not
     // associated with the input.
     const prefix = () => getByPlaceholderText(/whole bucket/) as HTMLInputElement
@@ -113,9 +117,10 @@ describe('containers/Admin/Buckets/Edit', () => {
     expect(prefix().value).toBe('staging/')
 
     // Navigation to another bucket's edit route re-renders this subtree in place; the
-    // dialog never exits, so its own `onExited` reset does not run.
+    // dialog never exits, so its own `onExited` reset does not run. Both its prefix and
+    // its open-ness would otherwise survive, leaving it armed at the new bucket.
     rerender(edit('bucket-b'))
 
-    expect(prefix().value).toBe('')
+    expect(queryByPlaceholderText(/whole bucket/)).toBe(null)
   })
 })

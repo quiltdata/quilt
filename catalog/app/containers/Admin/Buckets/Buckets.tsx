@@ -1391,11 +1391,15 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       const message = serverMessage(e)
       if (APIConnector.HTTPError.is(e, 404, 'Bucket not found')) {
         setError('Bucket not found')
-      } else if (message) {
+      } else if (
+        (APIConnector.HTTPError.is(e, 400) || APIConnector.HTTPError.is(e, 409)) &&
+        message
+      ) {
         // Only the registry's own message distinguishes its refusals: which of four
         // conflicts a 409 is, or that a 400 means this registry build does not accept
-        // `prefix` at all. A response with no registry message came from a proxy, so it
-        // falls through rather than asserting a reason the registry never gave.
+        // `prefix` at all. The status is checked because a gateway's JSON body reaches
+        // `serverMessage` indistinguishable from the registry's, and these two are the
+        // statuses the registry refuses a re-index with.
         setError(message)
       } else {
         // eslint-disable-next-line no-console
@@ -1633,14 +1637,7 @@ export function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   return (
     <>
       <RRDom.Prompt when={dirty} message={guardNavigation} />
-      {/* The dialog's prefix is reset by `onExited` alone, which never runs when
-          navigation swaps the bucket under an open dialog. */}
-      <Reindex
-        key={bucket.name}
-        bucket={bucket.name}
-        open={reindexOpen}
-        close={closeReindex}
-      />
+      <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
       <SubPageHeader back={back} disabled={disabled}>
         {`s3://${bucket.name}`}
       </SubPageHeader>
@@ -1729,7 +1726,11 @@ function EditPage({ back }: EditPageProps) {
   if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
   return (
     <OnDirty.Provider>
+      {/* Keyed because this route renders in place when navigation swaps the bucket: the
+          re-index dialog's own state is reset by `onExited`, which does not run then, so
+          without a remount the dialog stays open with the previous bucket's prefix. */}
       <Edit
+        key={bucket.name}
         bucket={bucket}
         back={back}
         submit={submit}
