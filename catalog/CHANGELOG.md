@@ -21,6 +21,8 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin buckets: a bucket icon can be uploaded and cropped in the form itself, so an admin with an image file no longer has to host it somewhere first and paste its URL ([#5344](https://github.com/quiltdata/quilt/pull/5344))
+- [Fixed] Bucket icons: a custom icon and an initials disc line up with each other and centre in the admin bucket list's icon column ([#5344](https://github.com/quiltdata/quilt/pull/5344))
 - [Fixed] Revise package: retyping the destination can no longer publish the loaded package's files over a different package while the new name is still being checked ([#5337](https://github.com/quiltdata/quilt/pull/5337))
 - [Fixed] Admin users: re-sorting the table, or deleting a row the admin had not picked, no longer clears the rows selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Fixed] Qurator on a phone opens across the full screen instead of a narrow strip down one side, and keeps clear of the home bar ([#5332](https://github.com/quiltdata/quilt/pull/5332))
