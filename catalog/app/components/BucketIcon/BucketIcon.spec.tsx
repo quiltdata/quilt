@@ -234,7 +234,9 @@ describe('components/BucketIcon', () => {
     ;[getByAltText('custom'), disc, stub!].forEach((el) => {
       const { display, verticalAlign } = getComputedStyle(el)
       expect(verticalAlign).toBe('middle')
-      expect(display).not.toMatch(/^(block|flex|grid|table)/)
+      // '' is the img and the stub, which jsdom leaves unset for want of a UA
+      // stylesheet; anything block-level, or `contents`, drops the alignment
+      expect(display === '' || display.startsWith('inline')).toBe(true)
     })
     // the disc's flex is what centres the initials in it
     expect(getComputedStyle(disc).display).toBe('inline-flex')
