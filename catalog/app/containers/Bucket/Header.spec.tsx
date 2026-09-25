@@ -29,8 +29,9 @@ vi.mock('./PackageDialog', () => ({
   useCreateDialog: () => ({ open: vi.fn(), render: () => null }),
 }))
 
+let isAdmin = false
 vi.mock('react-redux', () => ({
-  useSelector: () => false,
+  useSelector: () => isAdmin,
 }))
 
 vi.mock('utils/AWS', () => ({
@@ -103,6 +104,19 @@ describe('containers/Bucket/Header', () => {
     packagesTotal = 7
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
+    isAdmin = false
+  })
+
+  it('does not render the settings control for non-admins', () => {
+    const { queryByLabelText } = renderHeader()
+    expect(queryByLabelText('Bucket settings')).toBeNull()
+  })
+
+  it('renders an accessibly-labeled settings link to admin bucket edit for admins', () => {
+    isAdmin = true
+    const { getByLabelText } = renderHeader()
+    const button = getByLabelText('Bucket settings')
+    expect(button.closest('a')?.getAttribute('href')).toBe('/admin/test-bucket')
   })
 
   it('does not link the total-size stat', () => {

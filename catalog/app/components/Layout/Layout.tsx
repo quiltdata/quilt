@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { Sidebar } from 'containers/Sidebar'
-import { PANEL_WIDTH, usePanelReflow } from 'components/Assistant/UI/PanelReflow'
+import { MOTION, usePanelGutter } from 'components/Assistant/UI/PanelReflow'
 
 import BareHeader from './BareHeader'
 import * as Column from './Column'
@@ -11,14 +11,24 @@ import * as Container from './Container'
 import { ContentBar } from './ContentBar'
 import { SearchInputProvider } from './SearchInput'
 
-const useRootStyles = M.makeStyles({
+const useRootStyles = M.makeStyles((t) => ({
   root: {
     overflowX: 'hidden',
     position: 'relative',
+    // Bare pages hold Qurator's gutter here, so it needs the shell's own
+    // transition -- otherwise the gutter snaps while the paper animates.
+    [MOTION]: {
+      transition: t.transitions.create('padding-right', {
+        duration: t.transitions.duration.enteringScreen,
+        easing: t.transitions.easing.easeOut,
+      }),
+    },
   },
-})
+}))
 
-interface RootProps {
+// Extends `BoxProps` because the body already spreads the rest onto `M.Box`;
+// the narrower declaration just hid that.
+interface RootProps extends M.BoxProps {
   dark?: boolean
   children: React.ReactNode
 }
@@ -40,38 +50,23 @@ export function Root({ dark = false, ...props }: RootProps) {
 // Under 960px there is no room for a 256px column beside the content, so the
 // rail becomes an overlay reached from a menu button in the header band. In MUI
 // v4 `down('sm')` is max-width 959.95px -- i.e. everything below the `md`
-// breakpoint, not just the `sm` band. The viewport, not the column: the rail
-// sits outside the column it would be measuring.
+// breakpoint, not just the `sm` band. Same call the search page's own mobile
+// switch uses (Search/Layout/Main.tsx), so the two can't disagree about when the
+// viewport is narrow.
 const useCompactShell = () => {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
 }
 
-// Motion is decoration on chrome: transitions attach only inside this query,
-// so reduced-motion users get the instant swap (containers/Sidebar).
-const MOTION = '@media (prefers-reduced-motion: no-preference)'
-
 const useShellStyles = M.makeStyles((t) => ({
   shell: {
     display: 'flex',
-    // A mobile URL bar counts inside vh but not inside the visible viewport, so
-    // vh alone puts the shell's foot under browser chrome.
-    fallbacks: { height: '100vh' },
-    height: '100dvh',
+    height: '100vh',
     overflowX: 'hidden',
     position: 'relative',
-    [MOTION]: {
-      transition: t.transitions.create('padding-right', {
-        duration: t.transitions.duration.leavingScreen,
-        easing: t.transitions.easing.sharp,
-      }),
-    },
-  },
-  // Qurator's docked paper is `position: fixed` and reserves no space, so the
-  // gutter that lets it push content aside has to be held here. Durations
-  // match the drawer's own Slide, or the content lags the paper.
-  shellReflowed: {
-    paddingRight: PANEL_WIDTH,
+    // Qurator's docked paper is `position: fixed` and reserves no space, so the
+    // gutter it takes out of the content has to be held here. Duration and
+    // easing match the paper's own width transition, or the content lags it.
     [MOTION]: {
       transition: t.transitions.create('padding-right', {
         duration: t.transitions.duration.enteringScreen,
@@ -80,8 +75,8 @@ const useShellStyles = M.makeStyles((t) => ({
     },
   },
   // `.main` is the scroll container; the sticky ContentBar pins to its top.
-  // The column is a size container so page styles can key on its width
-  // (components/Layout/Column) rather than the viewport's.
+  // It is also a size container, so page styles can key on the column's width
+  // rather than the viewport's (components/Layout/Column).
   main: {
     containerName: Column.NAME,
     containerType: 'inline-size',
@@ -95,12 +90,9 @@ const useShellStyles = M.makeStyles((t) => ({
   // page content alike). Skipped for full-bleed pages via the `flush` prop.
   // The inset now lives on the inner content column, not `main`, so the
   // sticky ContentBar above it can run full-bleed.
-  // `viewport-fit=cover` (index.html) lets the page reach under the notch and
-  // the rounded corners, so the one horizontal inset in the column owes the
-  // safe area as well as its own gutter.
   padded: {
-    paddingLeft: `max(${t.spacing(3)}px, env(safe-area-inset-left))`,
-    paddingRight: `max(${t.spacing(3)}px, env(safe-area-inset-right))`,
+    paddingLeft: t.spacing(3),
+    paddingRight: t.spacing(3),
   },
   // The page content column: carries the horizontal inset (so the sticky
   // ContentBar above it can run full-bleed) and grows to push the footer down.
@@ -128,16 +120,18 @@ export function Layout({
 }: LayoutProps) {
   const classes = useShellStyles()
   const compact = useCompactShell()
-  const reflow = usePanelReflow()
+  const gutter = usePanelGutter()
   const [mainEl, setMainEl] = React.useState<HTMLElement | null>(null)
   const [navOpen, setNavOpen] = React.useState(false)
   const closeNav = React.useCallback(() => setNavOpen(false), [])
   const openNav = React.useCallback(() => setNavOpen(true), [])
 
   // `bare` pages (e.g. sign-in) keep the minimal standalone header, no sidebar.
+  // The gutter still applies: the error fallback is `bare` but renders inside a
+  // mounted assistant, so the rail is on screen with no shell to hold space.
   if (bare) {
     return (
-      <Root dark={dark}>
+      <Root dark={dark} pr={gutter ?? undefined}>
         <Container.FullWidthProvider>
           <BareHeader />
           {!!pre && pre}
@@ -155,7 +149,8 @@ export function Layout({
   return (
     <SearchInputProvider>
       <M.Box
-        className={cx(classes.shell, reflow && classes.shellReflowed)}
+        className={classes.shell}
+        style={{ paddingRight: gutter ?? undefined }}
         bgcolor={dark ? 'primary.main' : 'background.default'}
       >
         <Sidebar compact={compact} open={navOpen} onClose={closeNav} />

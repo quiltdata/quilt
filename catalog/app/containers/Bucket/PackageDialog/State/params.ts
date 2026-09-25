@@ -7,7 +7,7 @@ import * as ERRORS from '../../errors'
 import { getMetaValue } from '../../requests'
 
 import { WorkflowState } from './workflow'
-import { ManifestStatus } from './manifest'
+import { ManifestStatus, PackageSrc } from './manifest'
 import { NameState } from './name'
 import { MessageState } from './message'
 import { MetaState } from './meta'
@@ -54,6 +54,7 @@ export interface FormInputs {
   meta: MetaState
   metadataSchema: SchemaStatus
   name: NameState
+  src?: PackageSrc
   workflow: WorkflowState
 }
 
@@ -64,6 +65,7 @@ export function useParams({
   meta,
   metadataSchema,
   name,
+  src,
   workflow,
 }: FormInputs): FormParams {
   return React.useMemo(() => {
@@ -74,6 +76,16 @@ export function useParams({
     // prefill, and reporting that instead would call an existing destination safe.
     if (manifest._tag !== 'ready' && name.status._tag !== 'new') {
       return Invalid(new ERRORS.SourceManifestNotLoaded())
+    }
+    // The loaded manifest describes `src`, so a `dst` naming a different package that
+    // already exists would get this one's entries as its complete replacement list.
+    // Compared against `src` rather than trusting 'exists' to imply the mismatch.
+    if (
+      src &&
+      name.status._tag === 'exists' &&
+      (dst.bucket !== src.bucket || dst.name !== src.name)
+    ) {
+      return Invalid(new ERRORS.DestinationManifestMismatch())
     }
     if (!workflow.value || workflow.status._tag === 'error') {
       return Invalid(new Error('Valid workflow required'))
@@ -99,5 +111,5 @@ export function useParams({
       userMeta: getMetaValue(meta.value, metadataSchema.schema) ?? null,
       workflow: workflowSelectionToWorkflow(workflow.value),
     })
-  }, [dst, workflow, name, message, metadataSchema, meta, manifest])
+  }, [dst, src, workflow, name, message, metadataSchema, meta, manifest])
 }

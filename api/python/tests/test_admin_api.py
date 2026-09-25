@@ -161,6 +161,7 @@ ROLE_DELETE_ERRORS = (
     ({"__typename": "RoleDoesNotExist"}, admin.RoleNotFoundError),
     ({"__typename": "RoleNameReserved"}, admin.RoleNameReservedError),
     ({"__typename": "RoleAssigned"}, admin.RoleAssignedError),
+    ({"__typename": "RoleOwnsDataProducts"}, admin.RoleOwnsDataProductsError),
     ({"__typename": "RoleNameUsedBySsoConfig"}, admin.RoleSsoConfigConflictError),
 )
 ROLE_SET_DEFAULT_ERRORS = (

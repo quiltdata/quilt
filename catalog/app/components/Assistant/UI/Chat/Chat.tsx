@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
+import * as Buckets from 'utils/Buckets'
 import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
@@ -15,6 +16,24 @@ import DevTools from './DevTools'
 import Input from './Input'
 import Instructions from './Instructions'
 import MessageAction from './MessageAction'
+import { toCurrentStack } from './links'
+
+// `getRenderer` caches on the processor's identity and clears the whole cache at
+// 16 entries, so every message must share one: a per-message identity would
+// rebuild MarkdownIt and DOMPurify for each message on every render.
+const PROCESS_LINK = new WeakMap<object, (href: string) => string>()
+
+function useProcessLink() {
+  const isInStack = Buckets.useIsInStack()
+  return React.useMemo(() => {
+    const cached = PROCESS_LINK.get(isInStack)
+    if (cached) return cached
+    const processLink = (href: string) =>
+      toCurrentStack(href, window.location.origin, isInStack)
+    PROCESS_LINK.set(isInStack, processLink)
+    return processLink
+  }, [isInStack])
+}
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   align_left: {},
@@ -231,7 +250,7 @@ type MessageEventProps = ConversationDispatchProps &
   ConversationStateProps &
   ReturnType<typeof Model.Conversation.Event.Message>
 
-function MessageEvent({
+export function MessageEvent({
   state,
   id,
   timestamp,
@@ -245,6 +264,11 @@ function MessageEvent({
     [dispatch, id, state],
   )
 
+  // Only the assistant's links are retargeted: a host the user typed is a host
+  // the user meant.
+  const processLink = useProcessLink()
+  const processAssistantLink = role === 'user' ? undefined : processLink
+
   return (
     <MessageContainer
       color={role === 'user' ? 'intense' : 'normal'}
@@ -253,7 +277,7 @@ function MessageEvent({
       timestamp={timestamp}
     >
       {Model.Content.MessageContentBlock.$match(content, {
-        Text: ({ text }) => <Markdown data={text} />,
+        Text: ({ text }) => <Markdown data={text} processLink={processAssistantLink} />,
         Image: ({ format }) => `${format} image`,
         Document: ({ name, format }) => `${format} document "${name}"`,
       })}

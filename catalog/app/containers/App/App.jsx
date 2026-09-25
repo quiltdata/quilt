@@ -83,11 +83,23 @@ const DataProducts = requireAuth()(
  * which discloses a flagged-off surface to an anonymous visitor on an OPEN stack.
  * Redirects home, matching the screen, so flag-off lands in one place either way.
  */
-function DataProductsRoute() {
+function DataProductsGate() {
   const { urls } = NamedRoutes.use()
   const enabled = useFeature('data-products')
   if (!enabled) return <Redirect to={urls.home()} />
   return <DataProducts />
+}
+
+// `useFeature` suspends on a cold cache, and `mkLazy` puts its boundary *inside*
+// the component it returns -- too late for a read that happens before it. Without
+// one here the throw unwinds to the root boundary in `app.tsx`, which sits above
+// every provider, replacing the whole shell rather than this route's region.
+function DataProductsRoute() {
+  return (
+    <React.Suspense fallback={<Placeholder />}>
+      <DataProductsGate />
+    </React.Suspense>
+  )
 }
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))

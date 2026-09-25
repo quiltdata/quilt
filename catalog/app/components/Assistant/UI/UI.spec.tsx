@@ -2,7 +2,7 @@ import * as React from 'react'
 import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { usePanelReflow } from './PanelReflow'
+import { PANEL_WIDTH, RAIL_WIDTH, usePanelGutter } from './PanelReflow'
 import { WithAssistantUI, Trigger } from './UI'
 
 const useAssistantAPI = vi.fn()
@@ -43,7 +43,7 @@ function makeAPI() {
 // The gutter Layout reserves is driven by this context, so read it the way
 // Layout does rather than asserting on the paper's own fixed width.
 function Reflow() {
-  return <span data-testid="reflow">{String(usePanelReflow())}</span>
+  return <span data-testid="reflow">{String(usePanelGutter())}</span>
 }
 
 describe('components/Assistant/UI Trigger', () => {
@@ -84,8 +84,8 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     delete (window as any).matchMedia
   })
 
-  // The panel is docked, so `.MuiDrawer-root` is in the tree whether it is open
-  // or not; the paper is what `unmountOnExit` takes away when it closes.
+  // Above the breakpoint the paper is always on screen -- collapsed to a rail
+  // or expanded. Only the overlay variant takes it away.
   const paper = (el: HTMLElement) => el.querySelector('.MuiDrawer-paper')
 
   // jsdom ships no matchMedia, so MUI reports false for every query -- a wide
@@ -104,18 +104,22 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     })) as any
   }
 
-  it('defaults closed', () => {
-    useAssistantAPI.mockReturnValue(makeAPI())
-    const { baseElement, getByTestId } = render(
+  it('stays on screen as a rail when not visible, and expands from it', () => {
+    const api = makeAPI()
+    useAssistantAPI.mockReturnValue(api)
+    const { baseElement, getByTestId, getByLabelText } = render(
       <WithAssistantUI>
         <Reflow />
       </WithAssistantUI>,
     )
-    expect(paper(baseElement)).toBeFalsy()
-    expect(getByTestId('reflow').textContent).toBe('false')
+    expect(paper(baseElement)).toBeTruthy()
+    expect(chatProps).toBeNull()
+    expect(getByTestId('reflow').textContent).toBe(RAIL_WIDTH)
+    fireEvent.click(getByLabelText('Ask Qurator'))
+    expect(api.show).toHaveBeenCalled()
   })
 
-  it('keeps the panel closed while an inline chat is active, even when visible', () => {
+  it('renders no panel at all while an inline chat is active, even when visible', () => {
     inlined = true
     const api = makeAPI()
     api.visible = true
@@ -125,11 +129,11 @@ describe('components/Assistant/UI WithAssistantUI', () => {
         <Reflow />
       </WithAssistantUI>,
     )
-    expect(paper(baseElement)).toBeFalsy()
-    expect(getByTestId('reflow').textContent).toBe('false')
+    expect(baseElement.querySelector('.MuiDrawer-root')).toBeFalsy()
+    expect(getByTestId('reflow').textContent).toBe('null')
   })
 
-  it('opens as a docked panel and reflows content when visible', () => {
+  it('expands to the full panel and widens the gutter when visible', () => {
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
@@ -140,7 +144,8 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     )
     expect(baseElement.querySelector('.MuiDrawer-docked')).toBeTruthy()
     expect(paper(baseElement)).toBeTruthy()
-    expect(getByTestId('reflow').textContent).toBe('true')
+    expect(chatProps).toBeTruthy()
+    expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
   })
 
   it('stays an overlay below 960px and reserves no gutter', () => {
@@ -155,10 +160,17 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     )
     expect(paper(baseElement)).toBeTruthy()
     expect(baseElement.querySelector('.MuiDrawer-docked')).toBeFalsy()
-    expect(getByTestId('reflow').textContent).toBe('false')
+    expect(getByTestId('reflow').textContent).toBe('null')
   })
 
-  it('closes the docked panel on Escape', () => {
+  it('takes the panel away entirely below 960px when not visible', () => {
+    narrowViewport()
+    useAssistantAPI.mockReturnValue(makeAPI())
+    const { baseElement } = render(<WithAssistantUI />)
+    expect(paper(baseElement)).toBeFalsy()
+  })
+
+  it('collapses the docked panel to a rail on Escape', () => {
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
@@ -167,7 +179,7 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(api.hide).toHaveBeenCalled()
   })
 
-  it('hands the chat its wiring and a way to close the panel', () => {
+  it('hands the chat its wiring and a way to collapse the panel', () => {
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
@@ -178,9 +190,10 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(api.hide).toHaveBeenCalled()
   })
 
-  it('does not render a trigger button (trigger is now inline in the top bar)', () => {
+  it('offers the rail button as the only affordance, with no second trigger', () => {
     useAssistantAPI.mockReturnValue(makeAPI())
-    const { queryByRole } = render(<WithAssistantUI />)
-    expect(queryByRole('button')).toBeFalsy()
+    const { getAllByRole, getByLabelText } = render(<WithAssistantUI />)
+    expect(getAllByRole('button')).toHaveLength(1)
+    expect(getByLabelText('Ask Qurator').getAttribute('aria-expanded')).toBe('false')
   })
 })

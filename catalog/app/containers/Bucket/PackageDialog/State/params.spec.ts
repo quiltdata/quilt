@@ -305,6 +305,104 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     })
   })
 
+  describe('destination the loaded manifest does not describe', () => {
+    const src = { bucket: 'test-bucket', name: 'test-package' }
+    // What useNameExistence reports for a name that resolves to some other package.
+    const existsElsewhere = {
+      ...name,
+      status: { _tag: 'exists' as const, dst: { bucket: 'test-bucket', name: 'other' } },
+    }
+
+    it('is invalid when the destination is a different package that exists', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'other' },
+          name: existsElsewhere,
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+      }
+    })
+
+    it('is invalid when only the bucket differs', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'other-bucket', name: 'test-package' },
+          name: {
+            ...name,
+            status: {
+              _tag: 'exists' as const,
+              dst: { bucket: 'other-bucket', name: 'test-package' },
+            },
+          },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+      }
+    })
+
+    it('permits the plain revise, where dst and src name the same package', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: src,
+          name: { ...name, status: { _tag: 'new-revision' as const } },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+
+    it('permits a destination that does not exist yet', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'brand-new' },
+          name: { ...name, status: { _tag: 'new' as const } },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+
+    it('reports the unloaded manifest, not the mismatch, when both apply', () => {
+      // Ordering matters: the manifest never loaded, so nothing is known about `src` to
+      // describe a mismatch against.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'other' },
+          manifest: { _tag: 'error' as const, error: new Error('failed to fetch') },
+          name: existsElsewhere,
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.SourceManifestNotLoaded)
+      }
+    })
+
+    it('permits an existing destination when there is no source to mismatch', () => {
+      // Plain creation passes no `src`: the ready manifest is the empty one from
+      // useManifestRequest, so there are no loaded entries to publish over the
+      // destination. Guards against gating on 'exists' alone.
+      const { result } = renderHook(() =>
+        useParamsWith({ name: existsElsewhere, src: undefined }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+  })
+
   describe('memoization', () => {
     it('should recompute when dependencies change', () => {
       const { result, rerender } = renderHook(

@@ -127,6 +127,17 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
   )
 }
 
+const FACET_ORDERING_VALUES = SearchUIModel.FACET_ORDERINGS.map((o) =>
+  SearchUIModel.serializeFacetOrdering(o.ordering),
+)
+
+const FACET_ORDERING_LABELS: Record<string, string> = Object.fromEntries(
+  SearchUIModel.FACET_ORDERINGS.map((o) => [
+    SearchUIModel.serializeFacetOrdering(o.ordering),
+    o.label,
+  ]),
+)
+
 const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   list: {
     background: 'inherit',
@@ -150,7 +161,6 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
     alignItems: 'baseline',
     display: 'flex',
     gap: t.spacing(0.5),
-    justifyContent: 'flex-end',
     marginBottom: t.spacing(0.5),
   },
   orderLabel: {
@@ -193,36 +203,6 @@ function AvailablePackagesMetaFilters({
 
   return (
     <div className={className}>
-      {/* `offered` rather than a count taken here: withholding it turns on how many
-          fields exist, and `facets.available` is already narrowed by the filter box
-          on the client-filter path. */}
-      {ordering.offered && (
-        <div className={classes.order}>
-          <span className={classes.orderLabel} id="meta-order-label">
-            Order by
-          </span>
-          <FiltersUI.Select<SearchUIModel.FacetOrderBy>
-            className={classes.orderSelect}
-            disableUnderline
-            disabled={fetching}
-            extents={[...SearchUIModel.FACET_ORDER_BY]}
-            getOptionLabel={(o) => SearchUIModel.FACET_ORDER_BY_LABELS[o]}
-            inputProps={{ 'aria-labelledby': 'meta-order-label' }}
-            onChange={(by) => ordering.set({ ...ordering.value, by })}
-            value={ordering.value.by}
-          />
-          <FiltersUI.Select<SearchUIModel.FacetOrderDirection>
-            className={classes.orderSelect}
-            disableUnderline
-            disabled={fetching}
-            extents={[...SearchUIModel.FACET_ORDER_DIRECTIONS]}
-            getOptionLabel={(d) => SearchUIModel.FACET_ORDER_DIRECTION_LABELS[d]}
-            inputProps={{ 'aria-label': 'Order direction' }}
-            onChange={(direction) => ordering.set({ ...ordering.value, direction })}
-            value={ordering.value.direction}
-          />
-        </div>
-      )}
       {SearchUIModel.FacetsFilteringState.match({
         Enabled: ({ value, set }) => (
           <FiltersUI.TinyTextField
@@ -252,6 +232,28 @@ function AvailablePackagesMetaFilters({
         },
         Disabled: () => null,
       })(filtering)}
+      {/* `offered` rather than a count taken here: withholding it turns on how many
+          fields exist, and `facets.available` is already narrowed by the filter box
+          on the client-filter path. */}
+      {ordering.offered && (
+        <div className={classes.order}>
+          <span className={classes.orderLabel} id="meta-order-label">
+            Sort by:
+          </span>
+          <FiltersUI.Select<string>
+            className={classes.orderSelect}
+            disableUnderline
+            disabled={fetching}
+            extents={FACET_ORDERING_VALUES}
+            getOptionLabel={(value) => FACET_ORDERING_LABELS[value]}
+            inputProps={{ 'aria-labelledby': 'meta-order-label' }}
+            onChange={(value) =>
+              ordering.set(SearchUIModel.parseFacetOrdering(value, ordering.value))
+            }
+            value={SearchUIModel.serializeFacetOrdering(ordering.value)}
+          />
+        </div>
+      )}
       <M.List dense disablePadding className={classes.list}>
         <FilterGroup disabled={fetching} items={facets.visible.children} />
         <M.Collapse in={expanded}>

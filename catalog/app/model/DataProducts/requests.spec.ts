@@ -81,7 +81,7 @@ describe('model/DataProducts/requests', () => {
       // project member receives access. Showing only the requester would
       // misreport what approval does.
       const r = fixtures.DATAZONE_PENDING_REQUEST
-      expect(r.requestedBy).toBe('rita@quiltdata.io')
+      expect(r.requestedBy).toBe('r.chen@example.com')
       expect(r.beneficiary.type).toBe('PROJECT')
       expect(grantsBeyondRequester(r)).toBe(true)
     })

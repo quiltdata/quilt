@@ -1,5 +1,8 @@
 import * as React from 'react'
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
 import * as RR from 'react-router-dom'
+import * as M from '@material-ui/core'
+import * as Sentry from '@sentry/react'
 
 import { useSearchInput } from 'components/Layout'
 import * as SearchUIModel from 'containers/Search/model'
@@ -9,7 +12,11 @@ import assertNever from 'utils/assertNever'
 
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import Main from 'containers/Search/Layout/Main'
-import { Refine } from 'containers/Search/NoResults'
+import {
+  UnexpectedError as SearchErrorScreen,
+  Refine,
+  useErrorRefine,
+} from 'containers/Search/NoResults'
 import ListResults from 'containers/Search/List'
 import TableResults from 'containers/Search/Table'
 
@@ -103,8 +110,31 @@ function PackageList({ bucket }: PackageListProps) {
   )
 }
 
+const useErrorFallbackStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(3, 0),
+  },
+}))
+
+// Not wrapped in Search/Layout/Main like the loaded page: Main reads the model,
+// and a boundary does not catch what its own fallback throws.
+function PackageListErrorFallback({ error }: FallbackProps) {
+  const classes = useErrorFallbackStyles()
+  const bucket = useBucketStrict()
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const onRefine = useErrorRefine(urls.bucketPackageList(bucket))
+  return (
+    <SearchErrorScreen className={classes.root} onRefine={onRefine}>
+      {error.message}
+    </SearchErrorScreen>
+  )
+}
+
+const onError = (error: Error) => Sentry.captureException(error)
+
 export default function PackageListWrapper() {
   const bucket = useBucketStrict()
+  const { search } = RR.useLocation()
   const { urls } = NamedRoutes.use<RouteMap>()
   const defaults = React.useMemo(
     () => ({
@@ -115,8 +145,14 @@ export default function PackageListWrapper() {
     [bucket],
   )
   return (
-    <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
-      <PackageList bucket={bucket} />
-    </SearchUIModel.Provider>
+    <ErrorBoundary
+      FallbackComponent={PackageListErrorFallback}
+      onError={onError}
+      resetKeys={[search]}
+    >
+      <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
+        <PackageList bucket={bucket} />
+      </SearchUIModel.Provider>
+    </ErrorBoundary>
   )
 }

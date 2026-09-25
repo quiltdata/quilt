@@ -320,7 +320,7 @@ interface DeleteProps {
   close: (reason?: string) => void
 }
 
-function Delete({ role, close }: DeleteProps) {
+export function Delete({ role, close }: DeleteProps) {
   const { push } = Notifications.use()
   const deleteRole = GQL.useMutation(ROLE_DELETE_MUTATION)
 
@@ -342,6 +342,9 @@ function Delete({ role, close }: DeleteProps) {
           return
         case 'RoleNameUsedBySsoConfig':
           push("Can't delete role used by SSO configuration")
+          return
+        case 'RoleOwnsDataProducts':
+          push("Can't delete a role that owns data products")
           return
         default:
           assertNever(r)

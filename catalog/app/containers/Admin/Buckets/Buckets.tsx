@@ -6,18 +6,16 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
-import { useDebounce } from 'use-debounce'
-import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
-import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as quiltConfigs from 'constants/quiltConfigs'
 import type * as Model from 'model'
+import * as APIConnector from 'utils/APIConnector'
 import type FormSpec from 'utils/FormSpec'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -33,9 +31,7 @@ import * as Form from '../Form'
 import * as OnDirty from './OnDirty'
 import TabulatorForm from './Tabulator'
 
-import IconInput from './IconInput'
 import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
-import Reindex from './ReindexDialog'
 
 import BUCKET_CONFIGS_QUERY from './gql/BucketConfigs.generated'
 import ADD_MUTATION from './gql/BucketsAdd.generated'
@@ -61,8 +57,6 @@ const bucketToIndexingAndNotificationsValues = (bucket: BucketConfig) => ({
   fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
   indexContentBytes: bucket.indexContentBytes,
   scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
-  // `[""]` is the registry's "whole bucket", so it round-trips as an empty field.
-  prefixes: (bucket.prefixes || []).filter((p: string) => p).join('\n'),
   snsNotificationArn:
     bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
       ? DO_NOT_SUBSCRIBE_SYM
@@ -83,109 +77,62 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
 
 const useStickyActionsStyles = M.makeStyles((t) => ({
   actions: {
-    animation: `$show 150ms ease-out`,
-    padding: t.spacing(3, 0, 0),
     alignItems: 'center',
+    bottom: 0,
     display: 'flex',
     justifyContent: 'flex-end',
+    position: 'sticky',
+    transition: t.transitions.create(['box-shadow', 'padding'], { duration: 150 }),
     '& > * + *': {
       // Spacing between direct children
       marginLeft: t.spacing(2),
     },
   },
-  sticky: {
-    animation: `$sticking 150ms ease-out`,
-    bottom: 0,
-    left: '50%',
-    position: 'fixed',
-    transform: `translateX(-50%)`,
-    '& $actions': {
-      padding: t.spacing(2),
-    },
+  floating: {
+    backgroundColor: t.palette.background.paper,
+    borderRadius: t.shape.borderRadius,
+    boxShadow: t.shadows[8],
+    padding: t.spacing(2),
   },
-  '@keyframes show': {
-    '0%': {
-      opacity: 0.3,
-    },
-    '100%': {
-      opacity: '1',
-    },
+  resting: {
+    padding: t.spacing(3, 0, 0),
   },
-  '@keyframes sticking': {
-    '0%': {
-      transform: 'translate(-50%, 10%)',
-    },
-    '100%': {
-      transform: 'translate(-50%, 0)',
-    },
+  sentinel: {
+    height: 1,
+    marginTop: -1,
   },
 }))
 
 interface StickyActionsProps {
   children: React.ReactNode
-  parentRef: React.RefObject<HTMLElement>
 }
 
-function StickyActions({ children, parentRef }: StickyActionsProps) {
+function StickyActions({ children }: StickyActionsProps) {
   const classes = useStickyActionsStyles()
 
-  const [size, setSize] = React.useState<DOMRect | null>(null)
-  const [parentSize, setParentSize] = React.useState<DOMRect | null>(null)
-  const ref = React.useRef<HTMLDivElement>(null)
-  const handleScroll = React.useCallback(() => {
-    const rect = ref.current?.getBoundingClientRect()
-    if (!rect || !rect.height) return
-    setSize(rect)
-    const parent = parentRef.current?.getBoundingClientRect()
-    if (!parent || !parent.height) return
-    setParentSize(parent)
-  }, [parentRef])
-  // `.main` is the scroll container, not the window, so a window listener here
-  // never fires (components/Layout/Column). The bottom the sticky test compares
-  // against is still the viewport's: the column runs its full height.
-  const column = Column.useElement()
+  const sentinelRef = React.useRef<HTMLDivElement>(null)
+  const [pinned, setPinned] = React.useState(false)
+
+  // The sentinel sits just past the bar's resting place, so it is out of view
+  // for exactly as long as the bar is pinned. 1px, not 0: a zero-area target's
+  // intersection is unreliable.
   React.useEffect(() => {
-    const target: HTMLElement | Window = column ?? window
-    target.addEventListener('scroll', handleScroll)
-    return () => target.removeEventListener('scroll', handleScroll)
-  }, [column, handleScroll])
-  const { height: parentHeight } = useResizeObserver({ ref: parentRef })
-  React.useEffect(() => handleScroll(), [handleScroll, parentHeight])
-
-  const DEBOUNCE_TIMEOUT = 50
-  const [debouncedSize] = useDebounce(size, DEBOUNCE_TIMEOUT)
-  const [debouncedParentSize] = useDebounce(parentSize, DEBOUNCE_TIMEOUT)
-  const sticky = React.useMemo(() => {
-    const winHeight = window.innerHeight || document.documentElement.clientHeight
-
-    const containerBottom = debouncedSize?.bottom || 0
-    const containerHeight = debouncedSize?.height || 0
-    const parentTop = debouncedParentSize?.top || 0
-
-    return (
-      // Container's bottom (relative to viewport) is below the viewport's bottom
-      containerBottom >= winHeight + containerHeight &&
-      // Parent's top is inside the viewport
-      parentTop >= 0 &&
-      parentTop <= winHeight - containerHeight
+    const sentinel = sentinelRef.current
+    if (!sentinel) return undefined
+    const observer = new IntersectionObserver(([entry]) =>
+      setPinned(!entry.isIntersecting),
     )
-  }, [debouncedSize, debouncedParentSize])
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <div ref={ref}>
-      {sticky ? (
-        <>
-          <M.Container className={classes.sticky} maxWidth="lg">
-            <M.Paper className={classes.actions} elevation={8}>
-              {children}
-            </M.Paper>
-          </M.Container>
-          <div style={{ height: debouncedSize?.height }}>{/* height placeholder */}</div>
-        </>
-      ) : (
-        <div className={classes.actions}>{children}</div>
-      )}
-    </div>
+    <>
+      <div className={cx(classes.actions, pinned ? classes.floating : classes.resting)}>
+        {children}
+      </div>
+      <div className={classes.sentinel} ref={sentinelRef} />
+    </>
   )
 }
 
@@ -251,27 +198,6 @@ const normalizeExtensions = FP.function.flow(
   R.sortBy(R.identity),
   (exts) =>
     exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
-)
-
-// One prefix per line, since a key may legally contain a comma. An empty field sends
-// null, which the registry normalizes to [""] -- whole-bucket access, not "leave the
-// scope alone". Clearing the box therefore widens a narrowed bucket, which is why the
-// field's copy says blank means the whole bucket.
-const normalizePrefixes = FP.function.flow(
-  Types.decode(Types.fromNullable(IO.string, '')),
-  R.split('\n'),
-  R.map(R.trim),
-  R.reject((p: string) => !p),
-  R.uniq,
-  (prefixes) => (prefixes.length ? prefixes : null),
-)
-
-// The registry only trims and appends a trailing slash, so an s3:// URI or a leading
-// slash is stored verbatim and the scan then matches no keys, silently.
-const BAD_PREFIX_RE = /^(s3:\/\/|\/)/
-
-const validatePrefixes = FP.function.flow(normalizePrefixes, (prefixes) =>
-  prefixes?.some(R.test(BAD_PREFIX_RE)) ? 'validPrefixes' : undefined,
 )
 
 const EXT_RE = /\.[0-9a-z_]+/
@@ -449,7 +375,8 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('browsable'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
-  prefixes: R.pipe(R.prop('prefixes'), normalizePrefixes),
+  // NOTE: prefixes are managed via quilt3.admin SDK for now
+  prefixes: () => null,
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
@@ -679,7 +606,16 @@ function PrimaryForm({ bucket }: PrimaryFormProps) {
         fullWidth
         margin={bucket ? 'none' : 'normal'}
       />
-      <RF.Field component={IconInput} name="iconUrl" bucketName={bucket?.name} />
+      <RF.Field
+        component={Form.Field}
+        name="iconUrl"
+        label="Icon URL (optional)"
+        placeholder="e.g. https://some-cdn.com/icon.png"
+        helperText="Recommended size: 80x80px"
+        parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
+        fullWidth
+        margin="normal"
+      />
       <RF.Field
         component={Form.Field}
         name="description"
@@ -779,7 +715,6 @@ interface PrimaryCardProps {
 
 function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps) {
   const initialValues = bucketToPrimaryValues(bucket)
-  const ref = React.useRef<HTMLElement>(null)
   const { urls } = NamedRoutes.use()
   const configPath = quiltConfigs.bucketPreferences[0]
   const configHref = urls.bucketFile(bucket.name, configPath, {
@@ -792,13 +727,12 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
           className={className}
           disabled={disabled}
           error={submitFailed}
-          ref={ref}
           title="Display settings"
         >
           <form onSubmit={handleSubmit}>
             <PrimaryForm bucket={bucket} />
           </form>
-          <StickyActions parentRef={ref}>
+          <StickyActions>
             <CardActions<PrimaryFormValues>
               action={<StyledLink to={configHref}>Configure Bucket UI</StyledLink>}
               disabled={disabled}
@@ -856,7 +790,6 @@ interface MetadataCardProps {
 
 function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardProps) {
   const initialValues = bucketToMetadataValues(bucket)
-  const ref = React.useRef<HTMLElement>(null)
   return (
     <RF.Form<MetadataFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, form, submitFailed }) => (
@@ -864,13 +797,12 @@ function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardPro
           className={className}
           disabled={disabled}
           error={submitFailed}
-          ref={ref}
           title="Metadata"
         >
           <form onSubmit={handleSubmit}>
             <MetadataForm />
           </form>
-          <StickyActions parentRef={ref}>
+          <StickyActions>
             <CardActions<MetadataFormValues> disabled={disabled} form={form} />
           </StickyActions>
         </Card>
@@ -1028,21 +960,6 @@ function IndexingAndNotificationsForm({
         fullWidth
         margin="normal"
       />
-      <RF.Field
-        component={Form.Field}
-        name="prefixes"
-        label="Bulk scan scope"
-        placeholder="Leave blank to scan the whole bucket"
-        validate={validatePrefixes}
-        errors={{
-          validPrefixes: 'Enter plain key prefixes, without s3:// or a leading slash',
-        }}
-        helperText="One key prefix per line; blank means the whole bucket. This governs which bulk scanner jobs are enqueued: objects written outside these prefixes are still indexed and still searchable, and narrowing the scope removes nothing already indexed. A scope that excludes .quilt/ also leaves the bucket without Iceberg registration."
-        multiline
-        rowsMax={6}
-        fullWidth
-        margin="normal"
-      />
       <RF.Field component={SnsField} name="snsNotificationArn" validate={validateSns} />
       <M.Box mt={2}>
         <RF.Field
@@ -1100,7 +1017,6 @@ function IndexingAndNotificationsCard({
   const settings = data.config.contentIndexingSettings
 
   const initialValues = bucketToIndexingAndNotificationsValues(bucket)
-  const ref = React.useRef<HTMLFormElement>(null)
 
   return (
     <RF.Form<IndexingAndNotificationsFormValues>
@@ -1112,13 +1028,12 @@ function IndexingAndNotificationsCard({
           className={className}
           disabled={disabled}
           error={submitFailed}
-          ref={ref}
           title="Indexing and notifications"
         >
           <form onSubmit={handleSubmit}>
             <IndexingAndNotificationsForm bucket={bucket} settings={settings} />
           </form>
-          <StickyActions parentRef={ref}>
+          <StickyActions>
             <CardActions<IndexingAndNotificationsFormValues>
               action={
                 <M.Button
@@ -1235,12 +1150,11 @@ interface AddPageSkeletonProps {
 
 function AddPageSkeleton({ back }: AddPageSkeletonProps) {
   const classes = useStyles()
-  const formRef = React.useRef<HTMLDivElement>(null)
   return (
-    <div ref={formRef}>
+    <div>
       <SubPageHeader back={back}>Add a bucket</SubPageHeader>
       <CardsPlaceholder className={classes.fields} />
-      <StickyActions parentRef={formRef}>
+      <StickyActions>
         <Buttons.Skeleton />
         <Buttons.Skeleton />
       </StickyActions>
@@ -1321,7 +1235,6 @@ function Add({ back, settings, submit }: AddProps) {
     },
     [back, submit],
   )
-  const scrollingRef = React.useRef<HTMLFormElement>(null)
   const guardNavigation = React.useCallback(
     () => 'You have unsaved changes. Discard changes and leave the page?',
     [],
@@ -1342,7 +1255,7 @@ function Add({ back, settings, submit }: AddProps) {
           <SubPageHeader back={back} disabled={submitting}>
             Add a bucket
           </SubPageHeader>
-          <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
+          <form className={classes.fields} onSubmit={handleSubmit}>
             <Card className={classes.card} title="Display settings">
               <PrimaryForm />
             </Card>
@@ -1362,7 +1275,7 @@ function Add({ back, settings, submit }: AddProps) {
             </Card>
             <input type="submit" style={{ display: 'none' }} />
           </form>
-          <StickyActions parentRef={scrollingRef}>
+          <StickyActions>
             {submitFailed && (
               <Form.FormError
                 className={classes.error}
@@ -1401,6 +1314,208 @@ function Add({ back, settings, submit }: AddProps) {
         </>
       )}
     </RF.Form>
+  )
+}
+
+interface ReindexProps {
+  bucket: string
+  open: boolean
+  close: () => void
+}
+
+// APIConnector puts the raw body in `json.message` when it does not parse as JSON, so
+// reading the message off the error would otherwise render an ALB or nginx error page
+// as if the registry had said it. A null return means the response did not come from
+// the registry, so the caller must not speak for the registry either.
+function serverMessage(e: unknown): string | null {
+  if (!(e instanceof APIConnector.HTTPError)) return null
+  try {
+    const { message, error } = JSON.parse(e.text)
+    for (const v of [message, error]) {
+      if (typeof v === 'string' && v) return v
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function Reindex({ bucket, open, close }: ReindexProps) {
+  const req = APIConnector.use()
+
+  const [prefix, setPrefix] = React.useState('')
+  const [repair, setRepair] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [submitSucceeded, setSubmitSucceeded] = React.useState(false)
+  const [error, setError] = React.useState<string | false>(false)
+
+  const reset = React.useCallback(() => {
+    setSubmitting(false)
+    setSubmitSucceeded(false)
+    setPrefix('')
+    setRepair(false)
+    setError(false)
+  }, [])
+
+  const handleRepairChange = React.useCallback((_e, v) => {
+    setRepair(v)
+  }, [])
+
+  const handlePrefixChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPrefix(e.target.value)
+      // A refusal names the prefix it was about, so it stops being true the moment the
+      // prefix changes -- and the registry accepts distinct prefixes concurrently.
+      setError(false)
+    },
+    [],
+  )
+
+  // The registry does not trim, and `if prefix:` there takes the prefix-scoped path for
+  // whitespace: it would skip the index rebuild and match nothing, then return 200.
+  const trimmedPrefix = prefix.trim()
+
+  const reindex = React.useCallback(async () => {
+    if (submitting) return
+    setError(false)
+    setSubmitting(true)
+    try {
+      // TODO: use graphql mutation
+      await req({
+        endpoint: `/admin/reindex/${bucket}`,
+        method: 'POST',
+        body: { repair: repair || undefined, prefix: trimmedPrefix || undefined },
+      })
+      setSubmitSucceeded(true)
+    } catch (e) {
+      if (APIConnector.HTTPError.is(e, 404, 'Bucket not found')) {
+        setError('Bucket not found')
+      } else if (APIConnector.HTTPError.is(e, 409) && serverMessage(e)) {
+        // The registry refuses four distinct ways here (this prefix, a concurrent
+        // prefix, full-bucket either way round), and only its own message says which;
+        // collapsing them hides whether a different prefix would be accepted now.
+        // A 409 with no registry message is a proxy's, so it falls through rather
+        // than asserting a running job that may not exist.
+        setError(serverMessage(e) as string)
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('Error re-indexing bucket:')
+        // eslint-disable-next-line no-console
+        console.error(e)
+        setError('Unexpected error')
+      }
+    }
+    setSubmitting(false)
+  }, [submitting, req, bucket, trimmedPrefix, repair])
+
+  const handleClose = React.useCallback(() => {
+    if (submitting) return
+    close()
+  }, [submitting, close])
+
+  return (
+    <M.Dialog open={open} onClose={handleClose} onExited={reset} fullWidth>
+      <M.DialogTitle>Re-index and repair a bucket</M.DialogTitle>
+      {submitSucceeded ? (
+        <M.DialogContent>
+          <M.DialogContentText color="textPrimary">
+            We have {repair && <>repaired S3 notifications and </>}
+            started re-indexing{' '}
+            {trimmedPrefix ? (
+              <>
+                keys beginning with{' '}
+                <M.Box fontFamily="monospace.fontFamily" component="span">
+                  {trimmedPrefix}
+                </M.Box>
+              </>
+            ) : (
+              <>the whole bucket</>
+            )}
+            .
+          </M.DialogContentText>
+        </M.DialogContent>
+      ) : (
+        <M.DialogContent>
+          <M.DialogContentText color="textPrimary">
+            You are about to start re-indexing the <b>&quot;{bucket}&quot;</b> bucket
+          </M.DialogContentText>
+          <M.TextField
+            label="Key prefix"
+            placeholder="Leave blank to re-index the whole bucket"
+            helperText={
+              trimmedPrefix
+                ? 'Only keys beginning with this string are re-scanned, and the search indices are kept in place. Matching is literal, not path-aware: "data" also matches "database/".'
+                : 'Every key is re-scanned and the search indices are recreated from scratch.'
+            }
+            fullWidth
+            margin="normal"
+            disabled={submitting}
+            onChange={handlePrefixChange}
+            value={prefix}
+            InputLabelProps={{ shrink: true }}
+          />
+          {!!trimmedPrefix && (
+            <M.Box color="warning.dark">
+              <M.Typography color="inherit" variant="caption">
+                Keys deleted under this prefix may stay in the index: only deletions S3
+                still reports as delete markers are picked up. Re-index the whole bucket
+                to clear the rest.
+              </M.Typography>
+            </M.Box>
+          )}
+          <Form.Checkbox
+            meta={{ submitting, submitSucceeded }}
+            // @ts-expect-error, FF.FieldInputProps misses second argument for onChange
+            input={{ checked: repair, onChange: handleRepairChange }}
+            label="Repair S3 notifications"
+          />
+          {repair && (
+            <M.Box color="warning.dark" ml={4}>
+              <M.Typography color="inherit" variant="caption">
+                Bucket notifications will be overwritten
+                {!!trimmedPrefix && <>, bucket-wide regardless of the prefix</>}
+              </M.Typography>
+            </M.Box>
+          )}
+        </M.DialogContent>
+      )}
+      <M.DialogActions>
+        {submitting && (
+          <M.Fade in style={{ transitionDelay: '1000ms' }}>
+            <M.Box flexGrow={1} display="flex" pl={2}>
+              <M.CircularProgress size={24} />
+            </M.Box>
+          </M.Fade>
+        )}
+        {!submitting && !!error && (
+          <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+            <M.Icon color="error">error_outline</M.Icon>
+            <M.Box pl={1} />
+            <M.Typography variant="body2" color="error">
+              {error}
+            </M.Typography>
+          </M.Box>
+        )}
+
+        {submitSucceeded ? (
+          <>
+            <M.Button onClick={close} color="primary">
+              Close
+            </M.Button>
+          </>
+        ) : (
+          <>
+            <M.Button onClick={close} disabled={submitting} color="primary">
+              Cancel
+            </M.Button>
+            <M.Button onClick={reindex} disabled={submitting} color="primary">
+              Re-index
+              {repair && <> and repair</>}
+            </M.Button>
+          </>
+        )}
+      </M.DialogActions>
+    </M.Dialog>
   )
 }
 
