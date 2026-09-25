@@ -1397,9 +1397,9 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       ) {
         // Only the registry's own message distinguishes its refusals: which of four
         // conflicts a 409 is, or that a 400 means this registry build does not accept
-        // `prefix` at all. The status is checked because a gateway's JSON body reaches
-        // `serverMessage` indistinguishable from the registry's, and these two are the
-        // statuses the registry refuses a re-index with.
+        // `prefix` at all. Narrowed to those statuses because a gateway's JSON body
+        // reaches `serverMessage` indistinguishable from the registry's, so anything
+        // else keeps the console trace instead of speaking for the registry.
         setError(message)
       } else {
         // eslint-disable-next-line no-console
