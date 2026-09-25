@@ -25,9 +25,10 @@ const useTabStyles = M.makeStyles((t) => ({
       right: 0,
       height: '2px',
       backgroundColor: t.palette.secondary.main,
-      // Keyframes end on the static state, so dropping them needs no override.
+      // Keyframes settle at scaleX(1), so collapsing the duration lands the
+      // underline at full width instantly rather than freezing it part-drawn.
       '@media (prefers-reduced-motion: reduce)': {
-        animation: 'none',
+        animationDuration: '0.01ms',
       },
     },
   },
@@ -88,9 +89,10 @@ const useTabPanelStyles = M.makeStyles((t) => ({
     animation: `$show 150ms ease-out`,
     minWidth: t.spacing(40),
     padding: t.spacing(2, 2, 1),
-    // Keyframes end on the static state, so dropping them needs no override.
+    // Keyframes settle at opacity 1, so collapsing the duration lands the
+    // panel fully visible instantly rather than freezing it part-faded.
     '@media (prefers-reduced-motion: reduce)': {
-      animation: 'none',
+      animationDuration: '0.01ms',
     },
   },
   '@keyframes show': {
