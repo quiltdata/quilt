@@ -217,6 +217,38 @@ describe('components/BucketIcon', () => {
     })
   })
 
+  // An <img> is inline and baseline-aligned by default; the disc is flex and
+  // the stub inline-block. Left to their defaults a custom icon sat lower in
+  // the admin table than its neighbours. Rendered in a real table cell because
+  // the JSS rule alone cannot show that the three variants agree.
+  it('keeps a custom icon on the same line as the disc and the stub', () => {
+    const { container, getByAltText, getByText } = render(
+      <M.Table>
+        <M.TableBody>
+          <M.TableRow>
+            <M.TableCell align="center">
+              <BucketIcon alt="custom" src="https://custom-src" />
+            </M.TableCell>
+            <M.TableCell align="center">
+              <BucketIcon src={null} label="Beta" tintKey="beta" />
+            </M.TableCell>
+            <M.TableCell align="center">
+              <BucketIcon src="" />
+            </M.TableCell>
+          </M.TableRow>
+        </M.TableBody>
+      </M.Table>,
+    )
+    const align = (el: Element) => {
+      const s = getComputedStyle(el)
+      return `${s.display}/${s.verticalAlign}`
+    }
+    const img = align(getByAltText('custom'))
+    expect(img).toBe('inline-block/middle')
+    expect(align(container.querySelector('svg')!)).toBe(img)
+    expect(getComputedStyle(getByText('BE')).verticalAlign).toBe('middle')
+  })
+
   describe('class names', () => {
     const className = 'PRIMARY'
     const classes = {

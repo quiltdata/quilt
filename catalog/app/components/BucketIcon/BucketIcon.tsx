@@ -8,6 +8,11 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: '50%',
     height: t.spacing(4),
     width: t.spacing(4),
+    // An <img> is inline by default and sits on the text baseline, so a custom
+    // icon rode a few pixels lower than the initials disc (flex) and the stub
+    // (inline-block) in the same column. One display mode for all three.
+    display: 'inline-block',
+    verticalAlign: 'middle',
   },
   // the stub artwork is an inscribed circle, so only custom icons need cropping
   crop: {
