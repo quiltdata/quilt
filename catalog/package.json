@@ -37,6 +37,7 @@
     "test:clean": "rimraf ./coverage",
     "test:only": "vitest run",
     "test:watch": "vitest",
+    "check:icon-crop": "tsc app/containers/Admin/Buckets/iconCrop.ts --ignoreConfig --outDir internals/manual/build --target es2020 --module esnext --moduleResolution bundler --skipLibCheck && cd internals/manual && echo \"open http://127.0.0.1:8099/icon-crop-check.html\" && python3 -m http.server 8099",
     "format": "oxfmt --write",
     "gql:generate": "graphql-codegen",
     "prepare": "cd .. && husky install catalog/.husky"
@@ -116,6 +117,7 @@
     "react-ace": "^10.1.0",
     "react-dom": "^17.0.2",
     "react-dropzone": "^14.2.3",
+    "react-easy-crop": "^6.2.3",
     "react-error-boundary": "^5.0.0",
     "react-final-form": "^6.5.9",
     "react-github-btn": "^1.4.0",
