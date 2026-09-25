@@ -25,6 +25,11 @@ const ACCEPTED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'ima
 // doing, and only the file size is known before that.
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024
 
+// Case-insensitive, because BucketIcon decides what to render from the scheme the
+// same way: a `DATA:` value it would draw as an image must not be treated here as
+// a URL and cut to the URL length.
+const isDataUrl = (v: string) => /^data:/i.test(v)
+
 const useCropDialogStyles = M.makeStyles((t) => ({
   cropper: {
     background: t.palette.grey[900],
@@ -288,7 +293,7 @@ export default function IconInput({
 
   // react-final-form hands an untouched field `undefined` until it is registered.
   const value: string = input.value || ''
-  const uploaded = value.startsWith('data:')
+  const uploaded = isDataUrl(value)
 
   // Same rule Admin/Form's Field applies, so a validator or a server error mapped
   // to this field surfaces here as it does on every sibling field.
@@ -348,7 +353,7 @@ export default function IconInput({
             // that cannot decode but still reads as uploaded, which hides it behind
             // a description and locks the field against repairing it. A URL is safe
             // to cut -- it stays visible and editable.
-            if (next.startsWith('data:')) {
+            if (isDataUrl(next)) {
               if (next.length > MAX_ICON_DATA_URL_LENGTH) {
                 setRejected('That image data is too long to store as an icon')
                 return

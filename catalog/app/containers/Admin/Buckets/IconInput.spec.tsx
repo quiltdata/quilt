@@ -144,6 +144,16 @@ describe('containers/Admin/Buckets/IconInput', () => {
     expect(q.getByTestId('preview').dataset.src).toBe(uri)
   })
 
+  it('reads the data: scheme case-insensitively, as BucketIcon does', () => {
+    // BucketIcon decides from the scheme case-insensitively, so a `DATA:` value it
+    // would draw as an image must not be cut to the URL length here.
+    const uri = `DATA:image/png;base64,${'A'.repeat(20 * 1024)}`
+    const q = render(<Harness initial="" />)
+    fireEvent.change(urlField(q), { target: { value: uri } })
+    expect(q.getByText('That image data is too long to store as an icon')).toBeDefined()
+    expect(q.getByTestId('preview').dataset.src).toBe('')
+  })
+
   it('refuses a data: URI past the stored bound instead of truncating it', () => {
     // Any cut yields a value that cannot decode but still reads as uploaded, so an
     // over-long paste is refused outright rather than stored in part.
