@@ -1061,15 +1061,14 @@ def package_prefix(event, context):
 
     pkg_entries: dict[str, quilt3.packages.PackageEntry] = {}
     inferred_name = infer_pkg_name_from_prefix(prefix_pk.path)
+    crate = None
 
     if metadata_uri_pk is not None and rocrate.is_rocrate(metadata):
         try:
-            crate = rocrate.parse(metadata, metadata_uri_pk)
+            crate = rocrate.parse(metadata, metadata_uri_pk, inferred_name)
         except rocrate.RoCrateError as e:
             raise PkgpushException(e.name, e.context) from e
-        metadata = crate.user_meta
-        inferred_prefix, inferred_suffix = inferred_name.split("/")
-        inferred_name = f"{crate.name_prefix or inferred_prefix}/{crate.name_suffix or inferred_suffix}"
+        inferred_name = crate.package_name
         # One client for every prefix: each one carries a large connection pool.
         user_s3_client = get_user_s3_client() if any(e.is_dir for e in crate.entries) else None
         # Directories first, so a file the crate also lists explicitly keeps its metadata.
@@ -1143,6 +1142,9 @@ def package_prefix(event, context):
             )
 
     pkg_name = inferred_name if params.package_name is None else params.package_name
+    if crate is not None:
+        # The crate's role projection, plus the name the package is actually published under.
+        metadata = {"package_name": pkg_name, **crate.user_meta}
 
     # Fetch missing metadata and precomputed checksums concurrently
     complete_entries_metadata(pkg_entries, checksum_algorithms)
