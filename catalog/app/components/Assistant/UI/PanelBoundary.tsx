@@ -95,7 +95,7 @@ function Fallback({ error, resetErrorBoundary, onRetry }: FallbackComponentProps
           startIcon={<M.Icon>refresh</M.Icon>}
           variant="outlined"
         >
-          Retry
+          {onRetry ? 'Clear and retry' : 'Retry'}
         </M.Button>
       </div>
     </div>

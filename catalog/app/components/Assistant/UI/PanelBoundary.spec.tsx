@@ -130,7 +130,7 @@ describe('components/Assistant/UI PanelBoundary', () => {
     conversation.events = ['poison']
     const { queryByText, getByText, dispatch } = renderPanel()
     expect(getByText('Qurator could not load')).toBeTruthy()
-    fireEvent.click(getByText('Retry'))
+    fireEvent.click(getByText('Clear and retry'))
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ _tag: 'Clear' }))
     expect(queryByText('chat body')).toBeTruthy()
     expect(queryByText('Qurator could not load')).toBeNull()
@@ -140,7 +140,7 @@ describe('components/Assistant/UI PanelBoundary', () => {
     conversation.events = ['poison']
     const { queryByText, getByText, dispatch } = renderPanel({ busy: true })
     expect(getByText('Qurator could not load')).toBeTruthy()
-    fireEvent.click(getByText('Retry'))
+    fireEvent.click(getByText('Clear and retry'))
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ _tag: 'Abort' }))
     expect(queryByText('chat body')).toBeTruthy()
     expect(queryByText('Qurator could not load')).toBeNull()
