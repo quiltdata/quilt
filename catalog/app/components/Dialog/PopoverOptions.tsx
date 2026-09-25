@@ -25,6 +25,10 @@ const useTabStyles = M.makeStyles((t) => ({
       right: 0,
       height: '2px',
       backgroundColor: t.palette.secondary.main,
+      // Keyframes end on the static state, so dropping them needs no override.
+      '@media (prefers-reduced-motion: reduce)': {
+        animation: 'none',
+      },
     },
   },
   // JSS resolves $keyframe refs per sheet, so these must live in the same
@@ -84,6 +88,10 @@ const useTabPanelStyles = M.makeStyles((t) => ({
     animation: `$show 150ms ease-out`,
     minWidth: t.spacing(40),
     padding: t.spacing(2, 2, 1),
+    // Keyframes end on the static state, so dropping them needs no override.
+    '@media (prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
   },
   '@keyframes show': {
     '0%': {
@@ -129,7 +137,10 @@ export function Tabs({ tabs }: TabsProps) {
 
   const classes = useStyles()
   const [activeIndex, setActiveIndex] = React.useState<number>(0)
-  const activeTab = tabs[activeIndex]
+  // Tabs are derived from props, so a tab can disappear while it is selected
+  // (GetOptions drops its Code tab when the `code` prop goes away).
+  const selected = Math.min(activeIndex, tabs.length - 1)
+  const activeTab = tabs[selected]
   return (
     <div className={cx(classes.root, activeTab.className)}>
       {tabs.length > 1 && (
@@ -137,7 +148,7 @@ export function Tabs({ tabs }: TabsProps) {
           {tabs.map(({ label }, index) => (
             <Tab
               key={index}
-              active={activeIndex === index}
+              active={selected === index}
               onClick={() => setActiveIndex(index)}
             >
               {label}
@@ -145,7 +156,7 @@ export function Tabs({ tabs }: TabsProps) {
           ))}
         </TabsContainer>
       )}
-      <TabPanel key={activeIndex}>{activeTab.panel}</TabPanel>
+      <TabPanel key={selected}>{activeTab.panel}</TabPanel>
     </div>
   )
 }
