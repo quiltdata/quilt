@@ -89,7 +89,11 @@ export function useNameExistence(
       return { _tag: 'new-revision' }
     }
     return GQL.fold(packageExistsQuery, {
-      data: ({ package: r }, { error }) => {
+      data: ({ package: r }, { error, fetching }) => {
+        // urql carries the previous name's response over a variables change, and a fold
+        // reads data before fetching, so a result still in flight describes the name
+        // before this one.
+        if (fetching) return { _tag: 'loading' }
         // "new" is what permits publishing while the manifest is unavailable, so an
         // absence reported alongside an error must not pass for a confirmed one. Reported
         // as still-loading, not a name error: only the gate in useParams needs to care.

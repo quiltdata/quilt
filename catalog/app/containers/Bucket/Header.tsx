@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as redux from 'react-redux'
@@ -104,14 +105,28 @@ function TabulatorItemWrapper({ bucket }: { bucket: string }) {
 const useStatsStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
+    columnGap: t.spacing(3),
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: t.spacing(2),
+    flexWrap: 'nowrap',
     justifyContent: 'flex-end',
-    [Column.up('sm')]: {
-      gap: t.spacing(4),
+    rowGap: t.spacing(1),
+    [Column.down(1044)]: {
+      flexWrap: 'wrap',
+      justifyContent: 'flex-start',
+      '& $create': {
+        marginLeft: 'auto',
+      },
+    },
+    [Column.down(640)]: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+      '& $create': {
+        gridColumn: '1 / -1',
+        marginLeft: 0,
+      },
     },
   },
+  create: {},
 }))
 
 interface StatsProps {
@@ -153,16 +168,17 @@ function Stats({ bucket, stats }: StatsProps) {
         <StatsItemSkeleton />
       )}
       {queriesEnabled && <TabulatorItemWrapper bucket={bucket} />}
-      <CreatePackage bucket={bucket} />
+      <CreatePackage bucket={bucket} className={classes.create} />
     </div>
   )
 }
 
 interface CreatePackageProps {
   bucket: string
+  className?: string
 }
 
-function CreatePackage({ bucket }: CreatePackageProps) {
+function CreatePackage({ bucket, className }: CreatePackageProps) {
   const dst = React.useMemo(() => ({ bucket }), [bucket])
   const createDialog = PD.useCreateDialog({
     dst,
@@ -171,7 +187,12 @@ function CreatePackage({ bucket }: CreatePackageProps) {
   })
   return (
     <>
-      <M.Button color="primary" variant="contained" onClick={() => createDialog.open()}>
+      <M.Button
+        className={className}
+        color="primary"
+        variant="contained"
+        onClick={() => createDialog.open()}
+      >
         Create package
       </M.Button>
       {createDialog.render({
@@ -186,28 +207,65 @@ function CreatePackage({ bucket }: CreatePackageProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  // Cutoffs measure the card, not the viewport (components/Layout/Column), so
+  // the rail and Qurator's gutter are already outside them. 1044px is the
+  // column the old 1300px viewport tier engaged at, once the 256px rail is out.
   root: {
     alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    [Column.up('sm')]: {
-      flexDirection: 'row',
-      // The stats and the create button drop to their own line rather than
-      // squeezing the name, which is the header's subject.
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
+    columnGap: t.spacing(3),
+    display: 'grid',
+    gridTemplateAreas: '"title stats"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title" "stats"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: t.spacing(1),
+    },
+  },
+  // The settings column exists only when the settings control renders —
+  // an unconditional track would leave non-admins a phantom 24px gutter.
+  withSettings: {
+    gridTemplateAreas: '"title stats settings"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title settings" "stats stats"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
     },
   },
   title: {
-    alignItems: 'center',
-    display: 'flex',
-    flexShrink: 1,
-    // A `0` floor lets flex squeeze the name narrower than its own longest
-    // word, which wraps it rather than shrinking the row.
-    minWidth: 'min-content',
+    gridArea: 'title',
+    minWidth: 0,
+    overflow: 'hidden',
   },
+  // Truncation needs the hover tooltip as its escape hatch, so where there is
+  // no hover the name wraps instead. Keyed on the pointer, not a width: a
+  // narrow column on a desktop still has one (components/Layout/Pointer).
+  titleText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    '@media (hover: none)': {
+      overflowWrap: 'anywhere',
+      whiteSpace: 'normal',
+    },
+  },
+  stats: {
+    gridArea: 'stats',
+    minWidth: 0,
+  },
+  // Settings sits at the card's far edge behind a hairline divider — config
+  // set apart from the bucket's readout, muted until hovered.
   settings: {
-    marginLeft: t.spacing(1),
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    borderLeft: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    gridArea: 'settings',
+    paddingLeft: t.spacing(2),
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
   },
 }))
 
@@ -223,18 +281,24 @@ export default function Header({ bucket }: HeaderProps) {
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   const stats = useStats(bucket)
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, isAdmin && classes.withSettings)}>
       <div className={classes.title}>
-        <M.Typography variant="h5">{bucket}</M.Typography>
-        {isAdmin && (
-          <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-            <M.IconButton size="small" color="inherit">
-              <M.Icon>settings</M.Icon>
-            </M.IconButton>
-          </RRDom.Link>
-        )}
+        <M.Typography variant="h5" className={classes.titleText} title={bucket}>
+          {bucket}
+        </M.Typography>
       </div>
-      <Stats bucket={bucket} stats={stats} />
+      <div className={classes.stats}>
+        <Stats bucket={bucket} stats={stats} />
+      </div>
+      {isAdmin && (
+        <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
+          <M.Tooltip arrow title="Bucket settings" disableTouchListener>
+            <M.IconButton size="small" color="inherit" aria-label="Bucket settings">
+              <M.Icon fontSize="small">settings</M.Icon>
+            </M.IconButton>
+          </M.Tooltip>
+        </RRDom.Link>
+      )}
     </div>
   )
 }
