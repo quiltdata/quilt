@@ -314,9 +314,6 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2, 0, 0),
   },
-  sectionHeading: {
-    marginBottom: t.spacing(1),
-  },
   group: {
     padding: t.spacing(2),
   },
@@ -328,7 +325,60 @@ const useStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(2),
     },
   },
+  // Columns, not a grid: a two-column grid pairs each card with whatever sits
+  // beside it, so a one-switch card is stretched to the height of a card with
+  // six. Columns let each card end where its content ends.
+  columns: {
+    columnGap: t.spacing(2),
+    [t.breakpoints.up('md')]: {
+      columnCount: 2,
+    },
+  },
+  card: {
+    breakInside: 'avoid',
+    marginBottom: t.spacing(2),
+    // Safari ignores `breakInside` on a column child unless it is also a block
+    // formatting context.
+    display: 'inline-block',
+    width: '100%',
+  },
 }))
+
+const useCardStyles = M.makeStyles((t) => ({
+  heading: {
+    marginBottom: t.spacing(0.5),
+  },
+  hint: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    display: 'block',
+    marginBottom: t.spacing(2),
+  },
+}))
+
+interface CardProps {
+  className: string
+  title: string
+  hint: string
+  children: React.ReactNode
+}
+
+// Every card says what it controls. Four of these read as bare labels otherwise
+// -- "Navigation link" never says where the link goes or who sees it.
+function Card({ className, title, hint, children }: CardProps) {
+  const classes = useCardStyles()
+  return (
+    <M.Paper className={className} variant="outlined">
+      <M.Typography variant="h6" className={classes.heading}>
+        {title}
+      </M.Typography>
+      <span className={classes.hint}>{hint}</span>
+      <React.Suspense fallback={<M.CircularProgress size={24} />}>
+        {children}
+      </React.Suspense>
+    </M.Paper>
+  )
+}
 
 // Gated on the `data-products` preview feature, matching how `FeatureSettings` is
 // gated above: with the capability off, an admin offered a catalog-connection form
@@ -345,9 +395,9 @@ export function DataProductCatalogs() {
       {/* Its own section rather than a cell in the grid above: a connection list
           grows, and the add form needs the full width. */}
       <M.Typography variant="h5" className={classes.title}>
-        Data Product Catalogs
+        Data product catalogs
       </M.Typography>
-      <M.Paper className={classes.group}>
+      <M.Paper className={classes.group} variant="outlined">
         <DataProductConnections />
       </M.Paper>
     </>
@@ -360,95 +410,79 @@ export default function Settings() {
     <div className={classes.root}>
       <MetaTitle>{['Settings', 'Admin']}</MetaTitle>
       <M.Typography variant="h5" className={classes.title}>
-        Catalog Customization
+        Catalog customization
       </M.Typography>
-      <M.Grid container spacing={2}>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Navigation link
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <NavLinkEditor />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Theme (logo and color)
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <ThemeEditor />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Default search mode
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <SearchSettings />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Enable beta features
-            </M.Typography>
-            <BetaSwitch />
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Qurator instructions
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <QuratorSettings />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
+      <div className={classes.columns}>
+        <Card
+          className={`${classes.group} ${classes.card}`}
+          title="Navigation link"
+          hint="An extra link in the catalog's top navigation bar, shown to everyone on this stack."
+        >
+          <NavLinkEditor />
+        </Card>
+        <Card
+          className={`${classes.group} ${classes.card}`}
+          title="Theme"
+          hint="The logo and accent color every page of this catalog carries."
+        >
+          <ThemeEditor />
+        </Card>
+        <Card
+          className={`${classes.group} ${classes.card}`}
+          title="Default search mode"
+          hint="What a search covers before anyone narrows it."
+        >
+          <SearchSettings />
+        </Card>
+        <Card
+          className={`${classes.group} ${classes.card}`}
+          title="Beta features"
+          hint="Opens features still under development to everyone on this stack."
+        >
+          <M.FormControlLabel control={<BetaSwitch />} label="Beta features on" />
+        </Card>
+        <Card
+          className={`${classes.group} ${classes.card}`}
+          title="Qurator instructions"
+          hint="Standing instructions sent with every Qurator message on this stack."
+        >
+          <QuratorSettings />
+        </Card>
         {/* Absent entirely when this build declares no preview capabilities,
             rather than rendering an empty card. */}
         {HAS_PREVIEW_FEATURES && (
-          <M.Grid item xs={6}>
-            <M.Paper className={classes.group}>
-              <M.Typography variant="h6" className={classes.sectionHeading}>
-                Preview features
-              </M.Typography>
-              <React.Suspense fallback={<M.CircularProgress />}>
-                <FeatureSettings />
-              </React.Suspense>
-            </M.Paper>
-          </M.Grid>
+          <Card
+            className={`${classes.group} ${classes.card}`}
+            title="Preview features"
+            hint="Individual capabilities this build can offer ahead of general release."
+          >
+            <FeatureSettings />
+          </Card>
         )}
-      </M.Grid>
+      </div>
 
       <React.Suspense fallback={null}>
         <DataProductCatalogs />
       </React.Suspense>
 
       <M.Typography variant="h5" className={classes.title}>
-        Packaging Engine Settings
+        Packaging engine
       </M.Typography>
-      <M.Paper className={classes.group}>
+      <M.Paper className={classes.group} variant="outlined">
         <PackagerSettings />
       </M.Paper>
 
       <M.Typography variant="h5" className={classes.title}>
-        Tabulator Settings
+        Tabulator
       </M.Typography>
-      <M.Paper className={classes.group}>
+      <M.Paper className={classes.group} variant="outlined">
         <TabulatorSettings />
       </M.Paper>
 
       <M.Typography variant="h5" className={classes.title}>
-        Support Diagnostics
+        Support diagnostics
       </M.Typography>
-      <M.Paper className={classes.group}>
+      <M.Paper className={classes.group} variant="outlined">
         <SupportDiagnostics />
       </M.Paper>
     </div>

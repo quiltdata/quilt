@@ -346,6 +346,16 @@ export const legacyPackages = route(
 export const admin = route('/admin')
 export const adminUsers = admin
 
+export const adminUserDetail = route(
+  '/admin/users/:userName',
+  (userName: string) => `/admin/users/${userName}`,
+)
+
+export const adminRoleDetail = route(
+  '/admin/roles/:roleId',
+  (roleId: string) => `/admin/roles/${roleId}`,
+)
+
 export const adminBuckets = route(
   '/admin/buckets',
   (opts?: { add?: boolean }) => `/admin/buckets${mkSearch({ add: opts?.add })}`,

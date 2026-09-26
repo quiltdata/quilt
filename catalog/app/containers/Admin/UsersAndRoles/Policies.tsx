@@ -47,20 +47,23 @@ const columns: Table.Column<Policy>[] = [
     id: 'source',
     label: 'Source',
     getValue: (p: Policy) => p.managed,
-    getDisplay: (value: boolean) =>
-      value ? (
-        <abbr title="This IAM policy is created and managed by Quilt">Quilt</abbr>
-      ) : (
-        <abbr title="This IAM policy is provided and managed by you or another administrator">
-          Custom
-        </abbr>
-      ),
+    getDisplay: (value: boolean, _p: Policy, { classes }: { classes: $TSFixMe }) => (
+      <M.Tooltip
+        title={
+          value
+            ? 'This IAM policy is created and managed by Quilt'
+            : 'This IAM policy is provided and managed by you or another administrator'
+        }
+      >
+        <span className={classes.sourceTag}>{value ? 'Quilt' : 'Custom'}</span>
+      </M.Tooltip>
+    ),
   },
   {
     id: 'buckets',
     label: 'Buckets',
     getValue: (p: Policy) => (p.managed ? p.permissions.length : null),
-    getDisplay: (_buckets: any, p: Policy) =>
+    getDisplay: (_buckets: any, p: Policy, { classes }: { classes: $TSFixMe }) =>
       p.managed ? (
         <M.Tooltip
           arrow
@@ -81,7 +84,9 @@ const columns: Table.Column<Policy>[] = [
           <span>{p.permissions.length}</span>
         </M.Tooltip>
       ) : (
-        'N/A'
+        <M.Tooltip title="What an unmanaged policy grants lives in IAM, which Quilt cannot read">
+          <span className={classes.unknown}>Set in AWS</span>
+        </M.Tooltip>
       ),
   },
   {
@@ -112,6 +117,19 @@ const columns: Table.Column<Policy>[] = [
 const INITIAL_VALUES = { permissions: [], roles: [] }
 
 const useStyles = M.makeStyles((t) => ({
+  sourceTag: {
+    ...t.typography.caption,
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.text.secondary,
+    lineHeight: 1.6,
+    padding: t.spacing(0, 0.75),
+    whiteSpace: 'nowrap',
+  },
+  unknown: {
+    color: t.palette.text.hint,
+    fontStyle: 'italic',
+  },
   lock: {
     alignItems: 'center',
     background: 'rgba(255,255,255,0.9)',
@@ -656,6 +674,7 @@ function SettingsMenu({ policy, openDialog }: SettingsMenuProps) {
 }
 
 export default function Policies() {
+  const classes = useStyles()
   const { policies: rows } = GQL.useQueryS(POLICIES_QUERY)
 
   const filtering = Table.useFiltering({
@@ -709,7 +728,7 @@ export default function Policies() {
               <M.TableRow hover key={i.id}>
                 {columns.map((col) => (
                   <M.TableCell key={col.id} {...col.props}>
-                    {(col.getDisplay || R.identity)(col.getValue(i), i)}
+                    {(col.getDisplay || R.identity)(col.getValue(i), i, { classes })}
                   </M.TableCell>
                 ))}
                 <M.TableCell align="right" padding="none">
