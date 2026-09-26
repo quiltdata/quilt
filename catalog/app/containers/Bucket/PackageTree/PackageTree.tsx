@@ -132,7 +132,6 @@ const useTopBarStyles = M.makeStyles((t) => ({
   // out of the measurement.
   topBar: {
     alignItems: 'end',
-    columnGap: t.spacing(2),
     display: 'grid',
     gridTemplateAreas: '"crumbs actions"',
     gridTemplateColumns: 'minmax(0, 1fr) auto',
@@ -155,14 +154,17 @@ const useTopBarStyles = M.makeStyles((t) => ({
     flexWrap: 'nowrap',
     gridArea: 'actions',
     marginBottom: -3,
+    // The crumbs seam sits on this cell rather than on the grid, so it collapses
+    // with the cell on the renders that pass no actions.
+    marginLeft: t.spacing(2),
     marginTop: -3,
     '&:empty': {
       display: 'none',
     },
-    // Children carry their own marginLeft for intra-cluster gaps; the grid's
-    // columnGap already provides the crumbs seam, so the first child's margin
-    // is zeroed. Doubled selectors (&&) outrank the children's single-class
-    // margin rules regardless of JSS sheet insertion order.
+    // Zeroed so the seam above is the whole gap in both views: the file view's
+    // first child (FileProperties) carries no marginLeft, a button does. Doubled
+    // selectors (&&) outrank the children's single-class margin rules regardless
+    // of JSS sheet insertion order.
     '&& > :first-child': {
       marginLeft: 0,
     },
@@ -171,6 +173,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
       gap: t.spacing(1),
       justifyContent: 'flex-end',
       marginBottom: 0,
+      marginLeft: 0,
       marginTop: t.spacing(1),
       '&& > *': {
         margin: 0,
