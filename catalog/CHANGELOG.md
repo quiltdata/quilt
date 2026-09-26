@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator says when it cannot read a large PDF or Office document, instead of answering from metadata or search hits as though it had read the file ([#XXXX](https://github.com/quiltdata/quilt/pull/XXXX))
 - [Fixed] Revise package: retyping the destination can no longer publish the loaded package's files over a different package while the new name is still being checked ([#5337](https://github.com/quiltdata/quilt/pull/5337))
 - [Fixed] Admin users: re-sorting the table, or deleting a row the admin had not picked, no longer clears the rows selected for a bulk action ([#5336](https://github.com/quiltdata/quilt/pull/5336))
 - [Added] Admin buckets: a bucket icon can be uploaded and cropped in the form itself, so an admin with an image file no longer has to host it somewhere first and paste its URL ([#5333](https://github.com/quiltdata/quilt/pull/5333))
