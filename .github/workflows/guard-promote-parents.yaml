@@ -1,0 +1,134 @@
+name: Guard dev promotes against squashing
+
+# A `dev` -> `master` promote merged with "Squash and merge" re-authors dev's
+# commits as new SHAs on master. Dev's originals never become ancestors, so the
+# merge base freezes and every later back-merge sees files both branches
+# "independently invented" -- git reports them as add/add conflicts with no
+# common ancestor. That is what froze the base at a38c41606 for 33 days in
+# September 2026, past 44 consecutive back-merge failures.
+#
+# Nothing in GitHub's PR UI can force which merge button a human clicks, so this
+# catches the mistake on the next push to master and escalates to an issue.
+# Detection is one `git rev-list --parents` away; the escalation is the point.
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+# No concurrency group, deliberately. GitHub keeps only one pending run per
+# group, so a promote pushed while another run is in flight would have its run
+# dropped before it ever executed -- and this guard only ever inspects its own
+# HEAD, so that commit would never be checked by any later run.
+# back-merge-dev.yaml can serialize because its replacement run subsumes the
+# work; here every commit needs its own inspection.
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to a SHA to match back-merge-dev.yaml: a moved tag would execute
+      # new code against a token that can open issues.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: ancestry and parent counts need real history, and a
+          # shallow clone reports every commit as parentless.
+          fetch-depth: 0
+
+      - name: Check the promote kept dev as an ancestor
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git fetch --quiet origin dev master
+
+          head="$(git rev-parse HEAD)"
+          subject="$(git log -1 --format=%s "$head")"
+
+          # Parent count distinguishes the two promote shapes: a merge commit has
+          # two, a squash has one. Counted from rev-list rather than %p so an
+          # empty parent list (root commit) is not mistaken for one parent.
+          parents="$(git rev-list --parents -n 1 "$head" | wc -w)"
+          parents=$((parents - 1))
+
+          # Only dev promotes are in scope. A normal feature-branch squash onto
+          # master is correct and must not trip this. Matched on the subject
+          # because a squashed promote keeps no ref to the branch it came from --
+          # which is exactly the information this guard is missing.
+          #
+          # nocasematch because the subject is prefilled from the PR title and
+          # typed by a person: "Promote Dev to Master" is the same mistake as
+          # "promote dev to master" and must trip the same check.
+          shopt -s nocasematch
+          case "$subject" in
+            *promote*dev*|*promote*to*master*) ;;
+            *)
+              echo "Not a dev promote; nothing to check."
+              exit 0
+              ;;
+          esac
+          shopt -u nocasematch
+
+          echo "Promote detected: $head ($parents parent(s))"
+          echo "  $subject"
+
+          # The parent count IS the check. An earlier version of this workflow
+          # also asserted `is-ancestor "$head^2" "$head"`, which is true of every
+          # merge commit by construction -- a tautology that read like a second,
+          # stronger test. There is no post-hoc way to prove which branch a
+          # squashed promote came from, so nothing stronger is available here:
+          # two parents means dev's history is reachable, one means it is not.
+          if [ "$parents" -ge 2 ]; then
+            echo "OK: merge commit, so the promoted dev revision stays an ancestor."
+            exit 0
+          fi
+
+          # One parent on a promote: the squash case. Report how much dev work was
+          # re-authored, so the issue says what it will cost rather than just
+          # naming the mistake.
+          #
+          # Guarded because `set -e` aborts on a failing assignment: without the
+          # fallback a missing origin/dev ref would kill the run here, losing the
+          # escalation entirely -- the one thing this workflow exists to deliver.
+          behind="$(git rev-list --count origin/master..origin/dev 2>/dev/null)" || behind='an unknown number of'
+
+          title="Promote $head was squashed -- dev's history is detached from master"
+          body="$(cat <<EOF
+          \`$head\` looks like a \`dev\` -> \`master\` promote but has **one parent**, so it
+          was merged with *Squash and merge*.
+
+          > $subject
+
+          Dev's commits were re-authored as new SHAs on \`master\`. They are not
+          ancestors of it, so the merge base will not advance and
+          \`back-merge-dev.yaml\` will now fail on add/add conflicts in every file
+          both branches touched. \`dev\` is currently **$behind commit(s)** ahead of
+          \`master\`.
+
+          Fix going forward: promote \`dev\` with **Create a merge commit**, never
+          squash. Reconciling the already-detached history is a hand merge -- see
+          the September 2026 convergence, which took 39 conflicted files.
+
+          Raised by \`.github/workflows/guard-promote-parents.yaml\`.
+          EOF
+          )"
+
+          echo "::error::$title"
+
+          # One issue per offending commit: re-running this workflow, or a later
+          # push that re-detects the same promote, must not open duplicates.
+          existing="$(gh issue list --state open --search "$head in:body" --json number --jq '.[].number' | head -1)" || existing=''
+          if [ -n "$existing" ]; then
+            echo "Issue #$existing already tracks this promote."
+            exit 1
+          fi
+
+          gh issue create --title "$title" --body "$body" || \
+            echo "::warning::Could not open an issue; the failure above is the only signal."
+          exit 1
