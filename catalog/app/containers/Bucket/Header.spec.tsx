@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -114,9 +114,49 @@ describe('containers/Bucket/Header', () => {
 
   it('renders an accessibly-labeled settings link to admin bucket edit for admins', () => {
     isAdmin = true
-    const { getByLabelText } = renderHeader()
-    const button = getByLabelText('Bucket settings')
-    expect(button.closest('a')?.getAttribute('href')).toBe('/admin/test-bucket')
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('gives admins one focusable settings control, not a button inside a link', () => {
+    isAdmin = true
+    const { getAllByLabelText, queryByRole } = renderHeader()
+    expect(getAllByLabelText('Bucket settings')).toHaveLength(1)
+    expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
+  })
+
+  // MUI writes a native `title` at rest and `aria-describedby` once open, and
+  // wrapping moves them rather than removing them, so both states and both
+  // elements are checked.
+  it('never describes the settings control with its own name', async () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    const cell = link.closest('div') as HTMLElement
+
+    for (const el of [link, cell]) {
+      expect(el.getAttribute('title')).toBeNull()
+    }
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+
+    fireEvent.mouseOver(link)
+    await waitFor(() => expect(screen.getByRole('tooltip')).toBeTruthy())
+
+    expect(link.getAttribute('title')).toBeNull()
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+  })
+
+  it('gives the settings cell exactly one focusable control', () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    const cell = link.closest('div') as HTMLElement
+    expect(
+      cell.querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])'),
+    ).toHaveLength(1)
+    act(() => link.focus())
+    expect(document.activeElement).toBe(link)
   })
 
   it('does not link the total-size stat', () => {
