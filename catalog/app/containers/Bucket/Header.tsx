@@ -291,13 +291,24 @@ export default function Header({ bucket }: HeaderProps) {
         <Stats bucket={bucket} stats={stats} />
       </div>
       {isAdmin && (
-        <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-          <M.Tooltip arrow title="Bucket settings" disableTouchListener>
-            <M.IconButton size="small" color="inherit" aria-label="Bucket settings">
+        // On the link MUI would write this text as the link's own description. It
+        // wraps the cell instead, and a node title is never written as a `title`.
+        <M.Tooltip arrow title={<>Bucket settings</>} disableTouchListener>
+          <div className={classes.settings}>
+            <M.IconButton
+              component={RRDom.Link}
+              to={urls.adminBucketEdit(bucket)}
+              size="small"
+              color="inherit"
+              aria-label="Bucket settings"
+              // ButtonBase only trusts a literal `component="a"` to be a link, so
+              // without this the anchor is announced as a button, promising Space.
+              role="link"
+            >
               <M.Icon fontSize="small">settings</M.Icon>
             </M.IconButton>
-          </M.Tooltip>
-        </RRDom.Link>
+          </div>
+        </M.Tooltip>
       )}
     </div>
   )
