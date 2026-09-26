@@ -31,6 +31,7 @@ import * as Form from '../Form'
 import * as OnDirty from './OnDirty'
 import TabulatorForm from './Tabulator'
 
+import IconInput from './IconInput'
 import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
 
 import BUCKET_CONFIGS_QUERY from './gql/BucketConfigs.generated'
@@ -57,6 +58,8 @@ const bucketToIndexingAndNotificationsValues = (bucket: BucketConfig) => ({
   fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
   indexContentBytes: bucket.indexContentBytes,
   scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
+  // `[""]` is the registry's "whole bucket", so it round-trips as an empty field.
+  prefixes: (bucket.prefixes || []).filter((p: string) => p).join('\n'),
   snsNotificationArn:
     bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
       ? DO_NOT_SUBSCRIBE_SYM
@@ -198,6 +201,27 @@ const normalizeExtensions = FP.function.flow(
   R.sortBy(R.identity),
   (exts) =>
     exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
+)
+
+// One prefix per line, since a key may legally contain a comma. An empty field sends
+// null, which the registry normalizes to [""] -- whole-bucket access, not "leave the
+// scope alone". Clearing the box therefore widens a narrowed bucket, which is why the
+// field's copy says blank means the whole bucket.
+const normalizePrefixes = FP.function.flow(
+  Types.decode(Types.fromNullable(IO.string, '')),
+  R.split('\n'),
+  R.map(R.trim),
+  R.reject((p: string) => !p),
+  R.uniq,
+  (prefixes) => (prefixes.length ? prefixes : null),
+)
+
+// The registry only trims and appends a trailing slash, so an s3:// URI or a leading
+// slash is stored verbatim and the scan then matches no keys, silently.
+const BAD_PREFIX_RE = /^(s3:\/\/|\/)/
+
+const validatePrefixes = FP.function.flow(normalizePrefixes, (prefixes) =>
+  prefixes?.some(R.test(BAD_PREFIX_RE)) ? 'validPrefixes' : undefined,
 )
 
 const EXT_RE = /\.[0-9a-z_]+/
@@ -375,8 +399,7 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('browsable'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
-  // NOTE: prefixes are managed via quilt3.admin SDK for now
-  prefixes: () => null,
+  prefixes: R.pipe(R.prop('prefixes'), normalizePrefixes),
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
@@ -606,16 +629,7 @@ function PrimaryForm({ bucket }: PrimaryFormProps) {
         fullWidth
         margin={bucket ? 'none' : 'normal'}
       />
-      <RF.Field
-        component={Form.Field}
-        name="iconUrl"
-        label="Icon URL (optional)"
-        placeholder="e.g. https://some-cdn.com/icon.png"
-        helperText="Recommended size: 80x80px"
-        parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
-        fullWidth
-        margin="normal"
-      />
+      <RF.Field component={IconInput} name="iconUrl" bucketName={bucket?.name} />
       <RF.Field
         component={Form.Field}
         name="description"
@@ -957,6 +971,21 @@ function IndexingAndNotificationsForm({
           integer: 'Enter a valid integer',
         }}
         parse={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16) as (s: string) => string)}
+        fullWidth
+        margin="normal"
+      />
+      <RF.Field
+        component={Form.Field}
+        name="prefixes"
+        label="Bulk scan scope"
+        placeholder="Leave blank to scan the whole bucket"
+        validate={validatePrefixes}
+        errors={{
+          validPrefixes: 'Enter plain key prefixes, without s3:// or a leading slash',
+        }}
+        helperText="One key prefix per line; blank means the whole bucket. This governs which bulk scanner jobs are enqueued: objects written outside these prefixes are still indexed and still searchable, and narrowing the scope removes nothing already indexed. A scope that excludes .quilt/ also leaves the bucket without Iceberg registration."
+        multiline
+        rowsMax={6}
         fullWidth
         margin="normal"
       />
@@ -1327,7 +1356,7 @@ interface ReindexProps {
 // reading the message off the error would otherwise render an ALB or nginx error page
 // as if the registry had said it. A null return means the response did not come from
 // the registry, so the caller must not speak for the registry either.
-function serverMessage(e: unknown): string | null {
+export function serverMessage(e: unknown): string | null {
   if (!(e instanceof APIConnector.HTTPError)) return null
   try {
     const { message, error } = JSON.parse(e.text)
@@ -1388,15 +1417,19 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       })
       setSubmitSucceeded(true)
     } catch (e) {
+      const message = serverMessage(e)
       if (APIConnector.HTTPError.is(e, 404, 'Bucket not found')) {
         setError('Bucket not found')
-      } else if (APIConnector.HTTPError.is(e, 409) && serverMessage(e)) {
-        // The registry refuses four distinct ways here (this prefix, a concurrent
-        // prefix, full-bucket either way round), and only its own message says which;
-        // collapsing them hides whether a different prefix would be accepted now.
-        // A 409 with no registry message is a proxy's, so it falls through rather
-        // than asserting a running job that may not exist.
-        setError(serverMessage(e) as string)
+      } else if (
+        (APIConnector.HTTPError.is(e, 400) || APIConnector.HTTPError.is(e, 409)) &&
+        message
+      ) {
+        // Only the registry's own message distinguishes its refusals: which of four
+        // conflicts a 409 is, or that a 400 means this registry build does not accept
+        // `prefix` at all. Narrowed to those statuses because a gateway's JSON body
+        // reaches `serverMessage` indistinguishable from the registry's, so anything
+        // else keeps the console trace instead of speaking for the registry.
+        setError(message)
       } else {
         // eslint-disable-next-line no-console
         console.log('Error re-indexing bucket:')
@@ -1689,7 +1722,7 @@ interface EditPageProps {
   back: () => void
 }
 
-function EditPage({ back }: EditPageProps) {
+export function EditPage({ back }: EditPageProps) {
   const { bucketName } = RRDom.useParams<EditRouteParams>()
   const { urls } = NamedRoutes.use()
   const update = GQL.useMutation(UPDATE_MUTATION)
@@ -1721,7 +1754,13 @@ function EditPage({ back }: EditPageProps) {
   )
   if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
   return (
-    <OnDirty.Provider>
+    // Keyed because this route renders in place when navigation swaps the bucket: the
+    // re-index dialog's state is reset by `onExited`, which does not run then, so without
+    // a remount the dialog stays open with the previous bucket's prefix. The key sits on
+    // the provider rather than on `Edit` because the dirty count only decrements on a
+    // form's change event and unmounting the forms sends none, so a count left here would
+    // guard the next bucket's pristine forms.
+    <OnDirty.Provider key={bucket.name}>
       <Edit
         bucket={bucket}
         back={back}

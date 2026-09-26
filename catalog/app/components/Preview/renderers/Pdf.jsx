@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import cfg from 'constants/config'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -57,7 +58,7 @@ const useStyles = M.makeStyles((t) => ({
   btn: {
     marginBottom: -12,
     marginTop: -12,
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       bottom: '50%',
       fontSize: 72,
       margin: 0,

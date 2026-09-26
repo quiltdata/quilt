@@ -93,6 +93,7 @@ components:
     backgroundColor: "{colors.midnight-chassis}"
     textColor: "{colors.navigation-text}"
     width: "256px"
+    collapsedWidth: "72px"
   search-band:
     backgroundColor: "{colors.surface}"
     borderBottom: "1px solid {colors.divider}"
@@ -356,6 +357,23 @@ Every control uses the same vocabulary on every screen.
   box at the foot; the version readout (Caption + Mono) under it. Selection =
   Navigation Selected wash + the amber bracket (Indicator Rule); keyboard focus
   per the Focus Ring Rule. Icon actions carry tooltips with arrows.
+- **The folded rail:** where the rail is a column (not the compact overlay) it
+  folds to a 72px icon column and back from a chevron on the rail's own right
+  edge, or `[` from anywhere outside a field; the choice is remembered. The
+  control is a detent straddling that edge, centered on the 64px header line —
+  midnight-deep, carrying the border's hairline — and it holds that one
+  position in both states, since a control that relocates when pressed cannot
+  be aimed twice. Folding changes nothing but width: the same rows at the same
+  44px rhythm and the same y (the one expanded-only row above the nav fades
+  in place, holding its height, rather than closing up), icons held on one
+  axis, labels faded rather than removed, the workspace and identity boxes
+  shedding their ground to read as bare icon rows, the wordmark crossfading
+  to the square Q mark on the icon axis, a right-side tooltip standing in for
+  each label. The
+  rail's width is the one animated property that reflows the page (the
+  content column must follow it); what moves inside the rail — labels fading,
+  the foot's version readout closing up, boxes losing their ground — rides on
+  that same 200ms clock, and reduced-motion gets the instant swap.
 - **The search band:** the top bar is chrome, not a card — Surface white,
   full-bleed to the rail's edge, square, flat (no resting shadow), delineated
   by a Divider hairline, height-registered at 64px with the rail's logo block
@@ -377,6 +395,36 @@ Every control uses the same vocabulary on every screen.
 - **Tabs & sub-nav:** per-area tab bars stay in-page and use the standard
   Material tab anatomy; the active tab's underline is the same selection
   vocabulary as the rail's bracket (Indicator Rule).
+
+### Named Rules
+
+**The Touch Floor Rule.** A control a finger has to hit is at least 44px in both
+axes, and the query is `pointer: coarse` — never a width. Density serves the
+scientist, so a narrow column on a desktop keeps the compact instrument; only a
+finger or stylus pays for the larger target. The floor lives on the theme so it
+reaches controls inside dialogs and menus too, and it grows the hit area with
+padding rather than moving the glyph.
+
+**The Column Rule.** Page layouts respond to the width of the main content
+column, not the viewport: the rail takes 256px and the Qurator panel up to 40vw,
+so the column can be phone-width on a desktop. Page styles key on it through
+`components/Layout/Column`, whose keys mirror `theme.breakpoints` against the
+column. The chrome is the exception — the rail and the search band sit outside
+the column they would be measuring, so they keep the viewport. Anything through
+a portal keeps it too: a container query never crosses one.
+
+The floor this rests on is a pin, not a preference: JSS drops an at-rule it does
+not recognise, and `@container` reaches its `keyRegExp` only in 10.10 — MUI v4
+asks for 10.6, which would take every rule above silently. `catalog/package.json`
+pins `jss` and overrides it across the tree for that reason, and pins
+`rrweb-cssom` to a version whose `CSSContainerRule` lets jsdom parse the rules a
+spec asserts on.
+
+**The Safe Area Rule.** The app draws to the edges of a notched screen, so every
+element that owns a screen edge carries its own `env(safe-area-inset-*)` — the
+content column, the full-bleed search band, the rail overlay, the Qurator panel.
+A gutter takes `max()` against the inset rather than adding to it; a fixed-width
+surface adds the inset to its width rather than spending its content on it.
 
 ### Data Identity (signature)
 
@@ -400,6 +448,8 @@ Every control uses the same vocabulary on every screen.
   affordances.
 - **Do** give every interactive element a visible keyboard focus (the Focus
   Ring Rule).
+- **Do** size touch targets from the pointer, not the viewport (the Touch Floor
+  Rule), and lay pages out against the content column (the Column Rule).
 
 ### Don't
 
@@ -414,3 +464,8 @@ Every control uses the same vocabulary on every screen.
   (the One-Register Rule); there is one dark and it is the Midnight Chassis.
 - **Don't** signal state with color alone; pair color with text or iconography.
 - **Don't** use display sizes or the 300 weight inside the app.
+- **Don't** key a page layout on the viewport, or a touch target on a width: the
+  column carries the space and the pointer carries the aim (the Column and Touch
+  Floor Rules).
+- **Don't** reveal an affordance on hover alone — a finger raises neither hover
+  nor focus-visible, so it has to stand at rest where there is no pointer.

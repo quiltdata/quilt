@@ -8,6 +8,7 @@ import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
 
 import QuerySelect from '../QuerySelect'
 
@@ -310,12 +311,13 @@ function ResultsBreadcrumbs({ children, className }: ResultsBreadcrumbsProps) {
   const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
+  const { bucket } = parseSearch(RRDom.useLocation().search, true)
   return (
     <div className={cx(classes.root, className)}>
       <M.Breadcrumbs classes={overrideClasses}>
         <RRDom.Link
           className={classes.breadcrumb}
-          to={urls.queriesAthenaWorkgroup(workgroup.data)}
+          to={urls.queriesAthenaWorkgroup(workgroup.data, { bucket })}
         >
           Query Executions
         </RRDom.Link>

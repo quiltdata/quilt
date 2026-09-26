@@ -1,0 +1,258 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>iconCrop harness</title></head>
+<body>
+<script type="module">
+import { cropToDataUrl, ICON_SIZE, MAX_ICON_DATA_URL_LENGTH } from './build/iconCrop.js'
+
+// Build a source image as a data: URL so the harness exercises the real
+// loadImage -> drawImage -> toDataURL path with no network or file input.
+function makeSource(w, h, paint) {
+  const c = document.createElement('canvas')
+  c.width = w; c.height = h
+  paint(c.getContext('2d'), w, h)
+  return c.toDataURL('image/png')
+}
+
+function decode(url) {
+  return new Promise((res, rej) => {
+    const i = new Image()
+    i.onload = () => res(i)
+    i.onerror = () => rej(new Error('decode failed'))
+    i.src = url
+  })
+}
+
+async function pixels(url) {
+  const img = await decode(url)
+  const c = document.createElement('canvas')
+  c.width = img.naturalWidth; c.height = img.naturalHeight
+  const ctx = c.getContext('2d')
+  ctx.drawImage(img, 0, 0)
+  return { ctx, w: img.naturalWidth, h: img.naturalHeight }
+}
+
+const at = (ctx, x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data)
+const near = (got, want, tol = 12) =>
+  got.slice(0, 3).every((v, i) => Math.abs(v - want[i]) <= tol)
+
+const results = []
+const check = (name, pass, detail) => results.push({ name, pass, detail })
+
+// 1. Flat artwork: PNG fits the budget, alpha survives, output is square.
+{
+  const src = makeSource(400, 400, (ctx, w, h) => {
+    ctx.clearRect(0, 0, w, h)
+    ctx.fillStyle = '#1b5e20'
+    ctx.fillRect(0, 0, w, h / 2)
+    ctx.fillStyle = '#e8f5e9'
+    ctx.fillRect(0, h / 2, w, h / 2)
+  })
+  const out = await cropToDataUrl(src, { x: 0, y: 0, width: 400, height: 400 })
+  const { ctx, w, h } = await pixels(out)
+  check('flat art encodes as PNG', out.startsWith('data:image/png'), out.slice(0, 22))
+  check('output is ICON_SIZE square', w === ICON_SIZE && h === ICON_SIZE, `${w}x${h}`)
+  check('under budget', out.length <= MAX_ICON_DATA_URL_LENGTH, `${out.length}B`)
+  check('top half keeps its colour', near(at(ctx, 48, 10), [27, 94, 32]), String(at(ctx, 48, 10)))
+  check('bottom half keeps its colour', near(at(ctx, 48, 86), [232, 245, 233]), String(at(ctx, 48, 86)))
+}
+
+// 2. The crop rect actually selects the requested region, not the whole image.
+{
+  const src = makeSource(200, 200, (ctx) => {
+    ctx.fillStyle = '#0d47a1'; ctx.fillRect(0, 0, 200, 200)
+    ctx.fillStyle = '#b71c1c'; ctx.fillRect(0, 0, 100, 100)   // top-left quadrant
+  })
+  const out = await cropToDataUrl(src, { x: 0, y: 0, width: 100, height: 100 })
+  const { ctx } = await pixels(out)
+  check('crops to the requested quadrant', near(at(ctx, 48, 48), [183, 28, 28]), String(at(ctx, 48, 48)))
+  const out2 = await cropToDataUrl(src, { x: 100, y: 100, width: 100, height: 100 })
+  const p2 = await pixels(out2)
+  check('a different rect yields different pixels', near(at(p2.ctx, 48, 48), [13, 71, 161]), String(at(p2.ctx, 48, 48)))
+}
+
+// 3. An out-of-bounds rect leaves no transparent hairline along the edge.
+{
+  const src = makeSource(200, 200, (ctx) => {
+    ctx.fillStyle = '#4e342e'; ctx.fillRect(0, 0, 200, 200)
+  })
+  const out = await cropToDataUrl(src, { x: -25, y: -25, width: 150, height: 150 })
+  const { ctx } = await pixels(out)
+  const edges = [at(ctx, 0, 0), at(ctx, 0, 95), at(ctx, 95, 0), at(ctx, 95, 95)]
+  check(
+    'no transparent edge after clamping',
+    edges.every((p) => p[3] === 255 && near(p, [78, 52, 46])),
+    JSON.stringify(edges),
+  )
+}
+
+// 3b. A rect overshooting ONE axis stays undistorted: the clamp slides the
+// square inward rather than letting drawImage stretch a 50x80 source into 96x96.
+{
+  // The rect overshoots only the x axis: 80 wide from x=150 has just 50 left,
+  // while 80 tall from y=10 fits. Trimming per-axis yields 50x80 -> stretched;
+  // sliding yields 80x80 at x=120.
+  const src = makeSource(200, 100, (ctx) => {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 200, 100)
+    ctx.fillStyle = '#0d47a1'
+    // Centred in the 80x80 square the clamp should produce (x 120-200, y 10-90),
+    // so both probe lines below cross the circle's middle, and small enough that
+    // its colour run is measurably short of the full frame.
+    ctx.beginPath(); ctx.arc(160, 50, 15, 0, Math.PI * 2); ctx.fill()
+  })
+  const out = await cropToDataUrl(src, { x: 150, y: 10, width: 80, height: 80 })
+  const { ctx } = await pixels(out)
+  const runAt = (fixed, horizontal) => {
+    let n = 0
+    for (let i = 0; i < 96; i += 1) {
+      const p = horizontal ? at(ctx, i, fixed) : at(ctx, fixed, i)
+      if (near(p, [13, 71, 161], 40)) n += 1
+    }
+    return n
+  }
+  const w = runAt(48, true)
+  const h = runAt(48, false)
+  // A real circle: both runs are the diameter, and short of the 96 frame so the
+  // measurement is not saturated. Per-axis trimming made this 50x80 -> a 1.6x
+  // horizontal stretch, i.e. w/h ~ 1.6 rather than 1.
+  check(
+    'a circle stays circular (no axis stretch)',
+    w > 8 && w < 90 && Math.abs(w - h) <= 4,
+    `width-run=${w} height-run=${h}`,
+  )
+}
+
+// 3c. Alpha actually survives the PNG path. Every other source here is opaque, so
+// without a transparent one nothing distinguishes "alpha kept" from "no alpha".
+{
+  const src = makeSource(200, 200, (ctx) => {
+    ctx.clearRect(0, 0, 200, 200)
+    ctx.fillStyle = '#1b5e20'
+    ctx.beginPath(); ctx.arc(100, 100, 60, 0, Math.PI * 2); ctx.fill()
+  })
+  const out = await cropToDataUrl(src, { x: 0, y: 0, width: 200, height: 200 })
+  const { ctx } = await pixels(out)
+  check('PNG keeps the transparent ground', at(ctx, 2, 2)[3] === 0, String(at(ctx, 2, 2)))
+  check('and the opaque subject', at(ctx, 48, 48)[3] === 255, String(at(ctx, 48, 48)))
+}
+
+// 3d. A transparent source too detailed for PNG is REFUSED rather than sent down
+// the JPEG path, which has no alpha channel and would ground it on white — a white
+// disc behind the glyph, since the icon renders in a circular clip.
+{
+  const src = makeSource(500, 500, (ctx, w, h) => {
+    ctx.clearRect(0, 0, w, h)
+    const img = ctx.createImageData(w, h)
+    let seed = 21
+    for (let i = 0; i < img.data.length; i += 4) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      img.data[i] = seed % 256
+      img.data[i + 1] = (seed >> 9) % 256
+      img.data[i + 2] = (seed >> 18) % 256
+      // Left quarter fully transparent, the rest opaque noise so PNG overshoots.
+      img.data[i + 3] = (i / 4) % w < w / 4 ? 0 : 255
+    }
+    ctx.putImageData(img, 0, 0)
+  })
+  let threw = ''
+  try { await cropToDataUrl(src, { x: 0, y: 0, width: 500, height: 500 }) }
+  catch (e) { threw = e.message }
+  check('transparent-and-oversized is refused', /transparent/.test(threw), threw || '(no throw)')
+}
+
+// 4. Photographic noise: PNG overshoots, so it falls back to JPEG and still fits.
+{
+  const src = makeSource(600, 600, (ctx, w, h) => {
+    const img = ctx.createImageData(w, h)
+    let seed = 7
+    for (let i = 0; i < img.data.length; i += 4) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      img.data[i] = seed % 256
+      img.data[i + 1] = (seed >> 8) % 256
+      img.data[i + 2] = (seed >> 16) % 256
+      img.data[i + 3] = 255
+    }
+    ctx.putImageData(img, 0, 0)
+  })
+  const out = await cropToDataUrl(src, { x: 0, y: 0, width: 600, height: 600 })
+  check('noisy source falls back to JPEG', out.startsWith('data:image/jpeg'), out.slice(0, 22))
+  check('JPEG fallback fits the budget', out.length <= MAX_ICON_DATA_URL_LENGTH, `${out.length}B`)
+}
+
+// 4b. Every encoding the real canvas produces respects the bound, because the
+// icon is read for every bucket at once on the volumes landing.
+{
+  const sources = [
+    ['flat', (ctx, w, h) => { ctx.fillStyle = '#2e7d32'; ctx.fillRect(0, 0, w, h) }],
+    ['gradient', (ctx, w, h) => {
+      const g = ctx.createLinearGradient(0, 0, w, h)
+      g.addColorStop(0, '#1a237e'); g.addColorStop(1, '#f8bbd0')
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+    }],
+    ['noise', (ctx, w, h) => {
+      const img = ctx.createImageData(w, h)
+      let seed = 99
+      for (let i = 0; i < img.data.length; i += 4) {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff
+        img.data[i] = seed % 256; img.data[i + 1] = (seed >> 7) % 256
+        img.data[i + 2] = (seed >> 14) % 256; img.data[i + 3] = 255
+      }
+      ctx.putImageData(img, 0, 0)
+    }],
+  ]
+  const sizes = []
+  for (const [name, paint] of sources) {
+    const src = makeSource(500, 500, paint)
+    const out = await cropToDataUrl(src, { x: 0, y: 0, width: 500, height: 500 })
+    sizes.push(`${name}=${out.length}B`)
+    if (out.length > MAX_ICON_DATA_URL_LENGTH) {
+      check(`${name} respects the bound`, false, `${out.length}B`)
+    }
+  }
+  check('every encoding respects the bound', true, sizes.join(' '))
+}
+
+// 5. A degenerate rect is reported, not silently encoded as blank.
+{
+  const src = makeSource(100, 100, (ctx) => { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 100, 100) })
+  let threw = ''
+  try { await cropToDataUrl(src, { x: 0, y: 0, width: 0, height: 50 }) }
+  catch (e) { threw = e.message }
+  check('degenerate rect rejected', threw === 'Nothing to crop', threw || '(no throw)')
+}
+
+// 5b. An origin fully past the far edge slides back in rather than being
+// rejected: the requested side is available, only its position was not.
+{
+  const src = makeSource(100, 100, (ctx) => {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 100, 100)
+    ctx.fillStyle = '#ad1457'; ctx.fillRect(50, 0, 50, 100)  // right half
+  })
+  const out = await cropToDataUrl(src, { x: 100, y: 0, width: 50, height: 50 })
+  const { ctx } = await pixels(out)
+  // Slid to x=50, so the crop is the right half: magenta across the frame.
+  check(
+    'origin past the edge slides inward',
+    near(at(ctx, 48, 48), [173, 20, 87]),
+    String(at(ctx, 48, 48)),
+  )
+}
+
+// The pixel budget is not exercised here: building a source past it costs more
+// time to encode than the check is worth, and `fitsPixelBudget` is arithmetic the
+// unit tests cover.
+
+window.__RESULTS__ = results
+document.title = results.every((r) => r.pass) ? 'ALL PASS' : 'FAILURES'
+
+// Rendered, not just left on `window`: the point of the harness is that a person
+// (or a headless dump) can read which check failed and on what measurement.
+document.body.appendChild(
+  Object.assign(document.createElement('pre'), {
+    id: 'results',
+    textContent: results
+      .map((r) => `${r.pass ? 'PASS' : 'FAIL'}  ${r.name}  [${r.detail}]`)
+      .join('\n'),
+  }),
+)
+</script>
+</body></html>
