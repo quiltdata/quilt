@@ -9,6 +9,7 @@ import * as Lab from '@material-ui/lab'
 import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
+import parseSearch from 'utils/parseSearch'
 
 import * as Model from './model'
 
@@ -251,6 +252,7 @@ interface HistoryProps {
 
 export default function History({ executions, onLoadMore }: HistoryProps) {
   const { urls } = NamedRoutes.use()
+  const { bucket } = parseSearch(RRDom.useLocation().search, true)
   const classes = useStyles()
 
   const pageSize = 10
@@ -308,7 +310,9 @@ export default function History({ executions, onLoadMore }: HistoryProps) {
               key={queryExecution.id}
               to={
                 queryExecution.status === 'SUCCEEDED'
-                  ? urls.queriesAthenaExecution(workgroup.data, queryExecution.id)
+                  ? urls.queriesAthenaExecution(workgroup.data, queryExecution.id, {
+                      bucket,
+                    })
                   : undefined
               }
             />

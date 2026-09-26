@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import BucketSelector from 'containers/Search/Buckets'
 import ResultTypeSelector from 'containers/Search/ResultType'
 import * as SearchUIModel from 'containers/Search/model'
@@ -13,11 +14,6 @@ import ObjectFilters from './ObjectFilters'
 import PackageFilters from './PackageFilters'
 import ResultsToolbar from './Results'
 import ScrollToTop from './ScrollToTop'
-
-function useMobileView() {
-  const t = M.useTheme()
-  return M.useMediaQuery(t.breakpoints.down('sm'))
-}
 
 const useMobileFiltersStyles = M.makeStyles((t) => ({
   filters: {
@@ -137,7 +133,7 @@ export default function Main({ children }: MainProps) {
 
   const classes = useStyles()
 
-  const isMobile = useMobileView()
+  const isMobile = Column.useDown('sm')
   const [showFilters, setShowFilters] = React.useState(false)
   const toggleFilters = React.useMemo(
     () =>

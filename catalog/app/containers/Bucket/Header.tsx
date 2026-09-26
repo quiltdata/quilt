@@ -4,6 +4,7 @@ import * as RRDom from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -109,14 +110,14 @@ const useStatsStyles = M.makeStyles((t) => ({
     flexWrap: 'nowrap',
     justifyContent: 'flex-end',
     rowGap: t.spacing(1),
-    [t.breakpoints.down(1300)]: {
+    [Column.down(1044)]: {
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
       '& $create': {
         marginLeft: 'auto',
       },
     },
-    [t.breakpoints.down(640)]: {
+    [Column.down(640)]: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
       '& $create': {
@@ -206,17 +207,16 @@ function CreatePackage({ bucket, className }: CreatePackageProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  // Tier cutoffs are viewport-based, but the card's width is viewport minus
-  // the shell chrome (256px rail above 960px + paddings), so the never-wrap
-  // row engages only where it always fits (≥1300px ≈ 950px of card). Below
-  // that the stacked tiers tolerate any width.
+  // Cutoffs measure the card, not the viewport (components/Layout/Column), so
+  // the rail and Qurator's gutter are already outside them. 1044px is the
+  // column the old 1300px viewport tier engaged at, once the 256px rail is out.
   root: {
     alignItems: 'center',
     columnGap: t.spacing(3),
     display: 'grid',
     gridTemplateAreas: '"title stats"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto',
-    [t.breakpoints.down(1300)]: {
+    [Column.down(1044)]: {
       gridTemplateAreas: '"title" "stats"',
       gridTemplateColumns: 'minmax(0, 1fr)',
       rowGap: t.spacing(1),
@@ -227,7 +227,7 @@ const useStyles = M.makeStyles((t) => ({
   withSettings: {
     gridTemplateAreas: '"title stats settings"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
-    [t.breakpoints.down(1300)]: {
+    [Column.down(1044)]: {
       gridTemplateAreas: '"title settings" "stats stats"',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
     },
@@ -237,13 +237,14 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 0,
     overflow: 'hidden',
   },
-  // Truncation needs the hover tooltip as its escape hatch; on narrow
-  // (mostly touch) screens there is no hover, so the name wraps instead.
+  // Truncation needs the hover tooltip as its escape hatch, so where there is
+  // no hover the name wraps instead. Keyed on the pointer, not a width: a
+  // narrow column on a desktop still has one (components/Layout/Pointer).
   titleText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    [t.breakpoints.down(640)]: {
+    '@media (hover: none)': {
       overflowWrap: 'anywhere',
       whiteSpace: 'normal',
     },
@@ -290,13 +291,24 @@ export default function Header({ bucket }: HeaderProps) {
         <Stats bucket={bucket} stats={stats} />
       </div>
       {isAdmin && (
-        <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-          <M.Tooltip arrow title="Bucket settings" disableTouchListener>
-            <M.IconButton size="small" color="inherit" aria-label="Bucket settings">
+        // On the link MUI would write this text as the link's own description. It
+        // wraps the cell instead, and a node title is never written as a `title`.
+        <M.Tooltip arrow title={<>Bucket settings</>} disableTouchListener>
+          <div className={classes.settings}>
+            <M.IconButton
+              component={RRDom.Link}
+              to={urls.adminBucketEdit(bucket)}
+              size="small"
+              color="inherit"
+              aria-label="Bucket settings"
+              // ButtonBase only trusts a literal `component="a"` to be a link, so
+              // without this the anchor is announced as a button, promising Space.
+              role="link"
+            >
               <M.Icon fontSize="small">settings</M.Icon>
             </M.IconButton>
-          </M.Tooltip>
-        </RRDom.Link>
+          </div>
+        </M.Tooltip>
       )}
     </div>
   )

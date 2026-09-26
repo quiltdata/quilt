@@ -4,6 +4,9 @@ import * as M from '@material-ui/core'
 
 import type * as SvgIcons from '@material-ui/icons'
 
+import * as Column from 'components/Layout/Column'
+import * as Pointer from 'components/Layout/Pointer'
+
 export type SvgIcon = typeof SvgIcons.AddOutlined | typeof SvgIcons.GetAppOutlined
 
 export type StrIcon =
@@ -51,6 +54,17 @@ interface ButtonIconizedProps extends M.IconButtonProps {
   endIcon?: React.ReactNode
 }
 
+const useButtonStyles = M.makeStyles({
+  // The icon-only form is the whole control on a phone, so it carries the
+  // touch floor itself -- `size="small"` alone lands at 30px.
+  iconOnly: {
+    [Pointer.COARSE]: {
+      height: Pointer.TOUCH_TARGET,
+      width: Pointer.TOUCH_TARGET,
+    },
+  },
+})
+
 export default function ButtonIconized({
   className,
   endIcon,
@@ -60,11 +74,17 @@ export default function ButtonIconized({
   variant = 'outlined',
   ...props
 }: ButtonIconizedProps) {
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const buttonClasses = useButtonStyles()
+  const sm = Column.useDown('sm')
 
   return sm ? (
-    <M.IconButton className={className} edge="end" size="small" title={label} {...props}>
+    <M.IconButton
+      className={cx(buttonClasses.iconOnly, className)}
+      edge="end"
+      size="small"
+      title={label}
+      {...props}
+    >
       <Icon icon={icon} rotate={rotate} />
     </M.IconButton>
   ) : (

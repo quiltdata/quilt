@@ -7,6 +7,7 @@ import { docs } from 'constants/urls'
 import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import parseSearch from 'utils/parseSearch'
 
 import { Alert } from './Components'
 import * as Model from './model'
@@ -37,12 +38,8 @@ function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) 
 
   const goToWorkgroup = React.useCallback(
     (workgroup: string) => {
-      // Preserve the query string (e.g. the ?bucket= tabulator scope) across
-      // workgroup switches.
-      history.push({
-        pathname: urls.queriesAthenaWorkgroup(workgroup),
-        search: location.search,
-      })
+      const { bucket, table } = parseSearch(location.search, true)
+      history.push(urls.queriesAthenaWorkgroup(workgroup, { bucket, table }))
     },
     [history, location.search, urls],
   )
