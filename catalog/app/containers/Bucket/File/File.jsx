@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as FileEditor from 'components/FileEditor'
 import * as Hash from 'components/Hash'
+import * as Column from 'components/Layout/Column'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
@@ -271,7 +272,7 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     maxWidth: 'calc(100% - 160px)',
     overflowWrap: 'break-word',
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       maxWidth: 'calc(100% - 40px)',
     },
   },

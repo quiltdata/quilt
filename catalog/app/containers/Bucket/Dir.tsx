@@ -4,6 +4,7 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as Column from 'components/Layout/Column'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -148,8 +149,14 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexShrink: 0,
     margin: '-3px 0 -3px auto',
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       marginTop: t.spacing(0.5),
+    },
+    // `auto` pins the group to the trailing edge, which on a phone starts it
+    // past the point where its widest control still fits.
+    [Column.down('xs')]: {
+      marginLeft: 0,
+      width: '100%',
     },
   },
   tooltip: {

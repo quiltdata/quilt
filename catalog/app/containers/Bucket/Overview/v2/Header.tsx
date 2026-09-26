@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import AsyncResult from 'utils/AsyncResult'
 import * as GQL from 'utils/GraphQL'
 import useConst from 'utils/useConstant'
@@ -21,7 +22,7 @@ const useChartsStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     marginTop: t.spacing(3),
     position: 'relative',
-    [t.breakpoints.up('md')]: {
+    [Column.up('md')]: {
       flexDirection: 'row',
     },
   },
@@ -42,7 +43,7 @@ const useChartsStyles = M.makeStyles((t) => ({
     height: t.spacing(4),
     justifyContent: 'center',
     width: '100%',
-    [t.breakpoints.up('md')]: {
+    [Column.up('md')]: {
       height: '100%',
       width: t.spacing(4),
     },
@@ -57,6 +58,7 @@ interface ChartsProps {
 function Charts({ bucket, statsResult }: ChartsProps) {
   const classes = useChartsStyles()
   const colorPool = useConst(() => makeColorPool(COLOR_MAP))
+  const stacked = Column.useDown('sm')
   return (
     <div className={classes.root}>
       <ObjectsByExt
@@ -67,11 +69,7 @@ function Charts({ bucket, statsResult }: ChartsProps) {
         heading="Objects by file extension"
         headingClassName={classes.objectsHeading}
       />
-      <div className={classes.divider}>
-        <M.Hidden mdUp>
-          <M.Divider />
-        </M.Hidden>
-      </div>
+      <div className={classes.divider}>{stacked && <M.Divider />}</div>
       <RecentPackages bucket={bucket} />
     </div>
   )
@@ -81,7 +79,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(3),
     position: 'relative',
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
   },
