@@ -11,6 +11,7 @@ import { useBucketExistence } from 'utils/BucketCache'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Pointer from 'components/Layout/Pointer'
 import * as s3paths from 'utils/s3paths'
 
 import DeleteDialog, { type DeleteResult } from './Toolbar/DeleteDialog'
@@ -24,6 +25,10 @@ import * as FileView from './FileView'
 const useButtonStyles = M.makeStyles({
   root: {
     padding: '5px',
+    // Row actions are the smallest thing a finger has to hit in a listing.
+    [Pointer.COARSE]: {
+      padding: '10px',
+    },
   },
 })
 
@@ -170,6 +175,14 @@ const useRowActionsStyles = M.makeStyles((t) => ({
       ${t.palette.action.hover} 100%)`,
     display: 'flex',
     padding: t.spacing(0, 2, 0, 10),
+    // The 80px lead-in is room for the gradient to fade in under a pointer. A
+    // finger never triggers that reveal, so it is width the row does not have.
+    // Keyed on the same query as the grid's reserved actions cell (Listing):
+    // two predicates for one decision break the layout wherever they disagree.
+    [Pointer.COARSE]: {
+      background: 'none',
+      padding: 0,
+    },
   },
   item: {
     '& + &': {
@@ -180,6 +193,11 @@ const useRowActionsStyles = M.makeStyles((t) => ({
     '.MuiDataGrid-row:hover &': {
       animation: `$show 150ms ease-out`,
       position: 'absolute',
+    },
+    // On touch the grid reserves a cell for the actions (Listing's `actions`
+    // column), so they sit in it rather than floating over the size readout.
+    [Pointer.COARSE]: {
+      background: 'none',
     },
     background: `linear-gradient(
       to right,
@@ -267,6 +285,30 @@ interface ListingRowActionsProps {
   prefs: BucketPreferences.ActionPreferences
   onReload: () => void
   // TODO: selected
+}
+
+/**
+ * The most controls any row of this listing renders, for a caller reserving width
+ * for them: the branches below decide that, not the object preferences alone -- a
+ * package listing renders one control, and an archived row renders none. `to` is
+ * any row's target; every row of one listing matches the same route.
+ */
+export function useMaxRowActionCount(
+  to: string | undefined,
+  prefs: Pick<
+    BucketPreferences.ActionPreferences,
+    'deleteObject' | 'downloadObject' | 'downloadPackage'
+  > | null,
+  allArchived: boolean,
+): number {
+  // An empty directory has no row to sample, so there is nothing to reserve for.
+  const { location, handle } = useMatchedParams(to ?? '')
+  if (!to || !prefs || allArchived) return 0
+  if (location) {
+    return 1 + (prefs.deleteObject ? 1 : 0) + (prefs.downloadObject ? 1 : 0)
+  }
+  if (handle && prefs.downloadPackage) return 1
+  return 0
 }
 
 export default function ListingRowActions({
