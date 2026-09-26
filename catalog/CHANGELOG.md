@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator says when it cannot read a large PDF or Office document, instead of answering from metadata or search hits as though it had read the file ([#XXXX](https://github.com/quiltdata/quilt/pull/XXXX))
 - [Fixed] A bucket's name and its admin-settings link show on every stack, not only those with the `beta` setting — the Packages and Workflows tabs identified the bucket nowhere on a default stack. Only the stats row stays behind `beta`. The Overview hero no longer draws its own copy of either, so they appear once per page, and a long name ellipsizes instead of overflowing the card ([#5235](https://github.com/quiltdata/quilt/pull/5235))
 - [Changed] Admin status: its sections sit flat and share one heading level with the rest of the admin panel, and a stack without the monitoring add-on says so instead of reading as missing data ([#5357](https://github.com/quiltdata/quilt/pull/5357))
 - [Fixed] A file editor whose syntax-mode chunk fails to load now surfaces the error instead of spinning forever, and the admin SSO role mapping dialog keeps its title and actions whether that chunk loads or fails ([#5357](https://github.com/quiltdata/quilt/pull/5357))
