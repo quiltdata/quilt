@@ -4,14 +4,14 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as AWS from 'utils/AWS'
 import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
-import * as authSelectors from 'containers/Auth/selectors'
+import * as authActions from 'containers/Auth/actions'
+import defer from 'utils/defer'
 
-import * as Bedrock from './Bedrock'
+import * as Relay from './Relay'
 import * as Connectors from './Connectors'
 import * as Mcp from './Connectors/Mcp'
 import * as Context from './Context'
@@ -34,6 +34,7 @@ export const DEFAULT_MODEL_ID =
 const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
 
 const MCP_URL_KEY = 'QUILT_MCP_URL'
+const INFERENCE_URL_KEY = 'QUILT_INFERENCE_URL'
 
 /**
  * MCP endpoint for the platform connector. Defaults to the registry-
@@ -46,6 +47,20 @@ function getPlatformMcpUrl(): string {
     if (override) return override
   }
   return `${cfg.registryUrl}/mcp/platform/mcp`
+}
+
+/**
+ * The registry's inference relay. The model call is issued from there rather
+ * than from the browser, so a deployment's gateway credential never reaches
+ * the client. `localStorage.QUILT_INFERENCE_URL` overrides for local dev, as
+ * `QUILT_MCP_URL` does.
+ */
+function getInferenceUrl(): string {
+  if (typeof localStorage !== 'undefined') {
+    const override = localStorage.getItem(INFERENCE_URL_KEY)
+    if (override) return override
+  }
+  return `${cfg.registryUrl}/api/inference`
 }
 
 const PLATFORM_CONNECTOR_HINT =
@@ -70,7 +85,7 @@ const PLATFORM_AUTOLOAD: ReadonlySet<string> = new Set([
  * maps a `null` token to an internal auth error.
  */
 function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
-  const store = redux.useStore()
+  const getToken = useSessionToken()
   return React.useMemo(
     () => ({
       id: 'platform',
@@ -79,11 +94,35 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
       autoload: PLATFORM_AUTOLOAD,
       backend: Mcp.bearerPassthru({
         url: getPlatformMcpUrl(),
-        getToken: () =>
-          Eff.Effect.sync(() => authSelectors.token(store.getState()) ?? null),
+        getToken,
       }),
     }),
-    [store],
+    [getToken],
+  )
+}
+
+/**
+ * The catalog session token, resolved through the auth saga so an expired
+ * session is refreshed rather than handed over stale. Reading the store
+ * directly would 401 forever after an idle tab, where the Bedrock path used to
+ * self-heal through the credential refresh. `null` when there is no session.
+ */
+function useSessionToken(): () => Eff.Effect.Effect<string | null> {
+  const dispatch = redux.useDispatch()
+  return React.useCallback(
+    () =>
+      Eff.Effect.tryPromise({
+        try: () => {
+          const { resolver, promise } = defer<{ token?: string } | undefined>()
+          dispatch(authActions.getTokens(resolver))
+          return promise
+        },
+        catch: () => null,
+      }).pipe(
+        Eff.Effect.map((tokens) => tokens?.token ?? null),
+        Eff.Effect.catchAll(() => Eff.Effect.succeed(null)),
+      ),
+    [dispatch],
   )
 }
 
@@ -217,15 +256,15 @@ function useConstructAssistantAPI() {
   const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
   const connectors = useConnectors(connectorConfigs)
 
+  const getToken = useSessionToken()
   const passThru = usePassThru({
-    bedrock: AWS.Bedrock.useClient(),
     context: Context.useLayer(),
     connectors,
   })
 
   const layerEff = Eff.Effect.sync(() =>
     Eff.Layer.mergeAll(
-      Bedrock.LLMBedrock(passThru.current.bedrock, { modelId, record }),
+      Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken }),
       passThru.current.context,
       Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
     ),
