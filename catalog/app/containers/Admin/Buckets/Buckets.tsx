@@ -1327,7 +1327,7 @@ interface ReindexProps {
 // reading the message off the error would otherwise render an ALB or nginx error page
 // as if the registry had said it. A null return means the response did not come from
 // the registry, so the caller must not speak for the registry either.
-function serverMessage(e: unknown): string | null {
+export function serverMessage(e: unknown): string | null {
   if (!(e instanceof APIConnector.HTTPError)) return null
   try {
     const { message, error } = JSON.parse(e.text)
@@ -1388,15 +1388,19 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       })
       setSubmitSucceeded(true)
     } catch (e) {
+      const message = serverMessage(e)
       if (APIConnector.HTTPError.is(e, 404, 'Bucket not found')) {
         setError('Bucket not found')
-      } else if (APIConnector.HTTPError.is(e, 409) && serverMessage(e)) {
-        // The registry refuses four distinct ways here (this prefix, a concurrent
-        // prefix, full-bucket either way round), and only its own message says which;
-        // collapsing them hides whether a different prefix would be accepted now.
-        // A 409 with no registry message is a proxy's, so it falls through rather
-        // than asserting a running job that may not exist.
-        setError(serverMessage(e) as string)
+      } else if (
+        (APIConnector.HTTPError.is(e, 400) || APIConnector.HTTPError.is(e, 409)) &&
+        message
+      ) {
+        // Only the registry's own message distinguishes its refusals: which of four
+        // conflicts a 409 is, or that a 400 means this registry build does not accept
+        // `prefix` at all. Narrowed to those statuses because a gateway's JSON body
+        // reaches `serverMessage` indistinguishable from the registry's, so anything
+        // else keeps the console trace instead of speaking for the registry.
+        setError(message)
       } else {
         // eslint-disable-next-line no-console
         console.log('Error re-indexing bucket:')
@@ -1689,7 +1693,7 @@ interface EditPageProps {
   back: () => void
 }
 
-function EditPage({ back }: EditPageProps) {
+export function EditPage({ back }: EditPageProps) {
   const { bucketName } = RRDom.useParams<EditRouteParams>()
   const { urls } = NamedRoutes.use()
   const update = GQL.useMutation(UPDATE_MUTATION)
@@ -1721,7 +1725,13 @@ function EditPage({ back }: EditPageProps) {
   )
   if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
   return (
-    <OnDirty.Provider>
+    // Keyed because this route renders in place when navigation swaps the bucket: the
+    // re-index dialog's state is reset by `onExited`, which does not run then, so without
+    // a remount the dialog stays open with the previous bucket's prefix. The key sits on
+    // the provider rather than on `Edit` because the dirty count only decrements on a
+    // form's change event and unmounting the forms sends none, so a count left here would
+    // guard the next bucket's pristine forms.
+    <OnDirty.Provider key={bucket.name}>
       <Edit
         bucket={bucket}
         back={back}

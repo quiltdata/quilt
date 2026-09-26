@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Admin buckets: a re-index prefix typed for one bucket no longer carries over to another, and a refused re-index reports the registry's own reason instead of a generic error ([#5345](https://github.com/quiltdata/quilt/pull/5345))
 - [Fixed] Athena console: the bucket scope survives moving between a workgroup, a query execution and the history, instead of being lost after the first hop ([#5347](https://github.com/quiltdata/quilt/pull/5347))
 - [Fixed] Bucket header: the settings control is a single stop for keyboard and screen-reader users instead of two ([#5343](https://github.com/quiltdata/quilt/pull/5343))
 - [Fixed] Package: the breadcrumb path no longer shifts when the action buttons finish loading ([#5342](https://github.com/quiltdata/quilt/pull/5342))
