@@ -451,9 +451,11 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function summarize(v: FormValues, bucket: BucketConfig): Record<SectionId, string> {
-  const scope = v.prefixes.split('\n').filter((p) => p.trim()).length
+  // Clearing a text field makes react-final-form parse it to `undefined`, and this
+  // readout renders on every keystroke, so an unguarded read crashes the whole panel.
+  const scope = (v.prefixes ?? '').split('\n').filter((p) => p.trim()).length
   return {
-    display: v.title === bucket.name ? bucket.name : `${v.title}`,
+    display: v.title || bucket.name,
     find: `relevance ${v.relevanceScore || '0'}${v.tags ? ` · ${v.tags.split(',').filter((x) => x.trim()).length} tags` : ' · no tags'}`,
     index: `deep indexing ${v.enableDeepIndexing ? 'on' : 'off'} · ${scope ? `${scope} ${scope === 1 ? 'prefix' : 'prefixes'}` : 'whole bucket'} · notifications ${typeof v.snsNotificationArn === 'symbol' ? 'skipped' : 'subscribed'}`,
     render: v.browsable ? 'permissive HTML on' : 'permissive HTML off',

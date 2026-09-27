@@ -348,12 +348,12 @@ export const adminUsers = admin
 
 export const adminUserDetail = route(
   '/admin/users/:userName',
-  (userName: string) => `/admin/users/${userName}`,
+  (userName: string) => `/admin/users/${encodeURIComponent(userName)}`,
 )
 
 export const adminRoleDetail = route(
   '/admin/roles/:roleId',
-  (roleId: string) => `/admin/roles/${roleId}`,
+  (roleId: string) => `/admin/roles/${encodeURIComponent(roleId)}`,
 )
 
 export const adminBuckets = route(

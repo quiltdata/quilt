@@ -363,7 +363,9 @@ export default function UserPage({
                 )}
               </>
             ) : (
-              <AccessTable grants={activeGrants} unknown={activeUnknown} />
+              // Not `activeGrants`: a user whose only role is an extra one has no
+              // active role, and reading that would deny the access the list shows.
+              <AccessTable grants={roleAccess(held[0])} unknown={isCustom(held[0])} />
             )}
           </>
         )}

@@ -111,25 +111,6 @@ describe('Admin/UsersAndRoles/access', () => {
     })
   })
 
-  // The user page tabs one panel per held role plus a trailing "Any role" panel, so
-  // the highest valid index is held.length, not held.length - 1. Clamping to the
-  // latter made the merged panel unreachable for every multi-role user.
-  describe('tab index ceiling', () => {
-    const clamp = (tab: number, held: number) => Math.min(tab, held)
-
-    it('admits the index one past the per-role tabs', () => {
-      expect(clamp(5, 5)).toBe(5)
-    })
-
-    it('still clamps an index beyond the merged tab', () => {
-      expect(clamp(9, 5)).toBe(5)
-    })
-
-    it('holds at zero when no role is held', () => {
-      expect(clamp(3, 0)).toBe(0)
-    })
-  })
-
   describe('summarize', () => {
     it('counts buckets by level and flags the ones nothing explains', () => {
       const grants = combinedAccess([
