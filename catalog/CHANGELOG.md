@@ -21,7 +21,8 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] A bucket's name and its admin-settings link show on every stack, not only those with the `beta` setting — the Packages and Workflows tabs identified the bucket nowhere on a default stack. Only the stats row stays behind `beta`. The Overview hero no longer draws its own copy of either, so they appear once per page, and a long name ellipsizes instead of overflowing the card ([#5235](https://github.com/quiltdata/quilt/pull/5235))
+- [Fixed] The bucket header no longer offers an admin a settings link for a bucket the stack does not have, which only bounced back to the bucket list ([#5358](https://github.com/quiltdata/quilt/pull/5358))
+- [Fixed] A bucket's name and admin-settings link show above the tabs on every stack, not only those with the `beta` setting; only the stats row stays gated ([#5235](https://github.com/quiltdata/quilt/pull/5235))
 - [Fixed] Admin buckets: a re-index prefix typed for one bucket no longer carries over to another, and a refused re-index reports the registry's own reason instead of a generic error ([#5345](https://github.com/quiltdata/quilt/pull/5345))
 - [Fixed] Athena console: the bucket scope survives moving between a workgroup, a query execution and the history, instead of being lost after the first hop ([#5347](https://github.com/quiltdata/quilt/pull/5347))
 - [Fixed] Bucket header: the settings control is a single stop for keyboard and screen-reader users instead of two ([#5343](https://github.com/quiltdata/quilt/pull/5343))

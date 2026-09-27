@@ -71,6 +71,10 @@ vi.mock('react-redux', () => ({
   useSelector: () => false,
 }))
 
+vi.mock('utils/Buckets', () => ({
+  useIsInStack: () => () => true,
+}))
+
 vi.mock('utils/AWS', () => ({
   S3: { use: () => ({}) },
 }))

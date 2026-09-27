@@ -211,9 +211,9 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
           above the tabs (containers/Bucket/Header) so they show on every tab. */}
       <M.Box className={classes.top}>
         {!!description && <M.Typography variant="body1">{description}</M.Typography>}
-        {/* The margin separates the stats from the description; with the name gone
-            there is nothing above them when a bucket has no description. */}
-        <Stats className={description ? classes.stats : ''} bucket={bucket} />
+        {/* The margin only has something to separate the stats from when a
+            description renders above them. */}
+        <Stats className={cx(description && classes.stats)} bucket={bucket} />
       </M.Box>
       <div className={classes.charts}>
         <ObjectsByExt

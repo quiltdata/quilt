@@ -34,6 +34,11 @@ vi.mock('react-redux', () => ({
   useSelector: () => isAdmin,
 }))
 
+let isInStack = true
+vi.mock('utils/Buckets', () => ({
+  useIsInStack: () => () => isInStack,
+}))
+
 vi.mock('utils/AWS', () => ({
   S3: { use: () => ({}) },
 }))
@@ -105,6 +110,7 @@ describe('containers/Bucket/Header', () => {
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
     isAdmin = false
+    isInStack = true
   })
 
   it('does not render the settings control for non-admins', () => {
@@ -246,10 +252,7 @@ describe('containers/Bucket/Header withStats=false', () => {
   afterEach(() => {
     cleanup()
     isAdmin = false
-    // The no-queries test clears these; restore them so a block appended below
-    // does not inherit an implementation-less mock.
-    statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
-    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
+    isInStack = true
   })
 
   function renderTitle() {
@@ -274,6 +277,19 @@ describe('containers/Bucket/Header withStats=false', () => {
     const { getByRole } = renderTitle()
     const link = getByRole('link', { name: 'Bucket settings' })
     expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('offers an admin no settings control for a bucket outside the stack', () => {
+    isAdmin = true
+    isInStack = false
+    const { queryByLabelText } = renderTitle()
+    expect(queryByLabelText('Bucket settings')).toBeNull()
+  })
+
+  it('still names a bucket outside the stack', () => {
+    isInStack = false
+    const { getByText } = renderTitle()
+    expect(getByText('test-bucket')).toBeTruthy()
   })
 
   it('offers no settings control to a non-admin', () => {
