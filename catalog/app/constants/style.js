@@ -1,6 +1,8 @@
 /* constants for use in CSS. prefer integers over strings so we can do math */
 import { colors, createMuiTheme } from '@material-ui/core'
 
+import { COARSE, TOUCH_TARGET } from 'components/Layout/Pointer'
+
 const defaultTheme = createMuiTheme()
 
 const appPalette = {
@@ -70,6 +72,32 @@ const overrides = {
       '&.Mui-focusVisible': {
         outline: `2px solid ${appPalette.primary.main}`,
         outlineOffset: 2,
+      },
+    },
+  },
+  // The touch floor. Keyed on the pointer, not the width, so a narrow column on
+  // a desktop keeps the dense instrument; at the theme because a container query
+  // cannot reach controls inside dialogs and menus.
+  MuiIconButton: {
+    sizeSmall: {
+      [COARSE]: {
+        // Grows the hit area without moving the glyph: 20px + 2x12 clears it.
+        padding: 12,
+      },
+    },
+  },
+  MuiButton: {
+    root: {
+      [COARSE]: {
+        minHeight: TOUCH_TARGET,
+      },
+    },
+  },
+  MuiToggleButton: {
+    sizeSmall: {
+      [COARSE]: {
+        height: TOUCH_TARGET,
+        minWidth: TOUCH_TARGET,
       },
     },
   },

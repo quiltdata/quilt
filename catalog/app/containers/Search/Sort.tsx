@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import SelectDropdown from 'components/SelectDropdown'
 import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
@@ -48,8 +49,7 @@ interface SortProps {
 export default function Sort({ className }: SortProps) {
   const classes = useStyles()
   const buttonClasses = useButtonStyles()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const sm = Column.useDown('sm')
   const model = SearchUIModel.use()
   const { setOrdering } = model.actions
   // A non-preset ordering (a column/pointer field sort) has no dropdown label;

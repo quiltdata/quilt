@@ -3,6 +3,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
@@ -29,7 +30,7 @@ const useStatsItemStyles = M.makeStyles((t) => ({
     color: t.palette.grey[300],
     lineHeight: 1,
     marginLeft: t.spacing(0.5),
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       marginLeft: t.spacing(1),
     },
   },
@@ -38,7 +39,7 @@ const useStatsItemStyles = M.makeStyles((t) => ({
     fontWeight: t.typography.fontWeightBold,
     letterSpacing: 0,
     lineHeight: '20px',
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       fontSize: t.typography.h4.fontSize,
       lineHeight: '32px',
     },
@@ -65,7 +66,7 @@ const useStatsItemSkeletonStyles = M.makeStyles((t) => ({
     display: 'flex',
     alignItems: 'center',
     height: 20,
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       height: 32,
     },
   },
@@ -73,7 +74,7 @@ const useStatsItemSkeletonStyles = M.makeStyles((t) => ({
     borderRadius: t.shape.borderRadius,
     height: t.typography.h6.fontSize,
     width: 96,
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       height: t.typography.h4.fontSize,
       width: 120,
     },
@@ -96,10 +97,10 @@ const useStatsStyles = M.makeStyles((t) => ({
     gridTemplateColumns: 'auto auto auto',
     gridColumnGap: t.spacing(1.5),
     justifyContent: 'flex-start',
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       gridColumnGap: t.spacing(4),
     },
-    [t.breakpoints.up('md')]: {
+    [Column.up('md')]: {
       gridColumnGap: t.spacing(6),
     },
   },
@@ -132,10 +133,10 @@ const DOWNLOADS_CHART_H = 22 * MAX_EXTS - 2
 const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       marginTop: t.spacing(2),
     },
   },
@@ -149,19 +150,45 @@ const useStyles = M.makeStyles((t) => ({
     paddingLeft: t.spacing(2),
     paddingRight: t.spacing(2),
     paddingTop: t.spacing(4),
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       padding: t.spacing(4),
     },
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
   },
   stats: {
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       marginTop: t.spacing(2),
     },
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       marginTop: t.spacing(3),
+    },
+  },
+  charts: {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: t.spacing(2),
+    position: 'relative',
+    [Column.up('sm')]: {
+      padding: t.spacing(4),
+    },
+    [Column.up('md')]: {
+      alignItems: 'flex-start',
+      flexDirection: 'row',
+    },
+  },
+  chartsDivider: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+    height: t.spacing(4),
+    justifyContent: 'center',
+    width: '100%',
+    [Column.up('md')]: {
+      height: '100%',
+      width: t.spacing(4),
     },
   },
 }))
@@ -177,6 +204,7 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
   const req = APIConnector.use()
   const colorPool = useConst(() => makeColorPool(COLOR_MAP))
   const statsData = useData(requests.bucketStats, { req, s3, bucket })
+  const stacked = Column.useDown('sm')
   return (
     <M.Paper className={classes.root}>
       {/* Do not re-add the bucket name or its admin-settings link here: both live
@@ -187,31 +215,14 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
             there is nothing above them when a bucket has no description. */}
         <Stats className={description ? classes.stats : ''} bucket={bucket} />
       </M.Box>
-      <M.Box
-        p={{ xs: 2, sm: 4 }}
-        display="flex"
-        flexDirection={{ xs: 'column', md: 'row' }}
-        alignItems={{ md: 'flex-start' }}
-        position="relative"
-      >
+      <div className={classes.charts}>
         <ObjectsByExt
           data={AsyncResult.prop('exts', statsData.result)}
           width="100%"
           flexShrink={1}
           colorPool={colorPool}
         />
-        <M.Box
-          display="flex"
-          flexDirection="column"
-          justifyContent="center"
-          flexShrink={0}
-          height={{ xs: 32, md: '100%' }}
-          width={{ xs: '100%', md: 32 }}
-        >
-          <M.Hidden mdUp>
-            <M.Divider />
-          </M.Hidden>
-        </M.Box>
+        <div className={classes.chartsDivider}>{stacked && <M.Divider />}</div>
         <Downloads
           bucket={bucket}
           colorPool={colorPool}
@@ -219,7 +230,7 @@ export default function Header({ s3, bucket, description }: HeaderProps) {
           flexShrink={1}
           chartHeight={DOWNLOADS_CHART_H}
         />
-      </M.Box>
+      </div>
     </M.Paper>
   )
 }

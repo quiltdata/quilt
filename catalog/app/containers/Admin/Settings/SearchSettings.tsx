@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import SelectDropdown from 'components/SelectDropdown'
 import * as CatalogSettings from 'utils/CatalogSettings'
 
@@ -30,7 +31,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   selectBtn: {
     textAlign: 'left',
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       minWidth: t.spacing(27),
     },
   },

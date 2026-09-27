@@ -6,6 +6,7 @@ import { Sidebar } from 'containers/Sidebar'
 import { MOTION, usePanelGutter } from 'components/Assistant/UI/PanelReflow'
 
 import BareHeader from './BareHeader'
+import * as Column from './Column'
 import * as Container from './Container'
 import { ContentBar } from './ContentBar'
 import { SearchInputProvider } from './SearchInput'
@@ -49,9 +50,8 @@ export function Root({ dark = false, ...props }: RootProps) {
 // Under 960px there is no room for a 256px column beside the content, so the
 // rail becomes an overlay reached from a menu button in the header band. In MUI
 // v4 `down('sm')` is max-width 959.95px -- i.e. everything below the `md`
-// breakpoint, not just the `sm` band. Same call the search page's own mobile
-// switch uses (Search/Layout/Main.tsx), so the two can't disagree about when the
-// viewport is narrow.
+// breakpoint, not just the `sm` band. The viewport, not the column: the rail
+// sits outside the column it would be measuring, so it cannot key on it.
 const useCompactShell = () => {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
@@ -60,7 +60,10 @@ const useCompactShell = () => {
 const useShellStyles = M.makeStyles((t) => ({
   shell: {
     display: 'flex',
-    height: '100vh',
+    // A mobile URL bar counts inside vh but not inside the visible viewport, so
+    // vh alone puts the shell's foot under browser chrome.
+    fallbacks: { height: '100vh' },
+    height: '100dvh',
     overflowX: 'hidden',
     position: 'relative',
     // Qurator's docked paper is `position: fixed` and reserves no space, so the
@@ -74,7 +77,11 @@ const useShellStyles = M.makeStyles((t) => ({
     },
   },
   // `.main` is the scroll container; the sticky ContentBar pins to its top.
+  // The column is a size container so page styles can key on its width
+  // (components/Layout/Column) rather than the viewport's.
   main: {
+    containerName: Column.NAME,
+    containerType: 'inline-size',
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
@@ -85,9 +92,12 @@ const useShellStyles = M.makeStyles((t) => ({
   // page content alike). Skipped for full-bleed pages via the `flush` prop.
   // The inset now lives on the inner content column, not `main`, so the
   // sticky ContentBar above it can run full-bleed.
+  // `viewport-fit=cover` (index.html) lets the page reach under the notch and
+  // the rounded corners, so the one horizontal inset in the column owes the
+  // safe area as well as its own gutter.
   padded: {
-    paddingLeft: t.spacing(3),
-    paddingRight: t.spacing(3),
+    paddingLeft: `max(${t.spacing(3)}px, env(safe-area-inset-left))`,
+    paddingRight: `max(${t.spacing(3)}px, env(safe-area-inset-right))`,
   },
   // The page content column: carries the horizontal inset (so the sticky
   // ContentBar above it can run full-bleed) and grows to push the footer down.
@@ -116,6 +126,7 @@ export function Layout({
   const classes = useShellStyles()
   const compact = useCompactShell()
   const gutter = usePanelGutter()
+  const [mainEl, setMainEl] = React.useState<HTMLElement | null>(null)
   const [navOpen, setNavOpen] = React.useState(false)
   const closeNav = React.useCallback(() => setNavOpen(false), [])
   const openNav = React.useCallback(() => setNavOpen(true), [])
@@ -148,17 +159,19 @@ export function Layout({
         bgcolor={dark ? 'primary.main' : 'background.default'}
       >
         <Sidebar compact={compact} open={navOpen} onClose={closeNav} />
-        <M.Box component="main" className={classes.main}>
-          {/* The menu button exists only in the compact shell: on a wide
-              viewport the rail is always on screen, so it would toggle nothing. */}
-          <ContentBar onMenu={compact ? openNav : undefined} />
-          <div className={cx(classes.content, !flush && classes.padded)}>
-            <Container.FullWidthProvider>
-              {!!pre && pre}
-              {!!children && <M.Box py={4}>{children}</M.Box>}
-              <M.Box flexGrow={1} />
-            </Container.FullWidthProvider>
-          </div>
+        <M.Box component="main" className={classes.main} {...{ ref: setMainEl }}>
+          <Column.Provider target={mainEl}>
+            {/* The menu button exists only in the compact shell: on a wide
+                viewport the rail is always on screen, so it would toggle nothing. */}
+            <ContentBar onMenu={compact ? openNav : undefined} />
+            <div className={cx(classes.content, !flush && classes.padded)}>
+              <Container.FullWidthProvider>
+                {!!pre && pre}
+                {!!children && <M.Box py={4}>{children}</M.Box>}
+                <M.Box flexGrow={1} />
+              </Container.FullWidthProvider>
+            </div>
+          </Column.Provider>
         </M.Box>
       </M.Box>
     </SearchInputProvider>

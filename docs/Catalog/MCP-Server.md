@@ -3,9 +3,9 @@
 The **Quilt Platform MCP Server** lets AI assistants interact with your
 organization's data through natural language. Built on the open
 [Model Context Protocol](https://modelcontextprotocol.io/), it connects
-Claude, Cursor, and other MCP-compatible clients directly to your Quilt
-environment — so users can search, browse, read, create, and query data
-without leaving their AI workflow.
+Claude, Cursor, OpenAI Codex, and other MCP-compatible clients directly to
+your Quilt environment — so users can search, browse, read, create, and query
+data without leaving their AI workflow.
 
 All actions respect your existing Quilt roles and permissions. Data never
 leaves your AWS environment.
@@ -156,9 +156,10 @@ redirect URI (the workspace region determines the exact host).
 
 `.cloud.databricks.com` must be in `ConnectAllowedHosts` so DCR accepts
 that redirect URI (see
-[Connect.md](Connect.md#connectallowedhosts-entry-formats)). Quilt Connect
-already emits the `:443`-explicit metadata Databricks requires — see
-[Connect.md OAuth Metadata](Connect.md#oauth-metadata) for why.
+[Connect.md](Connect.md#connectallowedhosts-entry-formats)). Note the
+redirect host is regional (`oregon.cloud.databricks.com`), not the
+workspace host, so the leading-dot suffix form is required — a bare
+workspace hostname is an exact-match entry and will not match it.
 
 > **Serverless egress caveat.** Databricks Apps and serving endpoints run
 > on a serverless network plane that blocks outbound traffic by default.

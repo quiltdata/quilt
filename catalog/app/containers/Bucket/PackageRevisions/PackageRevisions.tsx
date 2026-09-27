@@ -9,6 +9,7 @@ import { fade } from '@material-ui/core/styles'
 
 import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
+import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -165,16 +166,16 @@ const useRevisionLayoutStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
 
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
 
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       marginTop: t.spacing(1),
     },
   },
   base: {
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       position: 'relative',
     },
   },
@@ -192,8 +193,8 @@ interface RevisionLayoutProps {
 function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayoutProps) {
   const classes = useRevisionLayoutStyles()
   const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const xs = Column.useDown('xs')
+  const sm = Column.useDown('sm')
   // eslint-disable-next-line no-nested-ternary
   const sparklineW = xs ? 176 : sm ? 300 : 400
   const sparklineH = xs ? 32 : 48
@@ -210,26 +211,24 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayout
           position="absolute"
           right={0}
           bottom={0}
-          top={{ xs: 'auto', sm: 16 }}
-          height={{ xs: 64, sm: 'auto' }}
+          top={xs ? 'auto' : 16}
+          height={xs ? 64 : 'auto'}
           width={sparklineW}
         >
           {counts({ sparklineW, sparklineH })}
         </M.Box>
       </div>
-      {!!meta && (
-        <M.Hidden xsDown>
+      {!!meta && !xs && (
+        <>
           <M.Divider />
           {meta}
-        </M.Hidden>
+        </>
       )}
-      <M.Hidden xsDown>
-        <M.Divider />
-      </M.Hidden>
+      {!xs && <M.Divider />}
       <M.Box
         pl={2}
         pr={xs ? Math.ceil(sparklineW / t.spacing(1)) : 30}
-        height={{ xs: 64, sm: 48 }}
+        height={xs ? 64 : 48}
         display="flex"
         alignItems="center"
       >
@@ -238,9 +237,9 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayout
       <M.Box
         position="absolute"
         right={16}
-        bottom={{ xs: 'auto', sm: 0 }}
-        top={{ xs: 16, sm: 'auto' }}
-        height={{ xs: 20, sm: 48 }}
+        bottom={xs ? 'auto' : 0}
+        top={xs ? 16 : 'auto'}
+        height={xs ? 20 : 48}
         display="flex"
         alignItems="center"
         color="text.secondary"
@@ -252,8 +251,7 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayout
 }
 
 function RevisionSkel() {
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const xs = Column.useDown('xs')
   return (
     <RevisionLayout
       link={
@@ -315,7 +313,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
   msg: {
     ...(t.mixins as $TSFixMe).lineClamp(2),
     overflowWrap: 'break-word',
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       minHeight: 40,
     },
   },
@@ -355,8 +353,7 @@ function Revision({
 }: RevisionProps) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const xs = Column.useDown('xs')
   const dateFmt = xs ? 'MMM d yyyy - h:mmaaaaa' : 'MMMM do yyyy - h:mma'
 
   return (
@@ -396,7 +393,7 @@ function Revision({
               }}
             />
           )}
-          <M.Box className={classes.hash} component="span" order={{ xs: 1, sm: 0 }}>
+          <M.Box className={classes.hash} component="span" order={xs ? 1 : 0}>
             <RRDom.Link
               to={urls.bucketPackageCompare(bucket, name, hash)}
               title="Compare revision"

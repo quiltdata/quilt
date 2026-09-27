@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
 
 import * as requests from './requests'
 import * as Model from './utils'
@@ -115,27 +116,20 @@ export function Provider({ children }: ProviderProps) {
     queryRun,
   }
 
+  const { bucket, table } = parseSearch(location.search, true)
+
   if (Model.hasData(queryRun) && queryExecutionId !== queryRun.id) {
-    // Preserve the query string (e.g. the ?bucket= tabulator scope) across the
-    // execution redirect.
     return (
       <RRDom.Redirect
-        to={{
-          pathname: urls.queriesAthenaExecution(workgroup.data, queryRun.id),
-          search: location.search,
-        }}
+        to={urls.queriesAthenaExecution(workgroup.data, queryRun.id, { bucket })}
       />
     )
   }
 
   if (Model.hasData(workgroup.data) && !workgroupId) {
-    // Preserve the query string (e.g. ?table=) across the workgroup redirect.
     return (
       <RRDom.Redirect
-        to={{
-          pathname: urls.queriesAthenaWorkgroup(workgroup.data),
-          search: location.search,
-        }}
+        to={urls.queriesAthenaWorkgroup(workgroup.data, { bucket, table })}
       />
     )
   }

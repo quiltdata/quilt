@@ -2,12 +2,13 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Layout from 'components/Layout'
+import * as Column from 'components/Layout/Column'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'fixed',
     left: '50%',
-    bottom: t.spacing(3),
+    bottom: `calc(${t.spacing(3)}px + env(safe-area-inset-bottom))`,
     transform: `translateX(-50%)`,
     animation: t.transitions.create('$slide'),
     zIndex: 1,
@@ -18,6 +19,10 @@ const useStyles = M.makeStyles((t) => ({
     // Collapse parent
     position: 'absolute',
     bottom: 0,
+    // The parent is full-bleed, so it centers nothing: without a horizontal
+    // rule the absolute box sits at its left edge, behind the rail.
+    left: '50%',
+    transform: 'translateX(-50%)',
   },
   icon: {
     marginRight: t.spacing(1),
@@ -34,9 +39,10 @@ const useStyles = M.makeStyles((t) => ({
 
 function Inner() {
   const classes = useStyles()
+  const column = Column.useElement()
   const onClick = React.useCallback(
-    () => window.scrollTo({ top: 0, left: 0, behavior: 'smooth' }),
-    [],
+    () => (column ?? window).scrollTo({ top: 0, left: 0, behavior: 'smooth' }),
+    [column],
   )
   return (
     <Layout.Container className={classes.root}>
@@ -49,6 +55,10 @@ function Inner() {
 }
 
 export default function ScrollToTop() {
-  const trigger = M.useScrollTrigger({ disableHysteresis: true })
+  const column = Column.useElement()
+  const trigger = M.useScrollTrigger({
+    disableHysteresis: true,
+    target: column ?? undefined,
+  })
   return trigger ? <Inner /> : null
 }

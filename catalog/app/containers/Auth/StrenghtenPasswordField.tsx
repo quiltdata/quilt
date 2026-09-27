@@ -12,49 +12,60 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: t.palette.divider,
     height: t.spacing(0.5),
     position: 'relative',
-    transition: '.3s ease background-color',
+    transition: t.transitions.create('background-color'),
     '&:after': {
       bottom: 0,
       content: '""',
       left: 0,
       position: 'absolute',
+      right: 0,
       top: 0,
-      transition: '.3s ease background-color, .3s ease width',
+      transform: 'scaleX(0)',
+      transformOrigin: 'left',
+      transition: t.transitions.create(['background-color', 'transform']),
+    },
+    // Keep the color cross-fade (in sync with the track's own) and drop only
+    // the movement — otherwise the fill snaps while the track still fades and
+    // the two halves of the meter disagree mid-transition.
+    '@media (prefers-reduced-motion: reduce)': {
+      '&:after': {
+        transition: t.transitions.create('background-color'),
+      },
     },
     '&$tooGuessable': {
       backgroundColor: fade(t.palette.error.dark, 0.3),
     },
     '&$tooGuessable:after': {
       backgroundColor: t.palette.error.dark,
-      width: '10%',
+      transform: 'scaleX(0.1)',
     },
     '&$veryGuessable': {
       backgroundColor: fade(t.palette.error.main, 0.3),
     },
     '&$veryGuessable:after': {
       backgroundColor: t.palette.error.main,
-      width: '33%',
+      transform: 'scaleX(0.33)',
     },
     '&$somewhatGuessable': {
       backgroundColor: fade(t.palette.warning.dark, 0.3),
     },
     '&$somewhatGuessable:after': {
       backgroundColor: t.palette.warning.dark,
-      width: '55%',
+      transform: 'scaleX(0.55)',
     },
     '&$safelyUnguessable': {
       backgroundColor: fade(t.palette.success.light, 0.3),
     },
     '&$safelyUnguessable:after': {
       backgroundColor: t.palette.success.light,
-      width: '78%',
+      transform: 'scaleX(0.78)',
     },
     '&$veryUnguessable': {
       backgroundColor: fade(t.palette.success.dark, 0.3),
     },
     '&$veryUnguessable:after': {
       backgroundColor: t.palette.success.dark,
-      width: '100%',
+      transform: 'scaleX(1)',
     },
   },
   tooGuessable: {},

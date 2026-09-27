@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -99,11 +100,11 @@ const usePackagesStyles = M.makeStyles((t) => ({
   grid: {
     display: 'grid',
     gap: t.spacing(2),
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: '1fr',
     marginBottom: t.spacing(2),
 
-    [t.breakpoints.down(1100)]: {
-      gridTemplateColumns: '1fr',
+    [Column.up(1100)]: {
+      gridTemplateColumns: '1fr 1fr',
     },
   },
 }))

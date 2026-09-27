@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as FileEditor from 'components/FileEditor'
+import * as Column from 'components/Layout/Column'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
@@ -73,48 +74,48 @@ export const FileThemeContext = React.createContext(FileThemes.Overview)
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       borderRadius: 0,
     },
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       marginTop: t.spacing(2),
     },
   },
   [FileThemes.Overview]: {
     '& $content': {
-      [t.breakpoints.down('xs')]: {
+      [Column.down('xs')]: {
         padding: t.spacing(2),
         paddingTop: t.spacing(3),
       },
-      [t.breakpoints.up('sm')]: {
+      [Column.up('sm')]: {
         padding: t.spacing(4),
       },
     },
     '& $footer': {
-      [t.breakpoints.down('xs')]: {
+      [Column.down('xs')]: {
         padding: t.spacing(0, 2, 2),
       },
-      [t.breakpoints.up('sm')]: {
+      [Column.up('sm')]: {
         padding: t.spacing(0, 4, 4),
       },
     },
   },
   [FileThemes.Nested]: {
     '& $content': {
-      [t.breakpoints.down('xs')]: {
+      [Column.down('xs')]: {
         padding: t.spacing(1),
         paddingTop: t.spacing(2),
       },
-      [t.breakpoints.up('sm')]: {
+      [Column.up('sm')]: {
         padding: t.spacing(2),
       },
     },
     '& $footer': {
       borderTop: `1px solid ${t.palette.divider}`,
-      [t.breakpoints.down('xs')]: {
+      [Column.down('xs')]: {
         padding: t.spacing(0.25, 1),
       },
-      [t.breakpoints.up('sm')]: {
+      [Column.up('sm')]: {
         padding: t.spacing(0.25, 2),
       },
     },
@@ -129,7 +130,7 @@ const useSectionStyles = M.makeStyles((t) => ({
   },
   heading: {
     marginBottom: t.spacing(1),
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       marginBottom: t.spacing(2),
     },
   },
@@ -456,7 +457,7 @@ function getColumnStyles(width?: number | string) {
   return { flexGrow: 1 }
 }
 
-interface ColumnProps {
+interface RowColumnProps {
   className: string
   file: SummarizeFile
   mkUrl?: MakeURL
@@ -464,7 +465,7 @@ interface ColumnProps {
   packageHandle?: PackageHandle
 }
 
-function Column({ className, file, mkUrl, packageHandle, s3 }: ColumnProps) {
+function RowColumn({ className, file, mkUrl, packageHandle, s3 }: RowColumnProps) {
   const style = React.useMemo(() => getColumnStyles(file.width), [file.width])
   return (
     <div className={className} style={style}>
@@ -476,7 +477,7 @@ function Column({ className, file, mkUrl, packageHandle, s3 }: ColumnProps) {
 const useRowStyles = M.makeStyles((t) => ({
   row: {
     marginLeft: t.spacing(-2),
-    [t.breakpoints.up('sm')]: {
+    [Column.up('sm')]: {
       display: 'flex',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
@@ -503,7 +504,7 @@ function Row({ file, mkUrl, packageHandle, s3 }: RowProps) {
   return (
     <div className={classes.row}>
       {file.map((f) => (
-        <Column
+        <RowColumn
           className={classes.column}
           file={f}
           key={`${f.handle.bucket}/${f.handle.key}`}

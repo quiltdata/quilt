@@ -14,6 +14,13 @@ vi.mock('constants/config', () => ({ default: {} }))
 // A ready manifest is also what a dialog with no source package to load reports, so the
 // defaults below describe plain package creation.
 const MANIFEST_READY = { _tag: 'ready' as const }
+// A revise loads the entries that a push sends as its replacement list. The copy dialog
+// fetches with skipEntries, so its ready manifest carries none and MANIFEST_READY stands
+// in for it.
+const MANIFEST_WITH_ENTRIES = {
+  _tag: 'ready' as const,
+  manifest: { entries: { 'a.txt': {} } as never },
+}
 
 describe('containers/Bucket/PackageDialog/State/params', () => {
   const onChange = vi.fn()
@@ -295,10 +302,190 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       ['new-revision', { _tag: 'new-revision' as const }],
       ['exists', { _tag: 'exists' as const, dst: { bucket: 'b', name: 'n' } }],
     ])('stays valid for an existing destination once loaded (%s)', (_tag, status) => {
-      // The path the gate must not block: revising a package whose manifest did load.
-      // Without it, a gate that refuses everything but brand-new names passes the suite.
+      // The path the manifest gate must not block. Passes no `src`, so the mismatch gate
+      // below it is not what these cases cover.
       const { result } = renderHook(() =>
         useParamsWith({ manifest: MANIFEST_READY, name: { ...name, status } }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+  })
+
+  describe('destination the loaded manifest does not describe', () => {
+    const src = { bucket: 'test-bucket', name: 'test-package' }
+    // What useNameExistence reports for a name that resolves to some other package.
+    const existsElsewhere = {
+      ...name,
+      status: { _tag: 'exists' as const, dst: { bucket: 'test-bucket', name: 'other' } },
+    }
+
+    it('is invalid when the destination is a different package that exists', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'other' },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: existsElsewhere,
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+      }
+    })
+
+    it.each([
+      // Reachable: the Successors dropdown moves `dst` to another bucket, where the
+      // existence check finds a package of the same name.
+      [
+        'it exists there',
+        {
+          _tag: 'exists' as const,
+          dst: { bucket: 'other-bucket', name: 'test-package' },
+        },
+      ],
+      // Defensive: in the revise dialog 'new-revision' comes from the dst === src
+      // short-circuit, which cannot produce a differing bucket.
+      ['the tag alone would pass it', { _tag: 'new-revision' as const }],
+    ])('is invalid when only the bucket differs (%s)', (_label, status) => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'other-bucket', name: 'test-package' },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, status },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+      }
+    })
+
+    it.each([
+      ['loading', { _tag: 'loading' as const }],
+      ['idle', { _tag: 'idle' as const }],
+    ])('is invalid while the destination is still unresolved (%s)', (_tag, status) => {
+      // The 300ms name debounce: submitting inside it published the loaded entries over
+      // whatever the retyped name turned out to name.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'other' },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, value: 'other', status },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+      }
+    })
+
+    it('reports an invalid name as such, not as a mismatch', () => {
+      // A typed-out name that failed validation: it never reached the existence check, so
+      // it is unresolved, but the mismatch wording would be wrong about why.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'bad name' },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: {
+            ...name,
+            value: 'bad name',
+            status: { _tag: 'error' as const, error: new Error('Invalid package name') },
+          },
+          src,
+        }),
+      )
+
+      expect(result.current).toEqual(Invalid(new Error('Valid name required')))
+    })
+
+    it('reports a missing name as such, not as a mismatch', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: undefined },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, value: undefined, status: { _tag: 'idle' as const } },
+          src,
+        }),
+      )
+
+      expect(result.current).toEqual(Invalid(new Error('Valid name required')))
+    })
+
+    it.each([
+      ['while its name check is in flight', { _tag: 'loading' as const }],
+      ['when the name resolves elsewhere', { _tag: 'new-revision' as const }],
+    ])('permits a copy, which loads no entries to overwrite (%s)', (_tag, status) => {
+      // Copy fetches its manifest with skipEntries and promotes server-side by hash, so
+      // there is nothing loaded for this gate to protect.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'other-bucket', name: 'test-package' },
+          manifest: MANIFEST_READY,
+          name: { ...name, status },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+
+    it('permits the plain revise, where dst and src name the same package', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: src,
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, status: { _tag: 'new-revision' as const } },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+
+    it('permits a destination that does not exist yet', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'brand-new' },
+          manifest: MANIFEST_WITH_ENTRIES,
+          name: { ...name, value: 'brand-new', status: { _tag: 'new' as const } },
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('ok')
+    })
+
+    it('reports the unloaded manifest, not the mismatch, when both apply', () => {
+      // Ordering matters: the manifest never loaded, so nothing is known about `src` to
+      // describe a mismatch against.
+      const { result } = renderHook(() =>
+        useParamsWith({
+          dst: { bucket: 'test-bucket', name: 'other' },
+          manifest: { _tag: 'error' as const, error: new Error('failed to fetch') },
+          name: existsElsewhere,
+          src,
+        }),
+      )
+
+      expect(result.current._tag).toBe('invalid')
+      if (result.current._tag === 'invalid') {
+        expect(result.current.error).toBeInstanceOf(ERRORS.SourceManifestNotLoaded)
+      }
+    })
+
+    it('permits an existing destination when there is no source to mismatch', () => {
+      // Plain creation passes no `src`: the ready manifest is the empty one from
+      // useManifestRequest, so there are no loaded entries to publish over the
+      // destination. Guards against gating on 'exists' alone.
+      const { result } = renderHook(() =>
+        useParamsWith({ name: existsElsewhere, src: undefined }),
       )
 
       expect(result.current._tag).toBe('ok')

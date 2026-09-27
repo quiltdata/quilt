@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import * as Icons from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
+import * as Column from 'components/Layout/Column'
 import * as PD from 'containers/Bucket/PackageDialog'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -32,9 +33,8 @@ interface CreatePackageButtonProps {
 
 function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
   const classes = useCreatePackageStyles()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const sm = Column.useDown('sm')
+  const xs = Column.useDown('xs')
   return xs ? (
     // The label is dropped at xs to save width, which leaves an aria-hidden
     // glyph and therefore no accessible name at all. Carry the wide label here.
@@ -227,7 +227,7 @@ const useResultsStyles = M.makeStyles((t) => ({
     flexDirection: 'row',
     minHeight: t.spacing(4.5),
     flexWrap: 'wrap',
-    [t.breakpoints.down('xs')]: {
+    [Column.down('xs')]: {
       flexDirection: 'column',
     },
   },
@@ -248,6 +248,9 @@ const useResultsStyles = M.makeStyles((t) => ({
   },
   create: {
     marginRight: t.spacing(4),
+    [Column.down('xs')]: {
+      marginRight: t.spacing(1),
+    },
   },
   controlsInner: {
     alignItems: 'center',

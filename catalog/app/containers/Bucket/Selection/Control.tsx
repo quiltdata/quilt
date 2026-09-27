@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import * as Dialogs from 'utils/Dialogs'
 
 import Dashboard from './Dashboard'
@@ -73,8 +74,7 @@ interface ButtonProps {
 
 export function Button({ className, onClick }: ButtonProps) {
   const slt = useSelection()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const sm = Column.useDown('sm')
   const badgeClasses = useBadgeClasses()
   return (
     <M.Badge

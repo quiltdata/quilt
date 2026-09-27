@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
+import * as Column from 'components/Layout/Column'
 import StackedAreaChart from 'components/StackedAreaChart'
 import cfg from 'constants/config'
 import * as GQL from 'utils/GraphQL'
@@ -380,7 +381,7 @@ const useStyles = M.makeStyles((t) => ({
     `,
     gridTemplateColumns: 'min-content 1fr',
     gridTemplateRows: 'auto auto',
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       gridTemplateAreas: `
         "heading"
         "chart"
@@ -395,7 +396,7 @@ const useStyles = M.makeStyles((t) => ({
     gridArea: 'heading',
     marginBottom: t.spacing(1),
     whiteSpace: 'nowrap',
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       marginBottom: 0,
       textAlign: 'center',
     },
@@ -412,11 +413,11 @@ const useStyles = M.makeStyles((t) => ({
     gridArea: 'period',
     justifyContent: 'center',
     alignItems: 'center',
-    [t.breakpoints.down('sm')]: {
+    [Column.down('sm')]: {
       paddingBottom: t.spacing(1),
       paddingTop: t.spacing(2),
     },
-    [t.breakpoints.up('md')]: {
+    [Column.up('md')]: {
       height: 37,
       justifyContent: 'flex-end',
     },

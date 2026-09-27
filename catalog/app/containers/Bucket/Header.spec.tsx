@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -105,6 +105,58 @@ describe('containers/Bucket/Header', () => {
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
     isAdmin = false
+  })
+
+  it('does not render the settings control for non-admins', () => {
+    const { queryByLabelText } = renderHeader()
+    expect(queryByLabelText('Bucket settings')).toBeNull()
+  })
+
+  it('renders an accessibly-labeled settings link to admin bucket edit for admins', () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('gives admins one focusable settings control, not a button inside a link', () => {
+    isAdmin = true
+    const { getAllByLabelText, queryByRole } = renderHeader()
+    expect(getAllByLabelText('Bucket settings')).toHaveLength(1)
+    expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
+  })
+
+  // MUI writes a native `title` at rest and `aria-describedby` once open, and
+  // wrapping moves them rather than removing them, so both states and both
+  // elements are checked.
+  it('never describes the settings control with its own name', async () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    const cell = link.closest('div') as HTMLElement
+
+    for (const el of [link, cell]) {
+      expect(el.getAttribute('title')).toBeNull()
+    }
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+
+    fireEvent.mouseOver(link)
+    await waitFor(() => expect(screen.getByRole('tooltip')).toBeTruthy())
+
+    expect(link.getAttribute('title')).toBeNull()
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+  })
+
+  it('gives the settings cell exactly one focusable control', () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    const cell = link.closest('div') as HTMLElement
+    expect(
+      cell.querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])'),
+    ).toHaveLength(1)
+    act(() => link.focus())
+    expect(document.activeElement).toBe(link)
   })
 
   it('does not link the total-size stat', () => {
@@ -217,18 +269,17 @@ describe('containers/Bucket/Header withStats=false', () => {
 
   // The settings link is the other half of what renders ungated, and the
   // module-level useSelector mock is what makes it reachable in a test at all.
-  it('links a settings gear to the bucket admin page for an admin', () => {
+  it('links a settings control to the bucket admin page for an admin', () => {
     isAdmin = true
-    const { getByText } = renderTitle()
-    const link = getByText('settings').closest('a')
-    expect(link).toBeTruthy()
-    expect(link!.getAttribute('href')).toBe('/admin/test-bucket')
+    const { getByRole } = renderTitle()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    expect(link.getAttribute('href')).toBe('/admin/test-bucket')
   })
 
-  it('offers no settings gear to a non-admin', () => {
+  it('offers no settings control to a non-admin', () => {
     isAdmin = false
-    const { queryByText } = renderTitle()
-    expect(queryByText('settings')).toBeNull()
+    const { queryByLabelText } = renderTitle()
+    expect(queryByLabelText('Bucket settings')).toBeNull()
   })
 
   it('renders no stats and issues no stats queries', () => {

@@ -69,6 +69,17 @@ const usePanelStyles = M.makeStyles((t) => ({
   paperRail: {
     width: RAIL_WIDTH,
   },
+  // The overlay is the whole panel on a phone; the docked paper stops at the
+  // gutter. `&&` (0,2,0) is what beats `paper`'s own width -- at equal
+  // specificity the winner would be JSS injection order, so reordering these
+  // keys would put a phone back on the docked `min(40rem, 50vw)`.
+  paperCompact: {
+    '&&': {
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      paddingRight: 'env(safe-area-inset-right)',
+      width: 'min(40rem, 100vw)',
+    },
+  },
   rail: {
     alignItems: 'center',
     display: 'flex',
@@ -102,7 +113,13 @@ function Panel({ api, compact, open }: PanelProps) {
         open={open}
         onClose={api.hide}
         PaperProps={{ id: PANEL_ID }}
-        classes={{ paper: cx(classes.paper, !expanded && classes.paperRail) }}
+        classes={{
+          paper: cx(
+            classes.paper,
+            !expanded && classes.paperRail,
+            compact && classes.paperCompact,
+          ),
+        }}
         // `timeout` overrides the Drawer's own Slide duration -- it spreads
         // SlideProps last.
         SlideProps={{ timeout: instant ? 0 : undefined }}

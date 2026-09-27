@@ -195,6 +195,11 @@ const useCopyableIdStyles = M.makeStyles((t) => ({
     '$root:hover &, &:focus-visible': {
       visibility: 'visible',
     },
+    // A finger raises neither hover nor focus-visible, so with no pointer to
+    // reveal it the affordance has to stand at rest instead.
+    '@media (hover: none)': {
+      visibility: 'visible',
+    },
   },
   icon: {
     fontSize: t.typography.body2.fontSize,
@@ -441,7 +446,6 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     maxHeight: '106px',
     minHeight: '106px',
     padding: t.spacing(1),
-    transition: 'max-height 0.2s',
 
     '& > *:not(iframe)': {
       // scroll `contents` div, not its children
@@ -453,7 +457,6 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
       marginLeft: 'auto',
       marginRight: 'auto',
       maxHeight: '20vh',
-      transition: 'max-height 0.2s',
 
       '$expanded &': {
         maxHeight: '80vh',
@@ -529,7 +532,6 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     left: 0,
     opacity: 1,
     position: 'absolute',
-    transition: 'opacity 0.2s',
     width: '100%',
     zIndex: 1,
 
