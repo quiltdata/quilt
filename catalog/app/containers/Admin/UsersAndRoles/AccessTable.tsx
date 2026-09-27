@@ -21,15 +21,24 @@ interface SummaryProps {
   grants: readonly Grant[]
   /** Named so the empty case can say what has no access, e.g. 'This role'. */
   subject: string
+  /** A custom IAM role is in play, so an empty grant list means unknown, not none. */
+  unknown?: boolean
 }
 
-export function AccessSummary({ grants, subject }: SummaryProps) {
+export function AccessSummary({ grants, subject, unknown = false }: SummaryProps) {
   const classes = useSummaryStyles()
   const s = summarize(grants)
   if (!s.buckets) {
     return (
       <M.Typography className={classes.root}>
-        {subject} reaches no bucket. Attaching a policy is what grants access.
+        {unknown ? (
+          <span className={classes.caveat}>
+            {subject} is a custom IAM role. Quilt cannot read what it grants, so its
+            bucket access is unknown; check the role in the AWS console.
+          </span>
+        ) : (
+          `${subject} reaches no bucket. Attaching a policy is what grants access.`
+        )}
       </M.Typography>
     )
   }
@@ -82,61 +91,87 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     padding: t.spacing(2, 0),
   },
+  unknownNote: {
+    ...t.typography.body2,
+    color: t.palette.warning.dark,
+    padding: t.spacing(2, 0),
+  },
 }))
 
 interface AccessTableProps {
   grants: readonly Grant[]
   /** Show which role each source came through; only meaningful across roles. */
   showRole?: boolean
+  /** A custom IAM role is in play, so this readout is unknown or incomplete. */
+  unknown?: boolean
 }
 
 // Reads out the access that is in force, and why. The level column is the server's
 // MAX() across policies; the source column is the set of policies that add up to it,
 // so revoking one is visibly not the same as revoking access.
-export default function AccessTable({ grants, showRole = false }: AccessTableProps) {
+export default function AccessTable({
+  grants,
+  showRole = false,
+  unknown = false,
+}: AccessTableProps) {
   const classes = useStyles()
-  if (!grants.length) return <div className={classes.empty}>No bucket access.</div>
+  if (!grants.length)
+    return (
+      <div className={unknown ? classes.unknownNote : classes.empty}>
+        {unknown
+          ? 'Quilt cannot read what a custom IAM role grants, so this access is unknown. Check the role in the AWS console.'
+          : 'No bucket access.'}
+      </div>
+    )
   return (
-    <M.Table size="small" className={classes.table}>
-      <M.TableHead>
-        <M.TableRow>
-          <M.TableCell>Bucket</M.TableCell>
-          <M.TableCell>Access</M.TableCell>
-          <M.TableCell>Granted by</M.TableCell>
-        </M.TableRow>
-      </M.TableHead>
-      <M.TableBody>
-        {grants.map((g) => (
-          <M.TableRow key={g.bucket} hover>
-            <M.TableCell className={classes.bucket}>{g.bucket}</M.TableCell>
-            <M.TableCell>
-              <span
-                className={`${classes.level} ${g.level === WRITE ? classes.write : ''}`}
-              >
-                {LEVEL_LABEL[g.level]}
-              </span>
-            </M.TableCell>
-            <M.TableCell>
-              {g.sources.length ? (
-                <span className={classes.sources}>
-                  {g.sources
-                    .map(
-                      (s) =>
-                        `${s.title} (${LEVEL_LABEL[s.level]})${
-                          showRole && s.roleName ? ` via ${s.roleName}` : ''
-                        }`,
-                    )
-                    .join(', ')}
-                </span>
-              ) : (
-                <span className={classes.unattributed}>
-                  A policy Quilt does not manage
-                </span>
-              )}
-            </M.TableCell>
+    <>
+      <M.Table size="small" className={classes.table}>
+        <M.TableHead>
+          <M.TableRow>
+            <M.TableCell>Bucket</M.TableCell>
+            <M.TableCell>Access</M.TableCell>
+            <M.TableCell>Granted by</M.TableCell>
           </M.TableRow>
-        ))}
-      </M.TableBody>
-    </M.Table>
+        </M.TableHead>
+        <M.TableBody>
+          {grants.map((g) => (
+            <M.TableRow key={g.bucket} hover>
+              <M.TableCell className={classes.bucket}>{g.bucket}</M.TableCell>
+              <M.TableCell>
+                <span
+                  className={`${classes.level} ${g.level === WRITE ? classes.write : ''}`}
+                >
+                  {LEVEL_LABEL[g.level]}
+                </span>
+              </M.TableCell>
+              <M.TableCell>
+                {g.sources.length ? (
+                  <span className={classes.sources}>
+                    {g.sources
+                      .map(
+                        (s) =>
+                          `${s.title} (${LEVEL_LABEL[s.level]})${
+                            showRole && s.roleName ? ` via ${s.roleName}` : ''
+                          }`,
+                      )
+                      .join(', ')}
+                  </span>
+                ) : (
+                  <span className={classes.unattributed}>
+                    A policy Quilt does not manage
+                  </span>
+                )}
+              </M.TableCell>
+            </M.TableRow>
+          ))}
+        </M.TableBody>
+      </M.Table>
+      {unknown && (
+        <div className={classes.unknownNote}>
+          A custom IAM role is also held. Quilt cannot read what it grants, so this may be
+          incomplete.
+        </div>
+      )}
+    </>
   )
 }

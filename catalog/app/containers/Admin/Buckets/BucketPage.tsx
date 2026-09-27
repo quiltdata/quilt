@@ -332,6 +332,26 @@ function Section({ id, summary, changed, open, onToggle, children }: SectionProp
   )
 }
 
+// A field error inside a collapsed section is invisible and the save bar names only
+// form-level errors, so a rejected save would read as nothing having happened.
+function RevealErrors({ reveal }: { reveal: (ids: SectionId[]) => void }) {
+  const { submitFailed, errors, submitErrors } = RF.useFormState({
+    subscription: { submitFailed: true, errors: true, submitErrors: true },
+  })
+  const ids = React.useMemo(() => {
+    if (!submitFailed) return ''
+    const all: Record<string, unknown> = { ...errors, ...submitErrors }
+    return Object.keys(all)
+      .filter((f) => all[f] && f in SECTION_OF)
+      .map((f) => SECTION_OF[f as keyof FormValues])
+      .join(',')
+  }, [submitFailed, errors, submitErrors])
+  React.useEffect(() => {
+    if (ids) reveal(ids.split(',') as SectionId[])
+  }, [ids, reveal])
+  return null
+}
+
 const useSaveBarStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -480,6 +500,11 @@ export default function BucketPage({
     (id: SectionId) => setOpen((o) => ({ ...o, [id]: !o[id] })),
     [],
   )
+  const reveal = React.useCallback(
+    (ids: SectionId[]) =>
+      setOpen((o) => ({ ...o, ...Object.fromEntries(ids.map((id) => [id, true])) })),
+    [],
+  )
 
   const initialValues = React.useMemo(() => bucketToFormValues(bucket), [bucket])
 
@@ -563,6 +588,7 @@ export default function BucketPage({
             </M.Typography>
             <M.Paper variant="outlined" className={classes.sections}>
               <form onSubmit={handleSubmit}>
+                <RevealErrors reveal={reveal} />
                 <Section
                   id="display"
                   summary={summary.display}

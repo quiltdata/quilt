@@ -220,6 +220,10 @@ export default function UserPage({
     [activeRole],
   )
   const anyGrants = React.useMemo(() => combinedAccess(held), [held])
+  // `roleAccess` returns nothing for a custom IAM role because Quilt cannot read one,
+  // which is not the same as the role reaching no bucket.
+  const isCustom = (r: Role) => r.__typename !== 'ManagedRole'
+  const activeUnknown = !!activeRole && isCustom(activeRole)
 
   return (
     <>
@@ -323,7 +327,11 @@ export default function UserPage({
               A user assumes one role at a time, so only the active role&apos;s access is
               in force right now. The rest is reachable by switching role.
             </div>
-            <AccessSummary grants={activeGrants} subject="The active role" />
+            <AccessSummary
+              grants={activeGrants}
+              subject="The active role"
+              unknown={activeUnknown}
+            />
             {held.length > 1 ? (
               <>
                 <M.Tabs
@@ -342,13 +350,20 @@ export default function UserPage({
                   <M.Tab label="Any role" />
                 </M.Tabs>
                 {safeTab < held.length ? (
-                  <AccessTable grants={roleAccess(held[safeTab])} />
+                  <AccessTable
+                    grants={roleAccess(held[safeTab])}
+                    unknown={isCustom(held[safeTab])}
+                  />
                 ) : (
-                  <AccessTable grants={anyGrants} showRole />
+                  <AccessTable
+                    grants={anyGrants}
+                    showRole
+                    unknown={held.some(isCustom)}
+                  />
                 )}
               </>
             ) : (
-              <AccessTable grants={activeGrants} />
+              <AccessTable grants={activeGrants} unknown={activeUnknown} />
             )}
           </>
         )}

@@ -547,7 +547,7 @@ export function IndexingAndNotificationsForm({
             >
               Changing these settings affects files that are indexed after the change. If
               you wish to deep index existing files, click{' '}
-              <strong>&quot;Re-index and repair&quot;</strong>.
+              <strong>&quot;Re-index…&quot;</strong>.
             </Lab.Alert>
           )
         }}
