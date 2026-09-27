@@ -1,6 +1,7 @@
 import * as FF from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import { useConfirm } from 'components/Dialog'
@@ -60,10 +61,8 @@ interface EditorProps {
   onChange: (value: string) => void
 }
 
-// `loadMode` suspends, and it belongs here rather than beside the config query in
-// `Data`: brace resolves `ace/mode/yaml` from a registry the mode module populates,
-// so it has to be loaded before TextEditor mounts, but a component that suspends on
-// the query AND on the mode re-enters the query on every retry and never settles.
+// `loadMode` suspends; brace resolves `ace/mode/yaml` from a registry the mode module
+// populates, so it has to load before TextEditor mounts.
 function Editor({ className, error, initialValue, onChange }: EditorProps) {
   loadMode(TEXT_EDITOR_TYPE.brace)
   return (
@@ -77,29 +76,42 @@ function Editor({ className, error, initialValue, onChange }: EditorProps) {
   )
 }
 
+function EditorFallback({ error }: { error: Error }) {
+  const classes = useEditorStyles()
+  return (
+    <div className={classes.placeholder}>
+      <M.Typography variant="body2" color="error">
+        Could not load the editor: {error.message}
+      </M.Typography>
+    </div>
+  )
+}
+
 function TextField({ errors, input, meta }: TextFieldProps) {
   const classes = useEditorStyles()
   // TODO: lint yaml
   const error = meta.error || meta.submitError
   const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
   return (
-    // Its own boundary: the editor is a lazy chunk and its mode is a second one, and
-    // without this their load suspends the whole dialog to a bare spinner -- no title,
-    // no actions, nothing to cancel with.
-    <React.Suspense
-      fallback={
-        <div className={classes.placeholder}>
-          <M.CircularProgress size={24} />
-        </div>
-      }
-    >
-      <Editor
-        className={classes.root}
-        error={errorMessage ? new Error(errorMessage) : null}
-        onChange={input.onChange}
-        initialValue={meta.initial}
-      />
-    </React.Suspense>
+    // Both boundaries are the field's own: the editor is a lazy chunk and its mode is a
+    // second one, so without them a slow load leaves the dialog a bare spinner and a
+    // failed one replaces the whole admin page, in each case with nothing to cancel with.
+    <ErrorBoundary FallbackComponent={EditorFallback}>
+      <React.Suspense
+        fallback={
+          <div className={classes.placeholder}>
+            <M.CircularProgress size={24} />
+          </div>
+        }
+      >
+        <Editor
+          className={classes.root}
+          error={errorMessage ? new Error(errorMessage) : null}
+          onChange={input.onChange}
+          initialValue={meta.initial}
+        />
+      </React.Suspense>
+    </ErrorBoundary>
   )
 }
 
