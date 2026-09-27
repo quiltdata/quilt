@@ -1,6 +1,7 @@
 import * as FF from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import { useConfirm } from 'components/Dialog'
@@ -22,6 +23,8 @@ import SSO_CONFIG_QUERY from './gql/SsoConfig.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
+const DOCS_URL = `${docs}/quilt-platform-administrator/advanced/sso-permissions`
+
 const TEXT_FIELD_ERRORS = {
   required: 'Enter an SSO config',
 }
@@ -35,39 +38,117 @@ type TextFieldProps = RF.FieldRenderProps<string> &
 
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
 
-function TextField({ className, errors, input, meta }: TextFieldProps) {
-  // TODO: lint yaml
-  const error = meta.error || meta.submitError
-  const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
+const useEditorStyles = M.makeStyles((t) => ({
+  root: {
+    minHeight: t.spacing(30),
+  },
+  // Stands in for the editor at its own height, so the dialog does not resize when
+  // the chunk arrives.
+  placeholder: {
+    alignItems: 'center',
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    display: 'flex',
+    justifyContent: 'center',
+    minHeight: t.spacing(30),
+  },
+}))
+
+interface EditorProps {
+  className: string
+  error: Error | null
+  initialValue?: string
+  onChange: (value: string) => void
+}
+
+// `loadMode` suspends; brace resolves `ace/mode/yaml` from a registry the mode module
+// populates, so it has to load before TextEditor mounts.
+function Editor({ className, error, initialValue, onChange }: EditorProps) {
+  loadMode(TEXT_EDITOR_TYPE.brace)
   return (
     <TextEditor
       className={className}
-      error={errorMessage ? new Error(errorMessage) : null}
-      onChange={input.onChange}
+      error={error}
+      onChange={onChange}
       type={TEXT_EDITOR_TYPE}
-      initialValue={meta.initial}
+      initialValue={initialValue}
     />
   )
 }
 
+function EditorFallback({ error }: { error: Error }) {
+  const classes = useEditorStyles()
+  return (
+    <div className={classes.placeholder}>
+      <M.Typography variant="body2" color="error">
+        Could not load the editor: {error.message}
+      </M.Typography>
+    </div>
+  )
+}
+
+function TextField({ errors, input, meta }: TextFieldProps) {
+  const classes = useEditorStyles()
+  // TODO: lint yaml
+  const error = meta.error || meta.submitError
+  const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
+  return (
+    // Both boundaries are the field's own: the editor is a lazy chunk and its mode is a
+    // second one, so without them a slow load leaves the dialog a bare spinner and a
+    // failed one replaces the whole admin page, in each case with nothing to cancel with.
+    <ErrorBoundary FallbackComponent={EditorFallback}>
+      <React.Suspense
+        fallback={
+          <div className={classes.placeholder}>
+            <M.CircularProgress size={24} />
+          </div>
+        }
+      >
+        <Editor
+          className={classes.root}
+          error={errorMessage ? new Error(errorMessage) : null}
+          onChange={input.onChange}
+          initialValue={meta.initial}
+        />
+      </React.Suspense>
+    </ErrorBoundary>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
-  delete: {
-    background: t.palette.error.light,
-    color: t.palette.error.contrastText,
-    marginRight: 'auto',
-    '&:hover': {
-      background: t.palette.error.main,
-    },
+  intro: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginBottom: t.spacing(2),
   },
-  editor: {
-    minHeight: t.spacing(30),
+  status: {
+    ...t.typography.body2,
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+    marginBottom: t.spacing(2),
+  },
+  tag: {
+    ...t.typography.caption,
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.text.secondary,
+    lineHeight: 1.6,
+    padding: t.spacing(0, 0.75),
+    whiteSpace: 'nowrap',
+  },
+  tagOn: {
+    borderColor: t.palette.secondary.main,
+    color: t.palette.secondary.dark,
+  },
+  // A destructive action does not wear the weight of the primary one: text, error
+  // ink, and pushed away from Save so it is not a neighbouring click.
+  delete: {
+    color: t.palette.error.main,
+    marginRight: 'auto',
   },
   error: {
     marginTop: t.spacing(2),
-  },
-  lock: {
-    bottom: t.spacing(6.5),
-    top: t.spacing(8),
   },
 }))
 
@@ -95,6 +176,7 @@ function Form({
   ssoConfig,
 }: FormProps) {
   const classes = useStyles()
+  const configured = !!ssoConfig?.text
   const confirm = useConfirm({
     title: 'You are about to delete SSO mapping config',
     submitTitle: 'Delete',
@@ -104,9 +186,26 @@ function Form({
     <>
       {confirm.render(<></>)}
       <M.DialogTitle disableTypography>
-        <M.Typography variant="h5">SSO role mapping config</M.Typography>
+        <M.Typography variant="h5">SSO role mapping</M.Typography>
       </M.DialogTitle>
       <M.DialogContent>
+        <div className={classes.status}>
+          <span className={configured ? `${classes.tag} ${classes.tagOn}` : classes.tag}>
+            {configured ? 'Active' : 'Not configured'}
+          </span>
+          <span>
+            {configured
+              ? 'Roles come from this mapping, so role assignment is read-only on those users.'
+              : 'Without a mapping, every user keeps the role assigned to them here.'}
+          </span>
+        </div>
+        <div className={classes.intro}>
+          Maps the groups your identity provider sends onto Quilt roles.{' '}
+          <StyledLink href={DOCS_URL} target="_blank">
+            How the mapping works
+          </StyledLink>
+          .
+        </div>
         <RF.Field
           component={TextField}
           errors={TEXT_FIELD_ERRORS}
@@ -114,38 +213,29 @@ function Form({
           label="SSO config"
           name="config"
           validate={validators.required as FF.FieldValidator<any>}
-          className={classes.editor}
         />
         {submitFailed && (
-          <>
+          <div className={classes.error}>
             <FormError error={error || submitError} errors={FORM_ERRORS} />
-            <M.Typography variant="body2">
-              Learn more about{' '}
-              <StyledLink
-                href={`${docs}/quilt-platform-administrator/advanced/sso-permissions`}
-                target="_blank"
-              >
-                SSO permissions mapping
-              </StyledLink>
-              .
-            </M.Typography>
-          </>
+          </div>
         )}
       </M.DialogContent>
       <M.DialogActions>
-        <M.Button
-          onClick={confirm.open}
-          color="inherit"
-          disabled={submitting}
-          className={classes.delete}
-        >
-          Delete
-        </M.Button>
+        {configured && (
+          <M.Button
+            onClick={confirm.open}
+            disabled={submitting}
+            className={classes.delete}
+          >
+            Delete mapping
+          </M.Button>
+        )}
         <M.Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
           Cancel
         </M.Button>
         <M.Button
           color="primary"
+          variant="contained"
           disabled={pristine || submitting || (submitFailed && hasValidationErrors)}
           onClick={handleSubmit}
         >
@@ -153,8 +243,8 @@ function Form({
         </M.Button>
       </M.DialogActions>
       {submitting && (
-        <Lock className={classes.lock}>
-          <M.CircularProgress size={80} />
+        <Lock>
+          <M.CircularProgress size={48} />
         </Lock>
       )}
     </>
@@ -168,7 +258,6 @@ interface DataProps {
 
 function Data({ children, close }: DataProps) {
   const data = GQL.useQueryS(SSO_CONFIG_QUERY)
-  loadMode('yaml')
   const setSsoConfig = GQL.useMutation(SET_SSO_CONFIG_MUTATION)
 
   const submitConfig = React.useCallback(
@@ -239,19 +328,39 @@ function Data({ children, close }: DataProps) {
   )
 }
 
+const useSkeletonStyles = M.makeStyles((t) => ({
+  body: {
+    padding: t.spacing(3),
+  },
+  bar: {
+    minHeight: t.spacing(30),
+  },
+}))
+
+// The config read is the only thing this waits on, and it keeps the dialog's shape
+// while it does, so opening the dialog never shows a bare box.
+function Skeleton() {
+  const classes = useSkeletonStyles()
+  return (
+    <>
+      <M.DialogTitle disableTypography>
+        <M.Typography variant="h5">SSO role mapping</M.Typography>
+      </M.DialogTitle>
+      <M.DialogContent className={classes.body}>
+        <M.LinearProgress />
+        <div className={classes.bar} />
+      </M.DialogContent>
+    </>
+  )
+}
+
 interface SuspendedProps {
   close: Dialogs.Close<string | void>
 }
 
 export default function Suspended({ close }: SuspendedProps) {
   return (
-    <React.Suspense
-      fallback={
-        <M.Box m="32px auto">
-          <M.CircularProgress size={80} />
-        </M.Box>
-      }
-    >
+    <React.Suspense fallback={<Skeleton />}>
       <Data close={close}>{(props) => <Form {...props} />}</Data>
     </React.Suspense>
   )

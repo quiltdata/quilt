@@ -22,7 +22,7 @@ import REMOVE_MUTATION from './gql/BucketsRemove.generated'
 
 export function ListSkeleton() {
   return (
-    <M.Paper>
+    <M.Paper variant="outlined">
       <Table.Toolbar heading="Buckets" />
       <Table.Progress />
     </M.Paper>
@@ -32,9 +32,11 @@ export function ListSkeleton() {
 interface DeleteProps {
   bucket: BucketConfig
   close: (reason?: string) => void
+  // The list's row simply disappears; a page about the bucket has to leave it.
+  onDeleted?: () => void
 }
 
-function Delete({ bucket, close }: DeleteProps) {
+export function Delete({ bucket, close, onDeleted }: DeleteProps) {
   const { push } = Notifications.use()
   const { track } = useTracker()
   const rm = GQL.useMutation(REMOVE_MUTATION)
@@ -45,6 +47,7 @@ function Delete({ bucket, close }: DeleteProps) {
       switch (r.__typename) {
         case 'BucketRemoveSuccess':
           track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
+          onDeleted?.()
           return
         case 'IndexingInProgress':
           push(`Can't delete bucket "${bucket.name}" while it's being indexed`)
@@ -62,7 +65,7 @@ function Delete({ bucket, close }: DeleteProps) {
       // eslint-disable-next-line no-console
       console.error(e)
     }
-  }, [bucket, close, rm, push, track])
+  }, [bucket, close, onDeleted, rm, push, track])
 
   return (
     <>
@@ -226,7 +229,7 @@ export default function List() {
   ]
 
   return (
-    <M.Paper>
+    <M.Paper variant="outlined">
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
 
       <Table.Toolbar heading="Buckets" actions={toolbarActions}>
