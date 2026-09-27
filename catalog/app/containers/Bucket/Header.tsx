@@ -222,14 +222,32 @@ const useStyles = M.makeStyles((t) => ({
       rowGap: t.spacing(1),
     },
   },
-  // The settings column exists only when the settings control renders —
-  // an unconditional track would leave non-admins a phantom 24px gutter.
+  // A track exists only for a cell that renders — an unconditional one would
+  // leave a phantom 24px gutter beside settings, or an 8px row under the name.
   withSettings: {
     gridTemplateAreas: '"title stats settings"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
     [Column.down(1044)]: {
       gridTemplateAreas: '"title settings" "stats stats"',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
+    },
+  },
+  withoutStats: {
+    gridTemplateAreas: '"title"',
+    gridTemplateColumns: 'minmax(140px, 1fr)',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: 0,
+    },
+  },
+  withSettingsWithoutStats: {
+    gridTemplateAreas: '"title settings"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title settings"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      rowGap: 0,
     },
   },
   title: {
@@ -288,7 +306,14 @@ export default function Header({ bucket, withStats }: HeaderProps) {
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   return (
-    <div className={cx(classes.root, isAdmin && classes.withSettings)}>
+    <div
+      className={cx(
+        classes.root,
+        isAdmin && withStats && classes.withSettings,
+        !isAdmin && !withStats && classes.withoutStats,
+        isAdmin && !withStats && classes.withSettingsWithoutStats,
+      )}
+    >
       <div className={classes.title}>
         <M.Typography variant="h5" className={classes.titleText} title={bucket}>
           {bucket}

@@ -290,4 +290,19 @@ describe('containers/Bucket/Header withStats=false', () => {
     expect(statsResult).not.toHaveBeenCalled()
     expect(useTabulatorTables).not.toHaveBeenCalled()
   })
+
+  // The grid must not reserve a track for a cell that does not render: a
+  // phantom stats area leaves an 8px row under the name below 1044px, and an
+  // empty middle column beside the settings control above it.
+  it.each([
+    [false, 'withoutStats'],
+    [true, 'withSettingsWithoutStats'],
+  ])('lays out without a stats track (isAdmin=%s → %s)', (admin, variant) => {
+    isAdmin = admin
+    const { getByText } = renderTitle()
+    // Two levels up from the name: Typography → title cell → the grid root.
+    const root = getByText('test-bucket').parentElement!.parentElement!
+    expect(root.className).toMatch(new RegExp(`makeStyles-${variant}-\\d+`))
+    expect(root.className).not.toMatch(/makeStyles-withSettings-\d+/)
+  })
 })
