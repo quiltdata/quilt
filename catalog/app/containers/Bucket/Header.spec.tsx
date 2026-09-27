@@ -91,7 +91,7 @@ function renderHeader() {
   return render(
     <MemoryRouter>
       <NamedRoutes.Provider routes={routes}>
-        <Header bucket="test-bucket" withStats />
+        <Header bucket="test-bucket" withStats bucketExists />
       </NamedRoutes.Provider>
     </MemoryRouter>,
   )
@@ -246,17 +246,13 @@ describe('containers/Bucket/Header withStats=false', () => {
   afterEach(() => {
     cleanup()
     isAdmin = false
-    // The no-queries test clears these; restore them so a block appended below
-    // does not inherit an implementation-less mock.
-    statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
-    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
   })
 
-  function renderTitle() {
+  function renderTitle(bucketExists = true) {
     return render(
       <MemoryRouter>
         <NamedRoutes.Provider routes={routes}>
-          <Header bucket="test-bucket" withStats={false} />
+          <Header bucket="test-bucket" withStats={false} bucketExists={bucketExists} />
         </NamedRoutes.Provider>
       </MemoryRouter>,
     )
@@ -274,6 +270,12 @@ describe('containers/Bucket/Header withStats=false', () => {
     const { getByRole } = renderTitle()
     const link = getByRole('link', { name: 'Bucket settings' })
     expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('offers an admin no settings control for a bucket outside the stack', () => {
+    isAdmin = true
+    const { queryByLabelText } = renderTitle(false)
+    expect(queryByLabelText('Bucket settings')).toBeNull()
   })
 
   it('offers no settings control to a non-admin', () => {

@@ -70,7 +70,14 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
         <Container className={classes.content}>
           <M.Paper className={classes.headerCard}>
             <div className={classes.headerTop}>
-              <Header bucket={bucket} withStats={!!settings?.beta} />
+              <Header
+                bucket={bucket}
+                withStats={!!settings?.beta}
+                bucketExists={bucketExistenceData.case({
+                  Ok: () => true,
+                  _: () => false,
+                })}
+              />
             </div>
             <M.Divider />
             <div className={classes.tabsRow}>

@@ -15,7 +15,7 @@ import { formatQuantity } from 'utils/string'
 
 import * as PD from './PackageDialog'
 import { useTabulatorTables } from './Tabulator/requests'
-import { useStats, type StatsData } from './Overview/useStats'
+import { useStats } from './Overview/useStats'
 
 const useStatsItemStyles = M.makeStyles((t) => ({
   root: {
@@ -131,14 +131,13 @@ const useStatsStyles = M.makeStyles((t) => ({
 
 interface StatsProps {
   bucket: string
-  stats: StatsData
 }
 
-function Stats({ bucket, stats }: StatsProps) {
+function Stats({ bucket }: StatsProps) {
   const classes = useStatsStyles()
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
-  const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
+  const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = useStats(bucket)
   // The tables stat links into the global Athena console (scoped to this
   // bucket) — hide it (and skip its query) for buckets that de-emphasized
   // queries via `ui.nav.queries`.
@@ -290,28 +289,26 @@ const useStyles = M.makeStyles((t) => ({
 interface HeaderProps {
   bucket: string
   withStats: boolean
-}
-
-// Wraps the stats row so `useStats` runs only when the row renders — a hook
-// cannot be called conditionally in Header itself, and the ungated header must
-// not issue the stats queries the `beta` gate is holding back.
-function StatsCell({ bucket }: { bucket: string }) {
-  return <Stats bucket={bucket} stats={useStats(bucket)} />
+  bucketExists: boolean
 }
 
 // The bucket header (name + settings + stats + create-package) shown above the
 // bucket tabs, so it stays visible across all tabs (not just Overview).
-export default function Header({ bucket, withStats }: HeaderProps) {
+export default function Header({ bucket, withStats, bucketExists }: HeaderProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
+  // The admin settings page has no row for a bucket outside the stack and
+  // redirects away. Omitted rather than disabled while existence is pending: the
+  // page below is a placeholder until then, so a disabled control would flash.
+  const withSettings = isAdmin && bucketExists
   return (
     <div
       className={cx(
         classes.root,
-        isAdmin && withStats && classes.withSettings,
-        !isAdmin && !withStats && classes.withoutStats,
-        isAdmin && !withStats && classes.withSettingsWithoutStats,
+        withSettings && withStats && classes.withSettings,
+        !withSettings && !withStats && classes.withoutStats,
+        withSettings && !withStats && classes.withSettingsWithoutStats,
       )}
     >
       <div className={classes.title}>
@@ -321,10 +318,10 @@ export default function Header({ bucket, withStats }: HeaderProps) {
       </div>
       {withStats && (
         <div className={classes.stats}>
-          <StatsCell bucket={bucket} />
+          <Stats bucket={bucket} />
         </div>
       )}
-      {isAdmin && (
+      {withSettings && (
         // On the link MUI would write this text as the link's own description. It
         // wraps the cell instead, and a node title is never written as a `title`.
         <M.Tooltip arrow title={<>Bucket settings</>} disableTouchListener>
