@@ -91,7 +91,7 @@ function renderHeader() {
   return render(
     <MemoryRouter>
       <NamedRoutes.Provider routes={routes}>
-        <Header bucket="test-bucket" />
+        <Header bucket="test-bucket" withStats />
       </NamedRoutes.Provider>
     </MemoryRouter>,
   )
@@ -234,5 +234,75 @@ describe('containers/Bucket/Header', () => {
   it('renders the Create package button', () => {
     const { getByText } = renderHeader()
     expect(getByText('Create package')).toBeTruthy()
+  })
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderHeader()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+})
+
+describe('containers/Bucket/Header withStats=false', () => {
+  afterEach(() => {
+    cleanup()
+    isAdmin = false
+    // The no-queries test clears these; restore them so a block appended below
+    // does not inherit an implementation-less mock.
+    statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
+    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
+  })
+
+  function renderTitle() {
+    return render(
+      <MemoryRouter>
+        <NamedRoutes.Provider routes={routes}>
+          <Header bucket="test-bucket" withStats={false} />
+        </NamedRoutes.Provider>
+      </MemoryRouter>,
+    )
+  }
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderTitle()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+
+  // The settings link is the other half of what renders ungated, and the
+  // module-level useSelector mock is what makes it reachable in a test at all.
+  it('links a settings control to the bucket admin page for an admin', () => {
+    isAdmin = true
+    const { getByRole } = renderTitle()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('offers no settings control to a non-admin', () => {
+    isAdmin = false
+    const { queryByLabelText } = renderTitle()
+    expect(queryByLabelText('Bucket settings')).toBeNull()
+  })
+
+  it('renders no stats and issues no stats queries', () => {
+    statsResult.mockClear()
+    useTabulatorTables.mockClear()
+    const { queryByText } = renderTitle()
+    expect(queryByText('Create package')).toBeNull()
+    expect(statsResult).not.toHaveBeenCalled()
+    expect(useTabulatorTables).not.toHaveBeenCalled()
+  })
+
+  // The grid must not reserve a track for a cell that does not render: a
+  // phantom stats area leaves an 8px row under the name below 1044px, and an
+  // empty middle column beside the settings control above it.
+  it.each([
+    [false, 'withoutStats'],
+    [true, 'withSettingsWithoutStats'],
+  ])('lays out without a stats track (isAdmin=%s → %s)', (admin, variant) => {
+    isAdmin = admin
+    const { getByText } = renderTitle()
+    // Two levels up from the name: Typography → title cell → the grid root.
+    const root = getByText('test-bucket').parentElement!.parentElement!
+    expect(root.className).toMatch(new RegExp(`makeStyles-${variant}-\\d+`))
+    expect(root.className).not.toMatch(/makeStyles-withSettings-\d+/)
   })
 })

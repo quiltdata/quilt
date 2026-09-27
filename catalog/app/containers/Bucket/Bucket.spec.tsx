@@ -181,15 +181,14 @@ describe('containers/Bucket: header card gate', () => {
   })
 
   // The bucket name is not a beta feature: the tabs below it are the only other
-  // place a tab could name its bucket, and they don't. Asserted as the desired
-  // behavior via `it.fails` so each flips red once the gate covers stats only.
-  it.fails('names the bucket when the beta flag is off', () => {
+  // place a tab could name its bucket, and they don't.
+  it('names the bucket when the beta flag is off', () => {
     settingsHook.mockReturnValue({ beta: false })
     const { queryByText } = renderBucket()
     expect(queryByText('test-bucket')).toBeTruthy()
   })
 
-  it.fails('names the bucket when there are no catalog settings', () => {
+  it('names the bucket when there are no catalog settings', () => {
     settingsHook.mockReturnValue(null)
     const { queryByText } = renderBucket()
     expect(queryByText('test-bucket')).toBeTruthy()
