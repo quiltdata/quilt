@@ -39,6 +39,13 @@ When enabled, this will create a package from the crate when an
 stack. The engine is a consumer of the
 [Quilt RO-Crate profile](https://w3id.org/quilt/ro-crate), which defines how a
 crate states its package name, files, people, instrument and lab notebook entry.
+
+A crate is only read when the message names it in `metadata_uri`, which the
+built-in rule does. A `source_prefix` alone — even one pointing at the
+`ro-crate-metadata.json` itself — packages the enclosing folder as an ordinary
+prefix and never reaches the crate, and it succeeds doing so, so the only
+symptom is a package with no crate entries or metadata.
+
 The crate's graph decides what the package contains:
 
 * **Entries** are exactly the root dataset's `hasPart` list, plus the crate
@@ -150,14 +157,16 @@ There is only one required parameter:
 
 ```json
 {
-  "source_prefix": "s3://data_bucket/source/folder/metadata.json"
+  "source_prefix": "s3://data_bucket/source/folder/"
 }
 ```
 
 This is assumed to be a folder if it ends in a `/`; otherwise, we will remove
-the last component of the path to get the folder. The contents of the folder
-will be used to create a package in the same bucket as the source folder, with
-the package name being inferred from the source URI.
+the last component of the path to get the folder. That last component is only
+discarded, never read: a metadata document — an RO-Crate included — is read
+only from `metadata_uri`. The contents of the folder will be used to create a
+package in the same bucket as the source folder, with the package name being
+inferred from the source URI.
 
 Optionally, you can control the package name, metadata, and other settings by
 explicitly specifying any of the following fields:
@@ -169,6 +178,7 @@ explicitly specifying any of the following fields:
   "package_name": "prefix/suffix",
   "metadata": { "key": "value" }, // object (or metadata URI, but not both)
   "metadata_uri": "metadata.json", // S3 URI to read, relative or absolute
+                                   // (required for an RO-Crate)
   "commit_message": "Commit message for the package revision", // string
   "workflow": "alpha", // name of a valid metadata workflow
 }
@@ -182,6 +192,10 @@ Notes on individual fields:
   consisting of letters, digits, underscores, and hyphens, separated by a
   single `/`). When the name is inferred from `source_prefix`, characters
   outside that set are replaced with hyphens.
+* `metadata_uri` is what selects RO-Crate ingestion; a crate that is not named
+  here is packaged as an ordinary file, and the same graph passed inline in
+  `metadata` is stored verbatim rather than parsed. A relative value resolves
+  against `source_prefix`.
 * `workflow` has three-way semantics:
   * **omitted** — the registry's *default* workflow (if one is configured) is
     applied, and package creation fails if the package does not validate
@@ -279,7 +293,7 @@ targets = [
                 "prefix": "$.detail.prefix"
             },
             "InputTemplate": """{
-                \"source_prefix\": \"s3://<bucket>/<prefix>metadata.json\"
+                \"source_prefix\": \"s3://<bucket>/<prefix>\"
             }"""
         }
     }
