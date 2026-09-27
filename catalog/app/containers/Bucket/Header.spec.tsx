@@ -34,6 +34,11 @@ vi.mock('react-redux', () => ({
   useSelector: () => isAdmin,
 }))
 
+let isInStack = true
+vi.mock('utils/Buckets', () => ({
+  useIsInStack: () => () => isInStack,
+}))
+
 vi.mock('utils/AWS', () => ({
   S3: { use: () => ({}) },
 }))
@@ -91,7 +96,7 @@ function renderHeader() {
   return render(
     <MemoryRouter>
       <NamedRoutes.Provider routes={routes}>
-        <Header bucket="test-bucket" withStats bucketExists />
+        <Header bucket="test-bucket" withStats />
       </NamedRoutes.Provider>
     </MemoryRouter>,
   )
@@ -105,6 +110,7 @@ describe('containers/Bucket/Header', () => {
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
     isAdmin = false
+    isInStack = true
   })
 
   it('does not render the settings control for non-admins', () => {
@@ -246,13 +252,14 @@ describe('containers/Bucket/Header withStats=false', () => {
   afterEach(() => {
     cleanup()
     isAdmin = false
+    isInStack = true
   })
 
-  function renderTitle(bucketExists = true) {
+  function renderTitle() {
     return render(
       <MemoryRouter>
         <NamedRoutes.Provider routes={routes}>
-          <Header bucket="test-bucket" withStats={false} bucketExists={bucketExists} />
+          <Header bucket="test-bucket" withStats={false} />
         </NamedRoutes.Provider>
       </MemoryRouter>,
     )
@@ -274,8 +281,15 @@ describe('containers/Bucket/Header withStats=false', () => {
 
   it('offers an admin no settings control for a bucket outside the stack', () => {
     isAdmin = true
-    const { queryByLabelText } = renderTitle(false)
+    isInStack = false
+    const { queryByLabelText } = renderTitle()
     expect(queryByLabelText('Bucket settings')).toBeNull()
+  })
+
+  it('still names a bucket outside the stack', () => {
+    isInStack = false
+    const { getByText } = renderTitle()
+    expect(getByText('test-bucket')).toBeTruthy()
   })
 
   it('offers no settings control to a non-admin', () => {

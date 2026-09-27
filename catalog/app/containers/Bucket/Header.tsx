@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
+import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -289,19 +290,19 @@ const useStyles = M.makeStyles((t) => ({
 interface HeaderProps {
   bucket: string
   withStats: boolean
-  bucketExists: boolean
 }
 
 // The bucket header (name + settings + stats + create-package) shown above the
 // bucket tabs, so it stays visible across all tabs (not just Overview).
-export default function Header({ bucket, withStats, bucketExists }: HeaderProps) {
+export default function Header({ bucket, withStats }: HeaderProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
-  // The admin settings page has no row for a bucket outside the stack and
-  // redirects away. Omitted rather than disabled while existence is pending: the
-  // page below is a placeholder until then, so a disabled control would flash.
-  const withSettings = isAdmin && bucketExists
+  const isInStack = Buckets.useIsInStack()
+  // The settings link's target is a row in the stack's bucket config, and the
+  // page redirects away when there is none. The name is not gated with it: a
+  // bucket outside the stack still has to say which bucket the page is showing.
+  const withSettings = isAdmin && isInStack(bucket)
   return (
     <div
       className={cx(
