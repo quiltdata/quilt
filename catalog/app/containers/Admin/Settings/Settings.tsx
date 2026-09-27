@@ -312,39 +312,65 @@ function NavLinkEditor() {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(2, 0, 0),
+    display: 'grid',
+    gap: t.spacing(3),
+    padding: t.spacing(2, 0, 4),
+    [t.breakpoints.up('md')]: {
+      alignItems: 'start',
+      gridTemplateColumns: `${t.spacing(24)}px minmax(0, 1fr)`,
+    },
   },
-  group: {
-    padding: t.spacing(2),
+  // Sticky rather than scroll-spying: the index is for jumping, and a
+  // highlight that tracks the scroll position is state to keep correct for
+  // nothing the reader asked for.
+  nav: {
+    display: 'none',
+    [t.breakpoints.up('md')]: {
+      display: 'block',
+      position: 'sticky',
+      // Clears the 64px app bar the page scrolls under.
+      top: t.spacing(10),
+    },
   },
-  title: {
-    margin: t.spacing(0, 0, 2),
-    padding: t.spacing(0, 2),
-
-    '* + &': {
+  navGroup: {
+    '& + &': {
       marginTop: t.spacing(2),
     },
   },
-  // Columns, not a grid: a two-column grid pairs each card with whatever sits
-  // beside it, so a one-switch card is stretched to the height of a card with
-  // six. Columns let each card end where its content ends.
-  columns: {
-    columnGap: t.spacing(2),
-    [t.breakpoints.up('md')]: {
-      columnCount: 2,
+  navGroupName: {
+    ...t.typography.overline,
+    color: t.palette.text.hint,
+    display: 'block',
+    marginBottom: t.spacing(0.5),
+  },
+  navLink: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    display: 'block',
+    padding: t.spacing(0.5, 0),
+    '&:hover': {
+      color: t.palette.text.primary,
     },
   },
-  card: {
-    breakInside: 'avoid',
-    marginBottom: t.spacing(2),
-    // Safari ignores `breakInside` on a column child unless it is also a block
-    // formatting context.
-    display: 'inline-block',
-    width: '100%',
+  sections: {
+    display: 'grid',
+    gap: t.spacing(2),
+  },
+  groupHeading: {
+    ...t.typography.overline,
+    color: t.palette.text.hint,
+    '$sections > * + &': {
+      marginTop: t.spacing(2),
+    },
   },
 }))
 
-const useCardStyles = M.makeStyles((t) => ({
+const useSectionStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+    // The jump links above land the section below the app bar, not under it.
+    scrollMarginTop: t.spacing(10),
+  },
   heading: {
     marginBottom: t.spacing(0.5),
   },
@@ -356,19 +382,19 @@ const useCardStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface CardProps {
-  className: string
+interface SectionProps {
+  id: string
   title: string
   hint: string
   children: React.ReactNode
 }
 
-// Every card says what it controls. Four of these read as bare labels otherwise
+// Every section says what it controls. Several read as bare labels otherwise
 // -- "Navigation link" never says where the link goes or who sees it.
-function Card({ className, title, hint, children }: CardProps) {
-  const classes = useCardStyles()
+function Section({ id, title, hint, children }: SectionProps) {
+  const classes = useSectionStyles()
   return (
-    <M.Paper className={className} variant="outlined">
+    <M.Paper id={id} className={classes.root} variant="outlined">
       <M.Typography variant="h6" className={classes.heading}>
         {title}
       </M.Typography>
@@ -381,26 +407,88 @@ function Card({ className, title, hint, children }: CardProps) {
 }
 
 // Gated on the `data-products` preview feature, matching how `FeatureSettings` is
-// gated above: with the capability off, an admin offered a catalog-connection form
+// gated: with the capability off, an admin offered a catalog-connection form
 // would be configuring something no reader can reach.
 //
 // Its own component because `useFeature` suspends and `Settings` does not,
-// so the read has to sit under a boundary of its own.
+// so the read has to sit under a boundary of its own. Same reason the nav entry
+// for it below is a component rather than a row in the index.
 export function DataProductCatalogs() {
-  const classes = useStyles()
   const enabled = useFeature('data-products')
   if (!enabled) return null
   return (
-    <>
-      {/* Its own section rather than a cell in the grid above: a connection list
-          grows, and the add form needs the full width. */}
-      <M.Typography variant="h5" className={classes.title}>
-        Data product catalogs
-      </M.Typography>
-      <M.Paper className={classes.group} variant="outlined">
-        <DataProductConnections />
-      </M.Paper>
-    </>
+    <Section
+      id="data-products"
+      title="Data product catalogs"
+      hint="External catalogs this stack publishes its data products to."
+    >
+      <DataProductConnections />
+    </Section>
+  )
+}
+
+const GROUPS: { name: string; items: { id: string; title: string }[] }[] = [
+  {
+    name: 'Appearance',
+    items: [
+      { id: 'theme', title: 'Theme' },
+      { id: 'nav-link', title: 'Navigation link' },
+    ],
+  },
+  {
+    name: 'Search and assistant',
+    items: [
+      { id: 'search', title: 'Default search mode' },
+      { id: 'qurator', title: 'Qurator instructions' },
+    ],
+  },
+  {
+    name: 'Data',
+    items: [
+      { id: 'tabulator', title: 'Tabulator' },
+      { id: 'packager', title: 'Packaging engine' },
+    ],
+  },
+  {
+    name: 'Platform',
+    items: [
+      { id: 'beta', title: 'Beta features' },
+      ...(HAS_PREVIEW_FEATURES ? [{ id: 'preview', title: 'Preview features' }] : []),
+      { id: 'diagnostics', title: 'Support diagnostics' },
+    ],
+  },
+]
+
+function DataProductNavLink({ className }: { className: string }) {
+  const enabled = useFeature('data-products')
+  if (!enabled) return null
+  return (
+    <a href="#data-products" className={className}>
+      Data product catalogs
+    </a>
+  )
+}
+
+function Nav() {
+  const classes = useStyles()
+  return (
+    <nav className={classes.nav}>
+      {GROUPS.map(({ name, items }) => (
+        <div className={classes.navGroup} key={name}>
+          <span className={classes.navGroupName}>{name}</span>
+          {items.map(({ id, title }) => (
+            <a href={`#${id}`} className={classes.navLink} key={id}>
+              {title}
+            </a>
+          ))}
+          {name === 'Data' && (
+            <React.Suspense fallback={null}>
+              <DataProductNavLink className={classes.navLink} />
+            </React.Suspense>
+          )}
+        </div>
+      ))}
+    </nav>
   )
 }
 
@@ -409,82 +497,86 @@ export default function Settings() {
   return (
     <div className={classes.root}>
       <MetaTitle>{['Settings', 'Admin']}</MetaTitle>
-      <M.Typography variant="h5" className={classes.title}>
-        Catalog customization
-      </M.Typography>
-      <div className={classes.columns}>
-        <Card
-          className={`${classes.group} ${classes.card}`}
-          title="Navigation link"
-          hint="An extra link in the catalog's top navigation bar, shown to everyone on this stack."
-        >
-          <NavLinkEditor />
-        </Card>
-        <Card
-          className={`${classes.group} ${classes.card}`}
+      <Nav />
+      <div className={classes.sections}>
+        <M.Typography className={classes.groupHeading}>Appearance</M.Typography>
+        <Section
+          id="theme"
           title="Theme"
           hint="The logo and accent color every page of this catalog carries."
         >
           <ThemeEditor />
-        </Card>
-        <Card
-          className={`${classes.group} ${classes.card}`}
+        </Section>
+        <Section
+          id="nav-link"
+          title="Navigation link"
+          hint="An extra link in the catalog's top navigation bar, shown to everyone on this stack."
+        >
+          <NavLinkEditor />
+        </Section>
+
+        <M.Typography className={classes.groupHeading}>Search and assistant</M.Typography>
+        <Section
+          id="search"
           title="Default search mode"
           hint="What a search covers before anyone narrows it."
         >
           <SearchSettings />
-        </Card>
-        <Card
-          className={`${classes.group} ${classes.card}`}
-          title="Beta features"
-          hint="Opens features still under development to everyone on this stack."
-        >
-          <M.FormControlLabel control={<BetaSwitch />} label="Beta features on" />
-        </Card>
-        <Card
-          className={`${classes.group} ${classes.card}`}
+        </Section>
+        <Section
+          id="qurator"
           title="Qurator instructions"
           hint="Standing instructions sent with every Qurator message on this stack."
         >
           <QuratorSettings />
-        </Card>
+        </Section>
+
+        <M.Typography className={classes.groupHeading}>Data</M.Typography>
+        <Section
+          id="tabulator"
+          title="Tabulator"
+          hint="Tables that stitch package files into one queryable surface."
+        >
+          <TabulatorSettings />
+        </Section>
+        <Section
+          id="packager"
+          title="Packaging engine"
+          hint="How this stack builds packages from incoming data."
+        >
+          <PackagerSettings />
+        </Section>
+        <React.Suspense fallback={null}>
+          <DataProductCatalogs />
+        </React.Suspense>
+
+        <M.Typography className={classes.groupHeading}>Platform</M.Typography>
+        <Section
+          id="beta"
+          title="Beta features"
+          hint="Opens features still under development to everyone on this stack."
+        >
+          <M.FormControlLabel control={<BetaSwitch />} label="Beta features on" />
+        </Section>
         {/* Absent entirely when this build declares no preview capabilities,
-            rather than rendering an empty card. */}
+            rather than rendering an empty section. */}
         {HAS_PREVIEW_FEATURES && (
-          <Card
-            className={`${classes.group} ${classes.card}`}
+          <Section
+            id="preview"
             title="Preview features"
             hint="Individual capabilities this build can offer ahead of general release."
           >
             <FeatureSettings />
-          </Card>
+          </Section>
         )}
+        <Section
+          id="diagnostics"
+          title="Support diagnostics"
+          hint="A bundle of stack state to attach to a support request."
+        >
+          <SupportDiagnostics />
+        </Section>
       </div>
-
-      <React.Suspense fallback={null}>
-        <DataProductCatalogs />
-      </React.Suspense>
-
-      <M.Typography variant="h5" className={classes.title}>
-        Packaging engine
-      </M.Typography>
-      <M.Paper className={classes.group} variant="outlined">
-        <PackagerSettings />
-      </M.Paper>
-
-      <M.Typography variant="h5" className={classes.title}>
-        Tabulator
-      </M.Typography>
-      <M.Paper className={classes.group} variant="outlined">
-        <TabulatorSettings />
-      </M.Paper>
-
-      <M.Typography variant="h5" className={classes.title}>
-        Support diagnostics
-      </M.Typography>
-      <M.Paper className={classes.group} variant="outlined">
-        <SupportDiagnostics />
-      </M.Paper>
     </div>
   )
 }
