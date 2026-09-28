@@ -86,7 +86,7 @@ const normalizeDocumentName = (name: string) =>
     .replace(/\s+/g, ' ') // Replace multiple whitespace characters with a single space
     .trim() // Remove leading and trailing whitespace
 
-const THRESHOLD = 500 * 1024 // 500 KiB
+export const THRESHOLD = 500 * 1024 // 500 KiB
 
 const PreviewSchema = S.Struct({
   s3_uri: S.String,
