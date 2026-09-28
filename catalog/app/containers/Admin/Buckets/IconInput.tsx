@@ -7,7 +7,11 @@ import * as M from '@material-ui/core'
 
 import BucketIcon from 'components/BucketIcon'
 
-import { cropToDataUrl, probeWithinPixelBudget } from './iconCrop'
+import {
+  MAX_ICON_DATA_URL_LENGTH,
+  cropToDataUrl,
+  probeWithinPixelBudget,
+} from './iconCrop'
 
 // What the canvas decoder handles and can re-encode, which is this path's only
 // constraint: the crop never reaches S3, so the logo upload's IAM-pinned
@@ -20,6 +24,11 @@ const ACCEPTED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'ima
 // than the decoded bitmap because decoding is what a huge image kills the tab
 // doing, and only the file size is known before that.
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024
+
+// Case-insensitive, because BucketIcon decides what to render from the scheme the
+// same way: a `DATA:` value it would draw as an image must not be treated here as
+// a URL and cut to the URL length.
+const isDataUrl = (v: string) => /^data:/i.test(v)
 
 const useCropDialogStyles = M.makeStyles((t) => ({
   cropper: {
@@ -169,7 +178,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     gap: t.spacing(2),
-    marginTop: t.spacing(2),
+    // Both margins, matching the `margin="normal"` every sibling field carries:
+    // top alone leaves this field 8px closer to Description than the rest.
+    margin: t.spacing(2, 0, 1),
   },
   dropzone: {
     alignItems: 'center',
@@ -191,10 +202,6 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   active: {},
-  preview: {
-    height: 44,
-    width: 44,
-  },
   field: {
     flexGrow: 1,
   },
@@ -205,8 +212,8 @@ const useStyles = M.makeStyles((t) => ({
 
 type IconInputProps = RF.FieldRenderProps<string> & {
   // The bucket's name, not its title: it is the tint key every other surface
-  // hashes, so the preview disc matches the row behind it. Absent on the add form,
-  // where there is no bucket yet.
+  // hashes, so the preview disc matches the row behind it. Undefined on the add
+  // form, where no bucket is saved yet; the live `name` field stands in.
   bucketName?: string
   // Same shape Admin/Form's Field takes, so a validator key resolves to a sentence
   // here as it does on every sibling field.
@@ -223,6 +230,11 @@ export default function IconInput({
   // The live Title, so the initials track what is being typed rather than the last
   // saved value -- which on the add form does not exist yet.
   const title = RF.useField<string>('title', { subscription: { value: true } }).input
+    .value
+  // The add form's own Name field, so the preview wears the tint the bucket will
+  // actually get: the hash avalanches, so keying off Title instead would run the
+  // disc through unrelated colours per keystroke and settle on none of them.
+  const liveName = RF.useField<string>('name', { subscription: { value: true } }).input
     .value
   const [file, setFile] = React.useState<FileWithPath | null>(null)
   const [rejected, setRejected] = React.useState<string | null>(null)
@@ -255,11 +267,15 @@ export default function IconInput({
   }, [])
 
   const onDropRejected = React.useCallback((rejections: FileRejection[]) => {
+    // Retires a probe still running on an earlier pick, which would otherwise open
+    // the dialog on that file while this rejection is on screen naming another.
+    selection.current += 1
     // Name the constraint that actually failed: told "wrong format" after
     // dropping two correctly-typed files, an admin has no way to find the real one.
     const code = rejections[0]?.errors[0]?.code
     if (code === 'too-many-files') setRejected('Choose one image')
-    else if (code === 'file-too-large') setRejected('Choose an image under 12MB')
+    else if (code === 'file-too-large')
+      setRejected(`Choose an image under ${MAX_SOURCE_BYTES / 1024 / 1024}MB`)
     else setRejected('Choose a PNG, JPEG, WebP or GIF image')
   }, [])
 
@@ -282,7 +298,7 @@ export default function IconInput({
 
   // react-final-form hands an untouched field `undefined` until it is registered.
   const value: string = input.value || ''
-  const uploaded = value.startsWith('data:')
+  const uploaded = isDataUrl(value)
 
   // Same rule Admin/Form's Field applies, so a validator or a server error mapped
   // to this field surfaces here as it does on every sibling field.
@@ -305,10 +321,9 @@ export default function IconInput({
             })}
           />
           <BucketIcon
-            className={classes.preview}
             src={value || null}
             label={title}
-            tintKey={bucketName || title}
+            tintKey={bucketName || liveName || title}
             size={44}
           />
           <M.Typography variant="caption" color="textSecondary">
@@ -338,14 +353,25 @@ export default function IconInput({
             // The drop message describes a file, not this field, so typing here
             // retires it rather than leaving red text under unrelated input.
             setRejected(null)
-            input.onChange(e.target.value.replace(/^\s+/, '').slice(0, 1024))
+            const next = e.target.value.replace(/^\s+/, '')
+            // A data: URI is refused rather than truncated: any cut leaves a value
+            // that cannot decode but still reads as uploaded, which hides it behind
+            // a description and locks the field against repairing it. A URL is safe
+            // to cut -- it stays visible and editable.
+            if (isDataUrl(next)) {
+              if (next.length > MAX_ICON_DATA_URL_LENGTH) {
+                setRejected('That image data is too long to store as an icon')
+                return
+              }
+              input.onChange(next)
+              return
+            }
+            input.onChange(next.slice(0, 1024))
           }}
           onBlur={(e) => {
-            // Trailing whitespace is trimmed on commit rather than per keystroke,
-            // so a space can still be typed mid-value; the field this replaced
-            // trimmed both ends and the stored config must not start carrying it.
-            // Skipped while uploaded, where the field shows a description of the
-            // value rather than the value.
+            // Trimmed on commit rather than per keystroke, so a space stays
+            // typable mid-value. Skipped while uploaded, where the field shows a
+            // description of the value rather than the value.
             if (!uploaded) {
               const trimmed = e.target.value.trim()
               if (trimmed !== e.target.value) input.onChange(trimmed)

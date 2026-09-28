@@ -81,7 +81,10 @@ describe('containers/Admin/Buckets/iconCrop', () => {
       ]
       areas.forEach((a) => {
         const out = clampArea(a, media)
-        if (out) expect(out.width).toBe(out.height)
+        // Asserted before the shape check: every one of these areas is accepted, so a
+        // regression that started rejecting them would otherwise pass vacuously.
+        expect(out).not.toBeNull()
+        expect(out!.width).toBe(out!.height)
       })
     })
 

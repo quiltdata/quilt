@@ -8,7 +8,11 @@ vi.mock('constants/config', () => ({ default: {} }))
 // The cropper needs layout and a canvas, neither of which jsdom has; the crop
 // itself is covered by iconCrop.spec.ts and the browser harness. The stub reports
 // a crop area on mount, which is what enables the dialog's confirm button.
-const CROP_AREA = { x: 0, y: 0, width: 200, height: 200 }
+// react-easy-crop reports a completed crop twice, in percentages and in pixels. Only
+// the pixel area can be drawn, so the two are kept distinguishable here: one object
+// used for both would let a regression that stores the percentage area still pass.
+const CROP_AREA_PERCENT = { x: 0, y: 0, width: 100, height: 100 }
+const CROP_AREA_PIXELS = { x: 0, y: 0, width: 200, height: 200 }
 vi.mock('react-easy-crop', () => {
   // Named, because the hook below is only legal inside a component the linter can
   // recognise as one.
@@ -18,7 +22,7 @@ vi.mock('react-easy-crop', () => {
     onCropComplete: (a: unknown, b: unknown) => void
   }) {
     React.useEffect(() => {
-      onCropComplete(CROP_AREA, CROP_AREA)
+      onCropComplete(CROP_AREA_PERCENT, CROP_AREA_PIXELS)
     }, [onCropComplete])
     return <div data-testid="cropper" />
   }
@@ -37,6 +41,9 @@ vi.mock('components/BucketIcon', () => ({
 const cropToDataUrl = vi.fn<(src: string, area: unknown) => Promise<string>>()
 const probeWithinPixelBudget = vi.fn<(src: string) => Promise<boolean>>()
 vi.mock('./iconCrop', () => ({
+  // The real bound: mocking it smaller would make the paste cap agree with the
+  // mock rather than with what the crop path actually stores.
+  MAX_ICON_DATA_URL_LENGTH: 16 * 1024,
   cropToDataUrl: (src: string, area: unknown) => cropToDataUrl(src, area),
   probeWithinPixelBudget: (src: string) => probeWithinPixelBudget(src),
 }))
@@ -46,13 +53,18 @@ import IconInput from './IconInput'
 interface HarnessProps {
   initial?: string
   bucketName?: string
+  // The add form's own Name field, which the component reads for the preview tint.
+  name?: string
   errors?: Record<string, React.ReactNode>
   validate?: (v?: string) => string | undefined
 }
 
-function Harness({ initial, bucketName, errors, validate }: HarnessProps) {
+function Harness({ initial, bucketName, name, errors, validate }: HarnessProps) {
   return (
-    <RF.Form onSubmit={() => {}} initialValues={{ iconUrl: initial, title: 'Prod data' }}>
+    <RF.Form
+      onSubmit={() => {}}
+      initialValues={{ iconUrl: initial, title: 'Prod data', name }}
+    >
       {({ handleSubmit }) => (
         <form onSubmit={handleSubmit}>
           <RF.Field
@@ -88,7 +100,14 @@ describe('containers/Admin/Buckets/IconInput', () => {
     expect(q.getByTestId('preview').dataset.tint).toBe('prod-analytics')
   })
 
-  it('falls back to the live title on the add form, where no bucket exists yet', () => {
+  it("keys off the add form's own Name field before the bucket is saved", () => {
+    // The tint the bucket will actually get. Keyed on the title instead, the hash
+    // avalanches and the disc runs through unrelated colours per keystroke.
+    const q = render(<Harness name="prod-analytics" />)
+    expect(q.getByTestId('preview').dataset.tint).toBe('prod-analytics')
+  })
+
+  it('falls back to the live title while the add form has no name yet', () => {
     const q = render(<Harness />)
     expect(q.getByTestId('preview').dataset.tint).toBe('Prod data')
   })
@@ -118,18 +137,47 @@ describe('containers/Admin/Buckets/IconInput', () => {
     const q = render(<Harness initial="" />)
     const field = urlField(q)
     fireEvent.change(field, { target: { value: 'https://cdn.example.com/my icon.png' } })
-    // A space inside the value survives: trimming per keystroke made one untypable.
+    // A space inside the value survives; trimming per keystroke makes it untypable.
     expect(field.value).toBe('https://cdn.example.com/my icon.png')
     fireEvent.change(field, { target: { value: 'https://cdn.example.com/i.png  ' } })
     fireEvent.blur(field)
     expect(field.value).toBe('https://cdn.example.com/i.png')
   })
 
-  it('strips leading whitespace as the field it replaced did', () => {
+  it('strips leading whitespace from a pasted URL', () => {
     const q = render(<Harness initial="" />)
     const field = urlField(q)
     fireEvent.change(field, { target: { value: '   https://cdn.example.com/i.png' } })
     expect(field.value).toBe('https://cdn.example.com/i.png')
+  })
+
+  it('keeps a pasted data: URI whole rather than cutting it at the URL cap', () => {
+    // Cut to 1024 the value still reads as uploaded, so the field locks read-only
+    // over a truncated URI the admin can no longer repair by typing.
+    const uri = `data:image/png;base64,${'A'.repeat(4000)}`
+    const q = render(<Harness initial="" />)
+    fireEvent.change(urlField(q), { target: { value: uri } })
+    expect(q.getByTestId('preview').dataset.src).toBe(uri)
+  })
+
+  it('reads the data: scheme case-insensitively, as BucketIcon does', () => {
+    // BucketIcon decides from the scheme case-insensitively, so a `DATA:` value it
+    // would draw as an image must not be cut to the URL length here.
+    const uri = `DATA:image/png;base64,${'A'.repeat(20 * 1024)}`
+    const q = render(<Harness initial="" />)
+    fireEvent.change(urlField(q), { target: { value: uri } })
+    expect(q.getByText('That image data is too long to store as an icon')).toBeDefined()
+    expect(q.getByTestId('preview').dataset.src).toBe('')
+  })
+
+  it('refuses a data: URI past the stored bound instead of truncating it', () => {
+    // Any cut yields a value that cannot decode but still reads as uploaded, so an
+    // over-long paste is refused outright rather than stored in part.
+    const uri = `data:image/png;base64,${'A'.repeat(20 * 1024)}`
+    const q = render(<Harness initial="" />)
+    fireEvent.change(urlField(q), { target: { value: uri } })
+    expect(q.getByText('That image data is too long to store as an icon')).toBeDefined()
+    expect(q.getByTestId('preview').dataset.src).toBe('')
   })
 
   it('clears either kind of value', () => {
@@ -203,6 +251,35 @@ describe('containers/Admin/Buckets/IconInput', () => {
     expect(q.getByText('Choose an image under 12MB')).toBeDefined()
   })
 
+  it('retires a probe still running when a later drop is rejected', async () => {
+    // Otherwise the slow pick's dialog opens over the rejection naming another file,
+    // leaving no way to tell which image is being cropped.
+    let settle: (v: boolean) => void = () => {}
+    probeWithinPixelBudget.mockReturnValueOnce(
+      new Promise<boolean>((res) => {
+        settle = res
+      }),
+    )
+    const q = render(<Harness initial="" />)
+    const input = q.getByLabelText(
+      'Upload a bucket icon: PNG, JPEG, WebP or GIF',
+    ) as HTMLInputElement
+    const good = new File(['x'], 'slow.png', { type: 'image/png' })
+    Object.defineProperty(input, 'files', { value: [good], configurable: true })
+    fireEvent.drop(input)
+
+    const bad = new File(['x'], 'notes.txt', { type: 'text/plain' })
+    Object.defineProperty(input, 'files', { value: [bad], configurable: true })
+    await act(async () => {
+      fireEvent.drop(input)
+    })
+    await act(async () => {
+      settle(true)
+    })
+    expect(q.getByText('Choose a PNG, JPEG, WebP or GIF image')).toBeDefined()
+    expect(q.queryByText('Crop icon')).toBeNull()
+  })
+
   it('gives the file input an accessible name', () => {
     // The dropzone root is role="presentation" and the preview carries no text, so
     // without this the focusable target announces only its caption.
@@ -253,7 +330,7 @@ describe('containers/Admin/Buckets/IconInput', () => {
       await act(async () => {
         fireEvent.click(q.getByText('Use icon'))
       })
-      expect(cropToDataUrl).toHaveBeenCalledWith(expect.any(String), CROP_AREA)
+      expect(cropToDataUrl).toHaveBeenCalledWith(expect.any(String), CROP_AREA_PIXELS)
       expect(q.getByTestId('preview').dataset.src).toBe('data:image/png;base64,ENCODED')
       expect(q.queryByText('Crop icon')).toBeNull()
     })
