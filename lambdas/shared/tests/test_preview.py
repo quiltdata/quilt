@@ -24,6 +24,7 @@ ACCEPTABLE_ERROR_MESSAGES = [
     'Element "head" is missing a required instance of child element "title".',
     'Element "style" not allowed as child of element "div" in this context. '
     '(Suppressing further errors from this subtree.)',
+    'Attribute "scoped" not allowed on element "style" at this point.',
     'The "border" attribute on the "table" element is obsolete. Consider specifying "img { border: 0; }" in CSS instead.',
 ]
 

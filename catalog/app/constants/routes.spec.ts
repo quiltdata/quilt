@@ -61,6 +61,18 @@ describe('constants/routes', () => {
 
       expect(match?.params?.workgroup).toBe(workgroup)
     })
+
+    it('carries the tabulator deep-link params in the search string', () => {
+      const { url } = queriesAthenaWorkgroup
+
+      const generatedUrl = url('primary', { bucket: 'my-bucket', table: 'drugs' })
+      const { searchParams } = new URL(generatedUrl, 'http://localhost')
+
+      expect(Object.fromEntries(searchParams.entries())).toEqual({
+        bucket: 'my-bucket',
+        table: 'drugs',
+      })
+    })
   })
 
   describe('queriesAthenaExecution', () => {
@@ -78,6 +90,19 @@ describe('constants/routes', () => {
 
       expect(match?.params?.workgroup).toBe(workgroup)
       expect(match?.params?.queryExecutionId).toBe(queryExecutionId)
+    })
+
+    // The type forbids `table`, but `queryRedirects.jsx` is untyped, so the drop
+    // has to hold at runtime: TabulatorTables' autofill would overwrite the
+    // editor's SQL with a SELECT unrelated to the execution on screen.
+    it('carries the bucket scope and drops a `table` passed anyway', () => {
+      const { url } = queriesAthenaExecution
+
+      const opts = { bucket: 'my-bucket', table: 'drugs' }
+      const generatedUrl = url('primary', 'abc-123', opts as { bucket?: string })
+      const { searchParams } = new URL(generatedUrl, 'http://localhost')
+
+      expect(Object.fromEntries(searchParams.entries())).toEqual({ bucket: 'my-bucket' })
     })
   })
 })
