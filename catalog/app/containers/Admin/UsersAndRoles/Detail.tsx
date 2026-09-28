@@ -16,6 +16,27 @@ import { Delete as DeleteUser, EditEmail, EditRoles } from './Users'
 import ROLES_QUERY from './gql/Roles.generated'
 import USERS_QUERY from './gql/Users.generated'
 
+// The route builders encode these params, but `history@4` decodeURI's the pathname
+// before routing, so decoding one back is lossy. Re-encoding a candidate the same way
+// avoids that. Two names can encode alike, so a verbatim match wins over one.
+function findByParam<T>(items: readonly T[], param: string, id: (item: T) => string) {
+  return (
+    items.find((item) => id(item) === param) ??
+    items.find((item) => decodeURI(encodeURIComponent(id(item))) === param)
+  )
+}
+
+// Display only: nothing matched, so there is nothing to re-encode against. Decoding is
+// lossy, so fall back to the param itself where it does not survive the round trip.
+function readableParam(param: string) {
+  try {
+    const decoded = decodeURIComponent(param)
+    return decodeURI(encodeURIComponent(decoded)) === param ? decoded : param
+  } catch {
+    return param
+  }
+}
+
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -74,7 +95,7 @@ export function UserDetail() {
   const self: string = redux.useSelector(Auth.selectors.username)
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
-  const user = usersData.admin.user.list.find((u) => u.name === userName)
+  const user = findByParam(usersData.admin.user.list, userName, (u) => u.name)
   const rolesById = React.useMemo(
     () => new Map(rolesData.roles.map((r) => [r.id, r])),
     [rolesData.roles],
@@ -120,7 +141,7 @@ export function UserDetail() {
           onDelete={onDelete}
         />
       ) : (
-        <Missing>No user named &quot;{userName}&quot;.</Missing>
+        <Missing>No user named &quot;{readableParam(userName)}&quot;.</Missing>
       )}
     </>
   )
@@ -137,13 +158,15 @@ export function RoleDetail() {
   const usersData = GQL.useQueryS(USERS_QUERY)
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
-  const role = rolesData.roles.find((r) => r.id === roleId)
+  const role = findByParam(rolesData.roles, roleId, (r) => r.id)
   const holders = React.useMemo(
     () =>
-      usersData.admin.user.list.filter(
-        (u) => u.role?.id === roleId || u.extraRoles.some((r) => r.id === roleId),
-      ),
-    [usersData.admin.user.list, roleId],
+      role
+        ? usersData.admin.user.list.filter(
+            (u) => u.role?.id === role.id || u.extraRoles.some((r) => r.id === role.id),
+          )
+        : [],
+    [usersData.admin.user.list, role],
   )
 
   const onEdit = React.useCallback(() => {
