@@ -230,9 +230,9 @@ export default function Canaries({ canaries }: CanariesProps) {
   )
 
   return (
-    <M.Paper className={classes.root}>
+    <M.Paper variant="outlined" className={classes.root}>
       <div className={classes.header}>
-        <M.Typography variant="h6">Canaries</M.Typography>
+        <M.Typography variant="h5">Canaries</M.Typography>
       </div>
       <DG.DataGrid
         className={classes.grid}

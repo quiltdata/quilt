@@ -73,7 +73,7 @@ export default function Stats({ latest, stats, statsWindow }: StatsProps) {
   }
 
   return (
-    <M.Paper className={classes.root}>
+    <M.Paper variant="outlined" className={classes.root}>
       <Chart.Chart
         className={classes.donut}
         onInit={handleInit}

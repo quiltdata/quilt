@@ -84,7 +84,7 @@ describe('containers/Admin/Settings', () => {
           <DataProductCatalogs />
         </ThemeProvider>,
       )
-      expect(queryByText('Data Product Catalogs')).toBeNull()
+      expect(queryByText('Data product catalogs')).toBeNull()
       expect(queryByText('catalog connection form')).toBeNull()
     })
 
@@ -95,7 +95,7 @@ describe('containers/Admin/Settings', () => {
           <DataProductCatalogs />
         </ThemeProvider>,
       )
-      expect(queryByText('Data Product Catalogs')).toBeTruthy()
+      expect(queryByText('Data product catalogs')).toBeTruthy()
       expect(queryByText('catalog connection form')).toBeTruthy()
     })
   })

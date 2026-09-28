@@ -16,6 +16,7 @@ export type BucketConfigSelectionFragment = {
   readonly fileExtensionsToIndex: ReadonlyArray<string> | null
   readonly indexContentBytes: number | null
   readonly scannerParallelShardsDepth: number | null
+  readonly prefixes: ReadonlyArray<string>
   readonly snsNotificationArn: string | null
   readonly skipMetaDataIndexing: boolean | null
   readonly lastIndexed: Date | null
@@ -41,6 +42,7 @@ export const BucketConfigSelectionFragmentDoc = {
           { kind: 'Field', name: { kind: 'Name', value: 'fileExtensionsToIndex' } },
           { kind: 'Field', name: { kind: 'Name', value: 'indexContentBytes' } },
           { kind: 'Field', name: { kind: 'Name', value: 'scannerParallelShardsDepth' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'prefixes' } },
           { kind: 'Field', name: { kind: 'Name', value: 'snsNotificationArn' } },
           { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },
           { kind: 'Field', name: { kind: 'Name', value: 'lastIndexed' } },

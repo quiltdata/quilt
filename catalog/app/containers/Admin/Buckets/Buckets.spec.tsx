@@ -2,7 +2,9 @@ import * as React from 'react'
 import type { History } from 'history'
 import { createMemoryHistory } from 'history'
 import { Route, Router } from 'react-router-dom'
-import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
+import { ThemeProvider } from '@material-ui/core/styles'
+
+import * as style from 'constants/style'
 import { act, fireEvent, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -72,16 +74,26 @@ vi.mock('utils/GraphQL', () => ({
   }),
 }))
 vi.mock('utils/NamedRoutes', () => ({
-  use: () => ({ urls: { bucketFile: () => '', adminBuckets: () => '/admin/buckets' } }),
+  use: () => ({
+    urls: {
+      bucketFile: () => '',
+      adminBuckets: () => '/admin/buckets',
+      adminStatus: () => '/admin/status',
+      bucketOverview: () => '/b/bucket',
+    },
+  }),
 }))
 vi.mock('./Tabulator', () => ({ default: () => null }))
 
-import { EditPage, serverMessage } from './Buckets'
+import { serverMessage } from './ReindexDialog'
+import { EditPage } from './Buckets'
 
 const httpError = (text: string, status = 400) =>
   new HTTPError({ status, statusText: 'Bad Request' }, text)
 
-const theme = createMuiTheme()
+// The page's styles read app-theme extensions (typography.monospace), so render
+// under the same theme the app provides.
+const theme = style.appTheme
 
 // Rendered through its real route so the bucket changes the way navigation changes it:
 // the same in-place re-render the fix has to survive.
@@ -127,10 +139,11 @@ describe('containers/Admin/Buckets/EditPage', () => {
       renderEditRoute(history)
     // Queried by placeholder: MUI v4's TextField sets no `id`, so its label is not
     // associated with the input.
-    const prefix = () => getByPlaceholderText(/whole bucket/) as HTMLInputElement
+    const prefix = () =>
+      getByPlaceholderText(/re-index the whole bucket/) as HTMLInputElement
 
     await act(async () => {
-      fireEvent.click(getByText('Re-index and repair'))
+      fireEvent.click(getByText('Re-index…'))
     })
     await act(async () => {
       fireEvent.change(prefix(), { target: { value: 'staging/' } })
@@ -147,7 +160,7 @@ describe('containers/Admin/Buckets/EditPage', () => {
     // Asserted alongside the absence so a page that rendered nothing at all (a redirect,
     // a failing query) cannot pass as a closed dialog.
     expect(getByText('s3://bucket-b')).toBeTruthy()
-    expect(queryByPlaceholderText(/whole bucket/)).toBe(null)
+    expect(queryByPlaceholderText(/re-index the whole bucket/)).toBe(null)
   })
 
   it('does not guard the next bucket with the previous one’s unsaved changes', async () => {
@@ -205,7 +218,7 @@ describe('containers/Admin/Buckets/EditPage', () => {
     const { getByText } = renderEditRoute(history)
 
     await act(async () => {
-      fireEvent.click(getByText('Re-index and repair'))
+      fireEvent.click(getByText('Re-index…'))
     })
     await act(async () => {
       fireEvent.click(getByText('Re-index'))

@@ -8,6 +8,10 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: '50%',
     height: t.spacing(4),
     width: t.spacing(4),
+    // Every variant is inline-level -- the img and the stub already are, the
+    // disc by `initials` below -- so one alignment holds a column of icons at
+    // a single height whichever variant fills a given row.
+    verticalAlign: 'middle',
   },
   // the stub artwork is an inscribed circle, so only custom icons need cropping
   crop: {
@@ -36,7 +40,9 @@ const useStyles = M.makeStyles((t) => ({
   // driven from the disc so the initials scale with it.
   initials: {
     alignItems: 'center',
-    display: 'flex',
+    // inline-level so `root`'s vertical-align applies; the flex centres
+    // the initials
+    display: 'inline-flex',
     fontFamily: t.typography.fontFamily,
     fontWeight: 500,
     justifyContent: 'center',
