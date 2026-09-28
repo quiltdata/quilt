@@ -10,14 +10,24 @@ import * as AWS from 'utils/AWS'
 
 import { Mode, EditorInputType } from './types'
 
-const cache: { [index in Mode]?: Promise<void> | 'fulfilled' } = {}
+// A rejected `import()` may not stay cached as a promise: React retries on rejection
+// too, so rethrowing the same rejected promise re-suspends on every render and the
+// fallback never clears. Cache the failure as an error, which a boundary can catch.
+const cache: { [index in Mode]?: Promise<void> | 'fulfilled' | Error } = {}
 export const loadMode = (mode: Mode) => {
-  if (cache[mode] === 'fulfilled') return cache[mode]
-  if (cache[mode]) throw cache[mode]
+  const cached = cache[mode]
+  if (cached === 'fulfilled') return cached
+  if (cached) throw cached
 
-  cache[mode] = import(`brace/mode/${mode}`).then(() => {
-    cache[mode] = 'fulfilled'
-  })
+  cache[mode] = import(`brace/mode/${mode}`).then(
+    () => {
+      cache[mode] = 'fulfilled'
+    },
+    (e) => {
+      cache[mode] =
+        e instanceof Error ? e : new Error(`Failed to load editor mode "${mode}"`)
+    },
+  )
   throw cache[mode]
 }
 

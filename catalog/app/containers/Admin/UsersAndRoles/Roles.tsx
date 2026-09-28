@@ -10,6 +10,8 @@ import type * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import * as GQL from 'utils/GraphQL'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
@@ -39,34 +41,45 @@ const columns: Table.Column<Role>[] = [
     getDisplay: (
       value: string,
       r: Role,
-      { defaultRoleId }: { defaultRoleId: string | null },
-    ) =>
-      r.id === defaultRoleId ? (
-        <M.Tooltip title="Automatically assigned to new users.">
-          <strong>{value}*</strong>
+      {
+        defaultRoleId,
+        urls,
+        classes,
+      }: { defaultRoleId: string | null; urls: $TSFixMe; classes: $TSFixMe },
+    ) => (
+      <span className={classes.nameCell}>
+        <M.Tooltip title={`Open ${value}`}>
+          <StyledLink to={urls.adminRoleDetail(r.id)}>{value}</StyledLink>
         </M.Tooltip>
-      ) : (
-        value
-      ),
+        {r.id === defaultRoleId && (
+          <M.Tooltip title="Automatically assigned to every new user">
+            <span className={classes.defaultTag}>default</span>
+          </M.Tooltip>
+        )}
+      </span>
+    ),
   },
   {
     id: 'source',
     label: 'Source',
     getValue: (r: Role) => r.__typename === 'ManagedRole',
-    getDisplay: (value: boolean) =>
-      value ? (
-        <abbr title="This IAM role is created and managed by Quilt">Quilt</abbr>
-      ) : (
-        <abbr title="This IAM role is provided and managed by you or another administrator">
-          Custom
-        </abbr>
-      ),
+    getDisplay: (value: boolean, _r: Role, { classes }: { classes: $TSFixMe }) => (
+      <M.Tooltip
+        title={
+          value
+            ? 'This IAM role is created and managed by Quilt'
+            : 'This IAM role is provided and managed by you or another administrator'
+        }
+      >
+        <span className={classes.sourceTag}>{value ? 'Quilt' : 'Custom'}</span>
+      </M.Tooltip>
+    ),
   },
   {
     id: 'policies',
     label: 'Associated policies',
     getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.policies.length : null),
-    getDisplay: (_policies: any, r: Role) =>
+    getDisplay: (_policies: any, r: Role, { classes }: { classes: $TSFixMe }) =>
       r.__typename === 'ManagedRole' ? (
         <M.Tooltip
           arrow
@@ -87,14 +100,16 @@ const columns: Table.Column<Role>[] = [
           </span>
         </M.Tooltip>
       ) : (
-        'N/A'
+        <M.Tooltip title="Access for a custom role lives in IAM, which Quilt cannot read">
+          <span className={classes.unknown}>Set in AWS</span>
+        </M.Tooltip>
       ),
   },
   {
     id: 'buckets',
     label: 'Buckets',
     getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.permissions.length : null),
-    getDisplay: (_buckets: any, r: Role) =>
+    getDisplay: (_buckets: any, r: Role, { classes }: { classes: $TSFixMe }) =>
       r.__typename === 'ManagedRole' ? (
         <M.Tooltip
           arrow
@@ -115,12 +130,41 @@ const columns: Table.Column<Role>[] = [
           <span>{r.permissions.length}</span>
         </M.Tooltip>
       ) : (
-        'N/A'
+        <M.Tooltip title="Access for a custom role lives in IAM, which Quilt cannot read">
+          <span className={classes.unknown}>Set in AWS</span>
+        </M.Tooltip>
       ),
   },
 ]
 
 const useStyles = M.makeStyles((t) => ({
+  nameCell: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+  },
+  defaultTag: {
+    ...t.typography.caption,
+    border: `1px solid ${t.palette.secondary.main}`,
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.secondary.dark,
+    lineHeight: 1.6,
+    padding: t.spacing(0, 0.75),
+    whiteSpace: 'nowrap',
+  },
+  sourceTag: {
+    ...t.typography.caption,
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.text.secondary,
+    lineHeight: 1.6,
+    padding: t.spacing(0, 0.75),
+    whiteSpace: 'nowrap',
+  },
+  unknown: {
+    color: t.palette.text.hint,
+    fontStyle: 'italic',
+  },
   lock: {
     alignItems: 'center',
     background: 'rgba(255,255,255,0.9)',
@@ -315,12 +359,14 @@ function Create({ close }: CreateProps) {
   )
 }
 
-interface DeleteProps {
+export interface DeleteProps {
   role: Role
   close: (reason?: string) => void
+  // The list's row simply disappears; a page about the role has to leave it.
+  onDeleted?: () => void
 }
 
-export function Delete({ role, close }: DeleteProps) {
+export function Delete({ role, close, onDeleted }: DeleteProps) {
   const { push } = Notifications.use()
   const deleteRole = GQL.useMutation(ROLE_DELETE_MUTATION)
 
@@ -331,6 +377,7 @@ export function Delete({ role, close }: DeleteProps) {
       switch (r.__typename) {
         case 'RoleDeleteSuccess':
         case 'RoleDoesNotExist': // ignore if role was not found
+          onDeleted?.()
           return
         case 'RoleNameReserved':
           push(`Unable to delete reserved role "${role.name}"`)
@@ -356,7 +403,7 @@ export function Delete({ role, close }: DeleteProps) {
       // eslint-disable-next-line no-console
       console.error(e)
     }
-  }, [close, push, deleteRole, role.id, role.name])
+  }, [close, push, deleteRole, role.id, role.name, onDeleted])
 
   return (
     <>
@@ -377,12 +424,12 @@ export function Delete({ role, close }: DeleteProps) {
   )
 }
 
-interface SetDefaultProps {
+export interface SetDefaultProps {
   role: Role
   close: (reason?: string) => void
 }
 
-function SetDefault({ role, close }: SetDefaultProps) {
+export function SetDefault({ role, close }: SetDefaultProps) {
   const { push } = Notifications.use()
   const setDefault = GQL.useMutation(ROLE_SET_DEFAULT_MUTATION)
 
@@ -459,12 +506,12 @@ const managedRoleFormSpec: FormSpec<Model.GQLTypes.ManagedRoleInput> = {
 
 const INITIAL_VALUES = { managed: true, policies: [] }
 
-interface EditProps {
+export interface EditProps {
   role: Role
   close: (reason?: string) => void
 }
 
-function Edit({ role, close }: EditProps) {
+export function Edit({ role, close }: EditProps) {
   const updateManaged = GQL.useMutation(ROLE_UPDATE_MANAGED_MUTATION)
   const updateUnmanaged = GQL.useMutation(ROLE_UPDATE_UNMANAGED_MUTATION)
 
@@ -702,6 +749,8 @@ function SettingsMenu({
 }
 
 export default function Roles() {
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   const data = GQL.useQueryS(ROLES_QUERY)
   const rows = data.roles
   const defaultRoleId = data.defaultRole?.id
@@ -774,6 +823,8 @@ export default function Roles() {
                   <M.TableCell key={col.id} {...col.props}>
                     {(col.getDisplay || R.identity)(col.getValue(i), i, {
                       defaultRoleId,
+                      urls,
+                      classes,
                     })}
                   </M.TableCell>
                 ))}

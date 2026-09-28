@@ -275,9 +275,9 @@ export default function Reports({
     !pause && !loading && queryResult.error ? { error: queryResult.error } : null
 
   return (
-    <M.Paper className={classes.root}>
+    <M.Paper variant="outlined" className={classes.root}>
       <div className={classes.header}>
-        <M.Typography variant="h6">Reports</M.Typography>
+        <M.Typography variant="h5">Reports</M.Typography>
       </div>
       <DG.DataGrid
         className={classes.grid}
