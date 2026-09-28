@@ -184,7 +184,11 @@ function State({ bucket }: StateProps) {
   const { urls } = NamedRoutes.use()
   const deep =
     !R.equals(bucket.fileExtensionsToIndex, []) && bucket.indexContentBytes !== 0
-  const subscribed = bucket.snsNotificationArn !== 'DO_NOT_SUBSCRIBE'
+  // Three states, not two: a null ARN is a bucket nobody has configured either way,
+  // which is not the same claim as "subscribed" and carries the same staleness risk.
+  const subscribed = bucket.snsNotificationArn
+    ? bucket.snsNotificationArn !== 'DO_NOT_SUBSCRIBE'
+    : null
   const scope = (bucket.prefixes || []).filter((p) => p)
   return (
     <M.Paper className={classes.root} variant="outlined">
@@ -210,7 +214,15 @@ function State({ bucket }: StateProps) {
       />
       <Readout
         label="Notifications"
-        value={subscribed ? 'Subscribed' : <span className={classes.stale}>Skipped</span>}
+        value={
+          subscribed === null ? (
+            <span className={classes.stale}>Not configured</span>
+          ) : subscribed ? (
+            'Subscribed'
+          ) : (
+            <span className={classes.stale}>Skipped</span>
+          )
+        }
         note={
           subscribed
             ? 'New objects reach the index without a re-scan.'
@@ -384,13 +396,13 @@ function SaveBar({ form, changedSections }: SaveBarProps) {
   const state = form.getState()
   const n = Object.values(state.dirtyFields).filter(Boolean).length
   const armed = n > 0
-  const error = React.useMemo(() => {
+  const error = (() => {
     if (!state.submitFailed) return
     if (state.error || state.submitError) return state.error || state.submitError
     // A field-level error with no field rendering it would otherwise fail the save
     // silently, since this bar is the only place a submit failure is reported.
     return `Unhandled error: ${JSON.stringify(state.submitErrors)}`
-  }, [state])
+  })()
   return (
     <div className={cx(classes.root, { [classes.armed]: armed })}>
       <span className={classes.status} role="status">
@@ -454,6 +466,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// The symbol is the explicit skip; an empty value is a bucket with no topic set, which
+// this summary would otherwise report as subscribed.
+const notificationsLabel = (arn: FormValues['snsNotificationArn']) => {
+  if (typeof arn === 'symbol') return 'skipped'
+  return arn ? 'subscribed' : 'not configured'
+}
+
 function summarize(v: FormValues, bucket: BucketConfig): Record<SectionId, string> {
   // Clearing a text field makes react-final-form parse it to `undefined`, and this
   // readout renders on every keystroke, so an unguarded read crashes the whole panel.
@@ -461,7 +480,7 @@ function summarize(v: FormValues, bucket: BucketConfig): Record<SectionId, strin
   return {
     display: v.title || bucket.name,
     find: `relevance ${v.relevanceScore || '0'}${v.tags ? ` · ${v.tags.split(',').filter((x) => x.trim()).length} tags` : ' · no tags'}`,
-    index: `deep indexing ${v.enableDeepIndexing ? 'on' : 'off'} · ${scope ? `${scope} ${scope === 1 ? 'prefix' : 'prefixes'}` : 'whole bucket'} · notifications ${typeof v.snsNotificationArn === 'symbol' ? 'skipped' : 'subscribed'}`,
+    index: `deep indexing ${v.enableDeepIndexing ? 'on' : 'off'} · ${scope ? `${scope} ${scope === 1 ? 'prefix' : 'prefixes'}` : 'whole bucket'} · notifications ${notificationsLabel(v.snsNotificationArn)}`,
     render: v.browsable ? 'permissive HTML on' : 'permissive HTML off',
   }
 }
@@ -546,18 +565,17 @@ export default function BucketPage({
   // Navigating away after a delete would otherwise trip the unsaved-changes Prompt, asking
   // the user to confirm discarding edits to a bucket that no longer exists.
   const [deleted, setDeleted] = React.useState(false)
+  // Navigating from the effect rather than alongside `setDeleted`: the Prompt must have
+  // rendered with `deleted` before the history change, and whether two updates in one
+  // handler flush in that order is a React batching detail, not something to rely on.
+  React.useEffect(() => {
+    if (deleted) back()
+  }, [back, deleted])
   const onDelete = React.useCallback(() => {
     openDialog(({ close }) => (
-      <Delete
-        bucket={bucket}
-        close={close}
-        onDeleted={() => {
-          setDeleted(true)
-          back()
-        }}
-      />
+      <Delete bucket={bucket} close={close} onDeleted={() => setDeleted(true)} />
     ))
-  }, [back, bucket, openDialog])
+  }, [bucket, openDialog])
 
   return (
     <RF.Form<FormValues>
@@ -683,6 +701,8 @@ interface TabulatorDirtyBridgeProps {
 // nested provider; this lifts that flag out so the page's leave-guard sees it.
 function TabulatorDirtyBridge({ onDirty }: TabulatorDirtyBridgeProps) {
   const { dirty } = OnDirty.use()
-  React.useEffect(() => onDirty(dirty), [dirty, onDirty])
+  React.useEffect(() => {
+    onDirty(dirty)
+  }, [dirty, onDirty])
   return null
 }

@@ -168,8 +168,8 @@ export default function AccessTable({
       </M.Table>
       {unknown && (
         <div className={classes.unknownNote}>
-          A custom IAM role is also held. Quilt cannot read what it grants, so this may be
-          incomplete.
+          Some of this access is set by an IAM policy Quilt cannot read, so the list may
+          be incomplete.
         </div>
       )}
     </>

@@ -20,6 +20,7 @@ import * as Form from '../Form'
 import * as Table from '../Table'
 
 import AttachedPolicies from './AttachedPolicies'
+import Hint from './Hint'
 import SsoConfig from './SsoConfig'
 import { MAX_POLICIES_PER_ROLE, getArnLink } from './shared'
 
@@ -64,15 +65,16 @@ const columns: Table.Column<Role>[] = [
     label: 'Source',
     getValue: (r: Role) => r.__typename === 'ManagedRole',
     getDisplay: (value: boolean, _r: Role, { classes }: { classes: $TSFixMe }) => (
-      <M.Tooltip
+      <Hint
+        className={classes.sourceTag}
         title={
           value
             ? 'This IAM role is created and managed by Quilt'
             : 'This IAM role is provided and managed by you or another administrator'
         }
       >
-        <span className={classes.sourceTag}>{value ? 'Quilt' : 'Custom'}</span>
-      </M.Tooltip>
+        {value ? 'Quilt' : 'Custom'}
+      </Hint>
     ),
   },
   {
@@ -100,9 +102,12 @@ const columns: Table.Column<Role>[] = [
           </span>
         </M.Tooltip>
       ) : (
-        <M.Tooltip title="Access for a custom role lives in IAM, which Quilt cannot read">
-          <span className={classes.unknown}>Set in AWS</span>
-        </M.Tooltip>
+        <Hint
+          className={classes.unknown}
+          title="Access for a custom role lives in IAM, which Quilt cannot read"
+        >
+          Set in AWS
+        </Hint>
       ),
   },
   {
@@ -130,9 +135,12 @@ const columns: Table.Column<Role>[] = [
           <span>{r.permissions.length}</span>
         </M.Tooltip>
       ) : (
-        <M.Tooltip title="Access for a custom role lives in IAM, which Quilt cannot read">
-          <span className={classes.unknown}>Set in AWS</span>
-        </M.Tooltip>
+        <Hint
+          className={classes.unknown}
+          title="Access for a custom role lives in IAM, which Quilt cannot read"
+        >
+          Set in AWS
+        </Hint>
       ),
   },
 ]
@@ -162,7 +170,7 @@ const useStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
   },
   unknown: {
-    color: t.palette.text.hint,
+    color: t.palette.text.secondary,
     fontStyle: 'italic',
   },
   lock: {

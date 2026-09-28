@@ -35,7 +35,7 @@ const bucketToIndexingAndNotificationsValues = (bucket: BucketConfig) => ({
   enableDeepIndexing:
     !R.equals(bucket.fileExtensionsToIndex, []) && bucket.indexContentBytes !== 0,
   fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
-  indexContentBytes: bucket.indexContentBytes,
+  indexContentBytes: bucket.indexContentBytes?.toString() ?? '',
   scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
   // `[""]` is the registry's "whole bucket", so it round-trips as an empty field.
   prefixes: (bucket.prefixes || []).filter((p: string) => p).join('\n'),

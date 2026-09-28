@@ -216,6 +216,9 @@ export default function UserPage({
   const unresolved = heldIds.length - held.length
 
   const activeRole = user.role ? rolesById.get(user.role.id) : undefined
+  // Distinct from having no active role: the user has one, it just could not be read.
+  // Collapsed into one state, an unreadable active role reads as "nothing is in force".
+  const activeMissing = !!user.role && !activeRole
   const [tab, setTab] = React.useState(0)
   // The role list changes under the tabs when roles are reassigned; without this the
   // index can point past the end and the panel goes blank. The ceiling is
@@ -344,6 +347,14 @@ export default function UserPage({
               A user assumes one role at a time, so only the active role&apos;s access is
               in force right now. The rest is reachable by switching role.
             </div>
+            {/* Repeated from the Roles section: the summary and tables below read as
+                the whole of what the user reaches, and an unread role is not in them. */}
+            {!!unresolved && (
+              <div className={classes.note}>
+                {unresolved} further {unresolved === 1 ? 'role' : 'roles'} could not be
+                read, so what follows is not the whole of it.
+              </div>
+            )}
             {/* Summarised only when a role is actually active. A user holding extra
                 roles but no active one has no grants in force, and the same summary
                 would read as the definite "reaches 0 buckets". */}
@@ -355,12 +366,15 @@ export default function UserPage({
               />
             ) : (
               <div className={classes.note}>
-                No role is active, so nothing below is in force until one is assigned.
+                {activeMissing
+                  ? 'The active role could not be read, so what is in force right now is unknown.'
+                  : 'No role is active, so nothing below is in force until one is assigned.'}
               </div>
             )}
             {held.length > 1 ? (
               <>
                 <M.Tabs
+                  aria-label="Access by role"
                   className={classes.tabs}
                   value={safeTab}
                   onChange={(_e, v) => setTab(v)}

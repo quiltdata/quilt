@@ -20,6 +20,7 @@ import * as Table from '../Table'
 
 import AssociatedRoles from './AssociatedRoles'
 import BucketsPermissions from './BucketsPermissions'
+import Hint from './Hint'
 import { getArnLink } from './shared'
 
 import POLICIES_QUERY from './gql/Policies.generated'
@@ -48,15 +49,16 @@ const columns: Table.Column<Policy>[] = [
     label: 'Source',
     getValue: (p: Policy) => p.managed,
     getDisplay: (value: boolean, _p: Policy, { classes }: { classes: $TSFixMe }) => (
-      <M.Tooltip
+      <Hint
+        className={classes.sourceTag}
         title={
           value
             ? 'This IAM policy is created and managed by Quilt'
             : 'This IAM policy is provided and managed by you or another administrator'
         }
       >
-        <span className={classes.sourceTag}>{value ? 'Quilt' : 'Custom'}</span>
-      </M.Tooltip>
+        {value ? 'Quilt' : 'Custom'}
+      </Hint>
     ),
   },
   {
@@ -84,9 +86,12 @@ const columns: Table.Column<Policy>[] = [
           <span>{p.permissions.length}</span>
         </M.Tooltip>
       ) : (
-        <M.Tooltip title="What an unmanaged policy grants lives in IAM, which Quilt cannot read">
-          <span className={classes.unknown}>Set in AWS</span>
-        </M.Tooltip>
+        <Hint
+          className={classes.unknown}
+          title="What an unmanaged policy grants lives in IAM, which Quilt cannot read"
+        >
+          Set in AWS
+        </Hint>
       ),
   },
   {
@@ -127,7 +132,7 @@ const useStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
   },
   unknown: {
-    color: t.palette.text.hint,
+    color: t.palette.text.secondary,
     fontStyle: 'italic',
   },
   lock: {

@@ -495,10 +495,14 @@ function Nav() {
               {title}
             </a>
           ))}
+          {/* The boundary is silent: a jump link that cannot be resolved is not worth
+              an error in the index, and the section itself reports the same failure. */}
           {name === 'Data' && (
-            <React.Suspense fallback={null}>
-              <DataProductNavLink className={classes.navLink} />
-            </React.Suspense>
+            <ErrorBoundary fallbackRender={() => null}>
+              <React.Suspense fallback={null}>
+                <DataProductNavLink className={classes.navLink} />
+              </React.Suspense>
+            </ErrorBoundary>
           )}
         </div>
       ))}
@@ -560,9 +564,13 @@ export default function Settings() {
         >
           <PackagerSettings />
         </Section>
-        <React.Suspense fallback={null}>
-          <DataProductCatalogs />
-        </React.Suspense>
+        {/* The feature read suspends out here, ahead of any Section, so it needs its
+            own boundary or an unreadable settings document replaces every section. */}
+        <ErrorBoundary FallbackComponent={SectionFallback}>
+          <React.Suspense fallback={null}>
+            <DataProductCatalogs />
+          </React.Suspense>
+        </ErrorBoundary>
 
         <M.Typography className={classes.groupHeading}>Platform</M.Typography>
         <Section

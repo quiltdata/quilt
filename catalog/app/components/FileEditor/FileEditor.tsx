@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import PreviewDisplay from 'components/Preview/Display'
@@ -104,18 +105,34 @@ const useStyles = M.makeStyles({
   },
 })
 
+function ModeFallback({ error }: { error: Error }) {
+  return (
+    <M.Typography variant="body2" color="error">
+      Could not load the editor: {error.message}
+    </M.Typography>
+  )
+}
+
 export function Editor(props: EditorProps) {
   const classes = useStyles()
   return (
-    <React.Suspense fallback={<Skeleton />}>
-      <div className={cx(classes.tab, { [classes.active]: !props.preview })}>
-        <EditorSuspended {...props} />
-      </div>
-      {props.preview && (
-        <div className={cx(classes.tab, classes.active)}>
-          <QuickPreview handle={props.handle} type={props.editing} value={props.value} />
+    // `loadMode` throws its failure rather than re-suspending, so without a boundary
+    // here a missing syntax-mode chunk takes down the page around the editor.
+    <ErrorBoundary FallbackComponent={ModeFallback}>
+      <React.Suspense fallback={<Skeleton />}>
+        <div className={cx(classes.tab, { [classes.active]: !props.preview })}>
+          <EditorSuspended {...props} />
         </div>
-      )}
-    </React.Suspense>
+        {props.preview && (
+          <div className={cx(classes.tab, classes.active)}>
+            <QuickPreview
+              handle={props.handle}
+              type={props.editing}
+              value={props.value}
+            />
+          </div>
+        )}
+      </React.Suspense>
+    </ErrorBoundary>
   )
 }

@@ -17,6 +17,12 @@ const cache: { [index in Mode]?: Promise<void> | 'fulfilled' | Error } = {}
 export const loadMode = (mode: Mode) => {
   const cached = cache[mode]
   if (cached === 'fulfilled') return cached
+  // A cached failure is handed out once and then forgotten, so remounting after a
+  // transient chunk-fetch failure retries instead of rethrowing for the whole session.
+  if (cached instanceof Error) {
+    delete cache[mode]
+    throw cached
+  }
   if (cached) throw cached
 
   cache[mode] = import(`brace/mode/${mode}`).then(
