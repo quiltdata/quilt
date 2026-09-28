@@ -24,6 +24,7 @@ export interface containers_Admin_Buckets_gql_BucketConfigsQuery {
     readonly fileExtensionsToIndex: ReadonlyArray<string> | null
     readonly indexContentBytes: number | null
     readonly scannerParallelShardsDepth: number | null
+    readonly prefixes: ReadonlyArray<string>
     readonly snsNotificationArn: string | null
     readonly skipMetaDataIndexing: boolean | null
     readonly lastIndexed: Date | null
@@ -73,6 +74,7 @@ export const containers_Admin_Buckets_gql_BucketConfigsDocument = {
           { kind: 'Field', name: { kind: 'Name', value: 'fileExtensionsToIndex' } },
           { kind: 'Field', name: { kind: 'Name', value: 'indexContentBytes' } },
           { kind: 'Field', name: { kind: 'Name', value: 'scannerParallelShardsDepth' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'prefixes' } },
           { kind: 'Field', name: { kind: 'Name', value: 'snsNotificationArn' } },
           { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },
           { kind: 'Field', name: { kind: 'Name', value: 'lastIndexed' } },

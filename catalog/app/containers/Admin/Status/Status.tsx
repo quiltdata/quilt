@@ -57,8 +57,8 @@ export default function Status() {
       ) : (
         <M.Container maxWidth="sm">
           <M.Box py={2}>
-            <M.Typography variant="h4" align="center" gutterBottom>
-              No Data
+            <M.Typography variant="h5" align="center" gutterBottom>
+              Status monitoring is not enabled
             </M.Typography>
             <M.Typography align="center" gutterBottom>
               Status monitoring is an add-on feature that automates quality testing for
