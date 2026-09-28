@@ -43,6 +43,7 @@ class ManagedRole:
     id: str
     name: str
     arn: str
+    workspace_role_ready: bool
     policies: list[PolicySummary]
     permissions: list[Permission]
     typename__: T.Literal["ManagedRole"]
@@ -53,6 +54,7 @@ class UnmanagedRole:
     id: str
     name: str
     arn: str
+    workspace_role_ready: bool
     typename__: T.Literal["UnmanagedRole"]
 
 

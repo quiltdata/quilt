@@ -225,6 +225,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -268,6 +269,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -290,6 +292,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -333,6 +336,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -355,6 +359,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -420,6 +425,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -487,6 +493,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -530,6 +537,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -565,6 +573,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -608,6 +617,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -643,6 +653,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -686,6 +697,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -724,6 +736,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -767,6 +780,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -805,6 +819,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -848,6 +863,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -905,6 +921,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -948,6 +965,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
             """
         )
@@ -988,6 +1006,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1077,6 +1096,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1166,6 +1186,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1255,6 +1276,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1368,6 +1390,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1411,6 +1434,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserSelection on User {
@@ -1454,6 +1478,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1497,6 +1522,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserSelection on User {
@@ -1556,6 +1582,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1605,6 +1632,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserMutationSelection on UserResult {
@@ -1704,6 +1732,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1753,6 +1782,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserMutationSelection on UserResult {
@@ -1814,6 +1844,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1863,6 +1894,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserMutationSelection on UserResult {
@@ -1924,6 +1956,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -1973,6 +2006,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserMutationSelection on UserResult {
@@ -2081,6 +2115,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -2130,6 +2165,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserSelection on User {
@@ -2192,6 +2228,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -2241,6 +2278,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserSelection on User {
@@ -2300,6 +2338,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -2349,6 +2388,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserSelection on User {
@@ -2394,6 +2434,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -2445,6 +2486,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserSelection on User {
@@ -2506,6 +2548,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
               policies {
                 ...PolicySummarySelection
               }
@@ -2563,6 +2606,7 @@ class Client(BaseClient):
               id
               name
               arn
+              workspaceRoleReady
             }
 
             fragment UserSelection on User {

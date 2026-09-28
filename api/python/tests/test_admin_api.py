@@ -13,12 +13,14 @@ UNMANAGED_ROLE = {
     "id": "d7d15bef-c482-4086-ae6b-d0372b6145d2",
     "name": "UnmanagedRole",
     "arn": "arn:aws:iam::000000000000:role/UnmanagedRole",
+    "workspaceRoleReady": False,
 }
 MANAGED_ROLE = {
     "__typename": "ManagedRole",
     "id": "b1bab604-98fd-4b46-a20b-958cf2541c91",
     "name": "ManagedRole",
     "arn": "arn:aws:iam::000000000000:role/ManagedRole",
+    "workspaceRoleReady": True,
     "policies": [
         {
             "id": "be8f3af1-8f5b-463a-89ff-373769e6d0d3",
@@ -48,6 +50,7 @@ EXPECTED_MANAGED_ROLE = admin.ManagedRole(
     id="b1bab604-98fd-4b46-a20b-958cf2541c91",
     name="ManagedRole",
     arn="arn:aws:iam::000000000000:role/ManagedRole",
+    workspace_role_ready=True,
     policies=[EXPECTED_POLICY_SUMMARY],
     permissions=[EXPECTED_PERMISSION],
     typename__="ManagedRole",
@@ -56,6 +59,7 @@ EXPECTED_UNMANAGED_ROLE = admin.UnmanagedRole(
     id="d7d15bef-c482-4086-ae6b-d0372b6145d2",
     name="UnmanagedRole",
     arn="arn:aws:iam::000000000000:role/UnmanagedRole",
+    workspace_role_ready=False,
     typename__="UnmanagedRole",
 )
 POLICY = {

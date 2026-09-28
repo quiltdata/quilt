@@ -8,10 +8,10 @@
 ## PolicySummary(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission]) -> None  {#PolicySummary}
 Policy without back-references to roles (avoids circular nesting).
 
-## ManagedRole(id: str, name: str, arn: str, policies: list[quilt3.admin.types.PolicySummary], permissions: list[quilt3.admin.types.Permission], typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
+## ManagedRole(id: str, name: str, arn: str, workspace\_role\_ready: bool, policies: list[quilt3.admin.types.PolicySummary], permissions: list[quilt3.admin.types.Permission], typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
 
 
-## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
+## UnmanagedRole(id: str, name: str, arn: str, workspace\_role\_ready: bool, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
 
 
 ## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[quilt3.admin.types.ManagedRole]) -> None  {#Policy}

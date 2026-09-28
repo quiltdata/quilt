@@ -3,6 +3,7 @@ fragment UnmanagedRoleSelection on UnmanagedRole {
   id
   name
   arn
+  workspaceRoleReady
 }
 fragment PolicySummarySelection on Policy {
   id
@@ -24,6 +25,7 @@ fragment ManagedRoleSelection on ManagedRole {
   id
   name
   arn
+  workspaceRoleReady
   policies {
     ...PolicySummarySelection
   }

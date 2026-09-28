@@ -84,6 +84,7 @@ class ManagedRoleSelection(BaseModel):
     id: str
     name: str
     arn: str
+    workspace_role_ready: bool = Field(alias="workspaceRoleReady")
     policies: List["ManagedRoleSelectionPolicies"]
     permissions: List["ManagedRoleSelectionPermissions"]
 
@@ -124,6 +125,7 @@ class UnmanagedRoleSelection(BaseModel):
     id: str
     name: str
     arn: str
+    workspace_role_ready: bool = Field(alias="workspaceRoleReady")
 
 
 class UserSelection(BaseModel):
