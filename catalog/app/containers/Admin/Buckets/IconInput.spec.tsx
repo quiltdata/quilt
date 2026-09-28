@@ -8,7 +8,11 @@ vi.mock('constants/config', () => ({ default: {} }))
 // The cropper needs layout and a canvas, neither of which jsdom has; the crop
 // itself is covered by iconCrop.spec.ts and the browser harness. The stub reports
 // a crop area on mount, which is what enables the dialog's confirm button.
-const CROP_AREA = { x: 0, y: 0, width: 200, height: 200 }
+// react-easy-crop reports a completed crop twice, in percentages and in pixels. Only
+// the pixel area can be drawn, so the two are kept distinguishable here: one object
+// used for both would let a regression that stores the percentage area still pass.
+const CROP_AREA_PERCENT = { x: 0, y: 0, width: 100, height: 100 }
+const CROP_AREA_PIXELS = { x: 0, y: 0, width: 200, height: 200 }
 vi.mock('react-easy-crop', () => {
   // Named, because the hook below is only legal inside a component the linter can
   // recognise as one.
@@ -18,7 +22,7 @@ vi.mock('react-easy-crop', () => {
     onCropComplete: (a: unknown, b: unknown) => void
   }) {
     React.useEffect(() => {
-      onCropComplete(CROP_AREA, CROP_AREA)
+      onCropComplete(CROP_AREA_PERCENT, CROP_AREA_PIXELS)
     }, [onCropComplete])
     return <div data-testid="cropper" />
   }
@@ -326,7 +330,7 @@ describe('containers/Admin/Buckets/IconInput', () => {
       await act(async () => {
         fireEvent.click(q.getByText('Use icon'))
       })
-      expect(cropToDataUrl).toHaveBeenCalledWith(expect.any(String), CROP_AREA)
+      expect(cropToDataUrl).toHaveBeenCalledWith(expect.any(String), CROP_AREA_PIXELS)
       expect(q.getByTestId('preview').dataset.src).toBe('data:image/png;base64,ENCODED')
       expect(q.queryByText('Crop icon')).toBeNull()
     })
