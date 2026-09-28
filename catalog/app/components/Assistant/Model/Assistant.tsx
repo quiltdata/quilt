@@ -37,16 +37,25 @@ const MCP_URL_KEY = 'QUILT_MCP_URL'
 const INFERENCE_URL_KEY = 'QUILT_INFERENCE_URL'
 
 /**
+ * A `localStorage` service-URL override, honoured in dev builds only.
+ *
+ * Both endpoints below are sent the catalog session bearer, so an override
+ * picks where that token goes — in a shipped bundle that makes any foothold in
+ * the tab a credential exfiltration channel.
+ */
+function devUrlOverride(key: string): string | null {
+  if (process.env.NODE_ENV !== 'development') return null
+  if (typeof localStorage === 'undefined') return null
+  return localStorage.getItem(key)
+}
+
+/**
  * MCP endpoint for the platform connector. Defaults to the registry-
  * hostnamed `/mcp/platform/mcp` rewrite; `localStorage.QUILT_MCP_URL`
  * overrides for local dev (mirrors `QUILT_BEDROCK_MODEL_ID`).
  */
 function getPlatformMcpUrl(): string {
-  if (typeof localStorage !== 'undefined') {
-    const override = localStorage.getItem(MCP_URL_KEY)
-    if (override) return override
-  }
-  return `${cfg.registryUrl}/mcp/platform/mcp`
+  return devUrlOverride(MCP_URL_KEY) || `${cfg.registryUrl}/mcp/platform/mcp`
 }
 
 /**
@@ -56,11 +65,7 @@ function getPlatformMcpUrl(): string {
  * `QUILT_MCP_URL` does.
  */
 function getInferenceUrl(): string {
-  if (typeof localStorage !== 'undefined') {
-    const override = localStorage.getItem(INFERENCE_URL_KEY)
-    if (override) return override
-  }
-  return `${cfg.registryUrl}/api/inference`
+  return devUrlOverride(INFERENCE_URL_KEY) || `${cfg.registryUrl}/api/inference`
 }
 
 const PLATFORM_CONNECTOR_HINT =
