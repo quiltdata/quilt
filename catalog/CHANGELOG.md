@@ -22,6 +22,7 @@ complete sentence without it.
 ## Changes
 
 - [Changed] Qurator issues its model call through the registry's inference relay instead of calling Bedrock from the browser, so a deployment can route inference through a customer-operated AI gateway whose credential never reaches the client ([#5334](https://github.com/quiltdata/quilt/pull/5334))
+- [Fixed] Admin buckets: the sticky actions bar no longer animates its padding when it pins, so scrolling a long bucket form stays smooth ([#5349](https://github.com/quiltdata/quilt/pull/5349))
 - [Added] Admin users and roles: a user or role name opens a page about it, reading out what it can reach per bucket and which policies account for that level, so an admin can answer "what does this grant?" without opening each policy in turn ([#5366](https://github.com/quiltdata/quilt/pull/5366))
 - [Changed] Admin buckets: a bucket's edit screen is one page about the bucket, with its state read out at the top, its settings grouped by the question they answer and closed until opened, and one save for the whole record instead of a separate save on each card ([#5366](https://github.com/quiltdata/quilt/pull/5366))
 - [Changed] Admin settings: one list of sections grouped by what they configure, each saying what it controls, with a jump index beside it instead of a two-column scatter of cards ([#5366](https://github.com/quiltdata/quilt/pull/5366))
