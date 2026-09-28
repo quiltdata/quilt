@@ -217,6 +217,33 @@ describe('components/BucketIcon', () => {
     })
   })
 
+  // `vertical-align` moves an inline-level box and nothing else, so a
+  // blockifying `display` on any variant silently un-aligns that one. jsdom has
+  // no layout engine, so this pins the declarations rather than the heights.
+  it('aligns every variant the same way, none of them blockified', () => {
+    const { container, getByAltText, getByText } = render(
+      <div>
+        <BucketIcon alt="custom" src="https://custom-src" />
+        <BucketIcon src={null} label="Beta" tintKey="beta" />
+        <BucketIcon src="" />
+      </div>,
+    )
+    const disc = getByText('BE')
+    const stub = container.querySelector('svg')
+    expect(stub).not.toBeNull()
+    ;[getByAltText('custom'), disc, stub!].forEach((el) => {
+      const { display, verticalAlign } = getComputedStyle(el)
+      expect(verticalAlign).toBe('middle')
+      // '' is the img and the stub, which jsdom leaves unset for want of a UA
+      // stylesheet; anything block-level, or `contents`, drops the alignment
+      expect(display === '' || display.startsWith('inline')).toBe(true)
+    })
+    // the disc's flex is what centres the initials in it
+    expect(getComputedStyle(disc).display).toBe('inline-flex')
+    expect(getComputedStyle(disc).alignItems).toBe('center')
+    expect(getComputedStyle(disc).justifyContent).toBe('center')
+  })
+
   describe('class names', () => {
     const className = 'PRIMARY'
     const classes = {
