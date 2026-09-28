@@ -485,11 +485,17 @@ export interface ManagedPolicyInput {
 
 export interface ManagedRole {
   readonly __typename: 'ManagedRole'
+  /**
+   * With the data-products option on, its workspace role's ARN, known before
+   * that role exists.
+   */
   readonly arn: Scalars['String']['output']
   readonly id: Scalars['ID']['output']
   readonly name: Scalars['String']['output']
   readonly permissions: ReadonlyArray<RoleBucketPermission>
   readonly policies: ReadonlyArray<Policy>
+  /** Whether the role's workspace role is ready to vend sessions on. */
+  readonly workspaceRoleReady: Scalars['Boolean']['output']
 }
 
 export interface ManagedRoleInput {
@@ -1499,9 +1505,18 @@ export interface UnmanagedPolicyInput {
 
 export interface UnmanagedRole {
   readonly __typename: 'UnmanagedRole'
+  /**
+   * For a built-in role with the data-products option on, its workspace role's
+   * ARN, known before that role exists.
+   */
   readonly arn: Scalars['String']['output']
   readonly id: Scalars['ID']['output']
   readonly name: Scalars['String']['output']
+  /**
+   * Whether the role's workspace role is ready to vend sessions on; false for a
+   * customer's role, which has none.
+   */
+  readonly workspaceRoleReady: Scalars['Boolean']['output']
 }
 
 export interface UnmanagedRoleInput {

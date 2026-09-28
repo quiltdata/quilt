@@ -235,13 +235,28 @@ type Bucket {
 type UnmanagedRole {
   id: ID!
   name: String!
+  """
+  For a built-in role with the data-products option on, its workspace role's
+  ARN, known before that role exists.
+  """
   arn: String!
+  """
+  Whether the role's workspace role is ready to vend sessions on; false for a
+  customer's role, which has none.
+  """
+  workspaceRoleReady: Boolean!
 }
 
 type ManagedRole {
   id: ID!
   name: String!
+  """
+  With the data-products option on, its workspace role's ARN, known before
+  that role exists.
+  """
   arn: String!
+  "Whether the role's workspace role is ready to vend sessions on."
+  workspaceRoleReady: Boolean!
   policies: [Policy!]!
   permissions: [RoleBucketPermission!]!
 }
