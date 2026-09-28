@@ -43,8 +43,9 @@ crate states its package name, files, people, instrument and lab notebook entry.
 A crate is only read when the message names it in `metadata_uri`, which the
 built-in rule does. A `source_prefix` alone — even one pointing at the
 `ro-crate-metadata.json` itself — packages the enclosing folder as an ordinary
-prefix and never reaches the crate, and it succeeds doing so, so the only
-symptom is a package with no crate entries or metadata.
+prefix and never reaches the crate. Nothing fails on that account, so the usual
+symptom is a package with no crate entries or metadata — unless a workflow then
+rejects the package for the metadata it is missing.
 
 The crate's graph decides what the package contains:
 
