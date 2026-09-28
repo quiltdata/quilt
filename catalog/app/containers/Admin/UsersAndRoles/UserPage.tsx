@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 import * as Format from 'utils/format'
 
 import AccessTable, { AccessSummary } from './AccessTable'
-import { roleAccess, combinedAccess } from './access'
+import { roleAccess, combinedAccess, accessIncomplete } from './access'
 
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
 import { UserSelectionFragment as User } from './gql/UserSelection.generated'
@@ -202,10 +202,18 @@ export default function UserPage({
 }: UserPageProps) {
   const classes = useStyles()
 
-  const held = React.useMemo(() => {
-    const ids = [user.role, ...user.extraRoles].filter(Boolean).map((r) => r!.id)
-    return ids.map((id) => rolesById.get(id)).filter((r): r is Role => !!r)
-  }, [user.role, user.extraRoles, rolesById])
+  const heldIds = React.useMemo(
+    () => [user.role, ...user.extraRoles].filter(Boolean).map((r) => r!.id),
+    [user.role, user.extraRoles],
+  )
+  const held = React.useMemo(
+    () => heldIds.map((id) => rolesById.get(id)).filter((r): r is Role => !!r),
+    [heldIds, rolesById],
+  )
+  // The role list and the user are separate queries with separate caches, so an id the
+  // user holds can be absent from the map. Dropped silently, the page presents a
+  // partial set of roles as the whole of what the user holds.
+  const unresolved = heldIds.length - held.length
 
   const activeRole = user.role ? rolesById.get(user.role.id) : undefined
   const [tab, setTab] = React.useState(0)
@@ -222,8 +230,7 @@ export default function UserPage({
   const anyGrants = React.useMemo(() => combinedAccess(held), [held])
   // `roleAccess` returns nothing for a custom IAM role because Quilt cannot read one,
   // which is not the same as the role reaching no bucket.
-  const isCustom = (r: Role) => r.__typename !== 'ManagedRole'
-  const activeUnknown = !!activeRole && isCustom(activeRole)
+  const activeUnknown = !!activeRole && accessIncomplete(activeRole)
 
   return (
     <>
@@ -284,6 +291,12 @@ export default function UserPage({
               : 'Roles come from SSO role mapping and change in the SSO config, not here.'}
           </div>
         )}
+        {!!unresolved && (
+          <div className={classes.note}>
+            {unresolved} {unresolved === 1 ? 'role is' : 'roles are'} assigned but could
+            not be read, so neither the list below nor the access it implies is complete.
+          </div>
+        )}
         {held.length ? (
           <M.List dense disablePadding>
             {held.map((r) => (
@@ -307,9 +320,11 @@ export default function UserPage({
             ))}
           </M.List>
         ) : (
-          <div className={classes.note}>
-            No role assigned, so this user reaches no bucket.
-          </div>
+          !unresolved && (
+            <div className={classes.note}>
+              No role assigned, so this user reaches no bucket.
+            </div>
+          )
         )}
       </M.Paper>
 
@@ -319,7 +334,9 @@ export default function UserPage({
       <M.Paper variant="outlined" className={classes.section}>
         {!held.length ? (
           <div className={classes.note}>
-            Nothing, until a role is assigned. Assigning one is what grants access.
+            {unresolved
+              ? 'Unknown: the roles this user holds could not be read.'
+              : 'Nothing, until a role is assigned. Assigning one is what grants access.'}
           </div>
         ) : (
           <>
@@ -327,11 +344,20 @@ export default function UserPage({
               A user assumes one role at a time, so only the active role&apos;s access is
               in force right now. The rest is reachable by switching role.
             </div>
-            <AccessSummary
-              grants={activeGrants}
-              subject="The active role"
-              unknown={activeUnknown}
-            />
+            {/* Summarised only when a role is actually active. A user holding extra
+                roles but no active one has no grants in force, and the same summary
+                would read as the definite "reaches 0 buckets". */}
+            {activeRole ? (
+              <AccessSummary
+                grants={activeGrants}
+                subject="The active role"
+                unknown={activeUnknown}
+              />
+            ) : (
+              <div className={classes.note}>
+                No role is active, so nothing below is in force until one is assigned.
+              </div>
+            )}
             {held.length > 1 ? (
               <>
                 <M.Tabs
@@ -352,20 +378,23 @@ export default function UserPage({
                 {safeTab < held.length ? (
                   <AccessTable
                     grants={roleAccess(held[safeTab])}
-                    unknown={isCustom(held[safeTab])}
+                    unknown={accessIncomplete(held[safeTab])}
                   />
                 ) : (
                   <AccessTable
                     grants={anyGrants}
                     showRole
-                    unknown={held.some(isCustom)}
+                    unknown={held.some(accessIncomplete)}
                   />
                 )}
               </>
             ) : (
               // Not `activeGrants`: a user whose only role is an extra one has no
               // active role, and reading that would deny the access the list shows.
-              <AccessTable grants={roleAccess(held[0])} unknown={isCustom(held[0])} />
+              <AccessTable
+                grants={roleAccess(held[0])}
+                unknown={accessIncomplete(held[0])}
+              />
             )}
           </>
         )}

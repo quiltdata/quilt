@@ -386,7 +386,10 @@ function SaveBar({ form, changedSections }: SaveBarProps) {
   const armed = n > 0
   const error = React.useMemo(() => {
     if (!state.submitFailed) return
-    return state.error || state.submitError
+    if (state.error || state.submitError) return state.error || state.submitError
+    // A field-level error with no field rendering it would otherwise fail the save
+    // silently, since this bar is the only place a submit failure is reported.
+    return `Unhandled error: ${JSON.stringify(state.submitErrors)}`
   }, [state])
   return (
     <div className={cx(classes.root, { [classes.armed]: armed })}>
@@ -398,6 +401,7 @@ function SaveBar({ form, changedSections }: SaveBarProps) {
               unexpected: 'Something went wrong',
               notificationConfigurationError: 'Notification configuration error',
               bucketNotFound: 'Bucket not found',
+              subscriptionInvalid: 'Subscription invalid',
             }}
             margin="none"
           />
@@ -539,12 +543,30 @@ export default function BucketPage({
     [onChange],
   )
 
+  // Navigating away after a delete would otherwise trip the unsaved-changes Prompt, asking
+  // the user to confirm discarding edits to a bucket that no longer exists.
+  const [deleted, setDeleted] = React.useState(false)
   const onDelete = React.useCallback(() => {
-    openDialog(({ close }) => <Delete bucket={bucket} close={close} onDeleted={back} />)
+    openDialog(({ close }) => (
+      <Delete
+        bucket={bucket}
+        close={close}
+        onDeleted={() => {
+          setDeleted(true)
+          back()
+        }}
+      />
+    ))
   }, [back, bucket, openDialog])
 
   return (
-    <RF.Form<FormValues> onSubmit={onSubmit} initialValues={initialValues}>
+    <RF.Form<FormValues>
+      onSubmit={onSubmit}
+      initialValues={initialValues}
+      // `initialValues` is rebuilt whenever the bucket query result changes identity, and
+      // a reinitialize would otherwise silently drop whatever the user has typed.
+      keepDirtyOnReinitialize
+    >
       {({ handleSubmit, form, dirty, submitting, values, dirtyFields }) => {
         const changed = new Set<SectionId>()
         for (const [field, isDirty] of Object.entries(dirtyFields)) {
@@ -558,7 +580,7 @@ export default function BucketPage({
         return (
           <>
             <RRDom.Prompt
-              when={dirty || tabulatorDirty}
+              when={!deleted && (dirty || tabulatorDirty)}
               message="You have unsaved changes. Discard changes and leave the page?"
             />
             {renderDialogs({ maxWidth: 'xs', fullWidth: true })}

@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 import StyledLink from 'utils/StyledLink'
 
 import AccessTable, { AccessSummary } from './AccessTable'
-import { roleAccess } from './access'
+import { roleAccess, accessIncomplete } from './access'
 import { MAX_POLICIES_PER_ROLE, getArnLink } from './shared'
 
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
@@ -148,6 +148,7 @@ export default function RolePage({
   const grants = React.useMemo(() => roleAccess(role), [role])
   const managed = role.__typename === 'ManagedRole'
   const policies = managed ? role.policies : []
+  const unknown = accessIncomplete(role)
 
   return (
     <>
@@ -186,9 +187,9 @@ export default function RolePage({
       <M.Paper variant="outlined" className={classes.section}>
         {managed ? (
           <>
-            <AccessSummary grants={grants} subject="This role" />
+            <AccessSummary grants={grants} subject="This role" unknown={unknown} />
             <div className={classes.policies}>
-              <AccessTable grants={grants} />
+              <AccessTable grants={grants} unknown={unknown} />
             </div>
           </>
         ) : (

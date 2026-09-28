@@ -360,8 +360,29 @@ interface SuspendedProps {
 
 export default function Suspended({ close }: SuspendedProps) {
   return (
-    <React.Suspense fallback={<Skeleton />}>
-      <Data close={close}>{(props) => <Form {...props} />}</Data>
-    </React.Suspense>
+    // The config query suspends here, so a failed read without this boundary escapes
+    // the dialog entirely and replaces the admin page behind it, leaving nothing to
+    // cancel with.
+    <ErrorBoundary
+      fallbackRender={({ error }) => (
+        <>
+          <M.DialogTitle disableTypography>
+            <M.Typography variant="h5">SSO role mapping</M.Typography>
+          </M.DialogTitle>
+          <M.DialogContent>
+            <M.Typography variant="body2" color="error">
+              Could not load the SSO configuration: {error.message}
+            </M.Typography>
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button onClick={() => close()}>Close</M.Button>
+          </M.DialogActions>
+        </>
+      )}
+    >
+      <React.Suspense fallback={<Skeleton />}>
+        <Data close={close}>{(props) => <Form {...props} />}</Data>
+      </React.Suspense>
+    </ErrorBoundary>
   )
 }

@@ -61,6 +61,16 @@ export function roleAccess(role: Role): Grant[] {
     .sort(byBucketName)
 }
 
+// A role's readout is incomplete whenever something granting access is invisible to
+// Quilt, which is two cases, not one: a custom role's policies cannot be read at all,
+// and a managed role's unmanaged policy grants through an ARN the API does not expose.
+// Keyed off `__typename` alone this misses the second, presenting a partial list as
+// complete.
+export function accessIncomplete(role: Role): boolean {
+  if (role.__typename !== 'ManagedRole') return true
+  return role.policies.some((p) => !p.managed)
+}
+
 // Access reachable across several roles at once. A user assumes one role at a time,
 // so this is only the truth for a set of roles held together, never for a user.
 export function combinedAccess(roles: readonly Role[]): Grant[] {

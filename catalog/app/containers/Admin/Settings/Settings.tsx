@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as Sentry from '@sentry/react'
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
@@ -389,6 +390,14 @@ interface SectionProps {
   children: React.ReactNode
 }
 
+function SectionFallback({ error }: FallbackProps) {
+  return (
+    <M.Typography variant="body2" color="error">
+      Could not load this setting: {error.message}
+    </M.Typography>
+  )
+}
+
 // Every section says what it controls. Several read as bare labels otherwise
 // -- "Navigation link" never says where the link goes or who sees it.
 function Section({ id, title, hint, children }: SectionProps) {
@@ -399,9 +408,14 @@ function Section({ id, title, hint, children }: SectionProps) {
         {title}
       </M.Typography>
       <span className={classes.hint}>{hint}</span>
-      <React.Suspense fallback={<M.CircularProgress size={24} />}>
-        {children}
-      </React.Suspense>
+      {/* The boundary is the section's own: without it a failed read here escapes to
+          the admin-wide boundary and replaces every other section too, which defeats
+          the point of suspending per section. */}
+      <ErrorBoundary FallbackComponent={SectionFallback}>
+        <React.Suspense fallback={<M.CircularProgress size={24} />}>
+          {children}
+        </React.Suspense>
+      </ErrorBoundary>
     </M.Paper>
   )
 }
