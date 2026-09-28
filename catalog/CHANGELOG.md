@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator says when it cannot read a large PDF or Office document, instead of answering from metadata or search hits as though it had read the file ([#5354](https://github.com/quiltdata/quilt/pull/5354))
 - [Fixed] The bucket header no longer offers an admin a settings link for a bucket the stack does not have, which only bounced back to the bucket list ([#5358](https://github.com/quiltdata/quilt/pull/5358))
 - [Fixed] A bucket's name and admin-settings link show above the tabs on every stack, not only those with the `beta` setting; only the stats row stays gated ([#5235](https://github.com/quiltdata/quilt/pull/5235))
 - [Fixed] Admin buckets: a re-index prefix typed for one bucket no longer carries over to another, and a refused re-index reports the registry's own reason instead of a generic error ([#5345](https://github.com/quiltdata/quilt/pull/5345))
