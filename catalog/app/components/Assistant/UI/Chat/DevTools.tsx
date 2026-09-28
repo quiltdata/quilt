@@ -34,7 +34,7 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
   return (
     <div className={classes.root}>
       <M.TextField
-        label="Bedrock Model ID"
+        label="Model ID"
         placeholder={Model.Assistant.DEFAULT_MODEL_ID}
         value={value}
         onChange={handleModelIdChange}

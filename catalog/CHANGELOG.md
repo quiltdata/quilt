@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Qurator issues its model call through the registry's inference relay instead of calling Bedrock from the browser, so a deployment can route inference through a customer-operated AI gateway whose credential never reaches the client ([#5334](https://github.com/quiltdata/quilt/pull/5334))
 - [Fixed] The bucket header no longer offers an admin a settings link for a bucket the stack does not have, which only bounced back to the bucket list ([#5358](https://github.com/quiltdata/quilt/pull/5358))
 - [Fixed] A bucket's name and admin-settings link show above the tabs on every stack, not only those with the `beta` setting; only the stats row stays gated ([#5235](https://github.com/quiltdata/quilt/pull/5235))
 - [Fixed] Admin buckets: a re-index prefix typed for one bucket no longer carries over to another, and a refused re-index reports the registry's own reason instead of a generic error ([#5345](https://github.com/quiltdata/quilt/pull/5345))

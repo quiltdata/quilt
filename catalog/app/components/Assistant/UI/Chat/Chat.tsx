@@ -717,7 +717,7 @@ export default function Chat({
         </span>
         <div>
           <div className={classes.title}>Qurator</div>
-          <div className={classes.subtitle}>Claude on Bedrock, with your permissions</div>
+          <div className={classes.subtitle}>Claude, with your permissions</div>
         </div>
         <M.IconButton
           className={classes.close}
