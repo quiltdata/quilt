@@ -74,7 +74,11 @@ export default function Admin() {
   const { paths } = NamedRoutes.use()
 
   const sections = {
-    users: { path: paths.adminUsers, exact: true },
+    users: [
+      { path: paths.adminUsers, exact: true },
+      { path: paths.adminUserDetail },
+      { path: paths.adminRoleDetail },
+    ],
     buckets: { path: paths.adminBuckets },
     settings: { path: paths.adminSettings, exact: true },
     status: { path: paths.adminStatus, exact: true },
@@ -97,6 +101,12 @@ export default function Admin() {
         resetKeys={[location.pathname, location.search, location.hash]}
       >
         <RR.Switch>
+          <RR.Route path={paths.adminUserDetail} exact strict>
+            <UsersAndRoles />
+          </RR.Route>
+          <RR.Route path={paths.adminRoleDetail} exact strict>
+            <UsersAndRoles />
+          </RR.Route>
           <RR.Route path={paths.adminUsers} exact strict>
             <UsersAndRoles />
           </RR.Route>

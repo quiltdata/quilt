@@ -10,7 +10,7 @@ interface SuspenseWrapperProps {
 
 export default function SuspenseWrapper({ children, heading }: SuspenseWrapperProps) {
   return (
-    <M.Paper>
+    <M.Paper variant="outlined">
       <React.Suspense
         fallback={
           <>

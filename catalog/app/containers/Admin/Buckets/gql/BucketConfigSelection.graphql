@@ -8,6 +8,7 @@ fragment BucketConfigSelection on BucketConfig {
   fileExtensionsToIndex
   indexContentBytes
   scannerParallelShardsDepth
+  prefixes
   snsNotificationArn
   skipMetaDataIndexing
   lastIndexed

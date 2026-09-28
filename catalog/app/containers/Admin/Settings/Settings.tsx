@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as Sentry from '@sentry/react'
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
 import * as M from '@material-ui/core'
 
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
@@ -312,45 +313,200 @@ function NavLinkEditor() {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(2, 0, 0),
+    display: 'grid',
+    gap: t.spacing(3),
+    padding: t.spacing(2, 0, 4),
+    [t.breakpoints.up('md')]: {
+      alignItems: 'start',
+      gridTemplateColumns: `${t.spacing(24)}px minmax(0, 1fr)`,
+    },
   },
-  sectionHeading: {
-    marginBottom: t.spacing(1),
+  // Sticky rather than scroll-spying: the index is for jumping, and a
+  // highlight that tracks the scroll position is state to keep correct for
+  // nothing the reader asked for.
+  nav: {
+    display: 'none',
+    [t.breakpoints.up('md')]: {
+      display: 'block',
+      position: 'sticky',
+      // Clears the 64px app bar the page scrolls under.
+      top: t.spacing(10),
+    },
   },
-  group: {
-    padding: t.spacing(2),
+  navGroup: {
+    '& + &': {
+      marginTop: t.spacing(2),
+    },
   },
-  title: {
-    margin: t.spacing(0, 0, 2),
-    padding: t.spacing(0, 2),
-
-    '* + &': {
+  navGroupName: {
+    ...t.typography.overline,
+    color: t.palette.text.hint,
+    display: 'block',
+    marginBottom: t.spacing(0.5),
+  },
+  navLink: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    display: 'block',
+    padding: t.spacing(0.5, 0),
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
+  },
+  sections: {
+    display: 'grid',
+    gap: t.spacing(2),
+  },
+  groupHeading: {
+    ...t.typography.overline,
+    color: t.palette.text.hint,
+    '$sections > * + &': {
       marginTop: t.spacing(2),
     },
   },
 }))
 
+const useSectionStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+    // The jump links above land the section below the app bar, not under it.
+    scrollMarginTop: t.spacing(10),
+  },
+  heading: {
+    marginBottom: t.spacing(0.5),
+  },
+  hint: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    display: 'block',
+    marginBottom: t.spacing(2),
+  },
+}))
+
+interface SectionProps {
+  id: string
+  title: string
+  hint: string
+  children: React.ReactNode
+}
+
+function SectionFallback({ error }: FallbackProps) {
+  return (
+    <M.Typography variant="body2" color="error">
+      Could not load this setting: {error.message}
+    </M.Typography>
+  )
+}
+
+// Every section says what it controls. Several read as bare labels otherwise
+// -- "Navigation link" never says where the link goes or who sees it.
+function Section({ id, title, hint, children }: SectionProps) {
+  const classes = useSectionStyles()
+  return (
+    <M.Paper id={id} className={classes.root} variant="outlined">
+      <M.Typography variant="h6" className={classes.heading}>
+        {title}
+      </M.Typography>
+      <span className={classes.hint}>{hint}</span>
+      {/* The boundary is the section's own: without it a failed read here escapes to
+          the admin-wide boundary and replaces every other section too, which defeats
+          the point of suspending per section. */}
+      <ErrorBoundary FallbackComponent={SectionFallback}>
+        <React.Suspense fallback={<M.CircularProgress size={24} />}>
+          {children}
+        </React.Suspense>
+      </ErrorBoundary>
+    </M.Paper>
+  )
+}
+
 // Gated on the `data-products` preview feature, matching how `FeatureSettings` is
-// gated above: with the capability off, an admin offered a catalog-connection form
+// gated: with the capability off, an admin offered a catalog-connection form
 // would be configuring something no reader can reach.
 //
 // Its own component because `useFeature` suspends and `Settings` does not,
-// so the read has to sit under a boundary of its own.
+// so the read has to sit under a boundary of its own. Same reason the nav entry
+// for it below is a component rather than a row in the index.
 export function DataProductCatalogs() {
-  const classes = useStyles()
   const enabled = useFeature('data-products')
   if (!enabled) return null
   return (
-    <>
-      {/* Its own section rather than a cell in the grid above: a connection list
-          grows, and the add form needs the full width. */}
-      <M.Typography variant="h5" className={classes.title}>
-        Data Product Catalogs
-      </M.Typography>
-      <M.Paper className={classes.group}>
-        <DataProductConnections />
-      </M.Paper>
-    </>
+    <Section
+      id="data-products"
+      title="Data product catalogs"
+      hint="External catalogs this stack publishes its data products to."
+    >
+      <DataProductConnections />
+    </Section>
+  )
+}
+
+const GROUPS: { name: string; items: { id: string; title: string }[] }[] = [
+  {
+    name: 'Appearance',
+    items: [
+      { id: 'theme', title: 'Theme' },
+      { id: 'nav-link', title: 'Navigation link' },
+    ],
+  },
+  {
+    name: 'Search and assistant',
+    items: [
+      { id: 'search', title: 'Default search mode' },
+      { id: 'qurator', title: 'Qurator instructions' },
+    ],
+  },
+  {
+    name: 'Data',
+    items: [
+      { id: 'tabulator', title: 'Tabulator' },
+      { id: 'packager', title: 'Packaging engine' },
+    ],
+  },
+  {
+    name: 'Platform',
+    items: [
+      { id: 'beta', title: 'Beta features' },
+      ...(HAS_PREVIEW_FEATURES ? [{ id: 'preview', title: 'Preview features' }] : []),
+      { id: 'diagnostics', title: 'Support diagnostics' },
+    ],
+  },
+]
+
+function DataProductNavLink({ className }: { className: string }) {
+  const enabled = useFeature('data-products')
+  if (!enabled) return null
+  return (
+    <a href="#data-products" className={className}>
+      Data product catalogs
+    </a>
+  )
+}
+
+function Nav() {
+  const classes = useStyles()
+  return (
+    <nav className={classes.nav}>
+      {GROUPS.map(({ name, items }) => (
+        <div className={classes.navGroup} key={name}>
+          <span className={classes.navGroupName}>{name}</span>
+          {items.map(({ id, title }) => (
+            <a href={`#${id}`} className={classes.navLink} key={id}>
+              {title}
+            </a>
+          ))}
+          {/* The boundary is silent: a jump link that cannot be resolved is not worth
+              an error in the index, and the section itself reports the same failure. */}
+          {name === 'Data' && (
+            <ErrorBoundary fallbackRender={() => null}>
+              <React.Suspense fallback={null}>
+                <DataProductNavLink className={classes.navLink} />
+              </React.Suspense>
+            </ErrorBoundary>
+          )}
+        </div>
+      ))}
+    </nav>
   )
 }
 
@@ -359,98 +515,90 @@ export default function Settings() {
   return (
     <div className={classes.root}>
       <MetaTitle>{['Settings', 'Admin']}</MetaTitle>
-      <M.Typography variant="h5" className={classes.title}>
-        Catalog Customization
-      </M.Typography>
-      <M.Grid container spacing={2}>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Navigation link
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <NavLinkEditor />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Theme (logo and color)
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <ThemeEditor />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Default search mode
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <SearchSettings />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Enable beta features
-            </M.Typography>
-            <BetaSwitch />
-          </M.Paper>
-        </M.Grid>
-        <M.Grid item xs={6}>
-          <M.Paper className={classes.group}>
-            <M.Typography variant="h6" className={classes.sectionHeading}>
-              Qurator instructions
-            </M.Typography>
-            <React.Suspense fallback={<M.CircularProgress />}>
-              <QuratorSettings />
-            </React.Suspense>
-          </M.Paper>
-        </M.Grid>
+      <Nav />
+      <div className={classes.sections}>
+        <M.Typography className={classes.groupHeading}>Appearance</M.Typography>
+        <Section
+          id="theme"
+          title="Theme"
+          hint="The logo and accent color every page of this catalog carries."
+        >
+          <ThemeEditor />
+        </Section>
+        <Section
+          id="nav-link"
+          title="Navigation link"
+          hint="An extra link in the catalog's top navigation bar, shown to everyone on this stack."
+        >
+          <NavLinkEditor />
+        </Section>
+
+        <M.Typography className={classes.groupHeading}>Search and assistant</M.Typography>
+        <Section
+          id="search"
+          title="Default search mode"
+          hint="What a search covers before anyone narrows it."
+        >
+          <SearchSettings />
+        </Section>
+        <Section
+          id="qurator"
+          title="Qurator instructions"
+          hint="Standing instructions sent with every Qurator message on this stack."
+        >
+          <QuratorSettings />
+        </Section>
+
+        <M.Typography className={classes.groupHeading}>Data</M.Typography>
+        <Section
+          id="tabulator"
+          title="Tabulator"
+          hint="Tables that stitch package files into one queryable surface."
+        >
+          <TabulatorSettings />
+        </Section>
+        <Section
+          id="packager"
+          title="Packaging engine"
+          hint="How this stack builds packages from incoming data."
+        >
+          <PackagerSettings />
+        </Section>
+        {/* The feature read suspends out here, ahead of any Section, so it needs its
+            own boundary or an unreadable settings document replaces every section. */}
+        <ErrorBoundary FallbackComponent={SectionFallback}>
+          <React.Suspense fallback={null}>
+            <DataProductCatalogs />
+          </React.Suspense>
+        </ErrorBoundary>
+
+        <M.Typography className={classes.groupHeading}>Platform</M.Typography>
+        <Section
+          id="beta"
+          title="Beta features"
+          hint="Opens features still under development to everyone on this stack."
+        >
+          <M.FormControlLabel control={<BetaSwitch />} label="Beta features on" />
+        </Section>
         {/* Absent entirely when this build declares no preview capabilities,
-            rather than rendering an empty card. */}
+            rather than rendering an empty section. */}
         {HAS_PREVIEW_FEATURES && (
-          <M.Grid item xs={6}>
-            <M.Paper className={classes.group}>
-              <M.Typography variant="h6" className={classes.sectionHeading}>
-                Preview features
-              </M.Typography>
-              <React.Suspense fallback={<M.CircularProgress />}>
-                <FeatureSettings />
-              </React.Suspense>
-            </M.Paper>
-          </M.Grid>
+          <Section
+            id="preview"
+            title="Preview features"
+            hint="Individual capabilities this build can offer ahead of general release."
+          >
+            <FeatureSettings />
+          </Section>
         )}
-      </M.Grid>
-
-      <React.Suspense fallback={null}>
-        <DataProductCatalogs />
-      </React.Suspense>
-
-      <M.Typography variant="h5" className={classes.title}>
-        Packaging Engine Settings
-      </M.Typography>
-      <M.Paper className={classes.group}>
-        <PackagerSettings />
-      </M.Paper>
-
-      <M.Typography variant="h5" className={classes.title}>
-        Tabulator Settings
-      </M.Typography>
-      <M.Paper className={classes.group}>
-        <TabulatorSettings />
-      </M.Paper>
-
-      <M.Typography variant="h5" className={classes.title}>
-        Support Diagnostics
-      </M.Typography>
-      <M.Paper className={classes.group}>
-        <SupportDiagnostics />
-      </M.Paper>
+        <Section
+          id="diagnostics"
+          title="Support diagnostics"
+          hint="A bundle of stack state to attach to a support request."
+        >
+          <SupportDiagnostics />
+        </Section>
+      </div>
     </div>
   )
 }

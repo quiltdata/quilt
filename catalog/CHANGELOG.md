@@ -21,6 +21,14 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admin users and roles: a user or role name opens a page about it, reading out what it can reach per bucket and which policies account for that level, so an admin can answer "what does this grant?" without opening each policy in turn ([#5366](https://github.com/quiltdata/quilt/pull/5366))
+- [Changed] Admin buckets: a bucket's edit screen is one page about the bucket, with its state read out at the top, its settings grouped by the question they answer and closed until opened, and one save for the whole record instead of a separate save on each card ([#5366](https://github.com/quiltdata/quilt/pull/5366))
+- [Changed] Admin settings: one list of sections grouped by what they configure, each saying what it controls, with a jump index beside it instead of a two-column scatter of cards ([#5366](https://github.com/quiltdata/quilt/pull/5366))
+- [Changed] Admin status: its sections sit flat and share one heading level with the rest of the admin panel, and a stack without the monitoring add-on says so instead of reading as missing data ([#5366](https://github.com/quiltdata/quilt/pull/5366))
+- [Fixed] A file editor whose syntax-mode chunk fails to load now surfaces the error instead of spinning forever, and the admin SSO role mapping dialog keeps its title and actions whether that chunk loads or fails ([#5366](https://github.com/quiltdata/quilt/pull/5366))
+- [Added] Admin buckets: a bucket's bulk scan scope is editable on the add and edit forms, so an admin can limit which prefixes the scanner enqueues without the SDK ([#5366](https://github.com/quiltdata/quilt/pull/5366))
+- [Added] Admin buckets: a bucket icon can be uploaded and cropped in the form itself, so an admin with an image file no longer has to host it somewhere first and paste its URL ([#5344](https://github.com/quiltdata/quilt/pull/5344))
+- [Fixed] Bucket icons: a custom icon and an initials disc line up with each other and centre in the admin bucket list's icon column ([#5344](https://github.com/quiltdata/quilt/pull/5344))
 - [Fixed] The bucket header no longer offers an admin a settings link for a bucket the stack does not have, which only bounced back to the bucket list ([#5358](https://github.com/quiltdata/quilt/pull/5358))
 - [Fixed] A bucket's name and admin-settings link show above the tabs on every stack, not only those with the `beta` setting; only the stats row stays gated ([#5235](https://github.com/quiltdata/quilt/pull/5235))
 - [Fixed] Admin buckets: a re-index prefix typed for one bucket no longer carries over to another, and a refused re-index reports the registry's own reason instead of a generic error ([#5345](https://github.com/quiltdata/quilt/pull/5345))

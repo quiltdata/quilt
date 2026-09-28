@@ -17,10 +17,6 @@ const useStyles = M.makeStyles((t) => ({
   save: {
     marginLeft: 'auto',
   },
-  hint: {
-    ...t.typography.caption,
-    color: t.palette.text.hint,
-  },
   error: {
     ...t.typography.body2,
     color: t.palette.error.main,
@@ -72,15 +68,10 @@ export default function QuratorSettings() {
           Save
         </M.Button>
       </div>
-      {error ? (
+      {error && (
         <M.Typography className={classes.error} role="alert">
           {error}
         </M.Typography>
-      ) : (
-        <span className={classes.hint}>
-          Standing instructions sent with every Qurator message for everyone on this
-          stack.
-        </span>
       )}
     </div>
   )
