@@ -401,7 +401,11 @@ function SaveBar({ form, changedSections }: SaveBarProps) {
     if (state.error || state.submitError) return state.error || state.submitError
     // A field-level error with no field rendering it would otherwise fail the save
     // silently, since this bar is the only place a submit failure is reported.
-    return `Unhandled error: ${JSON.stringify(state.submitErrors)}`
+    if (state.submitErrors)
+      return `Unhandled error: ${JSON.stringify(state.submitErrors)}`
+    // Validation errors are the field's own and are rendered there; the bar only has to
+    // say why nothing was submitted, not restate them.
+    return 'Some fields need fixing before this can be saved'
   })()
   return (
     <div className={cx(classes.root, { [classes.armed]: armed })}>

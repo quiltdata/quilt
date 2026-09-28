@@ -21,7 +21,11 @@ interface SummaryProps {
   grants: readonly Grant[]
   /** Named so the empty case can say what has no access, e.g. 'This role'. */
   subject: string
-  /** A custom IAM role is in play, so an empty grant list means unknown, not none. */
+  /**
+   * A policy Quilt cannot read is in play, so an empty grant list means unknown, not
+   * none. Not phrased as a custom role: a managed role holding a policy set by ARN
+   * lands here too, and that would send an admin after the wrong thing.
+   */
   unknown?: boolean
 }
 
@@ -33,8 +37,8 @@ export function AccessSummary({ grants, subject, unknown = false }: SummaryProps
       <M.Typography className={classes.root}>
         {unknown ? (
           <span className={classes.caveat}>
-            {subject} is a custom IAM role. Quilt cannot read what it grants, so its
-            bucket access is unknown; check the role in the AWS console.
+            {subject} carries an IAM policy Quilt cannot read, so its bucket access is
+            unknown; check the role in the AWS console.
           </span>
         ) : (
           `${subject} reaches no bucket. Attaching a policy is what grants access.`
@@ -102,7 +106,7 @@ interface AccessTableProps {
   grants: readonly Grant[]
   /** Show which role each source came through; only meaningful across roles. */
   showRole?: boolean
-  /** A custom IAM role is in play, so this readout is unknown or incomplete. */
+  /** A policy Quilt cannot read is in play, so this readout is unknown or incomplete. */
   unknown?: boolean
 }
 
@@ -119,7 +123,7 @@ export default function AccessTable({
     return (
       <div className={unknown ? classes.unknownNote : classes.empty}>
         {unknown
-          ? 'Quilt cannot read what a custom IAM role grants, so this access is unknown. Check the role in the AWS console.'
+          ? 'An IAM policy here cannot be read by Quilt, so this access is unknown. Check the role in the AWS console.'
           : 'No bucket access.'}
       </div>
     )
