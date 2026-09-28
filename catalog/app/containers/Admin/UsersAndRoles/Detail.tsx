@@ -16,6 +16,23 @@ import { Delete as DeleteUser, EditEmail, EditRoles } from './Users'
 import ROLES_QUERY from './gql/Roles.generated'
 import USERS_QUERY from './gql/Users.generated'
 
+// The route builders encode these params, but `history@4` decodeURI's the pathname
+// before routing, so decoding one back is lossy for a name containing `%`. Re-encoding
+// a candidate the same way avoids that; the bare comparison carries older plain links.
+function matchesParam(param: string, value: string) {
+  return value === param || decodeURI(encodeURIComponent(value)) === param
+}
+
+// Display only: nothing matched, so there is no candidate to re-encode against, and a
+// hand-typed param can be malformed.
+function readableParam(param: string) {
+  try {
+    return decodeURIComponent(param)
+  } catch {
+    return param
+  }
+}
+
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -74,7 +91,7 @@ export function UserDetail() {
   const self: string = redux.useSelector(Auth.selectors.username)
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
-  const user = usersData.admin.user.list.find((u) => u.name === userName)
+  const user = usersData.admin.user.list.find((u) => matchesParam(userName, u.name))
   const rolesById = React.useMemo(
     () => new Map(rolesData.roles.map((r) => [r.id, r])),
     [rolesData.roles],
@@ -120,7 +137,7 @@ export function UserDetail() {
           onDelete={onDelete}
         />
       ) : (
-        <Missing>No user named &quot;{userName}&quot;.</Missing>
+        <Missing>No user named &quot;{readableParam(userName)}&quot;.</Missing>
       )}
     </>
   )
@@ -137,13 +154,15 @@ export function RoleDetail() {
   const usersData = GQL.useQueryS(USERS_QUERY)
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
-  const role = rolesData.roles.find((r) => r.id === roleId)
+  const role = rolesData.roles.find((r) => matchesParam(roleId, r.id))
   const holders = React.useMemo(
     () =>
-      usersData.admin.user.list.filter(
-        (u) => u.role?.id === roleId || u.extraRoles.some((r) => r.id === roleId),
-      ),
-    [usersData.admin.user.list, roleId],
+      role
+        ? usersData.admin.user.list.filter(
+            (u) => u.role?.id === role.id || u.extraRoles.some((r) => r.id === role.id),
+          )
+        : [],
+    [usersData.admin.user.list, role],
   )
 
   const onEdit = React.useCallback(() => {
