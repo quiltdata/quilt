@@ -9,9 +9,9 @@ import parseSearch from 'utils/parseSearch'
 // bucket segment has to survive as the console's `?bucket=` scope param.
 
 // The path segment is the bucket the user actually navigated to, so it wins over
-// any `?bucket=` already in the search — spread the incoming params first.
+// any `?bucket=` already in the search.
 function scoped(bucket, search) {
-  return { ...parseSearch(search, true), bucket }
+  return { table: parseSearch(search, true).table, bucket }
 }
 
 export function AthenaWorkgroupRedirect() {

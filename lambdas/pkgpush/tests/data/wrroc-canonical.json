@@ -1,0 +1,1367 @@
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {
+                "@id": "./"
+            },
+            "conformsTo": [
+                {
+                    "@id": "https://w3id.org/ro/crate/1.1"
+                },
+                {
+                    "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+                }
+            ]
+        },
+        {
+            "@id": "./",
+            "@type": "Dataset",
+            "author": {
+                "@id": "https://orcid.org/0009-0003-3768-3781"
+            },
+            "datePublished": "2025-02-14",
+            "conformsTo": [
+                {
+                    "@id": "https://w3id.org/ro/wfrun/process/0.1"
+                },
+                {
+                    "@id": "https://w3id.org/ro/wfrun/workflow/0.1"
+                },
+                {
+                    "@id": "https://w3id.org/ro/wfrun/provenance/0.1"
+                },
+                {
+                    "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+                }
+            ],
+            "name": "Workflow run of famosab/wrroc-meta-test",
+            "description": "This pipeline runs fastp and megahit to test the creation of workflow RO Crates",
+            "hasPart": [
+                {
+                    "@id": "main.nf"
+                },
+                {
+                    "@id": "https://spdx.org/licenses/MIT"
+                },
+                {
+                    "@id": "README.md"
+                },
+                {
+                    "@id": "nextflow_schema.json"
+                },
+                {
+                    "@id": "nextflow.config"
+                },
+                {
+                    "@id": "s3://quilt-example-bucket/test/wrroc/read2.fq.gz"
+                },
+                {
+                    "@id": "s3://quilt-example-bucket/test/wrroc/read1.fq.gz"
+                },
+                {
+                    "@id": "fastp/test.fastp.json"
+                },
+                {
+                    "@id": "fastp/test.fastp.log"
+                },
+                {
+                    "@id": "fastp/test.fastp.html"
+                },
+                {
+                    "@id": "fastp/test_1.fastp.fastq.gz"
+                },
+                {
+                    "@id": "fastp/test_2.fastp.fastq.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k71.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/test.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k71.addi.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/test.log"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.addi.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k71.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.local.fa.gz"
+                }
+            ],
+            "mainEntity": {
+                "@id": "main.nf"
+            },
+            "mentions": [
+                {
+                    "@id": "#1c96d5f5-c0c6-487c-9e5d-54f82deb1362"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_1.fastp.fastq.gz"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_2.fastp.fastq.gz"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.json"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.html"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.log"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/versions.yml"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.addi.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.addi.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.local.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.log"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/versions.yml"
+                },
+                {
+                    "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.json"
+                },
+                {
+                    "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.log"
+                },
+                {
+                    "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.html"
+                },
+                {
+                    "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test_1.fastp.fastq.gz"
+                },
+                {
+                    "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test_2.fastp.fastq.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/test.contigs.fa.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.addi.fa.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.contigs.fa.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/test.log"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.addi.fa.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.contigs.fa.gz"
+                },
+                {
+                    "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.local.fa.gz"
+                }
+            ],
+            "license": "https://spdx.org/licenses/MIT"
+        },
+        {
+            "@id": "https://w3id.org/ro/wfrun/process/0.1",
+            "@type": "CreativeWork",
+            "name": "Process Run Crate",
+            "version": "0.1"
+        },
+        {
+            "@id": "https://w3id.org/ro/wfrun/workflow/0.1",
+            "@type": "CreativeWork",
+            "name": "Workflow Run Crate",
+            "version": "0.1"
+        },
+        {
+            "@id": "https://w3id.org/ro/wfrun/provenance/0.1",
+            "@type": "CreativeWork",
+            "name": "Provenance Run Crate",
+            "version": "0.1"
+        },
+        {
+            "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+            "@type": "CreativeWork",
+            "name": "Workflow RO-Crate",
+            "version": "1.0"
+        },
+        {
+            "@id": "main.nf",
+            "@type": [
+                "File",
+                "SoftwareSourceCode",
+                "ComputationalWorkflow",
+                "HowTo"
+            ],
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/ComputationalWorkflow/1.0-RELEASE"
+            },
+            "name": "famosab/wrroc-meta-test",
+            "description": "This pipeline runs fastp and megahit to test the creation of workflow RO Crates",
+            "programmingLanguage": {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate#nextflow"
+            },
+            "creator": "Famke B\u00e4uerle, Tom Tubbesing, Keiler Collier, Matt Burridge, Benedikt Osterholz, Alex Sczyrba",
+            "codeRepository": "https://github.com/famosab/wrrocmetatest",
+            "version": "e8665c295b12132aa886f3abd0fc34a71b08d4a6",
+            "url": "https://github.com/famosab/wrrocmetatest/tree/e8665c295b12132aa886f3abd0fc34a71b08d4a6/main.nf",
+            "encodingFormat": "application/nextflow",
+            "runtimePlatform": "Nextflow 24.10.4",
+            "hasPart": [
+                {
+                    "@id": "#module/FASTP"
+                },
+                {
+                    "@id": "#module/MEGAHIT"
+                }
+            ],
+            "input": [
+                {
+                    "@id": "#param/input"
+                },
+                {
+                    "@id": "#param/igenomes_base"
+                },
+                {
+                    "@id": "#param/igenomes_ignore"
+                },
+                {
+                    "@id": "#param/outdir"
+                },
+                {
+                    "@id": "#param/publish_dir_mode"
+                },
+                {
+                    "@id": "#param/plaintext_email"
+                },
+                {
+                    "@id": "#param/monochrome_logs"
+                },
+                {
+                    "@id": "#param/help"
+                },
+                {
+                    "@id": "#param/help_full"
+                },
+                {
+                    "@id": "#param/show_hidden"
+                },
+                {
+                    "@id": "#param/pipelines_testdata_base_path"
+                },
+                {
+                    "@id": "#param/custom_config_version"
+                },
+                {
+                    "@id": "#param/custom_config_base"
+                },
+                {
+                    "@id": "#param/validate_params"
+                }
+            ],
+            "output": [
+                
+            ],
+            "step": [
+                {
+                    "@id": "#process-step/FAMOSAB_WRROCMETATEST:WRROCMETATEST:FASTP"
+                },
+                {
+                    "@id": "#process-step/FAMOSAB_WRROCMETATEST:WRROCMETATEST:MEGAHIT"
+                }
+            ]
+        },
+        {
+            "@id": "https://w3id.org/workflowhub/workflow-ro-crate#nextflow",
+            "@type": "ComputerLanguage",
+            "name": "Nextflow",
+            "identifier": "https://www.nextflow.io/",
+            "url": "https://www.nextflow.io/",
+            "version": "24.10.4"
+        },
+        {
+            "@id": "main.nf#software-application",
+            "@type": "SoftwareApplication",
+            "name": "Nextflow 24.10.4"
+        },
+        {
+            "@id": "#module/FASTP",
+            "@type": "SoftwareApplication",
+            "name": "fastp",
+            "url": "https://github.com/famosab/wrrocmetatest/tree/e8665c295b12132aa886f3abd0fc34a71b08d4a6/modules/nf-core/fastp/main.nf",
+            "hasPart": [
+                {
+                    "@id": "#module/FASTP/fastp"
+                }
+            ]
+        },
+        {
+            "@id": "#module/MEGAHIT",
+            "@type": "SoftwareApplication",
+            "name": "megahit",
+            "url": "https://github.com/famosab/wrrocmetatest/tree/e8665c295b12132aa886f3abd0fc34a71b08d4a6/modules/nf-core/megahit/main.nf",
+            "hasPart": [
+                {
+                    "@id": "#module/MEGAHIT/megahit"
+                },
+                {
+                    "@id": "#module/MEGAHIT/pigz"
+                }
+            ]
+        },
+        {
+            "@id": "#module/FASTP/fastp",
+            "@type": "SoftwareApplication",
+            "name": "fastp",
+            "description": "A tool designed to provide fast all-in-one preprocessing for FastQ files. This tool is developed in C++ with multithreading supported to afford high performance.\n"
+        },
+        {
+            "@id": "#module/MEGAHIT/megahit",
+            "@type": "SoftwareApplication",
+            "name": "megahit",
+            "description": "An ultra-fast single-node solution for large and complex metagenomics assembly via succinct de Bruijn graph"
+        },
+        {
+            "@id": "#module/MEGAHIT/pigz",
+            "@type": "SoftwareApplication",
+            "name": "pigz",
+            "description": "Parallel implementation of the gzip algorithm."
+        },
+        {
+            "@id": "#param/input",
+            "@type": "FormalParameter",
+            "additionalType": "File",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "encodingFormat": "text/csv",
+            "name": "input",
+            "description": "Path to comma-separated file containing information about the samples in the experiment."
+        },
+        {
+            "@id": "#param/igenomes_base",
+            "@type": "FormalParameter",
+            "additionalType": "Dataset",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "igenomes_base",
+            "defaultValue": "s3://ngi-igenomes/igenomes/",
+            "description": "The base path to the igenomes reference files"
+        },
+        {
+            "@id": "#param/igenomes_ignore",
+            "@type": "FormalParameter",
+            "additionalType": "Boolean",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "igenomes_ignore",
+            "description": "Do not load the iGenomes reference config."
+        },
+        {
+            "@id": "#param/outdir",
+            "@type": "FormalParameter",
+            "additionalType": "Dataset",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "outdir",
+            "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure."
+        },
+        {
+            "@id": "#param/publish_dir_mode",
+            "@type": "FormalParameter",
+            "additionalType": "Text",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "publish_dir_mode",
+            "defaultValue": "copy",
+            "description": "Method used to save pipeline results to output directory."
+        },
+        {
+            "@id": "#param/plaintext_email",
+            "@type": "FormalParameter",
+            "additionalType": "Boolean",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "plaintext_email",
+            "description": "Send plain-text email instead of HTML."
+        },
+        {
+            "@id": "#param/monochrome_logs",
+            "@type": "FormalParameter",
+            "additionalType": "Boolean",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "monochrome_logs",
+            "description": "Do not use coloured log outputs."
+        },
+        {
+            "@id": "#param/help",
+            "@type": "FormalParameter",
+            "additionalType": "Boolean",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "help"
+        },
+        {
+            "@id": "#param/help_full",
+            "@type": "FormalParameter",
+            "additionalType": "Boolean",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "help_full"
+        },
+        {
+            "@id": "#param/show_hidden",
+            "@type": "FormalParameter",
+            "additionalType": "Boolean",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "show_hidden"
+        },
+        {
+            "@id": "#param/pipelines_testdata_base_path",
+            "@type": "FormalParameter",
+            "additionalType": "Text",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "pipelines_testdata_base_path",
+            "defaultValue": "https://raw.githubusercontent.com/nf-core/test-datasets/",
+            "description": "Base URL or local path to location of pipeline test dataset files"
+        },
+        {
+            "@id": "#param/custom_config_version",
+            "@type": "FormalParameter",
+            "additionalType": "Text",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "custom_config_version",
+            "defaultValue": "master",
+            "description": "Git commit id for Institutional configs."
+        },
+        {
+            "@id": "#param/custom_config_base",
+            "@type": "FormalParameter",
+            "additionalType": "Text",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "custom_config_base",
+            "defaultValue": "https://raw.githubusercontent.com/nf-core/configs/master",
+            "description": "Base directory for Institutional configs."
+        },
+        {
+            "@id": "#param/validate_params",
+            "@type": "FormalParameter",
+            "additionalType": "Boolean",
+            "conformsTo": {
+                "@id": "https://bioschemas.org/profiles/FormalParameter/1.0-RELEASE"
+            },
+            "name": "validate_params",
+            "defaultValue": true,
+            "description": "Boolean whether to validate parameters against the schema at runtime"
+        },
+        {
+            "@id": "#process-step/FAMOSAB_WRROCMETATEST:WRROCMETATEST:FASTP",
+            "@type": "HowToStep",
+            "workExample": {
+                "@id": "#module/FASTP"
+            },
+            "position": 1
+        },
+        {
+            "@id": "#process-step/FAMOSAB_WRROCMETATEST:WRROCMETATEST:MEGAHIT",
+            "@type": "HowToStep",
+            "workExample": {
+                "@id": "#module/MEGAHIT"
+            },
+            "position": 2
+        },
+        {
+            "@id": "main.nf#organize",
+            "@type": "OrganizeAction",
+            "agent": {
+                "@id": "https://orcid.org/0000-0000-0000-0000"
+            },
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "name": "Run of Nextflow 24.10.4",
+            "object": [
+                {
+                    "@id": "#process-control/FAMOSAB_WRROCMETATEST:WRROCMETATEST:FASTP"
+                },
+                {
+                    "@id": "#process-control/FAMOSAB_WRROCMETATEST:WRROCMETATEST:MEGAHIT"
+                }
+            ],
+            "result": {
+                "@id": "#1c96d5f5-c0c6-487c-9e5d-54f82deb1362"
+            },
+            "startTime": "2025-02-14T19:10:06.66717165Z",
+            "endTime": "2025-02-14T19:17:41.243354469Z"
+        },
+        {
+            "@id": "#1c96d5f5-c0c6-487c-9e5d-54f82deb1362",
+            "@type": "CreateAction",
+            "agent": {
+                "@id": "https://orcid.org/0000-0000-0000-0000"
+            },
+            "name": "Nextflow workflow run 1c96d5f5-c0c6-487c-9e5d-54f82deb1362",
+            "startTime": "2025-02-14T19:10:06.66717165Z",
+            "endTime": "2025-02-14T19:17:41.243354469Z",
+            "instrument": {
+                "@id": "main.nf"
+            },
+            "object": [
+                {
+                    "@id": "#param/input/value"
+                },
+                {
+                    "@id": "#param/igenomes_base/value"
+                },
+                {
+                    "@id": "#param/igenomes_ignore/value"
+                },
+                {
+                    "@id": "#param/outdir/value"
+                },
+                {
+                    "@id": "#param/publish_dir_mode/value"
+                },
+                {
+                    "@id": "#param/plaintext_email/value"
+                },
+                {
+                    "@id": "#param/monochrome_logs/value"
+                },
+                {
+                    "@id": "#param/help/value"
+                },
+                {
+                    "@id": "#param/help_full/value"
+                },
+                {
+                    "@id": "#param/show_hidden/value"
+                },
+                {
+                    "@id": "#param/pipelines_testdata_base_path/value"
+                },
+                {
+                    "@id": "#param/custom_config_version/value"
+                },
+                {
+                    "@id": "#param/custom_config_base/value"
+                },
+                {
+                    "@id": "#param/validate_params/value"
+                },
+                {
+                    "@id": "s3://quilt-example-bucket/test/wrroc/read2.fq.gz"
+                },
+                {
+                    "@id": "s3://quilt-example-bucket/test/wrroc/read1.fq.gz"
+                }
+            ],
+            "result": [
+                {
+                    "@id": "fastp/test.fastp.json"
+                },
+                {
+                    "@id": "fastp/test.fastp.log"
+                },
+                {
+                    "@id": "fastp/test.fastp.html"
+                },
+                {
+                    "@id": "fastp/test_1.fastp.fastq.gz"
+                },
+                {
+                    "@id": "fastp/test_2.fastp.fastq.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k71.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/test.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k71.addi.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/test.log"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.addi.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k71.contigs.fa.gz"
+                },
+                {
+                    "@id": "megahit/intermediate_contigs/k51.local.fa.gz"
+                }
+            ]
+        },
+        {
+            "@id": "https://orcid.org/0000-0000-0000-0000",
+            "@type": "Person",
+            "name": "John Doe"
+        },
+        {
+            "@id": "https://spdx.org/licenses/MIT",
+            "@type": "CreativeWork"
+        },
+        {
+            "@id": "README.md",
+            "@type": "File",
+            "name": "README.md",
+            "description": "The README file of the workflow.",
+            "encodingFormat": "text/markdown"
+        },
+        {
+            "@id": "nextflow_schema.json",
+            "@type": "File",
+            "name": "nextflow_schema.json",
+            "description": "The parameter schema of the workflow.",
+            "encodingFormat": "application/json"
+        },
+        {
+            "@id": "nextflow.config",
+            "@type": "File",
+            "name": "Resolved Nextflow configuration",
+            "description": "The resolved Nextflow configuration for the workflow run.",
+            "encodingFormat": "text/plain"
+        },
+        {
+            "@id": "#param/input/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/input"
+            },
+            "name": "input",
+            "value": "s3://quilt-example-bucket/test/wrroc/testsheet.csv"
+        },
+        {
+            "@id": "#param/igenomes_base/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/igenomes_base"
+            },
+            "name": "igenomes_base",
+            "value": "s3://ngi-igenomes/igenomes/"
+        },
+        {
+            "@id": "#param/igenomes_ignore/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/igenomes_ignore"
+            },
+            "name": "igenomes_ignore",
+            "value": true
+        },
+        {
+            "@id": "#param/outdir/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/outdir"
+            },
+            "name": "outdir",
+            "value": "s3://quilt-example-bucket/example/wrroc/"
+        },
+        {
+            "@id": "#param/publish_dir_mode/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/publish_dir_mode"
+            },
+            "name": "publish_dir_mode",
+            "value": "copy"
+        },
+        {
+            "@id": "#param/plaintext_email/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/plaintext_email"
+            },
+            "name": "plaintext_email",
+            "value": false
+        },
+        {
+            "@id": "#param/monochrome_logs/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/monochrome_logs"
+            },
+            "name": "monochrome_logs",
+            "value": false
+        },
+        {
+            "@id": "#param/help/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/help"
+            },
+            "name": "help",
+            "value": false
+        },
+        {
+            "@id": "#param/help_full/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/help_full"
+            },
+            "name": "help_full",
+            "value": false
+        },
+        {
+            "@id": "#param/show_hidden/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/show_hidden"
+            },
+            "name": "show_hidden",
+            "value": false
+        },
+        {
+            "@id": "#param/pipelines_testdata_base_path/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/pipelines_testdata_base_path"
+            },
+            "name": "pipelines_testdata_base_path",
+            "value": "https://raw.githubusercontent.com/nf-core/test-datasets/"
+        },
+        {
+            "@id": "#param/custom_config_version/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/custom_config_version"
+            },
+            "name": "custom_config_version",
+            "value": "master"
+        },
+        {
+            "@id": "#param/custom_config_base/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/custom_config_base"
+            },
+            "name": "custom_config_base",
+            "value": "https://raw.githubusercontent.com/nf-core/configs/master"
+        },
+        {
+            "@id": "#param/validate_params/value",
+            "@type": "PropertyValue",
+            "exampleOfWork": {
+                "@id": "#param/validate_params"
+            },
+            "name": "validate_params",
+            "value": true
+        },
+        {
+            "@id": "#process-control/FAMOSAB_WRROCMETATEST:WRROCMETATEST:FASTP",
+            "@type": "ControlAction",
+            "instrument": {
+                "@id": "#process-step/FAMOSAB_WRROCMETATEST:WRROCMETATEST:FASTP"
+            },
+            "name": "Orchestrate process FAMOSAB_WRROCMETATEST:WRROCMETATEST:FASTP",
+            "object": [
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032"
+                }
+            ]
+        },
+        {
+            "@id": "#process-control/FAMOSAB_WRROCMETATEST:WRROCMETATEST:MEGAHIT",
+            "@type": "ControlAction",
+            "instrument": {
+                "@id": "#process-step/FAMOSAB_WRROCMETATEST:WRROCMETATEST:MEGAHIT"
+            },
+            "name": "Orchestrate process FAMOSAB_WRROCMETATEST:WRROCMETATEST:MEGAHIT",
+            "object": [
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d"
+                }
+            ]
+        },
+        {
+            "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032",
+            "@type": "CreateAction",
+            "name": "FAMOSAB_WRROCMETATEST:WRROCMETATEST:FASTP (test)",
+            "instrument": {
+                "@id": "#module/FASTP"
+            },
+            "agent": {
+                "@id": "https://orcid.org/0000-0000-0000-0000"
+            },
+            "object": [
+                {
+                    "@id": "s3://quilt-example-bucket/test/wrroc/read2.fq.gz"
+                },
+                {
+                    "@id": "s3://quilt-example-bucket/test/wrroc/read1.fq.gz"
+                }
+            ],
+            "result": [
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_1.fastp.fastq.gz"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_2.fastp.fastq.gz"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.json"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.html"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.log"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/versions.yml"
+                }
+            ],
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d",
+            "@type": "CreateAction",
+            "name": "FAMOSAB_WRROCMETATEST:WRROCMETATEST:MEGAHIT (test)",
+            "instrument": {
+                "@id": "#module/MEGAHIT"
+            },
+            "agent": {
+                "@id": "https://orcid.org/0000-0000-0000-0000"
+            },
+            "object": [
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_1.fastp.fastq.gz"
+                },
+                {
+                    "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_2.fastp.fastq.gz"
+                }
+            ],
+            "result": [
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.addi.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.addi.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.local.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.log"
+                },
+                {
+                    "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/versions.yml"
+                }
+            ],
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_1.fastp.fastq.gz",
+            "@type": "CreativeWork",
+            "name": "test_1.fastp.fastq.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_2.fastp.fastq.gz",
+            "@type": "CreativeWork",
+            "name": "test_2.fastp.fastq.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.json",
+            "@type": "CreativeWork",
+            "name": "test.fastp.json",
+            "encodingFormat": "application/json"
+        },
+        {
+            "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.html",
+            "@type": "CreativeWork",
+            "name": "test.fastp.html",
+            "encodingFormat": "text/html"
+        },
+        {
+            "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.log",
+            "@type": "CreativeWork",
+            "name": "test.fastp.log"
+        },
+        {
+            "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/versions.yml",
+            "@type": "CreativeWork",
+            "name": "versions.yml",
+            "encodingFormat": "application/yaml"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.contigs.fa.gz",
+            "@type": "CreativeWork",
+            "name": "test.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.contigs.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k51.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k51.final.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.contigs.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k71.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k71.final.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.addi.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k51.addi.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.addi.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k71.addi.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.local.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k51.local.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k51.final.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz",
+            "@type": "CreativeWork",
+            "name": "intermediate_contigs/k71.final.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.log",
+            "@type": "CreativeWork",
+            "name": "test.log"
+        },
+        {
+            "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/versions.yml",
+            "@type": "CreativeWork",
+            "name": "versions.yml",
+            "encodingFormat": "application/yaml"
+        },
+        {
+            "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.json",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.json"
+            },
+            "result": {
+                "@id": "fastp/test.fastp.json"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.log",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.log"
+            },
+            "result": {
+                "@id": "fastp/test.fastp.log"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.html",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test.fastp.html"
+            },
+            "result": {
+                "@id": "fastp/test.fastp.html"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test_1.fastp.fastq.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_1.fastp.fastq.gz"
+            },
+            "result": {
+                "@id": "fastp/test_1.fastp.fastq.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/76c3dbbc64ec1b2748dd4df36d545032/test_2.fastp.fastq.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/76c3dbbc64ec1b2748dd4df36d545032/test_2.fastp.fastq.gz"
+            },
+            "result": {
+                "@id": "fastp/test_2.fastp.fastq.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.final.contigs.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/intermediate_contigs/k71.final.contigs.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.final.contigs.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/intermediate_contigs/k51.final.contigs.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/test.contigs.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.contigs.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/test.contigs.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.addi.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.addi.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/intermediate_contigs/k71.addi.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.contigs.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.contigs.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/intermediate_contigs/k51.contigs.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/test.log",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/test.log"
+            },
+            "result": {
+                "@id": "megahit/test.log"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.addi.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.addi.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/intermediate_contigs/k51.addi.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.contigs.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k71.contigs.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/intermediate_contigs/k71.contigs.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "#publish/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.local.fa.gz",
+            "@type": "CreateAction",
+            "name": "publish",
+            "instrument": {
+                "@id": "main.nf#software-application"
+            },
+            "object": {
+                "@id": "#task/c82ce3001935dedf7dd849d594c6d66d/intermediate_contigs/k51.local.fa.gz"
+            },
+            "result": {
+                "@id": "megahit/intermediate_contigs/k51.local.fa.gz"
+            },
+            "actionStatus": "http://schema.org/CompletedActionStatus"
+        },
+        {
+            "@id": "s3://quilt-example-bucket/test/wrroc/read2.fq.gz",
+            "@type": "File",
+            "name": "read2.fq.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "s3://quilt-example-bucket/test/wrroc/read1.fq.gz",
+            "@type": "File",
+            "name": "read1.fq.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "fastp/test.fastp.json",
+            "@type": "File",
+            "name": "test.fastp.json",
+            "encodingFormat": "application/json"
+        },
+        {
+            "@id": "fastp/test.fastp.log",
+            "@type": "File",
+            "name": "test.fastp.log"
+        },
+        {
+            "@id": "fastp/test.fastp.html",
+            "@type": "File",
+            "name": "test.fastp.html",
+            "encodingFormat": "text/html"
+        },
+        {
+            "@id": "fastp/test_1.fastp.fastq.gz",
+            "@type": "File",
+            "name": "test_1.fastp.fastq.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "fastp/test_2.fastp.fastq.gz",
+            "@type": "File",
+            "name": "test_2.fastp.fastq.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/intermediate_contigs/k71.final.contigs.fa.gz",
+            "@type": "File",
+            "name": "k71.final.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/intermediate_contigs/k51.final.contigs.fa.gz",
+            "@type": "File",
+            "name": "k51.final.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/test.contigs.fa.gz",
+            "@type": "File",
+            "name": "test.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/intermediate_contigs/k71.addi.fa.gz",
+            "@type": "File",
+            "name": "k71.addi.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/intermediate_contigs/k51.contigs.fa.gz",
+            "@type": "File",
+            "name": "k51.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/test.log",
+            "@type": "File",
+            "name": "test.log"
+        },
+        {
+            "@id": "megahit/intermediate_contigs/k51.addi.fa.gz",
+            "@type": "File",
+            "name": "k51.addi.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/intermediate_contigs/k71.contigs.fa.gz",
+            "@type": "File",
+            "name": "k71.contigs.fa.gz",
+            "encodingFormat": "application/gzip"
+        },
+        {
+            "@id": "megahit/intermediate_contigs/k51.local.fa.gz",
+            "@type": "File",
+            "name": "k51.local.fa.gz",
+            "encodingFormat": "application/gzip"
+        }
+    ]
+}

@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
+import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -15,7 +16,7 @@ import { formatQuantity } from 'utils/string'
 
 import * as PD from './PackageDialog'
 import { useTabulatorTables } from './Tabulator/requests'
-import { useStats, type StatsData } from './Overview/useStats'
+import { useStats } from './Overview/useStats'
 
 const useStatsItemStyles = M.makeStyles((t) => ({
   root: {
@@ -131,14 +132,13 @@ const useStatsStyles = M.makeStyles((t) => ({
 
 interface StatsProps {
   bucket: string
-  stats: StatsData
 }
 
-function Stats({ bucket, stats }: StatsProps) {
+function Stats({ bucket }: StatsProps) {
   const classes = useStatsStyles()
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
-  const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = stats
+  const { totalBytes, totalObjects, numObjects, pkgCount, numPackages } = useStats(bucket)
   // The tables stat links into the global Athena console (scoped to this
   // bucket) — hide it (and skip its query) for buckets that de-emphasized
   // queries via `ui.nav.queries`.
@@ -222,14 +222,32 @@ const useStyles = M.makeStyles((t) => ({
       rowGap: t.spacing(1),
     },
   },
-  // The settings column exists only when the settings control renders —
-  // an unconditional track would leave non-admins a phantom 24px gutter.
+  // A track exists only for a cell that renders — an unconditional one would
+  // leave a phantom 24px gutter beside settings, or an 8px row under the name.
   withSettings: {
     gridTemplateAreas: '"title stats settings"',
     gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
     [Column.down(1044)]: {
       gridTemplateAreas: '"title settings" "stats stats"',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
+    },
+  },
+  withoutStats: {
+    gridTemplateAreas: '"title"',
+    gridTemplateColumns: 'minmax(140px, 1fr)',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: 0,
+    },
+  },
+  withSettingsWithoutStats: {
+    gridTemplateAreas: '"title settings"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title settings"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      rowGap: 0,
     },
   },
   title: {
@@ -271,33 +289,58 @@ const useStyles = M.makeStyles((t) => ({
 
 interface HeaderProps {
   bucket: string
+  withStats: boolean
 }
 
 // The bucket header (name + settings + stats + create-package) shown above the
 // bucket tabs, so it stays visible across all tabs (not just Overview).
-export default function Header({ bucket }: HeaderProps) {
+export default function Header({ bucket, withStats }: HeaderProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
-  const stats = useStats(bucket)
+  const isInStack = Buckets.useIsInStack()
+  // The settings link's target is a row in the stack's bucket config, and the
+  // page redirects away when there is none. The name is not gated with it: a
+  // bucket outside the stack still has to say which bucket the page is showing.
+  const withSettings = isAdmin && isInStack(bucket)
   return (
-    <div className={cx(classes.root, isAdmin && classes.withSettings)}>
+    <div
+      className={cx(
+        classes.root,
+        withSettings && withStats && classes.withSettings,
+        !withSettings && !withStats && classes.withoutStats,
+        withSettings && !withStats && classes.withSettingsWithoutStats,
+      )}
+    >
       <div className={classes.title}>
         <M.Typography variant="h5" className={classes.titleText} title={bucket}>
           {bucket}
         </M.Typography>
       </div>
-      <div className={classes.stats}>
-        <Stats bucket={bucket} stats={stats} />
-      </div>
-      {isAdmin && (
-        <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-          <M.Tooltip arrow title="Bucket settings" disableTouchListener>
-            <M.IconButton size="small" color="inherit" aria-label="Bucket settings">
+      {withStats && (
+        <div className={classes.stats}>
+          <Stats bucket={bucket} />
+        </div>
+      )}
+      {withSettings && (
+        // On the link MUI would write this text as the link's own description. It
+        // wraps the cell instead, and a node title is never written as a `title`.
+        <M.Tooltip arrow title={<>Bucket settings</>} disableTouchListener>
+          <div className={classes.settings}>
+            <M.IconButton
+              component={RRDom.Link}
+              to={urls.adminBucketEdit(bucket)}
+              size="small"
+              color="inherit"
+              aria-label="Bucket settings"
+              // ButtonBase only trusts a literal `component="a"` to be a link, so
+              // without this the anchor is announced as a button, promising Space.
+              role="link"
+            >
               <M.Icon fontSize="small">settings</M.Icon>
             </M.IconButton>
-          </M.Tooltip>
-        </RRDom.Link>
+          </div>
+        </M.Tooltip>
       )}
     </div>
   )

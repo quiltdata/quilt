@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react-hooks'
 import { describe, expect, it, vi } from 'vitest'
 
 import { detect, isSupportedFileType, loadMode, useWriteData } from './loader'
+import type { Mode } from './types'
 
 const putObject = vi.fn(async () => ({ VersionId: 'bar' }))
 
@@ -113,6 +114,28 @@ describe('components/FileEditor/loader', () => {
 
       await thrownPromise
       expect(loadMode('json')).toBe('fulfilled')
+    })
+
+    it('throws the failure once a mode fails to load, not the rejected promise', async () => {
+      // No such brace mode, so the import rejects the way a missing chunk does.
+      const mode = 'no-such-mode' as Mode
+
+      let thrown: unknown
+      try {
+        loadMode(mode)
+      } catch (error) {
+        thrown = error
+      }
+      expect(thrown).toBeInstanceOf(Promise)
+      await thrown
+
+      thrown = undefined
+      try {
+        loadMode(mode)
+      } catch (error) {
+        thrown = error
+      }
+      expect(thrown).toBeInstanceOf(Error)
     })
   })
 })

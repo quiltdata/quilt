@@ -179,6 +179,7 @@ export const renderAction = (a: Action) => {
 
 const useToolbarStyles = M.makeStyles((t) => ({
   root: {
+    borderBottom: `1px solid ${t.palette.divider}`,
     paddingRight: t.spacing(1),
   },
   highlight:
@@ -227,7 +228,7 @@ export function Toolbar({
             {selected} selected
           </M.Typography>
         ) : (
-          <M.Typography variant="h6">{heading}</M.Typography>
+          <M.Typography variant="h5">{heading}</M.Typography>
         )}
       </div>
       <div className={classes.spacer} />
@@ -241,13 +242,21 @@ export function Toolbar({
 
 const useInlineActionsStyles = M.makeStyles((t) => ({
   root: {
-    opacity: 0.3,
+    opacity: 0.6,
     paddingRight: t.spacing(1),
     textAlign: 'right',
     transition: 'opacity 100ms',
     whiteSpace: 'nowrap',
 
     'tr:hover &': {
+      opacity: 1,
+    },
+    // Hover is not available on touch and arrives late for the keyboard, so the
+    // actions stay legible at rest and come fully forward on focus too.
+    '&:focus-within': {
+      opacity: 1,
+    },
+    '@media (pointer: coarse)': {
       opacity: 1,
     },
   },
