@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Bucket icons: a custom icon and an initials disc line up with each other and centre in the admin bucket list's icon column ([#5339](https://github.com/quiltdata/quilt/pull/5339))
 - [Fixed] Admin users and roles: clicking a user whose name contains `@` opens their page instead of reporting no such user ([#5364](https://github.com/quiltdata/quilt/pull/5364))
 - [Fixed] Qurator says when it cannot read a large PDF or Office document, instead of answering from metadata or search hits as though it had read the file ([#5354](https://github.com/quiltdata/quilt/pull/5354))
 - [Fixed] A bucket's name and its admin-settings link show on every stack, not only those with the `beta` setting — the Packages and Workflows tabs identified the bucket nowhere on a default stack. Only the stats row stays behind `beta`. The Overview hero no longer draws its own copy of either, so they appear once per page, and a long name ellipsizes instead of overflowing the card ([#5235](https://github.com/quiltdata/quilt/pull/5235))
