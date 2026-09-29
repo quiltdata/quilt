@@ -1,0 +1,79 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": { "@id": "./" },
+      "conformsTo": { "@id": "https://w3id.org/ro/crate/1.1" }
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "20260214_jdoe",
+      "dateCreated": null,
+      "hasPart": [
+        { "@id": "01-Well-A1.fcs" },
+        { "@id": "01-Well-A2.fcs" }
+      ],
+      "creator": { "@id": "#person-jdoe" },
+      "producer": { "@id": "#lab-subgroup" }
+    },
+    {
+      "@id": "#person-jdoe",
+      "@type": "Person",
+      "name": "jdoe"
+    },
+    {
+      "@id": "#instrument-cytometer-001",
+      "@type": "Instrument",
+      "name": "Example Cytometer 1",
+      "identifier": "CYT-001"
+    },
+    {
+      "@id": "#lab-group",
+      "@type": "Organization",
+      "name": "Laboratory Operations"
+    },
+    {
+      "@id": "#lab-subgroup",
+      "@type": "Organization",
+      "name": "Assay Development",
+      "parentOrganization": { "@id": "#lab-group" }
+    },
+    {
+      "@id": "01-Well-A1.fcs",
+      "@type": "File",
+      "name": "01-Well-A1.fcs",
+      "dateCreated": "2026-02-14T20:33:09Z",
+      "dateModified": "2026-02-14T22:06:57Z",
+      "creator": { "@id": "#person-jdoe" },
+      "isBasedOn": { "@id": "#instrument-cytometer-001" }
+    },
+    {
+      "@id": "01-Well-A2.fcs",
+      "@type": "File",
+      "name": "01-Well-A2.fcs",
+      "dateCreated": "2026-02-14T20:41:02Z",
+      "dateModified": "2026-02-14T22:07:11Z",
+      "creator": { "@id": "#person-jdoe" },
+      "isBasedOn": { "@id": "#instrument-cytometer-001" }
+    },
+    {
+      "@id": "#acquisition1",
+      "@type": "CreateAction",
+      "endTime": "2026-02-14T20:33:09Z",
+      "instrument": { "@id": "#instrument-cytometer-001" },
+      "agent": { "@id": "#person-jdoe" },
+      "result": { "@id": "01-Well-A1.fcs" }
+    },
+    {
+      "@id": "#acquisition2",
+      "@type": "CreateAction",
+      "endTime": "2026-02-14T20:41:02Z",
+      "instrument": { "@id": "#instrument-cytometer-001" },
+      "agent": { "@id": "#person-jdoe" },
+      "result": { "@id": "01-Well-A2.fcs" }
+    }
+  ]
+}

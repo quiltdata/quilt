@@ -136,7 +136,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
           [classes.mismatch]: mismatch,
         })}
       >
-        {<M.Icon>info_outlined</M.Icon>}
+        {<M.Icon>info_outline</M.Icon>}
       </span>
     </M.Tooltip>
   )

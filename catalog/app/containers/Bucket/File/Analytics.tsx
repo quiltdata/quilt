@@ -43,7 +43,7 @@ export default function Analytics({ bucket, path }: AnalyticsProps) {
   })
 
   return (
-    <Section icon="bar_charts" heading="Analytics" defaultExpanded={defaultExpanded}>
+    <Section icon="bar_chart" heading="Analytics" defaultExpanded={defaultExpanded}>
       {Eff.Option.match(data, {
         onNone: () => <M.CircularProgress />,
         onSome: Eff.Option.match({

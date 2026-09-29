@@ -8,6 +8,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { useFeature } from 'utils/features'
 
 import Detail from './Detail'
+import FixtureNotice from './FixtureNotice'
 
 const useStyles = M.makeStyles((t) => ({
   content: {
@@ -32,6 +33,11 @@ export function DataProductsScreen() {
   return (
     <Container className={classes.content}>
       <MetaTitle>Data products</MetaTitle>
+
+      <FixtureNotice>
+        Example data — this product, its members and its access requests are illustrative,
+        not a connected catalog.
+      </FixtureNotice>
 
       <Switch>
         {/* Detail carries its own header and section tabs. `exact` is

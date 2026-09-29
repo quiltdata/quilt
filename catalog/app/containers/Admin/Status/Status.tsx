@@ -28,7 +28,9 @@ export default function Status() {
     if (window.location.hash !== '#indexing') return
     const el = document.getElementById('indexing')
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [status])
+    // Mount only: a re-run would yank a scrolled-down admin back to the panel
+    // on every later render.
+  }, [])
 
   return (
     <M.Box my={2}>
@@ -55,8 +57,8 @@ export default function Status() {
       ) : (
         <M.Container maxWidth="sm">
           <M.Box py={2}>
-            <M.Typography variant="h4" align="center" gutterBottom>
-              No Data
+            <M.Typography variant="h5" align="center" gutterBottom>
+              Status monitoring is not enabled
             </M.Typography>
             <M.Typography align="center" gutterBottom>
               Status monitoring is an add-on feature that automates quality testing for

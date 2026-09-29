@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as redux from 'react-redux'
@@ -104,14 +105,28 @@ function TabulatorItemWrapper({ bucket }: { bucket: string }) {
 const useStatsStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
+    columnGap: t.spacing(3),
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: t.spacing(2),
+    flexWrap: 'nowrap',
     justifyContent: 'flex-end',
-    [Column.up('sm')]: {
-      gap: t.spacing(4),
+    rowGap: t.spacing(1),
+    [Column.down(1044)]: {
+      flexWrap: 'wrap',
+      justifyContent: 'flex-start',
+      '& $create': {
+        marginLeft: 'auto',
+      },
+    },
+    [Column.down(640)]: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+      '& $create': {
+        gridColumn: '1 / -1',
+        marginLeft: 0,
+      },
     },
   },
+  create: {},
 }))
 
 interface StatsProps {
@@ -153,16 +168,17 @@ function Stats({ bucket, stats }: StatsProps) {
         <StatsItemSkeleton />
       )}
       {queriesEnabled && <TabulatorItemWrapper bucket={bucket} />}
-      <CreatePackage bucket={bucket} />
+      <CreatePackage bucket={bucket} className={classes.create} />
     </div>
   )
 }
 
 interface CreatePackageProps {
   bucket: string
+  className?: string
 }
 
-function CreatePackage({ bucket }: CreatePackageProps) {
+function CreatePackage({ bucket, className }: CreatePackageProps) {
   const dst = React.useMemo(() => ({ bucket }), [bucket])
   const createDialog = PD.useCreateDialog({
     dst,
@@ -171,7 +187,12 @@ function CreatePackage({ bucket }: CreatePackageProps) {
   })
   return (
     <>
-      <M.Button color="primary" variant="contained" onClick={() => createDialog.open()}>
+      <M.Button
+        className={className}
+        color="primary"
+        variant="contained"
+        onClick={() => createDialog.open()}
+      >
         Create package
       </M.Button>
       {createDialog.render({
@@ -186,55 +207,143 @@ function CreatePackage({ bucket }: CreatePackageProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  // Cutoffs measure the card, not the viewport (components/Layout/Column), so
+  // the rail and Qurator's gutter are already outside them. 1044px is the
+  // column the old 1300px viewport tier engaged at, once the 256px rail is out.
   root: {
     alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    [Column.up('sm')]: {
-      flexDirection: 'row',
-      // The stats and the create button drop to their own line rather than
-      // squeezing the name, which is the header's subject.
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
+    columnGap: t.spacing(3),
+    display: 'grid',
+    gridTemplateAreas: '"title stats"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title" "stats"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: t.spacing(1),
+    },
+  },
+  // A track exists only for a cell that renders — an unconditional one would
+  // leave a phantom 24px gutter beside settings, or an 8px row under the name.
+  withSettings: {
+    gridTemplateAreas: '"title stats settings"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto auto',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title settings" "stats stats"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+    },
+  },
+  withoutStats: {
+    gridTemplateAreas: '"title"',
+    gridTemplateColumns: 'minmax(140px, 1fr)',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      rowGap: 0,
+    },
+  },
+  withSettingsWithoutStats: {
+    gridTemplateAreas: '"title settings"',
+    gridTemplateColumns: 'minmax(140px, 1fr) auto',
+    [Column.down(1044)]: {
+      gridTemplateAreas: '"title settings"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      rowGap: 0,
     },
   },
   title: {
-    alignItems: 'center',
-    display: 'flex',
-    flexShrink: 1,
-    // A `0` floor lets flex squeeze the name narrower than its own longest
-    // word, which wraps it rather than shrinking the row.
-    minWidth: 'min-content',
+    gridArea: 'title',
+    minWidth: 0,
+    overflow: 'hidden',
   },
+  // Truncation needs the hover tooltip as its escape hatch, so where there is
+  // no hover the name wraps instead. Keyed on the pointer, not a width: a
+  // narrow column on a desktop still has one (components/Layout/Pointer).
+  titleText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    '@media (hover: none)': {
+      overflowWrap: 'anywhere',
+      whiteSpace: 'normal',
+    },
+  },
+  stats: {
+    gridArea: 'stats',
+    minWidth: 0,
+  },
+  // Settings sits at the card's far edge behind a hairline divider — config
+  // set apart from the bucket's readout, muted until hovered.
   settings: {
-    marginLeft: t.spacing(1),
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    borderLeft: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    gridArea: 'settings',
+    paddingLeft: t.spacing(2),
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
   },
 }))
 
 interface HeaderProps {
   bucket: string
+  withStats: boolean
+}
+
+// Wraps the stats row so `useStats` runs only when the row renders — a hook
+// cannot be called conditionally in Header itself, and the ungated header must
+// not issue the stats queries the `beta` gate is holding back.
+function StatsCell({ bucket }: { bucket: string }) {
+  return <Stats bucket={bucket} stats={useStats(bucket)} />
 }
 
 // The bucket header (name + settings + stats + create-package) shown above the
 // bucket tabs, so it stays visible across all tabs (not just Overview).
-export default function Header({ bucket }: HeaderProps) {
+export default function Header({ bucket, withStats }: HeaderProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
-  const stats = useStats(bucket)
   return (
-    <div className={classes.root}>
+    <div
+      className={cx(
+        classes.root,
+        isAdmin && withStats && classes.withSettings,
+        !isAdmin && !withStats && classes.withoutStats,
+        isAdmin && !withStats && classes.withSettingsWithoutStats,
+      )}
+    >
       <div className={classes.title}>
-        <M.Typography variant="h5">{bucket}</M.Typography>
-        {isAdmin && (
-          <RRDom.Link className={classes.settings} to={urls.adminBucketEdit(bucket)}>
-            <M.IconButton size="small" color="inherit">
-              <M.Icon>settings</M.Icon>
-            </M.IconButton>
-          </RRDom.Link>
-        )}
+        <M.Typography variant="h5" className={classes.titleText} title={bucket}>
+          {bucket}
+        </M.Typography>
       </div>
-      <Stats bucket={bucket} stats={stats} />
+      {withStats && (
+        <div className={classes.stats}>
+          <StatsCell bucket={bucket} />
+        </div>
+      )}
+      {isAdmin && (
+        // On the link MUI would write this text as the link's own description. It
+        // wraps the cell instead, and a node title is never written as a `title`.
+        <M.Tooltip arrow title={<>Bucket settings</>} disableTouchListener>
+          <div className={classes.settings}>
+            <M.IconButton
+              component={RRDom.Link}
+              to={urls.adminBucketEdit(bucket)}
+              size="small"
+              color="inherit"
+              aria-label="Bucket settings"
+              // ButtonBase only trusts a literal `component="a"` to be a link, so
+              // without this the anchor is announced as a button, promising Space.
+              role="link"
+            >
+              <M.Icon fontSize="small">settings</M.Icon>
+            </M.IconButton>
+          </div>
+        </M.Tooltip>
+      )}
     </div>
   )
 }

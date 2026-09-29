@@ -43,10 +43,10 @@ const useStyles = M.makeStyles((t) => ({
   },
   label: {
     ...t.typography.caption,
+    whiteSpace: 'nowrap',
   },
   // Tabular figures so counts line up down a column of cards.
   count: {
-    ...t.typography.caption,
     fontVariantNumeric: 'tabular-nums',
     fontWeight: 500,
   },
@@ -110,10 +110,12 @@ export default function Collaborators({ bucket, collaborators }: CollaboratorsPr
         <M.Icon className={classes.icon} fontSize="inherit">
           group
         </M.Icon>
-        <span className={classes.label}>Shared with&nbsp;</span>
-        <span className={classes.count}>
-          {knownNumber}
-          {hasUnmanagedRole ? '+' : ''}
+        <span className={classes.label}>
+          Shared with{' '}
+          <span className={classes.count}>
+            {knownNumber}
+            {hasUnmanagedRole ? '+' : ''}
+          </span>
         </span>
       </M.ButtonBase>
     </>

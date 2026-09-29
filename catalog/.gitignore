@@ -7,6 +7,8 @@ coverage
 build
 quilt_packages
 stats.json
+# Generated from config.json.tmpl; holds a live stack's endpoints and buckets.
+config.json
 
 # Cruft
 .DS_Store

@@ -53,7 +53,7 @@ function LandingContent() {
 
 export default function Landing() {
   return (
-    <Layout flush={false}>
+    <Layout>
       <MetaTitle />
       <LandingContent />
     </Layout>

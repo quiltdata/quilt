@@ -43,6 +43,11 @@ describe('components/Logo', () => {
     expect(element.className).toContain('custom')
     expect(element.className).not.toContain('quilt')
     expect(element.getAttribute('src')).toBe('https://example.com/example.png')
+    // A wide lockup must fit a narrow slot (the folded rail) rather than be
+    // clipped by it.
+    const style = window.getComputedStyle(element)
+    expect(style.maxWidth).toBe('100%')
+    expect(style.objectFit).toBe('contain')
   })
 
   it('should render signed S3 logo', () => {

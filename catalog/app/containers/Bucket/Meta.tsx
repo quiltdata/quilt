@@ -174,7 +174,7 @@ interface ObjectTagsSectionProps {
 function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
   if (!tags || R.isEmpty(tags)) return null
   return (
-    <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
+    <Section icon="label_outline" heading="S3 Object Tags" defaultExpanded>
       <JsonDisplay value={tags} defaultExpanded={1} />
     </Section>
   )

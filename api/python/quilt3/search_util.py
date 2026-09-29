@@ -17,8 +17,9 @@ def search_api(query: str | dict, index: str, limit: int = 10):
         params = dict(index=index, action="freeform", body=json.dumps(query), size=limit)
     else:
         params = dict(index=index, action="search", query=query, size=limit)
-    response = session.get_session().get(
-        f"{session.get_registry_url()}/api/search",
+    registry_url = session.get_registry_url()
+    response = session.get_session(registry_url=registry_url).get(
+        f"{registry_url}/api/search",
         params=params,
     )
     return response.json()

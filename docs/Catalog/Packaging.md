@@ -34,9 +34,61 @@ same bucket with the name `omics-quilt/3395667`.
 
 ### Workflow Run RO-Crate
 
-When enabled, this will create a package from the enclosing folder when an
+When enabled, this will create a package from the crate when an
 `ro-crate-metadata.json` file is written to a bucket that is already part of the
-stack.
+stack. The engine is a consumer of the
+[Quilt RO-Crate profile](https://w3id.org/quilt/ro-crate), which defines how a
+crate states its package name, files, people, instrument and lab notebook entry.
+
+A crate is only read when the message names it in `metadata_uri`, which the
+built-in rule does. A `source_prefix` alone — even one pointing at the
+`ro-crate-metadata.json` itself — packages the enclosing folder as an ordinary
+prefix and never reaches the crate, and it succeeds doing so, so the only
+symptom is a package with no crate entries or metadata.
+
+The crate's graph decides what the package contains:
+
+* **Entries** are exactly the root dataset's `hasPart` list, plus the crate
+  itself, which records the graph the package was built from. A relative `@id`
+  resolves against the crate's folder and keeps its path; an `s3://` URI may
+  point outside it and is entered under its file name alone, so two such parts
+  that share a file name collide and the crate is rejected. A
+  directory part (a `Dataset` entity, or an `@id` ending in `/`) includes
+  everything under it. Paths that climb out of the folder are rejected, as is a
+  part whose scheme names data the packager cannot read. An `@id` that
+  identifies rather than locates — a URL, a URN, a DOI — has no object to
+  package and is skipped.
+* **Entry metadata** for each `File` entity is every property other than `@id`,
+  `@type` and `name`, so `dateCreated`, `dateModified` and `sha256` survive the
+  upload. This holds whether the file is listed in `hasPart` itself or reached
+  by expanding a directory part; an object with no `File` entity gets none.
+* **Package metadata** is a flat projection keyed by the role an entity plays
+  for the root dataset, not by its `@type`, with human-readable values:
+
+  * `package_name`: the name the package is published under
+  * `creator`: each root `creator`
+  * `producer`: each root `producer`, then its `parentOrganization` chain
+  * `instrument`: the `instrument` of each action in the root's `mentions`
+  * `instrument_id`: the `identifier` of those same instruments
+  * `eln_entry`: each root `subjectOf` whose `additionalType` is the
+    profile's `ELNEntry`
+
+  Values are entity `name`s except `instrument_id`. Roles the crate does not
+  state are omitted.
+* **Package name** comes from a `PropertyValue` under the root's `identifier`:
+  a `packageName` gives the full name, which must already be a valid package
+  name and is rejected otherwise; a `packageNamespace` is joined to the root
+  dataset's `name`, sanitized to the package-name grammar. Without either, the
+  name is inferred from the S3 key (below).
+
+A crate is rejected only when it cannot be packaged as written: a `hasPart`
+member that cannot be resolved, an invalid explicit package name, or two
+conflicting entities with one `@id`. Nothing is packaged in that case, rather
+than part of the crate. How the crate models people, instruments, actions and
+anything else is up to its producer; the profile's recommendations only decide
+which of the metadata keys above can be filled in. A metadata file that is not
+an RO-Crate (no `./` entity of type `Dataset`) packages the whole enclosing
+folder and is used verbatim as package metadata.
 
 [RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
 describing research data.  The Workflow Run working group adds three additional
@@ -70,9 +122,9 @@ prov {
 Note that Research Objects identify people using an ORCID iD, which anyone can
 get for free at [the ORCID website](https://orcid.org/).
 
-The package will be created in the same bucket as the `outdir`, with the package
-name inferred from the S3 key. For example, if the key is
-`my/s3/folder/ro-crate-metadata.json`, the package name will be `my_s3/folder`.
+The package will be created in the same bucket as the `outdir`. Unless the
+crate names the package as described above, the name is inferred from the S3
+key: for `my/s3/folder/ro-crate-metadata.json` it is `my_s3/folder`.
 
 ## Architecture
 
@@ -105,14 +157,16 @@ There is only one required parameter:
 
 ```json
 {
-  "source_prefix": "s3://data_bucket/source/folder/metadata.json"
+  "source_prefix": "s3://data_bucket/source/folder/"
 }
 ```
 
 This is assumed to be a folder if it ends in a `/`; otherwise, we will remove
-the last component of the path to get the folder. The contents of the folder
-will be used to create a package in the same bucket as the source folder, with
-the package name being inferred from the source URI.
+the last component of the path to get the folder. That last component is only
+discarded, never read: a metadata document — an RO-Crate included — is read
+only from `metadata_uri`. The contents of the folder will be used to create a
+package in the same bucket as the source folder, with the package name being
+inferred from the source URI.
 
 Optionally, you can control the package name, metadata, and other settings by
 explicitly specifying any of the following fields:
@@ -124,6 +178,7 @@ explicitly specifying any of the following fields:
   "package_name": "prefix/suffix",
   "metadata": { "key": "value" }, // object (or metadata URI, but not both)
   "metadata_uri": "metadata.json", // S3 URI to read, relative or absolute
+                                   // (required for an RO-Crate)
   "commit_message": "Commit message for the package revision", // string
   "workflow": "alpha", // name of a valid metadata workflow
 }
@@ -137,6 +192,10 @@ Notes on individual fields:
   consisting of letters, digits, underscores, and hyphens, separated by a
   single `/`). When the name is inferred from `source_prefix`, characters
   outside that set are replaced with hyphens.
+* `metadata_uri` is what selects RO-Crate ingestion; a crate that is not named
+  here is packaged as an ordinary file, and the same graph passed inline in
+  `metadata` is stored verbatim rather than parsed. A relative value resolves
+  against `source_prefix`.
 * `workflow` has three-way semantics:
   * **omitted** — the registry's *default* workflow (if one is configured) is
     applied, and package creation fails if the package does not validate
@@ -234,7 +293,7 @@ targets = [
                 "prefix": "$.detail.prefix"
             },
             "InputTemplate": """{
-                \"source_prefix\": \"s3://<bucket>/<prefix>metadata.json\"
+                \"source_prefix\": \"s3://<bucket>/<prefix>\"
             }"""
         }
     }

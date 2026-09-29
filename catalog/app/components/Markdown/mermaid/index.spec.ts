@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { getRenderer } from '../Markdown'
+import { getRenderer, hasMermaidFence } from '../Markdown'
 import { FENCE_CLASS } from '.'
 
 // getRenderer throws a Promise (Suspense protocol) when a fence needs an unloaded
@@ -79,5 +79,27 @@ describe('components/Markdown/mermaid', () => {
   it('handles several diagrams in one document', async () => {
     const html = await render(`${DIAGRAM}\n\n\`\`\`mermaid\ngraph LR\n  C --> D\n\`\`\``)
     expect(html.match(new RegExp(FENCE_CLASS, 'g'))).toHaveLength(2)
+  })
+
+  describe('hasMermaidFence', () => {
+    // The Mermaid/Markdown switch is offered on this answer, so it has to agree
+    // with what the fence handler will actually draw.
+    it('sees the fences the handler draws', () => {
+      expect(hasMermaidFence(DIAGRAM)).toBe(true)
+      expect(hasMermaidFence('````mermaid\ngraph LR\n````')).toBe(true)
+      expect(hasMermaidFence('- item\n\n    ```mermaid\n    graph LR\n    ```')).toBe(
+        true,
+      )
+      expect(hasMermaidFence('~~~Mermaid\ngraph LR\n~~~')).toBe(true)
+    })
+
+    it('ignores what the handler leaves alone', () => {
+      expect(hasMermaidFence('# no diagram')).toBe(false)
+      expect(hasMermaidFence('```mermaidish\nnope\n```')).toBe(false)
+      // a mermaid fence quoted inside a wider fence is literal text
+      expect(hasMermaidFence(`\`\`\`\`markdown\n${DIAGRAM}\n\`\`\`\``)).toBe(false)
+      // with `html: true`, an unbroken html block swallows the fence
+      expect(hasMermaidFence(`<div>\n${DIAGRAM}\n</div>`)).toBe(false)
+    })
   })
 })

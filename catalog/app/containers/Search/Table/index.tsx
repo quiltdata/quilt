@@ -69,35 +69,39 @@ export default function TablePage({
         case 'general':
         case 'page':
           return (
-            <NoResults.Error className={className} onRefine={onRefine}>
+            <NoResults.UnexpectedError className={className} onRefine={onRefine}>
               {error.error.message}
-            </NoResults.Error>
+            </NoResults.UnexpectedError>
           )
         case 'data':
           const err = error.error
           switch (err.__typename) {
             case 'InputError':
-              const kind = err.name === 'QuerySyntaxError' ? 'syntax' : undefined
-              return (
-                <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
+              const details = (
+                <>
                   Invalid input at <code>{err.path}</code>: {err.name}
                   <pre style={{ whiteSpace: 'pre-wrap' }}>{err.message}</pre>
-                </NoResults.Error>
+                </>
+              )
+              return err.name === 'QuerySyntaxError' ? (
+                <NoResults.SyntaxError className={className} onRefine={onRefine}>
+                  {details}
+                </NoResults.SyntaxError>
+              ) : (
+                <NoResults.UnexpectedError className={className} onRefine={onRefine}>
+                  {details}
+                </NoResults.UnexpectedError>
               )
             case 'OperationError':
               if (err.name === 'Timeout') {
                 return (
-                  <NoResults.Error
-                    className={className}
-                    kind="timeout"
-                    onRefine={onRefine}
-                  />
+                  <NoResults.TimeoutError className={className} onRefine={onRefine} />
                 )
               }
               return (
-                <NoResults.Error className={className} onRefine={onRefine}>
+                <NoResults.UnexpectedError className={className} onRefine={onRefine}>
                   Operation error: {err.message}
-                </NoResults.Error>
+                </NoResults.UnexpectedError>
               )
             default:
               assertNever(err)

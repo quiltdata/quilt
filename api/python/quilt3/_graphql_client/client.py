@@ -143,6 +143,7 @@ from .role_delete import (
     RoleDeleteRoleDeleteRoleDoesNotExist,
     RoleDeleteRoleDeleteRoleNameReserved,
     RoleDeleteRoleDeleteRoleNameUsedBySsoConfig,
+    RoleDeleteRoleDeleteRoleOwnsDataProducts,
 )
 from .role_get import RoleGet, RoleGetRoleManagedRole, RoleGetRoleUnmanagedRole
 from .role_set_default import (
@@ -863,6 +864,7 @@ class Client(BaseClient):
         RoleDeleteRoleDeleteRoleNameReserved,
         RoleDeleteRoleDeleteRoleNameUsedBySsoConfig,
         RoleDeleteRoleDeleteRoleAssigned,
+        RoleDeleteRoleDeleteRoleOwnsDataProducts,
     ]:
         query = gql(
             """

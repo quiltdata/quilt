@@ -49,7 +49,11 @@ export function useManifest({
     // XXX: use RemoteData?
     if (!res.data && pause) return AR.Pending()
     return GQL.fold(res, {
-      data: (data, { error }) => {
+      data: (data, { error, fetching }) => {
+        // urql carries the previous package's response over a variables change, and a fold
+        // reads data before fetching, so a result still in flight describes the package
+        // before this one — whose entries a push would send as a replacement list.
+        if (fetching) return AR.Pending()
         // A partial response resolves some fields and nulls others; accepting it would
         // build a revision out of whatever survived, silently dropping the rest.
         if (error) return AR.Err(error)

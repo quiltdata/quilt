@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as DP from 'model/DataProducts'
+import FixtureNotice from 'containers/DataProducts/FixtureNotice'
 
 // Where an admin points Quilt at an external catalog. Deliberately a mock: no
 // mutation is wired, because the resolvers behind
@@ -47,6 +48,9 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     display: 'flex',
     gap: t.spacing(1),
+    marginTop: t.spacing(2),
+  },
+  notice: {
     marginTop: t.spacing(2),
   },
   form: {
@@ -280,6 +284,13 @@ export default function DataProductConnections() {
         Data products are defined in these catalogs. Quilt reads them; each catalog keeps
         every access decision.
       </M.Typography>
+
+      {/* The states below include a fabricated auth failure. Unlabelled, an admin
+          opens a support ticket for a 401 that never happened. */}
+      <FixtureNotice className={classes.notice}>
+        Example data — these are not your catalog connections, and none of these states
+        reflects a real integration.
+      </FixtureNotice>
 
       {connections.map((c, i) => (
         <React.Fragment key={c.id}>

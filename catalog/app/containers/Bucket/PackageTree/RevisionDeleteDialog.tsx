@@ -85,6 +85,12 @@ const RECORDS = {
   revision: ' of this revision',
 }
 
+const CONFIRM = {
+  package: 'it',
+  revisions: 'them',
+  revision: 'it',
+}
+
 // A one-revision selection reads as a single revision, not "1 revisions".
 const textKey = (scope: DeleteScope) =>
   scope.type === 'revisions' && scope.count === 1 ? 'revision' : scope.type
@@ -118,7 +124,8 @@ export default function PackageDeleteDialog({
         <M.DialogContentText>
           {LOST[textKey(scope)]} Package deletion does not delete objects in the package,
           but it does delete all metadata and all records of the contents
-          {RECORDS[textKey(scope)]}. Are you sure you want to delete it?
+          {RECORDS[textKey(scope)]}. Are you sure you want to delete{' '}
+          {CONFIRM[textKey(scope)]}?
         </M.DialogContentText>
 
         {!!error && <Lab.Alert severity="error">{error}</Lab.Alert>}

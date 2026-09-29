@@ -16,6 +16,10 @@ export const useGridStyles = M.makeStyles((t) => ({
     alignItems: 'stretch',
     display: 'grid',
     gap: t.spacing(2),
+    // `min(340px, 100%)` so the track collapses below its own minimum rather
+    // than overflowing a narrower column: `.main` scrolls on one axis, which
+    // makes the other `auto` too, so an overrun is a horizontal scrollbar on
+    // the whole page pane.
     gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
   },
 }))

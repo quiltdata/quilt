@@ -13,6 +13,8 @@ import * as Notifications from 'containers/Notifications'
 import * as Auth from 'containers/Auth'
 import * as Dialogs from 'utils/GlobalDialogs'
 import * as GQL from 'utils/GraphQL'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 import * as validators from 'utils/validators'
@@ -245,12 +247,12 @@ function Invite({
   )
 }
 
-interface EditEmailProps {
+export interface EditEmailProps {
   close: () => void
   user: User
 }
 
-function EditEmail({ close, user: { email: oldEmail, name } }: EditEmailProps) {
+export function EditEmail({ close, user: { email: oldEmail, name } }: EditEmailProps) {
   const { push } = Notifications.use()
   const setEmail = GQL.useMutation(USER_SET_EMAIL_MUTATION)
 
@@ -367,12 +369,14 @@ function ActionProgress({ children }: React.PropsWithChildren<{}>) {
   )
 }
 
-interface DeleteProps {
+export interface DeleteProps {
   close: () => void
   name: string
+  // The list's row simply disappears; a page about the user has to leave it.
+  onDeleted?: () => void
 }
 
-function Delete({ name, close }: DeleteProps) {
+export function Delete({ name, close, onDeleted }: DeleteProps) {
   const { push } = Notifications.use()
   const del = GQL.useMutation(USER_DELETE_MUTATION)
   const onSubmit = React.useCallback(async () => {
@@ -384,6 +388,7 @@ function Delete({ name, close }: DeleteProps) {
         case 'Ok':
           close()
           push(`User "${name}" deleted`)
+          onDeleted?.()
           return
         case 'InvalidInput':
           const [e] = r.errors
@@ -406,7 +411,7 @@ function Delete({ name, close }: DeleteProps) {
       Sentry.captureException(e)
       return { [FF.FORM_ERROR]: 'unexpected' }
     }
-  }, [del, name, close, push])
+  }, [del, name, close, push, onDeleted])
 
   return (
     <RF.Form onSubmit={onSubmit}>
@@ -568,11 +573,13 @@ interface UsernameDisplayProps {
 
 function UsernameDisplay({ user, self }: UsernameDisplayProps) {
   const classes = useUsernameStyles()
+  const { urls } = NamedRoutes.use()
   return (
     <span className={classes.root}>
       {user.isAdmin && <M.Icon className={classes.icon}>security</M.Icon>}
-      <M.Tooltip title={user.name}>
-        <span
+      <M.Tooltip title={`Open ${user.name}`}>
+        <StyledLink
+          to={urls.adminUserDetail(user.name)}
           className={cx(
             classes.name,
             user.isAdmin && classes.admin,
@@ -580,21 +587,21 @@ function UsernameDisplay({ user, self }: UsernameDisplayProps) {
           )}
         >
           {user.name}
-        </span>
+        </StyledLink>
       </M.Tooltip>
       {self && <Hint>&nbsp;(you)</Hint>}
     </span>
   )
 }
 
-interface EditRolesProps {
+export interface EditRolesProps {
   close: Dialogs.Close
   roles: readonly Role[]
   defaultRole: Role | null
   user: User
 }
 
-function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
+export function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
   const { push } = Notifications.use()
   const setRole = GQL.useMutation(USER_SET_ROLE_MUTATION)
 
@@ -778,6 +785,13 @@ const useEditableStyles = M.makeStyles((t) => ({
   root: {
     marginLeft: t.spacing(0.5),
   },
+  // A switch the admin cannot change still has to read as on or off, so the disabled
+  // state keeps the track visible rather than washing out to the same gray as off.
+  locked: {
+    '& .MuiSwitch-track': {
+      opacity: 0.38,
+    },
+  },
 }))
 
 interface EditableSwitchProps {
@@ -795,7 +809,12 @@ function EditableSwitch({
 }: EditableSwitchProps) {
   const classes = useEditableStyles()
   return disabled ? (
-    <M.Switch className={classes.root} checked={checked} disabled color="default" />
+    <M.Switch
+      className={cx(classes.root, classes.locked)}
+      checked={checked}
+      disabled
+      color="primary"
+    />
   ) : (
     <Editable value={checked} onChange={onChange}>
       {({ change, busy, value }) => (
@@ -805,7 +824,7 @@ function EditableSwitch({
             checked={value}
             onChange={(e) => change(e.target.checked)}
             disabled={busy}
-            color="default"
+            color="primary"
           />
         </M.Tooltip>
       )}
@@ -1378,7 +1397,7 @@ export default function Users() {
         title: op.title,
         icon: <M.Icon>{op.icon}</M.Icon>,
         fn: () =>
-          openDialog(
+          openDialog<boolean>(
             ({ close }) => <BulkAction {...{ close, op, users: selectedRows }} />,
             // Not dismissible: the run keeps going after the dialog unmounts, so a
             // stray Escape would leave an irreversible action with no record of which

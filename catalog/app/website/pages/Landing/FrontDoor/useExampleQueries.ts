@@ -5,8 +5,12 @@ import { useRelevantBuckets } from 'utils/Buckets'
 import useRecentlyRevisedPackages from './useRecentlyRevisedPackages'
 
 export interface ExampleQuery {
+  /** Material icon ligature, rendered in the outlined face. */
   icon: string
+  /** The query itself: typed into the search bar verbatim when the chip is clicked. */
   label: string
+  /** Substring of {@link ExampleQuery.label} to set apart as an identifier when rendered. */
+  code?: string
 }
 
 // How many chips the bar renders.
@@ -29,11 +33,26 @@ export const DEFAULT_EXAMPLES: ExampleQuery[] = [
   { icon: 'search', label: 'drugbank' },
 ]
 
-// Derive a short, human-readable keyword from a package handle's last segment,
-// e.g. "alexwilson/drugbank-test" -> "drugbank test".
-function packageKeyword(name: string): string {
-  const tail = name.split('/').pop() || name
-  return tail.replace(/[-_]+/g, ' ').trim()
+/**
+ * Round-robin share of `limit` across sources of the given sizes: each takes a
+ * turn before any takes a second slot, and one that runs dry hands its turns to
+ * the rest. So every kind of prompt shows while the row has room for it, and a
+ * single kind still fills the row when it is the only one with anything to say.
+ */
+export function shareOut(sizes: number[], limit: number): number[] {
+  const taken = sizes.map(() => 0)
+  let total = 0
+  let moved = true
+  while (total < limit && moved) {
+    moved = false
+    sizes.forEach((size, i) => {
+      if (total >= limit || taken[i] >= size) return
+      taken[i] += 1
+      total += 1
+      moved = true
+    })
+  }
+  return taken
 }
 
 /**
@@ -47,36 +66,41 @@ export default function useExampleQueries(limit: number = EXAMPLE_LIMIT): Exampl
   const { packages } = useRecentlyRevisedPackages(limit)
 
   return React.useMemo(() => {
+    const sources = [
+      packages
+        .filter((pkg) => pkg.name)
+        .map((pkg) => ({
+          icon: 'inventory_2',
+          label: `What's in the ${pkg.name} package?`,
+          code: pkg.name,
+        })),
+      Array.from(new Set(buckets.flatMap((b) => b.tags || []))).map((tag) => ({
+        icon: 'summarize',
+        label: `Summarize the ${tag} data across my buckets`,
+      })),
+      buckets.map((b) => ({
+        icon: 'folder',
+        label: `Show me the latest packages in ${b.title || b.name}`,
+      })),
+    ]
+    const take = shareOut(
+      sources.map((s) => s.length),
+      limit,
+    )
+
     const out: ExampleQuery[] = []
     const seen = new Set<string>()
-
-    const add = (icon: string, label: string) => {
-      const key = label.toLowerCase()
-      if (!label || seen.has(key) || out.length >= limit) return
+    const add = (q: ExampleQuery) => {
+      const key = q.label.toLowerCase()
+      if (!q.label || seen.has(key) || out.length >= limit) return
       seen.add(key)
-      out.push({ icon, label })
+      out.push(q)
     }
 
-    // 1. Recently-revised packages -> "explore" prompts anchored to real data.
-    packages.forEach((pkg) => {
-      const keyword = packageKeyword(pkg.name)
-      if (keyword) add('inventory_2', `What's in the ${keyword} package?`)
-    })
-
-    // 2. Bucket tags -> topical prompts ("Summarize <tag> data").
-    const tags = buckets.flatMap((b) => b.tags || [])
-    Array.from(new Set(tags)).forEach((tag) => {
-      add('summarize', `Summarize the ${tag} data across my buckets`)
-    })
-
-    // 3. Bucket titles -> direct exploration prompts.
-    buckets.forEach((b) => {
-      add('folder', `Show me the latest packages in ${b.title || b.name}`)
-    })
-
-    // 4. Top up with generic fallbacks so the bar is never under-filled.
-    DEFAULT_EXAMPLES.forEach((ex) => add(ex.icon, ex.label))
-
-    return out.slice(0, limit)
+    // Grouped by source rather than interleaved: the shares decide how many of
+    // each show, the order keeps like chips adjacent.
+    sources.forEach((source, i) => source.slice(0, take[i]).forEach(add))
+    DEFAULT_EXAMPLES.forEach(add)
+    return out
   }, [buckets, packages, limit])
 }

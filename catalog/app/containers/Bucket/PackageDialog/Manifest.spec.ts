@@ -64,4 +64,11 @@ describe('containers/Bucket/PackageDialog/Manifest', () => {
       }),
     ).toBe(true)
   })
+
+  it('withholds a response that describes the previous package', () => {
+    // What urql yields right after a variables change: the prior package's entries, kept
+    // while the new one is in flight. Publishing them would replace the new package.
+    queryState = { data: revision(), fetching: true }
+    expect(run().case({ Pending: () => 'pending', _: () => 'other' })).toBe('pending')
+  })
 })

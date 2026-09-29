@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -29,8 +29,9 @@ vi.mock('./PackageDialog', () => ({
   useCreateDialog: () => ({ open: vi.fn(), render: () => null }),
 }))
 
+let isAdmin = false
 vi.mock('react-redux', () => ({
-  useSelector: () => false,
+  useSelector: () => isAdmin,
 }))
 
 vi.mock('utils/AWS', () => ({
@@ -90,7 +91,7 @@ function renderHeader() {
   return render(
     <MemoryRouter>
       <NamedRoutes.Provider routes={routes}>
-        <Header bucket="test-bucket" />
+        <Header bucket="test-bucket" withStats />
       </NamedRoutes.Provider>
     </MemoryRouter>,
   )
@@ -103,6 +104,59 @@ describe('containers/Bucket/Header', () => {
     packagesTotal = 7
     useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
     navQueries = true
+    isAdmin = false
+  })
+
+  it('does not render the settings control for non-admins', () => {
+    const { queryByLabelText } = renderHeader()
+    expect(queryByLabelText('Bucket settings')).toBeNull()
+  })
+
+  it('renders an accessibly-labeled settings link to admin bucket edit for admins', () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('gives admins one focusable settings control, not a button inside a link', () => {
+    isAdmin = true
+    const { getAllByLabelText, queryByRole } = renderHeader()
+    expect(getAllByLabelText('Bucket settings')).toHaveLength(1)
+    expect(queryByRole('button', { name: 'Bucket settings' })).toBeNull()
+  })
+
+  // MUI writes a native `title` at rest and `aria-describedby` once open, and
+  // wrapping moves them rather than removing them, so both states and both
+  // elements are checked.
+  it('never describes the settings control with its own name', async () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    const cell = link.closest('div') as HTMLElement
+
+    for (const el of [link, cell]) {
+      expect(el.getAttribute('title')).toBeNull()
+    }
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+
+    fireEvent.mouseOver(link)
+    await waitFor(() => expect(screen.getByRole('tooltip')).toBeTruthy())
+
+    expect(link.getAttribute('title')).toBeNull()
+    expect(link.getAttribute('aria-describedby')).toBeNull()
+  })
+
+  it('gives the settings cell exactly one focusable control', () => {
+    isAdmin = true
+    const { getByRole } = renderHeader()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    const cell = link.closest('div') as HTMLElement
+    expect(
+      cell.querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])'),
+    ).toHaveLength(1)
+    act(() => link.focus())
+    expect(document.activeElement).toBe(link)
   })
 
   it('does not link the total-size stat', () => {
@@ -180,5 +234,75 @@ describe('containers/Bucket/Header', () => {
   it('renders the Create package button', () => {
     const { getByText } = renderHeader()
     expect(getByText('Create package')).toBeTruthy()
+  })
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderHeader()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+})
+
+describe('containers/Bucket/Header withStats=false', () => {
+  afterEach(() => {
+    cleanup()
+    isAdmin = false
+    // The no-queries test clears these; restore them so a block appended below
+    // does not inherit an implementation-less mock.
+    statsResult.mockReturnValue(AsyncResult.Ok(OBJECTS_PLURAL))
+    useTabulatorTables.mockReturnValue({ _tag: 'ready', tables: [] })
+  })
+
+  function renderTitle() {
+    return render(
+      <MemoryRouter>
+        <NamedRoutes.Provider routes={routes}>
+          <Header bucket="test-bucket" withStats={false} />
+        </NamedRoutes.Provider>
+      </MemoryRouter>,
+    )
+  }
+
+  it('shows the bucket name', () => {
+    const { getByText } = renderTitle()
+    expect(getByText('test-bucket')).toBeTruthy()
+  })
+
+  // The settings link is the other half of what renders ungated, and the
+  // module-level useSelector mock is what makes it reachable in a test at all.
+  it('links a settings control to the bucket admin page for an admin', () => {
+    isAdmin = true
+    const { getByRole } = renderTitle()
+    const link = getByRole('link', { name: 'Bucket settings' })
+    expect(link.getAttribute('href')).toBe('/admin/test-bucket')
+  })
+
+  it('offers no settings control to a non-admin', () => {
+    isAdmin = false
+    const { queryByLabelText } = renderTitle()
+    expect(queryByLabelText('Bucket settings')).toBeNull()
+  })
+
+  it('renders no stats and issues no stats queries', () => {
+    statsResult.mockClear()
+    useTabulatorTables.mockClear()
+    const { queryByText } = renderTitle()
+    expect(queryByText('Create package')).toBeNull()
+    expect(statsResult).not.toHaveBeenCalled()
+    expect(useTabulatorTables).not.toHaveBeenCalled()
+  })
+
+  // The grid must not reserve a track for a cell that does not render: a
+  // phantom stats area leaves an 8px row under the name below 1044px, and an
+  // empty middle column beside the settings control above it.
+  it.each([
+    [false, 'withoutStats'],
+    [true, 'withSettingsWithoutStats'],
+  ])('lays out without a stats track (isAdmin=%s → %s)', (admin, variant) => {
+    isAdmin = admin
+    const { getByText } = renderTitle()
+    // Two levels up from the name: Typography → title cell → the grid root.
+    const root = getByText('test-bucket').parentElement!.parentElement!
+    expect(root.className).toMatch(new RegExp(`makeStyles-${variant}-\\d+`))
+    expect(root.className).not.toMatch(/makeStyles-withSettings-\d+/)
   })
 })

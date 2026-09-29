@@ -41,7 +41,12 @@ quilt3.login()  # Opens browser for OAuth/SSO
 
 # OR use an API key (for automation, CI/CD, scripts)
 import os
-quilt3.login_with_api_key(os.environ["QUILT_API_KEY"])
+
+# QUILT_REGISTRY_URL is the `registryUrl` from your catalog's /config.json
+quilt3.login_with_api_key(
+    os.environ["QUILT_API_KEY"],
+    registry_url=os.environ["QUILT_REGISTRY_URL"],
+)
 ```
 
 **📚 Learn more**: See the [Authentication Guide](api-reference/authentication.md) for detailed setup instructions, best practices, and use cases.

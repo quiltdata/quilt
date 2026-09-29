@@ -1,0 +1,222 @@
+{
+  "valid": [
+    {
+      "name": "package without selector or path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test"
+      }
+    },
+    {
+      "name": "tag selector",
+      "uri": "quilt+s3://bucket-name#package=quilt/test:latest",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "tag": "latest"
+      }
+    },
+    {
+      "name": "hash selector and encoded path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "hash": "abc1",
+        "path": "sub/path"
+      }
+    },
+    {
+      "name": "catalog and encoded path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=sub%252Fpath&catalog=https%3A%2F%2Fexample.com",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "sub%2Fpath",
+        "catalog": "https://example.com"
+      }
+    },
+    {
+      "name": "unencoded percent in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=50%_sample.csv",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "50%_sample.csv"
+      }
+    },
+    {
+      "name": "encoded percent in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=50%25_sample.csv",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "50%_sample.csv"
+      }
+    },
+    {
+      "name": "truncated escape in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=abc%",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "abc%"
+      }
+    },
+    {
+      "name": "non-hex escape in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=a%2zb",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "a%2zb"
+      }
+    },
+    {
+      "name": "encoded space in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=a%20b",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "a b"
+      }
+    },
+    {
+      "name": "encoded percent-twenty in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=a%2520b",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "a%20b"
+      }
+    },
+    {
+      "name": "trailing slash on a directory path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=baz%2F",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "baz/"
+      }
+    },
+    {
+      "name": "raw plus in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=C++.csv",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "C++.csv"
+      }
+    },
+    {
+      "name": "encoded plus in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=C%2B%2B.csv",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test",
+        "path": "C++.csv"
+      }
+    },
+    {
+      "name": "uppercase scheme",
+      "uri": "QUILT+S3://bucket-name#package=quilt/test",
+      "value": {
+        "bucket": "bucket-name",
+        "name": "quilt/test"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "unsupported protocol",
+      "uri": "quilt+http://bucket-name#package=quilt/test",
+      "error": "unsupported protocol \"quilt+http:\""
+    },
+    {
+      "name": "missing slashes",
+      "uri": "quilt+s3:bucket-name#package=quilt/test",
+      "error": "missing slashes"
+    },
+    {
+      "name": "missing fragment",
+      "uri": "quilt+s3://bucket-name:latest@abc1",
+      "error": "missing \"package=\" part"
+    },
+    {
+      "name": "non-root registry",
+      "uri": "quilt+s3://bucket-name/sub/path#package=quilt/test",
+      "error": "non-bucket-root registries are not supported"
+    },
+    {
+      "name": "missing bucket",
+      "uri": "quilt+s3://#package=quilt/test",
+      "error": "missing bucket"
+    },
+    {
+      "name": "missing package parameter",
+      "uri": "quilt+s3://bucket-name#pacakge=quilt/test",
+      "error": "missing \"package=\" part"
+    },
+    {
+      "name": "multiple package parameters",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&package=quilt/test2",
+      "error": "\"package=\" specified multiple times"
+    },
+    {
+      "name": "empty first package among multiple parameters",
+      "uri": "quilt+s3://bucket-name#package=&package=quilt/test",
+      "error": "\"package=\" specified multiple times"
+    },
+    {
+      "name": "multiple path parameters",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=p1&path=p2",
+      "error": "\"path=\" specified multiple times"
+    },
+    {
+      "name": "multiple catalog parameters",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&catalog=one&catalog=two",
+      "error": "\"catalog=\" specified multiple times"
+    },
+    {
+      "name": "empty tag",
+      "uri": "quilt+s3://bucket-name#package=quilt/test:",
+      "error": "\"package=\" part: tag must not be empty"
+    },
+    {
+      "name": "empty tag before another delimiter",
+      "uri": "quilt+s3://bucket-name#package=quilt/test::sup",
+      "error": "\"package=\" part: tag must not be empty"
+    },
+    {
+      "name": "multiple tag delimiters",
+      "uri": "quilt+s3://bucket-name#package=quilt/test:latest:sup",
+      "error": "\"package=\" part may contain only one \":\""
+    },
+    {
+      "name": "empty hash",
+      "uri": "quilt+s3://bucket-name#package=quilt/test@",
+      "error": "\"package=\" part: hash must not be empty"
+    },
+    {
+      "name": "empty hash before another delimiter",
+      "uri": "quilt+s3://bucket-name#package=quilt/test@@abc",
+      "error": "\"package=\" part: hash must not be empty"
+    },
+    {
+      "name": "multiple hash delimiters",
+      "uri": "quilt+s3://bucket-name#package=quilt/test@abc1@cde2",
+      "error": "\"package=\" part may contain only one \"@\""
+    },
+    {
+      "name": "mixed tag and hash delimiters",
+      "uri": "quilt+s3://bucket-name#package=quilt/test:latest@abc1",
+      "error": "\"package=\" part may either contain \":\" or \"@\""
+    },
+    {
+      "name": "undecodable percent-encoding in path",
+      "uri": "quilt+s3://bucket-name#package=quilt/test&path=%FF",
+      "error": "malformed percent-encoding."
+    }
+  ]
+}

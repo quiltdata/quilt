@@ -15,6 +15,9 @@ export const MAX_SCALE = 8
 
 export const STEP = 1.4
 
+/** Zoom per wheel pixel, as an exponent: one 100px mouse notch is one STEP. */
+export const WHEEL_ZOOM = Math.log(STEP) / 100
+
 export function parse(attr: string | null): ViewBox | null {
   if (!attr) return null
   const parts = attr

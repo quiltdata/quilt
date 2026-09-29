@@ -3,6 +3,7 @@ import * as React from 'react'
 import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+import { ErrorBoundary } from 'react-error-boundary'
 
 import * as perspective from 'utils/perspective'
 
@@ -50,7 +51,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
       {truncated && (
         <span className={cx(classes.message, classes.item)}>
           <M.Icon fontSize="small" color="inherit" className={classes.icon}>
-            info_outlined
+            info_outline
           </M.Icon>
           {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
         </span>
@@ -81,7 +82,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
       {state?.rotateThemes && (
         <M.Button
           className={classes.item}
-          startIcon={<M.Icon>palette_outlined</M.Icon>}
+          startIcon={<M.Icon>palette</M.Icon>}
           size="small"
           onClick={state?.rotateThemes}
         >
@@ -129,7 +130,7 @@ export interface PerspectiveProps
   truncated: boolean
 }
 
-export default function Perspective({
+function PerspectiveTable({
   children,
   className,
   data,
@@ -147,17 +148,6 @@ export default function Perspective({
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
   const state = perspective.use(root, data, attrs, config, onRender)
 
-  if (state instanceof Error) {
-    return (
-      <div className={cx(className, classes.root)} {...props}>
-        {!!meta && <Metadata className={classes.meta} metadata={meta} />}
-        <Lab.Alert className={classes.warning} severity="info" icon={false}>
-          Could not render tabular data
-        </Lab.Alert>
-      </div>
-    )
-  }
-
   return (
     <div
       className={cx(className, classes.root, classes.fullHeight)}
@@ -173,5 +163,44 @@ export default function Perspective({
       {!!meta && <Metadata className={classes.meta} metadata={meta} />}
       {children}
     </div>
+  )
+}
+
+// NOTE: `react-error-boundary` does not catch what its own fallback throws, so
+//       an error originating in `Metadata` escapes this boundary.
+//
+// NOTE: the destructuring mirrors `PerspectiveTable`'s, so that what is left in
+//       `props` is what belongs on the container -- callers pass DOM attributes
+//       and handlers through, and they have to survive a failed load.
+function ErrorFallback({
+  children,
+  className,
+  config,
+  data,
+  meta,
+  onLoadMore,
+  onRender,
+  truncated,
+  ...props
+}: PerspectiveProps) {
+  const classes = useStyles()
+  return (
+    <div className={cx(className, classes.root)} {...props}>
+      {!!meta && <Metadata className={classes.meta} metadata={meta} />}
+      <Lab.Alert className={classes.warning} severity="info" icon={false}>
+        Could not render tabular data
+      </Lab.Alert>
+    </div>
+  )
+}
+
+export default function Perspective(props: PerspectiveProps) {
+  return (
+    <ErrorBoundary
+      resetKeys={[props.data]}
+      fallbackRender={() => <ErrorFallback {...props} />}
+    >
+      <PerspectiveTable {...props} />
+    </ErrorBoundary>
   )
 }

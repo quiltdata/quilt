@@ -15,6 +15,7 @@ class RoleDelete(BaseModel):
         "RoleDeleteRoleDeleteRoleNameReserved",
         "RoleDeleteRoleDeleteRoleNameUsedBySsoConfig",
         "RoleDeleteRoleDeleteRoleAssigned",
+        "RoleDeleteRoleDeleteRoleOwnsDataProducts",
     ] = Field(alias="roleDelete", discriminator="typename__")
 
 
@@ -36,6 +37,10 @@ class RoleDeleteRoleDeleteRoleNameUsedBySsoConfig(BaseModel):
 
 class RoleDeleteRoleDeleteRoleAssigned(BaseModel):
     typename__: Literal["RoleAssigned"] = Field(alias="__typename")
+
+
+class RoleDeleteRoleDeleteRoleOwnsDataProducts(BaseModel):
+    typename__: Literal["RoleOwnsDataProducts"] = Field(alias="__typename")
 
 
 RoleDelete.model_rebuild()

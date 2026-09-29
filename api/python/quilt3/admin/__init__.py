@@ -19,6 +19,7 @@ from .exceptions import (
     RoleNameInvalidError,
     RoleNameReservedError,
     RoleNotFoundError,
+    RoleOwnsDataProductsError,
     RoleSsoConfigConflictError,
     RoleTooManyPoliciesError,
     RoleTypeMismatchError,

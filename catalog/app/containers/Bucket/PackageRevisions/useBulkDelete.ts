@@ -16,6 +16,14 @@ export function useBulkDelete(bucket: string, name: string) {
     opened: false,
   })
 
+  // bucket and name are route params, so navigating to another package reuses
+  // this hook; stale hashes would be deleted against the new package, and a
+  // dialog left open would show the previous package's error.
+  React.useEffect(() => {
+    setSelected(new Set())
+    setState({ error: undefined, loading: false, opened: false })
+  }, [bucket, name])
+
   const toggle = React.useCallback(
     (hash: string) =>
       setSelected((s) => {
@@ -39,11 +47,14 @@ export function useBulkDelete(bucket: string, name: string) {
         }
         done.add(hash)
       } catch (e: any) {
-        error = `Unexpected error: ${e.message ?? e}`
+        error = `Unexpected error: ${e.message ?? e} (${hash})`
         break
       }
     }
     setSelected((s) => new Set([...s].filter((h) => !done.has(h))))
+    // The dialog's title tracks the selection, which just shrank by whatever
+    // succeeded, so the error carries the only record of the partial result.
+    if (error && done.size) error = `${error}. ${done.size} already deleted`
     setState({ error, loading: false, opened: !!error })
   }, [bucket, name, selected, deleteRevision])
 

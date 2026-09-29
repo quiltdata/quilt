@@ -24,13 +24,21 @@ import * as XML from 'utils/XML'
  */
 
 /**
- * Keys are #5310's, so notes written before the global layer landed come back
- * rather than reading as lost. The mute flag lives under its own key: muting
- * never destroys the text.
+ * Base keys are #5310's, so notes written before the global layer landed come
+ * back rather than reading as lost. The mute flag lives under its own key:
+ * muting never destroys the text.
  */
 export const PERSONAL_STORAGE_KEY = 'qurator.userInstructions'
 /** Absent means enabled — notes are on by default once written. */
 export const PERSONAL_ENABLED_STORAGE_KEY = 'qurator.userInstructions.enabled'
+
+/**
+ * Sign-out clears only `user` and `tokens`, so an unscoped key would hand the
+ * next account in this browser the previous user's notes — and inject them into
+ * their prompts. Scoping by username keeps each account's notes to itself.
+ * Signed out there is no owner, so nothing is read or written.
+ */
+const scopeKey = (key: string, username: string) => `${key}:${username}`
 
 function readLocal(key: string): string | null {
   try {
@@ -50,8 +58,21 @@ function writeLocal(key: string, value: string | null) {
   }
 }
 
-export const readPersonalText = () => readLocal(PERSONAL_STORAGE_KEY) || ''
-export const readPersonalEnabled = () => readLocal(PERSONAL_ENABLED_STORAGE_KEY) !== '0'
+/**
+ * Notes written before keys were scoped belong to whoever was signed in then,
+ * and nothing recorded who that was — so they cannot be migrated to an owner,
+ * and leaving them would keep one user's text sitting in the next user's
+ * browser. Dropped rather than adopted.
+ */
+export function dropUnscopedPersonal() {
+  writeLocal(PERSONAL_STORAGE_KEY, null)
+  writeLocal(PERSONAL_ENABLED_STORAGE_KEY, null)
+}
+
+export const readPersonalText = (username: string) =>
+  username ? readLocal(scopeKey(PERSONAL_STORAGE_KEY, username)) || '' : ''
+export const readPersonalEnabled = (username: string) =>
+  !username || readLocal(scopeKey(PERSONAL_ENABLED_STORAGE_KEY, username)) !== '0'
 
 /**
  * Render a layer as a prompt block. Dedicated top-level tags (not prose
@@ -142,18 +163,35 @@ export function useGlobalInstructions(): Instructions {
  * synchronous) only so both layers share `useInstructionsEditor`.
  */
 export function usePersonalInstructions(): Instructions {
-  const [text, setTextState] = React.useState(readPersonalText)
-  const [enabled, setEnabledState] = React.useState(readPersonalEnabled)
+  const username: string = redux.useSelector(AuthSelectors.username) || ''
+  const [text, setTextState] = React.useState(() => readPersonalText(username))
+  const [enabled, setEnabledState] = React.useState(() => readPersonalEnabled(username))
 
-  const setText = React.useCallback(async (next: string) => {
-    setTextState(next)
-    writeLocal(PERSONAL_STORAGE_KEY, next || null)
-  }, [])
+  React.useEffect(dropUnscopedPersonal, [])
 
-  const setEnabled = React.useCallback(async (next: boolean) => {
-    setEnabledState(next)
-    writeLocal(PERSONAL_ENABLED_STORAGE_KEY, next ? null : '0')
-  }, [])
+  // Signing in or switching account under a live panel must swap the notes with
+  // it, not carry the previous owner's into the new session.
+  React.useEffect(() => {
+    setTextState(readPersonalText(username))
+    setEnabledState(readPersonalEnabled(username))
+  }, [username])
+
+  const setText = React.useCallback(
+    async (next: string) => {
+      setTextState(next)
+      if (username) writeLocal(scopeKey(PERSONAL_STORAGE_KEY, username), next || null)
+    },
+    [username],
+  )
+
+  const setEnabled = React.useCallback(
+    async (next: boolean) => {
+      setEnabledState(next)
+      if (username)
+        writeLocal(scopeKey(PERSONAL_ENABLED_STORAGE_KEY, username), next ? null : '0')
+    },
+    [username],
+  )
 
   const clear = React.useCallback(() => setText(''), [setText])
 

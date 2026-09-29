@@ -19,6 +19,7 @@ export interface containers_Admin_UsersAndRoles_gql_RoleDeleteMutation {
     | { readonly __typename: 'RoleDoesNotExist' }
     | { readonly __typename: 'RoleNameReserved' }
     | { readonly __typename: 'RoleNameUsedBySsoConfig' }
+    | { readonly __typename: 'RoleOwnsDataProducts' }
 }
 
 export const containers_Admin_UsersAndRoles_gql_RoleDeleteDocument = {

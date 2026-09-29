@@ -38,15 +38,15 @@ export function useSelection<Row>({ rows, getId }: UseSelectionProps<Row>) {
   const ids = useMemoEq(rows.map(getId), R.identity)
 
   // Scoped to the rows on screen so a bulk action can never reach a row the admin
-  // stopped seeing after paginating or filtering. Intersecting covers the render
-  // before the reset effect runs.
+  // stopped seeing after paginating or filtering.
   const selected = React.useMemo(
     () => new Set(ids.filter((id) => stored.has(id))),
     [ids, stored],
   )
 
+  // Keeps `stored` from growing without bound as the admin ticks rows across pages.
   React.useEffect(() => {
-    setStored(EMPTY_SELECTION)
+    setStored((prev) => new Set(ids.filter((id) => prev.has(id))))
   }, [ids])
 
   const toggle = React.useCallback((id: string) => {
@@ -179,6 +179,7 @@ export const renderAction = (a: Action) => {
 
 const useToolbarStyles = M.makeStyles((t) => ({
   root: {
+    borderBottom: `1px solid ${t.palette.divider}`,
     paddingRight: t.spacing(1),
   },
   highlight:
@@ -227,7 +228,7 @@ export function Toolbar({
             {selected} selected
           </M.Typography>
         ) : (
-          <M.Typography variant="h6">{heading}</M.Typography>
+          <M.Typography variant="h5">{heading}</M.Typography>
         )}
       </div>
       <div className={classes.spacer} />
@@ -241,13 +242,21 @@ export function Toolbar({
 
 const useInlineActionsStyles = M.makeStyles((t) => ({
   root: {
-    opacity: 0.3,
+    opacity: 0.6,
     paddingRight: t.spacing(1),
     textAlign: 'right',
     transition: 'opacity 100ms',
     whiteSpace: 'nowrap',
 
     'tr:hover &': {
+      opacity: 1,
+    },
+    // Hover is not available on touch and arrives late for the keyboard, so the
+    // actions stay legible at rest and come fully forward on focus too.
+    '&:focus-within': {
+      opacity: 1,
+    },
+    '@media (pointer: coarse)': {
       opacity: 1,
     },
   },

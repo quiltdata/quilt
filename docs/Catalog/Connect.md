@@ -95,19 +95,18 @@ CloudFormation output.
 Connect Server publishes OAuth authorization server metadata at
 `/.well-known/oauth-authorization-server` and OpenID metadata at
 `/.well-known/openid-configuration`. The `issuer` value is the Connect
-Server origin with the explicit HTTPS default port
-(`https://<connect-host>:443`), and all advertised endpoints
+Server origin (`https://<connect-host>`), and all advertised endpoints
 (`/auth/token`, `/auth/register`, `/auth/revoke`,
 `/auth/.well-known/jwks.json`, and the cross-served
-`/connect/authorize`) include the same explicit `:443`.
+`/connect/authorize`) are derived from it.
 
-> **Compatibility note.** Per RFC 3986, `https://host` and `https://host:443`
-> identify the same origin and are equivalent. However, some strict OAuth
-> clients — notably Databricks Apps — perform string-sensitive origin
-> comparisons against the issuer and reject DCR when the issuer omits the
-> default port. Quilt Connect emits `https://<connect-host>:443` to remain
-> compatible with these clients; well-behaved clients that normalize per
-> RFC 3986 are unaffected.
+> **Compatibility note.** The issuer omits the HTTPS default port, per
+> RFC 3986 §3.2.3 ("URI producers and normalizers should omit the port
+> component ... if its value would be the same as that of the scheme's
+> default"). Clients that normalize the AS origin before the RFC 8414 §3.3
+> issuer comparison — the OpenAI Codex CLI among them — drop `:443`, so an
+> issuer carrying it can never compare equal and OAuth aborts at discovery.
+> A non-default port in `CONNECT_DOMAIN` is preserved.
 
 ### Protected Resource Identifier
 

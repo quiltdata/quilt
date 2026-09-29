@@ -32,7 +32,6 @@ export type {
 } from './adapter'
 export { supportsBrowsing, supportsFetching, supportsRequests } from './adapter'
 export {
-  useAdapter,
   useConnections,
   useContents,
   useEntryBody,

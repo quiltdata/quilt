@@ -124,27 +124,61 @@ const isStillBrowsingPackage = (
 }
 
 const useTopBarStyles = M.makeStyles((t) => ({
+  // The stacked tier keeps the wide tier's right anchor so the (often
+  // icon-collapsed) action strip doesn't sit parked at the left edge.
+  // Tiers measure the column, not the viewport (components/Layout/Column), so
+  // the crumbs stack when this card narrows, whatever took the width. 844px is
+  // the column the old 1100px viewport tier engaged at, once the 256px rail is
+  // out of the measurement.
   topBar: {
-    alignItems: 'flex-end',
-    display: 'flex',
+    alignItems: 'end',
+    display: 'grid',
+    gridTemplateAreas: '"crumbs actions"',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
     marginBottom: t.spacing(2),
     marginTop: t.spacing(0.5),
+    [Column.down(844)]: {
+      gridTemplateAreas: '"crumbs" "actions"',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    },
   },
   crumbs: {
     ...t.typography.body1,
-    maxWidth: 'calc(100% - 160px)',
+    gridArea: 'crumbs',
+    minWidth: 0,
     overflowWrap: 'break-word',
-    [Column.down('xs')]: {
-      maxWidth: 'calc(100% - 40px)',
-    },
   },
   content: {
     alignItems: 'center',
     display: 'flex',
-    flexShrink: 0,
+    flexWrap: 'nowrap',
+    gridArea: 'actions',
     marginBottom: -3,
-    marginLeft: 'auto',
+    // The crumbs seam sits on this cell rather than on the grid, so it collapses
+    // with the cell on the renders that pass no actions.
+    marginLeft: t.spacing(2),
     marginTop: -3,
+    '&:empty': {
+      display: 'none',
+    },
+    // Zeroed so the seam above is the whole gap in both views: the file view's
+    // first child (FileProperties) carries no marginLeft, a button does. Doubled
+    // selectors (&&) outrank the children's single-class margin rules regardless
+    // of JSS sheet insertion order.
+    '&& > :first-child': {
+      marginLeft: 0,
+    },
+    [Column.down(844)]: {
+      flexWrap: 'wrap',
+      gap: t.spacing(1),
+      justifyContent: 'flex-end',
+      marginBottom: 0,
+      marginLeft: 0,
+      marginTop: t.spacing(1),
+      '&& > *': {
+        margin: 0,
+      },
+    },
   },
 }))
 

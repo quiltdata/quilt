@@ -344,10 +344,8 @@ function Pagination({
 }: PaginationProps) {
   const classes = usePaginationStyles()
   // Ten slots plus the arrows need ~528px once each carries the touch floor,
-  // which a phone-width column does not have. The wrap in `root` is what keeps
-  // the last control reachable; this only trims the run near either end, since
-  // the middle of a long range emits eight slots whatever the cap. 5 is the
-  // floor: at 4 `displayRange` emits page 0.
+  // which a phone-width column does not have. 5 is the floor: at 4
+  // `displayRange` emits page 0.
   const xs = Column.useDown('xs')
   const coarse = Pointer.useCoarse()
   const maxPages = xs && coarse ? 6 : 10
