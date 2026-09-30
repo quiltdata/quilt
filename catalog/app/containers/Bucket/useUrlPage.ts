@@ -12,9 +12,9 @@ export default function useUrlPage(): [number, (page: number) => void] {
   const page = Math.max(0, (parseInt(p ?? '', 10) || 1) - 1)
   const setPage = React.useCallback(
     (newPage: number) => {
-      const { pathname, search } = history.location
+      const { search } = history.location
       const params = { ...parseSearch(search), p: newPage > 0 ? newPage + 1 : undefined }
-      history.replace({ pathname, search: mkSearch(params) })
+      history.replace({ ...history.location, search: mkSearch(params) })
     },
     [history],
   )
