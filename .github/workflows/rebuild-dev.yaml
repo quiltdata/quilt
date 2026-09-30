@@ -35,9 +35,7 @@ jobs:
       && (github.event.action != 'edited' || github.event.changes.base)
       && (startsWith(inputs.target, 'dev-rebuild-')
         || ((inputs.target || 'dev') == 'dev' && vars.REBUILD_DEV_ENABLED == 'true'))
-    # On the job so a skipped run cannot displace a pending one. Not
-    # cancel-in-progress: a run cancelled between push and dispatch leaves dev's
-    # images unbuilt, and the next run sees the same tree and skips them too.
+    # On the job so a skipped run cannot displace a pending one.
     concurrency:
       group: rebuild-dev-${{ inputs.target || 'dev' }}
       cancel-in-progress: false
@@ -54,7 +52,6 @@ jobs:
           fetch-depth: 0
 
       - name: Rebuild
-        id: rebuild
         run: |
           set -euo pipefail
           # Expression comparisons ignore case; the real `dev` is spelled exactly.
@@ -65,7 +62,6 @@ jobs:
           cp .github/scripts/rebuild-dev.sh "$RUNNER_TEMP/"
 
           old="$(git rev-parse -q --verify "refs/remotes/origin/$TARGET" || true)"
-          echo "old=$old" >> "$GITHUB_OUTPUT"
 
           # Forks are left out: a fork's later pushes would reach the image builds,
           # which hold AWS credentials, without anyone re-reviewing them.
@@ -87,18 +83,23 @@ jobs:
             exit 0
           fi
           git push --force-with-lease="$TARGET:$old" origin "HEAD:refs/heads/$TARGET"
-          echo "pushed=yes" >> "$GITHUB_OUTPUT"
 
       # A push made with GITHUB_TOKEN triggers no workflows, so the image builds
       # that dev.quilttest.com pins have to be dispatched.
       - name: Dispatch image builds
-        if: steps.rebuild.outputs.pushed == 'yes' && env.TARGET == 'dev'
-        env:
-          OLD: ${{ steps.rebuild.outputs.old }}
+        if: env.TARGET == 'dev'
         run: |
           set -euo pipefail
-          changed() { [ -z "$OLD" ] || ! git diff --quiet "$OLD" HEAD -- "$@"; }
-          w=.github/workflows
-          if changed $w/deploy-catalog.yaml catalog shared; then gh workflow run deploy-catalog.yaml --ref dev; fi
-          if changed $w/deploy-lambdas.yaml lambdas; then gh workflow run deploy-lambdas.yaml --ref dev; fi
-          if changed $w/deploy-s3-proxy.yaml s3-proxy; then gh workflow run deploy-s3-proxy.yaml --ref dev; fi
+          # Built if the last dev run of deploy-$1 that succeeded or is still going
+          # had the same sources as HEAD. Checked every run, pushed or not, so the
+          # next run dispatches again a build that failed or was cancelled.
+          built() {
+            local w="$1"; shift
+            sha="$(gh run list --workflow "deploy-$w.yaml" --branch dev --limit 20 --json headSha,conclusion \
+              --jq '[.[] | select(.conclusion == "success" or .conclusion == "") | .headSha][0] // empty')"
+            [ -n "$sha" ] && { git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "$sha" 2>/dev/null; } \
+              && git diff --quiet "$sha" HEAD -- ".github/workflows/deploy-$w.yaml" "$@"
+          }
+          built catalog catalog shared || gh workflow run deploy-catalog.yaml --ref dev
+          built lambdas lambdas || gh workflow run deploy-lambdas.yaml --ref dev
+          built s3-proxy s3-proxy || gh workflow run deploy-s3-proxy.yaml --ref dev
