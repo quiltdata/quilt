@@ -24,6 +24,7 @@ import Summary from './Summary'
 import * as DirToolbar from './Dir/Toolbar'
 import { displayError } from './errors'
 import * as requests from './requests'
+import useUrlPage from './useUrlPage'
 
 interface RouteMap {
   bucketDir: Routes.BucketDirArgs
@@ -71,6 +72,7 @@ function DirContents({
   )
 
   const items = useFormattedListing(response)
+  const [page, setPage] = useUrlPage()
 
   const dialogs = Dialogs.use()
   const dirHandle = React.useMemo(
@@ -118,6 +120,8 @@ function DirContents({
           onSelectionChange={onSelection}
           selection={selection}
           onReload={onReload}
+          page={page}
+          onPageChange={setPage}
           toolbarContents={
             <Listing.PrefixFilter
               key={`${response.bucket}/${response.path}`}
