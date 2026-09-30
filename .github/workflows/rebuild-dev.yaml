@@ -1,0 +1,104 @@
+name: Rebuild dev
+
+# `dev` is rebuilt, never merged into: master plus every open same-repo PR
+# labelled `dev-preview`, re-made from scratch on each change. Merging the PR to
+# master is the promotion, so dev cannot drift from master.
+#
+# Rebuilding the real `dev` force-pushes it, so it stays off until the repo
+# variable REBUILD_DEV_ENABLED is `true`. A `dev-rebuild-*` target can be rebuilt
+# by hand to preview the result.
+on:
+  push:
+    branches: [master]
+  pull_request_target:
+    branches: [master]
+    types: [labeled, unlabeled, synchronize, reopened, closed, edited]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Branch to rebuild (`dev`, or a `dev-rebuild-*` preview)
+        default: dev-rebuild-preview
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: read
+
+jobs:
+  rebuild:
+    if: >-
+      (github.event_name != 'pull_request_target'
+        || (github.event.pull_request.head.repo.full_name == github.repository
+          && (contains(github.event.pull_request.labels.*.name, 'dev-preview')
+            || github.event.label.name == 'dev-preview')))
+      && !(endsWith(github.event.action, 'labeled') && github.event.label.name != 'dev-preview')
+      && (github.event.action != 'edited' || github.event.changes.base)
+      && (startsWith(inputs.target, 'dev-rebuild-')
+        || ((inputs.target || 'dev') == 'dev' && vars.REBUILD_DEV_ENABLED == 'true'))
+    # On the job so a skipped run cannot displace a pending one. Not
+    # cancel-in-progress: a run cancelled between push and dispatch leaves dev's
+    # images unbuilt, and the next run sees the same tree and skips them too.
+    concurrency:
+      group: rebuild-dev-${{ inputs.target || 'dev' }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    env:
+      TARGET: ${{ inputs.target || 'dev' }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # master's copy of the script, never the PR's: pull_request_target runs with
+      # a write token, and PR heads are only ever merged, not executed, here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Rebuild
+        id: rebuild
+        run: |
+          set -euo pipefail
+          # Expression comparisons ignore case; the real `dev` is spelled exactly.
+          case "$TARGET" in dev | dev-rebuild-*) ;; *) echo "::error::Refusing target $TARGET"; exit 1 ;; esac
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          .github/scripts/test-rebuild-dev.sh
+          cp .github/scripts/rebuild-dev.sh "$RUNNER_TEMP/"
+
+          old="$(git rev-parse -q --verify "refs/remotes/origin/$TARGET" || true)"
+          echo "old=$old" >> "$GITHUB_OUTPUT"
+
+          # Forks are left out: a fork's later pushes would reach the image builds,
+          # which hold AWS credentials, without anyone re-reviewing them.
+          # Listed to a file, not piped: a failed listing must stop the run, or dev
+          # would be force-pushed back to bare master.
+          # Label filtered in jq: `--label` goes through search, which lags the
+          # label event that triggered this run.
+          gh pr list --base master --state open --limit 1000 \
+              --json number,isCrossRepository,labels \
+              --jq '[.[] | select((.isCrossRepository | not) and any(.labels[]; .name == "dev-preview")) | .number] | sort | .[]' \
+            > "$RUNNER_TEMP/prs"
+          REPORT="$RUNNER_TEMP/report" "$RUNNER_TEMP/rebuild-dev.sh" < "$RUNNER_TEMP/prs" || { rc=$?; [ "$rc" -eq 2 ] || exit "$rc"; conflicts=yes; }
+          cat "$RUNNER_TEMP/report" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "${conflicts:-}" != yes ] || echo "::warning::Some dev-preview PRs conflict and were left out; see the summary."
+
+          if [ -n "$old" ] && [ "$(git rev-parse "HEAD^{tree}")" = "$(git rev-parse "$old^{tree}")" ] \
+              && git merge-base --is-ancestor origin/master "$old"; then
+            echo "Same tree as origin/$TARGET; nothing to push."
+            exit 0
+          fi
+          git push --force-with-lease="$TARGET:$old" origin "HEAD:refs/heads/$TARGET"
+          echo "pushed=yes" >> "$GITHUB_OUTPUT"
+
+      # A push made with GITHUB_TOKEN triggers no workflows, so the image builds
+      # that dev.quilttest.com pins have to be dispatched.
+      - name: Dispatch image builds
+        if: steps.rebuild.outputs.pushed == 'yes' && env.TARGET == 'dev'
+        env:
+          OLD: ${{ steps.rebuild.outputs.old }}
+        run: |
+          set -euo pipefail
+          changed() { [ -z "$OLD" ] || ! git diff --quiet "$OLD" HEAD -- "$@"; }
+          w=.github/workflows
+          if changed $w/deploy-catalog.yaml catalog shared; then gh workflow run deploy-catalog.yaml --ref dev; fi
+          if changed $w/deploy-lambdas.yaml lambdas; then gh workflow run deploy-lambdas.yaml --ref dev; fi
+          if changed $w/deploy-s3-proxy.yaml s3-proxy; then gh workflow run deploy-s3-proxy.yaml --ref dev; fi
