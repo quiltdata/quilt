@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { render, cleanup } from '@testing-library/react'
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { render } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
 
@@ -12,8 +12,6 @@ vi.mock('constants/config', () => ({ default: {} }))
 vi.mock('utils/NamedRoutes', () => ({ use: () => ({ urls: {} }) }))
 
 describe('containers/Queries/Athena/Workgroups', () => {
-  afterEach(cleanup)
-
   it('names the workgroup select by its label and value', () => {
     const state = {
       queryRun: undefined,

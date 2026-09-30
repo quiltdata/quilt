@@ -1,15 +1,20 @@
 import * as React from 'react'
-import { render, cleanup } from '@testing-library/react'
-import { describe, it, expect, afterEach } from 'vitest'
+import { render } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('constants/config', () => ({ default: {} }))
+vi.mock('components/FileEditor/HelpLinks', () => ({
+  WorkflowsConfigLink: ({ children }: React.PropsWithChildren<{}>) => children,
+}))
 
 import noop from 'utils/noop'
+import * as workflows from 'utils/workflows'
 
 import Message from './Message'
 import Name from './Name'
+import Workflow from './Workflow'
 
 describe('containers/Bucket/PackageDialog/Inputs', () => {
-  afterEach(cleanup)
-
   it('labels the name field', () => {
     const { getByLabelText } = render(
       <Name
@@ -29,5 +34,27 @@ describe('containers/Bucket/PackageDialog/Inputs', () => {
       />,
     )
     expect(getByLabelText('Message').tagName).toBe('INPUT')
+  })
+
+  it('names the workflow select by its label and value', () => {
+    const wf = {
+      name: 'Standard',
+      slug: 'standard',
+      isDisabled: false,
+    } as workflows.Workflow
+    const { getByRole } = render(
+      <Workflow
+        formStatus={{ _tag: 'ready' }}
+        schema={{ _tag: 'ready' } as React.ComponentProps<typeof Workflow>['schema']}
+        state={{ value: wf, status: { _tag: 'ok' }, onChange: noop }}
+        config={
+          {
+            _tag: 'ready',
+            config: { workflows: [wf, { ...wf, slug: 'other' }] },
+          } as React.ComponentProps<typeof Workflow>['config']
+        }
+      />,
+    )
+    expect(getByRole('button', { name: 'Workflow Standard' })).toBeTruthy()
   })
 })

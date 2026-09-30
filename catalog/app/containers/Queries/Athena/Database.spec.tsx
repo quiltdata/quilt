@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
 import noop from 'utils/noop'
@@ -49,8 +49,6 @@ function Provider({ children, value }: ProviderProps) {
 }
 
 describe('containers/Queries/Athena/Database', () => {
-  afterEach(cleanup)
-
   it('should render skeletons', () => {
     const { getAllByTestId } = render(
       <Provider value={emptyState}>
