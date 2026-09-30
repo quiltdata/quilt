@@ -98,7 +98,7 @@ describe('components/Preview/renderers/Perspective boundary', () => {
   })
 
   it('skips the table when the lambda sent metadata only', () => {
-    // an empty Arrow payload has no record batches, so Perspective cannot load it
+    // the lambda's metadata-only table has no record batches, so loading it throws
     const { getByText, getByTestId, queryByText } = renderPerspective({
       metaOnly: true,
     })
