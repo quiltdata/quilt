@@ -40,6 +40,7 @@
     "check:icon-crop": "tsc app/containers/Admin/Buckets/iconCrop.ts --ignoreConfig --outDir internals/manual/build --target es2020 --module esnext --moduleResolution bundler --skipLibCheck && cd internals/manual && echo \"open http://127.0.0.1:8099/icon-crop-check.html\" && python3 -m http.server 8099",
     "format": "oxfmt --write",
     "gql:generate": "graphql-codegen",
+    "postinstall": "patch-package",
     "prepare": "cd .. && husky install catalog/.husky"
   },
   "lint-staged": {
@@ -209,6 +210,7 @@
     "minimist": "^1.2.8",
     "oxfmt": "^0.56.0",
     "oxlint": "^1.71.0",
+    "patch-package": "^8.0.1",
     "redux-logger": "^3.0.6",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.5",

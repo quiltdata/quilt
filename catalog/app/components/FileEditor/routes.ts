@@ -79,5 +79,5 @@ export function useParams() {
   }>()
   invariant(bucket, '`bucket` must be defined')
 
-  return { bucket, initialPath: s3paths.getPrefix(path) }
+  return { bucket, initialPath: s3paths.getPrefix(s3paths.decode(path ?? '')) }
 }

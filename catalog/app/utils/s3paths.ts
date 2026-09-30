@@ -138,7 +138,16 @@ export const getBreadCrumbs = (path: string): { label: string; path: string }[] 
 
 export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'))
 
-export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'))
+// A hand-typed URL can carry a bare `%`, which `decodeURIComponent` rejects.
+const decodeSegment = (s: string) => {
+  try {
+    return decodeURIComponent(s.replace(/%(?![0-9A-Fa-f]{2})/g, '%25'))
+  } catch {
+    return s
+  }
+}
+
+export const decode = R.pipe(R.split('/'), R.map(decodeSegment), R.join('/'))
 
 /**
  * Files in the package are backed by real files in the S3 bucket.

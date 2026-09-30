@@ -9,7 +9,7 @@ import AsyncResult from 'utils/AsyncResult'
 import HljsBoundary from 'utils/HljsBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
-import { resolveKey } from 'utils/s3paths'
+import { decode, resolveKey } from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData, PreviewError } from '../types'
@@ -30,11 +30,11 @@ function useImgProcessor(handle) {
       Resource.Pointer.case({
         Web: (url) => url,
         S3: ({ bucket, key, version }) =>
-          sign({ bucket: bucket || handle.bucket, key, version }),
+          sign({ bucket: bucket || handle.bucket, key: decode(key), version }),
         S3Rel: (path) =>
-          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, decode(path)) }),
         Path: (path) =>
-          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, decode(path)) }),
       }),
     ),
   )
@@ -49,12 +49,12 @@ function useLinkProcessor(handle) {
       Resource.Pointer.case({
         Web: (url) => url,
         S3: ({ bucket, key, version }) =>
-          sign({ bucket: bucket || handle.bucket, key, version }),
+          sign({ bucket: bucket || handle.bucket, key: decode(key), version }),
         S3Rel: (path) =>
-          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, decode(path)) }),
         Path: (p) => {
           const hasSlash = p.endsWith('/')
-          const resolved = resolve(dirname(handle.key), p).slice(1)
+          const resolved = resolve(dirname(handle.key), decode(p)).slice(1)
           const normalized = hasSlash ? `${resolved}/` : resolved
           return hasSlash
             ? urls.bucketDir(handle.bucket, normalized)

@@ -182,23 +182,11 @@ describe('containers/DataProducts', () => {
       settings = { features: { 'data-products': true } } as CatalogSettings
     })
 
-    // A product id containing `%` crashed the detail view, and our own URL builder
-    // produced the crashing URL: `encodeURIComponent` emits `%25`, `history@4`
-    // then runs `decodeURI(location.pathname)` before routing
-    // (history/cjs/history.js:107) which turns it back into a bare `%`, and
-    // `decodeURIComponent` rejects that with `URIError`. The throw sat above the
-    // drift `Redirect`, so it escaped to the app error boundary and blanked the
-    // catalog.
-    //
-    // Mounted through the real builder, because that is the reachable path: the
-    // encoded pathname survives `history`'s `decodeURI`, which turns `%25` back
-    // into `%` and hands `Detail` a param it cannot decode. A *raw* bare `%` in
-    // the pathname is a separate failure -- `history` throws while constructing
-    // the location, before any route matches, so no component can guard it.
-    it('redirects instead of crashing when the id will not decode', () => {
-      const { getByTestId } = mount(
-        `/data-products/${encodeURIComponent('uc:cat/50%_sample')}`,
-      )
+    it.each([
+      `/data-products/${encodeURIComponent('uc:cat/50%_sample')}`,
+      '/data-products/50%_sample',
+    ])('redirects instead of crashing on a `%` id: %s', (url) => {
+      const { getByTestId } = mount(url)
       expect(getByTestId('where').textContent).toBe('/buckets')
     })
 

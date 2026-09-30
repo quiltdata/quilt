@@ -7,6 +7,7 @@ import * as Auth from 'containers/Auth'
 import * as Dialogs from 'utils/Dialogs'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as s3paths from 'utils/s3paths'
 
 import RolePage from './RolePage'
 import UserPage from './UserPage'
@@ -16,25 +17,9 @@ import { Delete as DeleteUser, EditEmail, EditRoles } from './Users'
 import ROLES_QUERY from './gql/Roles.generated'
 import USERS_QUERY from './gql/Users.generated'
 
-// The route builders encode these params, but `history@4` decodeURI's the pathname
-// before routing, so decoding one back is lossy. Re-encoding a candidate the same way
-// avoids that. Two names can encode alike, so a verbatim match wins over one.
 function findByParam<T>(items: readonly T[], param: string, id: (item: T) => string) {
-  return (
-    items.find((item) => id(item) === param) ??
-    items.find((item) => decodeURI(encodeURIComponent(id(item))) === param)
-  )
-}
-
-// Display only: nothing matched, so there is nothing to re-encode against. Decoding is
-// lossy, so fall back to the param itself where it does not survive the round trip.
-function readableParam(param: string) {
-  try {
-    const decoded = decodeURIComponent(param)
-    return decodeURI(encodeURIComponent(decoded)) === param ? decoded : param
-  } catch {
-    return param
-  }
+  const decoded = s3paths.decode(param)
+  return items.find((item) => id(item) === decoded)
 }
 
 const useHeaderStyles = M.makeStyles((t) => ({
@@ -141,7 +126,7 @@ export function UserDetail() {
           onDelete={onDelete}
         />
       ) : (
-        <Missing>No user named &quot;{readableParam(userName)}&quot;.</Missing>
+        <Missing>No user named &quot;{s3paths.decode(userName)}&quot;.</Missing>
       )}
     </>
   )

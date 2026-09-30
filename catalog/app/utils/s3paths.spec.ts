@@ -1,5 +1,6 @@
+import { createLocation } from 'history'
 import { describe, it, expect, vi } from 'vitest'
-import { canonicalKey } from './s3paths'
+import { canonicalKey, decode, encode } from './s3paths'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -33,6 +34,18 @@ describe('utils/s3paths', () => {
       expect(canonicalKey('foo/bar', 'READ/ME.md', 'one/two two/three three three')).toBe(
         'one/two two/three three three/foo/bar/READ/ME.md',
       )
+    })
+  })
+
+  describe('encode', () => {
+    it.each(['50% off.csv', 'a%20b.csv'])('round-trips %s through history', (key) => {
+      const { pathname } = createLocation(`/${encode(key)}`)
+      expect(pathname).toBe(`/${encode(key)}`)
+      expect(decode(pathname.slice(1))).toBe(key)
+    })
+
+    it('keeps a bare % and decodes the escapes around it', () => {
+      expect(decode('a%20b/50%%20off.csv')).toBe('a b/50% off.csv')
     })
   })
 })

@@ -1279,13 +1279,15 @@ interface PackageTreeRouteParams {
 export default function PackageTreeWrapper() {
   const {
     bucket,
-    name,
+    name: encodedName,
     revision: hashOrTag = 'latest',
     path: encodedPath = '',
   } = RRDom.useParams<PackageTreeRouteParams>()
   const location = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
-  invariant(!!name, '`name` must be defined')
+  invariant(!!encodedName, '`name` must be defined')
+
+  const name = s3paths.decode(encodedName)
 
   const path = s3paths.decode(encodedPath)
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json

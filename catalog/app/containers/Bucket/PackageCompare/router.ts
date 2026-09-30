@@ -5,6 +5,7 @@ import * as RRDom from 'react-router-dom'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import type { PackageHandle } from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
+import * as s3paths from 'utils/s3paths'
 
 interface PackageCompareParams {
   bucket: string
@@ -19,10 +20,16 @@ type Pair = [PackageHandle, PackageHandle]
 export const isPair = (x: Single | Pair): x is Pair => x.length > 1
 
 export function useRouter() {
-  const { bucket, name, baseHash, otherHash } = RRDom.useParams<PackageCompareParams>()
+  const {
+    bucket,
+    name: encodedName,
+    baseHash,
+    otherHash,
+  } = RRDom.useParams<PackageCompareParams>()
 
   invariant(!!bucket, '`bucket` must be defined')
-  invariant(!!name, '`name` must be defined')
+  invariant(!!encodedName, '`name` must be defined')
+  const name = s3paths.decode(encodedName)
   invariant(!!baseHash, '`baseHash` must be defined')
 
   const { push } = RRDom.useHistory()

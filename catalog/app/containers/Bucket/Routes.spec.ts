@@ -45,15 +45,11 @@ describe('Bucket S3 routes: path encoding', () => {
     })
   })
 
-  // Known limitation: a literal `%` in a key is not round-trip-safe — the
-  // URL->params path decodes twice (path-to-regexp's matcher, then
-  // `S3PathFromString`) against a single encode. Asserted as the desired
-  // round-trip via `it.fails`, so it flips red if the seam is ever fixed.
-  it.fails('round-trips a literal "%" + hex key', () => {
+  it('round-trips a literal "%" + hex key', () => {
     expect(objectRoundTrip('a%41b.txt')).toBe('a%41b.txt')
   })
 
-  it.fails('round-trips a literal "%" + non-hex key', () => {
+  it('round-trips a literal "%" + non-hex key', () => {
     expect(objectRoundTrip('a%zz.txt')).toBe('a%zz.txt')
   })
 })

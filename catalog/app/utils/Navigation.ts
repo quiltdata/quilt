@@ -56,12 +56,9 @@ export const fromPathParams = <
     // string-record encoding (e.g. S3Path), so the identity encode widens.
     strict: false,
     encode: (toI) => Eff.Effect.succeed(toI),
-    decode: (fromA, _parseOptions, ast) =>
-      Eff.pipe(
-        fromA,
-        S.decodeUnknown(schema),
-        Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, fromA, e.message)),
-      ),
+    // effect decodes `schema` itself after this step; decoding here too would
+    // run its transforms (e.g. percent-decoding) twice.
+    decode: (fromA) => Eff.Effect.succeed(fromA),
   })
 
 const makePathSchema = (path: string, exact: boolean, strict: boolean) => {

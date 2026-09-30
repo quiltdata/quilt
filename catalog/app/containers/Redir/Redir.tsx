@@ -9,6 +9,7 @@ import * as UriResolver from 'containers/UriResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as PackageUri from 'utils/PackageUri'
 import { BaseError } from 'utils/error'
+import * as s3paths from 'utils/s3paths'
 
 interface OpenInDesktopProps {
   href: string
@@ -37,7 +38,7 @@ export default function Redir() {
 
   const classes = useStyles()
 
-  const decoded = decodeURIComponent(params.uri)
+  const decoded = s3paths.decode(params.uri)
   const uri = React.useMemo(() => UriResolver.parsePackageUriSafe(decoded), [decoded])
 
   const [redirecting, setRedirecting] = React.useState<PackageUri.PackageUri | null>(null)

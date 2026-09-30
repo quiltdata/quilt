@@ -22,6 +22,7 @@ import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import * as packageHandleUtils from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -623,10 +624,14 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 }
 
 export default function PackageRevisionsWrapper() {
-  const { bucket, name } = RRDom.useParams<{ bucket: string; name: string }>()
+  const { bucket, name: encodedName } = RRDom.useParams<{
+    bucket: string
+    name: string
+  }>()
   const location = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
-  invariant(!!name, '`name` must be defined')
+  invariant(!!encodedName, '`name` must be defined')
+  const name = s3paths.decode(encodedName)
 
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined

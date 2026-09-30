@@ -88,7 +88,7 @@ describe('containers/Bucket/Selection/Dashboard', () => {
     expect(queryByText('s3://foo/a/ %23 b %23 /c')).toBeFalsy()
     expect(getByText('s3://foo/a/ # b # /c')).toBeTruthy()
     expect(getByText('s3://foo/a/ # b # /c/a # b.txt').getAttribute('href')).toBe(
-      '/b/foo/tree/a/ %23 b %23 /c/a %23 b.txt',
+      '/b/foo/tree/a/%20%23%20b%20%23%20/c/a%20%23%20b.txt',
     )
   })
 })

@@ -580,7 +580,8 @@ function File() {
 }
 
 export default function FileWrapper() {
-  const { bucket, path: key } = RRDom.useParams()
+  const { bucket, path } = RRDom.useParams()
+  const key = s3paths.decode(path)
   const location = RRDom.useLocation()
   const { version } = parseSearch(location.search)
   const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])

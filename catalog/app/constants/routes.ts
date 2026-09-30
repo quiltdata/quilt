@@ -140,7 +140,7 @@ export type DataProductsArgs = Parameters<typeof dataProducts.url>
 // keys. Product ids embed the binding and contain slashes of their own
 // (`uc:metastore/catalog/schema`), which would spill into extra path segments
 // and stop this route matching at all. `encodeURIComponent` keeps the whole id
-// in one segment, so `decodeURIComponent` on the way out is its exact inverse.
+// in one segment.
 export const dataProduct = route(
   '/data-products/:dataProductId',
   (dataProductId: string) => `/data-products/${encodeURIComponent(dataProductId)}`,
@@ -228,7 +228,7 @@ export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
 
 export const bucketPackageDetail = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  (bucket: string, name: string) => `/b/${bucket}/packages/${name}`,
+  (bucket: string, name: string) => `/b/${bucket}/packages/${encode(name)}`,
 )
 
 export type BucketPackageDetailArgs = Parameters<typeof bucketPackageDetail.url>
@@ -240,7 +240,7 @@ interface BucketPackageAddFilesOpts {
 export const bucketPackageAddFiles = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/add`,
   (bucket: string, name: string, files: BucketPackageAddFilesOpts = {}) =>
-    `/b/${bucket}/packages/${name}/add${mkSearch(files)}`,
+    `/b/${bucket}/packages/${encode(name)}/add${mkSearch(files)}`,
 )
 
 export type BucketPackageAddFilesArgs = Parameters<typeof bucketPackageAddFiles.url>
@@ -249,7 +249,7 @@ export const bucketPackageTree = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
   (bucket: string, name: string, revision?: string, path: string = '', mode?: string) =>
     path || (revision && revision !== 'latest')
-      ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
+      ? `/b/${bucket}/packages/${encode(name)}/tree/${revision || 'latest'}/${encode(
           path,
         )}${mkSearch({ mode })}`
       : bucketPackageDetail.url(bucket, name),
@@ -263,7 +263,7 @@ interface BucketPackageRevisionsOpts {
 export const bucketPackageRevisions = route(
   `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
   (bucket: string, name: string, { p }: BucketPackageRevisionsOpts = {}) =>
-    `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
+    `/b/${bucket}/packages/${encode(name)}/revisions${mkSearch({ p })}`,
 )
 
 export type BucketPackageRevisionsArgs = Parameters<typeof bucketPackageRevisions.url>
@@ -282,8 +282,8 @@ export const bucketPackageCompare = route(
     { showAll }: BucketPackageCompareOpts = {},
   ) =>
     other
-      ? `/b/${bucket}/packages/${name}/compare/${base}/${other}/${mkSearch({ showAll })}`
-      : `/b/${bucket}/packages/${name}/compare/${base}/${mkSearch({ showAll })}`,
+      ? `/b/${bucket}/packages/${encode(name)}/compare/${base}/${other}/${mkSearch({ showAll })}`
+      : `/b/${bucket}/packages/${encode(name)}/compare/${base}/${mkSearch({ showAll })}`,
 )
 
 export type BucketPackageCompareArgs = Parameters<typeof bucketPackageCompare.url>

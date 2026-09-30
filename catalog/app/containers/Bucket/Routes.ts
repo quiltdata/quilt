@@ -1,10 +1,10 @@
-import * as Eff from 'effect'
 import { Schema as S } from 'effect'
 import invariant from 'invariant'
 import { useParams } from 'react-router-dom'
 
 import * as routes from 'constants/routes'
 import * as Nav from 'utils/Navigation'
+import * as s3paths from 'utils/s3paths'
 
 export interface RouteMap {
   bucketDir: routes.BucketDirArgs
@@ -43,20 +43,15 @@ export const overview = Nav.makeRoute({
   pathParams: Nav.fromPathParams(BucketPathParams),
 })
 
-const PATH_SEP = '/'
-
-const mapSegments = (separator: string, map: (s: string) => string) =>
-  Eff.flow(Eff.String.split(separator), Eff.Array.map(map), Eff.Array.join(separator))
-
 // NB: use the piped form; effect >=3.18 infers a non-`never` schema Context
 // for the curried `S.brand('S3Path')(S.String)`, which breaks `fromPathParams`.
 const S3Path = S.String.pipe(S.brand('S3Path'))
 
 const S3PathFromString = (S3PathSchema: typeof S3Path) =>
   S.transform(S.String, S3PathSchema, {
-    encode: mapSegments(PATH_SEP, encodeURIComponent),
+    encode: s3paths.encode,
     strict: true,
-    decode: mapSegments(PATH_SEP, decodeURIComponent),
+    decode: s3paths.decode,
   })
 
 export const s3Object = Nav.makeRoute({

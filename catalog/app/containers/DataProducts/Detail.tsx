@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import * as DP from 'model/DataProducts'
 import * as Format from 'utils/format'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as s3paths from 'utils/s3paths'
 
 import ContentsTab from './Contents'
 import Requests from './Requests'
@@ -294,32 +295,7 @@ export default function Detail() {
   const { paths, urls } = NamedRoutes.use()
   const { dataProductId } = useParams<{ dataProductId: string }>()
   const section = useSection()
-  // Inverse of the route builder's `encodeURIComponent` (see the note on
-  // `dataProduct` in constants/routes.ts for why it is not `encode` from
-  // utils/s3paths) -- but not an *exact* inverse, because the param does not
-  // arrive as the builder left it.
-  //
-  // `history@4` runs `decodeURI(location.pathname)` before routing
-  // (history/cjs/history.js:107), so an id containing `%` round-trips as
-  // `%25` -> `%`, and `decodeURIComponent` then throws `URIError` on the bare
-  // escape. That throw is above the drift `Redirect` below, so it escapes to the
-  // app error boundary and blanks the catalog. Unity names permit `%`, so this
-  // is reachable from our own URL builder, not just a hand-typed URL.
-  //
-  // A malformed id cannot match a product anyway, so failing to decode is the
-  // same outcome as decoding successfully and finding nothing: fall through to
-  // the drift redirect.
-  // Falls back to the raw param rather than a sentinel or an early return:
-  // `useProduct` suspends, so it cannot be called conditionally, and an id that
-  // failed to decode cannot match a product either way -- both paths land on the
-  // drift redirect below.
-  const id = React.useMemo(() => {
-    try {
-      return decodeURIComponent(dataProductId)
-    } catch {
-      return dataProductId
-    }
-  }, [dataProductId])
+  const id = React.useMemo(() => s3paths.decode(dataProductId), [dataProductId])
 
   const product = DP.useProduct(id)
 
