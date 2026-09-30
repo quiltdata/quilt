@@ -387,6 +387,19 @@ describe('Connectors/Mcp', () => {
       expect(result.contents[0].text).toBe('# ES query syntax\n...')
     })
 
+    it('reads the body of an error response so the fetch is not aborted', async () => {
+      const res = new Response('Unauthorized', { status: 401 })
+      const { fetchSpy } = captureCalls(() => res)
+
+      const client = Mcp.make({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      await Eff.Effect.runPromiseExit(withFetch(client.initialize(), fetchSpy))
+
+      expect(res.bodyUsed).toBe(true)
+    })
+
     it('reads the 202 body of initialized so the fetch is not aborted', async () => {
       const responses: Response[] = []
       const { fetchSpy } = captureCalls((req) => {
