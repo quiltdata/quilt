@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Screen readers announce the labels of the Qurator chat input, the package dialog's name, message and workflow fields, and the Athena workgroup, data catalog and database selects ([#5377](https://github.com/quiltdata/quilt/pull/5377))
 - [Fixed] Preview: a file the preview service cannot read, such as a CSV named `.parquet`, shows the service's reason instead of a generic error ([#5376](https://github.com/quiltdata/quilt/pull/5376))
 - [Fixed] Opening Qurator no longer logs an aborted request to the platform MCP server in the browser console ([#5375](https://github.com/quiltdata/quilt/pull/5375))
 - [Fixed] Tabular previews: an h5ad file too large to preview shows its metadata and says it is too large, instead of reporting that the table could not be rendered ([#5374](https://github.com/quiltdata/quilt/pull/5374))

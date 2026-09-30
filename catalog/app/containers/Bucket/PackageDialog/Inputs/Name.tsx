@@ -5,6 +5,7 @@ import * as Lab from '@material-ui/lab'
 
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
+import useId from 'utils/useId'
 
 import type { FormStatus } from '../State/form'
 import type { NameState } from '../State/name'
@@ -79,8 +80,10 @@ export default function InputName({
     (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
     [onChange],
   )
+  const id = useId()
   return (
     <M.TextField
+      id={id}
       /*style*/
       InputLabelProps={{ shrink: true }}
       fullWidth

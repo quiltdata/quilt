@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
+import useId from 'utils/useId'
 import * as workflows from 'utils/workflows'
 
 import type { FormStatus } from '../State/form'
@@ -46,14 +47,17 @@ function SelectWorkflow({
   const classes = useStyles()
 
   const noChoice = items.length === 1
+  const labelId = useId()
+  const id = useId()
 
   return (
     <M.FormControl disabled={disabled || noChoice} fullWidth size="small" error={!!error}>
-      <M.InputLabel id="schema-select" shrink>
+      <M.InputLabel id={labelId} shrink>
         Workflow
       </M.InputLabel>
       <M.Select
-        labelId="schema-select"
+        labelId={labelId}
+        id={id}
         value={value ? value.slug.toString() : workflows.notSelected.toString()}
       >
         {items.map((workflow) => (
