@@ -22,6 +22,9 @@ complete sentence without it.
 ## Changes
 
 - [Fixed] Opening Qurator no longer logs an aborted request to the platform MCP server in the browser console ([#5375](https://github.com/quiltdata/quilt/pull/5375))
+- [Fixed] Tabular previews: an h5ad file too large to preview shows its metadata and says it is too large, instead of reporting that the table could not be rendered ([#5374](https://github.com/quiltdata/quilt/pull/5374))
+- [Fixed] Documentation links that led to a docs 404 now open the right page: the `/install` redirect, the Python code-sample help links, and the Athena help icon ([#5373](https://github.com/quiltdata/quilt/pull/5373))
+- [Fixed] Image file pages (`.png`, `.jpg`, `.jpeg`, `.gif`) load with status 200 and the catalog's anti-framing header instead of a 404 ([#5372](https://github.com/quiltdata/quilt/pull/5372))
 - [Fixed] Admin users and roles: clicking a user whose name contains `@` opens their page instead of reporting no such user ([#5364](https://github.com/quiltdata/quilt/pull/5364))
 - [Fixed] Qurator says when it cannot read a large PDF or Office document, instead of answering from metadata or search hits as though it had read the file ([#5368](https://github.com/quiltdata/quilt/pull/5368))
 - [Changed] Qurator issues its model call through the registry's inference relay instead of calling Bedrock from the browser, so a deployment can route inference through a customer-operated AI gateway whose credential never reaches the client ([#5334](https://github.com/quiltdata/quilt/pull/5334))

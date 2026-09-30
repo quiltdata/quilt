@@ -43,7 +43,7 @@ export default function PackageCodeSamples({
         className={classes.code}
         label="Browse using Quilt3 Python API"
         hl="python"
-        help={`${docs}/quilt-python-sdk-developers/api-reference/package#package.browse`}
+        help={`${docs}/quilt-python-sdk/api-reference/package#package.browse`}
         lines={[
           `import quilt3 as q3`,
           `q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")`,
@@ -54,7 +54,7 @@ export default function PackageCodeSamples({
         className={classes.code}
         label="Install using Quilt3 Python API"
         hl="python"
-        help={`${docs}/quilt-python-sdk-developers/api-reference/package#package.install`}
+        help={`${docs}/quilt-python-sdk/api-reference/package#package.install`}
         lines={[
           `import quilt3 as q3`,
           `q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")`,
