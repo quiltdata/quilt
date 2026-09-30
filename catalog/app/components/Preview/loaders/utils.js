@@ -116,7 +116,7 @@ export function useObjectGetter(handle, opts) {
   return Data.use(getObject, { s3, handle }, opts)
 }
 
-const fetchPreview = async ({ handle, sign, type, compression, query }) => {
+export const fetchPreview = async ({ handle, sign, type, compression, query }) => {
   const url = sign(handle)
   const r = await fetch(
     `${cfg.apiGatewayEndpoint}/preview${mkSearch({

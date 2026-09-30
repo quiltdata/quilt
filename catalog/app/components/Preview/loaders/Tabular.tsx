@@ -134,7 +134,7 @@ interface TabularDataOutput {
   truncated: boolean
 }
 
-const loadTabularData = async ({
+export const loadTabularData = async ({
   compression,
   size,
   handle,
