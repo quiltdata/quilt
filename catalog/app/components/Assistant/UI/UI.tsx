@@ -7,7 +7,14 @@ import * as style from 'constants/style'
 import * as Model from '../Model'
 import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
-import { MOTION, PANEL_WIDTH, RAIL_WIDTH, Context as ReflowContext } from './PanelReflow'
+import {
+  DRAGGING,
+  MOTION,
+  PANEL_WIDTH,
+  RAIL_WIDTH,
+  STILL,
+  Context as ReflowContext,
+} from './PanelReflow'
 
 // The rail button names the region it expands, so both need one id. The paper
 // carries it, not the chat: the chat unmounts in the very state where the
@@ -111,6 +118,7 @@ const usePanelStyles = M.makeStyles((t) => ({
         easing: t.transitions.easing.easeOut,
       }),
     },
+    [STILL]: { transition: 'none' },
   },
   paperRail: {
     width: RAIL_WIDTH,
@@ -159,6 +167,11 @@ interface ResizerProps {
 
 function Resizer({ className, width, onResize }: ResizerProps) {
   const dragging = React.useRef(false)
+  const drag = (on: boolean) => {
+    dragging.current = on
+    document.body.toggleAttribute(DRAGGING, on)
+  }
+  React.useEffect(() => () => document.body.removeAttribute(DRAGGING), [])
   const now = clampWidth(width ?? defaultWidth(), window.innerWidth)
   // The paper is anchored right, so its width is its right edge minus the pointer.
   const edge = (el: HTMLElement) => el.parentElement!.getBoundingClientRect().right
@@ -176,7 +189,7 @@ function Resizer({ className, width, onResize }: ResizerProps) {
       onPointerDown={(e) => {
         if (e.button !== 0) return
         e.preventDefault()
-        dragging.current = true
+        drag(true)
         e.currentTarget.setPointerCapture?.(e.pointerId)
       }}
       onPointerMove={(e) => {
@@ -184,12 +197,8 @@ function Resizer({ className, width, onResize }: ResizerProps) {
       }}
       // A cancelled pointer never sends `pointerup`; without this the drag
       // would outlive the press and resize on plain hover.
-      onLostPointerCapture={() => {
-        dragging.current = false
-      }}
-      onPointerUp={() => {
-        dragging.current = false
-      }}
+      onLostPointerCapture={() => drag(false)}
+      onPointerUp={() => drag(false)}
       onKeyDown={(e) => {
         const delta = e.key === 'ArrowLeft' ? STEP : e.key === 'ArrowRight' ? -STEP : 0
         if (!delta) return

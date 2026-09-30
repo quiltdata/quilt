@@ -14,6 +14,11 @@ export const RAIL_WIDTH = '72px'
 // the paper over content that snapped.
 export const MOTION = '@media (prefers-reduced-motion: no-preference)'
 
+// Set on `<body>` while the panel's edge is dragged. `STILL` turns the shared
+// transition off for the drag, or both would trail the pointer.
+export const DRAGGING = 'data-qurator-dragging'
+export const STILL = `body[${DRAGGING}] &`
+
 // Its own module so `Layout` can read the panel's width without importing the
 // chat (and, through Sidebar, back into Layout).
 export const Context = React.createContext<string | null>(null)
