@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
 import noop from 'utils/noop'
@@ -49,8 +49,6 @@ function Provider({ children, value }: ProviderProps) {
 }
 
 describe('containers/Queries/Athena/Database', () => {
-  afterEach(cleanup)
-
   it('should render skeletons', () => {
     const { getAllByTestId } = render(
       <Provider value={emptyState}>
@@ -77,6 +75,24 @@ describe('containers/Queries/Athena/Database', () => {
     )
     expect(getByText('catalog-name-foo')).toBeTruthy()
     expect(getByText('database-bar')).toBeTruthy()
+  })
+
+  it('names each select by its label and value', () => {
+    const { getByRole } = render(
+      <Provider
+        value={{
+          ...emptyState,
+          catalogName: Model.wrapValue('catalog-name-foo', noop),
+          catalogNames: Model.wrapData({ list: ['catalog-name-foo'] }, noop),
+          databases: Model.wrapData({ list: ['database-bar'] }, noop),
+          database: Model.wrapValue('database-bar', noop),
+        }}
+      >
+        <Database />
+      </Provider>,
+    )
+    expect(getByRole('button', { name: 'Data catalog catalog-name-foo' })).toBeTruthy()
+    expect(getByRole('button', { name: 'Database database-bar' })).toBeTruthy()
   })
 
   it('should show no value (zero-width space) if selected no value', () => {
