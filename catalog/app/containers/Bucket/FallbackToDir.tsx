@@ -53,7 +53,18 @@ function useIsDirectory(handle: Model.S3.S3ObjectLocation, proceed: boolean) {
 
 function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
   const isObject = useIsObject(handle)
-  const isDirectory = useIsDirectory(handle, !isObject)
+  const headDenied =
+    isObject instanceof Error && (isObject as { code?: string }).code === 'Forbidden'
+  const isDirectory = useIsDirectory(handle, !isObject || headDenied)
+
+  // A denied head can't tell a file from a folder, so the listing decides; if
+  // that is denied too, the File page reports it below its breadcrumbs.
+  if (headDenied) {
+    if (isDirectory === Request.Idle || isDirectory === Request.Loading) {
+      return isDirectory
+    }
+    return isDirectory === true ? Dir : File
+  }
 
   if (
     isObject === Request.Idle ||
