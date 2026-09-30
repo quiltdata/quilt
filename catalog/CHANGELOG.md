@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] With Developer Tools open, Qurator's two close buttons no longer share an X, and each names what it closes on hover and to screen readers ([#PR](https://github.com/quiltdata/quilt/pull/PR))
 - [Fixed] Bucket directory listings keep their page in the URL, so Back from a file, a reload or a shared link returns to the same page instead of the first ([#5378](https://github.com/quiltdata/quilt/pull/5378))
 - [Fixed] Screen readers announce the labels of the Qurator chat input, the package dialog's name, message and workflow fields, and the Athena workgroup, data catalog and database selects ([#5377](https://github.com/quiltdata/quilt/pull/5377))
 - [Fixed] Preview: a file the preview service cannot read, such as a CSV named `.parquet`, shows the service's reason instead of a generic error ([#5376](https://github.com/quiltdata/quilt/pull/5376))

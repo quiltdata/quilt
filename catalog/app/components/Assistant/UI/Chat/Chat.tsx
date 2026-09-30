@@ -479,13 +479,15 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
         </M.IconButton>
       </M.Fade>
       <M.Fade in={devToolsOpen}>
+        {/* Not `close`: it sits beside Qurator's own close button. The chevron
+            points the way the tools slide back. */}
         <M.Tooltip title="Close Developer Tools">
           <M.IconButton
-            aria-label="close"
+            aria-label="Close Developer Tools"
             onClick={onToggleDevTools}
             className={className}
           >
-            <M.Icon>close</M.Icon>
+            <M.Icon>expand_less</M.Icon>
           </M.IconButton>
         </M.Tooltip>
       </M.Fade>
@@ -719,14 +721,16 @@ export default function Chat({
           <div className={classes.title}>Qurator</div>
           <div className={classes.subtitle}>Claude, with your permissions</div>
         </div>
-        <M.IconButton
-          className={classes.close}
-          onClick={onClose}
-          size="small"
-          aria-label="Close Qurator"
-        >
-          <M.Icon>close</M.Icon>
-        </M.IconButton>
+        <M.Tooltip title="Close Qurator">
+          <M.IconButton
+            className={classes.close}
+            onClick={onClose}
+            size="small"
+            aria-label="Close Qurator"
+          >
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </M.Tooltip>
       </div>
       <Menu
         state={state}
