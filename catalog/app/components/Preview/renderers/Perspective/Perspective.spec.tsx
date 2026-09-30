@@ -90,9 +90,23 @@ describe('components/Preview/renderers/Perspective boundary', () => {
 
     // the fallback replaces the container, so anything the caller put on it --
     // accessibility attributes, handlers, styling hooks -- has to survive
-    const { getByLabelText } = renderPerspective({ 'aria-label': 'Tabular preview' })
+    const { getByLabelText } = renderPerspective({
+      'aria-label': 'Tabular preview',
+    })
 
     expect(getByLabelText('Tabular preview')).toBeTruthy()
+  })
+
+  it('skips the table when the lambda sent metadata only', () => {
+    // the lambda's metadata-only table has no record batches, so loading it throws
+    const { getByText, getByTestId, queryByText } = renderPerspective({
+      metaOnly: true,
+    })
+
+    expect(use).not.toHaveBeenCalled()
+    expect(getByText('This file is too large for a tabular preview')).toBeTruthy()
+    expect(getByTestId('json')).toBeTruthy()
+    expect(queryByText('Could not render tabular data')).toBeNull()
   })
 
   it('renders the toolbar when the table loads', () => {
