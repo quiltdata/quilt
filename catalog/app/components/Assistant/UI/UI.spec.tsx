@@ -232,6 +232,93 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(api.hide).toHaveBeenCalled()
   })
 
+  describe('resizing', () => {
+    const KEY = 'QURATOR_PANEL_WIDTH'
+    // jsdom's viewport is 1024px wide: the default is 50vw, the cap 70vw.
+    const DEFAULT = 512
+    const MAX = 717
+
+    afterEach(() => {
+      localStorage.clear()
+      vi.restoreAllMocks()
+      vi.unstubAllGlobals()
+    })
+
+    function renderOpen() {
+      const api = makeAPI()
+      api.visible = true
+      useAssistantAPI.mockReturnValue(api)
+      return render(
+        <WithAssistantUI>
+          <Reflow />
+        </WithAssistantUI>,
+      )
+    }
+
+    it('offers a keyboard-operable vertical separator on the open docked panel', () => {
+      const { getByRole, getByTestId } = renderOpen()
+      const handle = getByRole('separator', { name: 'Resize Qurator' })
+      expect(handle.getAttribute('aria-orientation')).toBe('vertical')
+      expect(handle.getAttribute('aria-valuenow')).toBe(String(DEFAULT))
+      fireEvent.keyDown(handle, { key: 'ArrowLeft' })
+      expect(handle.getAttribute('aria-valuenow')).toBe(String(DEFAULT + 32))
+      expect(getByTestId('reflow').textContent).toBe(
+        `clamp(320px, ${DEFAULT + 32}px, 70vw)`,
+      )
+      expect(localStorage.getItem(KEY)).toBe(String(DEFAULT + 32))
+    })
+
+    it('follows the pointer from the paper edge', () => {
+      // jsdom has no PointerEvent, and a plain Event drops `clientX`.
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? MouseEvent)
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        right: 1024,
+      } as DOMRect)
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 624 })
+      fireEvent.pointerUp(handle, { pointerId: 1 })
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 524 })
+      expect(handle.getAttribute('aria-valuenow')).toBe('400')
+    })
+
+    it('clamps to the minimum and to a share of the viewport', () => {
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      for (let i = 0; i < 20; i++) fireEvent.keyDown(handle, { key: 'ArrowRight' })
+      expect(localStorage.getItem(KEY)).toBe('320')
+      for (let i = 0; i < 20; i++) fireEvent.keyDown(handle, { key: 'ArrowLeft' })
+      expect(localStorage.getItem(KEY)).toBe(String(MAX))
+      expect(handle.getAttribute('aria-valuemax')).toBe(String(MAX))
+    })
+
+    it('restores the saved width on the next load', () => {
+      localStorage.setItem(KEY, '480')
+      const { getByRole, getByTestId } = renderOpen()
+      expect(getByRole('separator').getAttribute('aria-valuenow')).toBe('480')
+      expect(getByTestId('reflow').textContent).toBe('clamp(320px, 480px, 70vw)')
+    })
+
+    it('falls back to the default width when storage is unreadable', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('SecurityError')
+      })
+      const { getByTestId } = renderOpen()
+      expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
+    })
+
+    it('offers no handle on the rail or the overlay', () => {
+      useAssistantAPI.mockReturnValue(makeAPI())
+      render(<WithAssistantUI />)
+      expect(document.querySelector('[role=separator]')).toBeFalsy()
+      cleanup()
+      narrowViewport()
+      renderOpen()
+      expect(document.querySelector('[role=separator]')).toBeFalsy()
+    })
+  })
+
   it('offers the rail button as the only affordance, with no second trigger', () => {
     useAssistantAPI.mockReturnValue(makeAPI())
     const { getAllByRole, getByLabelText } = render(<WithAssistantUI />)

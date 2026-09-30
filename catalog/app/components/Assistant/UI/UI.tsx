@@ -14,6 +14,52 @@ import { MOTION, PANEL_WIDTH, RAIL_WIDTH, Context as ReflowContext } from './Pan
 // button names it, and `aria-controls` must resolve to something on screen.
 const PANEL_ID = 'qurator-panel'
 
+const MIN_WIDTH = 320
+const MAX_VW = 70
+const STEP = 32
+const WIDTH_KEY = 'QURATOR_PANEL_WIDTH'
+
+const clampWidth = (px: number, viewport: number) =>
+  Math.round(Math.max(MIN_WIDTH, Math.min(px, (viewport * MAX_VW) / 100)))
+
+// The CSS clamp re-applies the bounds as the viewport changes after a resize.
+const widthCss = (px: number | null) =>
+  px == null ? PANEL_WIDTH : `clamp(${MIN_WIDTH}px, ${px}px, ${MAX_VW}vw)`
+
+// Private windows and blocked site data make `localStorage` throw on access.
+function loadWidth(): number | null {
+  try {
+    const px = Number(localStorage.getItem(WIDTH_KEY))
+    return Number.isFinite(px) && px > 0 ? px : null
+  } catch {
+    return null
+  }
+}
+
+function saveWidth(px: number) {
+  try {
+    localStorage.setItem(WIDTH_KEY, String(px))
+  } catch {
+    // Unpersisted, the width still holds for this page load.
+  }
+}
+
+// `PANEL_WIDTH` in pixels, for the separator's value before any resize.
+function defaultWidth() {
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  return Math.round(Math.min(40 * rem, window.innerWidth / 2))
+}
+
+function usePanelWidth() {
+  const [width, setWidth] = React.useState(loadWidth)
+  const resize = React.useCallback((px: number) => {
+    const clamped = clampWidth(px, window.innerWidth)
+    setWidth(clamped)
+    saveWidth(clamped)
+  }, [])
+  return [width, resize] as const
+}
+
 // The left rail drops to an overlay at the same threshold: under 960px a
 // 40rem panel would leave no content column to reflow.
 const useCompact = () => {
@@ -80,6 +126,23 @@ const usePanelStyles = M.makeStyles((t) => ({
       width: 'min(40rem, 100vw)',
     },
   },
+  resizer: {
+    bottom: 0,
+    cursor: 'col-resize',
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    touchAction: 'none',
+    width: t.spacing(1),
+    zIndex: 2,
+    '&:hover': {
+      background: t.palette.primary.main,
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
+  },
   rail: {
     alignItems: 'center',
     display: 'flex',
@@ -88,13 +151,64 @@ const usePanelStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface ResizerProps {
+  className: string
+  width: number | null
+  onResize: (px: number) => void
+}
+
+function Resizer({ className, width, onResize }: ResizerProps) {
+  const dragging = React.useRef(false)
+  const now = clampWidth(width ?? defaultWidth(), window.innerWidth)
+  // The paper is anchored right, so its width is its right edge minus the pointer.
+  const edge = (el: HTMLElement) => el.parentElement!.getBoundingClientRect().right
+  return (
+    <div
+      className={className}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize Qurator"
+      aria-controls={PANEL_ID}
+      aria-valuemin={MIN_WIDTH}
+      aria-valuemax={clampWidth(Infinity, window.innerWidth)}
+      aria-valuenow={now}
+      tabIndex={0}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return
+        e.preventDefault()
+        dragging.current = true
+        e.currentTarget.setPointerCapture?.(e.pointerId)
+      }}
+      onPointerMove={(e) => {
+        if (dragging.current) onResize(edge(e.currentTarget) - e.clientX)
+      }}
+      // A cancelled pointer never sends `pointerup`; without this the drag
+      // would outlive the press and resize on plain hover.
+      onLostPointerCapture={() => {
+        dragging.current = false
+      }}
+      onPointerUp={() => {
+        dragging.current = false
+      }}
+      onKeyDown={(e) => {
+        const delta = e.key === 'ArrowLeft' ? STEP : e.key === 'ArrowRight' ? -STEP : 0
+        if (!delta) return
+        e.preventDefault()
+        onResize(now + delta)
+      }}
+    />
+  )
+}
+
 interface PanelProps {
   api: NonNullable<ReturnType<typeof Model.useAssistantAPI>>
   compact: boolean
   open: boolean
+  width: number | null
+  onResize: (px: number) => void
 }
 
-function Panel({ api, compact, open }: PanelProps) {
+function Panel({ api, compact, open, width, onResize }: PanelProps) {
   const classes = usePanelStyles()
   const instant = useInstant()
   const railRef = React.useRef<HTMLButtonElement>(null)
@@ -112,7 +226,10 @@ function Panel({ api, compact, open }: PanelProps) {
         variant={compact ? 'temporary' : 'permanent'}
         open={open}
         onClose={api.hide}
-        PaperProps={{ id: PANEL_ID }}
+        PaperProps={{
+          id: PANEL_ID,
+          style: open && !compact ? { width: widthCss(width) } : undefined,
+        }}
         classes={{
           paper: cx(
             classes.paper,
@@ -124,6 +241,9 @@ function Panel({ api, compact, open }: PanelProps) {
         // SlideProps last.
         SlideProps={{ timeout: instant ? 0 : undefined }}
       >
+        {open && !compact && (
+          <Resizer className={classes.resizer} width={width} onResize={onResize} />
+        )}
         {expanded ? (
           <Chat
             state={api.state}
@@ -165,12 +285,15 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   // gutter for a second copy of the same conversation.
   const present = !!api && !inlined
   const open = present && !!api?.visible
+  const [width, resize] = usePanelWidth()
   return (
     <ReflowContext.Provider
-      value={present && !compact ? (open ? PANEL_WIDTH : RAIL_WIDTH) : null}
+      value={present && !compact ? (open ? widthCss(width) : RAIL_WIDTH) : null}
     >
       {children}
-      {!inlined && api && <Panel api={api} compact={compact} open={open} />}
+      {!inlined && api && (
+        <Panel api={api} compact={compact} open={open} width={width} onResize={resize} />
+      )}
     </ReflowContext.Provider>
   )
 }
