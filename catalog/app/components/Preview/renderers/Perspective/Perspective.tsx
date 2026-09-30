@@ -125,6 +125,8 @@ export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>, PerspectiveOptions {
   data: perspective.PerspectiveInput
   meta?: ParquetMetadata | H5adMetadata | PackageMetadata
+  // The lambda sent metadata and an empty table, because the file is too big
+  metaOnly?: boolean
   onLoadMore?: () => void
   onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
@@ -135,6 +137,7 @@ function PerspectiveTable({
   className,
   data,
   meta,
+  metaOnly,
   onLoadMore,
   onRender,
   truncated,
@@ -178,6 +181,7 @@ function ErrorFallback({
   config,
   data,
   meta,
+  metaOnly,
   onLoadMore,
   onRender,
   truncated,
@@ -188,13 +192,16 @@ function ErrorFallback({
     <div className={cx(className, classes.root)} {...props}>
       {!!meta && <Metadata className={classes.meta} metadata={meta} />}
       <Lab.Alert className={classes.warning} severity="info" icon={false}>
-        Could not render tabular data
+        {metaOnly
+          ? 'This file is too large for a tabular preview'
+          : 'Could not render tabular data'}
       </Lab.Alert>
     </div>
   )
 }
 
 export default function Perspective(props: PerspectiveProps) {
+  if (props.metaOnly) return <ErrorFallback {...props} />
   return (
     <ErrorBoundary
       resetKeys={[props.data]}

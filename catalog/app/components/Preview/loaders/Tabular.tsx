@@ -90,9 +90,11 @@ export interface PackageMetadata {
   message?: string
 }
 
-function getQuiltInfo(
-  headers: Headers,
-): { meta?: ParquetMetadata | H5adMetadata; truncated: boolean } | null {
+function getQuiltInfo(headers: Headers): {
+  meta?: ParquetMetadata | H5adMetadata
+  meta_only?: boolean
+  truncated: boolean
+} | null {
   try {
     const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
@@ -130,6 +132,7 @@ interface LoadTabularDataArgs {
 interface TabularDataOutput {
   csv: ArrayBuffer | string
   meta: ParquetMetadata | H5adMetadata | null
+  metaOnly: boolean
   size: number | null
   truncated: boolean
 }
@@ -163,6 +166,7 @@ export const loadTabularData = async ({
     return {
       csv,
       meta: quiltInfo?.meta || null,
+      metaOnly: !!quiltInfo?.meta_only,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
@@ -226,12 +230,13 @@ export const Loader = function TabularLoader({
   // TODO: get correct sizes from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, meta, truncated }: TabularDataOutput) =>
+    ({ csv, meta, metaOnly, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         data: csv,
         handle,
         modes: [FileType.Tabular, FileType.Text],
         meta,
+        metaOnly,
         onLoadMore: showLoadMore(truncated) ? onLoadMore : null,
         truncated,
       }),
