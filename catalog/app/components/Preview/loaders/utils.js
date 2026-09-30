@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import cfg from 'constants/config'
+import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Data from 'utils/Data'
@@ -115,7 +116,7 @@ export function useObjectGetter(handle, opts) {
   return Data.use(getObject, { s3, handle }, opts)
 }
 
-const fetchPreview = async ({ handle, sign, type, compression, query }) => {
+export const fetchPreview = async ({ handle, sign, type, compression, query }) => {
   const url = sign(handle)
   const r = await fetch(
     `${cfg.apiGatewayEndpoint}/preview${mkSearch({
@@ -125,6 +126,7 @@ const fetchPreview = async ({ handle, sign, type, compression, query }) => {
       ...query,
     })}`,
   )
+  if (r.status >= 500) throw new HTTPError(r, await r.text())
   const json = await r.json()
   if (json.error) {
     if (json.error === 'Not Found') {
@@ -197,7 +199,13 @@ export function useErrorHandling(result, { handle, retry } = {}) {
           console.log('error while loading preview')
           // eslint-disable-next-line no-console
           console.error(e)
-          return PreviewError.Unexpected({ handle, retry, originalError: e })
+          // A lambda's 5xx body is the failure's reason, e.g. a malformed file.
+          // It may quote the signed URL, whose query carries live credentials.
+          const message =
+            HTTPError.is(e) && e.status >= 500 && e.text
+              ? e.message.replace(/\?[^\s'"(),]*X-Amz-[^\s'"(),]*/gi, '')
+              : undefined
+          return PreviewError.Unexpected({ handle, retry, message, originalError: e })
         }),
       }),
     ),
