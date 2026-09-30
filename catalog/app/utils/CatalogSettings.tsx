@@ -1,8 +1,10 @@
 import type { S3 } from 'aws-sdk'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
+import * as authSelectors from 'containers/Auth/selectors'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Cache from 'utils/ResourceCache'
@@ -141,8 +143,10 @@ function sameDocument(a: CatalogSettings | null, b: CatalogSettings | null) {
 const CatalogSettingsResource = Cache.createResource({
   name: 'CatalogSettings.config',
   fetch: fetchSettings,
+  // The document is read with the signed-in user's credentials, so a private
+  // stack returns nothing before sign-in; keying on the user refetches after it.
   // @ts-expect-error
-  key: () => null,
+  key: ({ username }: { username?: string | null }) => username ?? null,
 })
 
 function format(settings: CatalogSettings) {
@@ -206,6 +210,7 @@ export function useUploadFile() {
 export function useWriteSettings() {
   const s3 = AWS.S3.use()
   const cache = Cache.use()
+  const username = redux.useSelector(authSelectors.username)
 
   return React.useCallback(
     async (settings: CatalogSettings, expected?: CatalogSettings | null) => {
@@ -221,17 +226,18 @@ export function useWriteSettings() {
       await s3
         .putObject({ Bucket: cfg.serviceBucket, Key: CONFIG_KEY, Body: body })
         .promise()
-      cache.patchOk(CatalogSettingsResource, null, () => settings)
+      cache.patchOk(CatalogSettingsResource, { username }, () => settings)
     },
-    [s3, cache],
+    [s3, cache, username],
   )
 }
 
 export function useCatalogSettings() {
   const s3 = AWS.S3.use()
+  const username = redux.useSelector(authSelectors.username)
   return Cache.useData(
     CatalogSettingsResource,
-    { s3 },
+    { s3, username },
     { suspend: true },
   ) as CatalogSettings | null
 }
