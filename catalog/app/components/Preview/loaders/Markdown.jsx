@@ -30,11 +30,11 @@ function useImgProcessor(handle) {
       Resource.Pointer.case({
         Web: (url) => url,
         S3: ({ bucket, key, version }) =>
-          sign({ bucket: bucket || handle.bucket, key: decode(key), version }),
+          sign({ bucket: bucket || handle.bucket, key, version }),
         S3Rel: (path) =>
-          sign({ bucket: handle.bucket, key: resolveKey(handle.key, decode(path)) }),
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
         Path: (path) =>
-          sign({ bucket: handle.bucket, key: resolveKey(handle.key, decode(path)) }),
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
       }),
     ),
   )
@@ -49,9 +49,9 @@ function useLinkProcessor(handle) {
       Resource.Pointer.case({
         Web: (url) => url,
         S3: ({ bucket, key, version }) =>
-          sign({ bucket: bucket || handle.bucket, key: decode(key), version }),
+          sign({ bucket: bucket || handle.bucket, key, version }),
         S3Rel: (path) =>
-          sign({ bucket: handle.bucket, key: resolveKey(handle.key, decode(path)) }),
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
         Path: (p) => {
           const hasSlash = p.endsWith('/')
           const resolved = resolve(dirname(handle.key), decode(p)).slice(1)

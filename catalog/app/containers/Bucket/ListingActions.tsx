@@ -266,7 +266,7 @@ function useMatchedParams(to: string) {
         return {
           handle: {
             bucket: params.bucket,
-            name: params.name,
+            name: s3paths.decode(params.name),
           },
           revision: params.hash || 'latest',
           path: params.path,
