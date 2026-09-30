@@ -226,7 +226,9 @@ export function useWriteSettings() {
       await s3
         .putObject({ Bucket: cfg.serviceBucket, Key: CONFIG_KEY, Body: body })
         .promise()
-      cache.patchOk(CatalogSettingsResource, { username }, () => settings)
+      // Silent: a sign-out during the PUT can release this user's entry, and the
+      // write has already landed.
+      cache.patchOk(CatalogSettingsResource, { username }, () => settings, true)
     },
     [s3, cache, username],
   )
