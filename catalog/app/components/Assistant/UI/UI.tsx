@@ -66,10 +66,10 @@ function defaultWidth() {
 
 function usePanelWidth() {
   const [width, setWidth] = React.useState(loadWidth)
-  const resize = React.useCallback((px: number) => {
+  const resize = React.useCallback((px: number, persist = true) => {
     const clamped = clampWidth(px, window.innerWidth)
     setWidth(clamped)
-    saveWidth(clamped)
+    if (persist) saveWidth(clamped)
   }, [])
   return [width, resize] as const
 }
@@ -169,16 +169,25 @@ const usePanelStyles = M.makeStyles((t) => ({
 interface ResizerProps {
   className: string
   width: number | null
-  onResize: (px: number) => void
+  onResize: (px: number, persist?: boolean) => void
 }
 
 function Resizer({ className, width, onResize }: ResizerProps) {
   const dragging = React.useRef(false)
+  const dragged = React.useRef<number | null>(null)
   const drag = (on: boolean) => {
+    if (!on && dragging.current && dragged.current != null) onResize(dragged.current)
     dragging.current = on
+    dragged.current = null
     document.body.toggleAttribute(DRAGGING, on)
   }
   React.useEffect(() => () => document.body.removeAttribute(DRAGGING), [])
+  // `now` and the max read the viewport, which the CSS clamp follows unprompted.
+  const [, rerender] = React.useReducer((n: number) => n + 1, 0)
+  React.useEffect(() => {
+    window.addEventListener('resize', rerender)
+    return () => window.removeEventListener('resize', rerender)
+  }, [])
   const now = clampWidth(width ?? defaultWidth(), window.innerWidth)
   // The paper is anchored right, so its width is its right edge minus the pointer.
   const edge = (el: HTMLElement) => el.parentElement!.getBoundingClientRect().right
@@ -200,7 +209,9 @@ function Resizer({ className, width, onResize }: ResizerProps) {
         e.currentTarget.setPointerCapture?.(e.pointerId)
       }}
       onPointerMove={(e) => {
-        if (dragging.current) onResize(edge(e.currentTarget) - e.clientX)
+        if (!dragging.current) return
+        dragged.current = edge(e.currentTarget) - e.clientX
+        onResize(dragged.current, false)
       }}
       // A cancelled pointer never sends `pointerup`; without this the drag
       // would outlive the press and resize on plain hover.
@@ -221,8 +232,11 @@ interface PanelProps {
   compact: boolean
   open: boolean
   width: number | null
-  onResize: (px: number) => void
+  onResize: (px: number, persist?: boolean) => void
 }
+
+// A drag re-renders the panel on every move; the conversation needn't follow.
+const MemoChat = React.memo(Chat)
 
 function Panel({ api, compact, open, width, onResize }: PanelProps) {
   const classes = usePanelStyles()
@@ -261,7 +275,7 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
           <Resizer className={classes.resizer} width={width} onResize={onResize} />
         )}
         {expanded ? (
-          <Chat
+          <MemoChat
             state={api.state}
             dispatch={api.dispatch}
             devTools={api.devTools}

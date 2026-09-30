@@ -279,8 +279,10 @@ describe('components/Assistant/UI WithAssistantUI', () => {
       fireEvent.pointerDown(handle, { pointerId: 1 })
       fireEvent.pointerMove(handle, { pointerId: 1, clientX: 624 })
       expect(document.body.hasAttribute('data-qurator-dragging')).toBe(true)
+      expect(localStorage.getItem(KEY)).toBeNull()
       fireEvent.pointerUp(handle, { pointerId: 1 })
       expect(document.body.hasAttribute('data-qurator-dragging')).toBe(false)
+      expect(localStorage.getItem(KEY)).toBe('400')
       fireEvent.pointerMove(handle, { pointerId: 1, clientX: 524 })
       expect(handle.getAttribute('aria-valuenow')).toBe('400')
     })
@@ -302,6 +304,16 @@ describe('components/Assistant/UI WithAssistantUI', () => {
       expect(getByTestId('reflow').textContent).toBe(
         'clamp(320px, 480px, min(70vw, 100vw - 480px))',
       )
+    })
+
+    it('follows the viewport as the window resizes', () => {
+      localStorage.setItem(KEY, '480')
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      vi.stubGlobal('innerWidth', 800)
+      fireEvent(window, new Event('resize'))
+      expect(handle.getAttribute('aria-valuemax')).toBe('320')
+      expect(handle.getAttribute('aria-valuenow')).toBe('320')
     })
 
     it('falls back to the default width when storage is unreadable', () => {
