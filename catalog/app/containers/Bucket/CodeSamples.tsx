@@ -21,7 +21,7 @@ export function Quilt3List({ className, bucket, path }: SampleProps) {
       className={className}
       label="List files in a directory using Quilt3 Python API"
       hl="python"
-      help={`${docs}/quilt-python-sdk-developers/api-reference/bucket#bucket.ls`}
+      help={`${docs}/quilt-python-sdk/api-reference/bucket#bucket.ls`}
       lines={[
         'import quilt3 as q3',
         `b = q3.Bucket("s3://${bucket}")`,
@@ -37,7 +37,7 @@ export function Quilt3Fetch({ className, bucket, path, dest }: FetchSampleProps)
       className={className}
       label="Download using Quilt3 Python API"
       hl="python"
-      help={`${docs}/quilt-python-sdk-developers/api-reference/bucket#bucket.fetch`}
+      help={`${docs}/quilt-python-sdk/api-reference/bucket#bucket.fetch`}
       lines={[
         'import quilt3 as q3',
         `b = q3.Bucket("s3://${bucket}")`,

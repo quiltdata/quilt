@@ -26,7 +26,10 @@ const CreatePackage = React.lazy(() => import('./CreatePackage'))
 function SeeDocsForCreatingPackage() {
   return (
     <M.Tooltip title="You can create packages from the query results. Click to see the docs.">
-      <a href="https://docs.quilt.bio/advanced/athena" target="_blank">
+      <a
+        href="https://docs.quilt.bio/quilt-platform-catalog-user/advanced/athena"
+        target="_blank"
+      >
         <M.IconButton size="small">
           <M.Icon>help_outline</M.Icon>
         </M.IconButton>
