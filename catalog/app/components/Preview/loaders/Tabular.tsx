@@ -152,7 +152,7 @@ const loadTabularData = async ({
   )
   try {
     if (r.status >= 400) {
-      throw new HTTPError(r)
+      throw new HTTPError(r, await r.text())
     }
 
     const csv = await getCsvFromResponse(r)

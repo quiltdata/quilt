@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Preview: a file the preview service cannot read, such as a CSV named `.parquet`, shows the service's reason instead of a generic error ([##PR](https://github.com/quiltdata/quilt/pull/#PR))
 - [Fixed] Admin users and roles: clicking a user whose name contains `@` opens their page instead of reporting no such user ([#5364](https://github.com/quiltdata/quilt/pull/5364))
 - [Fixed] Qurator says when it cannot read a large PDF or Office document, instead of answering from metadata or search hits as though it had read the file ([#5368](https://github.com/quiltdata/quilt/pull/5368))
 - [Changed] Qurator issues its model call through the registry's inference relay instead of calling Bedrock from the browser, so a deployment can route inference through a customer-operated AI gateway whose credential never reaches the client ([#5334](https://github.com/quiltdata/quilt/pull/5334))

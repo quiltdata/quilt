@@ -1,9 +1,12 @@
 import { renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
+import { HTTPError } from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 
-import { useProcessing } from './utils'
+import { PreviewError } from '../types'
+
+import { useErrorHandling, useProcessing } from './utils'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -44,6 +47,38 @@ describe('Preview/loaders/utils', () => {
         result.current != null &&
         AsyncResult.case({ Err: () => true, _: () => false }, result.current)
       expect(producedErr).toBe(false)
+    })
+  })
+
+  describe('useErrorHandling', () => {
+    it("shows a lambda's 5xx reason instead of the generic message", () => {
+      const e = new HTTPError(
+        { status: 500, statusText: 'Internal Server Error' },
+        'Parquet magic bytes not found in footer',
+      )
+      const { result } = renderHook(() => useErrorHandling(AsyncResult.Err(e)))
+      const err = AsyncResult.case(
+        { Err: (x: unknown) => x, _: () => null },
+        result.current,
+      )
+      expect(PreviewError.Unexpected.unbox(err).message).toBe(
+        'Parquet magic bytes not found in footer',
+      )
+    })
+
+    it('drops the signed query from a URL the reason quotes', () => {
+      const e = new HTTPError(
+        { status: 500, statusText: 'Internal Server Error' },
+        "FileNotFoundError('https://b/k.parquet?X-Amz-Signature=s1'); url: /k.csv?X-Amz-Signature=s2",
+      )
+      const { result } = renderHook(() => useErrorHandling(AsyncResult.Err(e)))
+      const err = AsyncResult.case(
+        { Err: (x: unknown) => x, _: () => null },
+        result.current,
+      )
+      expect(PreviewError.Unexpected.unbox(err).message).toBe(
+        "FileNotFoundError('https://b/k.parquet'); url: /k.csv",
+      )
     })
   })
 })
