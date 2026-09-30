@@ -401,8 +401,12 @@ export function make(options: McpClientOptions): McpClient {
         }),
       )
 
-      // Notifications get 202 Accepted with no body.
-      if (resp.status === 202) return null
+      // Notifications get 202 Accepted with no body. Read it anyway: an
+      // unread response is aborted when collected, which logs a failed request.
+      if (resp.status === 202) {
+        yield* Eff.Effect.ignore(resp.text)
+        return null
+      }
 
       // 401/403: token missing/expired/revoked. Surface as auth error so
       // the connector layer doesn't bump health and trigger a futile
