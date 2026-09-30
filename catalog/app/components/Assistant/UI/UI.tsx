@@ -23,15 +23,22 @@ const PANEL_ID = 'qurator-panel'
 
 const MIN_WIDTH = 320
 const MAX_VW = 70
+// The expanded left rail (256px) plus the content column the default panel
+// leaves at the docking breakpoint: a wider panel squeezes the page to nothing.
+const RESERVE = 480
 const STEP = 32
 const WIDTH_KEY = 'QURATOR_PANEL_WIDTH'
 
 const clampWidth = (px: number, viewport: number) =>
-  Math.round(Math.max(MIN_WIDTH, Math.min(px, (viewport * MAX_VW) / 100)))
+  Math.round(
+    Math.max(MIN_WIDTH, Math.min(px, (viewport * MAX_VW) / 100, viewport - RESERVE)),
+  )
 
 // The CSS clamp re-applies the bounds as the viewport changes after a resize.
 const widthCss = (px: number | null) =>
-  px == null ? PANEL_WIDTH : `clamp(${MIN_WIDTH}px, ${px}px, ${MAX_VW}vw)`
+  px == null
+    ? PANEL_WIDTH
+    : `clamp(${MIN_WIDTH}px, ${px}px, min(${MAX_VW}vw, 100vw - ${RESERVE}px))`
 
 // Private windows and blocked site data make `localStorage` throw on access.
 function loadWidth(): number | null {

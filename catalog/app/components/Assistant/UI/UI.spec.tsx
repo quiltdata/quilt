@@ -234,9 +234,9 @@ describe('components/Assistant/UI WithAssistantUI', () => {
 
   describe('resizing', () => {
     const KEY = 'QURATOR_PANEL_WIDTH'
-    // jsdom's viewport is 1024px wide: the default is 50vw, the cap 70vw.
+    // jsdom's viewport is 1024px wide: the default is 50vw, the cap 1024 - 480.
     const DEFAULT = 512
-    const MAX = 717
+    const MAX = 544
 
     afterEach(() => {
       localStorage.clear()
@@ -263,7 +263,7 @@ describe('components/Assistant/UI WithAssistantUI', () => {
       fireEvent.keyDown(handle, { key: 'ArrowLeft' })
       expect(handle.getAttribute('aria-valuenow')).toBe(String(DEFAULT + 32))
       expect(getByTestId('reflow').textContent).toBe(
-        `clamp(320px, ${DEFAULT + 32}px, 70vw)`,
+        `clamp(320px, ${DEFAULT + 32}px, min(70vw, 100vw - 480px))`,
       )
       expect(localStorage.getItem(KEY)).toBe(String(DEFAULT + 32))
     })
@@ -299,7 +299,9 @@ describe('components/Assistant/UI WithAssistantUI', () => {
       localStorage.setItem(KEY, '480')
       const { getByRole, getByTestId } = renderOpen()
       expect(getByRole('separator').getAttribute('aria-valuenow')).toBe('480')
-      expect(getByTestId('reflow').textContent).toBe('clamp(320px, 480px, 70vw)')
+      expect(getByTestId('reflow').textContent).toBe(
+        'clamp(320px, 480px, min(70vw, 100vw - 480px))',
+      )
     })
 
     it('falls back to the default width when storage is unreadable', () => {
