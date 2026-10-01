@@ -1,22 +1,47 @@
 #!/usr/bin/env bash
-# Rebuild $TARGET as master plus each PR number given on stdin, in order.
-# A PR that conflicts is left out and reported; the rest still land.
+# Rebuild $TARGET as master plus every labelled PR described on stdin.
+# Input: one open PR per line, tab-separated: number, head branch, base branch,
+# and 1 if labelled dev-preview (0 otherwise). Unlabelled PRs only serve as links
+# in a stack: a labelled PR may be based on another open PR's branch, as long as
+# that chain reaches master; its commits then carry the PRs below it.
+# A PR that conflicts or whose stack is broken is left out and reported, both in
+# the report and as `number<TAB>reason` lines in $SKIPPED; the rest still land.
 # Writes the result to $TARGET locally; the caller decides whether to push.
 set -euo pipefail
 
 : "${TARGET:?}"
 REMOTE="${REMOTE:-origin}"
 REPORT="${REPORT:-/dev/stdout}"
+SKIPPED="${SKIPPED:-/dev/null}"
 
 git fetch --quiet "$REMOTE" master
 git checkout --quiet -B "$TARGET" "$REMOTE/master"
 
 # pr:file lines for every PR merged so far, to name who a conflict is with.
-touched="$(mktemp)"
+touched="$(mktemp)"; prs="$(mktemp)"; trap 'rm -f "$touched" "$prs"' EXIT
 included=() skipped=()
+: > "$SKIPPED"
+skip() { skipped+=("#$1 ($2)"); printf '%s\t%s\n' "$1" "$2" >> "$SKIPPED"; }
 
-while read -r pr; do
+cat > "$prs"
+# Each labelled PR's depth in its stack (0 = based on master), or the branch the
+# chain breaks at. Applied shallowest first, so a stack lands bottom-up.
+order="$(awk -F'\t' '
+  { head[$2] = $1; base[$1] = $3; lab[$1] = $4 }
+  END {
+    for (pr in lab) if (lab[pr] == 1) {
+      d = 0; b = base[pr]
+      while (b != "master" && (b in head) && d < 50) { b = base[head[b]]; d++ }
+      print pr "\t" (b == "master" ? d : "broken:" b)
+    }
+  }' "$prs" | sort -t$'\t' -k2,2n -k1,1n)"
+
+while IFS=$'\t' read -r pr depth; do
   [ -n "$pr" ] || continue
+  case "$depth" in broken:*)
+    skip "$pr" "stacked on \`${depth#broken:}\`, which is not master or an open PR's branch; if the PR below it merged, rebase this one onto master"
+    continue ;;
+  esac
   git fetch --quiet "$REMOTE" "pull/$pr/head"
   before="$(git rev-parse HEAD)"
   if git merge --quiet --no-ff --no-edit -m "Merge #$pr into rebuilt $TARGET" FETCH_HEAD >/dev/null; then
@@ -30,12 +55,14 @@ while read -r pr; do
       o="$(awk -v f="$f" '{ i = index($0, ":") } substr($0, i + 1) == f { print "#" substr($0, 1, i - 1) }' "$touched")"
       echo "${o:-master}"
     done | sort -u | paste -sd' ' -)"
-    skipped+=("#$pr (conflicts with $with on: $(printf '%s' "$files" | paste -sd' ' -))")
+    hint="stack it on the overlapping PR's branch, or wait for that PR to merge"
+    [ "$with" != master ] || hint="rebase onto master; if the PR below it just merged, its commits are now on master"
+    skip "$pr" "conflicts with $with on: $(printf '%s' "$files" | paste -sd' ' -) — $hint"
   else
     git reset --hard --quiet
-    skipped+=("#$pr (merge failed; see the log)")
+    skip "$pr" "merge failed; see the rebuild log"
   fi
-done
+done <<< "$order"
 
 {
   echo "Rebuilt \`$TARGET\` = master + ${#included[@]} PR(s): ${included[*]+"${included[*]/#/#}"}"

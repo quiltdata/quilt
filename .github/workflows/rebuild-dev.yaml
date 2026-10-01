@@ -2,7 +2,8 @@ name: Rebuild dev
 
 # `dev` is rebuilt, never merged into: master plus every open same-repo PR
 # labelled `dev-preview`, re-made from scratch on each change. Merging the PR to
-# master is the promotion, so dev cannot drift from master.
+# master is the promotion, so dev cannot drift from master. PRs that overlap are
+# meant to be stacked (each based on the one below), and land bottom-up.
 #
 # Rebuilding the real `dev` force-pushes it, so it stays off until the repo
 # variable REBUILD_DEV_ENABLED is `true`. A `dev-rebuild-*` target can be rebuilt
@@ -10,8 +11,8 @@ name: Rebuild dev
 on:
   push:
     branches: [master]
+  # Any base: a stacked PR targets the branch of the PR below it.
   pull_request_target:
-    branches: [master]
     types: [labeled, unlabeled, synchronize, reopened, closed, edited]
   workflow_dispatch:
     inputs:
@@ -22,7 +23,7 @@ on:
 permissions:
   contents: write
   actions: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   rebuild:
@@ -68,14 +69,31 @@ jobs:
           # Listed to a file, not piped: a failed listing must stop the run, or dev
           # would be force-pushed back to bare master.
           # Label filtered in jq: `--label` goes through search, which lags the
-          # label event that triggered this run.
-          gh pr list --base master --state open --limit 1000 \
-              --json number,isCrossRepository,labels \
-              --jq '[.[] | select((.isCrossRepository | not) and any(.labels[]; .name == "dev-preview")) | .number] | sort | .[]' \
+          # label event that triggered this run. Every base is listed, because
+          # unlabelled PRs can be links in a labelled PR's stack.
+          gh pr list --state open --limit 1000 \
+              --json number,isCrossRepository,labels,headRefName,baseRefName \
+              --jq '.[] | select(.isCrossRepository | not)
+                    | [.number, .headRefName, .baseRefName,
+                       (if any(.labels[]; .name == "dev-preview") then 1 else 0 end)] | @tsv' \
             > "$RUNNER_TEMP/prs"
-          REPORT="$RUNNER_TEMP/report" "$RUNNER_TEMP/rebuild-dev.sh" < "$RUNNER_TEMP/prs" || { rc=$?; [ "$rc" -eq 2 ] || exit "$rc"; conflicts=yes; }
+          REPORT="$RUNNER_TEMP/report" SKIPPED="$RUNNER_TEMP/skipped" \
+            "$RUNNER_TEMP/rebuild-dev.sh" < "$RUNNER_TEMP/prs" || { rc=$?; [ "$rc" -eq 2 ] || exit "$rc"; conflicts=yes; }
           cat "$RUNNER_TEMP/report" | tee -a "$GITHUB_STEP_SUMMARY"
           [ "${conflicts:-}" != yes ] || echo "::warning::Some dev-preview PRs conflict and were left out; see the summary."
+
+          # Tell each left-out PR why, once per head commit: the summary is where
+          # nobody looks. Dry runs stay quiet, and a failed comment never fails dev.
+          if [ "$TARGET" = dev ]; then
+            while IFS=$'\t' read -r pr reason; do
+              {
+                marker="<!-- rebuild-dev:$(gh pr view "$pr" --json headRefOid --jq .headRefOid) -->"
+                gh pr view "$pr" --json comments --jq '.comments[].body' | grep -qF "$marker" \
+                  || gh pr comment "$pr" --body "$marker
+          Left out of the rebuilt \`dev\`: $reason."
+              } || echo "::warning::Could not comment on #$pr."
+            done < "$RUNNER_TEMP/skipped"
+          fi
 
           if [ -n "$old" ] && [ "$(git rev-parse "HEAD^{tree}")" = "$(git rev-parse "$old^{tree}")" ] \
               && git merge-base --is-ancestor origin/master "$old"; then
