@@ -129,6 +129,16 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
       if (isInterleaved(base.shape)) {
         throw new Error('Interleaved RGB OME-Zarr images are not supported yet.')
       }
+      // The tile layer calls this from a promise, so its rethrow of a failed chunk would
+      // be an unhandled rejection and a silently blank tile.
+      const onTileError = base.onTileError.bind(base)
+      base.onTileError = (e: Error) => {
+        try {
+          onTileError(e)
+        } catch (error) {
+          if (!cancelled) setState({ _tag: 'error', error: error as Error })
+        }
+      }
       const channelCount = cIndex === -1 ? 1 : base.shape[cIndex]
       const omero = (loaded.metadata as any).omero
       const plane = defaultPlane(omero, base.shape, base.labels)
