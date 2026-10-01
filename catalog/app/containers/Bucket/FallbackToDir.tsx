@@ -10,7 +10,7 @@ import * as Request from 'utils/useRequest'
 import assertNever from 'utils/assertNever'
 
 import * as requests from './requests'
-import { displayError } from './errors'
+import { AccessDenied, displayError } from './errors'
 
 const Dir = Symbol('dir')
 
@@ -60,7 +60,11 @@ function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
   // A denied head can't tell a file from a folder, so the listing decides; if
   // that is denied too, the File page reports it below its breadcrumbs.
   if (headDenied) {
-    if (isDirectory === Request.Idle || isDirectory === Request.Loading) {
+    if (
+      isDirectory === Request.Idle ||
+      isDirectory === Request.Loading ||
+      (isDirectory instanceof Error && !(isDirectory instanceof AccessDenied))
+    ) {
       return isDirectory
     }
     return isDirectory === true ? Dir : File

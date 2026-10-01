@@ -233,8 +233,8 @@ export const catchErrors = (pairs: ErrorCatcher[] = []) =>
       // A denial is `AccessDenied` when the 403 has a body and `Forbidden` when
       // it has none (HEAD); other 403 codes are credential or clock faults.
       R.propSatisfies(R.includes(R.__, ['AccessDenied', 'Forbidden']), 'code'),
-      () => {
-        throw new AccessDenied()
+      (e: Error) => {
+        throw new AccessDenied(e.message)
       },
     ],
     [
