@@ -9,10 +9,10 @@ export interface ReadableStore {
   getRange(key: string, range: RangeQuery): Promise<Uint8Array | undefined>
 }
 
-// Zarr probes for optional metadata (`.zgroup`, `.zarray`, `zarr.json`), so a missing key
-// must read as `undefined`, not an error. S3 answers 403 rather than 404 when the caller
-// cannot list the bucket.
-const MISSING = [403, 404]
+// Zarr probes for optional metadata, so a missing metadata key must read as `undefined`.
+// S3 answers 403 rather than 404 when the caller cannot list the bucket. A chunk that
+// fails must throw: `undefined` would render as fill value, i.e. silent black tiles.
+const METADATA_RE = /(^|\/)(\.zgroup|\.zattrs|\.zarray|zarr\.json)$/
 
 const rangeHeader = (r: RangeQuery) =>
   'suffixLength' in r
@@ -24,22 +24,28 @@ export function createStore(
   sign: (handle: Model.S3.S3ObjectLocation) => string,
   fetchImpl: typeof fetch = fetch,
 ): ReadableStore {
-  async function read(key: string, init?: RequestInit) {
+  async function read(key: string, range?: RangeQuery) {
+    const path = key.replace(/^\//, '')
     let handle: Model.S3.S3ObjectLocation
     try {
       // ponytail: one logical-key lookup per chunk inside packages; batch via the
       // package dir listing if tile loads are slow on large stores
-      handle = await resolvePath(key.replace(/^\//, ''))
+      handle = await resolvePath(path)
     } catch {
+      // absent from the package: missing metadata, or a sparse chunk never written
       return undefined
     }
+    const init = range && { headers: { Range: rangeHeader(range) } }
     const res = await fetchImpl(sign(handle), init)
-    if (MISSING.includes(res.status)) return undefined
-    if (!res.ok) throw new Error(`Failed to fetch ${key}: ${res.status}`)
+    if (res.status === 404) return undefined
+    if (res.status === 403 && METADATA_RE.test(path)) return undefined
+    if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`)
+    // A proxy that drops Range answers 200 with the whole object, which corrupts shards.
+    if (range && res.status !== 206) throw new Error(`Range not honoured for ${path}`)
     return new Uint8Array(await res.arrayBuffer())
   }
   return {
     get: (key) => read(key),
-    getRange: (key, range) => read(key, { headers: { Range: rangeHeader(range) } }),
+    getRange: (key, range) => read(key, range),
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { detect } from './Zarr'
+import { detect, isImage } from './zarrDetect'
 
 describe('components/Preview/loaders/Zarr', () => {
   it.each(['img.zarr/.zattrs', 'a/b/IMG.ZARR/zarr.json'])('detects %s', (key) => {
@@ -13,4 +13,12 @@ describe('components/Preview/loaders/Zarr', () => {
       expect(detect(key)).toBe(false)
     },
   )
+
+  it('opens the viewer only for multiscale images (v2 or v3 nesting)', () => {
+    expect(isImage('{"multiscales": [{"axes": []}]}')).toBe(true)
+    expect(isImage('{"attributes": {"ome": {"multiscales": []}}}')).toBe(true)
+    expect(isImage('{"zarr_format": 3, "node_type": "group", "attributes": {}}')).toBe(
+      false,
+    )
+  })
 })

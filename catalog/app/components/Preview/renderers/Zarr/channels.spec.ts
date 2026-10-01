@@ -38,6 +38,13 @@ describe('components/Preview/renderers/Zarr/channels', () => {
     expect(channelsFromMetadata(undefined, 20)).toHaveLength(MAX_CHANNELS)
   })
 
+  it('keeps active channels when capping', () => {
+    const channels = Array.from({ length: 8 }, (_, i) => ({ active: i >= 6 }))
+    const picked = channelsFromMetadata({ channels }, 8)
+    expect(picked.map((c) => c.index)).toEqual([0, 1, 2, 3, 6, 7])
+    expect(picked.filter((c) => c.visible)).toHaveLength(2)
+  })
+
   it('opens on the rdefs default plane, clamped to the array', () => {
     const labels = ['c', 'z', 'y', 'x']
     const shape = [2, 236, 275, 271]

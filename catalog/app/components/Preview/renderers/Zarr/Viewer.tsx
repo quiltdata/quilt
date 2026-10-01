@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import {
   getChannelStats,
+  isInterleaved,
   loadOmeZarrFromStore,
   PictureInPictureViewer,
 } from '@hms-dbmi/viv'
@@ -10,12 +11,16 @@ import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 
-import { createPathResolver } from '../../loaders/useSignObjectUrls'
+import * as s3paths from 'utils/s3paths'
 
-import { type Channel, channelsFromMetadata, defaultPlane } from './channels'
+import { type Channel, channelsFromMetadata, defaultPlane, validLimits } from './channels'
 import { createStore } from './store'
 
 const HEIGHT = 600
+
+// Contrast is estimated from the lowest resolution level. A single-resolution store makes
+// that the full image, so above this many pixels fall back to the dtype's range.
+const MAX_STATS_PIXELS = 2048 * 2048
 
 type Loaded = Awaited<ReturnType<typeof loadOmeZarrFromStore>>
 
@@ -53,25 +58,35 @@ const selectionFor = (labels: string[], c: number, plane: Plane) =>
       .map((l) => [l, l === 'c' ? c : (plane[l as keyof Plane] ?? 0)]),
   )
 
+const DTYPE_MAX: Record<string, number> = {
+  Uint8: 255,
+  Int8: 127,
+  Uint16: 65535,
+  Int16: 32767,
+}
+
 async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane) {
   const lowest = loaded.data[loaded.data.length - 1]
+  const [y, x] = lowest.shape.slice(-2)
+  const fallback: [number, number] = [0, DTYPE_MAX[lowest.dtype] ?? 1]
   return Promise.all(
     channels.map(async (ch) => {
       if (ch.contrastLimits) return ch
+      if (y * x > MAX_STATS_PIXELS) return { ...ch, contrastLimits: fallback }
       const { data } = await lowest.getRaster({
         selection: selectionFor(lowest.labels, ch.index, plane),
       })
-      const { contrastLimits } = getChannelStats(data as any)
-      return { ...ch, contrastLimits: contrastLimits as [number, number] }
+      const [start, end] = getChannelStats(data as any).contrastLimits
+      return { ...ch, contrastLimits: validLimits(start, end) ?? fallback }
     }),
   )
 }
 
 export interface ViewerProps {
-  handle: Model.S3.S3ObjectLocation
+  handle: LogicalKeyResolver.S3SummarizeHandle
 }
 
-export default function Viewer({ handle }: ViewerProps) {
+export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerProps) {
   const classes = useStyles()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const sign = AWS.Signer.useS3Signer({ forceProxy: true })
@@ -94,12 +109,23 @@ export default function Viewer({ handle }: ViewerProps) {
   React.useEffect(() => {
     let cancelled = false
     setState({ _tag: 'loading' })
-    const store = createStore(createPathResolver(resolveLogicalKey, handle), sign)
+    // Store keys resolve against the root metadata file's directory: through the package
+    // in a package, as plain S3 keys in a bucket.
+    const resolvePath =
+      resolveLogicalKey && logicalKey
+        ? async (path: string) => resolveLogicalKey(s3paths.resolveKey(logicalKey, path))
+        : async (path: string): Promise<Model.S3.S3ObjectLocation> => ({
+            bucket,
+            key: s3paths.resolveKey(key, path),
+          })
+    const store = createStore(resolvePath, sign)
     ;(async () => {
       const loaded = await loadOmeZarrFromStore(store as any)
       const base = loaded.data[0]
       const cIndex = base.labels.indexOf('c')
-      const channelCount = cIndex === -1 ? 1 : base.shape[cIndex]
+      // Interleaved RGB(A) is one composited channel, not per-band additive colours.
+      const channelCount =
+        cIndex === -1 || isInterleaved(base.shape) ? 1 : base.shape[cIndex]
       const omero = (loaded.metadata as any).omero
       const plane = defaultPlane(omero, base.shape, base.labels)
       const channels = await deriveContrast(
@@ -114,7 +140,7 @@ export default function Viewer({ handle }: ViewerProps) {
     return () => {
       cancelled = true
     }
-  }, [handle, resolveLogicalKey, sign])
+  }, [bucket, key, logicalKey, resolveLogicalKey, sign])
 
   const toggle = (index: number) =>
     setState((s) =>
