@@ -13,7 +13,13 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 
 import * as s3paths from 'utils/s3paths'
 
-import { type Channel, channelsFromMetadata, defaultPlane, validLimits } from './channels'
+import {
+  type Channel,
+  channelsFromMetadata,
+  defaultPlane,
+  onBaseGrid,
+  validLimits,
+} from './channels'
 import { createStore } from './store'
 
 const HEIGHT = 600
@@ -123,13 +129,9 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
     ;(async () => {
       const all = await loadOmeZarrFromStore(store as any)
       const base = all.data[0]
-      // Viv applies one selection to every level, so a level that also downsamples z or t
-      // would read out of bounds and draw nothing. Keep the levels that shrink only y/x.
       const loaded = {
         ...all,
-        data: all.data.filter((l) =>
-          l.shape.slice(0, -2).every((n, i) => n === base.shape[i]),
-        ),
+        data: all.data.map((l) => (l === base ? l : onBaseGrid(l, base))),
       }
       const cIndex = base.labels.indexOf('c')
       // ponytail: interleaved RGB(A) (`yxc`) is not composited yet; NGFF puts `c` first,

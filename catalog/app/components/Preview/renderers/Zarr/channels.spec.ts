@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import { channelsFromMetadata, defaultPlane, MAX_CHANNELS } from './channels'
+import { channelsFromMetadata, defaultPlane, MAX_CHANNELS, onBaseGrid } from './channels'
 
 describe('components/Preview/renderers/Zarr/channels', () => {
   it('reads label, colour, visibility and window from omero metadata', () => {
@@ -57,5 +57,15 @@ describe('components/Preview/renderers/Zarr/channels', () => {
       t: 0,
     })
     expect(defaultPlane(undefined, shape, labels)).toEqual({ z: 0, t: 0 })
+  })
+
+  it('scales the full-resolution plane onto a level that downsamples z', async () => {
+    const labels = ['c', 'z', 'y', 'x']
+    const base = { labels, shape: [2, 236, 4, 4], getTile: vi.fn(), getRaster: vi.fn() }
+    const getRaster = vi.fn(async (p: unknown) => p)
+    const low = onBaseGrid({ ...base, shape: [2, 30, 1, 1], getRaster }, base)
+    expect(low.shape).toEqual([2, 30, 1, 1])
+    await low.getRaster({ selection: { c: 1, z: 118 } })
+    expect(getRaster).toHaveBeenCalledWith({ selection: { c: 1, z: 15 } })
   })
 })
