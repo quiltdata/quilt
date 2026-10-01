@@ -70,12 +70,13 @@ async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane)
   const lowest = loaded.data[loaded.data.length - 1]
   const [y, x] = lowest.shape.slice(-2)
   const fallback: [number, number] = [0, DTYPE_MAX[lowest.dtype] ?? 1]
-  // Pyramids may downsample z too, so the full-resolution plane can lie past this level.
-  const lowPlane = defaultPlane(
-    { rdefs: { defaultZ: plane.z, defaultT: plane.t } },
-    lowest.shape,
-    lowest.labels,
-  )
+  // Pyramids may downsample z too: map the full-resolution plane onto this level.
+  const toLowest = (axis: keyof Plane) => {
+    const i = lowest.labels.indexOf(axis)
+    if (i === -1) return 0
+    return Math.floor((plane[axis] * lowest.shape[i]) / loaded.data[0].shape[i])
+  }
+  const lowPlane = { z: toLowest('z'), t: toLowest('t') }
   return Promise.all(
     channels.map(async (ch) => {
       if (ch.contrastLimits) return ch
