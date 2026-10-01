@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react-hooks'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { detect, isSupportedFileType, loadMode, useWriteData } from './loader'
 import type { Mode } from './types'
@@ -102,6 +102,38 @@ describe('components/FileEditor/loader', () => {
   })
 
   describe('loadMode', () => {
+    it('loads a mode before anything else has installed the ace global', async () => {
+      // The SSO editor calls loadMode before its lazy TextEditor chunk imports brace.
+      const { ace } = window as any
+      onTestFinished(() => {
+        vi.doUnmock('brace')
+        vi.doUnmock('brace/mode/yaml')
+        vi.resetModules()
+        ;(window as any).ace = ace
+      })
+      delete (window as any).ace
+      vi.resetModules()
+      // Mirrors brace's contract: `brace` installs the `ace` global a mode reads as it evaluates.
+      vi.doMock('brace', () => {
+        ;(window as any).ace = { define: () => {} }
+        return {}
+      })
+      vi.doMock('brace/mode/yaml', () => {
+        ;(window as any).ace.define()
+        return {}
+      })
+      const fresh = await import('./loader')
+      let thrown: unknown
+      try {
+        fresh.loadMode('yaml')
+      } catch (error) {
+        thrown = error
+      }
+      expect(thrown).toBeInstanceOf(Promise)
+      await thrown
+      expect(fresh.loadMode('yaml')).toBe('fulfilled')
+    })
+
     it('throws on the first call and resolves on the second', async () => {
       let thrownPromise: Promise<void>
       try {
