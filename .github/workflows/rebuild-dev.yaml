@@ -27,11 +27,14 @@ permissions:
 
 jobs:
   rebuild:
+    # An unlabelled PR can be a link in a labelled stack, so its close or
+    # retarget rebuilds too; the same-tree check keeps a needless run from pushing.
     if: >-
       (github.event_name != 'pull_request_target'
         || (github.event.pull_request.head.repo.full_name == github.repository
           && (contains(github.event.pull_request.labels.*.name, 'dev-preview')
-            || github.event.label.name == 'dev-preview')))
+            || github.event.label.name == 'dev-preview'
+            || github.event.action == 'closed' || github.event.action == 'edited')))
       && !(endsWith(github.event.action, 'labeled') && github.event.label.name != 'dev-preview')
       && (github.event.action != 'edited' || github.event.changes.base)
       && (startsWith(inputs.target, 'dev-rebuild-')
