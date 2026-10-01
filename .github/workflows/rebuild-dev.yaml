@@ -82,12 +82,13 @@ jobs:
           cat "$RUNNER_TEMP/report" | tee -a "$GITHUB_STEP_SUMMARY"
           [ "${conflicts:-}" != yes ] || echo "::warning::Some dev-preview PRs conflict and were left out; see the summary."
 
-          # Tell each left-out PR why, once per head commit: the summary is where
-          # nobody looks. Dry runs stay quiet, and a failed comment never fails dev.
+          # Tell each left-out PR why, once per head commit and reason: the summary
+          # is where nobody looks. Dry runs stay quiet, and a failed comment never
+          # fails dev.
           if [ "$TARGET" = dev ]; then
-            while IFS=$'\t' read -r pr reason; do
+            while IFS=$'\t' read -r pr head reason; do
               {
-                marker="<!-- rebuild-dev:$(gh pr view "$pr" --json headRefOid --jq .headRefOid) -->"
+                marker="<!-- rebuild-dev:$head:$(printf '%s' "$reason" | sha1sum | cut -c1-8) -->"
                 gh pr view "$pr" --json comments --jq '.comments[].body' | grep -qF "$marker" \
                   || gh pr comment "$pr" --body "$marker
           Left out of the rebuilt \`dev\`: $reason."

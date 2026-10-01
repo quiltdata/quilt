@@ -5,7 +5,8 @@
 # in a stack: a labelled PR may be based on another open PR's branch, as long as
 # that chain reaches master; its commits then carry the PRs below it.
 # A PR that conflicts or whose stack is broken is left out and reported, both in
-# the report and as `number<TAB>reason` lines in $SKIPPED; the rest still land.
+# the report and as `number<TAB>head sha<TAB>reason` lines in $SKIPPED; the rest
+# still land.
 # Writes the result to $TARGET locally; the caller decides whether to push.
 set -euo pipefail
 
@@ -21,28 +22,33 @@ git checkout --quiet -B "$TARGET" "$REMOTE/master"
 touched="$(mktemp)"; prs="$(mktemp)"; trap 'rm -f "$touched" "$prs"' EXIT
 included=() skipped=()
 : > "$SKIPPED"
-skip() { skipped+=("#$1 ($2)"); printf '%s\t%s\n' "$1" "$2" >> "$SKIPPED"; }
+skip() { skipped+=("#$1 ($2)"); printf '%s\t%s\t%s\n' "$1" "$(git rev-parse FETCH_HEAD)" "$2" >> "$SKIPPED"; }
 
 cat > "$prs"
-# Each labelled PR's depth in its stack (0 = based on master), or the branch the
-# chain breaks at. Applied shallowest first, so a stack lands bottom-up.
+# Each labelled PR's depth in its stack (0 = based on master), `cycle`, or the
+# branch the chain breaks at. Applied shallowest first, so a stack lands bottom-up.
 order="$(awk -F'\t' '
-  { head[$2] = $1; base[$1] = $3; lab[$1] = $4 }
+  # Two PRs from one branch (the old dev + master pair): the one on master is the link.
+  { if (!($2 in head) || $3 == "master") head[$2] = $1; base[$1] = $3; lab[$1] = $4 }
   END {
     for (pr in lab) if (lab[pr] == 1) {
       d = 0; b = base[pr]
       while (b != "master" && (b in head) && d < 50) { b = base[head[b]]; d++ }
-      print pr "\t" (b == "master" ? d : "broken:" b)
+      print pr "\t" (b == "master" ? d : (b in head) ? "cycle" : "broken:" b)
     }
   }' "$prs" | sort -t$'\t' -k2,2n -k1,1n)"
 
 while IFS=$'\t' read -r pr depth; do
   [ -n "$pr" ] || continue
-  case "$depth" in broken:*)
-    skip "$pr" "stacked on \`${depth#broken:}\`, which is not master or an open PR's branch; if the PR below it merged, rebase this one onto master"
-    continue ;;
-  esac
   git fetch --quiet "$REMOTE" "pull/$pr/head"
+  case "$depth" in
+    broken:*)
+      skip "$pr" "stacked on \`${depth#broken:}\`, which is not master or an open PR's branch; retarget this PR to master if that branch is long-lived, or rebase it onto master if the PR below it merged"
+      continue ;;
+    cycle)
+      skip "$pr" "its stack of PRs never reaches master (a loop, or more than 50 deep); retarget one of them to master"
+      continue ;;
+  esac
   before="$(git rev-parse HEAD)"
   if git merge --quiet --no-ff --no-edit -m "Merge #$pr into rebuilt $TARGET" FETCH_HEAD >/dev/null; then
     git diff --name-only "$before" HEAD | sed "s|^|$pr:|" >> "$touched"
