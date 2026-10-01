@@ -36,7 +36,7 @@ rc=0
 printf '%s\t%s\t%s\t%s\n' 1 p1 master 1  5 p5 master 1  2 p2 master 1  3 p3 master 1 \
   4 p4 master 1  6 p6 master 1  7 p7 master 1  9 p9 master 0 \
   10 s10 master 0  11 s11 s10 1  13 s13 s14 1  14 s14 master 1  15 s15 gone 1 \
-  20 s20 s21 1  21 s21 s20 1  16 s16 master 0  17 s16 dev 0  18 s18 s16 1 \
+  20 s20 s21 1  21 s21 s20 1  17 s16 dev 0  16 s16 master 0  18 s18 s16 1 \
   | TARGET=dev REPORT=../report SKIPPED=../skipped "$script" 2>/dev/null || rc=$?
 [ "$rc" -eq 2 ] || { echo "FAIL: exit $rc, want 2"; exit 1; }
 grep -q 'master + 7 PR(s): #1 #2 #5 #14 #11 #13 #18' ../report || { cat ../report; echo "FAIL: wrong includes"; exit 1; }
