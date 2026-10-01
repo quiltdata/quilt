@@ -20,5 +20,12 @@ describe('components/Preview/loaders/Zarr', () => {
     expect(isImage('{"zarr_format": 3, "node_type": "group", "attributes": {}}')).toBe(
       false,
     )
+    const plate = {
+      attributes: { ome: { plate: {} } },
+      consolidated_metadata: {
+        metadata: { 'A/1/0': { attributes: { ome: { multiscales: [] } } } },
+      },
+    }
+    expect(isImage(JSON.stringify(plate))).toBe(false)
   })
 })

@@ -102,7 +102,13 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
   const [state, setState] = React.useState<
     | { _tag: 'loading' }
     | { _tag: 'error'; error: Error }
-    | { _tag: 'ready'; loaded: Loaded; channels: Channel[]; plane: Plane }
+    | {
+        _tag: 'ready'
+        loaded: Loaded
+        channels: Channel[]
+        // Built once: Viv refetches every tile when this array's identity changes.
+        selections: Record<string, number>[]
+      }
   >({ _tag: 'loading' })
 
   React.useEffect(() => {
@@ -157,7 +163,8 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
         channelsFromMetadata(omero, channelCount),
         plane,
       )
-      if (!cancelled) setState({ _tag: 'ready', loaded, channels, plane })
+      const selections = channels.map((c) => selectionFor(base.labels, c.index, plane))
+      if (!cancelled) setState({ _tag: 'ready', loaded, channels, selections })
     })().catch((error) => {
       if (!cancelled) setState({ _tag: 'error', error })
     })
@@ -195,9 +202,7 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
         {state._tag === 'ready' && width > 0 && (
           <PictureInPictureViewer
             loader={state.loaded.data}
-            selections={state.channels.map((c) =>
-              selectionFor(state.loaded.data[0].labels, c.index, state.plane),
-            )}
+            selections={state.selections}
             colors={state.channels.map((c) => c.color)}
             contrastLimits={state.channels.map((c) => c.contrastLimits)}
             channelsVisible={state.channels.map((c) => c.visible)}
