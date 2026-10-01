@@ -70,12 +70,18 @@ async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane)
   const lowest = loaded.data[loaded.data.length - 1]
   const [y, x] = lowest.shape.slice(-2)
   const fallback: [number, number] = [0, DTYPE_MAX[lowest.dtype] ?? 1]
+  // Pyramids may downsample z too, so the full-resolution plane can lie past this level.
+  const lowPlane = defaultPlane(
+    { rdefs: { defaultZ: plane.z, defaultT: plane.t } },
+    lowest.shape,
+    lowest.labels,
+  )
   return Promise.all(
     channels.map(async (ch) => {
       if (ch.contrastLimits) return ch
       if (y * x > MAX_STATS_PIXELS) return { ...ch, contrastLimits: fallback }
       const { data } = await lowest.getRaster({
-        selection: selectionFor(lowest.labels, ch.index, plane),
+        selection: selectionFor(lowest.labels, ch.index, lowPlane),
       })
       const [start, end] = getChannelStats(data as any).contrastLimits
       return { ...ch, contrastLimits: validLimits(start, end) ?? fallback }
