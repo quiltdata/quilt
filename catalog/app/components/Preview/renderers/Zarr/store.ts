@@ -14,6 +14,9 @@ export interface ReadableStore {
 // fails must throw: `undefined` would render as fill value, i.e. silent black tiles.
 const METADATA_RE = /(^|\/)(\.zgroup|\.zattrs|\.zarray|zarr\.json)$/
 
+// Prefix of the package LogicalKeyResolver's error for a path the revision lacks.
+export const NOT_IN_PACKAGE = 'Could not resolve logical key'
+
 const rangeHeader = (r: RangeQuery) =>
   'suffixLength' in r
     ? `bytes=-${r.suffixLength}`
@@ -31,9 +34,11 @@ export function createStore(
       // ponytail: one logical-key lookup per chunk inside packages; batch via the
       // package dir listing if tile loads are slow on large stores
       handle = await resolvePath(path)
-    } catch {
-      // absent from the package: missing metadata, or a sparse chunk never written
-      return undefined
+    } catch (e) {
+      // Absent from the package: missing metadata, or a sparse chunk never written. Any
+      // other failure (network, GraphQL) must surface rather than render as fill value.
+      if (e instanceof Error && e.message.startsWith(NOT_IN_PACKAGE)) return undefined
+      throw e
     }
     const init = range && { headers: { Range: rangeHeader(range) } }
     const res = await fetchImpl(sign(handle), init)

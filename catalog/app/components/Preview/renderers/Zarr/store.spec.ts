@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { createStore } from './store'
 
 const resolvePath = async (path: string) => {
-  if (path === 'gone') throw new Error('no such logical key')
+  if (path === 'gone') throw new Error(`Could not resolve logical key "${path}"`)
+  if (path === 'offline') throw new Error('Network request failed')
   return { bucket: 'b', key: `root.zarr/${path}` }
 }
 const sign = ({ key }: { key: string }) => `https://s3/${key}`
@@ -41,6 +42,11 @@ describe('components/Preview/renderers/Zarr/store', () => {
     const store = createStore(resolvePath, sign, fetchImpl)
     expect(await store.get('/gone')).toBeUndefined()
     expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('surfaces resolver failures other than a missing key', async () => {
+    const store = createStore(resolvePath, sign, fetchFor(200))
+    await expect(store.get('/offline')).rejects.toThrow('Network request failed')
   })
 
   it.each([

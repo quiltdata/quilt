@@ -63,6 +63,8 @@ const DTYPE_MAX: Record<string, number> = {
   Int8: 127,
   Uint16: 65535,
   Int16: 32767,
+  Uint32: 4294967295,
+  Int32: 2147483647,
 }
 
 async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane) {
@@ -123,9 +125,12 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
       const loaded = await loadOmeZarrFromStore(store as any)
       const base = loaded.data[0]
       const cIndex = base.labels.indexOf('c')
-      // Interleaved RGB(A) is one composited channel, not per-band additive colours.
-      const channelCount =
-        cIndex === -1 || isInterleaved(base.shape) ? 1 : base.shape[cIndex]
+      // ponytail: interleaved RGB(A) (`yxc`) is not composited yet; NGFF puts `c` first,
+      // so this is rare. Viv's ZarrPixelSource cannot select all bands of one pixel.
+      if (isInterleaved(base.shape)) {
+        throw new Error('Interleaved RGB OME-Zarr images are not supported yet.')
+      }
+      const channelCount = cIndex === -1 ? 1 : base.shape[cIndex]
       const omero = (loaded.metadata as any).omero
       const plane = defaultPlane(omero, base.shape, base.labels)
       const channels = await deriveContrast(
