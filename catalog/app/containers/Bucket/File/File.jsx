@@ -2,6 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -12,6 +13,7 @@ import * as Column from 'components/Layout/Column'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
+import { authenticated as authenticatedSelector } from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -31,6 +33,7 @@ import * as FileView from '../FileView'
 import FallbackToDir from '../FallbackToDir'
 import PanelBoundary from '../PanelBoundary'
 import Section from '../Section'
+import { AccessDenied, displayError } from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { useViewModes } from '../viewModes'
@@ -302,6 +305,7 @@ function File() {
   const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
   const { prefs } = BucketPreferences.use()
+  const authenticated = redux.useSelector(authenticatedSelector)
 
   const path = s3paths.decode(encodedPath)
 
@@ -469,6 +473,7 @@ function File() {
             _: () => <CenteredProgress />,
             Err: (e) => {
               if (e.code === 'Forbidden') {
+                if (!authenticated) return displayError()(new AccessDenied())
                 return (
                   <Message headline="Access Denied">
                     You don&apos;t have access to this object.

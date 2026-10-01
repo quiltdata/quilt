@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import useId from 'utils/useId'
+
 import type { FormStatus } from '../State/form'
 import type { MessageState } from '../State/message'
 
@@ -23,8 +25,10 @@ export default function InputMessage({
     (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
     [onChange],
   )
+  const id = useId()
   return (
     <M.TextField
+      id={id}
       /*style*/
       InputLabelProps={{ shrink: true }}
       fullWidth
