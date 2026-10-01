@@ -51,11 +51,18 @@ describe('containers/Bucket/FallbackToDir', () => {
     await waitFor(() => expect(getByTestId('file-page')).toBeTruthy())
   })
 
-  it('surfaces a listing failure other than a denial after a denied head', async () => {
+  it('surfaces a CORS listing failure after a denied head', async () => {
     listing.result = () => Promise.reject(new Error('Network Failure'))
     const { findByText, queryByTestId } = renderFallback()
     expect(await findByText(/not configured for Quilt/)).toBeTruthy()
     expect(queryByTestId('file-page')).toBeNull()
+  })
+
+  it('hands any other listing failure after a denied head to the File page', async () => {
+    listing.result = () =>
+      Promise.reject(Object.assign(new Error(), { code: 'InvalidAccessKeyId' }))
+    const { getByTestId } = renderFallback()
+    await waitFor(() => expect(getByTestId('file-page')).toBeTruthy())
   })
 
   it('redirects a denied head to the folder when the prefix lists', async () => {

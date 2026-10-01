@@ -234,7 +234,7 @@ export const catchErrors = (pairs: ErrorCatcher[] = []) =>
       // it has none (HEAD); other 403 codes are credential or clock faults.
       R.propSatisfies(R.includes(R.__, ['AccessDenied', 'Forbidden']), 'code'),
       (e: Error) => {
-        throw new AccessDenied(e.message)
+        throw new AccessDenied(e.message || undefined)
       },
     ],
     [

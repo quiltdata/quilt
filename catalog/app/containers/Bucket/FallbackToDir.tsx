@@ -10,7 +10,7 @@ import * as Request from 'utils/useRequest'
 import assertNever from 'utils/assertNever'
 
 import * as requests from './requests'
-import { AccessDenied, displayError } from './errors'
+import { CORSError, NoSuchBucket, displayError } from './errors'
 
 const Dir = Symbol('dir')
 
@@ -58,12 +58,14 @@ function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
   const isDirectory = useIsDirectory(handle, !isObject || headDenied)
 
   // A denied head can't tell a file from a folder, so the listing decides; if
-  // that is denied too, the File page reports it below its breadcrumbs.
+  // that fails too, the File page reports it below its breadcrumbs. Only errors
+  // displayError() renders pass through: the rest would crash the whole app.
   if (headDenied) {
     if (
       isDirectory === Request.Idle ||
       isDirectory === Request.Loading ||
-      (isDirectory instanceof Error && !(isDirectory instanceof AccessDenied))
+      isDirectory instanceof CORSError ||
+      isDirectory instanceof NoSuchBucket
     ) {
       return isDirectory
     }
