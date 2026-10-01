@@ -50,7 +50,6 @@ const useStyles = M.makeStyles((t) => ({
 
 type Plane = { z: number; t: number }
 
-// One plane of every non-spatial axis for a given channel.
 const selectionFor = (labels: string[], c: number, plane: Plane) =>
   Object.fromEntries(
     labels
