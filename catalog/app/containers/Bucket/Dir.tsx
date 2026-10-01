@@ -1,10 +1,13 @@
 import invariant from 'invariant'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import Message from 'components/Message'
 import * as Column from 'components/Layout/Column'
+import { authenticated as authenticatedSelector } from 'containers/Auth/selectors'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -22,7 +25,8 @@ import * as FI from './PackageDialog/Inputs/Files/State'
 import * as Selection from './Selection'
 import Summary from './Summary'
 import * as DirToolbar from './Dir/Toolbar'
-import { displayError } from './errors'
+import PanelBoundary from './PanelBoundary'
+import { AccessDenied, displayError } from './errors'
 import * as requests from './requests'
 import useUrlPage from './useUrlPage'
 
@@ -248,6 +252,7 @@ export default function Dir() {
     [bucket, path],
   )
   const toolbarFeatures = DirToolbar.useFeatures()
+  const authenticated = redux.useSelector(authenticatedSelector)
 
   return (
     <M.Box pt={2} pb={4}>
@@ -270,31 +275,46 @@ export default function Dir() {
         />
       </div>
 
-      {data.case({
-        Err: displayError(),
-        Init: () => null,
-        _: (x: $TSFixMe) => {
-          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
-          return res ? (
-            <DirContents
-              response={res}
-              locked={!AsyncResult.Ok.is(x)}
-              bucket={bucket}
-              path={path}
-              loadMore={loadMore}
-              selection={Selection.getDirectorySelection(
-                slt.selection,
-                res.bucket,
-                res.path,
-              )}
-              onSelection={handleSelection}
-              onReload={handleReload}
-            />
-          ) : (
-            <M.CircularProgress />
-          )
-        },
-      })}
+      <PanelBoundary
+        title="This folder could not be listed"
+        onRetry={handleReload}
+        resetKeys={[key]}
+        render={() =>
+          data.case({
+            Err: (e: unknown) =>
+              e instanceof AccessDenied && authenticated ? (
+                <Message headline="Access Denied">
+                  You don&apos;t have permission to list this folder.
+                </Message>
+              ) : (
+                displayError()(e)
+              ),
+            Init: () => null,
+            _: (x: $TSFixMe) => {
+              const res: requests.BucketListingResult | null =
+                AsyncResult.getPrevResult(x)
+              return res ? (
+                <DirContents
+                  response={res}
+                  locked={!AsyncResult.Ok.is(x)}
+                  bucket={bucket}
+                  path={path}
+                  loadMore={loadMore}
+                  selection={Selection.getDirectorySelection(
+                    slt.selection,
+                    res.bucket,
+                    res.path,
+                  )}
+                  onSelection={handleSelection}
+                  onReload={handleReload}
+                />
+              ) : (
+                <M.CircularProgress />
+              )
+            },
+          })
+        }
+      />
     </M.Box>
   )
 }
