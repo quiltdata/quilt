@@ -26,6 +26,9 @@ describe('components/Preview/loaders/Zarr', () => {
         metadata: { 'A/1/0': { attributes: { ome: { multiscales: [] } } } },
       },
     }
-    expect(isImage(JSON.stringify(plate))).toBe(false)
+    const plateJson = JSON.stringify(plate)
+    expect(isImage(plateJson)).toBe(false)
+    expect(isImage(plateJson.slice(0, -10))).toBe(false)
+    expect(isImage('{"attributes": {"ome": {"multiscales": [')).toBe(true)
   })
 })
