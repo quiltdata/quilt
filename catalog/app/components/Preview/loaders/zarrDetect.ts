@@ -13,7 +13,9 @@ export function isImage(rootAttrs: string) {
       j.attributes?.multiscales
     )
   } catch {
-    // Cut off at the scan limit
-    return rootAttrs.includes('"multiscales"')
+    // Cut off at the scan limit: only a `multiscales` ahead of any child metadata counts.
+    const m = rootAttrs.indexOf('"multiscales"')
+    const c = rootAttrs.indexOf('"consolidated_metadata"')
+    return m !== -1 && (c === -1 || m < c)
   }
 }
