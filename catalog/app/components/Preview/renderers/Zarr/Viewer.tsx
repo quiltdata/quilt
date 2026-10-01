@@ -70,19 +70,12 @@ async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane)
   const lowest = loaded.data[loaded.data.length - 1]
   const [y, x] = lowest.shape.slice(-2)
   const fallback: [number, number] = [0, DTYPE_MAX[lowest.dtype] ?? 1]
-  // Pyramids may downsample z too: map the full-resolution plane onto this level.
-  const toLowest = (axis: keyof Plane) => {
-    const i = lowest.labels.indexOf(axis)
-    if (i === -1) return 0
-    return Math.floor((plane[axis] * lowest.shape[i]) / loaded.data[0].shape[i])
-  }
-  const lowPlane = { z: toLowest('z'), t: toLowest('t') }
   return Promise.all(
     channels.map(async (ch) => {
       if (ch.contrastLimits) return ch
       if (y * x > MAX_STATS_PIXELS) return { ...ch, contrastLimits: fallback }
       const { data } = await lowest.getRaster({
-        selection: selectionFor(lowest.labels, ch.index, lowPlane),
+        selection: selectionFor(lowest.labels, ch.index, plane),
       })
       const [start, end] = getChannelStats(data as any).contrastLimits
       return { ...ch, contrastLimits: validLimits(start, end) ?? fallback }
@@ -128,8 +121,16 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
           })
     const store = createStore(resolvePath, sign)
     ;(async () => {
-      const loaded = await loadOmeZarrFromStore(store as any)
-      const base = loaded.data[0]
+      const all = await loadOmeZarrFromStore(store as any)
+      const base = all.data[0]
+      // Viv applies one selection to every level, so a level that also downsamples z or t
+      // would read out of bounds and draw nothing. Keep the levels that shrink only y/x.
+      const loaded = {
+        ...all,
+        data: all.data.filter((l) =>
+          l.shape.slice(0, -2).every((n, i) => n === base.shape[i]),
+        ),
+      }
       const cIndex = base.labels.indexOf('c')
       // ponytail: interleaved RGB(A) (`yxc`) is not composited yet; NGFF puts `c` first,
       // so this is rare. Viv's ZarrPixelSource cannot select all bands of one pixel.
