@@ -138,7 +138,18 @@ export const getBreadCrumbs = (path: string): { label: string; path: string }[] 
 
 export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'))
 
-export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'))
+// history@4 has already run `decodeURI` on route pathnames, so a key with a literal
+// `%` arrives here decoded; keep such a segment as-is rather than throw.
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch (e) {
+    if (e instanceof URIError) return segment
+    throw e
+  }
+}
+
+export const decode = R.pipe(R.split('/'), R.map(decodeSegment), R.join('/'))
 
 /**
  * Files in the package are backed by real files in the S3 bucket.
