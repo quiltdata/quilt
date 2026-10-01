@@ -33,25 +33,30 @@ const hexToRgb = (hex: string): [number, number, number] | undefined => {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
+export const validLimits = (start?: number, end?: number): [number, number] | undefined =>
+  typeof start === 'number' && typeof end === 'number' && end > start
+    ? [start, end]
+    : undefined
+
 export function channelsFromMetadata(
   omero: { channels?: OmeroChannel[] } | undefined,
   channelCount: number,
 ): Channel[] {
-  const count = Math.min(channelCount, MAX_CHANNELS)
-  return Array.from({ length: count }, (_, index) => {
+  const all = Array.from({ length: channelCount }, (_, index): Channel => {
     const c = omero?.channels?.[index]
-    const { start, end } = c?.window ?? {}
     return {
       index,
       label: c?.label || `Channel ${index}`,
-      color: (c?.color && hexToRgb(c.color)) || FALLBACK_COLORS[index],
+      color:
+        (c?.color && hexToRgb(c.color)) ||
+        FALLBACK_COLORS[index % FALLBACK_COLORS.length],
       visible: c?.active ?? true,
-      contrastLimits:
-        typeof start === 'number' && typeof end === 'number' && end > start
-          ? [start, end]
-          : undefined,
+      contrastLimits: validLimits(c?.window?.start, c?.window?.end),
     }
   })
+  // Active channels first, so a store whose first channels are switched off still opens lit.
+  const picked = [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
+  return picked.slice(0, MAX_CHANNELS).sort((a, b) => a.index - b.index)
 }
 
 // OMERO's rendering defaults name the plane to open on; z=0 is often an empty slice.

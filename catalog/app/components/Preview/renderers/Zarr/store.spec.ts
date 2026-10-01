@@ -10,7 +10,10 @@ const sign = ({ key }: { key: string }) => `https://s3/${key}`
 
 const fetchFor = (status: number) =>
   vi.fn(
-    async () => new Response(status === 200 ? new Uint8Array([1, 2]) : null, { status }),
+    async () =>
+      new Response(status < 300 ? new Uint8Array([1, 2]) : null, {
+        status,
+      }),
   )
 
 describe('components/Preview/renderers/Zarr/store', () => {
@@ -21,12 +24,19 @@ describe('components/Preview/renderers/Zarr/store', () => {
     expect(fetchImpl).toHaveBeenCalledWith('https://s3/root.zarr/0/.zarray', undefined)
   })
 
-  it.each([403, 404])('treats HTTP %i as a missing key', async (status) => {
-    const store = createStore(resolvePath, sign, fetchFor(status))
-    expect(await store.get('/.zgroup')).toBeUndefined()
+  it('treats 404 as missing for any key', async () => {
+    const store = createStore(resolvePath, sign, fetchFor(404))
+    expect(await store.get('/0/0.0.0.0')).toBeUndefined()
   })
 
-  it('treats an unresolvable logical key as missing', async () => {
+  it('treats 403 as missing for metadata but fails a denied chunk', async () => {
+    const store = createStore(resolvePath, sign, fetchFor(403))
+    expect(await store.get('/.zgroup')).toBeUndefined()
+    expect(await store.get('/0/zarr.json')).toBeUndefined()
+    await expect(store.get('/0/0.0.0.0')).rejects.toThrow('403')
+  })
+
+  it('treats a key absent from the package as missing', async () => {
     const fetchImpl = fetchFor(200)
     const store = createStore(resolvePath, sign, fetchImpl)
     expect(await store.get('/gone')).toBeUndefined()
@@ -37,12 +47,19 @@ describe('components/Preview/renderers/Zarr/store', () => {
     [{ offset: 10, length: 5 }, 'bytes=10-14'],
     [{ suffixLength: 16 }, 'bytes=-16'],
   ])('sends range %j as %s', async (range, header) => {
-    const fetchImpl = fetchFor(200)
+    const fetchImpl = fetchFor(206)
     const store = createStore(resolvePath, sign, fetchImpl)
     await store.getRange('/0/c/0/0', range)
     expect(fetchImpl).toHaveBeenCalledWith('https://s3/root.zarr/0/c/0/0', {
       headers: { Range: header },
     })
+  })
+
+  it('rejects a ranged read answered with the whole object', async () => {
+    const store = createStore(resolvePath, sign, fetchFor(200))
+    await expect(store.getRange('/0/c/0/0', { suffixLength: 16 })).rejects.toThrow(
+      'Range not honoured',
+    )
   })
 
   it('throws on other HTTP errors', async () => {
