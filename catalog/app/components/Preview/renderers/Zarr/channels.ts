@@ -71,3 +71,32 @@ export function defaultPlane(
   }
   return { z: clamp('z', omero?.rdefs?.defaultZ), t: clamp('t', omero?.rdefs?.defaultT) }
 }
+
+type Selection = Record<string, number>
+
+interface Level {
+  labels: readonly string[]
+  shape: number[]
+  getTile(p: any): Promise<unknown>
+  getRaster(p: any): Promise<unknown>
+}
+
+// Viv applies one selection to every level, so a level that also downsamples z or t
+// needs the full-resolution index scaled onto its own extent.
+export function onBaseGrid<L extends Level>(level: L, base: Level): L {
+  const scale = (selection: Selection) =>
+    Object.fromEntries(
+      Object.entries(selection).map(([k, v]) => {
+        const i = level.labels.indexOf(k)
+        return [k, Math.floor((v * level.shape[i]) / base.shape[i])]
+      }),
+    )
+  return Object.create(level, {
+    getTile: {
+      value: (p: any) => level.getTile({ ...p, selection: scale(p.selection) }),
+    },
+    getRaster: {
+      value: (p: any) => level.getRaster({ ...p, selection: scale(p.selection) }),
+    },
+  })
+}
