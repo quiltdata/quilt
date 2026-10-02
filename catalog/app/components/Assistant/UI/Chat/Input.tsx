@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { createCustomAppTheme } from 'constants/style'
+import useId from 'utils/useId'
 
 const useStyles = M.makeStyles((t) => ({
   input: {
@@ -92,6 +93,7 @@ export default function ChatInput({
 }: ChatInputProps) {
   const classes = useStyles()
   const helperClass = cx(classes.hint, helperSeverity && classes[helperSeverity])
+  const id = useId()
 
   const [value, setValue] = React.useState('')
 
@@ -110,6 +112,7 @@ export default function ChatInput({
       <M.ThemeProvider theme={darkTheme}>
         <M.TextField
           className={classes.textField}
+          id={id}
           onChange={(e) => setValue(e.target.value)}
           value={value}
           variant="filled"

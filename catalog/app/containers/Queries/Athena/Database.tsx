@@ -5,6 +5,7 @@ import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
 import * as Dialogs from 'utils/GlobalDialogs'
+import useId from 'utils/useId'
 
 import * as Model from './model'
 import * as storage from './model/storage'
@@ -79,6 +80,8 @@ interface SelectProps {
 
 function Select({ className, data, disabled, label, onChange, value }: SelectProps) {
   const classes = useSelectStyles()
+  const labelId = useId()
+  const buttonId = useId()
   const handleChange = React.useCallback(
     (event) => {
       onChange(event.target.value)
@@ -88,8 +91,10 @@ function Select({ className, data, disabled, label, onChange, value }: SelectPro
 
   return (
     <M.FormControl className={cx(classes.root, className)} disabled={disabled}>
-      <M.InputLabel>{label}</M.InputLabel>
+      <M.InputLabel id={labelId}>{label}</M.InputLabel>
       <M.Select
+        labelId={labelId}
+        id={buttonId}
         classes={{ select: classes.select }}
         onChange={handleChange}
         SelectDisplayProps={value ? { title: value } : undefined}
