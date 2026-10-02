@@ -287,6 +287,20 @@ describe('components/Assistant/UI WithAssistantUI', () => {
       expect(handle.getAttribute('aria-valuenow')).toBe('400')
     })
 
+    it('keeps the dragged width when the panel closes mid-drag', () => {
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? MouseEvent)
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        right: 1024,
+      } as DOMRect)
+      const { getByRole, unmount } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 624 })
+      unmount()
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(false)
+      expect(localStorage.getItem(KEY)).toBe('400')
+    })
+
     it('clamps to the minimum and to a share of the viewport', () => {
       const { getByRole } = renderOpen()
       const handle = getByRole('separator')

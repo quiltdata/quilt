@@ -181,7 +181,8 @@ function Resizer({ className, width, onResize }: ResizerProps) {
     dragged.current = null
     document.body.toggleAttribute(DRAGGING, on)
   }
-  React.useEffect(() => () => document.body.removeAttribute(DRAGGING), [])
+  // Escape collapses the panel mid-drag and unmounts this; keep what was dragged.
+  React.useEffect(() => () => drag(false), []) // eslint-disable-line react-hooks/exhaustive-deps
   // `now` and the max read the viewport, which the CSS clamp follows unprompted.
   const [, rerender] = React.useReducer((n: number) => n + 1, 0)
   React.useEffect(() => {
