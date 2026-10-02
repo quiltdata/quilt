@@ -1,0 +1,147 @@
+# This form mirrors the shape the Quilt Engineering team already uses for its
+# own internal feature requests: problem/motivation first, then proposed
+# solution, alternatives considered, acceptance criteria, and scope/non-goals.
+# Filling these in well is what lets a maintainer turn the request into an
+# accepted, well-scoped piece of work quickly.
+name: Feature request
+description: Propose a new capability or an enhancement. Please file this BEFORE writing a large change.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for proposing an improvement to Quilt!
+
+
+        **File the request before you write the code.** For anything beyond a
+        small, self-contained fix, opening an issue first is the fastest path to
+        getting your contribution merged — it lets us confirm the problem is one
+        we want to solve and agree on the shape of the solution before you
+        invest effort. When we accept a request, the core team turns it into an
+        internal design and acceptance criteria, and implementation follows from
+        there.
+
+
+        Describe the **problem and the use case first**, and the proposed
+        solution second. That ordering is what makes a request actionable.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you file
+      options:
+        - label: I searched [existing issues](https://github.com/quiltdata/quilt/issues) and this hasn't already been requested.
+          required: true
+        - label: This is a feature/enhancement request, not a bug report or a usage question.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: >-
+        What problem are you trying to solve? What's missing or painful today,
+        and what's the current behavior or workaround? Who is affected, and what
+        does this cost them? Concrete is better than abstract.
+      placeholder: >-
+        As a [Quilt Catalog admin / quilt3 user / ...] I want [capability] so
+        that [benefit]. Today, [current behavior / workaround], which means
+        [impact]. This came up for [me / a teammate / a customer] when ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: >-
+        How would you like it to work? Describe the behavior or API you'd
+        expect. It's fine if you don't know the implementation — focus on the
+        outcome. If you do know the relevant component or code area, point to it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: >-
+        What other approaches did you consider, and why did you rule them out?
+        If there are a few viable options with trade-offs, list them — naming
+        the trade-offs helps us pick a direction faster.
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria / definition of done
+      description: >-
+        How would we know this is done and working? List the observable
+        behaviors that must be true. Include any hard rules or invariants that
+        must NOT be broken (e.g. "must not expose data the user isn't entitled
+        to see", "must not change existing X").
+      placeholder: |
+        - [ ] When I do X, the catalog shows Y
+        - [ ] Existing behavior Z is unchanged
+        - [ ] Invariant: must not ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope & non-goals
+      description: >-
+        What is explicitly IN scope, and what is explicitly OUT of scope for
+        this request? Calling out non-goals prevents scope creep and keeps the
+        change reviewable.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Which part of Quilt would this touch? (See the README repository map.)
+      options:
+        - Python SDK / CLI (quilt3, api/python)
+        - Web catalog (catalog)
+        - Lambda services (lambdas)
+        - Documentation (docs)
+        - Infrastructure / deployment / CI (core-team owned — see note below)
+        - Not sure / multiple
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: >-
+        Screenshots, sample data, links to related issues/PRs, or external docs
+        that add context.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to help implement this (after we agree on the approach).
+          required: false
+
+  - type: markdown
+    attributes:
+      value: >-
+        **Infrastructure & deployment requests.** If your request involves
+        CloudFormation / deployment templates, IAM and AWS resource
+        configuration, CI workflows (`.github/workflows/`), or release/packaging
+        tooling, please describe the problem and the outcome you need — but note
+        that these surfaces are owned by the Quilt core team and are coupled to
+        the internal release and enterprise-deployment process. We'll evaluate
+        the request and either take it on or work with you on the right
+        approach; please don't open a PR that changes those surfaces directly.
+        See `CONTRIBUTING.md` for the full policy.
