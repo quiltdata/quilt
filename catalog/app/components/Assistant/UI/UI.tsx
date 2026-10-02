@@ -185,16 +185,18 @@ interface ResizerProps {
 }
 
 function Resizer({ className, width, onResize }: ResizerProps) {
-  const dragging = React.useRef(false)
+  // The pointer that started the drag: a second touch must not move or end it.
+  const dragging = React.useRef<number | null>(null)
   const dragged = React.useRef<number | null>(null)
-  const drag = (on: boolean) => {
-    if (!on && dragging.current && dragged.current != null) onResize(dragged.current)
-    dragging.current = on
+  const drag = (pointer: number | null) => {
+    if (pointer == null && dragging.current != null && dragged.current != null)
+      onResize(dragged.current)
+    dragging.current = pointer
     dragged.current = null
-    document.body.toggleAttribute(DRAGGING, on)
+    document.body.toggleAttribute(DRAGGING, pointer != null)
   }
   // Escape collapses the panel mid-drag and unmounts this; keep what was dragged.
-  React.useEffect(() => () => drag(false), []) // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => () => drag(null), []) // eslint-disable-line react-hooks/exhaustive-deps
   // `now` and the max read the viewport, which the CSS clamp follows unprompted.
   const [, rerender] = React.useReducer((n: number) => n + 1, 0)
   React.useEffect(() => {
@@ -216,20 +218,26 @@ function Resizer({ className, width, onResize }: ResizerProps) {
       aria-valuenow={now}
       tabIndex={0}
       onPointerDown={(e) => {
-        if (e.button !== 0) return
+        if (e.button !== 0 || dragging.current != null) return
         e.preventDefault()
-        drag(true)
-        e.currentTarget.setPointerCapture?.(e.pointerId)
+        // Without capture a release outside the handle never arrives, so a
+        // drag that cannot capture does not start.
+        try {
+          e.currentTarget.setPointerCapture?.(e.pointerId)
+        } catch {
+          return
+        }
+        drag(e.pointerId)
       }}
       onPointerMove={(e) => {
-        if (!dragging.current) return
+        if (dragging.current !== e.pointerId) return
         dragged.current = edge(e.currentTarget) - e.clientX
         onResize(dragged.current, false)
       }}
       // A cancelled pointer never sends `pointerup`; without this the drag
       // would outlive the press and resize on plain hover.
-      onLostPointerCapture={() => drag(false)}
-      onPointerUp={() => drag(false)}
+      onLostPointerCapture={(e) => dragging.current === e.pointerId && drag(null)}
+      onPointerUp={(e) => dragging.current === e.pointerId && drag(null)}
       onKeyDown={(e) => {
         const next = {
           ArrowLeft: now + STEP,

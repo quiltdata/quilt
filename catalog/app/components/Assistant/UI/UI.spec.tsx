@@ -46,6 +46,15 @@ function Reflow() {
   return <span data-testid="reflow">{String(usePanelGutter())}</span>
 }
 
+// jsdom has no PointerEvent, and a MouseEvent drops `pointerId`.
+class FakePointerEvent extends MouseEvent {
+  pointerId: number
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init)
+    this.pointerId = init.pointerId ?? 0
+  }
+}
+
 describe('components/Assistant/UI Trigger', () => {
   afterEach(() => {
     cleanup()
@@ -268,9 +277,36 @@ describe('components/Assistant/UI WithAssistantUI', () => {
       expect(localStorage.getItem(KEY)).toBe(String(DEFAULT + 32))
     })
 
+    it('ignores a second pointer while one is dragging', () => {
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        right: 1024,
+      } as DOMRect)
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 624 })
+      fireEvent.pointerMove(handle, { pointerId: 2, clientX: 900 })
+      fireEvent.pointerUp(handle, { pointerId: 2 })
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(true)
+      fireEvent.pointerUp(handle, { pointerId: 1 })
+      expect(localStorage.getItem(KEY)).toBe('400')
+    })
+
+    it('does not start a drag it cannot capture', () => {
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      handle.setPointerCapture = () => {
+        throw new Error('InvalidPointerId')
+      }
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(false)
+    })
+
     it('follows the pointer from the paper edge', () => {
       // jsdom has no PointerEvent, and a plain Event drops `clientX`.
-      vi.stubGlobal('PointerEvent', window.PointerEvent ?? MouseEvent)
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
       vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
         right: 1024,
       } as DOMRect)
@@ -288,7 +324,7 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     })
 
     it('keeps the dragged width when the panel closes mid-drag', () => {
-      vi.stubGlobal('PointerEvent', window.PointerEvent ?? MouseEvent)
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
       vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
         right: 1024,
       } as DOMRect)
