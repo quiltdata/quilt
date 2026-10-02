@@ -139,8 +139,8 @@ export default function QuratorModelSettings() {
           Save
         </M.Button>
       </div>
-      {errors.map((message) => (
-        <M.Typography key={message} className={classes.error} role="alert">
+      {errors.map((message, i) => (
+        <M.Typography key={i} className={classes.error} role="alert">
           {message}
         </M.Typography>
       ))}

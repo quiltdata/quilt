@@ -169,7 +169,7 @@ function useConnectors(
   return built.service
 }
 
-function useModelIdOverride() {
+export function useModelIdOverride() {
   const governed = ModelChoice.useGoverned()
   const [value, setValue] = React.useState(
     () =>
