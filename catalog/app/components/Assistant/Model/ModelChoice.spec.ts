@@ -111,6 +111,7 @@ describe('components/Assistant/Model/ModelChoice labels', () => {
     ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'Medium', 'Claude Sonnet 4.5'],
     ['anthropic.claude-3-5-haiku-20241022-v1:0', 'Light', 'Claude 3.5 Haiku'],
     ['amazon.nova-pro-v1:0', null, 'Nova Pro'],
+    ['us.meta.llama3-1-70b-instruct-v1:0', null, 'Llama3.1 70b Instruct'],
     ['global.anthropic.claude-sonnet-4-5-20250929-v1:0', 'Medium', 'Claude Sonnet 4.5'],
     ['us-gov.anthropic.claude-3-5-sonnet-20240620-v1:0', 'Medium', 'Claude 3.5 Sonnet'],
     ['anthropic.claude-3-sonnet-20240229-v1:0:200k', 'Medium', 'Claude 3 Sonnet'],

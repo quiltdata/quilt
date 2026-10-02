@@ -78,7 +78,8 @@ export function displayName(id: string): string {
   const words: string[] = []
   for (const part of base.split('-').filter(Boolean)) {
     const prev = words[words.length - 1]
-    if (/^\d+$/.test(part) && prev && /^\d+(\.\d+)*$/.test(prev)) {
+    // A version split by dashes: `4-5`, or `llama3-1` after a word ending in a digit.
+    if (/^\d+$/.test(part) && prev && /\d$/.test(prev)) {
       words[words.length - 1] = `${prev}.${part}`
     } else {
       words.push(/^\d/.test(part) ? part : part[0].toUpperCase() + part.slice(1))
