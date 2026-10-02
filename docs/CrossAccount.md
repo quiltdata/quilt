@@ -123,6 +123,9 @@ Notes:
   bucket (registry, indexer, previews, package push, user roles), so a list of
   specific roles is easy to get wrong.
 
+Save the policy as `bucket-policy.json`, merging it into any policy the bucket
+already has, then apply it:
+
 <!-- pytest.mark.skip -->
 ```bash
 aws s3api put-bucket-policy \
@@ -200,17 +203,27 @@ that happens with a key in another account, contact [Quilt support](mailto:suppo
 ## Step 5: Pre-flight checks
 
 Run these with credentials for an administrator **in the stack account**.
-Each one maps to a step of bucket add.
+They test the data account's resource policies, which is the side you
+control. They do not test the stack's own roles, whose identity policies Quilt
+sets when you add the bucket.
 
 <!-- pytest.mark.skip -->
 ```bash
 B=your-data-bucket
-aws s3api head-bucket --bucket "$B"                       # exists; prints region
-aws s3api list-objects-v2 --bucket "$B" --max-keys 1      # s3:ListBucket
-aws s3api head-object --bucket "$B" --key <a-key-from-above>   # s3:GetObject
-aws s3api get-bucket-notification-configuration --bucket "$B"  # s3:GetBucketNotification
-# Only if the output above lists a TopicArn:
-aws sns get-topic-attributes --topic-arn <that-TopicArn> --region <bucket-region>
+# Exists; with AWS CLI v2 the output includes BucketRegion
+aws s3api head-bucket --bucket "$B"
+REGION=$(aws s3api get-bucket-location --bucket "$B" \
+    --query 'LocationConstraint || `us-east-1`' --output text)
+# s3:ListBucket
+KEY=$(aws s3api list-objects-v2 --bucket "$B" --max-keys 1 \
+    --query 'Contents[0].Key' --output text)
+# s3:GetObject (skip if the bucket is empty)
+aws s3api head-object --bucket "$B" --key "$KEY"
+# s3:GetBucketNotification
+TOPIC=$(aws s3api get-bucket-notification-configuration --bucket "$B" \
+    --query 'TopicConfigurations[0].TopicArn' --output text)
+# Only if TOPIC is not None: the topic policy
+aws sns get-topic-attributes --topic-arn "$TOPIC" --region "$REGION"
 ```
 
 An `AccessDenied` from any of these shows which grant is missing.
