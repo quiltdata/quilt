@@ -32,7 +32,7 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(0.5, 1.5),
   },
   modelId: {
-    ...t.typography.caption,
+    ...t.typography.body2,
     color: t.palette.text.secondary,
     display: 'block',
     fontFamily: t.typography.monospace?.fontFamily ?? 'monospace',
@@ -232,7 +232,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
                 }
                 label={
                   <span>
-                    {m.provider ? `${m.provider} · ${m.name}` : m.name}
+                    {m.name}
                     <span className={classes.modelId}>{m.id}</span>
                   </span>
                 }
@@ -275,7 +275,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
                   <span className={classes.modelId}>{id}</span>
                 </span>
               ) : (
-                id
+                <span className={classes.modelId}>{id}</span>
               )}
             </M.MenuItem>
           ))}
