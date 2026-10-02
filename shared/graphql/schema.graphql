@@ -1,5 +1,7 @@
 directive @admin on FIELD_DEFINITION
 
+directive @authenticated on FIELD_DEFINITION
+
 scalar Datetime
 
 scalar Json
@@ -119,6 +121,40 @@ type ContentIndexingSettings {
 
 type Config {
   contentIndexingSettings: ContentIndexingSettings! @admin
+  """
+  What Qurator may run, and the limits it runs under. @authenticated rather than
+  @admin: every signed-in user's assistant resolves a model against this, so
+  gating it to admins would refuse the users the setting exists to serve, while
+  leaving it ungated would publish it on a stack that allows anonymous access.
+  The gateway's own address is admin-only and lives on `QuratorGatewayConfig`.
+  Nullable so a refused read nulls this field alone rather than all of `config`.
+  """
+  quratorModels: QuratorModelConfig @authenticated
+}
+
+"""
+The governed model set, readable by any authenticated user. Null `allowlist`
+means unset: the deployment behaves as it did before an admin wrote a set.
+"""
+type QuratorModelConfig {
+  allowlist: [String!]
+  default: String
+  requestTimeoutSeconds: Int
+  maxToolCallsPerTurn: Int
+}
+
+"""
+Where a deployment sends inference, when it does not use the deployed account.
+Admin-only: no ordinary user's assistant needs it, and a customer's internal
+gateway address is not worth exposing to every signed-in user. The inference
+relay sends to a saved endpoint in place of the stack's, bearing the stack's
+gateway credential, so an admin who can save one is trusted with that credential;
+the relay uses it only where the operator has configured the credential. The
+account is stored only.
+"""
+type QuratorGatewayConfig {
+  endpointUrl: String
+  accountId: String
 }
 
 type Canary {
@@ -676,6 +712,7 @@ type APIKeyAdminQueries {
 }
 
 type AdminQueries {
+  quratorConfig: QuratorConfig!
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
@@ -1087,6 +1124,26 @@ type UserAdminMutations {
 
 union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 
+"""
+Replaces the whole Qurator configuration. Every field is explicit, so a write
+states the full intent: omitting one does not preserve it. Null clears a field.
+"""
+input QuratorConfigInput {
+  allowlist: [String!]
+  default: String
+  gatewayEndpointUrl: String
+  gatewayAccountId: String
+  requestTimeoutSeconds: Int
+  maxToolCallsPerTurn: Int
+}
+
+type QuratorConfig {
+  models: QuratorModelConfig!
+  gateway: QuratorGatewayConfig!
+}
+
+union SetQuratorConfigResult = QuratorConfig | InvalidInput | OperationError
+
 union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
 
 type TabulatorOpenQueryResult {
@@ -1106,6 +1163,7 @@ type APIKeyAdminMutations {
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
+  setQuratorConfig(input: QuratorConfigInput!): SetQuratorConfigResult!
   bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult! @deprecated
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult! @deprecated
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
