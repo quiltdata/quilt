@@ -28,8 +28,8 @@ ACCEPTABLE_ERROR_MESSAGES = [
     'Attribute "scoped" not allowed on element "style" at this point.',
     'The "border" attribute on the "table" element is obsolete. Consider specifying "img { border: 0; }" in CSS instead.',
 ]
-# The validator now reports pandas' <style scoped> block once per rule instead
-# of once for the element, so the rule's selector varies.
+# The validator emits one error per rule in pandas' <style scoped> block, so the
+# selector varies.
 ACCEPTABLE_ERROR_PATTERNS = [
     re.compile(r'Style rule ".+" not allowed outside an "@scope" rule in a "style" element in "body"\.'),
 ]
