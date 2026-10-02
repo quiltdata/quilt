@@ -3,6 +3,7 @@ Preview helper functions
 """
 import os
 import pathlib
+import re
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -26,6 +27,11 @@ ACCEPTABLE_ERROR_MESSAGES = [
     '(Suppressing further errors from this subtree.)',
     'Attribute "scoped" not allowed on element "style" at this point.',
     'The "border" attribute on the "table" element is obsolete. Consider specifying "img { border: 0; }" in CSS instead.',
+]
+# The validator emits one error per rule in pandas' <style scoped> block, so the
+# selector varies.
+ACCEPTABLE_ERROR_PATTERNS = [
+    re.compile(r'Style rule ".+" not allowed outside an "@scope" rule in a "style" element in "body"\.'),
 ]
 
 
@@ -120,6 +126,9 @@ class TestPreview(TestCase):
                         serious_errors = [
                             e for e in vld.errors
                             if normalize_quotes(e["message"]) not in normalized_acceptable
+                            and not any(
+                                p.fullmatch(normalize_quotes(e["message"])) for p in ACCEPTABLE_ERROR_PATTERNS
+                            )
                         ]
                         assert not serious_errors
                         print(vld.warnings)
