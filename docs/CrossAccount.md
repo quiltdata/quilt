@@ -215,13 +215,13 @@ REGION=$(aws s3api head-bucket --bucket "$B" --query BucketRegion --output text)
 # s3:ListBucket
 KEY=$(aws s3api list-objects-v2 --bucket "$B" --max-keys 1 \
     --query 'Contents[0].Key' --output text)
-# s3:GetObject (skip if the bucket is empty)
-aws s3api head-object --bucket "$B" --key "$KEY"
+# s3:GetObject, if the bucket has any objects
+[ "$KEY" != None ] && aws s3api head-object --bucket "$B" --key "$KEY"
 # s3:GetBucketNotification
 TOPIC=$(aws s3api get-bucket-notification-configuration --bucket "$B" \
     --query 'TopicConfigurations[0].TopicArn' --output text)
-# Only if TOPIC is not None: the topic policy
-aws sns get-topic-attributes --topic-arn "$TOPIC" --region "$REGION"
+# The topic policy, if the bucket already notifies a topic
+[ "$TOPIC" != None ] && aws sns get-topic-attributes --topic-arn "$TOPIC" --region "$REGION"
 ```
 
 An `AccessDenied` from any of these shows which grant is missing.
