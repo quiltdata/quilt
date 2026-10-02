@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] OME-Zarr images open in an interactive multiscale viewer with per-channel colours, instead of the raw `.zattrs`/`zarr.json` metadata ([#5388](https://github.com/quiltdata/quilt/pull/5388))
 - [Added] Admins can approve the models Qurator may run under Admin > Settings > Qurator models, and users then pick among those in the Qurator menu instead of typing a model ID ([#5389](https://github.com/quiltdata/quilt/pull/5389))
 - [Fixed] Signed-in users get the admin-configured catalog settings (front door, theme, Qurator, feature flags) right after sign-in, without reloading the page ([#5371](https://github.com/quiltdata/quilt/pull/5371))
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
