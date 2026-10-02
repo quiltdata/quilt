@@ -774,7 +774,8 @@ export default function Chat({
           <DevTools
             state={state}
             {...devTools}
-            governed={!!model.allowlist}
+            // A failed read sends the stack default, so a typed override would be ignored.
+            governed={!!model.allowlist || model.readFailed}
             connectors={connectors}
           />
         </M.Paper>

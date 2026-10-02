@@ -106,4 +106,20 @@ describe('components/Assistant/Model/Assistant useModelIdOverride', () => {
     expect(await h.sent()).toBe('us.anthropic.claude-sonnet-4-5-20250929-v1:0')
     expect(localStorage.getItem(KEY)).toBe('moonshot.kimi-k3-v1:0')
   })
+
+  it('after a failed read, shows the model it sends', async () => {
+    localStorage.setItem(KEY, 'moonshot.kimi-k3-v1:0')
+    governed.failed = true
+    const h = setup()
+    expect(h.model().current).toBe(await h.sent())
+  })
+
+  it('restores the stored model once a read succeeds ungoverned', async () => {
+    localStorage.setItem(KEY, 'moonshot.kimi-k3-v1:0')
+    governed.failed = true
+    const h = setup()
+    governed.failed = false
+    h.rerender()
+    expect(await h.sent()).toBe('moonshot.kimi-k3-v1:0')
+  })
 })

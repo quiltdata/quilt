@@ -14,6 +14,7 @@ export interface Governed {
  * The governed set, or `null` when no admin has written one, and whether the
  * read has settled. A failed read settles, so a waiting turn is not held
  * forever, and is flagged so the turn avoids a stored model the set may refuse.
+ * Nothing retries it: the flag holds until a reload or sign-in reads again.
  */
 export function useGoverned(): {
   governed: Governed | null
