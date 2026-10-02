@@ -11,19 +11,21 @@ export interface Governed {
 }
 
 /**
- * The governed set, or `null` when no admin has written one. A read that is
- * still in flight or failed is also `null`: the registry's inference relay
- * enforces the set either way, so the catalog falling back is cosmetic only.
+ * The governed set, or `null` when no admin has written one, and whether the
+ * read has settled. A failed read counts as settled and ungoverned: the
+ * registry's inference relay enforces the set either way.
  */
-export function useGoverned(): Governed | null {
+export function useGoverned(): { governed: Governed | null; settled: boolean } {
   const query = GQL.useQuery(QURATOR_MODELS_QUERY)
   return React.useMemo(
     () =>
       GQL.fold(query, {
-        data: ({ config: { quratorModels: m } }) =>
-          m?.allowlist ? { allowlist: m.allowlist, default: m.default } : null,
-        fetching: () => null,
-        error: () => null,
+        data: ({ config: { quratorModels: m } }) => ({
+          governed: m?.allowlist ? { allowlist: m.allowlist, default: m.default } : null,
+          settled: true,
+        }),
+        fetching: () => ({ governed: null, settled: false }),
+        error: () => ({ governed: null, settled: true }),
       }),
     [query],
   )

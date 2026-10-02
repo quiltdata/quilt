@@ -1229,8 +1229,11 @@ export interface QuratorConfigInput {
 /**
  * Where a deployment sends inference, when it does not use the deployed account.
  * Admin-only: no ordinary user's assistant needs it, and a customer's internal
- * gateway address is not worth exposing to every signed-in user. Stored only:
- * the inference relay still takes its target from the stack's environment.
+ * gateway address is not worth exposing to every signed-in user. The inference
+ * relay sends to a saved endpoint in place of the stack's, bearing the stack's
+ * gateway credential, so an admin who can save one is trusted with that credential;
+ * the relay uses it only where the operator has configured the credential. The
+ * account is stored only.
  */
 export interface QuratorGatewayConfig {
   readonly __typename: 'QuratorGatewayConfig'

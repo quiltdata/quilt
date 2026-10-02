@@ -170,7 +170,7 @@ function useConnectors(
 }
 
 export function useModelIdOverride() {
-  const governed = ModelChoice.useGoverned()
+  const { governed, settled } = ModelChoice.useGoverned()
   const [value, setValue] = React.useState(
     () =>
       (typeof localStorage !== 'undefined' && localStorage.getItem(MODEL_ID_KEY)) || '',
@@ -195,9 +195,18 @@ export function useModelIdOverride() {
 
   const current = ModelChoice.resolve(governed, value, DEFAULT_MODEL_ID)
   const currentPassThru = usePassThru(current)
+  // A turn waits for the governed read: sent before it settles, a stored model
+  // the admin has since disallowed would reach the relay and be refused.
+  const ready = useConst(() => defer<void>())
+  React.useEffect(() => {
+    if (settled) ready.resolver.resolve()
+  }, [settled, ready])
   const modelIdEff = React.useMemo(
-    () => Eff.Effect.sync(() => currentPassThru.current),
-    [currentPassThru],
+    () =>
+      Eff.Effect.promise(() => ready.promise).pipe(
+        Eff.Effect.map(() => currentPassThru.current),
+      ),
+    [ready, currentPassThru],
   )
 
   return [

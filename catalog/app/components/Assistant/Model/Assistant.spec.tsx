@@ -9,11 +9,11 @@ const HAIKU = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
 const OPUS = 'us.anthropic.claude-opus-4-5-20251101-v1:0'
 const KEY = 'QUILT_BEDROCK_MODEL_ID'
 
-const governed = vi.hoisted(() => ({ current: null as any }))
+const governed = vi.hoisted(() => ({ current: null as any, settled: true }))
 
 vi.mock('./ModelChoice', async (importActual) => ({
   ...(await importActual<typeof import('./ModelChoice')>()),
-  useGoverned: () => governed.current,
+  useGoverned: () => ({ governed: governed.current, settled: governed.settled }),
 }))
 
 import { useModelIdOverride } from './Assistant'
@@ -26,49 +26,67 @@ function setup() {
   }
   const { rerender } = render(<Harness />)
   return {
-    sent: () => Eff.Effect.runSync(box.current![0]),
+    sent: () => Eff.Effect.runPromise(box.current![0]),
     model: () => box.current![2],
     rerender: () => rerender(<Harness />),
   }
 }
 
-describe('components/Assistant/Model/Assistant useModelIdOverride', () => {
+describe('components/Assistant/Model/Assistant useModelIdOverride', async () => {
   beforeEach(() => {
     localStorage.clear()
     governed.current = null
+    governed.settled = true
   })
   afterEach(cleanup)
 
-  it('ungoverned, sends and keeps a stored override, as before', () => {
+  it('ungoverned, sends and keeps a stored override, as before', async () => {
     localStorage.setItem(KEY, 'moonshot.kimi-k3-v1:0')
     const h = setup()
-    expect(h.sent()).toBe('moonshot.kimi-k3-v1:0')
+    expect(await h.sent()).toBe('moonshot.kimi-k3-v1:0')
     expect(localStorage.getItem(KEY)).toBe('moonshot.kimi-k3-v1:0')
   })
 
-  it('governed, never sends a stored non-member and drops it from storage', () => {
+  it('governed, never sends a stored non-member and drops it from storage', async () => {
     localStorage.setItem(KEY, 'moonshot.kimi-k3-v1:0')
     governed.current = { allowlist: [HAIKU, OPUS], default: OPUS }
     const h = setup()
-    expect(h.sent()).toBe(OPUS)
+    expect(await h.sent()).toBe(OPUS)
     expect(localStorage.getItem(KEY)).toBeNull()
   })
 
-  it('drops a stored non-member once the governed set arrives', () => {
+  it('drops a stored non-member once the governed set arrives', async () => {
     localStorage.setItem(KEY, 'moonshot.kimi-k3-v1:0')
     const h = setup()
     governed.current = { allowlist: [HAIKU, OPUS], default: OPUS }
     h.rerender()
-    expect(h.sent()).toBe(OPUS)
+    expect(await h.sent()).toBe(OPUS)
     expect(localStorage.getItem(KEY)).toBeNull()
   })
 
-  it('governed, a picked model is sent and remembered', () => {
+  it('governed, a picked model is sent and remembered', async () => {
     governed.current = { allowlist: [HAIKU, OPUS], default: OPUS }
     const h = setup()
     act(() => h.model().select(HAIKU))
-    expect(h.sent()).toBe(HAIKU)
+    expect(await h.sent()).toBe(HAIKU)
     expect(h.model().current).toBe(HAIKU)
     expect(localStorage.getItem(KEY)).toBe(HAIKU)
+  })
+
+  it('holds a turn until the governed read settles, then sends the default', async () => {
+    localStorage.setItem(KEY, 'moonshot.kimi-k3-v1:0')
+    governed.settled = false
+    const h = setup()
+    let sent: string | undefined
+    h.sent().then((id) => {
+      sent = id
+    })
+    await new Promise((r) => setTimeout(r, 10))
+    expect(sent).toBeUndefined()
+    governed.current = { allowlist: [HAIKU, OPUS], default: OPUS }
+    governed.settled = true
+    h.rerender()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(sent).toBe(OPUS)
   })
 })
