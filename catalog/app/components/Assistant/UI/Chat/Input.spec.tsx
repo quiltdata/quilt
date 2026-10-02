@@ -65,4 +65,14 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
     )
     expect((screen.getByLabelText(/^Model:/) as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it('closes an open menu when a turn starts', () => {
+    const model = { allowlist: [HAIKU, OPUS], current: OPUS, select: vi.fn() }
+    const { rerender } = render(<ModelPicker model={model} />)
+    fireEvent.click(screen.getByLabelText(/^Model:/))
+    expect(screen.queryAllByRole('menuitemradio')).toHaveLength(2)
+    rerender(<ModelPicker model={model} disabled />)
+    rerender(<ModelPicker model={model} />)
+    expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0)
+  })
 })

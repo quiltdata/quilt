@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { MIN_WIDTH, ResizeHandle, clamp } from './PanelResize'
@@ -43,6 +43,16 @@ describe('components/Assistant/UI/PanelResize', () => {
     fireEvent.keyDown(handle(), { key: 'Home' })
     expect(handle().getAttribute('aria-valuenow')).toBe(String(MIN_WIDTH))
     expect(localStorage.getItem(KEY)).toBe(String(MIN_WIDTH))
+  })
+
+  it('announces the new maximum after the window resizes', () => {
+    render(<ResizeHandle />)
+    expect(handle().getAttribute('aria-valuemax')).toBe('720')
+    act(() => {
+      window.innerWidth = 1000
+      window.dispatchEvent(new Event('resize'))
+    })
+    expect(handle().getAttribute('aria-valuemax')).toBe('600')
   })
 
   it('keeps the responsive default when nothing is stored', () => {

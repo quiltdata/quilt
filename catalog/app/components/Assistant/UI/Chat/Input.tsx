@@ -82,6 +82,12 @@ const usePickerStyles = M.makeStyles((t) => ({
     padding: t.spacing(0.5, 1),
     textTransform: 'none',
     whiteSpace: 'nowrap',
+    // An untiered name shows in full; the tooltip carries the id.
+    maxWidth: t.spacing(20),
+  },
+  label: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
 }))
 
@@ -98,6 +104,10 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
   const classes = usePickerStyles()
   const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
   const close = React.useCallback(() => setAnchor(null), [])
+  // A turn starting with the menu open must not leave it switchable mid-turn.
+  React.useEffect(() => {
+    if (disabled) close()
+  }, [disabled, close])
   if (!model.allowlist) return null
   const current = ModelChoice.label(model.current)
   return (
@@ -114,11 +124,13 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
             size="small"
             endIcon={<M.Icon fontSize="small">expand_more</M.Icon>}
           >
-            {ModelChoice.tier(model.current) ?? ModelChoice.displayName(model.current)}
+            <span className={classes.label}>
+              {ModelChoice.tier(model.current) ?? ModelChoice.displayName(model.current)}
+            </span>
           </M.Button>
         </span>
       </M.Tooltip>
-      <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+      <M.Menu anchorEl={anchor} open={!!anchor && !disabled} onClose={close}>
         {model.allowlist.map((id) => (
           <M.MenuItem
             key={id}

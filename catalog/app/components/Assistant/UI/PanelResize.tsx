@@ -69,8 +69,13 @@ const viewportWidth = () => document.documentElement.clientWidth || window.inner
 export function ResizeHandle() {
   const classes = useStyles()
   const [width, setWidth] = React.useState(() => readStored())
-  // Re-read on focus, so the values announced follow the window's current size.
+  // Re-read on focus and on window resize, so the values announced follow the
+  // window's current size.
   const [, refresh] = React.useReducer((n: number) => n + 1, 0)
+  React.useEffect(() => {
+    window.addEventListener('resize', refresh)
+    return () => window.removeEventListener('resize', refresh)
+  }, [])
 
   React.useEffect(() => {
     apply(width)
