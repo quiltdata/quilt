@@ -714,8 +714,18 @@ export default function Chat({
         ]
       : [],
   )
+  // Without this the fallback is silent: the switch and the override both vanish.
+  if (model.readFailed) {
+    helperLines.push(
+      <span key="model-fallback" className={classes.connectorLine}>
+        The approved model list couldn't be read, so Qurator is using this stack's default
+        model.
+      </span>,
+    )
+  }
   const helperText = helperLines.length > 0 ? helperLines : undefined
-  const helperSeverity = helperSeverityFor(connectorStates)
+  const helperSeverity =
+    helperSeverityFor(connectorStates) ?? (model.readFailed ? 'warning' : undefined)
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
