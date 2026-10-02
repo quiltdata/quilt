@@ -13,10 +13,13 @@ const state = vi.hoisted(() => ({
   mutate: null as any,
 }))
 
-vi.mock('utils/GraphQL', () => ({
-  useQueryS: () => ({
-    admin: { quratorConfig: state.config, quratorAvailableModels: state.available },
-  }),
+vi.mock('utils/GraphQL', async (importActual) => ({
+  ...(await importActual<typeof import('utils/GraphQL')>()),
+  useQueryS: () => ({ admin: { quratorConfig: state.config } }),
+  useQuery: () =>
+    state.available instanceof Error
+      ? { fetching: false, error: state.available }
+      : { fetching: false, data: { admin: { quratorAvailableModels: state.available } } },
   useMutation: () => state.mutate,
 }))
 
@@ -176,5 +179,45 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
   it('says why there is no checklist behind a gateway', () => {
     const { getByRole } = render(<QuratorModelSettings />)
     expect(getByRole('status').textContent).toMatch(/AI gateway/)
+  })
+
+  describe('review cases', () => {
+    const LISTED = {
+      unavailable: null,
+      models: [
+        { id: HAIKU, name: 'Claude Haiku 4.5', provider: 'Anthropic' },
+        { id: OPUS, name: 'Claude Opus 4.5', provider: 'Anthropic' },
+      ],
+    }
+
+    it('leaves Save disabled when the saved order differs from the listing', () => {
+      state.available = LISTED
+      state.config = config([OPUS, HAIKU], OPUS)
+      const { getByText } = render(<QuratorModelSettings />)
+      expect(getByText('Save').closest('button')?.disabled).toBe(true)
+    })
+
+    it('says so when the account lists no models', () => {
+      state.available = { unavailable: null, models: [] }
+      const { getByRole } = render(<QuratorModelSettings />)
+      expect(getByRole('status').textContent).toMatch(/No models were found/)
+    })
+
+    it('keeps the id box with the saved set when the listing fails outright', () => {
+      state.available = new Error('Cannot query field "quratorAvailableModels"')
+      state.config = config([OPUS], OPUS)
+      const { getByLabelText, getByRole } = render(<QuratorModelSettings />)
+      expect(getByRole('status').textContent).toMatch(/couldn't be listed/)
+      expect((getByLabelText('Allowed model IDs') as HTMLTextAreaElement).value).toBe(
+        OPUS,
+      )
+    })
+
+    it('names a listed default in the dropdown', () => {
+      state.available = LISTED
+      state.config = config([OPUS], OPUS)
+      const { getByLabelText } = render(<QuratorModelSettings />)
+      expect(getByLabelText(/Default model/).textContent).toBe('Claude Opus 4.5')
+    })
   })
 })

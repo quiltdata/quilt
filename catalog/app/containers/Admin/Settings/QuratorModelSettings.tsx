@@ -72,26 +72,62 @@ export function combineIds(
   return Array.from(new Set([...ticked, ...parseIds(text)]))
 }
 
-const UNAVAILABLE_NOTE = {
+type Unavailable = GQL.DataForDoc<
+  typeof QURATOR_AVAILABLE_MODELS_QUERY
+>['admin']['quratorAvailableModels']['unavailable']
+type Available = NonNullable<
+  GQL.DataForDoc<
+    typeof QURATOR_AVAILABLE_MODELS_QUERY
+  >['admin']['quratorAvailableModels']['models']
+>
+
+const UNAVAILABLE_NOTE: Record<string, string> = {
   GATEWAY:
     "This stack sends Qurator through an AI gateway, which can't list its models. Enter the full model IDs your organization has approved.",
   LISTING_FAILED:
     "This account's Bedrock models couldn't be listed. Enter full model IDs below.",
-} as const
+}
 
+/** The same set regardless of order: the listing's order is not the saved one. */
+const sameSet = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((id) => b.includes(id))
+
+/**
+ * The listing is read without suspending, so a failed one (Bedrock down, or a
+ * registry without the query) leaves the plain id box instead of taking the
+ * whole section down.
+ */
 export default function QuratorModelSettings() {
-  const classes = useStyles()
   const { admin } = GQL.useQueryS(QURATOR_CONFIG_QUERY)
+  const listing = GQL.useQuery(QURATOR_AVAILABLE_MODELS_QUERY)
+  return GQL.fold(listing, {
+    data: ({ admin: { quratorAvailableModels: l } }) => (
+      <Editor
+        config={admin.quratorConfig}
+        available={l.models ?? []}
+        unavailable={l.unavailable}
+      />
+    ),
+    fetching: () => <M.CircularProgress size={24} />,
+    error: () => (
+      <Editor config={admin.quratorConfig} available={[]} unavailable="LISTING_FAILED" />
+    ),
+  })
+}
+
+interface EditorProps {
+  config: GQL.DataForDoc<typeof QURATOR_CONFIG_QUERY>['admin']['quratorConfig']
+  available: Available
+  unavailable: Unavailable | 'LISTING_FAILED'
+}
+
+function Editor({ config, available, unavailable }: EditorProps) {
+  const classes = useStyles()
   const setConfig = GQL.useMutation(SET_QURATOR_CONFIG_MUTATION)
 
-  const { admin: listing } = GQL.useQueryS(QURATOR_AVAILABLE_MODELS_QUERY)
-  const available = React.useMemo(
-    () => listing.quratorAvailableModels.models ?? [],
-    [listing.quratorAvailableModels.models],
-  )
   const offered = React.useMemo(() => available.map((m) => m.id), [available])
 
-  const [saved, setSaved] = React.useState(admin.quratorConfig)
+  const [saved, setSaved] = React.useState(config)
   const savedIds = saved.models.allowlist ?? []
   const initial = splitSaved(savedIds, offered)
   const [checked, setChecked] = React.useState<string[]>(initial.checked)
@@ -109,8 +145,7 @@ export default function QuratorModelSettings() {
   const effectiveDefault = ids.includes(chosenDefault) ? chosenDefault : (ids[0] ?? '')
 
   const dirty =
-    ids.join('\n') !== savedIds.join('\n') ||
-    effectiveDefault !== (saved.models.default ?? '')
+    !sameSet(ids, savedIds) || effectiveDefault !== (saved.models.default ?? '')
 
   const toggle = React.useCallback(
     (id: string) =>
@@ -168,9 +203,13 @@ export default function QuratorModelSettings() {
         Users choose among the allowed models in Qurator, and no other model is relayed.
         Allow none to let users run any model, as before.
       </M.Typography>
-      {listing.quratorAvailableModels.unavailable ? (
+      {unavailable ? (
         <M.Typography className={classes.note} role="status">
-          {UNAVAILABLE_NOTE[listing.quratorAvailableModels.unavailable]}
+          {UNAVAILABLE_NOTE[unavailable] ?? UNAVAILABLE_NOTE.LISTING_FAILED}
+        </M.Typography>
+      ) : !available.length ? (
+        <M.Typography className={classes.note} role="status">
+          No models were found in this account's Bedrock. Enter full model IDs below.
         </M.Typography>
       ) : (
         <M.FormControl component="fieldset" disabled={pending}>
