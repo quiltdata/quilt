@@ -16,9 +16,9 @@ When an admin adds a bucket in **Admin → Buckets**, the Quilt registry adds it
 under the stack's own service role, in the stack account. Your users' Quilt
 roles are not involved.
 
-The stack's service roles already have identity permissions for any bucket
-you register. A bucket in another account also needs **resource policies in
-the data account** that let the stack account in:
+On add, Quilt extends its own roles' identity policies to the bucket. A
+bucket in another account also needs **resource policies in the data
+account** that let the stack account in:
 
 | Resource in the data account | Needed when |
 |---|---|
@@ -26,7 +26,8 @@ the data account** that let the stack account in:
 | SNS topic policy | The bucket already sends notifications to a topic in the data account |
 | KMS key policy | The bucket uses SSE-KMS with a customer-managed key |
 
-Cross-account access needs no IAM role assumption and no CloudTrail changes.
+Cross-account access needs no IAM role assumption and no CloudTrail setup on
+your side.
 
 ## Checklist
 
@@ -93,7 +94,6 @@ use, plus the notification actions the registry needs.
         "s3:ListBucket",
         "s3:ListBucketVersions",
         "s3:DeleteObject",
-        "s3:DeleteObjectVersion",
         "s3:PutObject",
         "s3:PutObjectTagging",
         "s3:RestoreObject",
@@ -114,15 +114,14 @@ Notes:
 - The `root` principal delegates to the stack account's IAM. Only roles that
   the stack account's own policies allow can use it. Quilt controls which users
   can reach the bucket through its own roles and policies.
-- If the bucket is read-only for Quilt, you can drop the `Delete*`, `Put*Object*`
-  and `RestoreObject` actions. Package pushes to this bucket will then fail.
+- If the bucket is read-only for Quilt, you can drop `s3:DeleteObject`,
+  `s3:PutObject`, `s3:PutObjectTagging` and `s3:RestoreObject`. Package pushes
+  to this bucket will then fail.
 - With **Explicit** or **Skip**, `s3:PutBucketNotification` is not used.
   **Automatic** needs both notification actions.
-- If you restrict the principal to specific roles instead of `root`, include
-  at least the stack's `AmazonECSTaskExecutionRole` (bucket add),
-  `SearchHandlerRole` (indexing), `PkgEventsRole`, and the user roles
-  (`T4BucketReadRole`, `T4BucketWriteRole`, and any managed roles). Find their
-  ARNs under CloudFormation → your stack → Resources.
+- Keep the principal as the stack account's `root`. Many stack roles read the
+  bucket (registry, indexer, previews, package push, user roles), so a list of
+  specific roles is easy to get wrong.
 
 <!-- pytest.mark.skip -->
 ```bash
@@ -152,7 +151,12 @@ with the existing statements; do not replace them.
   "Sid": "QuiltStackSubscribe",
   "Effect": "Allow",
   "Principal": { "AWS": "arn:aws:iam::STACK-ACCOUNT-ID:root" },
-  "Action": ["sns:GetTopicAttributes", "sns:Subscribe", "sns:Unsubscribe"],
+  "Action": [
+    "sns:GetTopicAttributes",
+    "sns:GetSubscriptionAttributes",
+    "sns:Subscribe",
+    "sns:Unsubscribe"
+  ],
   "Resource": "arn:aws:sns:REGION:DATA-ACCOUNT-ID:your-topic-name"
 }
 ```
@@ -249,7 +253,8 @@ Send either to [Quilt support](mailto:support@quilt.bio).
 
 ## After adding: if search looks incomplete
 
-1. **Was Skip used?** Then only objects present at add time were indexed. Use
+1. **Was Skip used?** Then only objects present at add time were indexed (none,
+   if **Delay scan** was also checked). Use
    **Re-index and repair** (see [Troubleshooting](Catalog/Troubleshooting.md)), or
    switch to a notification mode.
 2. **Explicit mode:** confirm the topic receives both `ObjectCreated` and
