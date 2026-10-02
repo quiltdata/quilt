@@ -1,0 +1,16 @@
+query {
+  admin {
+    quratorConfig {
+      models {
+        allowlist
+        default
+        requestTimeoutSeconds
+        maxToolCallsPerTurn
+      }
+      gateway {
+        endpointUrl
+        accountId
+      }
+    }
+  }
+}

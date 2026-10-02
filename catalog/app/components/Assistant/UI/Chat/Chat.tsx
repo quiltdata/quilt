@@ -439,12 +439,20 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
 interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
+  model: Model.Assistant.API['model']
   onToggleDevTools: () => void
   devToolsOpen: boolean
   className?: string
 }
 
-function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: MenuProps) {
+export function Menu({
+  state,
+  dispatch,
+  model,
+  devToolsOpen,
+  onToggleDevTools,
+  className,
+}: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
 
   const isIdle = state._tag === 'Idle'
@@ -465,6 +473,14 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
     onToggleDevTools()
     closeMenu()
   }, [closeMenu, onToggleDevTools])
+
+  const selectModel = React.useCallback(
+    (id: string) => {
+      model.select(id)
+      closeMenu()
+    },
+    [closeMenu, model],
+  )
 
   return (
     <>
@@ -494,6 +510,21 @@ function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: Me
           New session
         </M.MenuItem>
         <M.MenuItem onClick={showDevTools}>Developer Tools</M.MenuItem>
+        {/* Offered only when an admin has approved a set: ungoverned, the model
+            stays a Developer Tools override, as before. */}
+        {model.allowlist && <M.Divider />}
+        {model.allowlist && <M.ListSubheader>Model</M.ListSubheader>}
+        {model.allowlist?.map((id) => (
+          <M.MenuItem
+            key={id}
+            onClick={() => selectModel(id)}
+            selected={id === model.current}
+            aria-checked={id === model.current}
+            role="menuitemradio"
+          >
+            {id}
+          </M.MenuItem>
+        ))}
       </M.Menu>
     </>
   )
@@ -648,6 +679,7 @@ interface ChatProps {
   devTools: Model.Assistant.API['devTools']
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
+  model: Model.Assistant.API['model']
   onClose: () => void
 }
 
@@ -657,6 +689,7 @@ export default function Chat({
   devTools,
   connectors,
   instructions,
+  model,
   onClose,
 }: ChatProps) {
   const classes = useStyles()
@@ -731,13 +764,19 @@ export default function Chat({
       <Menu
         state={state}
         dispatch={dispatch}
+        model={model}
         onToggleDevTools={toggleDevTools}
         devToolsOpen={devToolsOpen}
         className={classes.menu}
       />
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
-          <DevTools state={state} {...devTools} connectors={connectors} />
+          <DevTools
+            state={state}
+            {...devTools}
+            governed={!!model.allowlist}
+            connectors={connectors}
+          />
         </M.Paper>
       </M.Slide>
       <div className={classes.historyContainer}>

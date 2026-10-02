@@ -1,0 +1,28 @@
+mutation ($input: QuratorConfigInput!) {
+  admin {
+    setQuratorConfig(input: $input) {
+      __typename
+      ... on QuratorConfig {
+        models {
+          allowlist
+          default
+          requestTimeoutSeconds
+          maxToolCallsPerTurn
+        }
+        gateway {
+          endpointUrl
+          accountId
+        }
+      }
+      ... on InvalidInput {
+        errors {
+          path
+          message
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}
