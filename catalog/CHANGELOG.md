@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Qurator: the model picker sits in the Ask Qurator box with Heavy, Medium and Light labels, and the panel's header shows one aligned menu and close button ([#5394](https://github.com/quiltdata/quilt/pull/5394))
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
 - [Fixed] When the approved-model list cannot be read, Qurator sends the stack's default model instead of a saved one the registry would refuse ([#5392](https://github.com/quiltdata/quilt/pull/5392))
 - [Changed] Admin > Settings > Qurator models lists the models in this account's Bedrock as a checklist, with a box for any other model IDs, instead of a bare text box ([#5393](https://github.com/quiltdata/quilt/pull/5393))

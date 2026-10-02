@@ -11,7 +11,7 @@ vi.mock('utils/GraphQL', async (importActual) => ({
   useQuery: () => query.current,
 }))
 
-import { isStale, resolve, useGoverned } from './ModelChoice'
+import { displayName, isStale, label, resolve, tier, useGoverned } from './ModelChoice'
 
 function readGoverned() {
   let out: ReturnType<typeof useGoverned> | undefined
@@ -112,5 +112,22 @@ describe('components/Assistant/Model/ModelChoice useGoverned', () => {
       settled: true,
       failed: false,
     })
+  })
+})
+
+describe('components/Assistant/Model/ModelChoice labels', () => {
+  it.each([
+    ['us.anthropic.claude-opus-4-5-20251101-v1:0', 'Heavy', 'Claude Opus 4.5'],
+    ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'Medium', 'Claude Sonnet 4.5'],
+    ['anthropic.claude-3-5-haiku-20241022-v1:0', 'Light', 'Claude 3.5 Haiku'],
+    ['amazon.nova-pro-v1:0', null, 'Nova Pro'],
+    ['us.meta.llama3-1-70b-instruct-v1:0', null, 'Llama3.1 70b Instruct'],
+    ['global.anthropic.claude-sonnet-4-5-20250929-v1:0', 'Medium', 'Claude Sonnet 4.5'],
+    ['us-gov.anthropic.claude-3-5-sonnet-20240620-v1:0', 'Medium', 'Claude 3.5 Sonnet'],
+    ['anthropic.claude-3-sonnet-20240229-v1:0:200k', 'Medium', 'Claude 3 Sonnet'],
+  ])('%s', (id, t, name) => {
+    expect(tier(id)).toBe(t)
+    expect(displayName(id)).toBe(name)
+    expect(label(id)).toBe(t ? `${t} · ${name}` : name)
   })
 })
