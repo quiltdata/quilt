@@ -210,10 +210,8 @@ sets when you add the bucket.
 <!-- pytest.mark.skip -->
 ```bash
 B=your-data-bucket
-# Exists; with AWS CLI v2 the output includes BucketRegion
-aws s3api head-bucket --bucket "$B"
-REGION=$(aws s3api get-bucket-location --bucket "$B" \
-    --query 'LocationConstraint || `us-east-1`' --output text)
+# Exists, and its region (needs AWS CLI v2.13 or later)
+REGION=$(aws s3api head-bucket --bucket "$B" --query BucketRegion --output text)
 # s3:ListBucket
 KEY=$(aws s3api list-objects-v2 --bucket "$B" --max-keys 1 \
     --query 'Contents[0].Key' --output text)
