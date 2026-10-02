@@ -71,9 +71,10 @@ export function tier(id: string): string | null {
  */
 export function displayName(id: string): string {
   const base = id
-    .replace(/^(?:[a-z]{2,4}\.)?(?:[a-z0-9-]+\.)?/, '')
+    // Every dot-terminated leading segment: `us.`, `us-gov.`, `global.`, the vendor.
+    .replace(/^(?:[a-z0-9-]+\.)*/, '')
     .replace(/-\d{8}/, '')
-    .replace(/-v\d+(?::\d+)?$/, '')
+    .replace(/-v\d+(?::\w+)*$/, '')
   const words: string[] = []
   for (const part of base.split('-').filter(Boolean)) {
     const prev = words[words.length - 1]

@@ -107,6 +107,7 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
           <M.Button
             className={classes.button}
             aria-haspopup="menu"
+            aria-expanded={!!anchor}
             aria-label={`Model: ${current}`}
             disabled={disabled}
             onClick={(e) => setAnchor(e.currentTarget)}
@@ -197,6 +198,7 @@ export default function ChatInput({
               <M.InputAdornment position="end">
                 {model && <ModelPicker model={model} disabled={disabled} />}
                 <M.IconButton
+                  aria-label="Send"
                   disabled={disabled || !value}
                   onClick={handleSubmit}
                   type="submit"

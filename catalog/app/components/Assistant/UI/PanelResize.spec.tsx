@@ -57,4 +57,53 @@ describe('components/Assistant/UI/PanelResize', () => {
     render(<ResizeHandle />)
     expect(cssWidth()).toBe('')
   })
+
+  describe('dragging', () => {
+    beforeEach(() => {
+      // jsdom has no pointer capture.
+      HTMLElement.prototype.setPointerCapture = () => {}
+      Object.defineProperty(document.documentElement, 'clientWidth', {
+        configurable: true,
+        value: 1200,
+      })
+    })
+
+    // jsdom has no PointerEvent; a MouseEvent of the pointer type carries the same fields.
+    const pointer = (type: string, clientX: number) =>
+      handle().dispatchEvent(new MouseEvent(type, { bubbles: true, button: 0, clientX }))
+
+    it('reports the responsive default before anything is stored', () => {
+      render(<ResizeHandle />)
+      expect(handle().getAttribute('aria-valuenow')).toBe('600') // min(640, 1200 / 2)
+    })
+
+    it('stores the dragged width and leaves the page as it found it', () => {
+      render(<ResizeHandle />)
+      pointer('pointerdown', 0)
+      expect(document.body.hasAttribute('data-qurator-resizing')).toBe(true)
+      pointer('pointermove', 700)
+      expect(cssWidth()).toContain('500px')
+      pointer('pointerup', 700)
+      expect(document.body.hasAttribute('data-qurator-resizing')).toBe(false)
+      expect(document.body.style.userSelect).toBe('')
+      expect(localStorage.getItem(KEY)).toBe('500')
+    })
+
+    it('does not pin the default on a click without a drag', () => {
+      render(<ResizeHandle />)
+      pointer('pointerdown', 0)
+      pointer('pointerup', 0)
+      expect(localStorage.getItem(KEY)).toBeNull()
+    })
+
+    it('restores the page when unmounted mid-drag', () => {
+      const { unmount } = render(<ResizeHandle />)
+      pointer('pointerdown', 0)
+      pointer('pointermove', 700)
+      unmount()
+      expect(document.body.hasAttribute('data-qurator-resizing')).toBe(false)
+      expect(document.body.style.userSelect).toBe('')
+      expect(localStorage.getItem(KEY)).toBe('500')
+    })
+  })
 })

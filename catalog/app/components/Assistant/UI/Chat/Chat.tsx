@@ -477,6 +477,7 @@ export function Menu({
       <M.IconButton
         aria-label="Qurator menu"
         aria-haspopup="true"
+        aria-expanded={!!menuOpen}
         onClick={toggleMenu}
         className={className}
         size="small"

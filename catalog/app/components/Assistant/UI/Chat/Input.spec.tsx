@@ -13,6 +13,11 @@ describe('components/Assistant/UI/Chat/Input', () => {
     const { getByRole } = render(<Input onSubmit={noop} />)
     expect(getByRole('textbox', { name: 'Ask Qurator' })).toBeTruthy()
   })
+
+  it('labels the send button', () => {
+    const { getByRole } = render(<Input onSubmit={noop} />)
+    expect(getByRole('button', { name: 'Send' })).toBeTruthy()
+  })
 })
 
 describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
