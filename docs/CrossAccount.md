@@ -1,617 +1,273 @@
 <!-- markdownlint-disable -->
-# Cross-Account Access: Secure Multi-Account Quilt Deployment
+# Cross-Account and Cross-Region Buckets
 
-This guide explains how to set up Quilt across multiple AWS accounts, enabling you to separate your control plane (Quilt infrastructure) from your data plane (S3 buckets) for enhanced security, compliance, and organizational structure.
+This guide covers adding a bucket to a Quilt stack when the bucket lives in a
+different AWS account, a different region, or both, and getting it indexed.
 
-## 🎯 Architecture Overview
+Terms used below:
 
-### Why Cross-Account Setup?
+- **Stack account**: the account and region where the Quilt CloudFormation stack runs.
+- **Data account**: the account that owns the S3 bucket.
+- `STACK-ACCOUNT-ID`, `DATA-ACCOUNT-ID`, `REGION`, `your-data-bucket`: replace these with your own values.
 
-**Common Use Cases:**
-- 🏢 **Organizational Separation**: Different teams/departments own different accounts
-- 🔒 **Security Isolation**: Separate sensitive data from application infrastructure  
-- 📊 **Compliance Requirements**: Regulatory requirements for data segregation
-- 💰 **Cost Management**: Separate billing and resource management
-- 🛡️ **Blast Radius Reduction**: Limit impact of security incidents
+## How bucket add works
 
-### Account Structure
+When an admin adds a bucket in **Admin → Buckets**, the Quilt registry adds it
+under the stack's own service role, in the stack account. Your users' Quilt
+roles are not involved.
 
-In this guide, we'll configure two accounts:
+On add, Quilt extends its own roles' identity policies to the bucket. A
+bucket in another account also needs **resource policies in the data
+account** that let the stack account in:
 
-```
-┌─────────────────────────────────────┐
-│           Control Account           │
-│  ┌─────────────────────────────────┐│
-│  │     Quilt Infrastructure        ││
-│  │  • CloudFormation Stack        ││
-│  │  • Lambda Functions            ││
-│  │  • Elasticsearch/OpenSearch    ││
-│  │  • API Gateway                 ││
-│  │  • Web Application             ││
-│  └─────────────────────────────────┘│
-└─────────────────────────────────────┘
-                   │
-                   │ Cross-Account
-                   │ Access
-                   ▼
-┌─────────────────────────────────────┐
-│            Data Account             │
-│  ┌─────────────────────────────────┐│
-│  │        S3 Buckets              ││
-│  │  • Raw Data Bucket            ││
-│  │  • Processed Data Bucket      ││
-│  │  • Archive Bucket             ││
-│  └─────────────────────────────────┘│
-└─────────────────────────────────────┘
-```
+| Resource in the data account | Needed when |
+|---|---|
+| Bucket policy | Always |
+| SNS topic policy | The bucket already sends notifications to a topic in the data account |
+| KMS key policy | The bucket uses SSE-KMS with a customer-managed key |
 
-**Account Definitions:**
-- **Control Account**: Contains the Quilt CloudFormation stack and infrastructure
-- **Data Account**: Contains the S3 buckets with your actual data
+Cross-account access needs no IAM role assumption and no CloudTrail setup on
+your side.
 
-## 🚀 Step-by-Step Implementation Guide
+## Checklist
 
-### Prerequisites
+Do these in order. Each step is described in detail further down.
 
-Before starting, ensure you have:
-- ✅ **Administrative access** to both AWS accounts
-- ✅ **Quilt already deployed** in the Control Account
-- ✅ **S3 buckets created** in the Data Account
-- ✅ **AWS CLI configured** with appropriate profiles
+1. Decide how Quilt receives S3 events (see the decision table below).
+2. In the data account, set Object Ownership to **Bucket owner enforced**.
+3. In the data account, apply the bucket policy.
+4. If the bucket already publishes to an SNS topic, add the topic policy statement. The topic must be in the **same region as the bucket**.
+5. If the bucket uses SSE-KMS, update the key policy.
+6. Run the pre-flight checks from the stack account.
+7. Add the bucket in **Admin → Buckets**, with the notification mode from step 1.
+8. Upload a test file, and confirm it appears in the catalog and in search within a few minutes.
 
-### Step 1: Configure S3 Object Ownership
+## Choose a notification mode
 
-**Why This Matters:**
-When Quilt (running in Control Account) writes objects to buckets in Data Account, you want the Data Account to own those objects for proper access control.
+Quilt keeps search current by subscribing to the bucket's S3 events through
+SNS. The Add form offers three modes.
 
-**Implementation:**
+| Your bucket today | Mode to use | What Quilt does | Search stays current? |
+|---|---|---|---|
+| No event notifications | **Automatic**: leave SNS Topic ARN blank, Skip unchecked | Creates an SNS topic in the stack account, in the bucket's region, and points the bucket's notifications at it | Yes |
+| Notifies one SNS topic for `s3:ObjectCreated:*` **and** `s3:ObjectRemoved:*` | **Automatic** | Adopts that topic and subscribes to it. Needs the topic policy | Yes |
+| Notifies an SNS topic that you want to keep managing, or uses EventBridge fan-out | **Explicit**: enter that topic's ARN | Only subscribes to the topic. You must route the bucket's events to it yourself | Yes, if your routing sends both event types |
+| Notifies an SQS queue or a Lambda directly, or a topic with narrower events | Change the bucket to an SNS fan-out ([S3 Events, EventBridge](EventBridge.md)), then use Explicit | — | — |
+| You cannot grant any of the above yet | **Skip S3 notifications (not recommended)** | Adds and indexes the bucket once, then receives no events | **No**: new objects and packages appear only after **Re-index and repair** |
 
-1. **Navigate to S3 Console** in Data Account
-2. **Select your bucket** → **Permissions** → **Object Ownership**
-3. **Edit Object Ownership** and select **"Bucket owner enforced"**
+Use Skip only as a temporary measure. A bucket added with Skip shows packages
+and files missing from search as soon as new data arrives.
 
-**Using AWS CLI:**
+## Step 1: Object Ownership
+
+Objects that Quilt writes into the bucket (for example, package manifests)
+should belong to the data account.
+
 <!-- pytest.mark.skip -->
 ```bash
-# Set object ownership to bucket owner enforced
 aws s3api put-bucket-ownership-controls \
     --bucket your-data-bucket \
-    --ownership-controls Rules='[{ObjectOwnership=BucketOwnerEnforced}]' \
+    --ownership-controls 'Rules=[{ObjectOwnership=BucketOwnerEnforced}]' \
     --profile data-account
 ```
 
-**Why "Bucket owner enforced"?**
-- ✅ Data Account automatically owns all objects
-- ✅ Simplifies access control management
-- ✅ Prevents ACL-based access complications
-- ✅ Required for cross-account Quilt operations
+## Step 2: Bucket policy
 
-### Step 2: Create Cross-Account Bucket Policy
-
-**Purpose:**
-Grant Quilt infrastructure in Control Account the necessary permissions to manage buckets in Data Account.
-
-**Create the Bucket Policy:**
+Apply this policy in the data account. It covers what Quilt's read-write roles
+use, plus the notification actions the registry needs.
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "QuiltCrossAccountAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::CONTROL-ACCOUNT-ID:root"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:GetObjectAttributes", 
-                "s3:GetObjectTagging",
-                "s3:GetObjectVersion",
-                "s3:GetObjectVersionAttributes",
-                "s3:GetObjectVersionTagging",
-                "s3:ListBucket",
-                "s3:ListBucketVersions",
-                "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
-                "s3:PutObject",
-                "s3:PutObjectTagging",
-                "s3:GetBucketNotification",
-                "s3:PutBucketNotification"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-data-bucket",
-                "arn:aws:s3:::your-data-bucket/*"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "QuiltStackAccess",
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::STACK-ACCOUNT-ID:root" },
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectAttributes",
+        "s3:GetObjectTagging",
+        "s3:GetObjectVersion",
+        "s3:GetObjectVersionAttributes",
+        "s3:GetObjectVersionTagging",
+        "s3:ListBucket",
+        "s3:ListBucketVersions",
+        "s3:DeleteObject",
+        "s3:PutObject",
+        "s3:PutObjectTagging",
+        "s3:RestoreObject",
+        "s3:GetBucketNotification",
+        "s3:PutBucketNotification"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-data-bucket",
+        "arn:aws:s3:::your-data-bucket/*"
+      ]
+    }
+  ]
 }
 ```
 
-**Apply the Policy:**
+Notes:
 
-**Console Method:**
-1. Go to **S3 Console** → **Your Bucket** → **Permissions** → **Bucket Policy**
-2. Paste the JSON above (replace `CONTROL-ACCOUNT-ID` and `your-data-bucket`)
-3. Click **Save changes**
+- The `root` principal delegates to the stack account's IAM. Only roles that
+  the stack account's own policies allow can use it. Quilt controls which users
+  can reach the bucket through its own roles and policies.
+- If the bucket is read-only for Quilt, you can drop `s3:DeleteObject`,
+  `s3:PutObject`, `s3:PutObjectTagging` and `s3:RestoreObject`. Package pushes
+  to this bucket will then fail.
+- With **Explicit** or **Skip**, `s3:PutBucketNotification` is not used.
+  **Automatic** needs both notification actions.
+- Keep the principal as the stack account's `root`. Many stack roles read the
+  bucket (registry, indexer, previews, package push, user roles), so a list of
+  specific roles is easy to get wrong.
 
-**CLI Method:**
+Save the policy as `bucket-policy.json`, merging it into any policy the bucket
+already has, then apply it:
+
 <!-- pytest.mark.skip -->
 ```bash
-# Save policy to file
-cat > bucket-policy.json << 'EOF'
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "QuiltCrossAccountAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::123456789012:root"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:GetObjectAttributes",
-                "s3:GetObjectTagging",
-                "s3:GetObjectVersion", 
-                "s3:GetObjectVersionAttributes",
-                "s3:GetObjectVersionTagging",
-                "s3:ListBucket",
-                "s3:ListBucketVersions",
-                "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
-                "s3:PutObject",
-                "s3:PutObjectTagging",
-                "s3:GetBucketNotification",
-                "s3:PutBucketNotification"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-data-bucket",
-                "arn:aws:s3:::your-data-bucket/*"
-            ]
-        }
-    ]
-}
-EOF
-
-# Apply the policy
 aws s3api put-bucket-policy \
     --bucket your-data-bucket \
     --policy file://bucket-policy.json \
     --profile data-account
 ```
 
-**🔒 Security Note:**
-> Quilt admins can still control user access to this bucket through the Quilt Admin Panel's Roles and Policies. The bucket policy only grants access to Quilt infrastructure, not end users.
+## Step 3: SNS topic policy (existing topic only)
 
-### Step 3: Configure Cross-Account SNS (Optional)
+Skip this step if the bucket has no notifications and you use **Automatic**.
 
-**When You Need This:**
-If you're using [EventBridge integration](EventBridge.md) or have existing SNS topics in the Data Account that Quilt should use for notifications.
-
-**Create SNS Topic Policy:**
-
-Add this statement to your SNS topic's resource policy in the Data Account:
-
-```json
-{
-    "Sid": "QuiltCrossAccountSNSAccess",
-    "Effect": "Allow",
-    "Principal": {
-        "AWS": "arn:aws:iam::CONTROL-ACCOUNT-ID:root"
-    },
-    "Action": [
-        "sns:GetTopicAttributes",
-        "sns:Subscribe",
-        "sns:Unsubscribe"
-    ],
-    "Resource": "arn:aws:sns:region:DATA-ACCOUNT-ID:your-topic-name"
-}
-```
-
-**Apply SNS Policy:**
+Check what the bucket publishes to today:
 
 <!-- pytest.mark.skip -->
 ```bash
-# Get current policy
-aws sns get-topic-attributes \
-    --topic-arn arn:aws:sns:region:DATA-ACCOUNT-ID:your-topic-name \
-    --attribute-names Policy \
-    --profile data-account
-
-# Update policy (merge with existing statements)
-aws sns set-topic-attributes \
-    --topic-arn arn:aws:sns:region:DATA-ACCOUNT-ID:your-topic-name \
-    --attribute-name Policy \
-    --attribute-value file://sns-policy.json \
-    --profile data-account
+aws s3api get-bucket-notification-configuration \
+    --bucket your-data-bucket --profile data-account
 ```
 
-**Configure in Quilt:**
-1. Open **Quilt Admin Panel** → **Buckets**
-2. Add or edit your cross-account bucket
-3. Under **"Indexing and notifications"**, set the SNS Topic ARN
-4. Save the configuration
+If it lists a `TopicArn`, add this statement to that topic's policy. Merge it
+with the existing statements; do not replace them.
 
-### Step 4: Set Up CloudTrail (Required)
+```json
+{
+  "Sid": "QuiltStackSubscribe",
+  "Effect": "Allow",
+  "Principal": { "AWS": "arn:aws:iam::STACK-ACCOUNT-ID:root" },
+  "Action": [
+    "sns:GetTopicAttributes",
+    "sns:GetSubscriptionAttributes",
+    "sns:Subscribe",
+    "sns:Unsubscribe"
+  ],
+  "Resource": "arn:aws:sns:REGION:DATA-ACCOUNT-ID:your-topic-name"
+}
+```
 
-**Why CloudTrail is Required:**
-- 🔍 **Security & Auditing**: Track all S3 API calls
-- 📊 **User Analytics**: Quilt uses CloudTrail data for user-facing analytics
-- 🚨 **Compliance**: Many regulatory frameworks require audit trails
+Requirements for the topic:
 
-**Implementation Options:**
+- **Same region as the bucket.** S3 delivers notifications only to a topic in
+  the bucket's region.
+- If the topic is encrypted with a customer-managed KMS key, that key's policy
+  must allow `s3.amazonaws.com` to `kms:GenerateDataKey*` and `kms:Decrypt`.
+  Without it, S3 cannot publish.
 
-#### Option A: Quilt-Managed CloudTrail (Recommended)
+A bucket removed from one Quilt stack keeps its notification pointing at that
+stack's topic. Adding it to a **different** stack then requires either this
+topic policy on the old topic, or removing the old notification first.
 
-If Quilt manages CloudTrail in the Control Account:
+## Step 4: SSE-KMS (customer-managed keys only)
 
-1. **Check CloudFormation Stack** in Control Account
-2. Go to **CloudFormation** → **Your Quilt Stack** → **Resources**
-3. Look for a **CloudTrail resource** (Quilt will auto-add your buckets)
+Cross-account KMS needs permission on **both** sides.
 
-#### Option B: Existing CloudTrail
+1. **Key policy** (data account): allow the stack's roles to use the key.
 
-If you have existing CloudTrail in either account:
-
-1. **Identify the Trail:**
-   <!-- pytest.mark.skip -->
-   ```bash
-   # List trails in Data Account
-   aws cloudtrail describe-trails --profile data-account
-   
-   # List trails in Control Account  
-   aws cloudtrail describe-trails --profile control-account
+   ```json
+   {
+     "Sid": "QuiltStackUseKey",
+     "Effect": "Allow",
+     "Principal": { "AWS": "arn:aws:iam::STACK-ACCOUNT-ID:root" },
+     "Action": ["kms:Decrypt", "kms:GenerateDataKey"],
+     "Resource": "*"
+   }
    ```
 
-2. **Add S3 Data Events:**
-   <!-- pytest.mark.skip -->
-   ```bash
-   # Add data events for your bucket
-   aws cloudtrail put-event-selectors \
-       --trail-name your-trail-name \
-       --event-selectors '[
-           {
-               "ReadWriteType": "All",
-               "IncludeManagementEvents": true,
-               "DataResources": [
-                   {
-                       "Type": "AWS::S3::Object",
-                       "Values": ["arn:aws:s3:::your-data-bucket/*"]
-                   },
-                   {
-                       "Type": "AWS::S3::Bucket", 
-                       "Values": ["arn:aws:s3:::your-data-bucket"]
-                   }
-               ]
-           }
-       ]' \
-       --profile data-account
-   ```
+2. **Identity policies** (stack account): follow
+   [SSE-KMS in the technical reference](technical-reference.md#s3-buckets-with-service-side-encryption-using-key-management-service-sse-kms),
+   using the key's full ARN in the data account.
 
-3. **Update Quilt Configuration:**
-   - Go to **CloudFormation** → **Your Quilt Stack** → **Parameters**
-   - Update the **CloudTrail bucket parameter** with your existing trail's S3 bucket
+Buckets that use SSE-S3 (the AWS default) need nothing here. Bucket add can
+succeed while previews and search content for SSE-KMS objects still fail; if
+that happens with a key in another account, contact [Quilt support](mailto:support@quilt.bio).
 
-#### Option C: Cross-Account CloudTrail Access
+## Step 5: Pre-flight checks
 
-If CloudTrail is in Data Account but Quilt needs access:
-
-**CloudTrail Bucket Policy:**
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "QuiltCloudTrailAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::CONTROL-ACCOUNT-ID:root"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:ListBucket"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-cloudtrail-bucket",
-                "arn:aws:s3:::your-cloudtrail-bucket/*"
-            ]
-        }
-    ]
-}
-```
-
-### Step 5: Add Bucket to Quilt
-
-**Final Configuration:**
-
-1. **Open Quilt Admin Panel** in Control Account
-2. Navigate to **Buckets** → **Add Bucket**
-3. **Configure the bucket:**
-   - **Bucket Name**: `your-data-bucket`
-   - **Region**: Same as the bucket
-   - **SNS Topic ARN**: (If using cross-account SNS)
-   - **Event Notifications**: Leave disabled if using EventBridge
-
-4. **Save and Test:**
-   - Click **Save**
-   - Upload a test file to verify indexing works
-   - Check Quilt catalog for the new file
-
-## 🔧 Testing Your Cross-Account Setup
-
-### Verification Steps
-
-#### 1. Test Basic Access
-<!-- pytest.mark.skip -->
-```bash
-# From Control Account, test bucket access
-aws s3 ls s3://your-data-bucket --profile control-account
-
-# Upload a test file
-echo "Cross-account test" > test.txt
-aws s3 cp test.txt s3://your-data-bucket/ --profile control-account
-```
-
-#### 2. Verify Quilt Integration
-1. **Upload a file** to your cross-account bucket
-2. **Wait 2-3 minutes** for processing
-3. **Check Quilt catalog** to see if the file appears
-4. **Test search functionality** in Quilt
-
-#### 3. Check CloudTrail Logging
-<!-- pytest.mark.skip -->
-```bash
-# Verify CloudTrail is capturing events
-aws logs filter-log-events \
-    --log-group-name CloudTrail/YourLogGroup \
-    --filter-pattern "{ $.eventSource = s3.amazonaws.com }" \
-    --profile data-account
-```
-
-### Troubleshooting Common Issues
-
-#### Issue 1: Access Denied Errors
-
-**Symptoms:**
-- Quilt can't access the bucket
-- "Access Denied" in Quilt logs
-
-**Solutions:**
-1. **Verify bucket policy** is correctly applied
-2. **Check object ownership** is set to "Bucket owner enforced"
-3. **Confirm account IDs** in policies are correct
-4. **Test with AWS CLI** from Control Account
-
-#### Issue 2: Objects Not Appearing in Quilt
-
-**Symptoms:**
-- Files upload successfully but don't appear in Quilt catalog
-
-**Solutions:**
-1. **Check CloudTrail** is logging S3 data events
-2. **Verify SNS configuration** if using custom topics
-3. **Review Quilt logs** for processing errors
-4. **Manual re-index** the bucket in Quilt Admin Panel
-
-#### Issue 3: Permission Errors in Quilt Admin
-
-**Symptoms:**
-- Can't add bucket in Quilt Admin Panel
-- IAM permission errors
-
-**Solutions:**
-1. **Check Quilt IAM roles** have cross-account assume permissions
-2. **Verify bucket policy** allows required actions
-3. **Review CloudFormation** stack permissions
-
-## 🔐 Security Best Practices
-
-### Principle of Least Privilege
-
-**Bucket Policy Refinements:**
-Instead of granting access to the entire Control Account root, consider restricting to specific Quilt roles:
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "QuiltSpecificRoleAccess",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": [
-                    "arn:aws:iam::CONTROL-ACCOUNT-ID:role/QuiltLambdaRole",
-                    "arn:aws:iam::CONTROL-ACCOUNT-ID:role/QuiltIndexerRole"
-                ]
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:ListBucket",
-                "s3:PutObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-data-bucket",
-                "arn:aws:s3:::your-data-bucket/*"
-            ]
-        }
-    ]
-}
-```
-
-### Network Security
-
-**VPC Considerations:**
-- ✅ **VPC Endpoints**: Use S3 VPC endpoints to keep traffic within AWS network
-- ✅ **Security Groups**: Restrict Lambda function network access
-- ✅ **NACLs**: Additional network-level controls if required
-
-**Example VPC Endpoint Policy:**
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:ListBucket"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-data-bucket",
-                "arn:aws:s3:::your-data-bucket/*"
-            ],
-            "Condition": {
-                "StringEquals": {
-                    "aws:PrincipalAccount": ["CONTROL-ACCOUNT-ID"]
-                }
-            }
-        }
-    ]
-}
-```
-
-### Monitoring and Auditing
-
-**CloudWatch Alarms:**
-Set up monitoring for cross-account access:
+Run these with credentials for an administrator **in the stack account**.
+They test the data account's resource policies, which is the side you
+control. They do not test the stack's own roles, whose identity policies Quilt
+sets when you add the bucket.
 
 <!-- pytest.mark.skip -->
 ```bash
-# Create alarm for failed S3 access attempts
-aws cloudwatch put-metric-alarm \
-    --alarm-name "CrossAccountS3AccessFailures" \
-    --alarm-description "Monitor failed cross-account S3 access" \
-    --metric-name ErrorCount \
-    --namespace AWS/S3 \
-    --statistic Sum \
-    --period 300 \
-    --threshold 5 \
-    --comparison-operator GreaterThanThreshold \
-    --profile control-account
+B=your-data-bucket
+# Exists, and its region (needs AWS CLI v2.13 or later)
+REGION=$(aws s3api head-bucket --bucket "$B" --query BucketRegion --output text)
+# s3:ListBucket
+KEY=$(aws s3api list-objects-v2 --bucket "$B" --max-keys 1 \
+    --query 'Contents[0].Key' --output text)
+# s3:GetObject, if the bucket has any objects
+if [ "$KEY" != None ]; then aws s3api head-object --bucket "$B" --key "$KEY"; fi
+# s3:GetBucketNotification
+TOPIC=$(aws s3api get-bucket-notification-configuration --bucket "$B" \
+    --query 'TopicConfigurations[0].TopicArn' --output text)
+# The topic policy, if the bucket already notifies a topic
+if [ "$TOPIC" != None ]; then aws sns get-topic-attributes --topic-arn "$TOPIC" --region "$REGION"; fi
 ```
 
-**CloudTrail Monitoring:**
-Monitor specific cross-account activities:
+An `AccessDenied` from any of these shows which grant is missing.
 
-```json
-{
-    "eventVersion": "1.05",
-    "userIdentity": {
-        "type": "AssumedRole",
-        "principalId": "AIDACKCEVSQ6C2EXAMPLE",
-        "arn": "arn:aws:sts::CONTROL-ACCOUNT-ID:assumed-role/QuiltRole/QuiltLambda",
-        "accountId": "CONTROL-ACCOUNT-ID"
-    },
-    "eventTime": "2024-08-26T10:30:00Z",
-    "eventSource": "s3.amazonaws.com",
-    "eventName": "GetObject",
-    "resources": [
-        {
-            "ARN": "arn:aws:s3:::your-data-bucket/file.csv",
-            "accountId": "DATA-ACCOUNT-ID"
-        }
-    ]
-}
-```
+## Step 6: Add the bucket
 
-### Compliance Considerations
+1. Go to **Admin → Buckets → Add bucket** and enter the bucket name. The region is detected automatically.
+2. Under **Indexing and notifications**, apply the mode you picked:
+   - Automatic: SNS Topic ARN blank, Skip unchecked.
+   - Explicit: paste the topic ARN.
+   - Skip: check **Skip S3 notifications (not recommended)**.
+3. Save.
 
-**Data Residency:**
-- 🌍 **Regional Compliance**: Ensure both accounts are in compliant regions
-- 📋 **Data Classification**: Tag buckets with appropriate data classification
-- 🔒 **Encryption**: Enable S3 encryption with appropriate KMS keys
+Adding a bucket in a region other than the stack's also creates a
+`quilt-scratch-*` bucket in that region, in the stack account. Quilt uses it
+for package pushes.
 
-**Audit Requirements:**
-- 📊 **Access Logging**: Enable S3 access logging for detailed audit trails
-- 🔍 **Regular Reviews**: Periodically review cross-account permissions
-- 📝 **Documentation**: Maintain documentation of cross-account relationships
+## What each error means
 
-## 🚀 Advanced Configurations
+| Error in the Add form | Cause | Fix |
+|---|---|---|
+| No such bucket | The name is wrong, or the bucket was deleted | Check the name |
+| Bucket already added | Already registered on this stack | Edit the existing bucket |
+| `AccessDenied … GetBucketNotificationConfiguration` | Bucket policy lacks `s3:GetBucketNotification` | Step 2 |
+| `Failed to modify Notification Config on <bucket>: … AccessDenied` | Bucket policy lacks `s3:PutBucketNotification` | Step 2, or use Explicit/Skip |
+| Notification configuration error | The bucket already notifies an SQS queue, a Lambda, a topic with only some events, or a topic that no longer exists | See the decision table: fan out through SNS, then use Explicit |
+| No such topic, enter a valid SNS topic ARN or leave blank | The ARN, or the region inside it, is wrong | Copy the ARN from the topic's console page |
+| `403 - AuthorizationError: …` | The topic policy does not allow the stack account to subscribe | Step 3 |
+| Permission denied: ListObjectsV2 (or HeadObject) failed for bucket '…' at … | After ~30 s, the stack still cannot list or read objects | Step 2 |
+| Something went wrong | An error with no specific message. One known cause: the bucket already notifies a topic in another account that the stack cannot read | Step 3, or remove the old notification. Otherwise, collect the details below and contact support |
 
-### Multi-Region Setup
+To diagnose **Something went wrong**:
 
-For multi-region deployments:
+- In the browser's developer tools → Network, select the failed `graphql`
+  request and copy its Response body.
+- Or check the registry service's CloudWatch logs in the stack account at the
+  time of the attempt.
 
-<!-- pytest.mark.skip -->
-```bash
-# Replicate bucket policy across regions
-for region in us-east-1 us-west-2 eu-west-1; do
-    aws s3api put-bucket-policy \
-        --bucket "your-data-bucket-${region}" \
-        --policy file://bucket-policy.json \
-        --region $region \
-        --profile data-account
-done
-```
+Send either to [Quilt support](mailto:support@quilt.bio).
 
-### Automated Policy Management
+## After adding: if search looks incomplete
 
-**CloudFormation Template for Bucket Policies:**
-
-```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Cross-account bucket policies for Quilt'
-
-Parameters:
-  ControlAccountId:
-    Type: String
-    Description: 'Control account ID where Quilt is deployed'
-  
-  DataBucketName:
-    Type: String
-    Description: 'Name of the data bucket'
-
-Resources:
-  CrossAccountBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref DataBucketName
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: QuiltCrossAccountAccess
-            Effect: Allow
-            Principal:
-              AWS: !Sub 'arn:aws:iam::${ControlAccountId}:root'
-            Action:
-              - 's3:GetObject'
-              - 's3:GetObjectAttributes'
-              - 's3:ListBucket'
-              - 's3:PutObject'
-              - 's3:DeleteObject'
-            Resource:
-              - !Sub 'arn:aws:s3:::${DataBucketName}'
-              - !Sub 'arn:aws:s3:::${DataBucketName}/*'
-```
-
-## 📚 Additional Resources
-
-### AWS Documentation
-- **[Cross-Account Access](https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)** - AWS IAM cross-account access patterns
-- **[S3 Bucket Policies](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html)** - Comprehensive S3 policy guide
-- **[CloudTrail Cross-Account](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-sharing-logs.html)** - CloudTrail log sharing
-
-### Quilt-Specific Resources
-- **[Quilt Admin API](api-reference/Admin.md)** - Programmatic bucket management
-- **[EventBridge Integration](EventBridge.md)** - Alternative event routing
-- **[Security Best Practices](advanced-features/good-practice.md)** - General Quilt security guidance
-
-### Tools and Scripts
-- **[AWS CLI Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/)** - S3 API commands
-- **[Policy Generator](https://awspolicygen.s3.amazonaws.com/policygen.html)** - AWS Policy Generator tool
-- **[IAM Policy Simulator](https://policysim.aws.amazon.com/)** - Test policies before applying
-
-## 📞 Support
-
-**Need Help with Cross-Account Setup?**
-- 📧 **Email**: [support@quilt.bio](mailto:support@quilt.bio)
-- 💬 **Slack**: [Quilt Community](https://slack.quilt.bio)
-- 📖 **Documentation**: [Quilt Docs](https://docs.quilt.bio/)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/quiltdata/quilt/issues)
-
----
-
-**Success!** You now have a secure, compliant cross-account Quilt deployment that separates your control plane from your data plane while maintaining full functionality.
+1. **Was Skip used?** Then only objects present at add time were indexed (none,
+   if **Delay scan** was also checked). Use
+   **Re-index and repair** (see [Troubleshooting](Catalog/Troubleshooting.md)), or
+   switch to a notification mode.
+2. **Explicit mode:** confirm the topic receives both `ObjectCreated` and
+   `ObjectRemoved` events from the bucket.
+3. **SSE-KMS:** confirm Step 4 on both sides.
