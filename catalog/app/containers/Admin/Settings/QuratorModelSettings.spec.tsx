@@ -9,15 +9,22 @@ const OPUS = 'us.anthropic.claude-opus-4-5-20251101-v1:0'
 
 const state = vi.hoisted(() => ({
   config: null as any,
+  available: null as any,
   mutate: null as any,
 }))
 
 vi.mock('utils/GraphQL', () => ({
-  useQueryS: () => ({ admin: { quratorConfig: state.config } }),
+  useQueryS: () => ({
+    admin: { quratorConfig: state.config, quratorAvailableModels: state.available },
+  }),
   useMutation: () => state.mutate,
 }))
 
-import QuratorModelSettings, { parseIds } from './QuratorModelSettings'
+import QuratorModelSettings, {
+  combineIds,
+  parseIds,
+  splitSaved,
+} from './QuratorModelSettings'
 
 const config = (allowlist: string[] | null, dflt: string | null) => ({
   models: {
@@ -41,6 +48,7 @@ const ok = (input: any) => ({
 describe('containers/Admin/Settings/QuratorModelSettings', () => {
   beforeEach(() => {
     state.config = config(null, null)
+    state.available = { models: null, unavailable: 'GATEWAY' }
     state.mutate = vi.fn(async ({ input }) => ok(input))
   })
   afterEach(cleanup)
@@ -51,7 +59,7 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
 
   it('writes the set with a member default, and the gateway and limits back unchanged', async () => {
     const { getByLabelText, getByText } = render(<QuratorModelSettings />)
-    fireEvent.change(getByLabelText('Allowed models'), {
+    fireEvent.change(getByLabelText('Allowed model IDs'), {
       target: { value: `${HAIKU}\n${OPUS}` },
     })
     fireEvent.click(getByText('Save'))
@@ -69,7 +77,7 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
   it('unsets the governance when the list is emptied', async () => {
     state.config = config([HAIKU], HAIKU)
     const { getByLabelText, getByText } = render(<QuratorModelSettings />)
-    fireEvent.change(getByLabelText('Allowed models'), { target: { value: '' } })
+    fireEvent.change(getByLabelText('Allowed model IDs'), { target: { value: '' } })
     fireEvent.click(getByText('Save'))
     await waitFor(() => expect(state.mutate).toHaveBeenCalled())
     const { input } = state.mutate.mock.calls[0][0]
@@ -89,7 +97,7 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
       },
     }))
     const { getByLabelText, getByText, findByRole } = render(<QuratorModelSettings />)
-    fireEvent.change(getByLabelText('Allowed models'), { target: { value: 'claude' } })
+    fireEvent.change(getByLabelText('Allowed model IDs'), { target: { value: 'claude' } })
     fireEvent.click(getByText('Save'))
     expect((await findByRole('alert')).textContent).toBe(
       'That value is not one this field accepts.',
@@ -100,5 +108,73 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
     state.config = config([HAIKU], HAIKU)
     const { getByText } = render(<QuratorModelSettings />)
     expect(getByText('Save').closest('button')?.disabled).toBe(true)
+  })
+
+  describe('with a listing', () => {
+    const LISTED = {
+      unavailable: null,
+      models: [
+        { id: HAIKU, name: 'Claude Haiku 4.5', provider: 'Anthropic' },
+        { id: OPUS, name: 'Claude Opus 4.5', provider: 'Anthropic' },
+      ],
+    }
+    const EXTRA = 'us.meta.llama4-maverick-17b-instruct-v1:0'
+
+    it('splits a saved set into ticked models and extra ids', () => {
+      expect(splitSaved([OPUS, EXTRA], [HAIKU, OPUS])).toEqual({
+        checked: [OPUS],
+        extra: [EXTRA],
+      })
+      expect(combineIds([OPUS, HAIKU], [HAIKU, OPUS], `${EXTRA}\n${HAIKU}`)).toEqual([
+        HAIKU,
+        OPUS,
+        EXTRA,
+      ])
+    })
+
+    it('ticks saved models and keeps the rest in the extra box', () => {
+      state.available = LISTED
+      state.config = config([OPUS, EXTRA], OPUS)
+      const { getByLabelText, getByRole } = render(<QuratorModelSettings />)
+      expect(
+        (getByRole('checkbox', { name: /Claude Opus 4\.5/ }) as HTMLInputElement).checked,
+      ).toBe(true)
+      expect(
+        (getByRole('checkbox', { name: /Claude Haiku 4\.5/ }) as HTMLInputElement)
+          .checked,
+      ).toBe(false)
+      expect((getByLabelText('Additional model IDs') as HTMLTextAreaElement).value).toBe(
+        EXTRA,
+      )
+    })
+
+    it('saves ticked and typed ids in the existing format', async () => {
+      state.available = LISTED
+      const { getByLabelText, getByRole, getByText } = render(<QuratorModelSettings />)
+      fireEvent.click(getByRole('checkbox', { name: /Claude Opus 4\.5/ }))
+      fireEvent.change(getByLabelText('Additional model IDs'), {
+        target: { value: EXTRA },
+      })
+      fireEvent.click(getByText('Save'))
+      await waitFor(() => expect(state.mutate).toHaveBeenCalled())
+      const { input } = state.mutate.mock.calls[0][0]
+      expect(input.allowlist).toEqual([OPUS, EXTRA])
+      expect(input.default).toBe(OPUS)
+    })
+
+    it('unsets when nothing is ticked or typed', async () => {
+      state.available = LISTED
+      state.config = config([OPUS], OPUS)
+      const { getByRole, getByText } = render(<QuratorModelSettings />)
+      fireEvent.click(getByRole('checkbox', { name: /Claude Opus 4\.5/ }))
+      fireEvent.click(getByText('Save'))
+      await waitFor(() => expect(state.mutate).toHaveBeenCalled())
+      expect(state.mutate.mock.calls[0][0].input.allowlist).toBeNull()
+    })
+  })
+
+  it('says why there is no checklist behind a gateway', () => {
+    const { getByRole } = render(<QuratorModelSettings />)
+    expect(getByRole('status').textContent).toMatch(/AI gateway/)
   })
 })

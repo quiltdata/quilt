@@ -80,10 +80,13 @@ To enable Qurator Omni:
    - Enable the model by configuring it within your Bedrock environment.
    - Optionally, set the `QuratorDefaultModel` stack parameter to a different
      Bedrock model ID to override the built-in default.
-   - Optionally, under **Admin > Settings > Qurator models**, list the full
-     Bedrock model IDs users may choose from, and pick the default. Qurator
-     then offers only those models, and the registry refuses to relay any
-     other. Leave the list empty to allow any model.
+   - Optionally, under **Admin > Settings > Qurator models**, tick the
+     models in your account's Bedrock that users may choose from, add any
+     other full model IDs one per line, and pick the default. Qurator then
+     offers only those models, and the registry refuses to relay any other.
+     Allow none to allow any model. A stack that sends Qurator through an AI
+     gateway shows no checklist, since a gateway cannot list its models;
+     enter the IDs your organization has approved.
    - Carefully monitor the model's cost implications. The Claude model is
      charged based on usage, so ensure that you have the necessary budget
      allocated. Initial estimates are roughly a penny per page for complex documents.

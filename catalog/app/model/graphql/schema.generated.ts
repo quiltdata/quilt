@@ -613,6 +613,18 @@ export default {
             args: [],
           },
           {
+            name: 'quratorAvailableModels',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'QuratorAvailableModels',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'quratorConfig',
             type: {
               kind: 'NON_NULL',
@@ -5562,6 +5574,76 @@ export default {
                 name: 'SubscriptionState',
                 ofType: null,
               },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'QuratorAvailableModel',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'provider',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'QuratorAvailableModels',
+        fields: [
+          {
+            name: 'models',
+            type: {
+              kind: 'LIST',
+              ofType: {
+                kind: 'NON_NULL',
+                ofType: {
+                  kind: 'OBJECT',
+                  name: 'QuratorAvailableModel',
+                  ofType: null,
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'unavailable',
+            type: {
+              kind: 'SCALAR',
+              name: 'Any',
             },
             args: [],
           },
