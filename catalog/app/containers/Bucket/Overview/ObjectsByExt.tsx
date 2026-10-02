@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
-import AsyncResult from 'utils/AsyncResult'
+import * as AsyncResult from 'utils/AsyncResult'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import { ColorPool } from './ColorPool'
@@ -116,7 +116,7 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
 }))
 
 interface ObjectsByExtProps extends M.BoxProps {
-  data: $TSFixMe // AsyncResult<ExtData[]>
+  data: AsyncResult.AsyncResult<ExtData[], unknown>
   colorPool: ColorPool
   // Heading text + style override. Defaults reproduce the legacy Overview
   // heading; the v2 Overview passes its own to match the adjacent SectionHeader.
@@ -137,7 +137,7 @@ export default function ObjectsByExt({
       <div className={cx(classes.heading, headingClassName ?? classes.headingDefault)}>
         {heading}
       </div>
-      {AsyncResult.case(
+      {AsyncResult.match(
         {
           Ok: (exts: ExtData[]) => {
             const capped = exts.slice(0, MAX_EXTS)
@@ -175,17 +175,19 @@ export default function ObjectsByExt({
               )
             })
           },
-          _: (r: $TSFixMe) => (
+          // `_` receives the RAW instance (Init | Pending | Err) so we can
+          // distinguish "loading" from "failed" for the skeleton animation.
+          _: (r) => (
             <>
               {Eff.Array.makeBy(MAX_EXTS, (i) => (
                 <Skeleton
                   key={`skeleton:${i}`}
                   className={classes.skeleton}
                   style={{ gridRow: i + 2 }}
-                  animate={!AsyncResult.Err.is(r)}
+                  animate={!AsyncResult.isErr(r)}
                 />
               ))}
-              {AsyncResult.Err.is(r) && (
+              {AsyncResult.isErr(r) && (
                 <div className={classes.unavail}>Data unavailable</div>
               )}
             </>
