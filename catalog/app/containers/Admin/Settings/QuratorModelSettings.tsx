@@ -62,14 +62,18 @@ export function splitSaved(saved: readonly string[], offered: readonly string[])
   }
 }
 
-/** Ticked ids in list order, then typed ones, without repeats. */
+/**
+ * Ticked ids in list order, then typed ones, without repeats. A ticked id the
+ * listing no longer offers (it refetches after a save) is kept, not dropped.
+ */
 export function combineIds(
   checked: readonly string[],
   offered: readonly string[],
   text: string,
 ) {
   const ticked = offered.filter((id) => checked.includes(id))
-  return Array.from(new Set([...ticked, ...parseIds(text)]))
+  const unlisted = checked.filter((id) => !offered.includes(id))
+  return Array.from(new Set([...ticked, ...unlisted, ...parseIds(text)]))
 }
 
 type Unavailable = GQL.DataForDoc<
@@ -265,7 +269,14 @@ function Editor({ config, available, unavailable }: EditorProps) {
         >
           {ids.map((id) => (
             <M.MenuItem key={id} value={id}>
-              {nameOf(id) ?? id}
+              {nameOf(id) ? (
+                <span>
+                  {nameOf(id)}
+                  <span className={classes.modelId}>{id}</span>
+                </span>
+              ) : (
+                id
+              )}
             </M.MenuItem>
           ))}
         </M.TextField>

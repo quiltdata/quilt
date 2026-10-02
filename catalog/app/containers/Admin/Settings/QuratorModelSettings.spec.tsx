@@ -128,6 +128,8 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
         checked: [OPUS],
         extra: [EXTRA],
       })
+      // Ticked but no longer listed, after a refetch: kept.
+      expect(combineIds([EXTRA], [HAIKU], '')).toEqual([EXTRA])
       expect(combineIds([OPUS, HAIKU], [HAIKU, OPUS], `${EXTRA}\n${HAIKU}`)).toEqual([
         HAIKU,
         OPUS,
@@ -217,7 +219,7 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
       state.available = LISTED
       state.config = config([OPUS], OPUS)
       const { getByLabelText } = render(<QuratorModelSettings />)
-      expect(getByLabelText(/Default model/).textContent).toBe('Claude Opus 4.5')
+      expect(getByLabelText(/Default model/).textContent).toBe(`Claude Opus 4.5${OPUS}`)
     })
   })
 })
