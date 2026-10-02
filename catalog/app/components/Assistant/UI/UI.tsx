@@ -218,10 +218,15 @@ function Resizer({ className, width, onResize }: ResizerProps) {
       onLostPointerCapture={() => drag(false)}
       onPointerUp={() => drag(false)}
       onKeyDown={(e) => {
-        const delta = e.key === 'ArrowLeft' ? STEP : e.key === 'ArrowRight' ? -STEP : 0
-        if (!delta) return
+        const next = {
+          ArrowLeft: now + STEP,
+          ArrowRight: now - STEP,
+          Home: MIN_WIDTH,
+          End: Infinity,
+        }[e.key]
+        if (next == null) return
         e.preventDefault()
-        onResize(now + delta)
+        onResize(next)
       }}
     />
   )

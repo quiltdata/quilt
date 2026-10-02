@@ -297,6 +297,15 @@ describe('components/Assistant/UI WithAssistantUI', () => {
       expect(handle.getAttribute('aria-valuemax')).toBe(String(MAX))
     })
 
+    it('jumps to the minimum with Home and the maximum with End', () => {
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.keyDown(handle, { key: 'End' })
+      expect(localStorage.getItem(KEY)).toBe(String(MAX))
+      fireEvent.keyDown(handle, { key: 'Home' })
+      expect(localStorage.getItem(KEY)).toBe('320')
+    })
+
     it('restores the saved width on the next load', () => {
       localStorage.setItem(KEY, '480')
       const { getByRole, getByTestId } = renderOpen()
