@@ -29,7 +29,12 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
   it('shows the current tier and offers exactly the approved models', () => {
     render(
       <ModelPicker
-        model={{ allowlist: [HAIKU, OPUS], current: OPUS, select: vi.fn() }}
+        model={{
+          allowlist: [HAIKU, OPUS],
+          readFailed: false,
+          current: OPUS,
+          select: vi.fn(),
+        }}
       />,
     )
     const button = screen.getByLabelText('Model: Heavy · Claude Opus 4.5')
@@ -51,21 +56,34 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
 
   it('selects a model', () => {
     const select = vi.fn()
-    render(<ModelPicker model={{ allowlist: [HAIKU, OPUS], current: OPUS, select }} />)
+    render(
+      <ModelPicker
+        model={{ allowlist: [HAIKU, OPUS], readFailed: false, current: OPUS, select }}
+      />,
+    )
     fireEvent.click(screen.getByLabelText(/^Model:/))
     fireEvent.click(screen.getByText('Light · Claude Haiku 4.5'))
     expect(select).toHaveBeenCalledWith(HAIKU)
   })
 
   it('is absent on a stack with no approved set', () => {
-    render(<ModelPicker model={{ allowlist: null, current: OPUS, select: vi.fn() }} />)
+    render(
+      <ModelPicker
+        model={{ allowlist: null, readFailed: false, current: OPUS, select: vi.fn() }}
+      />,
+    )
     expect(screen.queryByLabelText(/^Model:/)).toBeNull()
   })
 
   it('is disabled while a turn is in flight', () => {
     render(
       <ModelPicker
-        model={{ allowlist: [HAIKU, OPUS], current: OPUS, select: vi.fn() }}
+        model={{
+          allowlist: [HAIKU, OPUS],
+          readFailed: false,
+          current: OPUS,
+          select: vi.fn(),
+        }}
         disabled
       />,
     )
@@ -73,7 +91,12 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
   })
 
   it('closes an open menu when a turn starts', () => {
-    const model = { allowlist: [HAIKU, OPUS], current: OPUS, select: vi.fn() }
+    const model = {
+      allowlist: [HAIKU, OPUS],
+      readFailed: false,
+      current: OPUS,
+      select: vi.fn(),
+    }
     const { rerender } = render(<ModelPicker model={model} />)
     fireEvent.click(screen.getByLabelText(/^Model:/))
     expect(screen.queryAllByRole('menuitemradio')).toHaveLength(2)

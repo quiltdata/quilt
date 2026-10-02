@@ -46,6 +46,15 @@ function Reflow() {
   return <span data-testid="reflow">{String(usePanelGutter())}</span>
 }
 
+// jsdom has no PointerEvent, and a MouseEvent drops `pointerId`.
+class FakePointerEvent extends MouseEvent {
+  pointerId: number
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init)
+    this.pointerId = init.pointerId ?? 0
+  }
+}
+
 describe('components/Assistant/UI Trigger', () => {
   afterEach(() => {
     cleanup()
@@ -230,6 +239,159 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(chatProps?.connectors).toBe(api.connectors)
     chatProps?.onClose()
     expect(api.hide).toHaveBeenCalled()
+  })
+
+  describe('resizing', () => {
+    const KEY = 'QURATOR_PANEL_WIDTH'
+    // jsdom's viewport is 1024px wide: the default is 50vw, the cap 1024 - 480.
+    const DEFAULT = 512
+    const MAX = 544
+
+    afterEach(() => {
+      localStorage.clear()
+      vi.restoreAllMocks()
+      vi.unstubAllGlobals()
+    })
+
+    function renderOpen() {
+      const api = makeAPI()
+      api.visible = true
+      useAssistantAPI.mockReturnValue(api)
+      return render(
+        <WithAssistantUI>
+          <Reflow />
+        </WithAssistantUI>,
+      )
+    }
+
+    it('offers a keyboard-operable vertical separator on the open docked panel', () => {
+      const { getByRole, getByTestId } = renderOpen()
+      const handle = getByRole('separator', { name: 'Resize Qurator' })
+      expect(handle.getAttribute('aria-orientation')).toBe('vertical')
+      expect(handle.getAttribute('aria-valuenow')).toBe(String(DEFAULT))
+      fireEvent.keyDown(handle, { key: 'ArrowLeft' })
+      expect(handle.getAttribute('aria-valuenow')).toBe(String(DEFAULT + 32))
+      expect(getByTestId('reflow').textContent).toBe(
+        `clamp(320px, ${DEFAULT + 32}px, min(70vw, 100vw - 480px))`,
+      )
+      expect(localStorage.getItem(KEY)).toBe(String(DEFAULT + 32))
+    })
+
+    it('ignores a second pointer while one is dragging', () => {
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        right: 1024,
+      } as DOMRect)
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 624 })
+      fireEvent.pointerMove(handle, { pointerId: 2, clientX: 900 })
+      fireEvent.pointerUp(handle, { pointerId: 2 })
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(true)
+      fireEvent.pointerUp(handle, { pointerId: 1 })
+      expect(localStorage.getItem(KEY)).toBe('400')
+    })
+
+    it('does not start a drag it cannot capture', () => {
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      handle.setPointerCapture = () => {
+        throw new Error('InvalidPointerId')
+      }
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(false)
+    })
+
+    it('follows the pointer from the paper edge', () => {
+      // jsdom has no PointerEvent, and a plain Event drops `clientX`.
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        right: 1024,
+      } as DOMRect)
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 624 })
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(true)
+      expect(localStorage.getItem(KEY)).toBeNull()
+      fireEvent.pointerUp(handle, { pointerId: 1 })
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(false)
+      expect(localStorage.getItem(KEY)).toBe('400')
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 524 })
+      expect(handle.getAttribute('aria-valuenow')).toBe('400')
+    })
+
+    it('keeps the dragged width when the panel closes mid-drag', () => {
+      vi.stubGlobal('PointerEvent', window.PointerEvent ?? FakePointerEvent)
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        right: 1024,
+      } as DOMRect)
+      const { getByRole, unmount } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.pointerDown(handle, { pointerId: 1 })
+      fireEvent.pointerMove(handle, { pointerId: 1, clientX: 624 })
+      unmount()
+      expect(document.body.hasAttribute('data-qurator-dragging')).toBe(false)
+      expect(localStorage.getItem(KEY)).toBe('400')
+    })
+
+    it('clamps to the minimum and to a share of the viewport', () => {
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      for (let i = 0; i < 20; i++) fireEvent.keyDown(handle, { key: 'ArrowRight' })
+      expect(localStorage.getItem(KEY)).toBe('320')
+      for (let i = 0; i < 20; i++) fireEvent.keyDown(handle, { key: 'ArrowLeft' })
+      expect(localStorage.getItem(KEY)).toBe(String(MAX))
+      expect(handle.getAttribute('aria-valuemax')).toBe(String(MAX))
+    })
+
+    it('jumps to the minimum with Home and the maximum with End', () => {
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      fireEvent.keyDown(handle, { key: 'End' })
+      expect(localStorage.getItem(KEY)).toBe(String(MAX))
+      fireEvent.keyDown(handle, { key: 'Home' })
+      expect(localStorage.getItem(KEY)).toBe('320')
+    })
+
+    it('restores the saved width on the next load', () => {
+      localStorage.setItem(KEY, '480')
+      const { getByRole, getByTestId } = renderOpen()
+      expect(getByRole('separator').getAttribute('aria-valuenow')).toBe('480')
+      expect(getByTestId('reflow').textContent).toBe(
+        'clamp(320px, 480px, min(70vw, 100vw - 480px))',
+      )
+    })
+
+    it('follows the viewport as the window resizes', () => {
+      localStorage.setItem(KEY, '480')
+      const { getByRole } = renderOpen()
+      const handle = getByRole('separator')
+      vi.stubGlobal('innerWidth', 800)
+      fireEvent(window, new Event('resize'))
+      expect(handle.getAttribute('aria-valuemax')).toBe('320')
+      expect(handle.getAttribute('aria-valuenow')).toBe('320')
+    })
+
+    it('falls back to the default width when storage is unreadable', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('SecurityError')
+      })
+      const { getByTestId } = renderOpen()
+      expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
+    })
+
+    it('offers no handle on the rail or the overlay', () => {
+      useAssistantAPI.mockReturnValue(makeAPI())
+      render(<WithAssistantUI />)
+      expect(document.querySelector('[role=separator]')).toBeFalsy()
+      cleanup()
+      narrowViewport()
+      renderOpen()
+      expect(document.querySelector('[role=separator]')).toBeFalsy()
+    })
   })
 
   it('offers the rail button as the only affordance, with no second trigger', () => {

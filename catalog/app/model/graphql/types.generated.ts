@@ -181,6 +181,7 @@ export interface AdminQueries {
   readonly apiKeys: APIKeyAdminQueries
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
   readonly packager: PackagerAdminQueries
+  readonly quratorAvailableModels: QuratorAvailableModels
   readonly quratorConfig: QuratorConfig
   readonly ssoConfig: Maybe<SsoConfig>
   readonly tabulatorOpenQuery: Scalars['Boolean']['output']
@@ -1207,6 +1208,24 @@ export interface QuerysearchPackagesArgs {
   userMetaFilters: InputMaybe<ReadonlyArray<PackageUserMetaPredicate>>
 }
 
+/**
+ * A model this account's Bedrock can run for Qurator: a text model with on-demand
+ * inference, or a system inference profile over one.
+ */
+export interface QuratorAvailableModel {
+  readonly __typename: 'QuratorAvailableModel'
+  readonly id: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
+  readonly provider: Maybe<Scalars['String']['output']>
+}
+
+/** Null `models` means the list is unavailable, and `unavailable` says why. */
+export interface QuratorAvailableModels {
+  readonly __typename: 'QuratorAvailableModels'
+  readonly models: Maybe<ReadonlyArray<QuratorAvailableModel>>
+  readonly unavailable: Maybe<QuratorModelListingUnavailable>
+}
+
 export interface QuratorConfig {
   readonly __typename: 'QuratorConfig'
   readonly gateway: QuratorGatewayConfig
@@ -1251,6 +1270,13 @@ export interface QuratorModelConfig {
   readonly default: Maybe<Scalars['String']['output']>
   readonly maxToolCallsPerTurn: Maybe<Scalars['Int']['output']>
   readonly requestTimeoutSeconds: Maybe<Scalars['Int']['output']>
+}
+
+export enum QuratorModelListingUnavailable {
+  /** A gateway is configured; it has no listing route, so models are entered by hand. */
+  GATEWAY = 'GATEWAY',
+  /** Bedrock refused or failed the listing; models can still be entered by hand. */
+  LISTING_FAILED = 'LISTING_FAILED',
 }
 
 export type RestoreObjectResult = InvalidInput | OperationError | RestoreObjectSuccess

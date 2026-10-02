@@ -1,0 +1,12 @@
+query {
+  admin {
+    quratorAvailableModels {
+      models {
+        id
+        name
+        provider
+      }
+      unavailable
+    }
+  }
+}
