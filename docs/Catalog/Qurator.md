@@ -36,10 +36,12 @@ or request key insights from a specific dataset.
 
 The Developer Tools menu (upper right of the Qurator chat window) provides:
 
-- **Swappable Models**: Override the default Bedrock model for the current
-  session by pasting a Bedrock Model ID or Inference Profile ID. The model
-  must be enabled in the same region as your Quilt stack and support text,
-  document, and image inputs.
+- **Swappable Models**: Override the default Bedrock model by pasting a
+  Bedrock Model ID or Inference Profile ID. The override is kept in your
+  browser until you clear it, across sessions and reloads. The model must be
+  enabled in the same region as your Quilt stack and support text, document,
+  and image inputs. On a stack where an admin has approved a set of models
+  (below), this field is replaced by a **Model** choice in the Qurator menu.
 - **Session Recordings**: Record a portion of a Qurator session and download
   (or clear) the resulting JSON log. Useful for tuning or debugging prompts
   and capturing structured results.
@@ -78,6 +80,10 @@ To enable Qurator Omni:
    - Enable the model by configuring it within your Bedrock environment.
    - Optionally, set the `QuratorDefaultModel` stack parameter to a different
      Bedrock model ID to override the built-in default.
+   - Optionally, under **Admin > Settings > Qurator models**, list the full
+     Bedrock model IDs users may choose from, and pick the default. Qurator
+     then offers only those models, and the registry refuses to relay any
+     other. Leave the list empty to allow any model.
    - Carefully monitor the model's cost implications. The Claude model is
      charged based on usage, so ensure that you have the necessary budget
      allocated. Initial estimates are roughly a penny per page for complex documents.

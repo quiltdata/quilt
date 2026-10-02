@@ -348,6 +348,8 @@ interface DevToolsProps {
   modelIdOverride: Model.Assistant.API['devTools']['modelIdOverride']
   recording: Model.Assistant.API['devTools']['recording']
   connectors: Model.Assistant.API['connectors']
+  // An admin-approved set replaces the free-text override with the menu's picker.
+  governed: boolean
 }
 
 export default function DevTools({
@@ -355,6 +357,7 @@ export default function DevTools({
   modelIdOverride,
   recording,
   connectors,
+  governed,
 }: DevToolsProps) {
   const classes = useStyles()
 
@@ -375,8 +378,12 @@ export default function DevTools({
     <section className={classes.root}>
       <h1 className={classes.heading}>Qurator Developer Tools</h1>
       <div className={classes.contents}>
-        <ModelIdOverride {...modelIdOverride} />
-        <M.Divider />
+        {!governed && (
+          <>
+            <ModelIdOverride {...modelIdOverride} />
+            <M.Divider />
+          </>
+        )}
         <RecordingControls {...recording} />
         <M.Divider />
         <ConnectorsPanel connectors={connectors} />

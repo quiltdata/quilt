@@ -281,6 +281,7 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
             devTools={api.devTools}
             connectors={api.connectors}
             instructions={api.instructions}
+            model={api.model}
             onClose={api.hide}
           />
         ) : (

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, cleanup, screen } from '@testing-library/react'
+import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -12,7 +12,7 @@ vi.mock('utils/Buckets', () => ({
 
 import * as Model from '../../Model'
 
-import { ConnectorHelperLine, MessageEvent } from './Chat'
+import { ConnectorHelperLine, Menu, MessageEvent } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
 // any block element there is invalid DOM nesting.
@@ -136,5 +136,46 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
     renderMessage('assistant', `[open it](${href})`)
     const link = await screen.findByRole('link')
     expect(link.getAttribute('href')).toBe(href)
+  })
+})
+
+describe('components/Assistant/UI/Chat/Menu model picker', () => {
+  afterEach(cleanup)
+
+  const HAIKU = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+  const OPUS = 'us.anthropic.claude-opus-4-5-20251101-v1:0'
+  const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
+
+  function openMenu(model: Model.Assistant.API['model']) {
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        model={model}
+        devToolsOpen={false}
+        onToggleDevTools={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+  }
+
+  it('offers exactly the approved models, the current one checked', () => {
+    openMenu({ allowlist: [HAIKU, OPUS], current: OPUS, select: vi.fn() })
+    const items = screen.getAllByRole('menuitemradio')
+    expect(items.map((i) => i.textContent)).toEqual([HAIKU, OPUS])
+    expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true'])
+  })
+
+  it('selects a model', () => {
+    const select = vi.fn()
+    openMenu({ allowlist: [HAIKU, OPUS], current: OPUS, select })
+    fireEvent.click(screen.getByText(HAIKU))
+    expect(select).toHaveBeenCalledWith(HAIKU)
+  })
+
+  it('offers no picker on an ungoverned stack', () => {
+    openMenu({ allowlist: null, current: OPUS, select: vi.fn() })
+    expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0)
+    expect(screen.getByText('Developer Tools')).toBeTruthy()
   })
 })

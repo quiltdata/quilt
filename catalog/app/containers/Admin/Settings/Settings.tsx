@@ -17,6 +17,7 @@ import * as Form from '../Form'
 import DataProductConnections from './DataProductConnections'
 import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
 import PackagerSettings from './PackagerSettings'
+import QuratorModelSettings from './QuratorModelSettings'
 import QuratorSettings from './QuratorSettings'
 import SearchSettings from './SearchSettings'
 import SupportDiagnostics from './SupportDiagnostics'
@@ -454,6 +455,7 @@ const GROUPS: { name: string; items: { id: string; title: string }[] }[] = [
     items: [
       { id: 'search', title: 'Default search mode' },
       { id: 'qurator', title: 'Qurator instructions' },
+      { id: 'qurator-models', title: 'Qurator models' },
     ],
   },
   {
@@ -547,6 +549,13 @@ export default function Settings() {
           hint="Standing instructions sent with every Qurator message on this stack."
         >
           <QuratorSettings />
+        </Section>
+        <Section
+          id="qurator-models"
+          title="Qurator models"
+          hint="Which models Qurator may run on this stack, and the one it starts on."
+        >
+          <QuratorModelSettings />
         </Section>
 
         <M.Typography className={classes.groupHeading}>Data</M.Typography>

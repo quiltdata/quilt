@@ -143,6 +143,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           Bucket: (b) => b.name as string,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
+          QuratorConfig: () => null,
+          QuratorGatewayConfig: () => null,
+          QuratorModelConfig: () => null,
           Collaborator: (c) => c.username as string,
           Config: () => null,
           ContentIndexingSettings: () => null,
@@ -455,6 +458,26 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // acceptable for a rare admin op, avoids a self-check
                 // against the current session user.
                 refetchBuckets()
+              }
+              if (result.admin?.setQuratorConfig?.__typename === 'QuratorConfig') {
+                const saved = result.admin.setQuratorConfig
+                cache.invalidate({ __typename: 'Query' }, 'admin')
+                // Written, not invalidated: the open Assistant subscribes to this,
+                // and a root-field invalidate does not reliably notify it.
+                cache.updateQuery(
+                  { query: urql.gql`{ config { quratorModels { allowlist default } } }` },
+                  (data) =>
+                    data && {
+                      config: {
+                        ...data.config,
+                        quratorModels: {
+                          __typename: 'QuratorModelConfig',
+                          allowlist: saved.models.allowlist,
+                          default: saved.models.default,
+                        },
+                      },
+                    },
+                )
               }
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(

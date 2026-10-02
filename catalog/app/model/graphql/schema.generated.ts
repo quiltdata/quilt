@@ -493,6 +493,29 @@ export default {
             args: [],
           },
           {
+            name: 'setQuratorConfig',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'SetQuratorConfigResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'setSsoConfig',
             type: {
               kind: 'UNION',
@@ -584,6 +607,18 @@ export default {
               ofType: {
                 kind: 'OBJECT',
                 name: 'PackagerAdminQueries',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'quratorConfig',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'QuratorConfig',
                 ofType: null,
               },
             },
@@ -1601,6 +1636,15 @@ export default {
                 name: 'ContentIndexingSettings',
                 ofType: null,
               },
+            },
+            args: [],
+          },
+          {
+            name: 'quratorModels',
+            type: {
+              kind: 'OBJECT',
+              name: 'QuratorModelConfig',
+              ofType: null,
             },
             args: [],
           },
@@ -5525,6 +5569,111 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'QuratorConfig',
+        fields: [
+          {
+            name: 'gateway',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'QuratorGatewayConfig',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'models',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'QuratorModelConfig',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'QuratorGatewayConfig',
+        fields: [
+          {
+            name: 'accountId',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'endpointUrl',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'QuratorModelConfig',
+        fields: [
+          {
+            name: 'allowlist',
+            type: {
+              kind: 'LIST',
+              ofType: {
+                kind: 'NON_NULL',
+                ofType: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'default',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'maxToolCallsPerTurn',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'requestTimeoutSeconds',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
         kind: 'UNION',
         name: 'RestoreObjectResult',
         possibleTypes: [
@@ -6428,6 +6577,24 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'SetQuratorConfigResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'QuratorConfig',
+          },
+        ],
       },
       {
         kind: 'UNION',
