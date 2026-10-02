@@ -11,7 +11,7 @@ vi.mock('utils/GraphQL', async (importActual) => ({
   useQuery: () => query.current,
 }))
 
-import { isStale, resolve, useGoverned } from './ModelChoice'
+import { displayName, isStale, label, resolve, tier, useGoverned } from './ModelChoice'
 
 function readGoverned() {
   let out: ReturnType<typeof useGoverned> | undefined
@@ -102,5 +102,18 @@ describe('components/Assistant/Model/ModelChoice useGoverned', () => {
       governed: { allowlist: [HAIKU, OPUS], default: OPUS },
       settled: true,
     })
+  })
+})
+
+describe('components/Assistant/Model/ModelChoice labels', () => {
+  it.each([
+    ['us.anthropic.claude-opus-4-5-20251101-v1:0', 'Heavy', 'Claude Opus 4.5'],
+    ['us.anthropic.claude-sonnet-4-5-20250929-v1:0', 'Medium', 'Claude Sonnet 4.5'],
+    ['anthropic.claude-3-5-haiku-20241022-v1:0', 'Light', 'Claude 3.5 Haiku'],
+    ['amazon.nova-pro-v1:0', null, 'Nova Pro'],
+  ])('%s', (id, t, name) => {
+    expect(tier(id)).toBe(t)
+    expect(displayName(id)).toBe(name)
+    expect(label(id)).toBe(t ? `${t} · ${name}` : name)
   })
 })

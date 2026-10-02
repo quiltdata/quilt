@@ -139,43 +139,42 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
   })
 })
 
-describe('components/Assistant/UI/Chat/Menu model picker', () => {
+describe('components/Assistant/UI/Chat/Menu', () => {
   afterEach(cleanup)
 
-  const HAIKU = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
-  const OPUS = 'us.anthropic.claude-opus-4-5-20251101-v1:0'
   const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
 
-  function openMenu(model: Model.Assistant.API['model']) {
+  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn()) {
     render(
       <Menu
         state={idle}
         dispatch={vi.fn()}
-        model={model}
-        devToolsOpen={false}
-        onToggleDevTools={vi.fn()}
+        devToolsOpen={devToolsOpen}
+        onToggleDevTools={onToggleDevTools}
       />,
     )
-    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    return onToggleDevTools
   }
 
-  it('offers exactly the approved models, the current one checked', () => {
-    openMenu({ allowlist: [HAIKU, OPUS], current: OPUS, select: vi.fn() })
-    const items = screen.getAllByRole('menuitemradio')
-    expect(items.map((i) => i.textContent)).toEqual([HAIKU, OPUS])
-    expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true'])
+  // The header's own X closes the panel; the menu must not add a second one.
+  it('adds no close control while Developer Tools is open', () => {
+    renderMenu(true)
+    expect(screen.queryByText('close')).toBeNull()
+    expect(
+      screen.getAllByRole('button').map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['Qurator menu'])
   })
 
-  it('selects a model', () => {
-    const select = vi.fn()
-    openMenu({ allowlist: [HAIKU, OPUS], current: OPUS, select })
-    fireEvent.click(screen.getByText(HAIKU))
-    expect(select).toHaveBeenCalledWith(HAIKU)
+  it('hides Developer Tools from the menu that opened it', () => {
+    const toggle = renderMenu(true)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Hide Developer Tools'))
+    expect(toggle).toHaveBeenCalledTimes(1)
   })
 
-  it('offers no picker on an ungoverned stack', () => {
-    openMenu({ allowlist: null, current: OPUS, select: vi.fn() })
-    expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0)
+  it('CONTROL: offers Developer Tools while it is closed', () => {
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText('Developer Tools')).toBeTruthy()
   })
 })

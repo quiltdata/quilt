@@ -7,7 +7,14 @@ import * as style from 'constants/style'
 import * as Model from '../Model'
 import Chat from './Chat'
 import * as InlinePresence from './InlinePresence'
-import { MOTION, PANEL_WIDTH, RAIL_WIDTH, Context as ReflowContext } from './PanelReflow'
+import {
+  MOTION,
+  PANEL_WIDTH,
+  RAIL_WIDTH,
+  RESIZING,
+  Context as ReflowContext,
+} from './PanelReflow'
+import { ResizeHandle } from './PanelResize'
 
 // The rail button names the region it expands, so both need one id. The paper
 // carries it, not the chat: the chat unmounts in the very state where the
@@ -64,6 +71,9 @@ const usePanelStyles = M.makeStyles((t) => ({
         duration: t.transitions.duration.enteringScreen,
         easing: t.transitions.easing.easeOut,
       }),
+    },
+    [RESIZING]: {
+      transition: 'none',
     },
   },
   paperRail: {
@@ -124,6 +134,7 @@ function Panel({ api, compact, open }: PanelProps) {
         // SlideProps last.
         SlideProps={{ timeout: instant ? 0 : undefined }}
       >
+        {open && !compact && <ResizeHandle />}
         {expanded ? (
           <Chat
             state={api.state}

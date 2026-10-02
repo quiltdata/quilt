@@ -439,7 +439,6 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
 interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
-  model: Model.Assistant.API['model']
   onToggleDevTools: () => void
   devToolsOpen: boolean
   className?: string
@@ -448,7 +447,6 @@ interface MenuProps {
 export function Menu({
   state,
   dispatch,
-  model,
   devToolsOpen,
   onToggleDevTools,
   className,
@@ -474,57 +472,24 @@ export function Menu({
     closeMenu()
   }, [closeMenu, onToggleDevTools])
 
-  const selectModel = React.useCallback(
-    (id: string) => {
-      model.select(id)
-      closeMenu()
-    },
-    [closeMenu, model],
-  )
-
   return (
     <>
-      <M.Fade in={!devToolsOpen}>
-        <M.IconButton
-          aria-label="Qurator menu"
-          aria-haspopup="true"
-          onClick={toggleMenu}
-          className={className}
-        >
-          <M.Icon>menu</M.Icon>
-        </M.IconButton>
-      </M.Fade>
-      <M.Fade in={devToolsOpen}>
-        <M.Tooltip title="Close Developer Tools">
-          <M.IconButton
-            aria-label="close"
-            onClick={onToggleDevTools}
-            className={className}
-          >
-            <M.Icon>close</M.Icon>
-          </M.IconButton>
-        </M.Tooltip>
-      </M.Fade>
+      <M.IconButton
+        aria-label="Qurator menu"
+        aria-haspopup="true"
+        onClick={toggleMenu}
+        className={className}
+        size="small"
+      >
+        <M.Icon>menu</M.Icon>
+      </M.IconButton>
       <M.Menu anchorEl={menuOpen} open={!!menuOpen} onClose={closeMenu}>
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>
-        <M.MenuItem onClick={showDevTools}>Developer Tools</M.MenuItem>
-        {/* Offered only when an admin has approved a set: ungoverned, the model
-            stays a Developer Tools override, as before. */}
-        {model.allowlist && <M.Divider />}
-        {model.allowlist && <M.ListSubheader>Model</M.ListSubheader>}
-        {model.allowlist?.map((id) => (
-          <M.MenuItem
-            key={id}
-            onClick={() => selectModel(id)}
-            selected={id === model.current}
-            aria-checked={id === model.current}
-            role="menuitemradio"
-          >
-            {id}
-          </M.MenuItem>
-        ))}
+        <M.MenuItem onClick={showDevTools}>
+          {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
+        </M.MenuItem>
       </M.Menu>
     </>
   )
@@ -609,8 +574,7 @@ const useStyles = M.makeStyles((t) => ({
     flexShrink: 0,
     gap: t.spacing(1),
     minHeight: 56,
-    // right padding clears the absolutely positioned menu button
-    padding: t.spacing(1, 8, 1, 2),
+    padding: t.spacing(1, 1, 1, 2),
   },
   qicon: {
     alignItems: 'center',
@@ -636,20 +600,17 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: t.typography.caption.fontSize,
     lineHeight: 1.3,
   },
-  // Sits inside the header's reserved right gutter, left of the menu button.
-  close: {
-    marginLeft: 'auto',
+  // Menu and close share one size, color and focus ring, centered on the row.
+  headerButton: {
+    color: t.palette.text.secondary,
     // The Focus Ring Rule (DESIGN.md §2), light half: midnight on white.
     '&&:focus-visible': {
       outline: `2px solid ${t.palette.primary.main}`,
       outlineOffset: -2,
     },
   },
-  menu: {
-    position: 'absolute',
-    right: t.spacing(1),
-    top: t.spacing(1),
-    zIndex: 1,
+  trailing: {
+    marginLeft: 'auto',
   },
   devTools: {
     height: '50%',
@@ -752,8 +713,15 @@ export default function Chat({
           <div className={classes.title}>Qurator</div>
           <div className={classes.subtitle}>Claude, with your permissions</div>
         </div>
+        <Menu
+          state={state}
+          dispatch={dispatch}
+          onToggleDevTools={toggleDevTools}
+          devToolsOpen={devToolsOpen}
+          className={cx(classes.headerButton, classes.trailing)}
+        />
         <M.IconButton
-          className={classes.close}
+          className={classes.headerButton}
           onClick={onClose}
           size="small"
           aria-label="Close Qurator"
@@ -761,14 +729,6 @@ export default function Chat({
           <M.Icon>close</M.Icon>
         </M.IconButton>
       </div>
-      <Menu
-        state={state}
-        dispatch={dispatch}
-        model={model}
-        onToggleDevTools={toggleDevTools}
-        devToolsOpen={devToolsOpen}
-        className={classes.menu}
-      />
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
           <DevTools
@@ -835,6 +795,7 @@ export default function Chat({
       <Instructions instructions={instructions} />
       <Input
         disabled={inputDisabled}
+        model={model}
         helperText={helperText}
         helperSeverity={helperSeverity}
         onSubmit={ask}

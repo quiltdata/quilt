@@ -52,3 +52,42 @@ export function resolve(
 export function isStale(governed: Governed | null, override: string): boolean {
   return !!governed && !!override && !governed.allowlist.includes(override)
 }
+
+const TIERS: readonly [RegExp, string][] = [
+  [/opus/i, 'Heavy'],
+  [/sonnet/i, 'Medium'],
+  [/haiku/i, 'Light'],
+]
+
+/** A coarse weight class for a model id, when its family name implies one. */
+export function tier(id: string): string | null {
+  return TIERS.find(([re]) => re.test(id))?.[1] ?? null
+}
+
+/**
+ * A readable name for a Bedrock model id: region and vendor prefixes, the
+ * release date and the version suffix dropped, so
+ * `us.anthropic.claude-sonnet-4-5-20250929-v1:0` reads "Claude Sonnet 4.5".
+ */
+export function displayName(id: string): string {
+  const base = id
+    .replace(/^(?:[a-z]{2,4}\.)?(?:[a-z0-9-]+\.)?/, '')
+    .replace(/-\d{8}/, '')
+    .replace(/-v\d+(?::\d+)?$/, '')
+  const words: string[] = []
+  for (const part of base.split('-').filter(Boolean)) {
+    const prev = words[words.length - 1]
+    if (/^\d+$/.test(part) && prev && /^\d+(\.\d+)*$/.test(prev)) {
+      words[words.length - 1] = `${prev}.${part}`
+    } else {
+      words.push(/^\d/.test(part) ? part : part[0].toUpperCase() + part.slice(1))
+    }
+  }
+  return words.join(' ') || id
+}
+
+/** "Medium · Claude Sonnet 4.5", or just the name when no tier applies. */
+export function label(id: string): string {
+  const t = tier(id)
+  return t ? `${t} · ${displayName(id)}` : displayName(id)
+}

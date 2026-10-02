@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import type * as Model from '../../Model'
+import * as ModelChoice from '../../Model/ModelChoice'
 import { createCustomAppTheme } from 'constants/style'
 import useId from 'utils/useId'
 
@@ -71,6 +73,71 @@ const useLabelStyles = M.makeStyles((t) => ({
   },
 }))
 
+const usePickerStyles = M.makeStyles((t) => ({
+  button: {
+    ...t.typography.caption,
+    color: 'inherit',
+    fontWeight: t.typography.fontWeightMedium,
+    minWidth: 0,
+    padding: t.spacing(0.5, 1),
+    textTransform: 'none',
+    whiteSpace: 'nowrap',
+  },
+}))
+
+interface ModelPickerProps {
+  model: Model.Assistant.API['model']
+  disabled?: boolean
+}
+
+/**
+ * Switches among the admin-approved models. Renders nothing when no set is
+ * approved: the model is then a Developer Tools override, not a user choice.
+ */
+export function ModelPicker({ model, disabled }: ModelPickerProps) {
+  const classes = usePickerStyles()
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
+  const close = React.useCallback(() => setAnchor(null), [])
+  if (!model.allowlist) return null
+  const current = ModelChoice.label(model.current)
+  return (
+    <>
+      <M.Tooltip title={model.current}>
+        <span>
+          <M.Button
+            className={classes.button}
+            aria-haspopup="menu"
+            aria-label={`Model: ${current}`}
+            disabled={disabled}
+            onClick={(e) => setAnchor(e.currentTarget)}
+            size="small"
+            endIcon={<M.Icon fontSize="small">expand_more</M.Icon>}
+          >
+            {ModelChoice.tier(model.current) ?? ModelChoice.displayName(model.current)}
+          </M.Button>
+        </span>
+      </M.Tooltip>
+      <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+        {model.allowlist.map((id) => (
+          <M.MenuItem
+            key={id}
+            onClick={() => {
+              model.select(id)
+              close()
+            }}
+            selected={id === model.current}
+            aria-checked={id === model.current}
+            role="menuitemradio"
+            title={id}
+          >
+            {ModelChoice.label(id)}
+          </M.MenuItem>
+        ))}
+      </M.Menu>
+    </>
+  )
+}
+
 const darkTheme = createCustomAppTheme({ palette: { type: 'dark' } } as any)
 
 interface ChatInputProps {
@@ -79,6 +146,7 @@ interface ChatInputProps {
   /** Override the default disclaimer; severity colors the text. */
   helperText?: React.ReactNode
   helperSeverity?: 'warning' | 'error'
+  model?: Model.Assistant.API['model']
   onSubmit: (value: string) => void
 }
 
@@ -89,6 +157,7 @@ export default function ChatInput({
   disabled,
   helperText,
   helperSeverity,
+  model,
   onSubmit,
 }: ChatInputProps) {
   const classes = useStyles()
@@ -126,6 +195,7 @@ export default function ChatInput({
             classes: useInputStyles(),
             endAdornment: (
               <M.InputAdornment position="end">
+                {model && <ModelPicker model={model} disabled={disabled} />}
                 <M.IconButton
                   disabled={disabled || !value}
                   onClick={handleSubmit}
