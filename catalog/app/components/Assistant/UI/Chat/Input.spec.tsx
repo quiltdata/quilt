@@ -36,10 +36,16 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
     expect(button.textContent).toContain('Heavy')
     fireEvent.click(button)
     const items = screen.getAllByRole('menuitemradio')
-    expect(items.map((i) => i.textContent)).toEqual([
-      'Light · Claude Haiku 4.5',
-      'Heavy · Claude Opus 4.5',
+    // Each item names the tier and model, and shows the full id as identity.
+    expect(items.map((i) => i.textContent?.includes('Light · Claude Haiku 4.5'))).toEqual(
+      [true, false],
+    )
+    expect(items.map((i) => i.textContent?.includes('Heavy · Claude Opus 4.5'))).toEqual([
+      false,
+      true,
     ])
+    expect(items[0].textContent).toContain(HAIKU)
+    expect(items[1].textContent).toContain(OPUS)
     expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true'])
   })
 

@@ -712,7 +712,7 @@ export default function Chat({
         </span>
         <div>
           <div className={classes.title}>Qurator</div>
-          <div className={classes.subtitle}>Claude, with your permissions</div>
+          <div className={classes.subtitle}>Your AI assistant, with your permissions</div>
         </div>
         <Menu
           state={state}

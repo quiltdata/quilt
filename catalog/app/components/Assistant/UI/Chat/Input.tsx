@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import type * as Model from '../../Model'
 import * as ModelChoice from '../../Model/ModelChoice'
+import * as style from 'constants/style'
 import { createCustomAppTheme } from 'constants/style'
 import useId from 'utils/useId'
 
@@ -89,6 +90,16 @@ const usePickerStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
+  check: {
+    marginRight: t.spacing(1),
+    minWidth: 0,
+  },
+  itemId: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    display: 'block',
+    fontFamily: t.typography.monospace?.fontFamily ?? 'monospace',
+  },
 }))
 
 interface ModelPickerProps {
@@ -130,28 +141,61 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
           </M.Button>
         </span>
       </M.Tooltip>
-      <M.Menu anchorEl={anchor} open={!!anchor && !disabled} onClose={close}>
-        {model.allowlist.map((id) => (
-          <M.MenuItem
-            key={id}
-            onClick={() => {
-              model.select(id)
-              close()
-            }}
-            selected={id === model.current}
-            aria-checked={id === model.current}
-            role="menuitemradio"
-            title={id}
-          >
-            {ModelChoice.label(id)}
-          </M.MenuItem>
-        ))}
-      </M.Menu>
+      {/* The input sits on the dark chat ground; its menu is light, like every other menu. */}
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <M.Menu
+          anchorEl={anchor}
+          open={!!anchor && !disabled}
+          onClose={close}
+          getContentAnchorEl={null}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          {model.allowlist.map((id) => (
+            <M.MenuItem
+              key={id}
+              onClick={() => {
+                model.select(id)
+                close()
+              }}
+              selected={id === model.current}
+              aria-checked={id === model.current}
+              role="menuitemradio"
+            >
+              <M.ListItemIcon className={classes.check}>
+                <M.Icon
+                  fontSize="small"
+                  style={{ visibility: id === model.current ? 'visible' : 'hidden' }}
+                >
+                  check
+                </M.Icon>
+              </M.ListItemIcon>
+              <span>
+                {ModelChoice.label(id)}
+                <span className={classes.itemId}>{id}</span>
+              </span>
+            </M.MenuItem>
+          ))}
+        </M.Menu>
+      </M.MuiThemeProvider>
     </>
   )
 }
 
-const darkTheme = createCustomAppTheme({ palette: { type: 'dark' } } as any)
+// The Focus Ring Rule on the dark ground: amber, which the base theme does not set here.
+const darkTheme = createCustomAppTheme({
+  palette: { type: 'dark' },
+  overrides: {
+    MuiButtonBase: {
+      root: {
+        '&.Mui-focusVisible': {
+          outline: `2px solid ${style.appTheme.palette.secondary.main}`,
+          outlineOffset: -2,
+        },
+      },
+    },
+  },
+} as any)
 
 interface ChatInputProps {
   className?: string
