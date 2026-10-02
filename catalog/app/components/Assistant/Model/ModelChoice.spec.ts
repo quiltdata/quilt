@@ -1,8 +1,27 @@
-import { describe, it, expect, vi } from 'vitest'
+import * as React from 'react'
+import { cleanup, render } from '@testing-library/react'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-import { isStale, resolve } from './ModelChoice'
+const query = vi.hoisted(() => ({ current: {} as any }))
+
+vi.mock('utils/GraphQL', async (importActual) => ({
+  ...(await importActual<typeof import('utils/GraphQL')>()),
+  useQuery: () => query.current,
+}))
+
+import { isStale, resolve, useGoverned } from './ModelChoice'
+
+function readGoverned() {
+  let out: ReturnType<typeof useGoverned> | undefined
+  function Harness() {
+    out = useGoverned()
+    return null
+  }
+  render(React.createElement(Harness))
+  return out!
+}
 
 const FALLBACK = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
 const HAIKU = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
@@ -45,6 +64,43 @@ describe('components/Assistant/Model/ModelChoice', () => {
       expect(resolve({ allowlist: [HAIKU, OPUS], default: null }, '', FALLBACK)).toBe(
         HAIKU,
       )
+    })
+  })
+})
+
+describe('components/Assistant/Model/ModelChoice useGoverned', () => {
+  afterEach(cleanup)
+
+  it('is unsettled while the read is in flight', () => {
+    query.current = { fetching: true }
+    expect(readGoverned()).toEqual({ governed: null, settled: false })
+  })
+
+  // A turn waits for `settled`, so a failed read must settle or Qurator hangs.
+  it('settles ungoverned when the read fails', () => {
+    query.current = { fetching: false, error: new Error('boom') }
+    expect(readGoverned()).toEqual({ governed: null, settled: true })
+  })
+
+  it('settles ungoverned when no admin has saved a set, or the field is refused', () => {
+    query.current = { fetching: false, data: { config: { quratorModels: null } } }
+    expect(readGoverned()).toEqual({ governed: null, settled: true })
+    cleanup()
+    query.current = {
+      fetching: false,
+      data: { config: { quratorModels: { allowlist: null, default: null } } },
+    }
+    expect(readGoverned()).toEqual({ governed: null, settled: true })
+  })
+
+  it('settles governed with the saved set', () => {
+    query.current = {
+      fetching: false,
+      data: { config: { quratorModels: { allowlist: [HAIKU, OPUS], default: OPUS } } },
+    }
+    expect(readGoverned()).toEqual({
+      governed: { allowlist: [HAIKU, OPUS], default: OPUS },
+      settled: true,
     })
   })
 })

@@ -32,7 +32,7 @@ function setup() {
   }
 }
 
-describe('components/Assistant/Model/Assistant useModelIdOverride', async () => {
+describe('components/Assistant/Model/Assistant useModelIdOverride', () => {
   beforeEach(() => {
     localStorage.clear()
     governed.current = null
