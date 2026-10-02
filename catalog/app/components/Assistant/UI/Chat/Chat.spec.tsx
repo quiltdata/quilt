@@ -160,7 +160,12 @@ describe('components/Assistant/UI/Chat/Menu model picker', () => {
   }
 
   it('offers exactly the approved models, the current one checked', () => {
-    openMenu({ allowlist: [HAIKU, OPUS], current: OPUS, select: vi.fn() })
+    openMenu({
+      allowlist: [HAIKU, OPUS],
+      readFailed: false,
+      current: OPUS,
+      select: vi.fn(),
+    })
     const items = screen.getAllByRole('menuitemradio')
     expect(items.map((i) => i.textContent)).toEqual([HAIKU, OPUS])
     expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true'])
@@ -168,13 +173,13 @@ describe('components/Assistant/UI/Chat/Menu model picker', () => {
 
   it('selects a model', () => {
     const select = vi.fn()
-    openMenu({ allowlist: [HAIKU, OPUS], current: OPUS, select })
+    openMenu({ allowlist: [HAIKU, OPUS], readFailed: false, current: OPUS, select })
     fireEvent.click(screen.getByText(HAIKU))
     expect(select).toHaveBeenCalledWith(HAIKU)
   })
 
   it('offers no picker on an ungoverned stack', () => {
-    openMenu({ allowlist: null, current: OPUS, select: vi.fn() })
+    openMenu({ allowlist: null, readFailed: false, current: OPUS, select: vi.fn() })
     expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0)
     expect(screen.getByText('Developer Tools')).toBeTruthy()
   })
