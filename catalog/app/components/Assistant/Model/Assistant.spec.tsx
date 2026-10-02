@@ -9,11 +9,19 @@ const HAIKU = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
 const OPUS = 'us.anthropic.claude-opus-4-5-20251101-v1:0'
 const KEY = 'QUILT_BEDROCK_MODEL_ID'
 
-const governed = vi.hoisted(() => ({ current: null as any, settled: true }))
+const governed = vi.hoisted(() => ({
+  current: null as any,
+  settled: true,
+  failed: false,
+}))
 
 vi.mock('./ModelChoice', async (importActual) => ({
   ...(await importActual<typeof import('./ModelChoice')>()),
-  useGoverned: () => ({ governed: governed.current, settled: governed.settled }),
+  useGoverned: () => ({
+    governed: governed.current,
+    settled: governed.settled,
+    failed: governed.failed,
+  }),
 }))
 
 import { useModelIdOverride } from './Assistant'
@@ -37,6 +45,7 @@ describe('components/Assistant/Model/Assistant useModelIdOverride', () => {
     localStorage.clear()
     governed.current = null
     governed.settled = true
+    governed.failed = false
   })
   afterEach(cleanup)
 
@@ -88,5 +97,13 @@ describe('components/Assistant/Model/Assistant useModelIdOverride', () => {
     h.rerender()
     await new Promise((r) => setTimeout(r, 0))
     expect(sent).toBe(OPUS)
+  })
+
+  it('after a failed read, sends the stack default and keeps the stored model', async () => {
+    localStorage.setItem(KEY, 'moonshot.kimi-k3-v1:0')
+    governed.failed = true
+    const h = setup()
+    expect(await h.sent()).toBe('us.anthropic.claude-sonnet-4-5-20250929-v1:0')
+    expect(localStorage.getItem(KEY)).toBe('moonshot.kimi-k3-v1:0')
   })
 })

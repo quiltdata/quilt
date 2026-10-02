@@ -42,6 +42,15 @@ describe('components/Assistant/Model/ModelChoice', () => {
     })
   })
 
+  describe('after a failed read', () => {
+    it('sends the stack default, not a stored model the set may refuse', () => {
+      expect(resolve(null, 'moonshot.kimi-k3-v1:0', FALLBACK, true)).toBe(FALLBACK)
+    })
+    it('keeps the stored model for when the read succeeds', () => {
+      expect(isStale(null, 'moonshot.kimi-k3-v1:0')).toBe(false)
+    })
+  })
+
   describe('governed', () => {
     const governed = { allowlist: [HAIKU, OPUS], default: OPUS }
 
@@ -73,24 +82,24 @@ describe('components/Assistant/Model/ModelChoice useGoverned', () => {
 
   it('is unsettled while the read is in flight', () => {
     query.current = { fetching: true }
-    expect(readGoverned()).toEqual({ governed: null, settled: false })
+    expect(readGoverned()).toEqual({ governed: null, settled: false, failed: false })
   })
 
   // A turn waits for `settled`, so a failed read must settle or Qurator hangs.
-  it('settles ungoverned when the read fails', () => {
+  it('settles, flagged as failed, when the read fails', () => {
     query.current = { fetching: false, error: new Error('boom') }
-    expect(readGoverned()).toEqual({ governed: null, settled: true })
+    expect(readGoverned()).toEqual({ governed: null, settled: true, failed: true })
   })
 
   it('settles ungoverned when no admin has saved a set, or the field is refused', () => {
     query.current = { fetching: false, data: { config: { quratorModels: null } } }
-    expect(readGoverned()).toEqual({ governed: null, settled: true })
+    expect(readGoverned()).toEqual({ governed: null, settled: true, failed: false })
     cleanup()
     query.current = {
       fetching: false,
       data: { config: { quratorModels: { allowlist: null, default: null } } },
     }
-    expect(readGoverned()).toEqual({ governed: null, settled: true })
+    expect(readGoverned()).toEqual({ governed: null, settled: true, failed: false })
   })
 
   it('settles governed with the saved set', () => {
@@ -101,6 +110,7 @@ describe('components/Assistant/Model/ModelChoice useGoverned', () => {
     expect(readGoverned()).toEqual({
       governed: { allowlist: [HAIKU, OPUS], default: OPUS },
       settled: true,
+      failed: false,
     })
   })
 })
