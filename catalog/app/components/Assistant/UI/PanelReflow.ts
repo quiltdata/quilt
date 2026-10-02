@@ -5,11 +5,7 @@ import * as React from 'react'
  * it. One value: MUI's docked paper is `position: fixed` and reserves no space
  * of its own, so a second number here would show as a seam mid-slide.
  */
-export const PANEL_WIDTH = 'var(--qurator-panel-width, min(40rem, 50vw))'
-
-// Set on <body> while the panel's edge is dragged: a width transition there
-// would make the paper and the gutter trail the pointer.
-export const RESIZING = 'body[data-qurator-resizing] &'
+export const PANEL_WIDTH = 'min(40rem, 50vw)'
 
 /** Matches the left rail's `COLLAPSED` (`t.spacing(9)`). */
 export const RAIL_WIDTH = '72px'
