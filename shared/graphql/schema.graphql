@@ -713,6 +713,7 @@ type APIKeyAdminQueries {
 
 type AdminQueries {
   quratorConfig: QuratorConfig!
+  quratorAvailableModels: QuratorAvailableModels!
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
@@ -1143,6 +1144,29 @@ type QuratorConfig {
 }
 
 union SetQuratorConfigResult = QuratorConfig | InvalidInput | OperationError
+
+"""
+A model this account's Bedrock can run for Qurator: a text model with on-demand
+inference, or a system inference profile over one.
+"""
+type QuratorAvailableModel {
+  id: String!
+  name: String!
+  provider: String
+}
+
+enum QuratorModelListingUnavailable {
+  "A gateway is configured; it has no listing route, so models are entered by hand."
+  GATEWAY
+  "Bedrock refused or failed the listing; models can still be entered by hand."
+  LISTING_FAILED
+}
+
+"Null `models` means the list is unavailable, and `unavailable` says why."
+type QuratorAvailableModels {
+  models: [QuratorAvailableModel!]
+  unavailable: QuratorModelListingUnavailable
+}
 
 union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
 
