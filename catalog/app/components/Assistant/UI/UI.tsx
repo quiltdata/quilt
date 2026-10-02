@@ -150,7 +150,19 @@ const usePanelStyles = M.makeStyles((t) => ({
     touchAction: 'none',
     width: t.spacing(1),
     zIndex: 2,
-    '&:hover': {
+    // A grip at rest: the edge must not be an affordance only on hover.
+    '&::after': {
+      background: t.palette.text.disabled,
+      borderRadius: 1,
+      content: '""',
+      height: t.spacing(4),
+      left: 3,
+      marginTop: t.spacing(-2),
+      position: 'absolute',
+      top: '50%',
+      width: 2,
+    },
+    '&:hover::after, &:focus-visible::after': {
       background: t.palette.primary.main,
     },
     '&:focus-visible': {
