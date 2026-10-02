@@ -143,6 +143,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           Bucket: (b) => b.name as string,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
+          QuratorAvailableModels: () => null,
           QuratorConfig: () => null,
           QuratorGatewayConfig: () => null,
           QuratorModelConfig: () => null,

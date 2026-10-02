@@ -1,0 +1,127 @@
+name: Rebuild dev
+
+# `dev` is rebuilt, never merged into: master plus every open same-repo PR
+# labelled `dev-preview`, re-made from scratch on each change. Merging the PR to
+# master is the promotion, so dev cannot drift from master. PRs that overlap are
+# meant to be stacked (each based on the one below), and land bottom-up.
+#
+# Rebuilding the real `dev` force-pushes it, so it stays off until the repo
+# variable REBUILD_DEV_ENABLED is `true`. A `dev-rebuild-*` target can be rebuilt
+# by hand to preview the result.
+on:
+  push:
+    branches: [master]
+  # Any base: a stacked PR targets the branch of the PR below it.
+  pull_request_target:
+    types: [labeled, unlabeled, synchronize, reopened, closed, edited]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Branch to rebuild (`dev`, or a `dev-rebuild-*` preview)
+        default: dev-rebuild-preview
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+
+jobs:
+  rebuild:
+    # An unlabelled PR can be a link in a labelled stack, so its close or
+    # retarget rebuilds too; the same-tree check keeps a needless run from pushing.
+    if: >-
+      (github.event_name != 'pull_request_target'
+        || (github.event.pull_request.head.repo.full_name == github.repository
+          && (contains(github.event.pull_request.labels.*.name, 'dev-preview')
+            || github.event.label.name == 'dev-preview'
+            || github.event.action == 'closed' || github.event.action == 'edited')))
+      && !(endsWith(github.event.action, 'labeled') && github.event.label.name != 'dev-preview')
+      && (github.event.action != 'edited' || github.event.changes.base)
+      && (startsWith(inputs.target, 'dev-rebuild-')
+        || ((inputs.target || 'dev') == 'dev' && vars.REBUILD_DEV_ENABLED == 'true'))
+    # On the job so a skipped run cannot displace a pending one.
+    concurrency:
+      group: rebuild-dev-${{ inputs.target || 'dev' }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    env:
+      TARGET: ${{ inputs.target || 'dev' }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      # master's copy of the script, never the PR's: pull_request_target runs with
+      # a write token, and PR heads are only ever merged, not executed, here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Rebuild
+        run: |
+          set -euo pipefail
+          # Expression comparisons ignore case; the real `dev` is spelled exactly.
+          case "$TARGET" in dev | dev-rebuild-*) ;; *) echo "::error::Refusing target $TARGET"; exit 1 ;; esac
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          .github/scripts/test-rebuild-dev.sh
+          cp .github/scripts/rebuild-dev.sh "$RUNNER_TEMP/"
+
+          old="$(git rev-parse -q --verify "refs/remotes/origin/$TARGET" || true)"
+
+          # Forks are left out: a fork's later pushes would reach the image builds,
+          # which hold AWS credentials, without anyone re-reviewing them.
+          # Listed to a file, not piped: a failed listing must stop the run, or dev
+          # would be force-pushed back to bare master.
+          # Label filtered in jq: `--label` goes through search, which lags the
+          # label event that triggered this run. Every base is listed, because
+          # unlabelled PRs can be links in a labelled PR's stack.
+          gh pr list --state open --limit 1000 \
+              --json number,isCrossRepository,labels,headRefName,baseRefName \
+              --jq '.[] | select(.isCrossRepository | not)
+                    | [.number, .headRefName, .baseRefName,
+                       (if any(.labels[]; .name == "dev-preview") then 1 else 0 end)] | @tsv' \
+            > "$RUNNER_TEMP/prs"
+          REPORT="$RUNNER_TEMP/report" SKIPPED="$RUNNER_TEMP/skipped" \
+            "$RUNNER_TEMP/rebuild-dev.sh" < "$RUNNER_TEMP/prs" || { rc=$?; [ "$rc" -eq 2 ] || exit "$rc"; conflicts=yes; }
+          cat "$RUNNER_TEMP/report" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "${conflicts:-}" != yes ] || echo "::warning::Some dev-preview PRs conflict and were left out; see the summary."
+
+          # Tell each left-out PR why, once per head commit and reason: the summary
+          # is where nobody looks. Dry runs stay quiet, and a failed comment never
+          # fails dev.
+          if [ "$TARGET" = dev ]; then
+            while IFS=$'\t' read -r pr head reason; do
+              {
+                marker="<!-- rebuild-dev:$head:$(printf '%s' "$reason" | sha1sum | cut -c1-8) -->"
+                gh pr view "$pr" --json comments --jq '.comments[].body' | grep -qF "$marker" \
+                  || gh pr comment "$pr" --body "$marker
+          Left out of the rebuilt \`dev\`: $reason."
+              } || echo "::warning::Could not comment on #$pr."
+            done < "$RUNNER_TEMP/skipped"
+          fi
+
+          if [ -n "$old" ] && [ "$(git rev-parse "HEAD^{tree}")" = "$(git rev-parse "$old^{tree}")" ] \
+              && git merge-base --is-ancestor origin/master "$old"; then
+            echo "Same tree as origin/$TARGET; nothing to push."
+            exit 0
+          fi
+          git push --force-with-lease="$TARGET:$old" origin "HEAD:refs/heads/$TARGET"
+
+      # A push made with GITHUB_TOKEN triggers no workflows, so the image builds
+      # that dev.quilttest.com pins have to be dispatched.
+      - name: Dispatch image builds
+        if: env.TARGET == 'dev'
+        run: |
+          set -euo pipefail
+          # Built if the last dev run of deploy-$1 that succeeded or is still going
+          # had the same sources as HEAD. Checked every run, pushed or not, so the
+          # next run dispatches again a build that failed or was cancelled.
+          built() {
+            local w="$1"; shift
+            sha="$(gh run list --workflow "deploy-$w.yaml" --branch dev --limit 20 --json headSha,conclusion \
+              --jq '[.[] | select(.conclusion == "success" or .conclusion == "") | .headSha][0] // empty')"
+            [ -n "$sha" ] && { git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "$sha" 2>/dev/null; } \
+              && git diff --quiet "$sha" HEAD -- ".github/workflows/deploy-$w.yaml" "$@"
+          }
+          built catalog catalog shared || gh workflow run deploy-catalog.yaml --ref dev
+          built lambdas lambdas || gh workflow run deploy-lambdas.yaml --ref dev
+          built s3-proxy s3-proxy || gh workflow run deploy-s3-proxy.yaml --ref dev

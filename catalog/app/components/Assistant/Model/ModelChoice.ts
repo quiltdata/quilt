@@ -12,10 +12,15 @@ export interface Governed {
 
 /**
  * The governed set, or `null` when no admin has written one, and whether the
- * read has settled. A failed read counts as settled and ungoverned: the
- * registry's inference relay enforces the set either way.
+ * read has settled. A failed read settles, so a waiting turn is not held
+ * forever, and is flagged so the turn avoids a stored model the set may refuse.
+ * Nothing retries it: the flag holds until a reload or sign-in reads again.
  */
-export function useGoverned(): { governed: Governed | null; settled: boolean } {
+export function useGoverned(): {
+  governed: Governed | null
+  settled: boolean
+  failed: boolean
+} {
   const query = GQL.useQuery(QURATOR_MODELS_QUERY)
   return React.useMemo(
     () =>
@@ -23,9 +28,10 @@ export function useGoverned(): { governed: Governed | null; settled: boolean } {
         data: ({ config: { quratorModels: m } }) => ({
           governed: m?.allowlist ? { allowlist: m.allowlist, default: m.default } : null,
           settled: true,
+          failed: false,
         }),
-        fetching: () => ({ governed: null, settled: false }),
-        error: () => ({ governed: null, settled: true }),
+        fetching: () => ({ governed: null, settled: false, failed: false }),
+        error: () => ({ governed: null, settled: true, failed: true }),
       }),
     [query],
   )
@@ -40,7 +46,11 @@ export function resolve(
   governed: Governed | null,
   override: string,
   fallback: string,
+  readFailed = false,
 ): string {
+  // Whether a set exists is unknown, and the relay refuses a stored override
+  // outside one, so the stack's default is the model most likely to be allowed.
+  if (readFailed) return fallback
   if (!governed) return override || fallback
   const { allowlist } = governed
   if (override && allowlist.includes(override)) return override
