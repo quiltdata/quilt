@@ -222,4 +222,24 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
       expect(getByLabelText(/Default model/).textContent).toBe(`Claude Opus 4.5${OPUS}`)
     })
   })
+
+  it('moves a ticked model the listing stops offering into the id box', () => {
+    state.config = config([OPUS], OPUS)
+    state.available = {
+      unavailable: null,
+      models: [
+        { id: HAIKU, name: 'Claude Haiku 4.5', provider: 'Anthropic' },
+        { id: OPUS, name: 'Claude Opus 4.5', provider: 'Anthropic' },
+      ],
+    }
+    const { getByLabelText, rerender } = render(<QuratorModelSettings />)
+    state.available = {
+      unavailable: null,
+      models: [{ id: HAIKU, name: 'Claude Haiku 4.5', provider: 'Anthropic' }],
+    }
+    rerender(<QuratorModelSettings />)
+    expect((getByLabelText('Additional model IDs') as HTMLTextAreaElement).value).toBe(
+      OPUS,
+    )
+  })
 })

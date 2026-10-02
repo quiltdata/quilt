@@ -136,6 +136,17 @@ function Editor({ config, available, unavailable }: EditorProps) {
   const initial = splitSaved(savedIds, offered)
   const [checked, setChecked] = React.useState<string[]>(initial.checked)
   const [text, setText] = React.useState(initial.extra.join('\n'))
+
+  // A ticked model the refreshed listing no longer offers moves to the id box,
+  // where it stays saved and the admin can still see and remove it.
+  React.useEffect(() => {
+    const gone = checked.filter((id) => !offered.includes(id))
+    if (!gone.length) return
+    setChecked((c) => c.filter((id) => offered.includes(id)))
+    setText((t) =>
+      [...parseIds(t), ...gone.filter((id) => !parseIds(t).includes(id))].join('\n'),
+    )
+  }, [offered]) // eslint-disable-line react-hooks/exhaustive-deps
   const [chosenDefault, setChosenDefault] = React.useState(saved.models.default ?? '')
   const [pending, setPending] = React.useState(false)
   const [errors, setErrors] = React.useState<string[]>([])
