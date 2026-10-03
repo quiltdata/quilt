@@ -66,6 +66,27 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
+  it('shows other errors as the registry words them', async () => {
+    unlock
+      .mockResolvedValueOnce({
+        packageUnlock: { __typename: 'OperationError', name: 'X', message: 'refused' },
+      })
+      .mockResolvedValueOnce({
+        packageUnlock: {
+          __typename: 'InvalidInput',
+          errors: [{ message: 'a' }, { message: 'b' }],
+        },
+      })
+      .mockRejectedValueOnce(new Error('offline'))
+    const dialog = mount(
+      <PackageLock.Dialog action="unlock" bucket="b" name="team/ds" onClose={vi.fn()} />,
+    )
+    for (const text of ['refused', 'a; b', 'Unexpected error: offline']) {
+      fireEvent.click(dialog.getByRole('button', { name: 'Unlock' }))
+      await dialog.findByText(text)
+    }
+  })
+
   it('unlocks', async () => {
     unlock.mockResolvedValueOnce({ packageUnlock: { __typename: 'Ok' } })
     const onClose = vi.fn()

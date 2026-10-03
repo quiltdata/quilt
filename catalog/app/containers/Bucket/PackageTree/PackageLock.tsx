@@ -49,8 +49,8 @@ export function Notice({ lock, onUnlock }: NoticeProps) {
         <Lab.AlertTitle>Locked</Lab.AlertTitle>
         {lock.lockedBy} locked this package at revision{' '}
         <Code>{shortenRevision(lock.hash)}</Code> on{' '}
-        {dateFns.format(lock.lockedAt, 'MMMM do yyyy')}. No one can push or delete
-        revisions until an admin unlocks it.
+        {dateFns.format(lock.lockedAt, 'MMMM do yyyy')}. Quilt refuses new revisions and
+        deletions until an admin unlocks it.
         {lock.reason && <M.Box mt={0.5}>Reason: {lock.reason}</M.Box>}
       </Lab.Alert>
     </M.Box>
@@ -125,8 +125,8 @@ export function Dialog({ bucket, name, action, hash, onClose }: DialogProps) {
           {action === 'lock' ? (
             <>
               Freezes the package at its latest revision,{' '}
-              <Code>{shortenRevision(hash)}</Code>. No one can push or delete revisions
-              until an admin unlocks it.
+              <Code>{shortenRevision(hash)}</Code>. Quilt refuses new revisions and
+              deletions until an admin unlocks it.
             </>
           ) : (
             'Anyone with write access can push and delete revisions again.'
