@@ -9,9 +9,12 @@ packages, but also enables users to browse Quilt package descriptions from
 inside Benchling notebooks.
 
 The webhook works through a
-[Benchling App](https://docs.benchling.com/docs/getting-started-benchling-apps)
-that must be installed in your Organization by a Benchling Administrator and
-configured to call your stack's unique webhook (see Installation, below).
+[Benchling App](https://docs.benchling.com/docs/getting-started-benchling-apps).
+A Benchling Administrator must install the app in your Organization, add it to
+the target Benchling Project, grant **Admin** for every permission required by
+this integration, and issue credentials only after permissions are final. The
+app must then be configured to call your stack's unique webhook (see
+Installation, below).
 
 ## Availability
 
@@ -184,11 +187,31 @@ This will generate an `app-manifest.yaml` file in your local folder
 
 Follow Benchling's [create][create-app] and [install][install-app]
 instructions.
-Save the **App Definition ID**, **Client ID**, and **Client Secret** for the
-next step.
 
 [create-app]: https://docs.benchling.com/docs/getting-started-benchling-apps#creating-an-app-from-a-manifest
 [install-app]: https://docs.benchling.com/docs/getting-started-benchling-apps#installing-your-app
+
+#### 1.3 Add the app to the Project and grant Admin permissions
+
+1. Open **Connections** → **Apps**, select the Quilt app, and open its
+   **Access** tab.
+2. In the target Project's **Manage collaborators** settings, add the
+   **Benchling App** itself to the Project.
+3. Set every app permission or access policy required by this integration to
+   **Admin**. **Read**, **Append**, **Write**, or unspecified access are not
+   substitutes for **Admin**.
+
+#### 1.4 Generate credentials after permissions are final
+
+After completing the permission setup, save the **App Definition ID** and
+**Client ID**, then generate and save a fresh **Client Secret** for the next
+step.
+
+> **Important:** After every permission change, you **must** finish the
+> permission changes, regenerate the **Client Secret**, and then update the
+> local profile and deployed/runtime secret or configuration that consumes it
+> before testing or resuming the webhook. An old secret may no longer reflect
+> or authorize the changed permission set.
 
 ### 2. Configuring the Benchling App
 
@@ -204,10 +227,15 @@ The wizard will guide you through:
 
 1. **Catalog discovery** - Detect your Quilt catalog configuration
 2. **Stack validation** - Extract settings from your CloudFormation stack
-3. **Credential collection** - Enter Benchling app credentials
+3. **Credential collection** - Enter the **App Definition ID**, **Client ID**,
+   and newly regenerated **Client Secret**
 4. **Deployment mode selection**:
    - **Integrated**: Uses your Quilt stack's built-in webhook, if any
    - **Standalone**: Deploys a separate webhook stack for testing
+
+For an already deployed integration, rerun this webhook configuration flow to
+replace the AWS Secrets Manager-backed runtime credential with the newly
+regenerated **Client Secret**. Do not continue using the stored old value.
 
 **Note**: Configuration is stored in `~/.config/benchling-webhook/` using the
 [XDG Base Directory](https://wiki.archlinux.org/title/XDG_Base_Directory)
@@ -241,4 +269,12 @@ In Benchling:
 
 A Quilt package will be automatically created and linked to your notebook
 entry.
+
+If the test fails, verify all of these mandatory prerequisites:
+
+- The **Benchling App** is directly added to the target Project.
+- Every permission required by this integration is set to **Admin**.
+- The deployed/runtime secret is the **Client Secret** regenerated after the
+  most recent permission change.
+
 If you run into problems, contact [Quilt Support](mailto:support@quilt.bio)
