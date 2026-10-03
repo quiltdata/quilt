@@ -2113,7 +2113,7 @@ class PackageTest(QuiltTestCase):
         error = ClientError({'Error': {'Code': 'AccessDenied'}}, 'DeleteObject')
         with (
             patch.object(self.S3PackageRegistryDefault, 'delete_package', side_effect=error),
-            pytest.raises(QuiltException, match="'Quilt/Test' is locked, or you lack write access"),
+            pytest.raises(QuiltException, match="'Quilt/Test' was denied: it is locked, or you lack permission"),
         ):
             quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
 
@@ -2122,7 +2122,7 @@ class PackageTest(QuiltTestCase):
         with (
             patch.object(self.S3PackageRegistryDefault, 'resolve_top_hash', side_effect=lambda name, h: h),
             patch.object(self.S3PackageRegistryDefault, 'delete_package_version', side_effect=error),
-            pytest.raises(QuiltException, match="'Quilt/Test' is locked, or you lack write access"),
+            pytest.raises(QuiltException, match="'Quilt/Test' was denied: it is locked, or you lack permission"),
         ):
             quilt3.delete_package('Quilt/Test', registry='s3://test-bucket', top_hash='a' * 64)
 
@@ -2139,7 +2139,7 @@ class PackageTest(QuiltTestCase):
         registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
         with (
             patch.object(self.S3PackageRegistryDefault, 'push_manifest', side_effect=error),
-            pytest.raises(QuiltException, match="'Quilt/Test' is locked, or you lack write access"),
+            pytest.raises(QuiltException, match="'Quilt/Test' was denied: it is locked, or you lack permission"),
         ):
             Package()._push_manifest('Quilt/Test', registry, 'a' * 64)
 

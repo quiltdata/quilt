@@ -23,7 +23,7 @@ def explain_access_denied(pkg_name: str):
     except botocore.exceptions.ClientError as ex:
         if ex.response.get('Error', {}).get('Code') != 'AccessDenied':
             raise
-        raise QuiltException(f"Package {pkg_name!r} is locked, or you lack write access to it.") from ex
+        raise QuiltException(f"Access to package {pkg_name!r} was denied: it is locked, or you lack permission.") from ex
 
 
 class PackageRegistry(abc.ABC):
