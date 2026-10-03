@@ -208,7 +208,7 @@ function parseFilesQueryString(qs: string) {
   return PD.FromPhysicalKeys(value)
 }
 
-function useCreateDialog(packageHandle: PackageHandle) {
+function useCreateDialog(packageHandle: PackageHandle, locked: boolean) {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
@@ -232,8 +232,8 @@ function useCreateDialog(packageHandle: PackageHandle) {
 
   const { open, close } = createDialog
 
-  const shouldClose = !match
-  const shouldOpen = !!match
+  const shouldClose = !match || locked
+  const shouldOpen = !!match && !locked
 
   React.useEffect(() => {
     if (shouldClose) {
@@ -286,7 +286,7 @@ function DirDisplay({
 
   const { bucket, name, hash } = packageHandle
 
-  const updateDialog = useCreateDialog(packageHandle)
+  const updateDialog = useCreateDialog(packageHandle, !!lock)
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
