@@ -125,6 +125,12 @@ describe('components/Assistant/Model/ModelChoice labels', () => {
     ['global.anthropic.claude-sonnet-4-5-20250929-v1:0', 'Medium', 'Claude Sonnet 4.5'],
     ['us-gov.anthropic.claude-3-5-sonnet-20240620-v1:0', 'Medium', 'Claude 3.5 Sonnet'],
     ['anthropic.claude-3-sonnet-20240229-v1:0:200k', 'Medium', 'Claude 3 Sonnet'],
+    [
+      'arn:aws:sagemaker:us-east-1:123456789012:endpoint/qurator-nemotron',
+      null,
+      'Qurator Nemotron',
+    ],
+    ['arn:aws:sagemaker:us-east-1:123456789012:endpoint/haiku-v2', null, 'Haiku V2'],
   ])('%s', (id, t, name) => {
     expect(tier(id)).toBe(t)
     expect(displayName(id)).toBe(name)
