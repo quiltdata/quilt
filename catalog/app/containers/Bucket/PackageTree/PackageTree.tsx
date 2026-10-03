@@ -1150,6 +1150,8 @@ function PackageTree({
     [isAdmin, lock, latestHash],
   )
   const openUnlock = React.useCallback(() => setLockDialog({ action: 'unlock' }), [])
+  // Navigating to another package must not leave a dialog that would act on it.
+  React.useEffect(() => setLockDialog(null), [bucket, name])
 
   // TODO: use urql to get bucket config
   // const data = useQuery({
