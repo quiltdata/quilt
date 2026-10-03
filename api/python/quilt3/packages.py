@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 from . import checksums, util, workflows
 from .backends import get_package_registry
+from .backends.base import explain_access_denied
 from .data_transfer import (
     FileChecksumTask,
     calculate_multipart_checksum,
@@ -1168,7 +1169,8 @@ class Package:
     def _push_manifest(self, name, registry, top_hash):
         manifest = io.BytesIO()
         self._dump(manifest)
-        registry.push_manifest(name, top_hash, manifest.getvalue())
+        with explain_access_denied(name):
+            registry.push_manifest(name, top_hash, manifest.getvalue())
 
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
