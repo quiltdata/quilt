@@ -2,14 +2,20 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { describe, it, expect, vi } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
+import { renderHook } from '@testing-library/react-hooks'
 
 import * as style from 'constants/style'
 
 import * as PackageLock from './PackageLock'
 
-const { lock, unlock } = vi.hoisted(() => ({ lock: vi.fn(), unlock: vi.fn() }))
+const { lock, unlock, useQuery } = vi.hoisted(() => ({
+  lock: vi.fn(),
+  unlock: vi.fn(),
+  useQuery: vi.fn(),
+}))
 
 vi.mock('utils/GraphQL', () => ({
+  useQuery,
   useMutation: (doc: any) =>
     doc.definitions[0].selectionSet.selections[0].name.value === 'packageLock'
       ? lock
@@ -22,6 +28,12 @@ const mount = (el: React.ReactElement) =>
   render(<M.MuiThemeProvider theme={style.appTheme}>{el}</M.MuiThemeProvider>)
 
 describe('containers/Bucket/PackageTree/PackageLock', () => {
+  it('reads a registry without locks as unlocked with nothing to lock', () => {
+    useQuery.mockReturnValueOnce({ data: undefined, error: new Error('no lock field') })
+    const { result } = renderHook(() => PackageLock.useLock('b', 'team/ds'))
+    expect(result.current).toEqual({ lock: null, latestHash: undefined })
+  })
+
   it('locks the given hash with a trimmed reason and closes', async () => {
     lock.mockResolvedValueOnce({ packageLock: { __typename: 'PackageLock' } })
     const onClose = vi.fn()
