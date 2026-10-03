@@ -1,4 +1,5 @@
 import abc
+import contextlib
 import operator
 import time
 
@@ -12,6 +13,17 @@ from quilt3.data_transfer import (
     put_bytes,
 )
 from quilt3.util import PhysicalKey, QuiltException
+
+
+@contextlib.contextmanager
+def explain_access_denied(pkg_name: str):
+    # A locked package's pointers are denied by IAM, which S3 reports as a bare AccessDenied.
+    try:
+        yield
+    except botocore.exceptions.ClientError as ex:
+        if ex.response.get('Error', {}).get('Code') != 'AccessDenied':
+            raise
+        raise QuiltException(f"Package {pkg_name!r} is locked, or you lack write access to it.") from ex
 
 
 class PackageRegistry(abc.ABC):

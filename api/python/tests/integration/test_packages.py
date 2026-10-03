@@ -2109,6 +2109,31 @@ class PackageTest(QuiltTestCase):
 
         quilt3.delete_package(pkg_name, registry=registry)
 
+    def test_remote_package_delete_access_denied(self):
+        error = ClientError({'Error': {'Code': 'AccessDenied'}}, 'DeleteObject')
+        with (
+            patch.object(self.S3PackageRegistryDefault, 'delete_package', side_effect=error),
+            pytest.raises(QuiltException, match="'Quilt/Test' is locked, or you lack write access"),
+        ):
+            quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
+
+    def test_remote_package_delete_other_client_error(self):
+        error = ClientError({'Error': {'Code': 'SlowDown'}}, 'DeleteObject')
+        with (
+            patch.object(self.S3PackageRegistryDefault, 'delete_package', side_effect=error),
+            pytest.raises(ClientError),
+        ):
+            quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
+
+    def test_push_manifest_access_denied(self):
+        error = ClientError({'Error': {'Code': 'AccessDenied'}}, 'PutObject')
+        registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+        with (
+            patch.object(self.S3PackageRegistryDefault, 'push_manifest', side_effect=error),
+            pytest.raises(QuiltException, match="'Quilt/Test' is locked, or you lack write access"),
+        ):
+            Package()._push_manifest('Quilt/Test', registry, 'a' * 64)
+
     def _test_remote_revision_delete_setup_stubber(
         self,
         pkg_registry,
