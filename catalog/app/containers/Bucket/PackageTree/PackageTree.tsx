@@ -1,6 +1,7 @@
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
@@ -14,6 +15,7 @@ import * as Column from 'components/Layout/Column'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
@@ -55,6 +57,7 @@ import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 
 import * as AssistantContext from './AssistantContext'
 import PackageLink from './PackageLink'
+import * as PackageLock from './PackageLock'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
 import RevisionMenu from './RevisionMenu'
@@ -205,7 +208,7 @@ function parseFilesQueryString(qs: string) {
   return PD.FromPhysicalKeys(value)
 }
 
-function useCreateDialog(packageHandle: PackageHandle) {
+function useCreateDialog(packageHandle: PackageHandle, locked: boolean) {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
@@ -229,8 +232,8 @@ function useCreateDialog(packageHandle: PackageHandle) {
 
   const { open, close } = createDialog
 
-  const shouldClose = !match
-  const shouldOpen = !!match
+  const shouldClose = !match || locked
+  const shouldOpen = !!match && !locked
 
   React.useEffect(() => {
     if (shouldClose) {
@@ -260,9 +263,18 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
+  lock: PackageLock.Lock | null
+  onLock?: () => void
 }
 
-function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps) {
+function DirDisplay({
+  packageHandle,
+  hashOrTag,
+  path,
+  crumbs,
+  lock,
+  onLock,
+}: DirDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
@@ -274,7 +286,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
 
   const { bucket, name, hash } = packageHandle
 
-  const updateDialog = useCreateDialog(packageHandle)
+  const updateDialog = useCreateDialog(packageHandle, !!lock)
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
@@ -487,7 +499,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
                             packageHandle={packageHandle}
                           />
                         )}
-                        {actions.revisePackage && (
+                        {actions.revisePackage && !lock && (
                           <M.Button
                             className={classes.button}
                             variant="contained"
@@ -525,9 +537,10 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
                         )}
                         <RevisionMenu
                           className={classes.button}
-                          onDelete={confirmDelete}
-                          onDeletePackage={confirmDeletePackage}
-                          onCreateFile={prompt.open}
+                          onDelete={lock ? undefined : confirmDelete}
+                          onDeletePackage={lock ? undefined : confirmDeletePackage}
+                          onCreateFile={lock ? undefined : prompt.open}
+                          onLock={onLock}
                         />
                       </>
                     ),
@@ -669,6 +682,7 @@ interface FileDisplayQueryProps {
   path: string
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
+  locked: boolean
 }
 
 function FileDisplayQuery({
@@ -785,6 +799,7 @@ function FileDisplay({
   path,
   crumbs,
   file,
+  locked,
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
   const history = RRDom.useHistory()
@@ -911,6 +926,7 @@ function FileDisplay({
                     Ok: ({ ui: { actions } }) =>
                       FileEditor.isSupportedFileType(path) &&
                       hashOrTag === 'latest' &&
+                      !locked &&
                       actions.revisePackage && (
                         <Buttons.Iconized
                           className={classes.button}
@@ -1051,6 +1067,8 @@ interface PackageRevisionProps {
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
   revision?: RevisionData
+  lock: PackageLock.Lock | null
+  onLock?: () => void
 }
 
 function PackageRevision({
@@ -1060,6 +1078,8 @@ function PackageRevision({
   crumbs,
   mode,
   revision,
+  lock,
+  onLock,
 }: PackageRevisionProps) {
   const isDir = path === '' || path.endsWith('/')
 
@@ -1076,13 +1096,14 @@ function PackageRevision({
           <DirDisplay
             packageHandle={packageHandle}
             {...{ hashOrTag, path }}
-            {...{ crumbs }}
+            {...{ crumbs, lock, onLock }}
           />
         ) : (
           <FileDisplayQuery
             {...packageHandle}
             {...{ hashOrTag, path }}
             {...{ crumbs, mode }}
+            locked={!!lock}
           />
         )}
       </ResolverProvider>
@@ -1114,6 +1135,23 @@ function PackageTree({
   const hash = revision?.hash
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
+
+  const { lock, latestHash } = PackageLock.useLock(bucket, name)
+  const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
+  const [lockDialog, setLockDialog] = React.useState<
+    { action: 'lock'; hash: string } | { action: 'unlock' } | null
+  >(null)
+  const closeLockDialog = React.useCallback(() => setLockDialog(null), [])
+  const openLock = React.useMemo(
+    () =>
+      isAdmin && !lock && latestHash
+        ? () => setLockDialog({ action: 'lock', hash: latestHash })
+        : undefined,
+    [isAdmin, lock, latestHash],
+  )
+  const openUnlock = React.useCallback(() => setLockDialog({ action: 'unlock' }), [])
+  // Navigating to another package must not leave a dialog that would act on it.
+  React.useEffect(() => setLockDialog(null), [bucket, name])
 
   // TODO: use urql to get bucket config
   // const data = useQuery({
@@ -1185,6 +1223,17 @@ function PackageTree({
         {' @ '}
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
+      {lock && (
+        <PackageLock.Notice lock={lock} onUnlock={isAdmin ? openUnlock : undefined} />
+      )}
+      {lockDialog && (
+        <PackageLock.Dialog
+          bucket={bucket}
+          name={name}
+          onClose={closeLockDialog}
+          {...lockDialog}
+        />
+      )}
       {packageHandle ? (
         <PackageRevision
           packageHandle={packageHandle}
@@ -1192,6 +1241,8 @@ function PackageTree({
           path={path}
           crumbs={crumbs}
           mode={mode}
+          lock={lock}
+          onLock={openLock}
         />
       ) : (
         <>

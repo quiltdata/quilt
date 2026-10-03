@@ -404,6 +404,14 @@ type Package {
   revisions: PackageRevisionList!
   revision(hashOrTag: String = "latest"): PackageRevision
   accessCounts(window: Int = 30): AccessCounts
+  lock: PackageLock
+}
+
+type PackageLock {
+  hash: String!
+  lockedAt: Datetime!
+  lockedBy: String!
+  reason: String
 }
 
 enum PackageListOrder {
@@ -1072,6 +1080,10 @@ union PackageRevisionDeleteResult =
 
 union PackageDeleteResult = Ok | OperationError
 
+union PackageLockResult = PackageLock | InvalidInput | OperationError
+
+union PackageUnlockResult = Ok | InvalidInput | OperationError
+
 union BrowsingSessionCreateResult =
     BrowsingSession
   | InvalidInput
@@ -1216,6 +1228,13 @@ type Mutation {
     hash: String!
   ): PackageRevisionDeleteResult!
   packageDelete(bucket: String!, name: String!): PackageDeleteResult!
+  packageLock(
+    bucket: String!
+    name: String!
+    hash: String!
+    reason: String
+  ): PackageLockResult! @admin
+  packageUnlock(bucket: String!, name: String!): PackageUnlockResult! @admin
 
   admin: AdminMutations! @admin
 
