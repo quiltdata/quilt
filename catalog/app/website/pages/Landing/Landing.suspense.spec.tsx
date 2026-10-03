@@ -44,6 +44,9 @@ vi.mock('utils/AWS', () => {
 
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
 
+// Anonymous: the settings read keys its cache entry on the signed-in user.
+vi.mock('react-redux', () => ({ useSelector: () => null }))
+
 // The three destinations, as markers. Which one renders is the whole output of
 // the component under test.
 vi.mock('./FrontDoor', () => ({ default: () => <div>Front door</div> }))

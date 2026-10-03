@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, cleanup, screen } from '@testing-library/react'
+import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -12,7 +12,7 @@ vi.mock('utils/Buckets', () => ({
 
 import * as Model from '../../Model'
 
-import { ConnectorHelperLine, MessageEvent } from './Chat'
+import { ConnectorHelperLine, Menu, MessageEvent } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
 // any block element there is invalid DOM nesting.
@@ -136,5 +136,45 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
     renderMessage('assistant', `[open it](${href})`)
     const link = await screen.findByRole('link')
     expect(link.getAttribute('href')).toBe(href)
+  })
+})
+
+describe('components/Assistant/UI/Chat/Menu', () => {
+  afterEach(cleanup)
+
+  const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
+
+  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn()) {
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={devToolsOpen}
+        onToggleDevTools={onToggleDevTools}
+      />,
+    )
+    return onToggleDevTools
+  }
+
+  // The header's own X closes the panel; the menu must not add a second one.
+  it('adds no close control while Developer Tools is open', () => {
+    renderMenu(true)
+    expect(screen.queryByText('close')).toBeNull()
+    expect(
+      screen.getAllByRole('button').map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['Qurator menu'])
+  })
+
+  it('hides Developer Tools from the menu that opened it', () => {
+    const toggle = renderMenu(true)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Hide Developer Tools'))
+    expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('CONTROL: offers Developer Tools while it is closed', () => {
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Developer Tools')).toBeTruthy()
   })
 })

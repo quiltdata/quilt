@@ -25,15 +25,19 @@ export const loadMode = (mode: Mode) => {
   }
   if (cached) throw cached
 
-  cache[mode] = import(`brace/mode/${mode}`).then(
-    () => {
-      cache[mode] = 'fulfilled'
-    },
-    (e) => {
-      cache[mode] =
-        e instanceof Error ? e : new Error(`Failed to load editor mode "${mode}"`)
-    },
-  )
+  // A mode module calls the global `ace.define` as it evaluates, and only `brace`
+  // installs that global; a caller that lazy-loads TextEditor can get here first.
+  cache[mode] = import('brace')
+    .then(() => import(`brace/mode/${mode}`))
+    .then(
+      () => {
+        cache[mode] = 'fulfilled'
+      },
+      (e) => {
+        cache[mode] =
+          e instanceof Error ? e : new Error(`Failed to load editor mode "${mode}"`)
+      },
+    )
   throw cache[mode]
 }
 

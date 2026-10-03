@@ -37,12 +37,18 @@ vi.mock('utils/AWS', () => ({
   S3: { use: () => s3Mock },
 }))
 
+let currentUser: string | null = null
+
+vi.mock('react-redux', () => ({ useSelector: () => currentUser }))
+
 const patchOkMock = vi.fn()
+const useDataMock = vi.fn<(...args: unknown[]) => null>(() => null)
+const resourceOpts = vi.hoisted(() => ({}) as { key?: (input: unknown) => unknown })
 
 vi.mock('utils/ResourceCache', () => ({
-  createResource: () => ({}),
+  createResource: (opts: typeof resourceOpts) => Object.assign(resourceOpts, opts),
   use: () => ({ patchOk: patchOkMock }),
-  useData: () => null,
+  useData: (...args: unknown[]) => useDataMock(...args),
 }))
 
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
@@ -53,6 +59,7 @@ import {
   useUploadFile,
   useWriteSettings,
   UnsupportedLogoTypeError,
+  useCatalogSettings,
 } from './CatalogSettings'
 
 function makeFile(name: string, type = 'image/png', body = 'x') {
@@ -79,6 +86,44 @@ const parseStored = (): CatalogSettings | null =>
   stored === null ? null : (JSON.parse(stored) as CatalogSettings)
 
 describe('utils/CatalogSettings', () => {
+  // The read made before sign-in is refused on a private stack, so the signed-in
+  // user must get a cache entry of their own rather than inherit that null.
+  describe('cache key', () => {
+    beforeEach(() => {
+      currentUser = null
+      useDataMock.mockClear()
+      patchOkMock.mockClear()
+      stored = null
+      putObjectMock.mockReset()
+      persistOnPut()
+    })
+
+    it('reads a different entry once the user signs in', () => {
+      const { rerender } = renderHook(() => useCatalogSettings())
+      currentUser = 'alice'
+      rerender()
+
+      const [anonInput, userInput] = useDataMock.mock.calls.map((c) => c[1])
+      expect(resourceOpts.key!(anonInput)).not.toEqual(resourceOpts.key!(userInput))
+    })
+
+    // CONTROL: passes on a constant key too; pins that the write patches the
+    // entry the reader holds once the key varies.
+    it("CONTROL: patches the signed-in user's entry after a write", async () => {
+      currentUser = 'alice'
+      renderHook(() => useCatalogSettings())
+      const { result } = renderHook(() => useWriteSettings())
+
+      await act(async () => {
+        await result.current({ beta: true })
+      })
+
+      const readKey = resourceOpts.key!(useDataMock.mock.calls[0][1])
+      const patchKey = resourceOpts.key!(patchOkMock.mock.calls[0][1])
+      expect(patchKey).toEqual(readKey)
+    })
+  })
+
   // Two admins editing different fields of one settings document. Every write
   // replaces the whole document from the writer's own snapshot, so the second
   // writer carries a stale copy of the first writer's field.

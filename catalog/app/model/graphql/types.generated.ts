@@ -146,6 +146,7 @@ export interface AdminMutations {
   /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly packager: PackagerAdminMutations
+  readonly setQuratorConfig: SetQuratorConfigResult
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
   readonly user: UserAdminMutations
@@ -163,6 +164,10 @@ export interface AdminMutationsbucketSetTabulatorTableArgs {
   tableName: Scalars['String']['input']
 }
 
+export interface AdminMutationssetQuratorConfigArgs {
+  input: QuratorConfigInput
+}
+
 export interface AdminMutationssetSsoConfigArgs {
   config: InputMaybe<Scalars['String']['input']>
 }
@@ -176,6 +181,8 @@ export interface AdminQueries {
   readonly apiKeys: APIKeyAdminQueries
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
   readonly packager: PackagerAdminQueries
+  readonly quratorAvailableModels: QuratorAvailableModels
+  readonly quratorConfig: QuratorConfig
   readonly ssoConfig: Maybe<SsoConfig>
   readonly tabulatorOpenQuery: Scalars['Boolean']['output']
   readonly user: UserAdminQueries
@@ -388,6 +395,15 @@ export interface CollaboratorBucketConnection {
 export interface Config {
   readonly __typename: 'Config'
   readonly contentIndexingSettings: ContentIndexingSettings
+  /**
+   * What Qurator may run, and the limits it runs under. @authenticated rather than
+   * @admin: every signed-in user's assistant resolves a model against this, so
+   * gating it to admins would refuse the users the setting exists to serve, while
+   * leaving it ungated would publish it on a stack that allows anonymous access.
+   * The gateway's own address is admin-only and lives on `QuratorGatewayConfig`.
+   * Nullable so a refused read nulls this field alone rather than all of `config`.
+   */
+  readonly quratorModels: Maybe<QuratorModelConfig>
 }
 
 export interface ContentIndexingSettings {
@@ -1192,6 +1208,77 @@ export interface QuerysearchPackagesArgs {
   userMetaFilters: InputMaybe<ReadonlyArray<PackageUserMetaPredicate>>
 }
 
+/**
+ * A model this account's Bedrock can run for Qurator: a text model with on-demand
+ * inference, or a system inference profile over one.
+ */
+export interface QuratorAvailableModel {
+  readonly __typename: 'QuratorAvailableModel'
+  readonly id: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
+  readonly provider: Maybe<Scalars['String']['output']>
+}
+
+/** Null `models` means the list is unavailable, and `unavailable` says why. */
+export interface QuratorAvailableModels {
+  readonly __typename: 'QuratorAvailableModels'
+  readonly models: Maybe<ReadonlyArray<QuratorAvailableModel>>
+  readonly unavailable: Maybe<QuratorModelListingUnavailable>
+}
+
+export interface QuratorConfig {
+  readonly __typename: 'QuratorConfig'
+  readonly gateway: QuratorGatewayConfig
+  readonly models: QuratorModelConfig
+}
+
+/**
+ * Replaces the whole Qurator configuration. Every field is explicit, so a write
+ * states the full intent: omitting one does not preserve it. Null clears a field.
+ */
+export interface QuratorConfigInput {
+  readonly allowlist: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly default: InputMaybe<Scalars['String']['input']>
+  readonly gatewayAccountId: InputMaybe<Scalars['String']['input']>
+  readonly gatewayEndpointUrl: InputMaybe<Scalars['String']['input']>
+  readonly maxToolCallsPerTurn: InputMaybe<Scalars['Int']['input']>
+  readonly requestTimeoutSeconds: InputMaybe<Scalars['Int']['input']>
+}
+
+/**
+ * Where a deployment sends inference, when it does not use the deployed account.
+ * Admin-only: no ordinary user's assistant needs it, and a customer's internal
+ * gateway address is not worth exposing to every signed-in user. The inference
+ * relay sends to a saved endpoint in place of the stack's, bearing the stack's
+ * gateway credential, so an admin who can save one is trusted with that credential;
+ * the relay uses it only where the operator has configured the credential. The
+ * account is stored only.
+ */
+export interface QuratorGatewayConfig {
+  readonly __typename: 'QuratorGatewayConfig'
+  readonly accountId: Maybe<Scalars['String']['output']>
+  readonly endpointUrl: Maybe<Scalars['String']['output']>
+}
+
+/**
+ * The governed model set, readable by any authenticated user. Null `allowlist`
+ * means unset: the deployment behaves as it did before an admin wrote a set.
+ */
+export interface QuratorModelConfig {
+  readonly __typename: 'QuratorModelConfig'
+  readonly allowlist: Maybe<ReadonlyArray<Scalars['String']['output']>>
+  readonly default: Maybe<Scalars['String']['output']>
+  readonly maxToolCallsPerTurn: Maybe<Scalars['Int']['output']>
+  readonly requestTimeoutSeconds: Maybe<Scalars['Int']['output']>
+}
+
+export enum QuratorModelListingUnavailable {
+  /** A gateway is configured; it has no listing route, so models are entered by hand. */
+  GATEWAY = 'GATEWAY',
+  /** Bedrock refused or failed the listing; models can still be entered by hand. */
+  LISTING_FAILED = 'LISTING_FAILED',
+}
+
 export type RestoreObjectResult = InvalidInput | OperationError | RestoreObjectSuccess
 
 export interface RestoreObjectSuccess {
@@ -1371,6 +1458,8 @@ export enum SearchResultOrder {
   NEWEST = 'NEWEST',
   OLDEST = 'OLDEST',
 }
+
+export type SetQuratorConfigResult = InvalidInput | OperationError | QuratorConfig
 
 export type SetSsoConfigResult = InvalidInput | OperationError | SsoConfig
 

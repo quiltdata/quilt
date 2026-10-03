@@ -18,6 +18,7 @@ import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
+import * as ModelChoice from './ModelChoice'
 import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
 
@@ -168,11 +169,19 @@ function useConnectors(
   return built.service
 }
 
-function useModelIdOverride() {
+export function useModelIdOverride() {
+  const { governed, settled, failed } = ModelChoice.useGoverned()
   const [value, setValue] = React.useState(
     () =>
       (typeof localStorage !== 'undefined' && localStorage.getItem(MODEL_ID_KEY)) || '',
   )
+
+  // Dropped, not just ignored: a stored value would otherwise come back into
+  // force the moment the governed read is slow or fails.
+  const stale = ModelChoice.isStale(governed, value)
+  React.useEffect(() => {
+    if (stale) setValue('')
+  }, [stale])
 
   React.useEffect(() => {
     if (typeof localStorage !== 'undefined') {
@@ -184,15 +193,34 @@ function useModelIdOverride() {
     }
   }, [value])
 
-  const modelIdPassThru = usePassThru(value)
+  const current = ModelChoice.resolve(governed, value, DEFAULT_MODEL_ID, failed)
+  const currentPassThru = usePassThru(current)
+  // A turn waits for the governed read: sent before it settles, a stored model
+  // the admin has since disallowed would reach the relay and be refused.
+  const ready = useConst(() => defer<void>())
+  React.useEffect(() => {
+    if (settled) ready.resolver.resolve()
+  }, [settled, ready])
   const modelIdEff = React.useMemo(
-    () => Eff.Effect.sync(() => modelIdPassThru.current || DEFAULT_MODEL_ID),
-    [modelIdPassThru],
+    () =>
+      Eff.Effect.promise(() => ready.promise).pipe(
+        Eff.Effect.map(() => currentPassThru.current),
+      ),
+    [ready, currentPassThru],
   )
 
   return [
     modelIdEff,
     React.useMemo(() => ({ value, setValue }), [value, setValue]),
+    React.useMemo(
+      () => ({
+        allowlist: governed?.allowlist ?? null,
+        readFailed: failed,
+        current,
+        select: setValue,
+      }),
+      [governed, failed, current, setValue],
+    ),
   ] as const
 }
 
@@ -253,7 +281,7 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 }
 
 function useConstructAssistantAPI() {
-  const [modelId, modelIdOverride] = useModelIdOverride()
+  const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
   const instructions = useDualInstructionsContext()
 
@@ -305,6 +333,7 @@ function useConstructAssistantAPI() {
     dispatch,
     connectors,
     instructions,
+    model,
     devTools: { recording, modelIdOverride },
   }
 }

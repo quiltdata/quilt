@@ -30,6 +30,8 @@ concurrency:
 
 jobs:
   back-merge:
+    # Once rebuild-dev.yaml owns `dev`, a back-merge would break its lease.
+    if: vars.REBUILD_DEV_ENABLED != 'true'
     runs-on: ubuntu-latest
     steps:
       # Pinned to a SHA, unlike the `@v7` the other workflows here use: this is the

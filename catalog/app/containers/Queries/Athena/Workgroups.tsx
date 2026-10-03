@@ -8,6 +8,7 @@ import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import parseSearch from 'utils/parseSearch'
+import useId from 'utils/useId'
 
 import { Alert } from './Components'
 import * as Model from './model'
@@ -32,6 +33,8 @@ const useWorkgroupSelectStyles = M.makeStyles({
 
 function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) {
   const classes = useWorkgroupSelectStyles()
+  const labelId = useId()
+  const buttonId = useId()
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
   const location = RRDom.useLocation()
@@ -54,8 +57,10 @@ function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) 
 
   return (
     <M.FormControl fullWidth>
-      <M.InputLabel>Select workgroup</M.InputLabel>
+      <M.InputLabel id={labelId}>Select workgroup</M.InputLabel>
       <M.Select
+        labelId={labelId}
+        id={buttonId}
         classes={{ select: classes.select }}
         disabled={disabled || !workgroups.list.length}
         onChange={handleChange}

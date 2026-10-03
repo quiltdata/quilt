@@ -4,7 +4,7 @@ import { render, cleanup, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach, beforeAll, beforeEach } from 'vitest'
 import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 
-import { bucketDir, bucketFile } from 'constants/routes'
+import { bucketDir, bucketFile, signIn } from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -23,6 +23,13 @@ import * as requests from '../requests'
 // tests fail each data source in turn and assert the page's other parts survive.
 
 vi.mock('constants/config', () => ({ default: { analyticsBucket: '' } }))
+
+const authenticated = vi.fn(() => true)
+
+vi.mock('react-redux', async () => ({
+  ...(await vi.importActual<typeof import('react-redux')>('react-redux')),
+  useSelector: () => authenticated(),
+}))
 
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual<typeof import('react-router-dom')>('react-router-dom')),
@@ -177,7 +184,7 @@ function renderFile() {
   return render(
     <ThemeProvider theme={theme}>
       <MemoryRouter>
-        <NamedRoutes.Provider routes={{ bucketDir, bucketFile }}>
+        <NamedRoutes.Provider routes={{ bucketDir, bucketFile, signIn }}>
           <File />
         </NamedRoutes.Provider>
       </MemoryRouter>
@@ -248,6 +255,19 @@ describe('containers/Bucket/File containment', () => {
 
     expect(getByText('Access Denied')).toBeTruthy()
     expect(queryByText('This object could not be loaded')).toBeNull()
+  })
+
+  it('prompts an anonymous user to sign in on a Forbidden head', async () => {
+    authenticated.mockReturnValue(false)
+    const forbidden = Object.assign(new Error('Forbidden'), { code: 'Forbidden' })
+    headResult.mockReturnValue(AsyncResult.Err(forbidden))
+
+    const { getByText, queryByText } = renderFile()
+
+    expect(getByText(/Anonymous access not allowed. Please sign in./)).toBeTruthy()
+    expect(getByText('Sign In')).toBeTruthy()
+    expect(queryByText(/You don.t have access to this object/)).toBeNull()
+    authenticated.mockReturnValue(true)
   })
 
   // Control, not evidence: the happy path. Passes with or without the fix.

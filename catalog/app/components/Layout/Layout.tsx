@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { Sidebar } from 'containers/Sidebar'
-import { MOTION, usePanelGutter } from 'components/Assistant/UI/PanelReflow'
+import { MOTION, STILL, usePanelGutter } from 'components/Assistant/UI/PanelReflow'
 
 import BareHeader from './BareHeader'
 import * as Column from './Column'
@@ -23,6 +23,7 @@ const useRootStyles = M.makeStyles((t) => ({
         easing: t.transitions.easing.easeOut,
       }),
     },
+    [STILL]: { transition: 'none' },
   },
 }))
 
@@ -75,6 +76,7 @@ const useShellStyles = M.makeStyles((t) => ({
         easing: t.transitions.easing.easeOut,
       }),
     },
+    [STILL]: { transition: 'none' },
   },
   // `.main` is the scroll container; the sticky ContentBar pins to its top.
   // The column is a size container so page styles can key on its width

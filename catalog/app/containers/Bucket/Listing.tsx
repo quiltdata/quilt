@@ -1118,6 +1118,9 @@ interface ListingProps {
   // Omit the size column and the footer size total (for listings whose items
   // carry no size, where it would read as a misleading "0 B").
   hideSize?: boolean
+  // Controlled page (0-based), set together with `onPageChange`.
+  page?: number
+  onPageChange?: (page: number) => void
 }
 
 export function Listing({
@@ -1135,6 +1138,8 @@ export function Listing({
   dataGridProps,
   onReload,
   hideSize = false,
+  page: controlledPage,
+  onPageChange,
 }: ListingProps) {
   const classes = useStyles()
   const sm = Column.useDown('sm')
@@ -1168,14 +1173,18 @@ export function Listing({
     [setFilteredToZero],
   )
 
-  const [page, setPage] = React.useState(0)
+  const [localPage, setLocalPage] = React.useState(0)
+  const setPage = onPageChange ?? setLocalPage
   const [pageSize, setPageSize] = React.useState(25)
+  // The grid does not clamp a page past the end, e.g. a stale `p` in a link.
+  const lastPage = Math.max(0, Math.ceil(items.length / pageSize) - 1)
+  const page = Math.min(controlledPage ?? localPage, lastPage)
 
   const handlePageChange = React.useCallback(
     ({ page: newPage }: DG.GridPageChangeParams) => {
       setPage(newPage)
     },
-    [],
+    [setPage],
   )
 
   const handlePageSizeChange = React.useCallback(
@@ -1186,7 +1195,9 @@ export function Listing({
   )
 
   usePrevious(items, (prevItems?: Item[]) => {
-    if (!prevItems) return
+    // A controlled page is reset by its owner: Back to a parent directory swaps
+    // the items and must keep the page the URL restores.
+    if (!prevItems || controlledPage !== undefined) return
     const itemsOnPrevPages = page * pageSize
     // reset page if items on previous pages change
     if (!R.equals(R.take(itemsOnPrevPages, items), R.take(itemsOnPrevPages, prevItems))) {

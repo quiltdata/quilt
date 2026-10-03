@@ -1,0 +1,8 @@
+query {
+  config {
+    quratorModels {
+      allowlist
+      default
+    }
+  }
+}
