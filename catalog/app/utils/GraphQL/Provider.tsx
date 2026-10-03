@@ -170,6 +170,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           PackageDir: () => null,
           PackageFile: () => null,
           PackageList: () => null,
+          PackageLock: () => null,
           PackageRevision: (r) =>
             r.hash ? `${r.hash}:${r.modified?.valueOf() || ''}` : null, // XXX: is r.modified a string here?
           PackageRevisionList: () => null,
@@ -421,6 +422,14 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               if ((result.packageDelete as any).__typename !== 'Ok') return
               cache.invalidate({ __typename: 'Package', bucket, name })
               invalidateRootField(cache, 'packages')
+            },
+            packageLock: (result, { bucket, name }, cache) => {
+              if ((result.packageLock as any).__typename !== 'PackageLock') return
+              cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
+            },
+            packageUnlock: (result, { bucket, name }, cache) => {
+              if ((result.packageUnlock as any).__typename !== 'Ok') return
+              cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
             },
             packageConstruct: (result, _vars, cache) => {
               handlePackageCreation(result.packageConstruct, cache)

@@ -4,11 +4,13 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 
 import Menu from '../Menu'
 
+// An omitted handler hides its item.
 interface RevisionMenuProps {
   className: string
-  onCreateFile: () => void
-  onDelete: () => void
-  onDeletePackage: () => void
+  onCreateFile?: () => void
+  onDelete?: () => void
+  onDeletePackage?: () => void
+  onLock?: () => void
 }
 
 export default function RevisionMenu({
@@ -16,6 +18,7 @@ export default function RevisionMenu({
   onCreateFile,
   onDelete,
   onDeletePackage,
+  onLock,
 }: RevisionMenuProps) {
   const { prefs } = BucketPreferences.use()
 
@@ -25,21 +28,31 @@ export default function RevisionMenu({
         {
           Ok: ({ ui: { actions } }) => {
             const menu = []
-            if (actions.writeFile && actions.revisePackage) {
+            if (onCreateFile && actions.writeFile && actions.revisePackage) {
               menu.push({
                 onClick: onCreateFile,
                 title: 'Create file',
               })
             }
             if (actions.deleteRevision) {
-              menu.push({
-                onClick: onDelete,
-                title: 'Delete revision',
-              })
+              if (onDelete) {
+                menu.push({
+                  onClick: onDelete,
+                  title: 'Delete revision',
+                })
+              }
               // Same gate: anyone who may delete each revision may delete them all.
+              if (onDeletePackage) {
+                menu.push({
+                  onClick: onDeletePackage,
+                  title: 'Delete package',
+                })
+              }
+            }
+            if (onLock) {
               menu.push({
-                onClick: onDeletePackage,
-                title: 'Delete package',
+                onClick: onLock,
+                title: 'Lock package',
               })
             }
             return menu
@@ -48,7 +61,7 @@ export default function RevisionMenu({
         },
         prefs,
       ),
-    [onCreateFile, onDelete, onDeletePackage, prefs],
+    [onCreateFile, onDelete, onDeletePackage, onLock, prefs],
   )
 
   if (!items.length) return null

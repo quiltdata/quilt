@@ -27,6 +27,7 @@ import usePrevious from 'utils/usePrevious'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
+import { useLock } from '../PackageTree/PackageLock'
 import RevisionDeleteDialog from '../PackageTree/RevisionDeleteDialog'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -460,11 +461,15 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const scrollRef = React.useRef<HTMLSpanElement>(null)
 
+  const { lock } = useLock(bucket, name)
+
   // Needed outside the toolbar's own match, to gate the per-row checkboxes.
-  const canDelete = BucketPreferences.Result.match(
-    { Ok: ({ ui: { actions } }) => actions.deleteRevision, _: () => false },
-    prefs,
-  )
+  const canDelete =
+    !lock &&
+    BucketPreferences.Result.match(
+      { Ok: ({ ui: { actions } }) => actions.deleteRevision, _: () => false },
+      prefs,
+    )
 
   const bulk = useBulkDelete(bucket, name)
 
@@ -557,7 +562,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
                     </M.Button>
                   </>
                 )}
-                {actions.revisePackage && (
+                {actions.revisePackage && !lock && (
                   <M.Button
                     variant="contained"
                     color="primary"
