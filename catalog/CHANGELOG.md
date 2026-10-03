@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Admins can lock a package at its latest revision; a locked package shows who locked it and why, and hides its revise, edit and delete actions until an admin unlocks it ([#PRNUM](https://github.com/quiltdata/quilt/pull/PRNUM))
 - [Changed] Qurator: the model picker sits in the Ask Qurator box with Heavy, Medium and Light labels, and the panel's header shows one aligned menu and close button ([#5394](https://github.com/quiltdata/quilt/pull/5394))
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
 - [Fixed] When the approved-model list cannot be read, Qurator sends the stack's default model instead of a saved one the registry would refuse ([#5392](https://github.com/quiltdata/quilt/pull/5392))
