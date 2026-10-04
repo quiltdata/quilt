@@ -295,9 +295,14 @@ function useConstructAssistantAPI() {
     connectors,
   })
 
+  const llm = React.useMemo(
+    () => Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken }),
+    [modelId, record, getToken],
+  )
+
   const layerEff = Eff.Effect.sync(() =>
     Eff.Layer.mergeAll(
-      Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken }),
+      llm,
       passThru.current.context,
       Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
     ),
@@ -309,7 +314,7 @@ function useConstructAssistantAPI() {
     layerEff,
   )
 
-  GlobalContext.use()
+  GlobalContext.use(llm)
 
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)

@@ -23,7 +23,10 @@ export class S3 extends Eff.Context.Tag('S3')<
   S3,
   {
     headObject(handle: S3ObjectLocation): AWSEffect<AWSSDK.S3.HeadObjectOutput>
-    getObject(handle: S3ObjectLocation): AWSEffect<AWSSDK.S3.GetObjectOutput>
+    getObject(
+      handle: S3ObjectLocation,
+      range?: string,
+    ): AWSEffect<AWSSDK.S3.GetObjectOutput>
   }
 >() {}
 
@@ -41,7 +44,7 @@ export const fromS3Client = (client: AWSSDK.S3) =>
             .promise(),
         catch: (e) => e as AWSSDK.AWSError,
       }),
-    getObject: (handle) =>
+    getObject: (handle, range) =>
       Eff.Effect.tryPromise({
         try: () =>
           client
@@ -49,6 +52,7 @@ export const fromS3Client = (client: AWSSDK.S3) =>
               Bucket: handle.bucket,
               Key: handle.key,
               VersionId: handle.version,
+              Range: range,
             })
             .promise(),
         catch: (e) => e as AWSSDK.AWSError,
@@ -80,7 +84,7 @@ export const fromS3Signer = (
 // - hyphens
 // - parentheses and square brackets
 // The name can't contain more than one consecutive whitespace character
-const normalizeDocumentName = (name: string) =>
+export const normalizeDocumentName = (name: string) =>
   name
     .replace(/[^a-zA-Z0-9\s\-()[\]]/g, ' ') // Remove invalid characters
     .replace(/\s+/g, ' ') // Replace multiple whitespace characters with a single space
@@ -100,9 +104,10 @@ const PreviewSchema = S.Struct({
     'use platform__object_read instead.',
     '',
     'Always call platform__s3_object_info first to check size and content-type',
-    'before invoking this tool. Skip the preview and fall back to',
-    'platform__object_read when:',
-    '- ContentLength > 500 KiB and the content is a document',
+    'before invoking this tool.',
+    'When ContentLength > 500 KiB and the content is a document, use',
+    'catalog_summarize instead: it summarizes as much as it can and says how much it read.',
+    'Skip the preview and fall back to platform__object_read when:',
     '- content-type is outside {image/*, application/pdf, application/msword,',
     '  application/vnd.openxmlformats-officedocument.*, text/*,',
     '  application/json, application/x-yaml}',
@@ -113,7 +118,7 @@ const PreviewSchema = S.Struct({
   ].join(' '),
 })
 
-const parseS3Uri = (s3_uri: string): Eff.Effect.Effect<S3ObjectLocation, Error> =>
+export const parseS3Uri = (s3_uri: string): Eff.Effect.Effect<S3ObjectLocation, Error> =>
   Eff.Effect.try({
     try: () => {
       if (!s3paths.isS3Url(s3_uri)) {
@@ -220,7 +225,10 @@ const getObject = (handle: S3ObjectLocation) =>
           Document: ({ format }) =>
             size > THRESHOLD
               ? Eff.Effect.succeed([
-                  Content.text('Object is too large to include its contents directly'),
+                  Content.text(
+                    `Object is too large to include its contents directly (over ${THRESHOLD / 1024} KiB).`,
+                    'Use catalog_summarize to summarize it instead.',
+                  ),
                 ])
               : getDocumentPreview(handle, format),
           Unidentified: () =>
@@ -364,7 +372,7 @@ function isText(name: string) {
   return langPairs.some(([, re]) => re.test(normalized))
 }
 
-type FileType = Eff.Data.TaggedEnum<{
+export type FileType = Eff.Data.TaggedEnum<{
   Image: {}
   Document: {
     readonly format: Content.DocumentFormat
@@ -373,9 +381,9 @@ type FileType = Eff.Data.TaggedEnum<{
 }>
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-const FileType = Eff.Data.taggedEnum<FileType>()
+export const FileType = Eff.Data.taggedEnum<FileType>()
 
-const detectFileType = (key: string): FileType => {
+export const detectFileType = (key: string): FileType => {
   const ext = extname(key).toLowerCase()
 
   if (SUPPORTED_IMAGE_EXTENSIONS.includes(ext)) {
