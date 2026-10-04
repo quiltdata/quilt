@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator: the panel's header menu opens below its button instead of covering it and the close button ([#5402](https://github.com/quiltdata/quilt/pull/5402))
 - [Added] Qurator can summarize PDFs and Office files up to 4 MiB and the first 2 MiB of text or CSV files, past the 500 KiB preview limit, and says how much of each it read ([#5404](https://github.com/quiltdata/quilt/pull/5404))
 - [Changed] Qurator: the model picker sits in the Ask Qurator box with Heavy, Medium and Light labels, and the panel's header shows one aligned menu and close button ([#5394](https://github.com/quiltdata/quilt/pull/5394))
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
