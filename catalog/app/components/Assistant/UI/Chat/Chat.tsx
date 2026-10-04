@@ -484,7 +484,14 @@ export function Menu({
       >
         <M.Icon>menu</M.Icon>
       </M.IconButton>
-      <M.Menu anchorEl={menuOpen} open={!!menuOpen} onClose={closeMenu}>
+      <M.Menu
+        anchorEl={menuOpen}
+        open={!!menuOpen}
+        onClose={closeMenu}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>

@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom'
 
 import * as routes from 'constants/routes'
 import * as Nav from 'utils/Navigation'
+import * as s3paths from 'utils/s3paths'
 
 export interface RouteMap {
   bucketDir: routes.BucketDirArgs
@@ -56,7 +57,7 @@ const S3PathFromString = (S3PathSchema: typeof S3Path) =>
   S.transform(S.String, S3PathSchema, {
     encode: mapSegments(PATH_SEP, encodeURIComponent),
     strict: true,
-    decode: mapSegments(PATH_SEP, decodeURIComponent),
+    decode: s3paths.decodeRouteParam,
   })
 
 export const s3Object = Nav.makeRoute({

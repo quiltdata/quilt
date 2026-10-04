@@ -185,7 +185,7 @@ export default function Dir() {
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search, true)
-  const path = s3paths.decode(encodedPath)
+  const path = s3paths.decodeRouteParam(encodedPath)
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
