@@ -1287,7 +1287,7 @@ export default function PackageTreeWrapper() {
   invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
 
-  const path = s3paths.decode(encodedPath)
+  const path = s3paths.decodeRouteParam(encodedPath)
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(location.search, true)
   return (
