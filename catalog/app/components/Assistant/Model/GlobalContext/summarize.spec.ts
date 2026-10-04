@@ -151,6 +151,18 @@ describe('components/Assistant/Model/GlobalContext/summarize', () => {
     expect(resultText(r)).not.toContain('<document-summary>')
   })
 
+  it('keeps a part cut off at the token limit marked in the combined summary', async () => {
+    const line = 'z'.repeat(1023) + '\n'
+    const txt = enc.encode(line.repeat((CHUNK_BYTES / 1024) * 2))
+    const s3 = stubS3(txt.length, txt)
+    const llm = stubLLM(() => Eff.Effect.succeed('s'), 'max_tokens')
+    const r = await run('notes.txt', s3.layer, llm.layer)
+    expect(llm.prompts).toHaveLength(3)
+    expect(resultText(r)).toContain(
+      '(some part summaries were cut off at the length limit)',
+    )
+  })
+
   it('reads nothing for an empty document or an unsupported type', async () => {
     const llm = stubLLM(() => Eff.Effect.succeed('never'))
     const empty = stubS3(0)

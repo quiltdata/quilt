@@ -31,6 +31,8 @@ const lock = Eff.Effect.unsafeMakeSemaphore(1)
 
 const TEXT_FORMATS: ReadonlySet<Content.DocumentFormat> = new Set(['txt', 'md', 'csv'])
 
+const CUT_OFF = '(summary cut off at the length limit)'
+
 const TOO_LONG = /too long|too many (input )?tokens|context (length|window)/i
 
 const SYSTEM = [
@@ -103,7 +105,7 @@ const ask = (blocks: Eff.Array.NonEmptyArray<Content.PromptMessageContentBlock>)
         .join('\n')
         .trim()
       if (text && backendResponse.stopReason === 'max_tokens') {
-        return Eff.Effect.succeed(`${text}\n(summary cut off at the length limit)`)
+        return Eff.Effect.succeed(`${text}\n${CUT_OFF}`)
       }
       return text
         ? Eff.Effect.succeed(text)
@@ -165,6 +167,10 @@ const summarizeDocument = (
     if (Eff.Either.isLeft(objE)) return readError(objE.left)
     const body = objE.right.Body
     if (!body) return readError('Could not get object contents')
+    // The object can be replaced between HeadObject and GetObject.
+    if (ArrayBuffer.isView(body) && body.byteLength > DOC_MAX_BYTES) {
+      return readError('The object grew past the size limit while it was being read')
+    }
     const summaryE = yield* Eff.Effect.either(
       ask([
         documentBlock(handle, format, body as $TSFixMe),
@@ -271,7 +277,13 @@ const summarizeText = (
                     focus,
                   ),
                 ),
-              ]),
+              ]).pipe(
+                Eff.Effect.map((s) =>
+                  summaries.some((p) => p.endsWith(CUT_OFF))
+                    ? `${s}\n(some part summaries were cut off at the length limit)`
+                    : s,
+                ),
+              ),
             ),
           ),
     )
