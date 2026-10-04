@@ -7,6 +7,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import { BaseError } from 'utils/error'
+import * as s3paths from 'utils/s3paths'
 
 import Redirect from './Redirect'
 import parsePackageUriSafe from './parsePackageUriSafe'
@@ -93,7 +94,7 @@ function Form({ initialValue, error }: FormProps) {
 export default function UriResolver() {
   const params = useParams<{ uri?: string }>()
 
-  const decoded = decodeURIComponent(params.uri || '')
+  const decoded = s3paths.decodeRouteParam(params.uri || '')
   const uri = React.useMemo(
     () => (decoded ? parsePackageUriSafe(decoded) : null),
     [decoded],

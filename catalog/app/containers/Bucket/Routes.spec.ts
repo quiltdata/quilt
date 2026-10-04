@@ -9,8 +9,12 @@ import { s3Object, s3Prefix } from './Routes'
 const roundTrip =
   (route: { paramsSchema: S.Schema<any, any> }) =>
   (path: string): string => {
-    const loc = S.encodeSync(route.paramsSchema)({ bucket: 'b', path } as any)
-    return (S.decodeSync(route.paramsSchema)(loc) as { path: string }).path
+    const loc = S.encodeSync(route.paramsSchema)({ bucket: 'b', path } as any) as {
+      pathname: string
+    }
+    // As history@4 does before the location reaches the route.
+    const decoded = { ...loc, pathname: decodeURI(loc.pathname) }
+    return (S.decodeSync(route.paramsSchema)(decoded) as { path: string }).path
   }
 
 const objectRoundTrip = roundTrip(s3Object)
@@ -45,15 +49,11 @@ describe('Bucket S3 routes: path encoding', () => {
     })
   })
 
-  // Known limitation: a literal `%` in a key is not round-trip-safe — the
-  // URL->params path decodes twice (path-to-regexp's matcher, then
-  // `S3PathFromString`) against a single encode. Asserted as the desired
-  // round-trip via `it.fails`, so it flips red if the seam is ever fixed.
-  it.fails('round-trips a literal "%" + hex key', () => {
+  it('round-trips a literal "%" + hex key', () => {
     expect(objectRoundTrip('a%41b.txt')).toBe('a%41b.txt')
   })
 
-  it.fails('round-trips a literal "%" + non-hex key', () => {
+  it('round-trips a literal "%" + non-hex key', () => {
     expect(objectRoundTrip('a%zz.txt')).toBe('a%zz.txt')
   })
 })

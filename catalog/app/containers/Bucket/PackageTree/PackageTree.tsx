@@ -28,6 +28,7 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import Log from 'utils/Logging'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import RouteRedirect from 'utils/RouteRedirect'
 import * as XML from 'utils/XML'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
@@ -689,7 +690,7 @@ function FileDisplayQuery({
       if (!file) {
         if (d.package?.revision?.dir) {
           return (
-            <RRDom.Redirect
+            <RouteRedirect
               to={urls.bucketPackageTree(
                 bucket,
                 name,
@@ -1287,7 +1288,7 @@ export default function PackageTreeWrapper() {
   invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
 
-  const path = s3paths.decode(encodedPath)
+  const path = s3paths.decodeRouteParam(encodedPath)
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(location.search, true)
   return (
