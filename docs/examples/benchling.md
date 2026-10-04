@@ -10,11 +10,11 @@ inside Benchling notebooks.
 
 The webhook works through a
 [Benchling App](https://docs.benchling.com/docs/getting-started-benchling-apps).
-A Benchling Administrator must install the app in your Organization, add it to
-the target Benchling Project, grant **Admin** for every permission required by
-this integration, and issue credentials only after permissions are final. The
-app must then be configured to call your stack's unique webhook (see
-Installation, below).
+A Benchling Administrator must install the app in the Benchling tenant and
+Organization, add it to every Benchling Project, grant **Admin** for every
+permission required by this integration, and issue credentials only after
+permissions are final. The app must then be configured to call your stack's
+unique webhook (see Installation, below).
 
 ## Availability
 
