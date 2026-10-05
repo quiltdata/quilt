@@ -215,6 +215,7 @@ export function useModelIdOverride() {
     React.useMemo(
       () => ({
         allowlist: governed?.allowlist ?? null,
+        names: governed?.names ?? {},
         readFailed: failed,
         current,
         select: setValue,
@@ -299,7 +300,14 @@ function useConstructAssistantAPI() {
   const onBusy = React.useCallback((b: boolean) => Eff.Effect.sync(() => setBusy(b)), [])
 
   const llm = React.useMemo(
-    () => Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken, onBusy }),
+    () =>
+      Relay.LLMRelay({
+        url: getInferenceUrl(),
+        modelId,
+        record,
+        getToken,
+        onBusy,
+      }),
     [modelId, record, getToken, onBusy],
   )
 

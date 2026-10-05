@@ -3,6 +3,10 @@ query {
     quratorModels {
       allowlist
       default
+      names {
+        id
+        name
+      }
     }
   }
 }
