@@ -215,6 +215,7 @@ export function useModelIdOverride() {
     React.useMemo(
       () => ({
         allowlist: governed?.allowlist ?? null,
+        names: governed?.names ?? {},
         readFailed: failed,
         current,
         select: setValue,
