@@ -1,12 +1,15 @@
 import json
 import logging
 import os
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 import boto3
 
 import quilt_shared.const
-from quilt_shared.athena import QueryRunner
+from quilt_shared.athena import AthenaQueryBaseException, QueryRunner
 from quilt_shared.iceberg_queries import QueryMaker
+from quilt_shared.iceberg_stack_queries import Manifest, Pointer, PointerKey, StackQueryMaker, registry_uri
 
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
@@ -37,19 +40,30 @@ def get_first_line(bucket, key) -> bytes | None:
         return None
 
 
+def decode_record(record) -> tuple[str, str]:
+    s3_event = json.loads(record["body"])["detail"]["s3"]
+    return s3_event["bucket"]["name"], s3_event["object"]["key"]
+
+
 def process_s3_event(event):
     assert len(event["Records"]) == 1, "Expected exactly one SQS message"
     (record,) = event["Records"]
-    event_body = json.loads(record["body"])
-    s3_event = event_body["detail"]["s3"]
-    bucket = s3_event["bucket"]["name"]
-    key = s3_event["object"]["key"]
-    return bucket, key
+    return decode_record(record)
+
+
+def parse_key(bucket, key) -> PointerKey | Manifest:
+    if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
+        pkg_name, pointer = key.removeprefix(quilt_shared.const.NAMED_PACKAGES_PREFIX).rsplit("/", 1)
+        return PointerKey(bucket, pkg_name, pointer)
+    if key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
+        return Manifest(bucket, key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX))
+    raise ValueError(f"Unexpected key prefix: {key}")
 
 
 def generate_queries(bucket, key, first_line):
-    if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
-        pkg_name, pointer_name = key.removeprefix(quilt_shared.const.NAMED_PACKAGES_PREFIX).rsplit("/", 1)
+    item = parse_key(bucket, key)
+    if isinstance(item, PointerKey):
+        pkg_name, pointer_name = item.pkg_name, item.pointer
         return (
             [
                 (
@@ -67,8 +81,8 @@ def generate_queries(bucket, key, first_line):
                 )(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name)
             ]
         )
-    elif key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
-        top_hash = key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX)
+    else:
+        top_hash = item.top_hash
         return (
             [
                 query_maker.package_manifest_add_single(bucket=bucket, top_hash=top_hash),
@@ -80,8 +94,6 @@ def generate_queries(bucket, key, first_line):
                 query_maker.package_entry_delete_single(bucket=bucket, top_hash=top_hash),
             ]
         )
-    else:
-        raise ValueError(f"Unexpected key prefix: {key}")
 
 
 def handler(event, context):
@@ -91,3 +103,88 @@ def handler(event, context):
     queries = generate_queries(bucket, key, first_line)
 
     query_runner.run_multiple_queries(queries)
+
+
+def _run(build, items, failed: set) -> list:
+    executions = []
+    for statement in build([i for i in items if i not in failed]):
+        try:
+            executions += query_runner.run_multiple_queries([statement.sql])
+        except AthenaQueryBaseException:
+            logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
+            # In turn: run together, they would race one another's commits.
+            for item in statement.items:
+                try:
+                    executions += query_runner.run_multiple_queries([s.sql for s in build([item])])
+                except AthenaQueryBaseException:
+                    logger.exception("Failed to write %s", item)
+                    failed.add(item)
+    return executions
+
+
+def _rows(execution_id: str) -> list[tuple]:
+    pages = athena.get_paginator("get_query_results").paginate(QueryExecutionId=execution_id)
+    rows = [tuple(d.get("VarCharValue") for d in r["Data"]) for page in pages for r in page["ResultSet"]["Rows"]]
+    return rows[1:]  # the first row names the columns
+
+
+def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
+    """The item an object's current state makes, and whether it is upserted rather than deleted."""
+    item = parse_key(bucket, key)
+    first_line = get_first_line(bucket, key)
+    if first_line and isinstance(item, PointerKey):
+        item = Pointer(*item, first_line.decode())
+    return item, bool(first_line)
+
+
+def set_handler(event, context):
+    logger.debug("Invoked with event: %s", event)
+    # Only the set's function is given the stack database, so it is not read at import.
+    maker = StackQueryMaker(database=os.environ["QUILT_STACK_DATABASE"], user_athena_db=QUILT_USER_ATHENA_DATABASE)
+
+    # An object is read as it now stands, so a batch's events for one key are one item.
+    keys: dict[tuple[str, str], list[str]] = {}
+    retry = set()
+    for record in event["Records"]:
+        try:
+            keys.setdefault(decode_record(record), []).append(record["messageId"])
+        except Exception:
+            logger.exception("Failed to decode message %s", record["messageId"])
+            retry.add(record["messageId"])
+    with ThreadPoolExecutor(max_workers=10) as pool:  # botocore's default connection pool size
+        reads = {key: pool.submit(_read, *key) for key in keys}
+
+    ids, groups = {}, defaultdict(list)
+    for key, read in reads.items():
+        try:
+            item, upsert = read.result()
+        except Exception:
+            logger.exception("Failed to read s3://%s/%s", *key)
+            retry.update(keys[key])
+            continue
+        ids[item] = keys[key]
+        # Not isnumeric(), which takes "²": the statements read a revision's name with int().
+        kind = "manifest" if isinstance(item, Manifest) else "revision" if item.pointer.isdecimal() else "tag"
+        groups[kind, upsert].append(item)
+
+    # An item that failed is left out of every later statement: a manifest's row marks its entries complete.
+    failed: set = set()
+    _run(maker.tag_delete, groups["tag", False], failed)
+    _run(maker.revision_delete, groups["revision", False], failed)
+    _run(maker.manifest_delete, groups["manifest", False], failed)
+    _run(maker.entry_delete, groups["manifest", False], failed)
+    _run(maker.entry_upsert, groups["manifest", True], failed)
+    _run(maker.manifest_upsert, groups["manifest", True], failed)
+    pointers = groups["tag", True] + groups["revision", True]
+    executions = _run(maker.manifests_present, [Manifest(p.bucket, p.top_hash) for p in pointers], set())
+    present = {row for execution in executions for row in _rows(execution["QueryExecutionId"])}
+    failed.update(p for p in pointers if (registry_uri(p.bucket), p.top_hash) not in present)
+    _run(maker.tag_upsert, groups["tag", True], failed)
+    _run(maker.revision_upsert, groups["revision", True], failed)
+
+    retry.update(message_id for item in failed for message_id in ids[item])
+    return {
+        "batchItemFailures": [
+            {"itemIdentifier": record["messageId"]} for record in event["Records"] if record["messageId"] in retry
+        ]
+    }
