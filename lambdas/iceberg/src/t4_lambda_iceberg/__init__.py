@@ -3,6 +3,7 @@ import logging
 import os
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import boto3
 
@@ -105,16 +106,16 @@ def handler(event, context):
     query_runner.run_multiple_queries(queries)
 
 
-def _run(build, items, failed: set):
+def _run(runner: QueryRunner, build, items, failed: set):
     for statement in build([i for i in items if i not in failed]):
         try:
-            query_runner.run_multiple_queries([statement.sql])
+            runner.run_multiple_queries([statement.sql])
         except AthenaQueryBaseException:
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
             # In turn: run together, they would race one another's commits.
             for item in statement.items:
                 try:
-                    query_runner.run_multiple_queries([s.sql for s in build([item])])
+                    runner.run_multiple_queries([s.sql for s in build([item])])
                 except AthenaQueryBaseException:
                     logger.exception("Failed to write %s", item)
                     failed.add(item)
@@ -132,7 +133,12 @@ def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]
 def set_handler(event, context):
     logger.debug("Invoked with event: %s", event)
     # Only the set's function is given the stack database, so it is not read at import.
-    maker = StackQueryMaker(database=os.environ["QUILT_STACK_DATABASE"], user_athena_db=QUILT_USER_ATHENA_DATABASE)
+    database = os.environ["QUILT_STACK_DATABASE"]
+    maker = StackQueryMaker(database=database, user_athena_db=QUILT_USER_ATHENA_DATABASE)
+    # The set's role cannot reach the Iceberg database, so its queries run in the stack database.
+    run = partial(
+        _run, QueryRunner(logger=logger, athena=athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP)
+    )
 
     # An object is read as it now stands, so a batch's events for one key are one item.
     keys: dict[tuple[str, str], list[str]] = {}
@@ -161,14 +167,14 @@ def set_handler(event, context):
 
     # An item that failed is left out of every later statement: a manifest's row marks its entries complete.
     failed: set = set()
-    _run(maker.tag_delete, groups["tag", False], failed)
-    _run(maker.revision_delete, groups["revision", False], failed)
-    _run(maker.manifest_delete, groups["manifest", False], failed)
-    _run(maker.entry_delete, groups["manifest", False], failed)
-    _run(maker.entry_upsert, groups["manifest", True], failed)
-    _run(maker.manifest_upsert, groups["manifest", True], failed)
-    _run(maker.tag_upsert, groups["tag", True], failed)
-    _run(maker.revision_upsert, groups["revision", True], failed)
+    run(maker.tag_delete, groups["tag", False], failed)
+    run(maker.revision_delete, groups["revision", False], failed)
+    run(maker.manifest_delete, groups["manifest", False], failed)
+    run(maker.entry_delete, groups["manifest", False], failed)
+    run(maker.entry_upsert, groups["manifest", True], failed)
+    run(maker.manifest_upsert, groups["manifest", True], failed)
+    run(maker.tag_upsert, groups["tag", True], failed)
+    run(maker.revision_upsert, groups["revision", True], failed)
 
     retry.update(message_id for item in failed for message_id in ids[item])
     return {

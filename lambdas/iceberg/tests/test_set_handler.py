@@ -48,26 +48,33 @@ def holdings(con) -> dict[str, set]:
 
 
 class Athena:
-    """Athena's API, running each query on DuckDB as it starts."""
+    """Athena's API as the set's role sees it, running each query on DuckDB as it starts.
+
+    The role reaches the stack database alone, so a query run in any other database fails.
+    """
 
     def __init__(self, con):
         self.con = con
         self.fails = lambda sql: False
-        self.succeeded = {}
+        self.reasons = {}  # a failed execution's reason
         self.held = []  # the set's holdings after each query
 
-    def start_query_execution(self, *, QueryString, **kwargs):
-        execution_id = str(len(self.succeeded))
-        self.succeeded[execution_id] = not self.fails(QueryString)
-        if self.succeeded[execution_id]:
+    def start_query_execution(self, *, QueryString, QueryExecutionContext, **kwargs):
+        execution_id = str(len(self.reasons))
+        self.reasons[execution_id] = None
+        if QueryExecutionContext["Database"] != STACK_DB:
+            self.reasons[execution_id] = "AccessDeniedException: no access to the database"
+        elif self.fails(QueryString):
+            self.reasons[execution_id] = "HIVE_BAD_DATA: unreadable manifest"
+        else:
             self.con.execute(QueryString)
             self.held.append(holdings(self.con))
         return {"QueryExecutionId": execution_id}
 
     def get_query_execution(self, *, QueryExecutionId):
         status = {"State": "SUCCEEDED"}
-        if not self.succeeded[QueryExecutionId]:
-            status = {"State": "FAILED", "StateChangeReason": "HIVE_BAD_DATA: unreadable manifest"}
+        if reason := self.reasons[QueryExecutionId]:
+            status = {"State": "FAILED", "StateChangeReason": reason}
         return {"QueryExecution": {"QueryExecutionId": QueryExecutionId, "Status": status}}
 
 
