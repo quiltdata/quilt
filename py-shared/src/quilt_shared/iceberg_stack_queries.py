@@ -335,10 +335,10 @@ class StackQueryMaker:
         target = f"t.registry = {registry}"
         # Both read the same manifests, those written before the fill was built, so one written between them gets
         # neither its entries nor its row here: its own event writes both.
-        cutoff = int(time.time() if written_before is None else written_before)
+        cutoff = time.time() if written_before is None else written_before
         manifest_files = (
             f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
-            f""" AND "$file_modified_time" < from_unixtime({cutoff})"""
+            f""" AND "$file_modified_time" < from_unixtime({cutoff!r})"""
         )
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+$', 1)"""
