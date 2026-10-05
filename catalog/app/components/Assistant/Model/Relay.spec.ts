@@ -308,10 +308,12 @@ describe('Relay', () => {
     const spy = sequence(...failures, () => new Response(okBody('ok'), { status: 200 }))
     await clocked(() =>
       Eff.Effect.gen(function* () {
-        yield* advance(waits[0])
-        expect(spy).toHaveBeenCalledTimes(2)
-        yield* advance(waits[1])
-        expect(spy).toHaveBeenCalledTimes(3)
+        for (const [i, wait] of waits.entries()) {
+          yield* advance(Eff.Duration.decode(wait).pipe(Eff.Duration.subtract(1)))
+          expect(spy).toHaveBeenCalledTimes(i + 1)
+          yield* advance('1 millis')
+          expect(spy).toHaveBeenCalledTimes(i + 2)
+        }
       }),
     )
   })

@@ -198,7 +198,7 @@ const classifyFailure = (r: Response, body: string): Failure => {
       Eff.Duration.seconds(hint ?? BUSY_RETRY_AFTER_S),
     )
   }
-  // A misconfigured gateway, which no retry fixes.
+  // The gateway's endpoint or credential is unusable, which a retry seldom fixes.
   if (parsed.error_code === 'NotAvailable' && typeof msg === 'string') {
     return new Failure(msg, 'never')
   }
