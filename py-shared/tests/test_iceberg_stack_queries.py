@@ -265,13 +265,17 @@ def test_tag_upsert_moves_a_moved_tag_and_writes_nothing_for_an_unmoved_one(qm, 
 
 
 @pytest.mark.parametrize(
-    "builder, table, pointer",
-    [("tag_upsert", "package_tag", "latest"), ("revision_upsert", "package_revision", "100")],
+    "builder, table, first, last",
+    [
+        ("tag_upsert", "package_tag", "latest", "latest"),
+        ("revision_upsert", "package_revision", "100", "100"),
+        ("revision_upsert", "package_revision", "0100", "100"),  # one timestamp, spelled twice
+    ],
 )
-def test_a_pointer_given_twice_in_a_batch_is_written_once_as_the_last_one(qm, con, builder, table, pointer):
+def test_a_pointer_given_twice_in_a_batch_is_written_once_as_the_last_one(qm, con, builder, table, first, last):
     insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"), ("s3://b1", h(2), "", "{}"))
 
-    run(con, getattr(qm, builder)([Pointer("b1", "u/p", pointer, h(1)), Pointer("b1", "u/p", pointer, h(2))]))
+    run(con, getattr(qm, builder)([Pointer("b1", "u/p", first, h(1)), Pointer("b1", "u/p", last, h(2))]))
 
     assert rows(con, table, "pkg_name", "top_hash") == [("u/p", h(2))]
 
@@ -354,6 +358,17 @@ def test_fill_copies_a_bucket_and_skips_pointers_whose_manifest_is_absent(qm, co
         ("s3://b1", "u/p", ts(200), h(2)),
     ]
     assert rows(con, "package_tag") == [("s3://b1", "u/p", "latest", h(2))]
+
+
+def test_fill_skips_an_object_under_the_manifests_prefix_that_is_not_a_manifest(qm, con):
+    push_manifest(con, "b1", h(1))
+    push_manifest(con, "b1", f"sub/{h(1)}", keys=("other.txt",))
+    push_manifest(con, "b1", f"{h(2)}.parquet")
+
+    run(con, qm.fill("b1"))
+
+    assert rows(con, "package_entry") == [entry("b1", h(1))]
+    assert rows(con, "package_manifest", "registry", "top_hash", "message") == [("s3://b1", h(1), f"msg {h(1)}")]
 
 
 def test_fill_writes_entries_then_manifests_then_revisions_then_tags(qm, con):

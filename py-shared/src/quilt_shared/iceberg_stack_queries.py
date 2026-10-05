@@ -76,16 +76,20 @@ _POINTERS: dict[str, tuple[str, T.Callable[[str], str]]] = {
 }
 
 
-# A manifest's name, as the fill filters files: any other object under the manifests prefix is not one.
-_TOP_HASH = re.compile("[a-z0-9]{64}")
+# A manifest's name under the manifests prefix, in the batch and the fill alike: any other object there is not one.
+_TOP_HASH = "[a-z0-9]{64}"
 
 
 def _named(manifests: T.Iterable[Manifest]) -> list[Manifest]:
-    return [m for m in manifests if _TOP_HASH.fullmatch(m.top_hash)]
+    return [m for m in manifests if re.fullmatch(_TOP_HASH, m.top_hash)]
+
+
+def _manifests_prefix(bucket: str) -> str:
+    return f"{registry_uri(bucket)}/{const.MANIFESTS_PREFIX}"
 
 
 def _manifest_uri(manifest: Manifest) -> str:
-    return f"{registry_uri(manifest.bucket)}/{const.MANIFESTS_PREFIX}{manifest.top_hash}"
+    return _manifests_prefix(manifest.bucket) + manifest.top_hash
 
 
 def _group(items: T.Iterable) -> dict[str, list]:
@@ -277,7 +281,7 @@ class StackQueryMaker:
             )
 
         # One source row per pointer, the batch's last, or the MERGE would write or match it twice.
-        latest = {(p.bucket, p.pkg_name, p.pointer): p for p in pointers}
+        latest = {(p.bucket, p.pkg_name, value(p.pointer)): p for p in pointers}
         return _statements(table, latest.values(), render)
 
     def _delete_pointers(self, table: str, pointers: T.Iterable[PointerKey]) -> list[Statement]:
@@ -347,8 +351,7 @@ class StackQueryMaker:
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
         present = self._present(f"registry = {registry}")
-        # filter out bogus manifests i.e. parquet files
-        manifest_files = """regexp_like("$path", '/[a-z0-9]{64}$')"""
+        manifest_files = f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
         packages = self._source(bucket, "packages")
