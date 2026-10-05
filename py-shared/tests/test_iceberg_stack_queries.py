@@ -29,7 +29,7 @@ def con():
     """The set's tables beside the user Athena database's tables over each bucket's manifests and pointers."""
     con = duckdb.connect()
     # Athena's spelling of what DuckDB names otherwise.
-    con.execute("CREATE MACRO from_unixtime(x) AS make_timestamp(CAST(CAST(x AS DOUBLE) * 1000000 AS BIGINT))")
+    con.execute("CREATE MACRO from_unixtime(x) AS make_timestamp(CAST(x AS BIGINT) * 1000000)")
     con.execute("CREATE MACRO regexp_like(s, p) AS regexp_matches(s, p)")
     con.execute(f"CREATE SCHEMA {DB}")
     con.execute(f"CREATE SCHEMA {USER_DB}")
@@ -39,7 +39,7 @@ def con():
         con.execute(
             f'CREATE TABLE "{USER_DB}"."{bucket}_manifests" ("$path" VARCHAR, logical_key VARCHAR,'
             " physical_keys VARCHAR[], hash STRUCT(type VARCHAR, value VARCHAR), size BIGINT, meta VARCHAR,"
-            ' message VARCHAR, user_meta VARCHAR, "$file_modified_time" TIMESTAMP)'
+            " message VARCHAR, user_meta VARCHAR)"
         )
         con.execute(f'CREATE TABLE "{USER_DB}"."{bucket}_packages" ("$path" VARCHAR, top_hash VARCHAR)')
     return con
@@ -49,16 +49,16 @@ def h(n: int) -> str:
     return f"{n:064x}"
 
 
-def push_manifest(con, bucket: str, top_hash: str, keys=("a.txt",), written: float = 1_000):
+def push_manifest(con, bucket: str, top_hash: str, keys=("a.txt",)):
     path = f"s3://{bucket}/.quilt/packages/{top_hash}"
     con.execute(
-        f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, NULL, NULL, NULL, NULL, NULL, ?, ?, ?)',
-        [path, f"msg {top_hash}", '{"k": 1}', ts(written)],
+        f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, NULL, NULL, NULL, NULL, NULL, ?, ?)',
+        [path, f"msg {top_hash}", '{"k": 1}'],
     )
     for key in keys:
         con.execute(
-            f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, ?, ?, ?, 7, ?, NULL, NULL, ?)',
-            [path, key, [f"s3://{bucket}/{key}?versionId=v"], {"type": "SHA256", "value": "x"}, "{}", ts(written)],
+            f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, ?, ?, ?, 7, ?, NULL, NULL)',
+            [path, key, [f"s3://{bucket}/{key}?versionId=v"], {"type": "SHA256", "value": "x"}, "{}"],
         )
 
 
@@ -359,17 +359,17 @@ def test_fill_skips_an_object_under_the_pointers_prefix_that_names_no_package(qm
     assert rows(con, "package_revision") == []
 
 
-def test_fill_reads_only_manifests_from_before_the_second_it_was_built_in(qm, con):
-    push_manifest(con, "b1", h(1), written=199)
-    push_manifest(con, "b1", h(2), written=200)  # S3's whole second for one written just before or after the build
-    entries, manifests, *_ = qm.fill("b1", written_before=200.5)
+def test_fill_writes_a_manifest_row_only_with_its_entries_in_the_set_or_none_to_write(qm, con):
+    push_manifest(con, "b1", h(1))
+    entries, manifests, *_ = qm.fill("b1")
 
     run(con, [entries])
-    push_manifest(con, "b1", h(3), written=300)  # between the fill's two reads
+    push_manifest(con, "b1", h(2))  # between the fill's two reads
+    push_manifest(con, "b1", h(3), keys=())  # likewise, a package of no entries
     run(con, [manifests])
 
     assert rows(con, "package_entry", "top_hash") == [(h(1),)]
-    assert rows(con, "package_manifest", "top_hash") == [(h(1),)]
+    assert rows(con, "package_manifest", "top_hash") == [(h(1),), (h(3),)]
 
 
 def test_fill_writes_a_bucket_entries_before_its_manifests(qm, con):

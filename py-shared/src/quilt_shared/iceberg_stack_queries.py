@@ -1,6 +1,5 @@
 import math
 import re
-import time
 import typing as T
 
 from . import const
@@ -328,19 +327,26 @@ class StackQueryMaker:
     def entry_delete(self, manifests: T.Iterable[Manifest]) -> list[Statement]:
         return self._delete_manifests("package_entry", manifests)
 
-    def fill(self, bucket: str, *, written_before: float | None = None) -> list[str]:
+    def fill(self, bucket: str) -> list[str]:
         """Inserts what the set lacks of a bucket's packages and updates the pointers that moved; run the first
         statement, its entries, before the second, its manifests."""
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
-        # Both read the same manifests, so one written between them gets neither its entries nor its row here: its
-        # event, or the next fill, writes both. S3 reports modification times in whole seconds, so the cutoff is
-        # the start of the second the fill was built in, which no manifest written after the build precedes.
-        cutoff = int(time.time() if written_before is None else written_before)
-        manifest_files = (
-            f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
-            f""" AND "$file_modified_time" < from_unixtime({cutoff})"""
-        )
+        prefix = _manifests_prefix(bucket)
+        manifest_files = f"""regexp_like(substr("$path", {len(prefix) + 1}), '^{_TOP_HASH}$')"""
+        # The manifests' read can find one the entries' read did not, so a row is written only for a manifest whose
+        # entries are in the set, or that has none.
+        manifests = f"""
+            SELECT m.registry, m.top_hash, m.message, m.metadata
+            FROM ({self._manifests_from(bucket, manifest_files)}) AS m
+            WHERE EXISTS (
+                SELECT 1 FROM {self._table("package_entry")} AS e
+                WHERE e.registry = m.registry AND e.top_hash = m.top_hash
+            ) OR NOT EXISTS (
+                SELECT 1 FROM {self._source(bucket, "manifests")} AS x
+                WHERE x.logical_key IS NOT NULL AND x."$path" = {_str(prefix)} || m.top_hash
+            )
+        """
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+$', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
@@ -365,7 +371,7 @@ class StackQueryMaker:
         ) AS v"""
         return [
             self._merge_entries(self._entries_from(bucket, manifest_files), target),
-            self._merge_manifests(self._manifests_from(bucket, manifest_files), target),
+            self._merge_manifests(manifests, target),
             self._merge_pointers("package_revision", revisions, target),
             self._merge_pointers("package_tag", tags, target),
         ]
