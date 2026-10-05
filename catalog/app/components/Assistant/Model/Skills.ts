@@ -8,6 +8,7 @@ import cfg from 'constants/config'
 import type { PackageContentsFlatMap } from 'model'
 import * as AWS from 'utils/AWS'
 import * as GQL from 'utils/GraphQL'
+import log from 'utils/Logging'
 import * as PackageUri from 'utils/PackageUri'
 import * as s3paths from 'utils/s3paths'
 
@@ -169,6 +170,14 @@ export function useSkills() {
     error: () => null,
   })
 
+  const unavailable = !!source && !query.fetching && !entries
+  React.useEffect(() => {
+    if (unavailable)
+      log.warn(
+        `Qurator skills: can't read ${cfg.quratorSkills} (missing, not readable, or over 1000 entries)`,
+      )
+  }, [unavailable])
+
   const [all, setAll] = React.useState<readonly Skill[]>([])
   React.useEffect(() => {
     if (!entries) return
@@ -190,7 +199,8 @@ export function useSkills() {
             runClass: classify(meta, files),
             dir,
           }
-        } catch {
+        } catch (e) {
+          log.warn(`Qurator skills: skipped ${dir}${SKILL_FILE}`, e)
           return null
         }
       }),
