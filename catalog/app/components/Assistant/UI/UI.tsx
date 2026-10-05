@@ -308,6 +308,7 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
             connectors={api.connectors}
             instructions={api.instructions}
             model={api.model}
+            busy={api.busy}
             onClose={api.hide}
           />
         ) : (

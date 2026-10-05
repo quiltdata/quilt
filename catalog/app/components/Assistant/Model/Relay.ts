@@ -59,6 +59,8 @@ export interface RelayOptions {
    */
   getToken: () => Eff.Effect.Effect<string | null>
   record?: (r: string) => Eff.Effect.Effect<void>
+  /** Told `true` while a request waits out a Busy answer, `false` once it ends. */
+  onBusy?: (busy: boolean) => Eff.Effect.Effect<void>
 }
 
 type Bytes = Buffer | Uint8Array | Blob | ArrayBuffer | string
@@ -263,15 +265,20 @@ export function LLMRelay(options: RelayOptions) {
                   ),
           }),
         )
+        const onBusy = options.onBusy ?? (() => Eff.Effect.void)
         const backendResponse = yield* attempt.pipe(
           Eff.Effect.retry({
             schedule: TRANSIENT_SCHEDULE,
             while: (e) => e.retry === 'transient',
           }),
+          Eff.Effect.tapError((e) =>
+            e.retry === 'busy' ? onBusy(true) : Eff.Effect.void,
+          ),
           Eff.Effect.retry({
             schedule: BUSY_SCHEDULE,
             while: (e) => e.retry === 'busy',
           }),
+          Eff.Effect.ensuring(onBusy(false)),
           Eff.Effect.mapError((e) => new LLM.LLMError({ message: e.message })),
         )
 

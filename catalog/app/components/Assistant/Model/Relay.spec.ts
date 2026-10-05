@@ -204,6 +204,38 @@ describe('Relay', () => {
       ])
     })
 
+    it('reports the wait while it lasts, then clears it', async () => {
+      sequence(busy, () => new Response(okBody('queued'), { status: 200 }))
+      const seen: boolean[] = []
+      const onBusy = (b: boolean) => Eff.Effect.sync(() => seen.push(b))
+      await clocked(
+        (fiber) =>
+          Eff.Effect.gen(function* () {
+            expect(seen).toEqual([true])
+            yield* advance('10 seconds')
+            return yield* Eff.Fiber.join(fiber)
+          }),
+        { onBusy },
+      )
+      expect(seen).toEqual([true, false])
+    })
+
+    it('clears the wait when it gives up', async () => {
+      sequence(busy)
+      const seen: boolean[] = []
+      const onBusy = (b: boolean) => Eff.Effect.sync(() => seen.push(b))
+      await clocked(
+        (fiber) =>
+          Eff.Effect.gen(function* () {
+            yield* advance('70 seconds')
+            return yield* failureOf(fiber)
+          }),
+        { onBusy },
+      )
+      expect(seen.at(0)).toBe(true)
+      expect(seen.at(-1)).toBe(false)
+    })
+
     it('waits a readable Retry-After', async () => {
       const spy = sequence(
         () => busy({ 'retry-after': '3' }),
