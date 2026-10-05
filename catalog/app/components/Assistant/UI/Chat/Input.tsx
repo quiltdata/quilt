@@ -186,6 +186,15 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
 }
 
 const useSkillsStyles = M.makeStyles((t) => ({
+  // Below sm the text field would shrink to a few characters beside both menus.
+  wideOnly: {
+    [t.breakpoints.down('xs')]: { display: 'none' },
+  },
+  narrowOnly: {
+    fontSize: 16,
+    marginRight: t.spacing(0.5),
+    [t.breakpoints.up('sm')]: { display: 'none' },
+  },
   item: {
     alignItems: 'flex-start',
     maxWidth: t.spacing(48),
@@ -247,9 +256,17 @@ export function SkillsMenu({ skills, disabled }: SkillsMenuProps) {
         disabled={disabled}
         onClick={(e) => setAnchor(e.currentTarget)}
         size="small"
-        endIcon={<M.Icon fontSize="small">expand_more</M.Icon>}
+        endIcon={
+          <M.Icon className={classes.wideOnly} fontSize="small">
+            expand_more
+          </M.Icon>
+        }
       >
-        <span className={pickerClasses.label}>Skills {on}</span>
+        <M.Icon className={classes.narrowOnly}>extension</M.Icon>
+        <span className={pickerClasses.label}>
+          <span className={classes.wideOnly}>Skills </span>
+          {on}
+        </span>
       </M.Button>
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu
