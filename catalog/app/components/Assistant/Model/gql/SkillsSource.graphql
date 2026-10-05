@@ -1,0 +1,8 @@
+query ($bucket: String!, $name: String!, $hash: String!) {
+  package(bucket: $bucket, name: $name) {
+    revision(hashOrTag: $hash) {
+      hash
+      contentsFlatMap(max: 1000)
+    }
+  }
+}
