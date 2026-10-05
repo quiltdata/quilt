@@ -146,9 +146,9 @@ def _statements(
 
 
 class StackQueryMaker:
-    """Run a batch's entry upserts before its manifest upserts, and leave out of those any manifest whose
-    entries' statement failed: readers take a manifest's row to mean its entries are complete. A batch holds
-    each key once, upserted or deleted as its object now stands.
+    """Run a batch's entry upserts before its manifest upserts, leaving out any manifest whose entries'
+    statement failed, and its manifest deletes before its entry deletes: readers take a manifest's row to mean
+    its entries are complete. A batch holds each key once, upserted or deleted as its object now stands.
     """
 
     def __init__(self, *, database: str, user_athena_db: str):
