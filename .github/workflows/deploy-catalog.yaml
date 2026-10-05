@@ -13,6 +13,13 @@ on:
       - 'catalog/**'
       - 'shared/**'
 
+env:
+  # Deployment pins master's and dev's builds by bare sha; a build from any other
+  # ref is prefixed so it can neither pass for nor overwrite one of theirs.
+  IMAGE_TAG: >-
+    ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
+    && github.sha || format('dev-{0}', github.sha) }}
+
 jobs:
   deploy-catalog-ecr:
     runs-on: ubuntu-latest
@@ -61,7 +68,6 @@ jobs:
           ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
           ECR_REPOSITORY: quiltdata/catalog
           ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
-          IMAGE_TAG: ${{ github.sha }}
           PUSH_MP: ${{ github.ref == 'refs/heads/master' }}
         run: |
           tags=(

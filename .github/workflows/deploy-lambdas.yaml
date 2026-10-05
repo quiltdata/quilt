@@ -12,6 +12,13 @@ on:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
 
+env:
+  # Deployment pins master's and dev's builds by bare sha; a build from any other
+  # ref is prefixed so it can neither pass for nor overwrite one of theirs.
+  ARTIFACT_TAG: >-
+    ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
+    && github.sha || format('dev-{0}', github.sha) }}
+
 jobs:
   deploy-lambda-s3:
     strategy:
@@ -54,7 +61,7 @@ jobs:
           aws-region: us-east-1
       - name: Upload zips to Prod S3
         run: |
-          s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
+          s3_key="${{ matrix.path }}/$ARTIFACT_TAG.zip"
           ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
       - name: Configure AWS credentials from GovCloud account
         uses: aws-actions/configure-aws-credentials@v6
@@ -63,7 +70,7 @@ jobs:
           aws-region: us-gov-east-1
       - name: Upload zips to GovCloud S3
         run: |
-          s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
+          s3_key="${{ matrix.path }}/$ARTIFACT_TAG.zip"
           ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
 
   deploy-lambda-ecr:
@@ -83,18 +90,18 @@ jobs:
       - uses: actions/checkout@v7
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
-        run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .
+        run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:$ARTIFACT_TAG" -f Dockerfile .
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
           aws-region: us-east-1
       - name: Push Docker image to Prod ECR
-        run: ./lambdas/scripts/upload_ecr.sh 730278974607 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
+        run: ./lambdas/scripts/upload_ecr.sh 730278974607 "quiltdata/lambdas/${{ matrix.path }}:$ARTIFACT_TAG"
       - name: Configure AWS credentials from GovCloud account
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
       - name: Push Docker image to GovCloud ECR
-        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
+        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:$ARTIFACT_TAG"
