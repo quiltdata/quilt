@@ -239,18 +239,21 @@ class StackQueryMaker:
 
     def _merge_pointers(self, table: str, rows: str, present: str, target: str) -> str:
         column, _ = _POINTERS[table]
-        # A tag is the one pointer that moves; a revision never changes once written.
+        # Only tags are updated in place: Athena writes an update as a positional delete beside a new row.
         moves = (
             "WHEN MATCHED AND t.top_hash IS DISTINCT FROM s.top_hash THEN UPDATE SET top_hash = s.top_hash"
             if table == "package_tag"
             else ""
         )
+        # One source row per pointer, of those whose manifest is present, or the MERGE would write or match it
+        # twice: two names can spell one timestamp (`0100`, `100`).
         return f"""
         MERGE INTO {self._table(table)} AS t
         USING (
-            SELECT v.registry, v.pkg_name, v.{column}, v.top_hash
+            SELECT v.registry, v.pkg_name, v.{column}, max(v.top_hash) AS top_hash
             FROM {rows}
             JOIN ({present}) AS m ON m.registry = v.registry AND m.top_hash = v.top_hash
+            GROUP BY v.registry, v.pkg_name, v.{column}
         ) AS s
         ON t.registry = s.registry AND t.pkg_name = s.pkg_name AND t.{column} = s.{column} AND ({target})
         {moves}
@@ -281,9 +284,7 @@ class StackQueryMaker:
                 _where_in("t.", "pkg_name", groups),
             )
 
-        # One source row per pointer, the batch's last, or the MERGE would write or match it twice.
-        latest = {(p.bucket, p.pkg_name, value(p.pointer)): p for p in pointers}
-        return _statements(table, latest.values(), render)
+        return _statements(table, pointers, render)
 
     def _delete_pointers(self, table: str, pointers: T.Iterable[PointerKey]) -> list[Statement]:
         column, value = _POINTERS[table]
@@ -356,19 +357,14 @@ class StackQueryMaker:
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
         packages = self._source(bucket, "packages")
-        # One row per timestamp, should two pointer names spell it (`0100`, `100`).
         revisions = f"""(
-            SELECT registry, pkg_name, timestamp, max(top_hash) AS top_hash
-            FROM (
-                SELECT
-                    {registry} AS registry,
-                    {pkg_name} AS pkg_name,
-                    from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
-                    top_hash
-                FROM {packages}
-                WHERE TRY_CAST({pointer} AS bigint) IS NOT NULL
-            ) AS p
-            GROUP BY registry, pkg_name, timestamp
+            SELECT
+                {registry} AS registry,
+                {pkg_name} AS pkg_name,
+                from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
+                top_hash
+            FROM {packages}
+            WHERE TRY_CAST({pointer} AS bigint) IS NOT NULL
         ) AS v"""
         tags = f"""(
             SELECT

@@ -265,19 +265,22 @@ def test_tag_upsert_moves_a_moved_tag_and_writes_nothing_for_an_unmoved_one(qm, 
 
 
 @pytest.mark.parametrize(
-    "builder, table, first, last",
+    "manifests_in_set, written",
     [
-        ("tag_upsert", "package_tag", "latest", "latest"),
-        ("revision_upsert", "package_revision", "100", "100"),
-        ("revision_upsert", "package_revision", "0100", "100"),  # one timestamp, spelled twice
+        ((1, 2), 2),  # both present: the larger top hash, one row
+        ((1,), 1),  # only the smaller present: that one
     ],
 )
-def test_a_pointer_given_twice_in_a_batch_is_written_once_as_the_last_one(qm, con, builder, table, first, last):
-    insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"), ("s3://b1", h(2), "", "{}"))
+def test_revision_upsert_writes_one_row_for_a_timestamp_two_pointer_names_spell(qm, con, manifests_in_set, written):
+    for n in manifests_in_set:
+        insert(con, "package_manifest", ("s3://b1", h(n), "", "{}"))
+    batch = [Pointer("b1", "u/p", "0100", h(1)), Pointer("b1", "u/p", "100", h(2))]
 
-    run(con, getattr(qm, builder)([Pointer("b1", "u/p", first, h(1)), Pointer("b1", "u/p", last, h(2))]))
+    statements = qm.revision_upsert(batch)
+    run(con, statements)
 
-    assert rows(con, table, "pkg_name", "top_hash") == [("u/p", h(2))]
+    assert rows(con, "package_revision", "pkg_name", "timestamp", "top_hash") == [("u/p", ts(100), h(written))]
+    assert sorted(i for s in statements for i in s.items) == sorted(batch)
 
 
 def test_manifests_present_selects_the_given_manifests_the_set_holds(qm, con):
@@ -371,15 +374,22 @@ def test_fill_skips_an_object_under_the_manifests_prefix_that_is_not_a_manifest(
     assert rows(con, "package_manifest", "registry", "top_hash", "message") == [("s3://b1", h(1), f"msg {h(1)}")]
 
 
-def test_fill_writes_one_revision_for_a_timestamp_two_pointer_names_spell(qm, con):
-    push_manifest(con, "b1", h(1))
-    push_manifest(con, "b1", h(2))
+@pytest.mark.parametrize(
+    "manifests_in_bucket, written",
+    [
+        ((1, 2), 2),  # both present: the larger top hash, one row
+        ((1,), 1),  # only the smaller present: that one
+    ],
+)
+def test_fill_writes_one_revision_for_a_timestamp_two_pointer_names_spell(qm, con, manifests_in_bucket, written):
+    for n in manifests_in_bucket:
+        push_manifest(con, "b1", h(n))
     push_pointer(con, "b1", "u/p", "0100", h(1))
     push_pointer(con, "b1", "u/p", "100", h(2))
 
     run(con, qm.fill("b1"))
 
-    assert rows(con, "package_revision", "pkg_name", "timestamp") == [("u/p", ts(100))]
+    assert rows(con, "package_revision", "pkg_name", "timestamp", "top_hash") == [("u/p", ts(100), h(written))]
 
 
 def test_fill_writes_entries_then_manifests_then_revisions_then_tags(qm, con):
