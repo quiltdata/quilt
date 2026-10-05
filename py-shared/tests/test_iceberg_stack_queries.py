@@ -201,20 +201,12 @@ def test_manifest_upsert_inserts_only_absent_rows(qm, con):
     ]
 
 
-def test_revision_upsert_writes_only_revisions_whose_manifest_is_in_the_set(qm, con):
-    insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"), ("s3://b2", h(2), "", "{}"))
+def test_revision_upsert_writes_the_batch_revisions_across_buckets_whether_or_not_their_manifest_is_in_the_set(
+    qm, con
+):
+    insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"))
 
-    run(
-        con,
-        qm.revision_upsert(
-            [
-                Pointer("b1", "u/p", "100", h(1)),
-                Pointer("b1", "u/p", "200", h(2)),  # h(2) is in the set for b2 only
-                Pointer("b2", "u/q", "300", h(2)),
-                Pointer("b2", "u/q", "400", h(4)),
-            ]
-        ),
-    )
+    run(con, qm.revision_upsert([Pointer("b1", "u/p", "100", h(1)), Pointer("b2", "u/q", "300", h(2))]))
 
     assert rows(con, "package_revision") == [
         ("s3://b1", "u/p", ts(100), h(1)),
@@ -223,7 +215,6 @@ def test_revision_upsert_writes_only_revisions_whose_manifest_is_in_the_set(qm, 
 
 
 def test_revision_upsert_inserts_only_absent_rows(qm, con):
-    insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"), ("s3://b1", h(2), "", "{}"))
     insert(con, "package_revision", ("s3://b1", "u/p", ts(100), h(1)))
     batch = [Pointer("b1", "u/p", "100", h(2)), Pointer("b1", "u/p", "200", h(2))]
 
@@ -235,28 +226,18 @@ def test_revision_upsert_inserts_only_absent_rows(qm, con):
     ]
 
 
-def test_tag_upsert_writes_only_tags_whose_manifest_is_in_the_set(qm, con):
+def test_tag_upsert_writes_the_batch_tags_across_buckets_whether_or_not_their_manifest_is_in_the_set(qm, con):
     insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"))
-    insert(con, "package_tag", ("s3://b1", "u/q", "latest", h(1)))
 
-    run(
-        con,
-        qm.tag_upsert(
-            [
-                Pointer("b1", "u/p", "latest", h(1)),
-                Pointer("b1", "u/q", "latest", h(2)),  # moves to a manifest not in the set
-            ]
-        ),
-    )
+    run(con, qm.tag_upsert([Pointer("b1", "u/p", "latest", h(1)), Pointer("b2", "u/q", "v1", h(2))]))
 
     assert rows(con, "package_tag") == [
         ("s3://b1", "u/p", "latest", h(1)),
-        ("s3://b1", "u/q", "latest", h(1)),
+        ("s3://b2", "u/q", "v1", h(2)),
     ]
 
 
 def test_tag_upsert_moves_a_moved_tag_and_writes_nothing_for_an_unmoved_one(qm, con):
-    insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"), ("s3://b1", h(2), "", "{}"))
     insert(con, "package_tag", ("s3://b1", "u/p", "latest", h(1)))
 
     assert run(con, qm.tag_upsert([Pointer("b1", "u/p", "latest", h(2))])) == [1]
@@ -264,37 +245,14 @@ def test_tag_upsert_moves_a_moved_tag_and_writes_nothing_for_an_unmoved_one(qm, 
     assert rows(con, "package_tag") == [("s3://b1", "u/p", "latest", h(2))]
 
 
-@pytest.mark.parametrize(
-    "manifests_in_set, written",
-    [
-        ((1, 2), 2),  # both present: the larger top hash, one row
-        ((1,), 1),  # only the smaller present: that one
-    ],
-)
-def test_revision_upsert_writes_one_row_for_a_timestamp_two_pointer_names_spell(qm, con, manifests_in_set, written):
-    for n in manifests_in_set:
-        insert(con, "package_manifest", ("s3://b1", h(n), "", "{}"))
+def test_revision_upsert_writes_one_row_for_a_timestamp_two_pointer_names_spell(qm, con):
     batch = [Pointer("b1", "u/p", "0100", h(1)), Pointer("b1", "u/p", "100", h(2))]
 
     statements = qm.revision_upsert(batch)
     run(con, statements)
 
-    assert rows(con, "package_revision", "pkg_name", "timestamp", "top_hash") == [("u/p", ts(100), h(written))]
+    assert rows(con, "package_revision", "pkg_name", "timestamp", "top_hash") == [("u/p", ts(100), h(2))]
     assert sorted(i for s in statements for i in s.items) == sorted(batch)
-
-
-def test_manifests_present_selects_the_given_manifests_the_set_holds(qm, con):
-    insert(
-        con,
-        "package_manifest",
-        ("s3://b1", h(1), "", "{}"),
-        ("s3://b1", h(5), "", "{}"),
-        ("s3://b2", h(2), "", "{}"),
-    )
-
-    (statement,) = qm.manifests_present([Manifest("b1", h(1)), Manifest("b1", h(2)), Manifest("b2", h(1))])
-
-    assert sorted(con.execute(statement.sql).fetchall()) == [("s3://b1", h(1))]
 
 
 def test_revision_delete_removes_only_the_given_revisions(qm, con):
@@ -347,7 +305,7 @@ def push_bucket(con):
     push_pointer(con, "b1", "u/p", "dangling", h(9))
 
 
-def test_fill_copies_a_bucket_and_skips_pointers_whose_manifest_is_absent(qm, con):
+def test_fill_copies_a_bucket_pointers_whether_or_not_their_manifest_is_there(qm, con):
     push_bucket(con)
     push_manifest(con, "b2", h(3))
     push_pointer(con, "b2", "u/r", "latest", h(3))
@@ -359,8 +317,12 @@ def test_fill_copies_a_bucket_and_skips_pointers_whose_manifest_is_absent(qm, co
     assert rows(con, "package_revision") == [
         ("s3://b1", "u/p", ts(100), h(1)),
         ("s3://b1", "u/p", ts(200), h(2)),
+        ("s3://b1", "u/p", ts(300), h(9)),
     ]
-    assert rows(con, "package_tag") == [("s3://b1", "u/p", "latest", h(2))]
+    assert rows(con, "package_tag") == [
+        ("s3://b1", "u/p", "dangling", h(9)),
+        ("s3://b1", "u/p", "latest", h(2)),
+    ]
 
 
 def test_fill_skips_an_object_under_the_manifests_prefix_that_is_not_a_manifest(qm, con):
@@ -374,27 +336,18 @@ def test_fill_skips_an_object_under_the_manifests_prefix_that_is_not_a_manifest(
     assert rows(con, "package_manifest", "registry", "top_hash", "message") == [("s3://b1", h(1), f"msg {h(1)}")]
 
 
-@pytest.mark.parametrize(
-    "manifests_in_bucket, written",
-    [
-        ((1, 2), 2),  # both present: the larger top hash, one row
-        ((1,), 1),  # only the smaller present: that one
-    ],
-)
-def test_fill_writes_one_revision_for_a_timestamp_two_pointer_names_spell(qm, con, manifests_in_bucket, written):
-    for n in manifests_in_bucket:
-        push_manifest(con, "b1", h(n))
+def test_fill_writes_one_revision_for_a_timestamp_two_pointer_names_spell(qm, con):
     push_pointer(con, "b1", "u/p", "0100", h(1))
     push_pointer(con, "b1", "u/p", "100", h(2))
 
     run(con, qm.fill("b1"))
 
-    assert rows(con, "package_revision", "pkg_name", "timestamp", "top_hash") == [("u/p", ts(100), h(written))]
+    assert rows(con, "package_revision", "pkg_name", "timestamp", "top_hash") == [("u/p", ts(100), h(2))]
 
 
 def test_fill_skips_an_object_under_the_pointers_prefix_that_names_no_package(qm, con):
     push_manifest(con, "b1", h(1))
-    for name in ("README", "100"):
+    for name in ("README", "100", "u/p", "u/100", "a/b/c/latest"):
         con.execute(
             f'INSERT INTO "{USER_DB}"."b1_packages" VALUES (?, ?)', [f"s3://b1/.quilt/named_packages/{name}", h(1)]
         )
@@ -406,20 +359,15 @@ def test_fill_skips_an_object_under_the_pointers_prefix_that_names_no_package(qm
     assert rows(con, "package_revision") == []
 
 
-def test_fill_writes_entries_then_manifests_then_revisions_then_tags(qm, con):
+def test_fill_writes_a_bucket_entries_before_its_manifests(qm, con):
     push_bucket(con)
     filled = []
 
     for sql in qm.fill("b1"):
         run(con, [sql])
-        filled.append([t for t in TABLES if rows(con, t)])
+        filled.append({t for t in TABLES if rows(con, t)})
 
-    assert filled == [
-        ["package_entry"],
-        ["package_manifest", "package_entry"],
-        ["package_revision", "package_manifest", "package_entry"],
-        ["package_revision", "package_tag", "package_manifest", "package_entry"],
-    ]
+    assert filled[:2] == [{"package_entry"}, {"package_entry", "package_manifest"}]
 
 
 def test_fill_again_writes_only_a_moved_tag(qm, con):
@@ -432,28 +380,19 @@ def test_fill_again_writes_only_a_moved_tag(qm, con):
     con.execute(f"""UPDATE "{USER_DB}"."b1_packages" SET top_hash = '{h(1)}' WHERE "$path" LIKE '%/200'""")
 
     assert run(con, qm.fill("b1")) == [0, 0, 0, 1]
-    assert rows(con, "package_tag") == [("s3://b1", "u/p", "latest", h(1))]
+    assert rows(con, "package_tag") == [("s3://b1", "u/p", "dangling", h(9)), ("s3://b1", "u/p", "latest", h(1))]
     assert rows(con, "package_revision") == revisions
 
 
-def test_remove_deletes_one_registry_pointers_then_manifests_then_entries(qm, con):
+def test_remove_deletes_one_registry_rows_from_every_table(qm, con):
     for bucket in BUCKETS:
         insert(con, "package_entry", entry(bucket, h(1)))
         insert(con, "package_manifest", (f"s3://{bucket}", h(1), "", "{}"))
         insert(con, "package_revision", (f"s3://{bucket}", "u/p", ts(100), h(1)))
         insert(con, "package_tag", (f"s3://{bucket}", "u/p", "latest", h(1)))
-    holding = []
 
-    for sql in qm.remove("b1"):
-        run(con, [sql])
-        holding.append([t for t in TABLES if ("s3://b1",) in rows(con, t, "registry")])
+    run(con, qm.remove("b1"))
 
-    assert holding == [
-        ["package_revision", "package_manifest", "package_entry"],
-        ["package_manifest", "package_entry"],
-        ["package_entry"],
-        [],
-    ]
     for table in TABLES:
         assert rows(con, table, "registry") == [("s3://b2",)]
 
@@ -495,7 +434,6 @@ def test_registries_with_fewer_keys_than_hash_buckets_share_a_statement(qm):
 
 
 def test_a_statement_stays_under_the_query_size_limit_in_bytes(qm, con):
-    insert(con, "package_manifest", ("s3://b1", h(1), "", "{}"))
     pkg_name = "ü" * 300  # two bytes a character
     items = [Pointer("b1", f"{pkg_name}/{i}", "100", h(1)) for i in range(250)]
 
@@ -516,9 +454,6 @@ def test_quotes_in_values_reach_the_set_verbatim(qm, con):
     insert(con, "package_entry", entry("b1", top_hash))
     manifest = Manifest("b1", top_hash)
 
-    (present,) = qm.manifests_present([manifest])
-    assert con.execute(present.sql).fetchall() == [("s3://b1", top_hash)]
-
     run(
         con,
         qm.revision_upsert([Pointer("b1", pkg_name, "100", top_hash)])
@@ -537,6 +472,6 @@ def test_quotes_in_values_reach_the_set_verbatim(qm, con):
     assert [t for t in TABLES if rows(con, t)] == []
 
 
-@pytest.mark.parametrize("builder", [*BATCHES, "manifests_present"])
+@pytest.mark.parametrize("builder", BATCHES)
 def test_an_empty_batch_has_no_statements(qm, builder):
     assert getattr(qm, builder)([]) == []

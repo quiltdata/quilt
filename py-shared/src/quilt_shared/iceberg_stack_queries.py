@@ -146,10 +146,9 @@ def _statements(
 
 
 class StackQueryMaker:
-    """Run a batch's statements in order: delete tags and revisions, then manifests, then entries; upsert
-    entries, then manifests, then run `manifests_present` for the pointers, then upsert tags and revisions.
-    Readers rely on the order to find every pointer's manifest and its entries. The order is by table, not
-    by event, so a batch holds each key once, upserted or deleted as its object now stands.
+    """Run a batch's entry upserts before its manifest upserts, and leave out of those any manifest whose
+    entries' statement failed: readers take a manifest's row to mean its entries are complete. A batch holds
+    each key once, upserted or deleted as its object now stands.
     """
 
     def __init__(self, *, database: str, user_athena_db: str):
@@ -209,13 +208,6 @@ class StackQueryMaker:
             select(bucket, f'"$path" IN ({_strs(map(_manifest_uri, ms))})') for bucket, ms in groups.items()
         )
 
-    def _present(self, where: str) -> str:
-        return f"""
-            SELECT DISTINCT registry, top_hash
-            FROM {self._table("package_manifest")}
-            WHERE {where}
-        """
-
     def _merge_entries(self, source: str, target: str) -> str:
         return f"""
         MERGE INTO {self._table("package_entry")} AS t
@@ -237,7 +229,7 @@ class StackQueryMaker:
             VALUES (s.registry, s.top_hash, s.message, s.metadata)
         """
 
-    def _merge_pointers(self, table: str, rows: str, present: str, target: str) -> str:
+    def _merge_pointers(self, table: str, rows: str, target: str) -> str:
         column, _ = _POINTERS[table]
         # Only tags are updated in place: Athena writes an update as a positional delete beside a new row.
         moves = (
@@ -245,14 +237,13 @@ class StackQueryMaker:
             if table == "package_tag"
             else ""
         )
-        # One source row per pointer, of those whose manifest is present, or the MERGE would write or match it
-        # twice: two names can spell one timestamp (`0100`, `100`).
+        # One source row per pointer, or the MERGE would write or match it twice: two names can spell one
+        # timestamp (`0100`, `100`).
         return f"""
         MERGE INTO {self._table(table)} AS t
         USING (
             SELECT v.registry, v.pkg_name, v.{column}, max(v.top_hash) AS top_hash
             FROM {rows}
-            JOIN ({present}) AS m ON m.registry = v.registry AND m.top_hash = v.top_hash
             GROUP BY v.registry, v.pkg_name, v.{column}
         ) AS s
         ON t.registry = s.registry AND t.pkg_name = s.pkg_name AND t.{column} = s.{column} AND ({target})
@@ -280,7 +271,6 @@ class StackQueryMaker:
             return self._merge_pointers(
                 table,
                 f"(VALUES {rows}) AS v (registry, pkg_name, {column}, top_hash)",
-                self._present(_where_in("", "top_hash", groups)),
                 _where_in("t.", "pkg_name", groups),
             )
 
@@ -323,17 +313,10 @@ class StackQueryMaker:
             ),
         )
 
-    def manifests_present(self, manifests: T.Iterable[Manifest]) -> list[Statement]:
-        """Selects the (registry, top_hash) of each given manifest the set holds."""
-        groups = _group(manifests)
-        return _fit(groups, lambda g: self._present(_where_in("", "top_hash", g))) if groups else []
-
     def revision_upsert(self, pointers: T.Iterable[Pointer]) -> list[Statement]:
-        """Writes only the revisions whose manifest the set holds."""
         return self._upsert_pointers("package_revision", pointers)
 
     def tag_upsert(self, pointers: T.Iterable[Pointer]) -> list[Statement]:
-        """Writes only the tags whose manifest the set holds."""
         return self._upsert_pointers("package_tag", pointers)
 
     def revision_delete(self, pointers: T.Iterable[PointerKey]) -> list[Statement]:
@@ -349,13 +332,13 @@ class StackQueryMaker:
         return self._delete_manifests("package_entry", manifests)
 
     def fill(self, bucket: str) -> list[str]:
-        """Inserts what the set lacks of a bucket's packages and moves its tags; run each after the one before."""
+        """Inserts what the set lacks of a bucket's packages and moves its tags; run the first statement, its
+        entries, before the second, its manifests."""
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
-        present = self._present(f"registry = {registry}")
         manifest_files = f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
-        pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)', 1)"""
+        pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+$', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
         packages = self._source(bucket, "packages")
         revisions = f"""(
@@ -379,12 +362,11 @@ class StackQueryMaker:
         return [
             self._merge_entries(self._entries_from(bucket, manifest_files), target),
             self._merge_manifests(self._manifests_from(bucket, manifest_files), target),
-            self._merge_pointers("package_revision", revisions, present, target),
-            self._merge_pointers("package_tag", tags, present, target),
+            self._merge_pointers("package_revision", revisions, target),
+            self._merge_pointers("package_tag", tags, target),
         ]
 
     def remove(self, bucket: str) -> list[str]:
-        """Deletes a bucket's rows; run each after the one before."""
         registry = _str(registry_uri(bucket))
         return [
             self._delete(table, f"registry = {registry}")
