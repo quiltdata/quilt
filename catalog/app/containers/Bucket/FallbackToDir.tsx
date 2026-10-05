@@ -1,11 +1,11 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
+import RouteRedirect from 'utils/RouteRedirect'
 import * as Request from 'utils/useRequest'
 import assertNever from 'utils/assertNever'
 
@@ -112,7 +112,7 @@ export default function FallbackToDir({ children, handle }: FallbackToDirProps) 
       return <Placeholder color="text.secondary" />
     case Dir:
       const dirPage = urls.bucketDir(handle.bucket, s3paths.ensureSlash(handle.key))
-      return <RRDom.Redirect to={dirPage} />
+      return <RouteRedirect to={dirPage} />
     case File:
       return <>{children}</>
     default:

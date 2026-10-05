@@ -307,7 +307,7 @@ function File() {
   const { prefs } = BucketPreferences.use()
   const authenticated = redux.useSelector(authenticatedSelector)
 
-  const path = s3paths.decode(encodedPath)
+  const path = s3paths.decodeRouteParam(encodedPath)
 
   // Bump to refetch getObjectExistence below (toolbar reload, post-save).
   const [resetKey, setResetKey] = React.useState(0)

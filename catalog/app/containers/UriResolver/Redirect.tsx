@@ -1,8 +1,8 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
+import RouteRedirect from 'utils/RouteRedirect'
 
 interface RedirectProps {
   decoded: string
@@ -16,5 +16,5 @@ export default function Redirect({
   const { urls } = NamedRoutes.use()
   const query = NamedRoutes.mkSearch({ resolvedFrom })
   const to = urls.bucketPackageTree(bucket, name, hash || tag, path) + query
-  return <RRDom.Redirect to={to} />
+  return <RouteRedirect to={to} />
 }

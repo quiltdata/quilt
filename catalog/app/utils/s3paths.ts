@@ -140,6 +140,12 @@ export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'
 
 export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'))
 
+// `history@4` runs `decodeURI` over every pathname, so a route param has lost all
+// escapes but those `decodeURI` keeps; re-escape any other `%` or `decode` throws or
+// misreads it. A literal `%` before one of those kept hex pairs still decodes wrongly.
+export const decodeRouteParam = (param: string) =>
+  decode(param.replace(/%(?!2[346BCF]|3[ABDF]|40)/gi, '%25'))
+
 /**
  * Files in the package are backed by real files in the S3 bucket.
  * We store them at this location in a bucket by default.

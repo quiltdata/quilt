@@ -350,20 +350,23 @@ function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
 
 interface WaitingStateProps extends ConversationDispatchProps {
   timestamp: Date
+  busy?: boolean
 }
 
 const useWaitingStyles = M.makeStyles((t) => ({
   root: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     display: 'flex',
     gap: t.spacing(1),
   },
   spinner: {
     color: 'inherit',
+    flexShrink: 0,
+    marginTop: 3,
   },
 }))
 
-function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
+function WaitingState({ timestamp, dispatch, busy = false }: WaitingStateProps) {
   const classes = useWaitingStyles()
   const abort = React.useCallback(
     () => dispatch(Model.Conversation.Action.Abort()),
@@ -374,9 +377,16 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
-      <span className={classes.root}>
-        <M.CircularProgress size={14} thickness={4} className={classes.spinner} />
-        Thinking…
+      <span className={classes.root} role="status">
+        <M.CircularProgress
+          size={14}
+          thickness={4}
+          className={classes.spinner}
+          aria-hidden
+        />
+        {busy
+          ? 'Qurator is busy with other requests, so this may take a little longer…'
+          : 'Thinking…'}
       </span>
     </MessageContainer>
   )
@@ -484,7 +494,14 @@ export function Menu({
       >
         <M.Icon>menu</M.Icon>
       </M.IconButton>
-      <M.Menu anchorEl={menuOpen} open={!!menuOpen} onClose={closeMenu}>
+      <M.Menu
+        anchorEl={menuOpen}
+        open={!!menuOpen}
+        onClose={closeMenu}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>
@@ -642,6 +659,7 @@ interface ChatProps {
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
+  busy?: boolean
   onClose: () => void
 }
 
@@ -652,6 +670,7 @@ export default function Chat({
   connectors,
   instructions,
   model,
+  busy,
   onClose,
 }: ChatProps) {
   const classes = useStyles()
@@ -792,7 +811,7 @@ export default function Chat({
                 onNone: () => null,
               }),
             WaitingForAssistant: (s) => (
-              <WaitingState dispatch={dispatch} timestamp={s.timestamp} />
+              <WaitingState dispatch={dispatch} timestamp={s.timestamp} busy={busy} />
             ),
             ToolUse: (s) => (
               <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />

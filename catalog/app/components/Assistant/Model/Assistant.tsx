@@ -295,9 +295,17 @@ function useConstructAssistantAPI() {
     connectors,
   })
 
+  const [busy, setBusy] = React.useState(false)
+  const onBusy = React.useCallback((b: boolean) => Eff.Effect.sync(() => setBusy(b)), [])
+
+  const llm = React.useMemo(
+    () => Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken, onBusy }),
+    [modelId, record, getToken, onBusy],
+  )
+
   const layerEff = Eff.Effect.sync(() =>
     Eff.Layer.mergeAll(
-      Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken }),
+      llm,
       passThru.current.context,
       Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
     ),
@@ -309,7 +317,7 @@ function useConstructAssistantAPI() {
     layerEff,
   )
 
-  GlobalContext.use()
+  GlobalContext.use(llm)
 
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
@@ -331,6 +339,7 @@ function useConstructAssistantAPI() {
     assist,
     state,
     dispatch,
+    busy,
     connectors,
     instructions,
     model,

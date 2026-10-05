@@ -22,6 +22,10 @@ complete sentence without it.
 ## Changes
 
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
+- [Fixed] Qurator waits up to a minute for a free slot when other asks keep the stack busy, saying so while it waits, instead of failing with an HTTP 429 error, and reports an unavailable AI gateway at once instead of retrying it ([#5405](https://github.com/quiltdata/quilt/pull/5405))
+- [Fixed] Files, folders and package entries whose path contains a `%` open instead of crashing the page, including from a Quilt+ URI ([#5403](https://github.com/quiltdata/quilt/pull/5403))
+- [Fixed] Qurator: the panel's header menu opens below its button instead of covering it and the close button ([#5402](https://github.com/quiltdata/quilt/pull/5402))
+- [Added] Qurator can summarize PDFs and Office files up to 4 MiB and the first 2 MiB of text or CSV files, past the 500 KiB preview limit, and says how much of each it read ([#5404](https://github.com/quiltdata/quilt/pull/5404))
 - [Changed] Qurator: the model picker sits in the Ask Qurator box with Heavy, Medium and Light labels, and the panel's header shows one aligned menu and close button ([#5394](https://github.com/quiltdata/quilt/pull/5394))
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
 - [Fixed] When the approved-model list cannot be read, Qurator sends the stack's default model instead of a saved one the registry would refuse ([#5392](https://github.com/quiltdata/quilt/pull/5392))
