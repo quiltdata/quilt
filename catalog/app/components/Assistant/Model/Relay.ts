@@ -11,14 +11,33 @@ const MODULE = 'Relay'
 // What the SDK client did and a bare fetch does not: a request deadline, and
 // a retry with backoff on a throttle or a server error.
 const REQUEST_TIMEOUT_MS = 120_000
-const RETRY_SCHEDULE = Eff.Schedule.exponential('300 millis').pipe(
-  Eff.Schedule.intersect(Eff.Schedule.recurs(3)),
-)
+// A server's Retry-After is honoured up to this, so one hint cannot stall the chat.
+const RETRY_AFTER_CAP_S = 15
+// The registry's fixed hint when every relay slot is taken: its CORS policy
+// does not expose Retry-After, so the browser cannot read the header.
+const BUSY_RETRY_AFTER_S = 10
+const BUSY_MESSAGE = 'Qurator is busy with other requests. Try again in a minute.'
 
-class Retryable {
-  readonly _tag = 'Retryable'
-  constructor(readonly message: string) {}
+class Failure {
+  readonly _tag = 'Failure'
+  constructor(
+    readonly message: string,
+    readonly retry: 'busy' | 'transient' | 'never',
+    readonly retryAfter: Eff.Duration.Duration = Eff.Duration.zero,
+  ) {}
 }
+
+const honourRetryAfter = Eff.Schedule.identity<Failure>().pipe(
+  Eff.Schedule.addDelay((e) => e.retryAfter),
+)
+const TRANSIENT_SCHEDULE = Eff.Schedule.exponential('300 millis').pipe(
+  Eff.Schedule.intersect(Eff.Schedule.recurs(3)),
+  Eff.Schedule.intersect(honourRetryAfter),
+)
+// Six waits of the registry's hint: about a minute queued behind other asks.
+const BUSY_SCHEDULE = Eff.Schedule.recurs(6).pipe(
+  Eff.Schedule.intersect(honourRetryAfter),
+)
 
 /**
  * The same `LLM` service `Bedrock.ts` provided, but the request goes to the
@@ -156,20 +175,40 @@ const mapContent = (contentBlocks: BedrockRuntime.ContentBlocks | undefined) =>
   )
 
 /**
- * Turn a non-2xx relay answer into the same shape `Bedrock.ts` produces, so
- * the chat surfaces it identically. The relay passes the provider's own error
- * body through untouched; both Bedrock and a gateway put the text under
- * `message`, with differing capitalisation.
+ * Decide whether a non-2xx relay answer is retried, and what the chat shows.
+ * A provider error keeps the shape `Bedrock.ts` produces: the relay passes its
+ * body through untouched, and both Bedrock and a gateway put the text under
+ * `message`, with differing capitalisation. The relay's own errors carry an
+ * `error_code`.
  */
-const describeFailure = (status: number, body: string): string => {
+const classifyFailure = (r: Response, body: string): Failure => {
+  let parsed: Record<string, unknown> = {}
   try {
-    const parsed = JSON.parse(body)
-    const msg = parsed.message ?? parsed.Message
-    if (typeof msg === 'string') return `Inference error (HTTP ${status}): ${msg}`
+    parsed = JSON.parse(body) ?? {}
   } catch {
-    // not JSON; fall through
+    // not JSON
   }
-  return `Inference error (HTTP ${status})`
+  const msg = parsed.message ?? parsed.Message
+  const seconds = Number(r.headers.get('retry-after'))
+  const hint = seconds > 0 ? Math.min(seconds, RETRY_AFTER_CAP_S) : null
+  if (r.status === 429 && parsed.error_code === 'Busy') {
+    return new Failure(
+      BUSY_MESSAGE,
+      'busy',
+      Eff.Duration.seconds(hint ?? BUSY_RETRY_AFTER_S),
+    )
+  }
+  // A misconfigured gateway, which no retry fixes.
+  if (parsed.error_code === 'NotAvailable' && typeof msg === 'string') {
+    return new Failure(msg, 'never')
+  }
+  return new Failure(
+    typeof msg === 'string'
+      ? `Inference error (HTTP ${r.status}): ${msg}`
+      : `Inference error (HTTP ${r.status})`,
+    r.status === 429 || r.status >= 500 ? 'transient' : 'never',
+    Eff.Duration.seconds(hint ?? 0),
+  )
 }
 
 export function LLMRelay(options: RelayOptions) {
@@ -210,27 +249,27 @@ export function LLMRelay(options: RelayOptions) {
               },
             )
             const text = await r.text()
-            if (r.status === 429 || r.status >= 500) {
-              throw new Retryable(describeFailure(r.status, text))
-            }
-            if (!r.ok) throw new Error(describeFailure(r.status, text))
+            if (!r.ok) throw classifyFailure(r, text)
             return JSON.parse(text) as BedrockRuntime.ConverseResponse
           },
           catch: (e) =>
-            e instanceof Retryable
+            e instanceof Failure
               ? e
-              : new LLM.LLMError({
-                  message: e instanceof Error ? e.message : `Unexpected error: ${e}`,
-                }),
+              : new Failure(
+                  e instanceof Error ? e.message : `Unexpected error: ${e}`,
+                  'never',
+                ),
         })
         const backendResponse = yield* attempt.pipe(
           Eff.Effect.retry({
-            schedule: RETRY_SCHEDULE,
-            while: (e) => e instanceof Retryable,
+            schedule: TRANSIENT_SCHEDULE,
+            while: (e) => e.retry === 'transient',
           }),
-          Eff.Effect.mapError((e) =>
-            e instanceof Retryable ? new LLM.LLMError({ message: e.message }) : e,
-          ),
+          Eff.Effect.retry({
+            schedule: BUSY_SCHEDULE,
+            while: (e) => e.retry === 'busy',
+          }),
+          Eff.Effect.mapError((e) => new LLM.LLMError({ message: e.message })),
         )
 
         const responseTimestamp = new Date(yield* Eff.Clock.currentTimeMillis)

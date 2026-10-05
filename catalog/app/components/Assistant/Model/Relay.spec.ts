@@ -37,6 +37,43 @@ const userText = (text: string): LLM.PromptMessage => ({
 
 afterEach(() => vi.unstubAllGlobals())
 
+const json = (status: number, body: object, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers })
+
+const busy = (headers?: Record<string, string>) =>
+  json(429, { message: 'Too many inference requests', error_code: 'Busy' }, headers)
+
+// Answers with each response in turn, repeating the last.
+const sequence = (...responses: (() => Response)[]) => {
+  let n = 0
+  return install(async () => responses[Math.min(n++, responses.length - 1)]())
+}
+
+// Lets the in-flight fetch settle so the converse fiber reaches its next sleep.
+const settle = Eff.Effect.promise(() => new Promise((r) => setTimeout(r, 0)))
+const advance = (d: Eff.Duration.DurationInput) =>
+  Eff.Effect.zipRight(Eff.TestClock.adjust(d), settle)
+
+type Converse = Eff.Fiber.RuntimeFiber<
+  Eff.Effect.Effect.Success<ReturnType<LLM.LLM['Type']['converse']>>,
+  LLM.LLMError
+>
+
+const clocked = <A, E>(test: (fiber: Converse) => Eff.Effect.Effect<A, E>) =>
+  Eff.Effect.runPromise(
+    Eff.Effect.gen(function* () {
+      const llm = yield* LLM.LLM
+      const fiber = yield* Eff.Effect.fork(
+        llm.converse({ system: 's', messages: [userText('x')] }),
+      )
+      yield* settle
+      return yield* test(fiber)
+    }).pipe(Eff.Effect.provide(layer()), Eff.Effect.provide(Eff.TestContext.TestContext)),
+  )
+
+const failureOf = (fiber: Converse) =>
+  Eff.Effect.map(Eff.Effect.flip(Eff.Fiber.join(fiber)), (e) => e.message)
+
 describe('Relay', () => {
   it('posts the Converse body to the relay with the session as a bearer', async () => {
     const spy = install(async () => new Response(okBody('hi'), { status: 200 }))
@@ -142,6 +179,141 @@ describe('Relay', () => {
       run(layer(), { system: 's', messages: [userText('x')] }),
     ).rejects.toThrow(/HTTP 400/)
     expect(spy).toHaveBeenCalledOnce()
+  })
+
+  describe('when the relay is busy', () => {
+    it('waits the registry hint of 10 s when Retry-After is unreadable', async () => {
+      const spy = sequence(busy, () => new Response(okBody('queued'), { status: 200 }))
+      const res = await clocked((fiber) =>
+        Eff.Effect.gen(function* () {
+          yield* advance('9 seconds')
+          expect(spy).toHaveBeenCalledOnce()
+          yield* advance('1 second')
+          expect(spy).toHaveBeenCalledTimes(2)
+          return yield* Eff.Fiber.join(fiber)
+        }),
+      )
+      expect(Eff.Option.getOrThrow(res.content)).toEqual([
+        Content.ResponseMessageContentBlock.Text({ text: 'queued' }),
+      ])
+    })
+
+    it('waits a readable Retry-After', async () => {
+      const spy = sequence(
+        () => busy({ 'retry-after': '3' }),
+        () => new Response(okBody('ok'), { status: 200 }),
+      )
+      await clocked(() =>
+        Eff.Effect.gen(function* () {
+          yield* advance('2 seconds')
+          expect(spy).toHaveBeenCalledOnce()
+          yield* advance('1 second')
+          expect(spy).toHaveBeenCalledTimes(2)
+        }),
+      )
+    })
+
+    it('caps a long Retry-After at 15 s', async () => {
+      const spy = sequence(
+        () => busy({ 'retry-after': '120' }),
+        () => new Response(okBody('ok'), { status: 200 }),
+      )
+      await clocked(() =>
+        Eff.Effect.gen(function* () {
+          yield* advance('14 seconds')
+          expect(spy).toHaveBeenCalledOnce()
+          yield* advance('1 second')
+          expect(spy).toHaveBeenCalledTimes(2)
+        }),
+      )
+    })
+
+    it('gives up after about a minute with a plain message', async () => {
+      const spy = sequence(busy)
+      const message = await clocked((fiber) =>
+        Eff.Effect.gen(function* () {
+          for (let i = 0; i < 6; i++) yield* advance('10 seconds')
+          return yield* failureOf(fiber)
+        }),
+      )
+      expect(spy).toHaveBeenCalledTimes(7)
+      expect(message).toBe('Qurator is busy with other requests. Try again in a minute.')
+    })
+  })
+
+  it('fails at once on an unavailable gateway', async () => {
+    const spy = sequence(() =>
+      json(503, {
+        message: 'The gateway endpoint is unavailable on this stack.',
+        error_code: 'NotAvailable',
+      }),
+    )
+    const message = await clocked((fiber) =>
+      Eff.Effect.gen(function* () {
+        expect(Eff.Option.isSome(yield* Eff.Fiber.poll(fiber))).toBe(true)
+        return yield* failureOf(fiber)
+      }),
+    )
+    expect(spy).toHaveBeenCalledOnce()
+    expect(message).toBe('The gateway endpoint is unavailable on this stack.')
+  })
+
+  it('backs off exponentially on a server error, then surfaces it', async () => {
+    const spy = sequence(() => json(500, { message: 'boom' }))
+    const message = await clocked((fiber) =>
+      Eff.Effect.gen(function* () {
+        for (const [wait, calls] of [
+          ['300 millis', 2],
+          ['600 millis', 3],
+          ['1200 millis', 4],
+        ] as const) {
+          yield* advance(Eff.Duration.decode(wait).pipe(Eff.Duration.subtract(1)))
+          expect(spy).toHaveBeenCalledTimes(calls - 1)
+          yield* advance('1 millis')
+          expect(spy).toHaveBeenCalledTimes(calls)
+        }
+        return yield* failureOf(fiber)
+      }),
+    )
+    expect(message).toBe('Inference error (HTTP 500): boom')
+  })
+
+  it("waits a provider throttle's readable Retry-After over the backoff", async () => {
+    const spy = sequence(
+      () => json(429, { message: 'Too many tokens' }, { 'retry-after': '5' }),
+      () => new Response(okBody('ok'), { status: 200 }),
+    )
+    await clocked(() =>
+      Eff.Effect.gen(function* () {
+        yield* advance('4999 millis')
+        expect(spy).toHaveBeenCalledOnce()
+        yield* advance('1 millis')
+        expect(spy).toHaveBeenCalledTimes(2)
+      }),
+    )
+  })
+
+  it.each([
+    [
+      'a server error then busy',
+      [() => json(500, {}), busy],
+      ['300 millis', '10 seconds'],
+    ],
+    [
+      'busy then a server error',
+      [busy, () => json(500, {})],
+      ['10 seconds', '300 millis'],
+    ],
+  ] as const)('waits each in turn on %s', async (_, failures, waits) => {
+    const spy = sequence(...failures, () => new Response(okBody('ok'), { status: 200 }))
+    await clocked(() =>
+      Eff.Effect.gen(function* () {
+        yield* advance(waits[0])
+        expect(spy).toHaveBeenCalledTimes(2)
+        yield* advance(waits[1])
+        expect(spy).toHaveBeenCalledTimes(3)
+      }),
+    )
   })
 
   it('fails without a session and never fetches', async () => {
