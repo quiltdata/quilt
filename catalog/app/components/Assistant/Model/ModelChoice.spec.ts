@@ -11,7 +11,15 @@ vi.mock('utils/GraphQL', async (importActual) => ({
   useQuery: () => query.current,
 }))
 
-import { displayName, isStale, label, resolve, tier, useGoverned } from './ModelChoice'
+import {
+  displayName,
+  isStale,
+  label,
+  nameIn,
+  resolve,
+  tier,
+  useGoverned,
+} from './ModelChoice'
 
 function readGoverned() {
   let out: ReturnType<typeof useGoverned> | undefined
@@ -152,5 +160,10 @@ describe('components/Assistant/Model/ModelChoice labels', () => {
   it("an admin's display name replaces the derived label whole", () => {
     expect(label(OPUS, 'Big one')).toBe('Big one')
     expect(label(OPUS, '')).toBe('Heavy · Claude Opus 4.5')
+  })
+
+  it('finds no name for an id that matches a prototype key', () => {
+    expect(nameIn({}, 'constructor')).toBeUndefined()
+    expect(nameIn({ constructor: 'Named' }, 'constructor')).toBe('Named')
   })
 })

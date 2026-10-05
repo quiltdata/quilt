@@ -120,7 +120,7 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
     if (disabled) close()
   }, [disabled, close])
   if (!model.allowlist) return null
-  const currentName = model.names[model.current]
+  const currentName = ModelChoice.nameIn(model.names, model.current)
   const current = ModelChoice.label(model.current, currentName)
   return (
     <>
@@ -174,7 +174,7 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
                 </M.Icon>
               </M.ListItemIcon>
               <span>
-                {ModelChoice.label(id, model.names[id])}
+                {ModelChoice.label(id, ModelChoice.nameIn(model.names, id))}
                 <span className={classes.itemId}>{id}</span>
               </span>
             </M.MenuItem>

@@ -96,9 +96,7 @@ export function combineIds(
 
 type Names = Readonly<Record<string, string>>
 
-// Own keys only: a typed id such as `constructor` must not find a prototype method.
-const nameIn = (names: Names, id: string) =>
-  Object.prototype.hasOwnProperty.call(names, id) ? names[id] : undefined
+const { nameIn } = ModelChoice
 
 /** Display names for the ids being saved, in their order: trimmed, blanks dropped. */
 export function namesFor(ids: readonly string[], names: Names) {

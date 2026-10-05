@@ -111,6 +111,10 @@ export function displayName(id: string): string {
   return words.join(' ') || id
 }
 
+// Own keys only: an id such as `constructor` must not find a prototype method.
+export const nameIn = (names: Readonly<Record<string, string>>, id: string) =>
+  Object.prototype.hasOwnProperty.call(names, id) ? names[id] : undefined
+
 /**
  * "Medium · Claude Sonnet 4.5", or just the name when no tier applies. An
  * admin's display name stands alone: the admin chose it whole.
