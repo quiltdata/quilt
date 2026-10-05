@@ -9,7 +9,7 @@ import boto3
 import quilt_shared.const
 from quilt_shared.athena import AthenaQueryBaseException, QueryRunner
 from quilt_shared.iceberg_queries import QueryMaker
-from quilt_shared.iceberg_stack_queries import Manifest, Pointer, PointerKey, StackQueryMaker, registry_uri
+from quilt_shared.iceberg_stack_queries import Manifest, Pointer, PointerKey, StackQueryMaker
 
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
@@ -105,27 +105,19 @@ def handler(event, context):
     query_runner.run_multiple_queries(queries)
 
 
-def _run(build, items, failed: set) -> list:
-    executions = []
+def _run(build, items, failed: set):
     for statement in build([i for i in items if i not in failed]):
         try:
-            executions += query_runner.run_multiple_queries([statement.sql])
+            query_runner.run_multiple_queries([statement.sql])
         except AthenaQueryBaseException:
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
             # In turn: run together, they would race one another's commits.
             for item in statement.items:
                 try:
-                    executions += query_runner.run_multiple_queries([s.sql for s in build([item])])
+                    query_runner.run_multiple_queries([s.sql for s in build([item])])
                 except AthenaQueryBaseException:
                     logger.exception("Failed to write %s", item)
                     failed.add(item)
-    return executions
-
-
-def _rows(execution_id: str) -> list[tuple]:
-    pages = athena.get_paginator("get_query_results").paginate(QueryExecutionId=execution_id)
-    rows = [tuple(d.get("VarCharValue") for d in r["Data"]) for page in pages for r in page["ResultSet"]["Rows"]]
-    return rows[1:]  # the first row names the columns
 
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
@@ -175,10 +167,6 @@ def set_handler(event, context):
     _run(maker.entry_delete, groups["manifest", False], failed)
     _run(maker.entry_upsert, groups["manifest", True], failed)
     _run(maker.manifest_upsert, groups["manifest", True], failed)
-    pointers = groups["tag", True] + groups["revision", True]
-    executions = _run(maker.manifests_present, [Manifest(p.bucket, p.top_hash) for p in pointers], set())
-    present = {row for execution in executions for row in _rows(execution["QueryExecutionId"])}
-    failed.update(p for p in pointers if (registry_uri(p.bucket), p.top_hash) not in present)
     _run(maker.tag_upsert, groups["tag", True], failed)
     _run(maker.revision_upsert, groups["revision", True], failed)
 

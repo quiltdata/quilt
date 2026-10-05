@@ -47,44 +47,28 @@ def holdings(con) -> dict[str, set]:
     return {t: set(con.execute(f'SELECT registry, top_hash FROM "{STACK_DB}"."{t}"').fetchall()) for t in TABLES}
 
 
-def whole(held: dict[str, set]) -> bool:
-    """Whether a reader finds every pointer's manifest, and every manifest's entries."""
-    return (held["package_tag"] | held["package_revision"]) <= held["package_manifest"] <= held["package_entry"]
-
-
 class Athena:
     """Athena's API, running each query on DuckDB as it starts."""
 
     def __init__(self, con):
         self.con = con
         self.fails = lambda sql: False
-        self.results = {}
+        self.succeeded = {}
         self.held = []  # the set's holdings after each query
 
     def start_query_execution(self, *, QueryString, **kwargs):
-        execution_id = str(len(self.results))
-        if self.fails(QueryString):
-            self.results[execution_id] = None
-        else:
-            cursor = self.con.execute(QueryString)
-            self.results[execution_id] = [tuple(c[0] for c in cursor.description), *cursor.fetchall()]
+        execution_id = str(len(self.succeeded))
+        self.succeeded[execution_id] = not self.fails(QueryString)
+        if self.succeeded[execution_id]:
+            self.con.execute(QueryString)
             self.held.append(holdings(self.con))
         return {"QueryExecutionId": execution_id}
 
     def get_query_execution(self, *, QueryExecutionId):
         status = {"State": "SUCCEEDED"}
-        if self.results[QueryExecutionId] is None:
+        if not self.succeeded[QueryExecutionId]:
             status = {"State": "FAILED", "StateChangeReason": "HIVE_BAD_DATA: unreadable manifest"}
         return {"QueryExecution": {"QueryExecutionId": QueryExecutionId, "Status": status}}
-
-    def get_paginator(self, operation):
-        assert operation == "get_query_results"
-        return self
-
-    def paginate(self, *, QueryExecutionId):
-        # Athena pages a query's results; a page of one row makes every result here span pages.
-        for row in self.results[QueryExecutionId]:
-            yield {"ResultSet": {"Rows": [{"Data": [{"VarCharValue": str(v)} for v in row]}]}}
 
 
 class S3:
@@ -122,7 +106,7 @@ def con():
 @pytest.fixture
 def athena(mocker, con):
     fake = Athena(con)
-    for name in ("start_query_execution", "get_query_execution", "get_paginator"):
+    for name in ("start_query_execution", "get_query_execution"):
         mocker.patch.object(t4_lambda_iceberg.athena, name, getattr(fake, name))
     mocker.patch("quilt_shared.athena.time.sleep")
     return fake
@@ -195,17 +179,15 @@ def delete(s3, con) -> list[dict]:
         (delete, {table: set() for table in TABLES}),
     ],
 )
-def test_a_batch_never_leaves_a_pointer_without_its_manifest_or_a_manifest_without_its_entries(
-    athena, s3, con, batch, held
-):
+def test_a_batch_never_leaves_a_manifest_without_its_entries(athena, s3, con, batch, held):
     response = handle(*batch(s3, con))
 
     assert response == failures()
     assert holdings(con) == held
-    assert all(whole(state) for state in athena.held)
+    assert all(state["package_manifest"] <= state["package_entry"] for state in athena.held)
 
 
-def test_a_pointer_whose_manifest_is_not_in_the_set_is_returned_for_retry(athena, s3, con):
+def test_a_pointer_is_written_whether_or_not_the_set_holds_its_manifest(athena, s3, con):
     hold_manifest(con, h(1))
     put_pointer(s3, "u/p", "latest", h(1))
     put_pointer(s3, "u/q", "latest", h(2))
@@ -217,9 +199,9 @@ def test_a_pointer_whose_manifest_is_not_in_the_set_is_returned_for_retry(athena
         record("q200", pointer_key("u/q", "200")),
     )
 
-    assert response == failures("q", "q200")
-    assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
-    assert holdings(con)["package_revision"] == set()
+    assert response == failures()
+    assert holdings(con)["package_tag"] == {(REGISTRY, h(1)), (REGISTRY, h(2))}
+    assert holdings(con)["package_revision"] == {(REGISTRY, h(2))}
 
 
 def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_alone_is_returned(athena, s3, con):
@@ -242,9 +224,9 @@ def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_al
 
 
 def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_together(athena, s3, con):
-    hold_manifest(con, h(1))
     put_pointer(s3, "u/p", "latest", h(1))
-    put_pointer(s3, "u/q", "latest", h(2))  # its manifest not yet in the set
+    put_pointer(s3, "u/q", "latest", h(2))
+    athena.fails = lambda sql: "'u/q'" in sql
 
     response = handle(
         record("p1", pointer_key("u/p", "latest")),
@@ -275,7 +257,6 @@ def test_an_event_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_
 
 
 def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(athena, s3, con):
-    hold_manifest(con, h(1))
     put_pointer(s3, "u/p", "²", h(1))
 
     response = handle(record("p", pointer_key("u/p", "²")))
