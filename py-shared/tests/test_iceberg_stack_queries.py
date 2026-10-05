@@ -39,7 +39,7 @@ def con():
         con.execute(
             f'CREATE TABLE "{USER_DB}"."{bucket}_manifests" ("$path" VARCHAR, logical_key VARCHAR,'
             " physical_keys VARCHAR[], hash STRUCT(type VARCHAR, value VARCHAR), size BIGINT, meta VARCHAR,"
-            " message VARCHAR, user_meta VARCHAR)"
+            ' message VARCHAR, user_meta VARCHAR, "$file_modified_time" TIMESTAMP)'
         )
         con.execute(f'CREATE TABLE "{USER_DB}"."{bucket}_packages" ("$path" VARCHAR, top_hash VARCHAR)')
     return con
@@ -49,16 +49,16 @@ def h(n: int) -> str:
     return f"{n:064x}"
 
 
-def push_manifest(con, bucket: str, top_hash: str, keys=("a.txt",)):
+def push_manifest(con, bucket: str, top_hash: str, keys=("a.txt",), written: int = 1_000):
     path = f"s3://{bucket}/.quilt/packages/{top_hash}"
     con.execute(
-        f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, NULL, NULL, NULL, NULL, NULL, ?, ?)',
-        [path, f"msg {top_hash}", '{"k": 1}'],
+        f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, NULL, NULL, NULL, NULL, NULL, ?, ?, ?)',
+        [path, f"msg {top_hash}", '{"k": 1}', ts(written)],
     )
     for key in keys:
         con.execute(
-            f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, ?, ?, ?, 7, ?, NULL, NULL)',
-            [path, key, [f"s3://{bucket}/{key}?versionId=v"], {"type": "SHA256", "value": "x"}, "{}"],
+            f'INSERT INTO "{USER_DB}"."{bucket}_manifests" VALUES (?, ?, ?, ?, 7, ?, NULL, NULL, ?)',
+            [path, key, [f"s3://{bucket}/{key}?versionId=v"], {"type": "SHA256", "value": "x"}, "{}", ts(written)],
         )
 
 
@@ -357,6 +357,18 @@ def test_fill_skips_an_object_under_the_pointers_prefix_that_names_no_package(qm
 
     assert rows(con, "package_tag") == []
     assert rows(con, "package_revision") == []
+
+
+def test_fill_leaves_a_manifest_written_while_it_runs_to_its_event(qm, con):
+    push_manifest(con, "b1", h(1), written=100)
+    entries, manifests, *_ = qm.fill("b1", written_before=200)
+
+    run(con, [entries])
+    push_manifest(con, "b1", h(2), written=300)  # between the fill's two reads
+    run(con, [manifests])
+
+    assert rows(con, "package_entry", "top_hash") == [(h(1),)]
+    assert rows(con, "package_manifest", "top_hash") == [(h(1),)]
 
 
 def test_fill_writes_a_bucket_entries_before_its_manifests(qm, con):

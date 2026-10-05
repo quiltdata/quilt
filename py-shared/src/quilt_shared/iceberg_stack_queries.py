@@ -1,5 +1,6 @@
 import math
 import re
+import time
 import typing as T
 
 from . import const
@@ -327,12 +328,18 @@ class StackQueryMaker:
     def entry_delete(self, manifests: T.Iterable[Manifest]) -> list[Statement]:
         return self._delete_manifests("package_entry", manifests)
 
-    def fill(self, bucket: str) -> list[str]:
+    def fill(self, bucket: str, *, written_before: float | None = None) -> list[str]:
         """Inserts what the set lacks of a bucket's packages and updates the pointers that moved; run the first
         statement, its entries, before the second, its manifests."""
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
-        manifest_files = f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
+        # Both read the same manifests, those written before the fill was built, so one written between them gets
+        # neither its entries nor its row here: its own event writes both.
+        cutoff = int(time.time() if written_before is None else written_before)
+        manifest_files = (
+            f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
+            f""" AND "$file_modified_time" < from_unixtime({cutoff})"""
+        )
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+$', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
