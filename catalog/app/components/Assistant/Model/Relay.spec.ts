@@ -59,7 +59,10 @@ type Converse = Eff.Fiber.RuntimeFiber<
   LLM.LLMError
 >
 
-const clocked = <A, E>(test: (fiber: Converse) => Eff.Effect.Effect<A, E>) =>
+const clocked = <A, E>(
+  test: (fiber: Converse) => Eff.Effect.Effect<A, E>,
+  over: Partial<Relay.RelayOptions> = {},
+) =>
   Eff.Effect.runPromise(
     Eff.Effect.gen(function* () {
       const llm = yield* LLM.LLM
@@ -68,7 +71,10 @@ const clocked = <A, E>(test: (fiber: Converse) => Eff.Effect.Effect<A, E>) =>
       )
       yield* settle
       return yield* test(fiber)
-    }).pipe(Eff.Effect.provide(layer()), Eff.Effect.provide(Eff.TestContext.TestContext)),
+    }).pipe(
+      Eff.Effect.provide(layer(over)),
+      Eff.Effect.provide(Eff.TestContext.TestContext),
+    ),
   )
 
 const failureOf = (fiber: Converse) =>
@@ -316,6 +322,19 @@ describe('Relay', () => {
         }
       }),
     )
+  })
+
+  it('sends the current session token on each retry', async () => {
+    const spy = sequence(busy, () => new Response(okBody('ok'), { status: 200 }))
+    let n = 0
+    await clocked(
+      (fiber) => Eff.Effect.zipRight(advance('10 seconds'), Eff.Fiber.join(fiber)),
+      { getToken: () => Eff.Effect.sync(() => `jwt-${(n += 1)}`) },
+    )
+    const auth = spy.mock.calls.map(
+      ([, init]) => (init.headers as Record<string, string>).authorization,
+    )
+    expect(auth).toEqual(['Bearer jwt-2', 'Bearer jwt-3'])
   })
 
   it('fails without a session and never fetches', async () => {

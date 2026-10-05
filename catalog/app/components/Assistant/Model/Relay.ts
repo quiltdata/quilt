@@ -234,32 +234,35 @@ export function LLMRelay(options: RelayOptions) {
           ...opts,
         }
 
-        const attempt = Eff.Effect.tryPromise({
-          try: async () => {
-            const r = await fetch(
-              `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
-              {
-                method: 'POST',
-                headers: {
-                  'content-type': 'application/json',
-                  authorization: `Bearer ${token}`,
+        // Re-read per attempt: a Busy wait can outlast the session token.
+        const attempt = Eff.Effect.flatMap(options.getToken(), (fresh) =>
+          Eff.Effect.tryPromise({
+            try: async () => {
+              const r = await fetch(
+                `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'content-type': 'application/json',
+                    authorization: `Bearer ${fresh ?? token}`,
+                  },
+                  body: JSON.stringify(requestBody),
+                  signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
                 },
-                body: JSON.stringify(requestBody),
-                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-              },
-            )
-            const text = await r.text()
-            if (!r.ok) throw classifyFailure(r, text)
-            return JSON.parse(text) as BedrockRuntime.ConverseResponse
-          },
-          catch: (e) =>
-            e instanceof Failure
-              ? e
-              : new Failure(
-                  e instanceof Error ? e.message : `Unexpected error: ${e}`,
-                  'never',
-                ),
-        })
+              )
+              const text = await r.text()
+              if (!r.ok) throw classifyFailure(r, text)
+              return JSON.parse(text) as BedrockRuntime.ConverseResponse
+            },
+            catch: (e) =>
+              e instanceof Failure
+                ? e
+                : new Failure(
+                    e instanceof Error ? e.message : `Unexpected error: ${e}`,
+                    'never',
+                  ),
+          }),
+        )
         const backendResponse = yield* attempt.pipe(
           Eff.Effect.retry({
             schedule: TRANSIENT_SCHEDULE,
