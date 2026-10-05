@@ -231,14 +231,9 @@ class StackQueryMaker:
 
     def _merge_pointers(self, table: str, rows: str, target: str) -> str:
         column, _ = _POINTERS[table]
-        # Only tags are updated in place: Athena writes an update as a positional delete beside a new row.
-        moves = (
-            "WHEN MATCHED AND t.top_hash IS DISTINCT FROM s.top_hash THEN UPDATE SET top_hash = s.top_hash"
-            if table == "package_tag"
-            else ""
-        )
         # One source row per pointer, or the MERGE would write or match it twice: two names can spell one
-        # timestamp (`0100`, `100`).
+        # timestamp (`0100`, `100`). Only a moved pointer is updated: Athena writes an update as a positional
+        # delete beside a new row.
         return f"""
         MERGE INTO {self._table(table)} AS t
         USING (
@@ -247,7 +242,8 @@ class StackQueryMaker:
             GROUP BY v.registry, v.pkg_name, v.{column}
         ) AS s
         ON t.registry = s.registry AND t.pkg_name = s.pkg_name AND t.{column} = s.{column} AND ({target})
-        {moves}
+        WHEN MATCHED AND t.top_hash IS DISTINCT FROM s.top_hash THEN
+            UPDATE SET top_hash = s.top_hash
         WHEN NOT MATCHED THEN
             INSERT (registry, pkg_name, {column}, top_hash)
             VALUES (s.registry, s.pkg_name, s.{column}, s.top_hash)
@@ -332,8 +328,8 @@ class StackQueryMaker:
         return self._delete_manifests("package_entry", manifests)
 
     def fill(self, bucket: str) -> list[str]:
-        """Inserts what the set lacks of a bucket's packages and moves its tags; run the first statement, its
-        entries, before the second, its manifests."""
+        """Inserts what the set lacks of a bucket's packages and updates the pointers that moved; run the first
+        statement, its entries, before the second, its manifests."""
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
         manifest_files = f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""

@@ -214,14 +214,14 @@ def test_revision_upsert_writes_the_batch_revisions_across_buckets_whether_or_no
     ]
 
 
-def test_revision_upsert_inserts_only_absent_rows(qm, con):
+def test_revision_upsert_moves_a_rewritten_revision_and_writes_nothing_for_an_unchanged_one(qm, con):
     insert(con, "package_revision", ("s3://b1", "u/p", ts(100), h(1)))
     batch = [Pointer("b1", "u/p", "100", h(2)), Pointer("b1", "u/p", "200", h(2))]
 
-    assert run(con, qm.revision_upsert(batch)) == [1]
+    assert run(con, qm.revision_upsert(batch)) == [2]
     assert run(con, qm.revision_upsert(batch)) == [0]
     assert rows(con, "package_revision") == [
-        ("s3://b1", "u/p", ts(100), h(1)),
+        ("s3://b1", "u/p", ts(100), h(2)),
         ("s3://b1", "u/p", ts(200), h(2)),
     ]
 
@@ -370,18 +370,21 @@ def test_fill_writes_a_bucket_entries_before_its_manifests(qm, con):
     assert filled[:2] == [{"package_entry"}, {"package_entry", "package_manifest"}]
 
 
-def test_fill_again_writes_only_a_moved_tag(qm, con):
+def test_fill_again_writes_only_moved_pointers(qm, con):
     push_bucket(con)
     run(con, qm.fill("b1"))
-    revisions = rows(con, "package_revision")
     assert run(con, qm.fill("b1")) == [0, 0, 0, 0]
 
     con.execute(f"""UPDATE "{USER_DB}"."b1_packages" SET top_hash = '{h(1)}' WHERE "$path" LIKE '%/latest'""")
     con.execute(f"""UPDATE "{USER_DB}"."b1_packages" SET top_hash = '{h(1)}' WHERE "$path" LIKE '%/200'""")
 
-    assert run(con, qm.fill("b1")) == [0, 0, 0, 1]
+    assert run(con, qm.fill("b1")) == [0, 0, 1, 1]
     assert rows(con, "package_tag") == [("s3://b1", "u/p", "dangling", h(9)), ("s3://b1", "u/p", "latest", h(1))]
-    assert rows(con, "package_revision") == revisions
+    assert rows(con, "package_revision") == [
+        ("s3://b1", "u/p", ts(100), h(1)),
+        ("s3://b1", "u/p", ts(200), h(1)),
+        ("s3://b1", "u/p", ts(300), h(9)),
+    ]
 
 
 def test_remove_deletes_one_registry_rows_from_every_table(qm, con):
