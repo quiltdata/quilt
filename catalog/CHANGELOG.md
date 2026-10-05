@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator waits up to a minute for a free slot when other asks keep the stack busy, saying so while it waits, instead of failing with an HTTP 429 error, and reports an unavailable AI gateway at once instead of retrying it ([#5405](https://github.com/quiltdata/quilt/pull/5405))
 - [Fixed] Files, folders and package entries whose path contains a `%` open instead of crashing the page, including from a Quilt+ URI ([#5403](https://github.com/quiltdata/quilt/pull/5403))
 - [Fixed] Qurator: the panel's header menu opens below its button instead of covering it and the close button ([#5402](https://github.com/quiltdata/quilt/pull/5402))
 - [Added] Qurator can summarize PDFs and Office files up to 4 MiB and the first 2 MiB of text or CSV files, past the 500 KiB preview limit, and says how much of each it read ([#5404](https://github.com/quiltdata/quilt/pull/5404))

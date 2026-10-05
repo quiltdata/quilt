@@ -295,9 +295,12 @@ function useConstructAssistantAPI() {
     connectors,
   })
 
+  const [busy, setBusy] = React.useState(false)
+  const onBusy = React.useCallback((b: boolean) => Eff.Effect.sync(() => setBusy(b)), [])
+
   const llm = React.useMemo(
-    () => Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken }),
-    [modelId, record, getToken],
+    () => Relay.LLMRelay({ url: getInferenceUrl(), modelId, record, getToken, onBusy }),
+    [modelId, record, getToken, onBusy],
   )
 
   const layerEff = Eff.Effect.sync(() =>
@@ -336,6 +339,7 @@ function useConstructAssistantAPI() {
     assist,
     state,
     dispatch,
+    busy,
     connectors,
     instructions,
     model,
