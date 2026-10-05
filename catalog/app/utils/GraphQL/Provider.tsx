@@ -147,6 +147,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           QuratorConfig: () => null,
           QuratorGatewayConfig: () => null,
           QuratorModelConfig: () => null,
+          QuratorModelName: () => null,
           Collaborator: (c) => c.username as string,
           Config: () => null,
           ContentIndexingSettings: () => null,

@@ -19,10 +19,7 @@ vi.mock('utils/GraphQL', async (importActual) => ({
   useQuery: () =>
     state.available instanceof Error
       ? { fetching: false, error: state.available }
-      : {
-          fetching: false,
-          data: { admin: { quratorAvailableModels: state.available } },
-        },
+      : { fetching: false, data: { admin: { quratorAvailableModels: state.available } } },
   useMutation: () => state.mutate,
 }))
 
@@ -45,10 +42,7 @@ const config = (
     maxToolCallsPerTurn: 20,
     names,
   },
-  gateway: {
-    endpointUrl: 'https://gw.example.net/bedrock',
-    accountId: '123456789012',
-  },
+  gateway: { endpointUrl: 'https://gw.example.net/bedrock', accountId: '123456789012' },
 })
 
 const ok = (input: any) => ({
@@ -106,6 +100,17 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
     )
   })
 
+  it('clears a saved name when its field is emptied', async () => {
+    state.config = config([HAIKU], HAIKU, [{ id: HAIKU, name: 'Quick' }])
+    const { getByLabelText, getByText } = render(<QuratorModelSettings />)
+    fireEvent.change(getByLabelText(`Display name for ${HAIKU}`), {
+      target: { value: ' ' },
+    })
+    fireEvent.click(getByText('Save'))
+    await waitFor(() => expect(state.mutate).toHaveBeenCalled())
+    expect(state.mutate.mock.calls[0][0].input.names).toBeNull()
+  })
+
   it('parses one id per line, dropping blanks and repeats', () => {
     expect(parseIds(` ${HAIKU}\n\n${OPUS}\n${HAIKU} `)).toEqual([HAIKU, OPUS])
   })
@@ -131,9 +136,7 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
   it('unsets the governance when the list is emptied', async () => {
     state.config = config([HAIKU], HAIKU)
     const { getByLabelText, getByText } = render(<QuratorModelSettings />)
-    fireEvent.change(getByLabelText('Allowed model IDs'), {
-      target: { value: '' },
-    })
+    fireEvent.change(getByLabelText('Allowed model IDs'), { target: { value: '' } })
     fireEvent.click(getByText('Save'))
     await waitFor(() => expect(state.mutate).toHaveBeenCalled())
     const { input } = state.mutate.mock.calls[0][0]
@@ -147,18 +150,13 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
         setQuratorConfig: {
           __typename: 'InvalidInput',
           errors: [
-            {
-              path: 'allowlist',
-              message: 'That value is not one this field accepts.',
-            },
+            { path: 'allowlist', message: 'That value is not one this field accepts.' },
           ],
         },
       },
     }))
     const { getByLabelText, getByText, findByRole } = render(<QuratorModelSettings />)
-    fireEvent.change(getByLabelText('Allowed model IDs'), {
-      target: { value: 'claude' },
-    })
+    fireEvent.change(getByLabelText('Allowed model IDs'), { target: { value: 'claude' } })
     fireEvent.click(getByText('Save'))
     expect((await findByRole('alert')).textContent).toBe(
       'That value is not one this field accepts.',
@@ -200,18 +198,11 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
       state.config = config([OPUS, EXTRA], OPUS)
       const { getByLabelText, getByRole } = render(<QuratorModelSettings />)
       expect(
-        (
-          getByRole('checkbox', {
-            name: /Claude Opus 4\.5/,
-          }) as HTMLInputElement
-        ).checked,
+        (getByRole('checkbox', { name: /Claude Opus 4\.5/ }) as HTMLInputElement).checked,
       ).toBe(true)
       expect(
-        (
-          getByRole('checkbox', {
-            name: /Claude Haiku 4\.5/,
-          }) as HTMLInputElement
-        ).checked,
+        (getByRole('checkbox', { name: /Claude Haiku 4\.5/ }) as HTMLInputElement)
+          .checked,
       ).toBe(false)
       expect((getByLabelText('Additional model IDs') as HTMLTextAreaElement).value).toBe(
         EXTRA,

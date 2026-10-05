@@ -331,7 +331,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
                 margin="dense"
                 variant="outlined"
                 label="Display name"
-                placeholder={ModelChoice.displayName(id)}
+                placeholder={ModelChoice.label(id)}
                 inputProps={{
                   'aria-label': `Display name for ${id}`,
                   maxLength: MAX_NAME_LENGTH,

@@ -82,43 +82,24 @@ describe('components/Assistant/Model/ModelChoice useGoverned', () => {
 
   it('is unsettled while the read is in flight', () => {
     query.current = { fetching: true }
-    expect(readGoverned()).toEqual({
-      governed: null,
-      settled: false,
-      failed: false,
-    })
+    expect(readGoverned()).toEqual({ governed: null, settled: false, failed: false })
   })
 
   // A turn waits for `settled`, so a failed read must settle or Qurator hangs.
   it('settles, flagged as failed, when the read fails', () => {
     query.current = { fetching: false, error: new Error('boom') }
-    expect(readGoverned()).toEqual({
-      governed: null,
-      settled: true,
-      failed: true,
-    })
+    expect(readGoverned()).toEqual({ governed: null, settled: true, failed: true })
   })
 
   it('settles ungoverned when no admin has saved a set, or the field is refused', () => {
-    query.current = {
-      fetching: false,
-      data: { config: { quratorModels: null } },
-    }
-    expect(readGoverned()).toEqual({
-      governed: null,
-      settled: true,
-      failed: false,
-    })
+    query.current = { fetching: false, data: { config: { quratorModels: null } } }
+    expect(readGoverned()).toEqual({ governed: null, settled: true, failed: false })
     cleanup()
     query.current = {
       fetching: false,
       data: { config: { quratorModels: { allowlist: null, default: null } } },
     }
-    expect(readGoverned()).toEqual({
-      governed: null,
-      settled: true,
-      failed: false,
-    })
+    expect(readGoverned()).toEqual({ governed: null, settled: true, failed: false })
   })
 
   it('settles governed with the saved set', () => {
