@@ -69,8 +69,11 @@ const TIERS: readonly [RegExp, string][] = [
   [/haiku/i, 'Light'],
 ]
 
-/** A coarse weight class for a model id, when its family name implies one. */
+const SAGEMAKER_ENDPOINT = /^arn:aws[a-z-]*:sagemaker:[^:]*:\d{12}:endpoint\/(.+)$/
+
+/** A coarse weight class for a Bedrock model id, when its family name implies one. */
 export function tier(id: string): string | null {
+  if (SAGEMAKER_ENDPOINT.test(id)) return null
   return TIERS.find(([re]) => re.test(id))?.[1] ?? null
 }
 
@@ -78,13 +81,16 @@ export function tier(id: string): string | null {
  * A readable name for a Bedrock model id: region and vendor prefixes, the
  * release date and the version suffix dropped, so
  * `us.anthropic.claude-sonnet-4-5-20250929-v1:0` reads "Claude Sonnet 4.5".
+ * A SageMaker endpoint ARN reads as its endpoint name, unstripped.
  */
 export function displayName(id: string): string {
-  const base = id
-    // Every dot-terminated leading segment: `us.`, `us-gov.`, `global.`, the vendor.
-    .replace(/^(?:[a-z0-9-]+\.)*/, '')
-    .replace(/-\d{8}/, '')
-    .replace(/-v\d+(?::\w+)*$/, '')
+  const base =
+    id.match(SAGEMAKER_ENDPOINT)?.[1] ??
+    id
+      // Every dot-terminated leading segment: `us.`, `us-gov.`, `global.`, the vendor.
+      .replace(/^(?:[a-z0-9-]+\.)*/, '')
+      .replace(/-\d{8}/, '')
+      .replace(/-v\d+(?::\w+)*$/, '')
   const words: string[] = []
   for (const part of base.split('-').filter(Boolean)) {
     const prev = words[words.length - 1]

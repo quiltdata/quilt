@@ -264,7 +264,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
         value={text}
         disabled={pending}
         onChange={(e) => setText(e.target.value)}
-        helperText="One full Bedrock model ID or inference profile ID per line."
+        helperText="One full Bedrock model ID, inference profile ID, or SageMaker endpoint ARN per line. In an ARN, write the endpoint name in the case it was created with; AWS shows it lowercased."
       />
       <div className={classes.controls}>
         <M.TextField
