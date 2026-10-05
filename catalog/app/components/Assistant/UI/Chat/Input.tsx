@@ -168,9 +168,7 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
               <M.ListItemIcon className={classes.check}>
                 <M.Icon
                   fontSize="small"
-                  style={{
-                    visibility: id === model.current ? 'visible' : 'hidden',
-                  }}
+                  style={{ visibility: id === model.current ? 'visible' : 'hidden' }}
                 >
                   check
                 </M.Icon>

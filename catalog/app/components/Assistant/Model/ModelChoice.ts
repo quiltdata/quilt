@@ -8,7 +8,6 @@ import QURATOR_MODELS_QUERY from './gql/QuratorModels.generated'
 export interface Governed {
   allowlist: readonly string[]
   default: string | null
-  /** Admin-chosen display names by model id. */
   names?: Readonly<Record<string, string>>
 }
 
