@@ -359,12 +359,13 @@ def test_fill_skips_an_object_under_the_pointers_prefix_that_names_no_package(qm
     assert rows(con, "package_revision") == []
 
 
-def test_fill_leaves_a_manifest_written_while_it_runs_to_its_event(qm, con):
-    push_manifest(con, "b1", h(1), written=200)  # earlier in the second the fill was built
+def test_fill_reads_only_manifests_from_before_the_second_it_was_built_in(qm, con):
+    push_manifest(con, "b1", h(1), written=199)
+    push_manifest(con, "b1", h(2), written=200)  # S3's whole second for one written just before or after the build
     entries, manifests, *_ = qm.fill("b1", written_before=200.5)
 
     run(con, [entries])
-    push_manifest(con, "b1", h(2), written=300)  # between the fill's two reads
+    push_manifest(con, "b1", h(3), written=300)  # between the fill's two reads
     run(con, [manifests])
 
     assert rows(con, "package_entry", "top_hash") == [(h(1),)]

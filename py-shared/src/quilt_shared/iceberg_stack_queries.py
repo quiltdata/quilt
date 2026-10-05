@@ -333,12 +333,13 @@ class StackQueryMaker:
         statement, its entries, before the second, its manifests."""
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
-        # Both read the same manifests, those written before the fill was built, so one written between them gets
-        # neither its entries nor its row here: its own event writes both.
-        cutoff = time.time() if written_before is None else written_before
+        # Both read the same manifests, so one written between them gets neither its entries nor its row here: its
+        # event, or the next fill, writes both. S3 reports modification times in whole seconds, so the cutoff is
+        # the start of the second the fill was built in, which no manifest written after the build precedes.
+        cutoff = int(time.time() if written_before is None else written_before)
         manifest_files = (
             f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
-            f""" AND "$file_modified_time" < from_unixtime({cutoff!r})"""
+            f""" AND "$file_modified_time" < from_unixtime({cutoff})"""
         )
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+$', 1)"""
