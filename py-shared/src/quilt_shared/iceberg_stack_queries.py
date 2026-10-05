@@ -354,6 +354,7 @@ class StackQueryMaker:
         target = f"t.registry = {registry}"
         present = self._present(f"registry = {registry}")
         manifest_files = f"""regexp_like(substr("$path", {len(_manifests_prefix(bucket)) + 1}), '^{_TOP_HASH}$')"""
+        # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
         packages = self._source(bucket, "packages")
@@ -364,7 +365,7 @@ class StackQueryMaker:
                 from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
                 top_hash
             FROM {packages}
-            WHERE TRY_CAST({pointer} AS bigint) IS NOT NULL
+            WHERE TRY_CAST({pointer} AS bigint) IS NOT NULL AND {pkg_name} <> ''
         ) AS v"""
         tags = f"""(
             SELECT
@@ -373,7 +374,7 @@ class StackQueryMaker:
                 {pointer} AS tag_name,
                 top_hash
             FROM {packages}
-            WHERE TRY_CAST({pointer} AS bigint) IS NULL
+            WHERE TRY_CAST({pointer} AS bigint) IS NULL AND {pkg_name} <> ''
         ) AS v"""
         return [
             self._merge_entries(self._entries_from(bucket, manifest_files), target),

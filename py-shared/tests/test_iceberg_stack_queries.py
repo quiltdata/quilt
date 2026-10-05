@@ -392,6 +392,20 @@ def test_fill_writes_one_revision_for_a_timestamp_two_pointer_names_spell(qm, co
     assert rows(con, "package_revision", "pkg_name", "timestamp", "top_hash") == [("u/p", ts(100), h(written))]
 
 
+def test_fill_skips_an_object_under_the_pointers_prefix_that_names_no_package(qm, con):
+    push_manifest(con, "b1", h(1))
+    for name in ("README", "100"):
+        con.execute(
+            f'INSERT INTO "{USER_DB}"."b1_packages" VALUES (?, ?)', [f"s3://b1/.quilt/named_packages/{name}", h(1)]
+        )
+
+    run(con, qm.fill("b1"))
+    run(con, qm.fill("b1"))
+
+    assert rows(con, "package_tag") == []
+    assert rows(con, "package_revision") == []
+
+
 def test_fill_writes_entries_then_manifests_then_revisions_then_tags(qm, con):
     push_bucket(con)
     filled = []
