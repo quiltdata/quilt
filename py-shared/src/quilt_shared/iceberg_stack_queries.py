@@ -355,14 +355,19 @@ class StackQueryMaker:
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
         packages = self._source(bucket, "packages")
+        # One row per timestamp, should two pointer names spell it (`0100`, `100`).
         revisions = f"""(
-            SELECT
-                {registry} AS registry,
-                {pkg_name} AS pkg_name,
-                from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
-                top_hash
-            FROM {packages}
-            WHERE TRY_CAST({pointer} AS bigint) IS NOT NULL
+            SELECT registry, pkg_name, timestamp, max(top_hash) AS top_hash
+            FROM (
+                SELECT
+                    {registry} AS registry,
+                    {pkg_name} AS pkg_name,
+                    from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
+                    top_hash
+                FROM {packages}
+                WHERE TRY_CAST({pointer} AS bigint) IS NOT NULL
+            ) AS p
+            GROUP BY registry, pkg_name, timestamp
         ) AS v"""
         tags = f"""(
             SELECT

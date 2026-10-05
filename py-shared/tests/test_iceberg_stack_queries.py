@@ -371,6 +371,17 @@ def test_fill_skips_an_object_under_the_manifests_prefix_that_is_not_a_manifest(
     assert rows(con, "package_manifest", "registry", "top_hash", "message") == [("s3://b1", h(1), f"msg {h(1)}")]
 
 
+def test_fill_writes_one_revision_for_a_timestamp_two_pointer_names_spell(qm, con):
+    push_manifest(con, "b1", h(1))
+    push_manifest(con, "b1", h(2))
+    push_pointer(con, "b1", "u/p", "0100", h(1))
+    push_pointer(con, "b1", "u/p", "100", h(2))
+
+    run(con, qm.fill("b1"))
+
+    assert rows(con, "package_revision", "pkg_name", "timestamp") == [("u/p", ts(100))]
+
+
 def test_fill_writes_entries_then_manifests_then_revisions_then_tags(qm, con):
     push_bucket(con)
     filled = []
