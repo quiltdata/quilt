@@ -96,10 +96,14 @@ export function combineIds(
 
 type Names = Readonly<Record<string, string>>
 
+// Own keys only: a typed id such as `constructor` must not find a prototype method.
+const nameIn = (names: Names, id: string) =>
+  Object.prototype.hasOwnProperty.call(names, id) ? names[id] : undefined
+
 /** Display names for the ids being saved, in their order: trimmed, blanks dropped. */
 export function namesFor(ids: readonly string[], names: Names) {
   return ids.flatMap((id) => {
-    const name = names[id]?.trim()
+    const name = nameIn(names, id)?.trim()
     return name ? [{ id, name }] : []
   })
 }
@@ -192,7 +196,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
   const effectiveDefault = ids.includes(chosenDefault) ? chosenDefault : (ids[0] ?? '')
 
   const namesOut = React.useMemo(() => namesFor(ids, names), [ids, names])
-  const savedNames = toNames(saved.models.names)
+  const savedNames = React.useMemo(() => toNames(saved.models.names), [saved])
   const dirty =
     !sameSet(ids, savedIds) ||
     effectiveDefault !== (saved.models.default ?? '') ||
@@ -206,11 +210,16 @@ function Editor({ config, available, unavailable }: EditorProps) {
   )
 
   const nameOf = React.useCallback(
-    (id: string) => names[id]?.trim() || available.find((m) => m.id === id)?.name,
+    (id: string) => nameIn(names, id)?.trim() || available.find((m) => m.id === id)?.name,
     [available, names],
   )
 
-  const typed = React.useMemo(() => parseIds(text), [text])
+  // Typed ids, plus any saved id that already has a name, so no saved name is
+  // kept out of the admin's sight.
+  const named = React.useMemo(() => {
+    const typed = parseIds(text)
+    return ids.filter((id) => typed.includes(id) || nameIn(savedNames, id))
+  }, [ids, text, savedNames])
 
   const save = React.useCallback(async () => {
     setPending(true)
@@ -307,13 +316,13 @@ function Editor({ config, available, unavailable }: EditorProps) {
         onChange={(e) => setText(e.target.value)}
         helperText="One full Bedrock model ID, inference profile ID, or SageMaker endpoint ARN per line. In an ARN, write the endpoint name in the case it was created with; AWS shows it lowercased."
       />
-      {!!typed.length && (
+      {!!named.length && (
         <M.FormControl component="fieldset" disabled={pending}>
           <M.FormLabel component="legend">Display names</M.FormLabel>
           <M.FormHelperText>
             Optional. Qurator's model menu shows this instead of the model ID.
           </M.FormHelperText>
-          {typed.map((id) => (
+          {named.map((id) => (
             <div key={id} className={classes.nameRow}>
               <span className={`${classes.modelId} ${classes.nameId}`}>{id}</span>
               <M.TextField
@@ -327,7 +336,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
                   'aria-label': `Display name for ${id}`,
                   maxLength: MAX_NAME_LENGTH,
                 }}
-                value={names[id] ?? ''}
+                value={nameIn(names, id) ?? ''}
                 disabled={pending}
                 onChange={(e) => {
                   const value = e.target.value

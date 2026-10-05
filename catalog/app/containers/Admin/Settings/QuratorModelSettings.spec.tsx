@@ -90,6 +90,22 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
     await waitFor(() => expect(field.value).toBe('Nemotron (on-prem)'))
   })
 
+  it('reads no name for an id that matches a prototype key', () => {
+    expect(namesFor(['constructor', 'toString'], {})).toEqual([])
+  })
+
+  it('shows a saved name on a listed model so it can be cleared', () => {
+    state.config = config([HAIKU], HAIKU, [{ id: HAIKU, name: 'Quick' }])
+    state.available = {
+      models: [{ id: HAIKU, name: 'Claude Haiku 4.5' }],
+      unavailable: null,
+    }
+    const { getByLabelText } = render(<QuratorModelSettings />)
+    expect((getByLabelText(`Display name for ${HAIKU}`) as HTMLInputElement).value).toBe(
+      'Quick',
+    )
+  })
+
   it('parses one id per line, dropping blanks and repeats', () => {
     expect(parseIds(` ${HAIKU}\n\n${OPUS}\n${HAIKU} `)).toEqual([HAIKU, OPUS])
   })
