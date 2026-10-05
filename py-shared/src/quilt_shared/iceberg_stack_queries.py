@@ -148,7 +148,8 @@ def _statements(
 class StackQueryMaker:
     """Run a batch's statements in order: delete tags and revisions, then manifests, then entries; upsert
     entries, then manifests, then run `manifests_present` for the pointers, then upsert tags and revisions.
-    Readers rely on the order to find every pointer's manifest and its entries.
+    Readers rely on the order to find every pointer's manifest and its entries. The order is by table, not
+    by event, so a batch holds each key once, upserted or deleted as its object now stands.
     """
 
     def __init__(self, *, database: str, user_athena_db: str):
