@@ -10,7 +10,7 @@ const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
 
 // quilt3's jsonschema ignores unknown keywords and formats and doesn't fill defaults, so ajv
 // must not be stricter (or more lenient) than the push.
-const AJV_LIKE_PUSH = { strict: false, useDefaults: false }
+const AJV_LIKE_PUSH = { strict: false, useDefaults: false, validateFormats: false }
 
 export interface Issue {
   path: string
@@ -76,7 +76,12 @@ export function dryRun(
       message: 'Commit message is required by workflow, but none was provided.',
     })
   }
-  if (workflow.packageNamePattern && !workflow.packageNamePattern.test(name)) {
+  if (workflow.packageNamePatternError) {
+    issues.push({
+      path: 'name',
+      message: `Name pattern can't be checked in the browser (${workflow.packageNamePatternError}); push still enforces it.`,
+    })
+  } else if (workflow.packageNamePattern && !workflow.packageNamePattern.test(name)) {
     issues.push({ path: 'name', message: "Package name doesn't match required pattern." })
   }
   if (metadataSchema) {

@@ -86,6 +86,24 @@ describe('containers/Bucket/Workflows/checks', () => {
       expect(issues.map((i) => i.path)).toEqual(['/a'])
     })
 
+    it('ignores formats, as push does', () => {
+      const issues = checks.dryRun(
+        workflow(),
+        { type: 'object', properties: { d: { type: 'string', format: 'date' } } },
+        { name: 'a/b', message: '', meta: { d: 'not a date' } },
+      )
+      expect(issues).toEqual([])
+    })
+
+    it('fails the name when the pattern cannot be checked here', () => {
+      const issues = checks.dryRun(
+        workflow({ packageNamePatternError: 'x' }),
+        undefined,
+        { name: 'a/b', message: '', meta: {} },
+      )
+      expect(issues.map((i) => i.path)).toEqual(['name'])
+    })
+
     it('passes valid input', () => {
       expect(
         checks.dryRun(workflow({ packageNamePattern: /^lab\// }), schema, {

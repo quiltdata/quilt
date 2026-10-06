@@ -269,6 +269,17 @@ describe('utils/workflows', () => {
       expect(w.packageNamePatternError).toMatch('Invalid')
     })
   })
+  describe('Python-only anchors', () => {
+    it('are skipped rather than read as literal letters', () => {
+      const w = workflows.parse(
+        'version: "1"\nworkflows:\n  a:\n    name: A\n    handle_pattern: "^[a-z]+/[a-z]+\\\\Z"\n',
+        'foo',
+      ).workflows[1]
+      expect(w.packageNamePattern).toBe(null)
+      expect(w.packageNamePatternError).toMatch('anchor')
+    })
+  })
+
   describe('workflow naming a schema the config does not define', () => {
     const data = dedent`
       version: "1"

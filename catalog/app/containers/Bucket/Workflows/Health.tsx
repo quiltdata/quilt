@@ -72,34 +72,37 @@ function SchemaCheck({ label, schema, result }: SchemaCheckProps) {
 interface TryItProps {
   workflow: Workflows.Workflow
   metadataSchema: SchemaResult
+  entriesSchema: SchemaResult
 }
 
-function TryIt({ workflow, metadataSchema }: TryItProps) {
+// Issues that fail every push before name, message or metadata are looked at.
+function schemaIssues(label: string, url: string | undefined, result: SchemaResult) {
+  if (!url) return []
+  if (result === Request.Idle || result === Request.Loading) {
+    return [{ path: label, message: `Loading the ${label} schema…` }]
+  }
+  if (result instanceof Error) {
+    return [{ path: label, message: `Can't read the ${label} schema: ${result.message}` }]
+  }
+  return checks.checkSchema(result).map((message) => ({ path: label, message }))
+}
+
+function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
   const [name, setName] = React.useState('')
   const [message, setMessage] = React.useState('')
   const [metaText, setMetaText] = React.useState('{}')
 
   const issues = React.useMemo((): checks.Issue[] => {
-    // Fail closed: a schema we couldn't load must not read as "passes".
-    if (workflow.undefinedSchemas?.length) {
-      return workflow.undefinedSchemas.map((id) => ({
+    // Fail closed: a schema push can't use must not read as "passes".
+    const blocking: checks.Issue[] = [
+      ...(workflow.undefinedSchemas || []).map((id) => ({
         path: 'workflow',
         message: `There is no '${id}' in schemas.`,
-      }))
-    }
-    if (workflow.schema) {
-      if (metadataSchema === Request.Idle || metadataSchema === Request.Loading) {
-        return [{ path: 'metadata', message: 'Loading the metadata schema…' }]
-      }
-      if (metadataSchema instanceof Error) {
-        return [
-          {
-            path: 'metadata',
-            message: `Metadata schema unavailable, so metadata can't be checked: ${metadataSchema.message}`,
-          },
-        ]
-      }
-    }
+      })),
+      ...schemaIssues('metadata', workflow.schema?.url, metadataSchema),
+      ...schemaIssues('entries', workflow.entriesSchema, entriesSchema),
+    ]
+    if (blocking.length) return blocking
     let meta
     try {
       meta = JSON.parse(metaText || '{}')
@@ -111,7 +114,7 @@ function TryIt({ workflow, metadataSchema }: TryItProps) {
         ? undefined
         : metadataSchema || undefined
     return checks.dryRun(workflow, schema, { name, message, meta })
-  }, [workflow, metadataSchema, name, message, metaText])
+  }, [workflow, metadataSchema, entriesSchema, name, message, metaText])
 
   return (
     <>
@@ -182,8 +185,7 @@ export default function Health({ workflow }: HealthProps) {
       </M.Box>
       {workflow.packageNamePatternError && (
         <M.Typography variant="body2" color="error" gutterBottom>
-          Package name pattern uses syntax the browser can&apos;t check (
-          {workflow.packageNamePatternError}). Pushes still enforce it.
+          {`Package name pattern can't be checked in the browser (${workflow.packageNamePatternError}). Pushes still enforce it.`}
         </M.Typography>
       )}
       {workflow.undefinedSchemas?.map((id) => (
@@ -218,7 +220,11 @@ export default function Health({ workflow }: HealthProps) {
           here.
         </M.Typography>
       </M.Box>
-      <TryIt workflow={workflow} metadataSchema={metadataSchema} />
+      <TryIt
+        workflow={workflow}
+        metadataSchema={metadataSchema}
+        entriesSchema={entriesSchema}
+      />
     </>
   )
 }

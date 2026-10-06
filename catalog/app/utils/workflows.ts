@@ -159,6 +159,13 @@ function compilePattern(
   src?: string,
 ): Pick<Workflow, 'packageNamePattern' | 'packageNamePatternError'> {
   if (!src) return { packageNamePattern: null }
+  // JS compiles these but reads them as literal letters, so the pattern would mean something else.
+  if (/(^|[^\\])(\\\\)*\\[AZ]/.test(src)) {
+    return {
+      packageNamePattern: null,
+      packageNamePatternError: 'Python-only anchor \\A or \\Z',
+    }
+  }
   try {
     return { packageNamePattern: new RegExp(src) }
   } catch (e) {
@@ -187,8 +194,12 @@ function parseWorkflow(
     ),
     ...compilePattern(workflow.handle_pattern),
     // quilt3 rejects every push through such a workflow ("There is no ... in schemas").
-    undefinedSchemas: [workflow.metadata_schema, workflow.entries_schema].filter(
-      (id): id is string => !!id && !data.schemas?.[id],
+    undefinedSchemas: Array.from(
+      new Set(
+        [workflow.metadata_schema, workflow.entries_schema].filter(
+          (id): id is string => !!id && !data.schemas?.[id],
+        ),
+      ),
     ),
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
