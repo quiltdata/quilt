@@ -1,6 +1,7 @@
 import datetime
 import io
 import json
+import os
 
 import botocore.exceptions
 import duckdb
@@ -15,6 +16,11 @@ STACK_DB = "test_stack_db"
 USER_DB = "test_user_athena_db"
 BUCKET = "b1"
 REGISTRY = "s3://b1"
+TIMEOUT_S = 300  # the set's function's
+
+# Athena's errors, by whether it tells a retry can succeed.
+BAD_DATA = {"ErrorCategory": 2, "Retryable": False, "ErrorMessage": "HIVE_BAD_DATA: unreadable manifest"}
+UNAVAILABLE = {"ErrorCategory": 1, "Retryable": True, "ErrorMessage": "Athena is unavailable"}
 
 
 def h(n: int) -> str:
@@ -30,10 +36,13 @@ def pointer_key(pkg_name: str, pointer: str) -> str:
 
 
 def record(message_id: str, key: str, group: str | None = None) -> dict:
-    """An SQS record of an S3 event, in a FIFO queue's message group where one is given."""
+    """An SQS record of an S3 event from the set's FIFO queue, in its own message group unless one is given."""
     body = {"detail": {"s3": {"bucket": {"name": BUCKET}, "object": {"key": key}}}}
-    attributes = {"attributes": {"MessageGroupId": group}} if group else {}
-    return {"messageId": message_id, "body": json.dumps(body), **attributes}
+    return {"messageId": message_id, "body": json.dumps(body), "attributes": {"MessageGroupId": group or message_id}}
+
+
+def undecodable(message_id: str, group: str | None = None) -> dict:
+    return {"messageId": message_id, "body": "{}", "attributes": {"MessageGroupId": group or message_id}}
 
 
 def failures(*message_ids: str) -> dict:
@@ -45,55 +54,90 @@ def holdings(con) -> dict[str, set]:
     return {t: set(con.execute(f'SELECT registry, top_hash FROM "{STACK_DB}"."{t}"').fetchall()) for t in TABLES}
 
 
+class Clock:
+    """The invocation's time: polling sleeps on it, and a query runs for as long as Athena takes."""
+
+    def __init__(self):
+        self.now = 0.0
+
+    def sleep(self, seconds: float):
+        self.now += seconds
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+class Context:
+    """The Lambda context."""
+
+    def __init__(self, clock: Clock):
+        self.clock = clock
+
+    def get_remaining_time_in_millis(self) -> int:
+        return int((TIMEOUT_S - self.clock.now) * 1000)
+
+
 class Athena:
-    """Athena's API as the set's role sees it, running each query on DuckDB as it starts.
+    """Athena's API as the set's role sees it, running each query on DuckDB once it has taken its time.
 
     The role reaches the stack database alone, so a query run in any other database fails.
     """
 
-    def __init__(self, con):
+    def __init__(self, con, clock: Clock):
         self.con = con
-        self.fails = lambda sql: False
+        self.clock = clock
+        self.fails = lambda sql: None  # the AthenaError the query fails with, if it does
+        self.takes = lambda sql: 0  # the seconds the query runs
         self.refuses = lambda sql: False  # whether the API refuses to start the query
-        self.refusal = "ThrottlingException"  # the error it refuses with
         self.refuses_polls = lambda sql: False  # whether it fails to report a started query's state
         self.poll_error = lambda: botocore.exceptions.ClientError(
             {"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution"
         )
-        self.refusals = 0
+        self.refused = []  # the queries refused a start
         self.started = []  # the queries started
-        self.reasons = {}  # a failed execution's reason
+        self.stopped = []  # the ids of those stopped
+        self.ends = {}  # each query's end
+        self.errors = {}  # each finished query's AthenaError, or None
         self.held = []  # the set's holdings after each query
-        self.remaining_ms = 300_000  # the invocation's, spent as queries run
-        self.query_ms = 0
 
     def start_query_execution(self, *, QueryString, QueryExecutionContext, **kwargs):
         if self.refuses(QueryString):
-            self.refusals += 1
-            raise botocore.exceptions.ClientError({"Error": {"Code": self.refusal}}, "StartQueryExecution")
-        self.remaining_ms -= self.query_ms
+            self.refused.append(QueryString)
+            raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "StartQueryExecution")
         execution_id = str(len(self.started))
-        self.started.append(QueryString)
-        self.reasons[execution_id] = None
-        if QueryExecutionContext["Database"] != STACK_DB:
-            self.reasons[execution_id] = "AccessDeniedException: no access to the database"
-        elif self.fails(QueryString):
-            self.reasons[execution_id] = "HIVE_BAD_DATA: unreadable manifest"
-        else:
-            try:
-                self.con.execute(QueryString)
-            except duckdb.Error as e:
-                self.reasons[execution_id] = f"GENERIC_INTERNAL_ERROR: {e}"
-            self.held.append(holdings(self.con))
+        self.started.append((QueryString, QueryExecutionContext["Database"]))
+        self.ends[execution_id] = self.clock.now + self.takes(QueryString)
         return {"QueryExecutionId": execution_id}
 
+    def _finish(self, execution_id: str):
+        sql, database = self.started[int(execution_id)]
+        if database != STACK_DB:
+            error = {"Retryable": False, "ErrorMessage": "AccessDeniedException: no access to the database"}
+        elif not (error := self.fails(sql)):
+            try:
+                self.con.execute(sql)
+            except duckdb.Error as e:
+                error = {"Retryable": False, "ErrorMessage": f"GENERIC_INTERNAL_ERROR: {e}"}
+            self.held.append(holdings(self.con))
+        self.errors[execution_id] = error
+
     def get_query_execution(self, *, QueryExecutionId):
-        if self.refuses_polls(self.started[int(QueryExecutionId)]):
+        if self.refuses_polls(self.started[int(QueryExecutionId)][0]):
             raise self.poll_error()
-        status = {"State": "SUCCEEDED"}
-        if reason := self.reasons[QueryExecutionId]:
-            status = {"State": "FAILED", "StateChangeReason": reason}
+        if QueryExecutionId in self.stopped:
+            status = {"State": "CANCELLED"}
+        elif self.clock.now < self.ends[QueryExecutionId]:
+            status = {"State": "RUNNING"}
+        else:
+            if QueryExecutionId not in self.errors:
+                self._finish(QueryExecutionId)
+            status = {"State": "SUCCEEDED"}
+            if error := self.errors[QueryExecutionId]:
+                status = {"State": "FAILED", "StateChangeReason": error["ErrorMessage"], "AthenaError": error}
         return {"QueryExecution": {"QueryExecutionId": QueryExecutionId, "Status": status}}
+
+    def stop_query_execution(self, *, QueryExecutionId):
+        self.stopped.append(QueryExecutionId)
 
 
 class S3:
@@ -109,6 +153,17 @@ class S3:
         if isinstance(body, Exception):
             raise body
         return {"Body": StreamingBody(io.BytesIO(body), len(body))}
+
+
+class SQS:
+    def __init__(self):
+        self.sent = []
+        self.fails = False
+
+    def send_message(self, **message):
+        if self.fails:
+            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, "SendMessage")
+        self.sent.append(message)
 
 
 @pytest.fixture
@@ -129,11 +184,18 @@ def con():
 
 
 @pytest.fixture
-def athena(mocker, con):
-    fake = Athena(con)
-    for name in ("start_query_execution", "get_query_execution"):
+def clock(mocker):
+    fake = Clock()
+    mocker.patch("quilt_shared.athena.time", fake)
+    mocker.patch("t4_lambda_iceberg.time", fake)
+    return fake
+
+
+@pytest.fixture
+def athena(mocker, con, clock):
+    fake = Athena(con, clock)
+    for name in ("start_query_execution", "get_query_execution", "stop_query_execution"):
         mocker.patch.object(t4_lambda_iceberg.athena, name, getattr(fake, name))
-    mocker.patch("time.sleep")
     return fake
 
 
@@ -144,19 +206,16 @@ def s3(mocker):
     return fake
 
 
-class Context:
-    """The Lambda context, whose time runs out as Athena runs queries."""
-
-    def __init__(self, athena: Athena):
-        self.athena = athena
-
-    def get_remaining_time_in_millis(self) -> int:
-        return self.athena.remaining_ms
+@pytest.fixture
+def sqs(mocker):
+    fake = SQS()
+    mocker.patch.object(t4_lambda_iceberg.sqs, "send_message", fake.send_message)
+    return fake
 
 
 @pytest.fixture
-def handle(athena):
-    return lambda *records: t4_lambda_iceberg.set_handler({"Records": list(records)}, Context(athena))
+def handle(athena, clock, sqs):
+    return lambda *records: t4_lambda_iceberg.set_handler({"Records": list(records)}, Context(clock))
 
 
 def put_manifest(s3, con, top_hash: str):
@@ -219,6 +278,19 @@ def delete(s3, con) -> list[dict]:
     ]
 
 
+def dead_lettered(sqs) -> dict[str, tuple[str, str, str]]:
+    """Each dead-lettered message's group, body and reason, by its id."""
+    assert all(m["QueueUrl"] == os.environ["QUILT_STACK_DEAD_LETTER_QUEUE_URL"] for m in sqs.sent)
+    return {
+        m["MessageDeduplicationId"]: (
+            m["MessageGroupId"],
+            m["MessageBody"],
+            m["MessageAttributes"]["reason"]["StringValue"],
+        )
+        for m in sqs.sent
+    }
+
+
 @pytest.mark.parametrize(
     "batch, held",
     [
@@ -252,11 +324,11 @@ def test_a_pointer_is_written_whether_or_not_the_set_holds_its_manifest(handle, 
 
 
 def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_alone_is_returned(
-    handle, athena, s3, con
+    handle, athena, s3, con, sqs
 ):
     batch = manifests(s3, con, 1, 2, 3)
     put_pointer(s3, "u/p", "latest", h(1))
-    athena.fails = lambda sql: '"package_entry"' in sql and h(2) in sql
+    athena.fails = lambda sql: UNAVAILABLE if '"package_entry"' in sql and h(2) in sql else None
 
     response = handle(*batch, record("tag", pointer_key("u/p", "latest")))
 
@@ -267,12 +339,27 @@ def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_al
         "package_manifest": {(REGISTRY, h(1)), (REGISTRY, h(3))},
         "package_entry": {(REGISTRY, h(1)), (REGISTRY, h(3))},
     }
+    assert sqs.sent == []
+
+
+def test_an_item_failing_alone_for_good_is_dead_lettered(handle, athena, s3, con, sqs):
+    batch = manifests(s3, con, 1, 2, 3)
+    athena.fails = lambda sql: BAD_DATA if '"package_entry"' in sql and h(2) in sql else None
+
+    response = handle(*batch)
+
+    assert response == failures()
+    assert holdings(con)["package_manifest"] == {(REGISTRY, h(1)), (REGISTRY, h(3))}
+    assert dead_lettered(sqs).keys() == {"m2"}
+    group, body, reason = dead_lettered(sqs)["m2"]
+    assert (group, body) == ("m2", batch[1]["body"])
+    assert reason.startswith("statement: ") and "HIVE_BAD_DATA" in reason
 
 
 def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_together(handle, athena, s3, con):
     put_pointer(s3, "u/p", "latest", h(1))
     put_pointer(s3, "u/q", "latest", h(2))
-    athena.fails = lambda sql: "'u/q'" in sql
+    athena.fails = lambda sql: UNAVAILABLE if "'u/q'" in sql else None
 
     response = handle(
         record("p1", pointer_key("u/p", "latest")),
@@ -286,19 +373,15 @@ def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_toge
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
-def test_an_event_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_batch_written(handle, s3, con):
+def test_an_object_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_batch_written(handle, s3, con):
     put_manifest(s3, con, h(1))
     s3.objects[BUCKET, manifest_key(h(2))] = botocore.exceptions.ClientError(
         {"Error": {"Code": "AccessDenied"}}, "GetObject"
     )
 
-    response = handle(
-        record("m1", manifest_key(h(1))),
-        record("m2", manifest_key(h(2))),
-        {"messageId": "nobject", "body": "{}"},
-    )
+    response = handle(record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2))))
 
-    assert response == failures("m2", "nobject")
+    assert response == failures("m2")
     assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
 
 
@@ -312,7 +395,38 @@ def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
-def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, athena, s3, con):
+def bad_pointer(s3, message_id: str) -> dict:
+    s3.objects[BUCKET, pointer_key("u/p", "latest")] = b"not a top hash"
+    return record(message_id, pointer_key("u/p", "latest"), "g")
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        lambda s3, message_id: undecodable(message_id, "g"),
+        lambda s3, message_id: record(message_id, "elsewhere/key", "g"),
+        lambda s3, message_id: record(message_id, pointer_key("a/b/c", "latest"), "g"),
+        lambda s3, message_id: record(message_id, pointer_key("a", "latest"), "g"),
+        lambda s3, message_id: record(message_id, manifest_key("not-a-hash"), "g"),
+        bad_pointer,
+    ],
+    ids=["not an S3 event", "outside the prefixes", "too deep", "too shallow", "not a manifest", "not a top hash"],
+)
+def test_an_event_no_retry_can_write_is_dead_lettered_at_once_and_its_group_goes_on(handle, s3, con, sqs, event):
+    bad = event(s3, "bad")
+    put_manifest(s3, con, h(1))
+
+    response = handle(bad, record("m1", manifest_key(h(1)), "g"))
+
+    assert response == failures()
+    assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
+    assert dead_lettered(sqs).keys() == {"bad"}
+    group, body, reason = dead_lettered(sqs)["bad"]
+    assert (group, body) == ("g", bad["body"])
+    assert reason.startswith("input: ")
+
+
+def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, athena, s3, con, sqs):
     for n in (1, 2, 3):
         put_manifest(s3, con, h(n))
     s3.objects[BUCKET, manifest_key(h(4))] = botocore.exceptions.ClientError(
@@ -320,55 +434,106 @@ def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, at
     )
     for pkg_name in ("u/p", "u/q", "u/r"):
         put_pointer(s3, pkg_name, "latest", h(1))
-    athena.fails = lambda sql: '"package_entry"' in sql and h(2) in sql
+    athena.fails = lambda sql: UNAVAILABLE if '"package_entry"' in sql and h(2) in sql else None
 
     response = handle(
         record("m1", manifest_key(h(1)), "statement"),
-        {"messageId": "undecodable", "body": "{}", "attributes": {"MessageGroupId": "decode"}},
+        undecodable("undecodable", "dead"),
         record("m2", manifest_key(h(2)), "statement"),  # its entries fail
         record("unreadable", manifest_key(h(4)), "read"),
-        record("p", pointer_key("u/p", "latest"), "decode"),
+        record("p", pointer_key("u/p", "latest"), "dead"),
         record("m3", manifest_key(h(3)), "statement"),
         record("q", pointer_key("u/q", "latest"), "read"),
         record("r", pointer_key("u/r", "latest"), "other"),
     )
 
-    assert response == failures("undecodable", "m2", "unreadable", "p", "m3", "q")
+    assert response == failures("m2", "unreadable", "m3", "q")
+    assert dead_lettered(sqs).keys() == {"undecodable"}
 
 
-def test_a_statement_athena_refuses_to_start_is_started_again_whole(handle, athena, s3, con):
+def test_a_message_that_cannot_be_dead_lettered_is_returned_and_holds_its_group(handle, s3, con, sqs):
+    put_manifest(s3, con, h(1))
+    put_manifest(s3, con, h(2))
+    sqs.fails = True
+
+    response = handle(
+        record("m1", manifest_key(h(1))),
+        undecodable("undecodable", "g"),
+        record("m2", manifest_key(h(2)), "g"),
+    )
+
+    assert response == failures("undecodable", "m2")
+
+
+@pytest.mark.parametrize(
+    "fails, event",
+    [
+        (BAD_DATA, lambda n: record(f"m{n}", manifest_key(h(n)))),
+        (None, lambda n: undecodable(f"m{n}")),
+    ],
+    ids=["statements", "events"],
+)
+def test_when_every_item_of_several_fails_none_is_dead_lettered(handle, athena, s3, con, sqs, fails, event):
+    manifests(s3, con, 1, 2)
+    athena.fails = lambda sql: fails
+
+    response = handle(event(1), event(2))
+
+    assert response == failures("m1", "m2")
+    assert sqs.sent == []
+
+
+@pytest.mark.parametrize(
+    "fails, event",
+    [
+        (BAD_DATA, record("m1", manifest_key(h(1)))),
+        (None, undecodable("m1")),
+    ],
+    ids=["statement", "event"],
+)
+def test_a_batch_of_one_failing_for_good_is_dead_lettered(handle, athena, s3, con, sqs, fails, event):
+    put_manifest(s3, con, h(1))
+    athena.fails = lambda sql: fails
+
+    response = handle(event)
+
+    assert response == failures()
+    assert dead_lettered(sqs).keys() == {"m1"}
+
+
+def test_a_batch_of_one_failing_for_now_is_returned(handle, athena, s3, con, sqs):
+    put_manifest(s3, con, h(1))
+    athena.fails = lambda sql: UNAVAILABLE
+
+    response = handle(record("m1", manifest_key(h(1))))
+
+    assert response == failures("m1")
+    assert sqs.sent == []
+
+
+@pytest.mark.parametrize("refusing", ["refuses", "refuses_polls"], ids=["start", "poll"])
+def test_a_call_athena_refuses_for_a_while_is_retried_and_its_statement_written_once(
+    handle, athena, s3, con, refusing
+):
     batch = manifests(s3, con, 1, 2, 3)
     refusals = iter([True, True])
-    athena.refuses = lambda sql: '"package_entry"' in sql and next(refusals, False)
+    setattr(athena, refusing, lambda sql: '"package_entry"' in sql and next(refusals, False))
 
     response = handle(*batch)
 
     assert response == failures()
     assert holdings(con)["package_entry"] == {(REGISTRY, h(n)) for n in (1, 2, 3)}
-    assert athena.refusals == 2
+    assert sum('"package_entry"' in sql for sql, _ in athena.started) == 1
 
 
-def test_a_statement_athena_keeps_refusing_to_start_returns_its_items_unsplit(handle, athena, s3, con):
-    batch = manifests(s3, con, 1, 2, 3)
-    put_pointer(s3, "u/p", "latest", h(1))
-    athena.refuses = lambda sql: '"package_entry"' in sql
-
-    response = handle(*batch, record("tag", pointer_key("u/p", "latest")))
-
-    assert response == failures("m1", "m2", "m3")
-    assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
-    assert athena.refusals == t4_lambda_iceberg.API_ATTEMPTS
-
-
-def test_a_statement_whose_start_failed_other_than_by_throttling_is_not_started_again(handle, athena, s3, con):
+def test_a_statement_athena_refuses_to_start_until_the_deadline_returns_its_items(handle, athena, s3, con):
     batch = manifests(s3, con, 1, 2, 3)
     athena.refuses = lambda sql: '"package_entry"' in sql
-    athena.refusal = "InternalServerException"  # its outcome unknown: the statement may have started
 
     response = handle(*batch)
 
     assert response == failures("m1", "m2", "m3")
-    assert athena.refusals == 1
+    assert holdings(con)["package_entry"] == set()
 
 
 @pytest.mark.parametrize(
@@ -379,42 +544,57 @@ def test_a_statement_whose_start_failed_other_than_by_throttling_is_not_started_
     ],
     ids=["refused", "unreachable"],
 )
-def test_a_statement_whose_state_athena_fails_to_report_is_not_started_again(handle, athena, s3, con, error):
+def test_a_statement_whose_state_athena_fails_to_report_until_the_deadline_is_stopped_and_its_items_returned(
+    handle, athena, s3, con, error
+):
     batch = manifests(s3, con, 1, 2, 3)
-    put_pointer(s3, "u/p", "latest", h(1))
     athena.refuses_polls = lambda sql: '"package_entry"' in sql
     athena.poll_error = error
 
-    response = handle(*batch, record("tag", pointer_key("u/p", "latest")))
-
-    assert response == failures("m1", "m2", "m3")
-    assert sum('"package_entry"' in sql for sql in athena.started) == 1
-    assert holdings(con)["package_manifest"] == set()
-    assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
-
-
-def test_a_refusal_while_retrying_item_by_item_returns_the_rest_of_the_statement_untried(handle, athena, s3, con):
-    batch = manifests(s3, con, 1, 2, 3)
-    athena.fails = lambda sql: '"package_entry"' in sql and h(1) in sql and h(2) in sql
-    athena.refuses = lambda sql: '"package_entry"' in sql and h(2) in sql and h(1) not in sql
-
     response = handle(*batch)
 
-    assert response == failures("m2", "m3")
-    assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
-    assert athena.refusals == t4_lambda_iceberg.API_ATTEMPTS
+    assert response == failures("m1", "m2", "m3")
+    assert [i for i, (sql, _) in enumerate(athena.started) if '"package_entry"' in sql] == [0]
+    assert athena.stopped == ["0"]
+    assert holdings(con)["package_entry"] == set()
+
+
+def test_a_refusal_until_the_deadline_while_retrying_item_by_item_returns_that_item_and_the_rest(
+    handle, athena, s3, con
+):
+    for name in "pqr":
+        put_pointer(s3, f"u/{name}", "latest", h(1))
+    athena.fails = lambda sql: UNAVAILABLE if "'u/p'" in sql and "'u/q'" in sql else None
+    athena.refuses = lambda sql: "'u/q'" in sql and "'u/p'" not in sql
+
+    response = handle(*(record(name, pointer_key(f"u/{name}", "latest")) for name in "pqr"))
+
+    assert response == failures("q", "r")
+    assert con.execute(f'SELECT pkg_name FROM "{STACK_DB}"."package_tag"').fetchall() == [("u/p",)]
 
 
 def test_statements_that_could_run_into_the_timeout_are_not_started_and_their_items_returned(handle, athena, s3, con):
-    # Two queries spend the time left above the budget.
-    athena.query_ms = (athena.remaining_ms - t4_lambda_iceberg.STATEMENT_BUDGET_MS) // 2 + 1
+    # Two statements spend the time left above the budget.
+    athena.takes = lambda sql: (TIMEOUT_S - t4_lambda_iceberg.STATEMENT_BUDGET_MS / 1000) / 2 + 1
 
     response = handle(*push(s3, con))
 
     assert response == failures("tag", "revision")
+    assert len(athena.started) == 2
     assert holdings(con) == {
         "package_revision": set(),
         "package_tag": set(),
         "package_manifest": {(REGISTRY, h(1))},
         "package_entry": {(REGISTRY, h(1))},
     }
+
+
+def test_a_statement_still_running_at_the_deadline_is_stopped_and_its_items_returned(handle, athena, s3, con):
+    batch = manifests(s3, con, 1, 2, 3)
+    athena.takes = lambda sql: TIMEOUT_S if '"package_entry"' in sql else 0
+
+    response = handle(*batch)
+
+    assert response == failures("m1", "m2", "m3")
+    assert athena.stopped == ["0"]
+    assert holdings(con)["package_entry"] == set()
