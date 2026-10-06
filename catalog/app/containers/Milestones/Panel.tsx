@@ -75,18 +75,21 @@ const useStyles = M.makeStyles((t) => ({
     alignSelf: 'start',
     color: t.palette.text.secondary,
   },
+  // One 20px line for every state, so earned and locked status sit level.
   status: {
     ...t.typography.caption,
     alignSelf: 'end',
     color: t.palette.text.secondary,
-    minHeight: 20,
+    lineHeight: '20px',
     width: '100%',
   },
   earnedStatus: {
     alignItems: 'center',
     color: t.palette.text.primary,
-    display: 'inline-flex',
+    display: 'flex',
     gap: t.spacing(0.5),
+    height: 20,
+    justifyContent: 'center',
   },
   progress: {
     marginBottom: t.spacing(0.5),
@@ -115,7 +118,7 @@ function Status({ badge }: { badge: Badge }) {
     case 'earned':
       return (
         <span className={classes.earnedStatus}>
-          <M.Icon fontSize="inherit">check</M.Icon>
+          <M.Icon style={{ fontSize: 14, lineHeight: 1 }}>check</M.Icon>
           {earnedOn(state.at) ? `Earned ${earnedOn(state.at)}` : 'Earned'}
         </span>
       )

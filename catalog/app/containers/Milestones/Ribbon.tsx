@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Column from 'components/Layout/Column'
+import { COARSE } from 'components/Layout/Pointer'
 import { username } from 'containers/Auth/selectors'
 import { useFeature } from 'utils/features'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -68,6 +69,18 @@ const useStyles = M.makeStyles((t) => ({
   text: {
     flexGrow: 1,
     minWidth: 0,
+    textDecoration: 'none',
+    [COARSE]: {
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      display: 'flex',
+    },
+  },
+  // At phone width the title is the link and this button's room goes to it.
+  view: {
+    [Column.down('sm')]: {
+      display: 'none',
+    },
   },
   more: {
     color: t.palette.text.secondary,
@@ -93,7 +106,14 @@ function RibbonBar({ badges, user }: { badges: Badge[]; user: string }) {
   return (
     <aside aria-label="Milestones reached" className={classes.root}>
       <Medallion icon={newest.icon} state="earned" size={32} />
-      <M.Typography variant="body2" className={classes.text} noWrap>
+      <M.Typography
+        variant="body2"
+        className={classes.text}
+        color="inherit"
+        component={Link}
+        noWrap
+        to={urls.milestones(newest.id)}
+      >
         <span className={classes.prefix}>Milestone reached: </span>
         <b>{newest.title}</b>
         {fresh.length > 1 && (
@@ -101,7 +121,12 @@ function RibbonBar({ badges, user }: { badges: Badge[]; user: string }) {
         )}
       </M.Typography>
       <ShareButton badge={newest} />
-      <M.Button component={Link} to={urls.milestones(newest.id)} size="small">
+      <M.Button
+        className={classes.view}
+        component={Link}
+        size="small"
+        to={urls.milestones(newest.id)}
+      >
         View
       </M.Button>
       <M.IconButton aria-label="Dismiss milestones" onClick={dismiss} size="small">

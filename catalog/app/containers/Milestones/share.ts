@@ -31,20 +31,26 @@ const W = 1200
 const H = 630
 const TEXT_X = 430
 const TEXT_W = W - TEXT_X - 70
+const BAND = 96
 const FONT = 'Roboto, Helvetica, Arial, sans-serif'
 
 /** Greedy word wrap; the last line ends in an ellipsis if text is left over. */
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxLines: number): string[] {
+function wrap(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxLines: number,
+  maxW = TEXT_W,
+): string[] {
   const lines: string[] = []
   let line = ''
   const words = text.split(' ')
   for (let i = 0; i < words.length; i += 1) {
     const next = line ? `${line} ${words[i]}` : words[i]
-    if (ctx.measureText(next).width <= TEXT_W || !line) {
+    if (ctx.measureText(next).width <= maxW || !line) {
       line = next
     } else if (lines.length === maxLines - 1) {
       let cut = line
-      while (cut && ctx.measureText(`${cut}…`).width > TEXT_W) cut = cut.slice(0, -1)
+      while (cut && ctx.measureText(`${cut}…`).width > maxW) cut = cut.slice(0, -1)
       return [...lines, `${cut.trimEnd()}…`]
     } else {
       lines.push(line)
@@ -83,10 +89,13 @@ export async function renderBadgeImage(host: string, b: Badge): Promise<Blob> {
   ctx.strokeStyle = DIVIDER
   ctx.lineWidth = 2
   ctx.strokeRect(1, 1, W - 2, H - 2)
+  // The wordmark is drawn for the midnight rail; it gets that ground here too.
+  ctx.fillStyle = MIDNIGHT
+  ctx.fillRect(0, H - BAND, W, BAND)
 
   // Medallion: the same mark the catalog draws, at card scale.
   const cx = 230
-  const cy = H / 2 - 20
+  const cy = (H - BAND) / 2
   ctx.fillStyle = MIDNIGHT
   ctx.beginPath()
   ctx.arc(cx, cy, 130, 0, 2 * Math.PI)
@@ -109,7 +118,16 @@ export async function renderBadgeImage(host: string, b: Badge): Promise<Blob> {
   }
   const titleLead = titleSize * 1.15
   ctx.font = `400 30px ${FONT}`
-  const desc = wrap(ctx, b.description, 2)
+  let desc = wrap(ctx, b.description, 2)
+  // Balance two lines rather than leave a one-word widow.
+  if (desc.length === 2) {
+    desc = wrap(
+      ctx,
+      b.description,
+      2,
+      Math.ceil(ctx.measureText(b.description).width / 2) + 40,
+    )
+  }
   const descLead = 42
   const on = b.state.kind === 'earned' ? earnedOn(b.state.at) : null
   const meta = [host, b.category, on && `Earned ${on}`].filter(Boolean).join(' · ')
@@ -135,8 +153,9 @@ export async function renderBadgeImage(host: string, b: Badge): Promise<Blob> {
   ctx.font = `400 26px ${FONT}`
   ctx.fillText(meta, TEXT_X, y, TEXT_W)
 
-  const logoH = 36
-  ctx.drawImage(logo, TEXT_X, H - 56 - logoH, (logo.width / logo.height) * logoH, logoH)
+  const logoH = 40
+  const logoW = (logo.width / logo.height) * logoH
+  ctx.drawImage(logo, TEXT_X, H - BAND / 2 - logoH / 2, logoW, logoH)
 
   return new Promise((resolve, reject) =>
     canvas.toBlob(

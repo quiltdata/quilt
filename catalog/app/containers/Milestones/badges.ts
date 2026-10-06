@@ -118,15 +118,15 @@ export const BADGES: readonly BadgeDef[] = [
   {
     id: 'terabyte-package',
     title: 'Terabyte package',
-    description: 'A single package revision of 1 TB or more.',
+    description: 'A single package revision of 1\u00a0TB or more.',
     category: 'Volume',
     icon: 'sd_storage',
     unit: 'bytes',
     rule: (m) => reach(m.largestBytes, TERABYTE, m.firstMultiTbAt),
   },
-  volumeTier('packaged-10tb', '10 TB packaged', 10 * TERABYTE),
-  volumeTier('packaged-100tb', '100 TB packaged', 100 * TERABYTE),
-  volumeTier('packaged-1pb', '1 PB packaged', 1000 * TERABYTE),
+  volumeTier('packaged-10tb', '10\u00a0TB packaged', 10 * TERABYTE),
+  volumeTier('packaged-100tb', '100\u00a0TB packaged', 100 * TERABYTE),
+  volumeTier('packaged-1pb', '1\u00a0PB packaged', 1000 * TERABYTE),
   {
     id: 'million-files',
     title: 'Million-file package',
@@ -166,7 +166,7 @@ export const BADGES: readonly BadgeDef[] = [
   {
     id: 'team-10',
     title: '10 people',
-    description: '10 active people use this catalog.',
+    description: '10 active accounts on this catalog.',
     category: 'Team',
     icon: 'group',
     unit: 'count',
@@ -175,7 +175,7 @@ export const BADGES: readonly BadgeDef[] = [
   {
     id: 'team-100',
     title: '100 people',
-    description: '100 active people use this catalog.',
+    description: '100 active accounts on this catalog.',
     category: 'Team',
     icon: 'groups',
     unit: 'count',
