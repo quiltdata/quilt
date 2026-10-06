@@ -102,6 +102,11 @@ function DataProductsRoute() {
   )
 }
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
+const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
+const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
+const UriResolver = protect(
+  RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
+)
 const QuratorMode = requireAuth()(
   RT.mkLazy(() => import('containers/QuratorMode'), Placeholder),
 )
@@ -112,11 +117,6 @@ function QuratorModeGate() {
   if (!useFeature('qurator-mode')) return <Redirect to={urls.home()} />
   return <QuratorMode />
 }
-const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
-const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
-const UriResolver = protect(
-  RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
-)
 
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
