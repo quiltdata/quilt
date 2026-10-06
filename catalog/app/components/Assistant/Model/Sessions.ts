@@ -249,6 +249,8 @@ export function createSaveQueue<T>({
             onStopped(s.head, r._tag)
             break
           case 'Disabled':
+            // Until the caller learns sessions are off and resumes, if ever.
+            paused = true
             onStopped(s.head, r._tag)
             break
           case 'Failed':
@@ -316,8 +318,10 @@ export function createSaveQueue<T>({
       fresh(head, id, version, events)
     },
     flush,
-    /** Send nothing, not even a retry or a fork, until `resume`. */
-    /** Drops what is pending too: a save the user opted out of never goes out later. */
+    /**
+     * Send nothing, not even a retry or a fork, until `resume`, and drop what
+     * is pending: a save the user opted out of never goes out later.
+     */
     pause() {
       paused = true
       for (const s of slots) {
@@ -334,19 +338,16 @@ export function createSaveQueue<T>({
     hold(id: string) {
       held.add(id)
     },
-    /**
-     * Once deleted, the conversation it held saves as a new session on its next
-     * change, and the actor follows it there as from a fork.
-     */
+    /** Once deleted, nothing of the conversation it held is saved again. */
     release(id: string, deleted: boolean) {
       held.delete(id)
       for (const s of slots) {
         if (s.id !== id) continue
         if (deleted) {
-          s.id = null
-          s.version = null
-        }
-        if (s.latest !== s.sent) later(s, delayMs)
+          if (s.timer) clearTimeout(s.timer)
+          s.timer = null
+          s.stopped = true
+        } else if (s.latest !== s.sent) later(s, delayMs)
       }
     },
   }

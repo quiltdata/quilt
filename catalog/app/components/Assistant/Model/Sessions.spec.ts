@@ -193,19 +193,17 @@ describe('components/Assistant/Model/Sessions', () => {
       ])
     })
 
-    it('holds a session while it is deleted, then saves its conversation anew', async () => {
-      const { queue, send, created } = setup(async (r) => saved(r.id ?? 'F', 1))
+    it('saves nothing of a session while or after it is deleted', async () => {
+      const { queue, send } = setup(async (r) => saved(r.id ?? 'F', 1))
       queue.adopt('h', 'S', 1, 'a')
       queue.hold('S')
       queue.change('h', 'ab')
       await vi.advanceTimersByTimeAsync(5000)
-      expect(send).not.toHaveBeenCalled()
       queue.release('S', true)
-      await vi.advanceTimersByTimeAsync(1000)
-      expect(send.mock.calls.map(([r]) => r)).toEqual([
-        { id: null, baseVersion: null, events: 'ab' },
-      ])
-      expect(created).toEqual([{ head: 'h', basis: 'S', id: 'F' }])
+      queue.change('h', 'abc')
+      await queue.flush()
+      await vi.advanceTimersByTimeAsync(5000)
+      expect(send).not.toHaveBeenCalled()
     })
 
     it('saves to the same session when a delete fails', async () => {
@@ -307,13 +305,17 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(send).toHaveBeenCalledTimes(2)
     })
 
-    it('keeps saving once a stack turns sessions back on', async () => {
+    it('stops on Disabled until resumed, then keeps saving', async () => {
       const outcomes: Sessions.SaveOutcome[] = [{ _tag: 'Disabled' }, saved('s', 1)]
       const { queue, send, stopped } = setup(async () => outcomes.shift()!)
       queue.change('h', 'a')
       await vi.advanceTimersByTimeAsync(1000)
       expect(stopped).toEqual([['h', 'Disabled']])
       queue.change('h', 'ab')
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(send).toHaveBeenCalledTimes(1)
+      queue.resume()
+      queue.change('h', 'abc')
       await vi.advanceTimersByTimeAsync(1000)
       expect(send).toHaveBeenCalledTimes(2)
     })

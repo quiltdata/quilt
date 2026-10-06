@@ -294,8 +294,6 @@ const TOO_LARGE = 'This session is too long to keep — start a new one'
 const UNREADABLE = "That session couldn't be opened"
 const UNDELETABLE = "That session couldn't be deleted"
 const UNSWITCHABLE = "Keep sessions couldn't be changed"
-const KEPT_OFF =
-  'Not saved: Keep sessions was off during this conversation — start a new one to keep it'
 
 /**
  * Saves the conversation on screen to the registry as it changes. A reload
@@ -332,8 +330,7 @@ function useSessions(
   const { run } = query
   const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
   const passThru = usePassThru({ saveSession, dispatch, refresh })
-  const settled = !!query.data
-  const offHead = React.useRef<string>()
+  const currentIdNow = usePassThru(currentId)
   const opening = React.useRef<{
     id: string
     version: number
@@ -380,21 +377,14 @@ function useSessions(
     }
     if (!enabled) {
       queue.pause()
-      // Known off, not still loading: what is said now is never saved, even
-      // once sessions are turned back on.
-      if (settled) offHead.current = head
       return
     }
     queue.resume()
-    if (head && head === offHead.current) {
-      setNotice((n) => (n?.head === head ? n : { head, text: KEPT_OFF }))
-      return
-    }
     // An empty conversation is never created, but a saved one is emptied when
     // everything in it is discarded, so the discarded messages do not reopen.
     if (head && (currentId || state.events.some((e) => !e.discarded)))
       queue.change(head, state.events)
-  }, [enabled, settled, head, currentId, state.events, queue])
+  }, [enabled, head, currentId, state.events, queue])
 
   React.useEffect(() => () => queue.pause(), [queue])
 
@@ -435,9 +425,10 @@ function useSessions(
       queue.release(id, deleted)
       refresh()
       if (!deleted) setNotice({ head, text: UNDELETABLE })
-      else if (id === currentId) dispatch(Conversation.Action.Clear())
+      // Read now: the user may have opened or started another conversation meanwhile.
+      else if (id === currentIdNow.current) dispatch(Conversation.Action.Clear())
     },
-    [currentId, head, queue, dispatch, deleteSession, refresh],
+    [currentIdNow, head, queue, dispatch, deleteSession, refresh],
   )
 
   const latestToggle = React.useRef(0)
