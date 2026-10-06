@@ -151,35 +151,6 @@ type QuratorModelConfig {
   sessionsEnabled: Boolean!
 }
 
-"A saved Qurator conversation, visible only to the user who saved it."
-type QuratorSession {
-  id: ID!
-  title: String!
-  createdAt: Datetime!
-  updatedAt: Datetime!
-  eventCount: Int!
-  version: Int!
-  "The `{v: 1, events: [...]}` envelope as saved."
-  events: JsonRecord!
-}
-
-"""
-Omit `id` to create a session. With `id`, `baseVersion` must be the version the
-caller last read, or the save is refused as `Conflict`.
-"""
-input QuratorSessionSaveInput {
-  id: ID
-  title: String!
-  events: JsonRecord!
-  baseVersion: Int
-}
-
-"""
-`InvalidInput` names one of `NotFound`, `Conflict` (context `currentVersion`),
-`BadEnvelope` or `TooLarge` (over 1 MiB); `OperationError` is `Disabled`.
-"""
-union QuratorSessionSaveResult = QuratorSession | InvalidInput | OperationError
-
 type QuratorModelName {
   id: String!
   name: String!
@@ -784,6 +755,35 @@ type Me {
   quratorSessionsEnabled: Boolean!
 }
 
+"A saved Qurator conversation, visible only to the user who saved it."
+type QuratorSession {
+  id: ID!
+  title: String!
+  createdAt: Datetime!
+  updatedAt: Datetime!
+  eventCount: Int!
+  version: Int!
+  "The `{v: 1, events: [...]}` envelope as saved."
+  events: JsonRecord!
+}
+
+"""
+Omit `id` to create a session. With `id`, `baseVersion` must be the version the
+caller last read, or the save is refused as `Conflict`.
+"""
+input QuratorSessionSaveInput {
+  id: ID
+  title: String!
+  events: JsonRecord!
+  baseVersion: Int
+}
+
+"""
+`InvalidInput` names one of `NotFound`, `Conflict` (context `currentVersion`),
+`BadEnvelope` or `TooLarge` (over 1 MiB); `OperationError` is `Disabled`.
+"""
+union QuratorSessionSaveResult = QuratorSession | InvalidInput | OperationError
+
 union SwitchRoleResult = Me | InvalidInput | OperationError
 
 type Query {
@@ -1176,6 +1176,7 @@ union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 """
 Replaces the whole Qurator configuration. Every field is explicit, so a write
 states the full intent: omitting one does not preserve it. Null clears a field.
+The two session fields are the exception: omitting one keeps its stored value.
 """
 input QuratorConfigInput {
   allowlist: [String!]
@@ -1260,6 +1261,14 @@ type Mutation {
   apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
   apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!
 
+  quratorSessionSave(input: QuratorSessionSaveInput!): QuratorSessionSaveResult! @authenticated
+  "Also deletes your own hidden sessions (expired, or while sessions are off)."
+  quratorSessionDelete(id: ID!): OperationResult! @authenticated
+  "Off hides this user's sessions and stops saving them; retention still expires them."
+  quratorSessionsSetEnabled(enabled: Boolean!): OperationResult! @authenticated
+  "Deletes every user's sessions."
+  quratorSessionsPurgeAll: OperationResult! @admin
+
   packageConstruct(
     params: PackagePushParams!
     src: PackageConstructSource!
@@ -1310,13 +1319,6 @@ type Mutation {
     ttl: Int! = 180
   ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
-
-  quratorSessionSave(input: QuratorSessionSaveInput!): QuratorSessionSaveResult!
-  quratorSessionDelete(id: ID!): OperationResult!
-  "Off hides this user's sessions and stops saving them; retention still expires them."
-  quratorSessionsSetEnabled(enabled: Boolean!): OperationResult!
-  "Deletes every user's sessions."
-  quratorSessionsPurgeAll: OperationResult! @admin
 
   restoreObject(
     bucket: String!

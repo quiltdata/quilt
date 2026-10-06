@@ -10,6 +10,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 /**
  * Replaces the whole Qurator configuration. Every field is explicit, so a write
  * states the full intent: omitting one does not preserve it. Null clears a field.
+ * The two session fields are the exception: omitting one keeps its stored value.
  */
 export interface QuratorConfigInput {
   readonly allowlist: Array<string> | null | undefined

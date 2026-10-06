@@ -128,7 +128,7 @@ export function titleOf(events: readonly Conversation.Event[]): string {
   )
   const text =
     first?._tag === 'Message' && first.content._tag === 'Text' ? first.content.text : ''
-  const line = text.trim().split('\n')[0] || 'Untitled session'
+  const line = text.trim().split(/\r?\n/)[0] || 'Untitled session'
   // By code point: a cut surrogate pair is text the registry cannot store.
   const chars = Array.from(line)
   return chars.length > TITLE_LENGTH
@@ -266,8 +266,7 @@ export function createSaveQueue<T>({
             onStopped(s.head, r._tag)
             break
           case 'Disabled':
-            // Until the caller learns sessions are off and resumes, if ever.
-            paused = true
+            // The caller rereads the switch and pauses; the next change retries.
             onStopped(s.head, r._tag)
             break
           case 'Failed':

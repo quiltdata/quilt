@@ -364,17 +364,14 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(send).toHaveBeenCalledTimes(2)
     })
 
-    it('stops on Disabled until resumed, then keeps saving', async () => {
+    it('reports Disabled without retrying, and saves on the next change', async () => {
       const outcomes: Sessions.SaveOutcome[] = [{ _tag: 'Disabled' }, saved('s', 1)]
       const { queue, send, stopped } = setup(async () => outcomes.shift()!)
       queue.change('h', 'a')
-      await vi.advanceTimersByTimeAsync(1000)
+      await vi.advanceTimersByTimeAsync(10000)
       expect(stopped).toEqual([['h', 'Disabled']])
-      queue.change('h', 'ab')
-      await vi.advanceTimersByTimeAsync(1000)
       expect(send).toHaveBeenCalledTimes(1)
-      queue.resume()
-      queue.change('h', 'abc')
+      queue.change('h', 'ab')
       await vi.advanceTimersByTimeAsync(1000)
       expect(send).toHaveBeenCalledTimes(2)
     })

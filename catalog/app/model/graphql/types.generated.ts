@@ -609,6 +609,7 @@ export interface Mutation {
   readonly policyDelete: PolicyDeleteResult
   readonly policyUpdateManaged: PolicyResult
   readonly policyUpdateUnmanaged: PolicyResult
+  /** Also deletes your own hidden sessions (expired, or while sessions are off). */
   readonly quratorSessionDelete: OperationResult
   readonly quratorSessionSave: QuratorSessionSaveResult
   /** Deletes every user's sessions. */
@@ -1267,6 +1268,7 @@ export interface QuratorConfig {
 /**
  * Replaces the whole Qurator configuration. Every field is explicit, so a write
  * states the full intent: omitting one does not preserve it. Null clears a field.
+ * The two session fields are the exception: omitting one keeps its stored value.
  */
 export interface QuratorConfigInput {
   readonly allowlist: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
