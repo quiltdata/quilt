@@ -66,6 +66,7 @@ export interface Workflow {
   description?: string
   isDefault: boolean
   isDisabled: boolean
+  isMessageRequired?: boolean
   entriesSchema?: string
   name?: string
   packageNamePattern: RegExp | null
@@ -159,6 +160,7 @@ function parseWorkflow(
     description: workflow.description,
     isDefault: workflowSlug === data.default_workflow,
     isDisabled: false,
+    isMessageRequired: !!workflow.is_message_required,
     entriesSchema: data.schemas?.[workflow.entries_schema || '']?.url,
     name: workflow.name,
     packageName: parsePackageNameTemplates(
