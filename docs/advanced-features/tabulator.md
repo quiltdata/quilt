@@ -83,14 +83,17 @@ Single-cell `.h5ad` files are cell × gene matrices too wide for a fixed column
 schema, so the `h5ad` parser narrows each file to one of three standard tables,
 picked by `view`:
 
-- `view: x` (the default) has one row per stored non-zero of the expression
-  matrix. Declare any of `cell_id STRING`, `gene_id STRING`, `value DOUBLE`,
-  `cell_index BIGINT` and `gene_index BIGINT`. `layer` picks the matrix:
-  omitted for `X`, `raw` for `raw/X`, or the name of an entry in `layers`.
-- `view: obs` has one row per cell: `cell_id` (the cell names) plus any
-  columns of the file's `obs` annotations, declared by name.
-- `view: var` has one row per gene: `gene_id` (the gene names) plus any
-  columns of `var`.
+- `view: x` (the default) has one row per non-zero value of the expression
+  matrix, whether it is stored sparse or dense; zeros are omitted. Declare any
+  of `cell_id STRING`, `gene_id STRING`, `value DOUBLE`, `cell_index BIGINT`
+  and `gene_index BIGINT`. `layer` picks the matrix: omitted for `X`, `raw`
+  for `raw/X`, or the name of an entry in `layers`. `layer` applies to
+  `view: x` only.
+- `view: obs` has one row per cell: `cell_id` (the cell names), `cell_index
+  BIGINT` (the row position) and any columns of the file's `obs` annotations,
+  declared by name.
+- `view: var` has one row per gene: `gene_id` (the gene names), `gene_index
+  BIGINT` and any columns of `var`.
 
 ```yaml
 schema:
@@ -110,7 +113,8 @@ parser:
 ```
 
 Tables of the three views join on `cell_id` or `gene_id` together with
-`$pkg_name`, `$top_hash` and `$logical_key`:
+`$pkg_name`, `$top_hash` and `$logical_key`. Where names repeat within a file,
+join on `cell_index` or `gene_index` instead:
 
 ```sql
 SELECT o.batch, avg(x.value) AS mean_cd3e
