@@ -6,6 +6,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
 import boto3
+import botocore.config
 import botocore.exceptions
 
 import quilt_shared.const
@@ -23,7 +24,10 @@ from quilt_shared.iceberg_stack_queries import (
 
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
-sqs = boto3.client("sqs")
+# Bounded, so dead-lettering after the deadline cannot run into the invocation's timeout: about 8 s at most.
+sqs = boto3.client(
+    "sqs", config=botocore.config.Config(connect_timeout=2, read_timeout=2, retries={"total_max_attempts": 2})
+)
 logger = logging.getLogger("quilt-lambda-iceberg")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
@@ -113,6 +117,8 @@ def handler(event, context):
 STATEMENT_BUDGET_MS = 60_000
 # Left after QueryRunner's deadline, to stop its queries, dead-letter messages and respond.
 DEADLINE_MARGIN_MS = 10_000
+# The time an invocation must have left to dead-letter a message: one send's worst case, its retry included.
+SEND_BUDGET_MS = 8_000
 
 
 class _Invalid(Exception):
@@ -170,15 +176,23 @@ def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]
     return item, bool(first_line)
 
 
+# S3's client errors that clear by themselves.
+_S3_TRANSIENT = frozenset({"RequestTimeout", "RequestTimeTooSkewed", "OperationAborted"})
+
+
 def _refused_for_good(error: Exception) -> bool:
     """Whether S3 refused a read with a client error no retry clears, as for a bucket the stack no longer reads."""
     if not isinstance(error, botocore.exceptions.ClientError):
         return False
     status = error.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
-    return 400 <= status < 500 and status != 429  # 429 is throttling
+    code = error.response.get("Error", {}).get("Code")
+    return 400 <= status < 500 and status != 429 and code not in _S3_TRANSIENT  # 429 is throttling
 
 
-def _dead_letter(queue_url: str, record, reason: str) -> bool:
+def _dead_letter(queue_url: str, context, record, reason: str) -> bool:
+    if context.get_remaining_time_in_millis() < SEND_BUDGET_MS:
+        logger.warning("Too little of the invocation left to dead-letter message %s", record["messageId"])
+        return False
     try:
         sqs.send_message(
             QueueUrl=queue_url,
@@ -274,7 +288,7 @@ def set_handler(event, context):
         if (
             group in stopped
             or message_id in retry
-            or (message_id in dead and not _dead_letter(dead_letter_queue, record, dead[message_id]))
+            or (message_id in dead and not _dead_letter(dead_letter_queue, context, record, dead[message_id]))
         ):
             stopped.add(group)
             failures.append({"itemIdentifier": message_id})

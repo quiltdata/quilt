@@ -390,8 +390,15 @@ def test_an_empty_manifest_is_deleted_from_the_set(handle, s3, con):
 
 @pytest.mark.parametrize(
     "error",
-    [SLOW_DOWN, s3_error("InternalError", 500), botocore.exceptions.EndpointConnectionError(endpoint_url="s3")],
-    ids=["throttled", "S3's fault", "unreachable"],
+    [
+        SLOW_DOWN,
+        s3_error("InternalError", 500),
+        botocore.exceptions.EndpointConnectionError(endpoint_url="s3"),
+        s3_error("RequestTimeout", 400),
+        s3_error("RequestTimeTooSkewed", 403),
+        s3_error("OperationAborted", 409),
+    ],
+    ids=["throttled", "S3's fault", "unreachable", "timed out", "clock skewed", "conflicting operation"],
 )
 def test_an_object_that_cannot_be_read_for_now_is_returned_and_the_rest_of_the_batch_written(
     handle, s3, con, sqs, error
@@ -513,6 +520,17 @@ def test_a_message_that_cannot_be_dead_lettered_is_returned_and_holds_its_group(
     )
 
     assert response == failures("undecodable", "m2")
+
+
+def test_a_message_is_returned_rather_than_dead_lettered_with_too_little_time_left_to_send_it(
+    handle, clock, sqs
+):
+    clock.now = TIMEOUT_S - t4_lambda_iceberg.SEND_BUDGET_MS / 1000 + 1
+
+    response = handle(undecodable("undecodable"))
+
+    assert response == failures("undecodable")
+    assert sqs.sent == []
 
 
 @pytest.mark.parametrize(
