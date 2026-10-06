@@ -23,6 +23,24 @@ describe('components/Assistant/Model/McpServers', () => {
     expect(McpServers.validate({ ...server, headerName: 'X-API-Key' }, [])).toMatch(
       /both/,
     )
+    expect(McpServers.validate({ ...server, slug: 'a__b' }, [])).toMatch(/single inner _/)
+    expect(McpServers.validate({ ...server, slug: 'a_' }, [])).toMatch(/single inner _/)
+    expect(McpServers.validate({ ...server, slug: 'a_b' }, [])).toBeNull()
+    expect(
+      McpServers.validate({ ...server, headerName: 'X Key', headerValue: 'v' }, []),
+    ).toMatch(/Header name/)
+  })
+
+  it('reads back only entries the form would accept', () => {
+    window.localStorage.setItem(
+      'QUILT_MCP_SERVERS_PROTOTYPE',
+      JSON.stringify([null, server, { ...server, url: 'http://x.test' }, server]),
+    )
+    try {
+      expect(McpServers.read()).toEqual([server])
+    } finally {
+      window.localStorage.clear()
+    }
   })
 
   it('turns only enabled servers into optional third-party connectors', () => {

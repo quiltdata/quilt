@@ -68,7 +68,7 @@ describe('Connectors/Mcp', () => {
      * `globalThis.fetch` lookup deterministically, no globalThis pollution.
      */
     const captureCalls = (
-      respond: (req: any) => Response,
+      respond: (req: any, init?: RequestInit) => Response,
     ): {
       fetchSpy: ReturnType<typeof vi.fn>
       calls: Array<{ url: string; init?: RequestInit; body?: any }>
@@ -85,7 +85,7 @@ describe('Connectors/Mcp', () => {
           body = JSON.parse(text)
         }
         calls.push({ url: String(url), init, body })
-        return respond(body)
+        return respond(body, init)
       })
       return { fetchSpy, calls }
     }
@@ -141,10 +141,6 @@ describe('Connectors/Mcp', () => {
     })
 
     it('sends NO Authorization header when getToken is omitted', async () => {
-      // The load-bearing property of the admin-registered server path: the
-      // catalog's session token is a Quilt credential, and forwarding it to a
-      // third-party endpoint would hand that operator a bearer for this
-      // deployment. Asserting on the absence, not on a placeholder value.
       const { fetchSpy, calls } = captureCalls(okResponse)
 
       const client = Mcp.make({ url: 'https://third-party.invalid/mcp' })
@@ -187,40 +183,44 @@ describe('Connectors/Mcp', () => {
       )
     })
 
-    it('replays the session id a stateful server assigns, and drops it on 404', async () => {
-      let expired = false
-      const { fetchSpy, calls } = captureCalls((req: any) => {
+    it('replays the session id, and re-initializes on the ping after a 404', async () => {
+      // A stateful server: 400 without a session, 404 for an ended one.
+      let live = ''
+      let n = 0
+      const { fetchSpy, calls } = captureCalls((req: any, init?: RequestInit) => {
         if (req?.method === 'initialize') {
+          live = `sess-${++n}`
           return new Response(
             JSON.stringify({ jsonrpc: '2.0', id: req.id, result: {} }),
             {
               status: 200,
-              headers: { 'content-type': 'application/json', 'mcp-session-id': 'sess-1' },
+              headers: { 'content-type': 'application/json', 'mcp-session-id': live },
             },
           )
         }
+        const sent = ((init?.headers ?? {}) as Record<string, string>)['mcp-session-id']
+        if (!sent) return new Response('', { status: 400 })
+        if (sent !== live) return new Response('', { status: 404 })
         if (!req?.id) return new Response(null, { status: 202 })
-        if (expired) return new Response('', { status: 404 })
         return okResponse(req)
       })
       const client = Mcp.make({ url: 'https://stateful.invalid/mcp' })
       const sessionOf = (i: number) =>
         ((calls[i].init?.headers ?? {}) as Record<string, string>)['mcp-session-id']
+      const run = <A, E>(eff: Eff.Effect.Effect<A, E>) =>
+        Eff.Effect.runPromiseExit(withFetch(eff, fetchSpy))
 
-      await Eff.Effect.runPromise(withFetch(client.initialize(), fetchSpy))
-      await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+      await run(client.initialize())
+      expect(Eff.Exit.isSuccess(await run(client.listTools()))).toBe(true)
       expect(sessionOf(0)).toBeUndefined()
       expect(sessionOf(1)).toBe('sess-1') // notifications/initialized
       expect(sessionOf(2)).toBe('sess-1')
 
-      expired = true
-      const exit = await Eff.Effect.runPromiseExit(
-        withFetch(client.listTools(), fetchSpy),
-      )
-      expect(Eff.Exit.isFailure(exit)).toBe(true)
-      expired = false
-      await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
-      expect(sessionOf(4)).toBeUndefined()
+      live = 'ended'
+      expect(Eff.Exit.isFailure(await run(client.listTools()))).toBe(true)
+      expect(Eff.Exit.isSuccess(await run(client.ping()))).toBe(true)
+      expect(Eff.Exit.isSuccess(await run(client.listTools()))).toBe(true)
+      expect(sessionOf(calls.length - 1)).toBe('sess-2')
     })
 
     it('withHeaders backend sends its fixed headers and no catalog token', async () => {

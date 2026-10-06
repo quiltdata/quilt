@@ -823,9 +823,6 @@ describe('Connectors', () => {
     })
 
     it('an optional connector stuck in Failed does not gate the conversation', () => {
-      // The registry case: an admin-registered server is down. Before optional
-      // connectors existed, `isBlocked` was `some(...)` over every connector, so
-      // this state held chat until the user dismissed it — once per dead server.
       const platform = baseConfig(stubBackend())
       const thirdParty = baseConfig(
         stubBackend({ initialize: () => Eff.Effect.fail(authError) }),
@@ -838,9 +835,7 @@ describe('Connectors', () => {
           yield* awaitState(svc.byId.platform, (s) => s._tag === 'Ready')
           yield* awaitState(svc.byId.gpu, (s) => s._tag === 'Failed')
 
-          // The optional connector really is in the state that would otherwise
-          // demand a dismissal — otherwise this test would pass for the wrong
-          // reason (e.g. if it had quietly reached Ready).
+          // Guards against passing because it quietly reached Ready.
           const gpuState = yield* Eff.SubscriptionRef.get(svc.byId.gpu.state)
           expect(Connectors.stateRequiresAck(gpuState)).toBe(true)
 
@@ -913,8 +908,7 @@ describe('Connectors', () => {
     })
 
     it('a required connector stuck in Failed still gates the conversation', () => {
-      // CONTROL for the test above: pins that skipping optional connectors did
-      // not disable gating altogether. Passes before and after the change.
+      // Control: skipping optional connectors must not disable gating altogether.
       const platform = baseConfig(
         stubBackend({ initialize: () => Eff.Effect.fail(authError) }),
       )
@@ -930,9 +924,8 @@ describe('Connectors', () => {
     })
 
     it('contextContribution: an optional connector still reports its tools and state', () => {
-      // Not gating must not mean not visible: a registered server's tools are
-      // the point, and once acknowledged-failed it has to appear as unavailable
-      // rather than vanishing from the prompt.
+      // Not gating must not mean not visible: once failed it shows as
+      // unavailable rather than vanishing from the prompt.
       const platform = baseConfig(stubBackend())
       const thirdParty = baseConfig(
         stubBackend({

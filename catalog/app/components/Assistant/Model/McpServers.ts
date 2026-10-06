@@ -22,11 +22,14 @@ export interface Server {
 }
 
 // `<slug>__<tool>` must fit Bedrock's tool-name rule; `platform` is the built-in.
-const SLUG_RE = /^[a-z][a-z0-9_]{0,23}$/
+// No `__` or trailing `_`, or `a__b` + `c` and `a` + `b__c` would collide.
+const SLUG_RE = /^[a-z](?!.*__)(?:[a-z0-9_]{0,22}[a-z0-9])?$/
+const HEADER_NAME_RE = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/
 export const RESERVED_SLUGS: ReadonlySet<string> = new Set(['platform'])
 
 export function validate(s: Server, others: readonly Server[]): string | null {
-  if (!SLUG_RE.test(s.slug)) return 'Id: lowercase letters, digits and _, up to 24'
+  if (!SLUG_RE.test(s.slug))
+    return 'Id: lowercase letters, digits and single inner _, up to 24'
   if (RESERVED_SLUGS.has(s.slug)) return `Id "${s.slug}" is reserved`
   if (others.some((o) => o.slug === s.slug)) return `Id "${s.slug}" is taken`
   if (!s.title.trim()) return 'Title is required'
@@ -38,13 +41,25 @@ export function validate(s: Server, others: readonly Server[]): string | null {
   }
   if (url.protocol !== 'https:') return 'URL must be https'
   if (!!s.headerName !== !!s.headerValue) return 'Header needs both a name and a value'
+  if (s.headerName && !HEADER_NAME_RE.test(s.headerName))
+    return 'Header name is not valid'
   return null
 }
 
 export function read(): Server[] {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    // Anyone can write this key, so drop entries the form would have refused.
+    const kept: Server[] = []
+    for (const s of parsed) {
+      try {
+        if (validate(s, kept) === null) kept.push(s)
+      } catch {
+        // Not a server object.
+      }
+    }
+    return kept
   } catch {
     return []
   }

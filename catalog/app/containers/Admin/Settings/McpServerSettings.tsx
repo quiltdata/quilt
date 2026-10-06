@@ -69,6 +69,7 @@ function ServerRow({
     Eff.Effect.runPromise(
       backend.initialize().pipe(
         Eff.Effect.zipRight(backend.listTools()),
+        Eff.Effect.timeout('15 seconds'),
         Eff.Effect.match({
           onFailure: (e): Probe => ({
             _tag: 'failed',
@@ -77,7 +78,9 @@ function ServerRow({
           onSuccess: (tools): Probe => ({ _tag: 'ok', tools: [...tools] }),
         }),
       ),
-    ).then(setProbe)
+    )
+      .then(setProbe)
+      .catch((e) => setProbe({ _tag: 'failed', message: String(e) }))
   }, [server])
   return (
     <div className={classes.row}>
@@ -155,6 +158,9 @@ export default function McpServerSettings() {
       label={label}
       size="small"
       variant="outlined"
+      type={name === 'headerValue' ? 'password' : undefined}
+      // Keep password managers from filling the catalog login into these.
+      autoComplete={name === 'headerValue' ? 'new-password' : 'off'}
       value={form[name]}
       onChange={(e) => setForm({ ...form, [name]: e.target.value })}
     />

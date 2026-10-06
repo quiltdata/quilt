@@ -349,12 +349,8 @@ export interface McpClientOptions {
    * every call — callers can close over a redux store and project the
    * current token via a memoized selector.
    *
-   * Omit it for an unauthenticated server: the request then carries no
-   * `Authorization` header at all. That is not a convenience — an
-   * admin-registered third-party server must never receive the catalog's
-   * session token. It is a Quilt credential, the server has no use for it, and
-   * forwarding it would hand a bearer for this deployment to whoever operates
-   * that endpoint.
+   * Omit it for a third-party server: the request then carries no
+   * `Authorization` header, so the catalog session token never reaches it.
    */
   getToken?: () => Eff.Effect.Effect<string, McpAuthError>
   /** Extra request headers, sent verbatim on every call. */
@@ -372,8 +368,8 @@ export interface McpClient {
   readResource: (uri: string) => Eff.Effect.Effect<McpResourceContents, McpError>
   /**
    * MCP base protocol `ping` — JSON-RPC method returning an empty object
-   * on success. Used as a transport-health probe; independent POST in
-   * stateless HTTP mode, no session state.
+   * on success. Used as a transport-health probe. After the server ends a
+   * session, it re-initializes instead.
    */
   ping: () => Eff.Effect.Effect<void, McpError>
 }
@@ -382,6 +378,9 @@ export function make(options: McpClientOptions): McpClient {
   // Streamable HTTP: a stateful server assigns `Mcp-Session-Id` on `initialize`
   // and rejects later requests without it. Stateless servers never send one.
   let sessionId: string | null = null
+  // Set when the server ends a session: a session-less `ping` would then get a
+  // 400 and the reconnect probe would never reach bootstrap.
+  let sessionExpired = false
 
   const post = (
     payload: JsonRpcRequest | Omit<JsonRpcRequest, 'id'>,
@@ -391,13 +390,14 @@ export function make(options: McpClientOptions): McpClient {
       // `Authorization` header at all, rather than an empty or placeholder one.
       const token = options.getToken ? yield* options.getToken() : null
       const httpClient = yield* HttpClient.HttpClient
+      const sentSession = sessionId
 
       const base = HttpClientRequest.post(options.url).pipe(
         HttpClientRequest.setHeaders({
           ...options.headers,
           Accept: 'application/json, text/event-stream',
           'MCP-Protocol-Version': PROTOCOL_VERSION,
-          ...(sessionId ? { 'Mcp-Session-Id': sessionId } : {}),
+          ...(sentSession ? { 'Mcp-Session-Id': sentSession } : {}),
         }),
         HttpClientRequest.bodyText(JSON.stringify(payload), 'application/json'),
       )
@@ -427,10 +427,13 @@ export function make(options: McpClientOptions): McpClient {
 
       if (resp.status === 202) return null
 
-      // The server ended the session. Drop it so the connector's reconnect
-      // re-initializes into a new one.
-      if (resp.status === 404 && sessionId) {
-        sessionId = null
+      if (resp.status === 404 && sentSession) {
+        // A late 404 from a call in flight across a re-initialize must not end
+        // the session that replaced it.
+        if (sessionId === sentSession) {
+          sessionId = null
+          sessionExpired = true
+        }
         return yield* Eff.Effect.fail(
           new McpTransportError({ detail: 'session expired', status: 404 }),
         )
@@ -526,18 +529,21 @@ export function make(options: McpClientOptions): McpClient {
       Eff.Effect.asVoid,
     )
 
+  const initialize = () =>
+    Eff.Effect.gen(function* () {
+      sessionId = null
+      yield* rpc('initialize', {
+        protocolVersion: PROTOCOL_VERSION,
+        capabilities: {},
+        clientInfo: CLIENT_INFO,
+      })
+      // Server MUST receive `initialized` after `initialize`.
+      yield* notify('notifications/initialized')
+      sessionExpired = false
+    })
+
   return {
-    initialize: () =>
-      Eff.Effect.gen(function* () {
-        sessionId = null
-        yield* rpc('initialize', {
-          protocolVersion: PROTOCOL_VERSION,
-          capabilities: {},
-          clientInfo: CLIENT_INFO,
-        })
-        // Server MUST receive `initialized` after `initialize`.
-        yield* notify('notifications/initialized')
-      }),
+    initialize,
     listTools: () =>
       rpc('tools/list').pipe(
         Eff.Effect.flatMap(decodeWith(ToolsListResponseSchema, 'tools/list')),
@@ -558,7 +564,10 @@ export function make(options: McpClientOptions): McpClient {
         Eff.Effect.flatMap(decodeWith(McpResourceContentsSchema, 'resources/read')),
         Eff.Effect.map((r) => r as unknown as McpResourceContents),
       ),
-    ping: () => rpc('ping').pipe(Eff.Effect.asVoid),
+    ping: () =>
+      Eff.Effect.suspend(() =>
+        sessionExpired ? initialize() : rpc('ping').pipe(Eff.Effect.asVoid),
+      ),
   }
 }
 
@@ -609,7 +618,7 @@ export function mapContent(block: McpContent): Content.ToolResultContentBlock {
 }
 
 // ---------------------------------------------------------------------------
-// Backend adapter — `bearerPassthru` (1st-party, catalog auth passthrough)
+// Backend adapters
 // ---------------------------------------------------------------------------
 
 const adaptDescriptor = (m: McpToolDescriptor): BackendToolDescriptor => ({
@@ -670,18 +679,7 @@ export interface BearerPassthruOptions {
   readonly getToken: () => Eff.Effect.Effect<string | null>
 }
 
-/**
- * 1st-party MCP backend with bearer-passthrough auth. The caller
- * resolves the bearer token (typically a catalog session JWT) on every
- * call; the backend forwards it as `Authorization: Bearer <token>` and
- * doesn't manage refresh, expiry, or session state. Pairs with FastMCP's
- * `stateless_http=True` transport mode.
- */
-/**
- * Adapt a wire client to the abstract `Backend`. Shared by every backend
- * factory below; the factories differ only in how (and whether) they
- * authenticate, never in how the protocol maps onto the connector contract.
- */
+/** Shared by every backend factory below; they differ only in authentication. */
 const adaptBackend = (wire: McpClient): Backend => {
   const lift = <A>(eff: Eff.Effect.Effect<A, McpError>) =>
     eff.pipe(Eff.Effect.mapError(adaptError))
@@ -711,6 +709,13 @@ const adaptBackend = (wire: McpClient): Backend => {
   }
 }
 
+/**
+ * 1st-party MCP backend with bearer-passthrough auth. The caller
+ * resolves the bearer token (typically a catalog session JWT) on every
+ * call; the backend forwards it as `Authorization: Bearer <token>` and
+ * doesn't manage refresh, expiry, or session state. Pairs with FastMCP's
+ * `stateless_http=True` transport mode.
+ */
 export const bearerPassthru = (opts: BearerPassthruOptions): Backend =>
   adaptBackend(
     make({
@@ -731,18 +736,9 @@ export interface AnonymousOptions {
 }
 
 /**
- * Backend for a server Quilt does not operate and holds no credential for.
- *
- * Sends no `Authorization` header. That is the design, not a gap: the catalog's
- * session token is a Quilt credential, the third-party server has no use for
- * it, and forwarding it would hand a bearer for this deployment to whoever runs
- * that endpoint. A single shared secret is no better — it would have to reach
- * every user's browser to be usable, which publishes it. So such a server
- * authorizes its own callers, typically by the network it sits on.
- *
- * The connector built on this is registered `optional` and `thirdParty`, so its
- * failure does not gate the conversation and its output is marked untrusted in
- * the prompt.
+ * Backend for a server Quilt does not operate. Sends no `Authorization`: the
+ * catalog session token is a bearer for this deployment, and a shared secret
+ * would have to reach every browser.
  */
 export const anonymous = (opts: AnonymousOptions): Backend =>
   adaptBackend(make({ url: opts.url }))
