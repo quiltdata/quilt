@@ -13,7 +13,7 @@ vi.mock('./Indexing', () => ({ default: () => null }))
 vi.mock('./Canaries', () => ({ default: () => null }))
 vi.mock('./Reports', () => ({ default: () => null }))
 vi.mock('./Stats', () => ({ default: () => null }))
-vi.mock('./Milestones', () => ({ default: () => <div>Milestones panel</div> }))
+vi.mock('containers/Milestones', () => ({ Panel: () => <div>Milestones panel</div> }))
 
 import Status from './Status'
 

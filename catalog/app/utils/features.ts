@@ -46,7 +46,7 @@ export const FEATURES = {
   'product-badges': {
     label: 'Milestone badges',
     description:
-      'Show package-count and multi-terabyte milestones on Admin > Status. Off, the Status page is unchanged.',
+      'Award stack milestones (package counts, data volume, team size, anniversaries) with Teams and Slack sharing: a Milestones page, a card on Admin > Status, and a dismissible ribbon for every signed-in user. Off, none of these appear.',
   },
 } satisfies Record<string, Feature>
 

@@ -133,6 +133,10 @@ export type QueriesEsArgs = Parameters<typeof queriesEs.url>
 // the platform binding rather than a platform-native identifier.
 export const dataProducts = route('/data-products')
 
+export const milestones = route('/milestones', (badgeId?: string) =>
+  badgeId ? `/milestones#${badgeId}` : '/milestones',
+)
+
 export type DataProductsArgs = Parameters<typeof dataProducts.url>
 
 // NOT `encode` from utils/s3paths: that one splits on `/` and encodes each
