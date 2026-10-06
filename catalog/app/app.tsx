@@ -122,6 +122,10 @@ const render = () => {
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,
+      // S3.Provider suspends on the buckets query. React 18 drops the state of
+      // an uncommitted tree on suspend, so without this boundary the GraphQL
+      // client and AWS credentials above are rebuilt and refetch forever.
+      [React.Suspense, { fallback: <Placeholder /> }],
       AWS.S3.Provider,
       BucketCacheProvider,
       Assistant.Provider,
