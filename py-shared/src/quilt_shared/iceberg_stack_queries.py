@@ -428,8 +428,7 @@ class StackQueryMaker:
     def present_registries(self) -> list[str]:
         """Selects the registries the tables' partition metadata lists. To prune, `stale_buckets` of these rows
         gives the candidates, and `stale_buckets` of the rows of `live_registries(candidates)` the buckets to
-        `remove`: a delete leaves a registry listed until compaction. With nothing stale, a deploy reads metadata
-        only and writes nothing; a removed bucket costs a read of its remaining files until compaction."""
+        `remove`: a delete leaves a registry listed until compaction."""
         return [
             " UNION ".join(
                 f'SELECT "partition".registry AS registry FROM "{self.database}"."{table}$partitions"'
