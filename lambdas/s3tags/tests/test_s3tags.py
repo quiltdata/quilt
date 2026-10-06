@@ -8,6 +8,7 @@ import pytest
 import t4_lambda_s3tags as m
 
 CONFIG = {'project': '/project', 'stage': '/a/stage'}
+LOAD_CONFIG = m.load_config
 
 
 def test_project_and_merge():
@@ -123,6 +124,13 @@ def test_load_config_signs_the_request(monkeypatch):
 
 
 def test_unmapped_bucket_is_skipped(fake, monkeypatch):
-    monkeypatch.setattr(m, 'load_config', lambda bucket: None)
+    class FakeKMS:
+        def sign(self, **kwargs):
+            return {'Signature': b'SIG'}
+
+    monkeypatch.setattr(m, 'load_config', LOAD_CONFIG)
+    monkeypatch.setattr(m, 'kms', FakeKMS())
+    monkeypatch.setattr(m, 'REGISTRY_ENDPOINT', 'http://registry:8080/s3tags/')
+    monkeypatch.setattr(m.urllib.request, 'urlopen', lambda req, timeout: io.BytesIO(b'{"tags": null}'))
     assert m.project_revision('b', 'a/b', 'new') == {}
     assert fake.puts == []
