@@ -19,6 +19,7 @@ import * as Form from '../Form'
 import {
   IndexingAndNotificationsForm,
   MetadataForm,
+  ObjectTagsForm,
   PFSCheckbox,
   PrimaryForm,
   bucketToFormValues,
@@ -53,15 +54,17 @@ const SECTION_OF: Record<keyof FormValues, SectionId> = {
   snsNotificationArn: 'index',
   skipMetaDataIndexing: 'index',
   browsable: 'render',
+  objectTagsConfig: 'tags',
 }
 
-type SectionId = 'display' | 'find' | 'index' | 'render'
+type SectionId = 'display' | 'find' | 'index' | 'render' | 'tags'
 
 const SECTION_TITLE: Record<SectionId, string> = {
   display: 'How it appears',
   find: 'How it is found',
   index: 'What gets indexed, and how changes arrive',
   render: 'How files render',
+  tags: 'Which metadata becomes S3 tags',
 }
 
 const useHeaderStyles = M.makeStyles((t) => ({
@@ -486,6 +489,7 @@ function summarize(v: FormValues, bucket: BucketConfig): Record<SectionId, strin
     find: `relevance ${v.relevanceScore || '0'}${v.tags ? ` · ${v.tags.split(',').filter((x) => x.trim()).length} tags` : ' · no tags'}`,
     index: `deep indexing ${v.enableDeepIndexing ? 'on' : 'off'} · ${scope ? `${scope} ${scope === 1 ? 'prefix' : 'prefixes'}` : 'whole bucket'} · notifications ${notificationsLabel(v.snsNotificationArn)}`,
     render: v.browsable ? 'permissive HTML on' : 'permissive HTML off',
+    tags: v.objectTagsConfig?.trim() ? 'mapped' : 'none',
   }
 }
 
@@ -524,6 +528,7 @@ export default function BucketPage({
     find: false,
     index: false,
     render: false,
+    tags: false,
   })
   const toggle = React.useCallback(
     (id: SectionId) => setOpen((o) => ({ ...o, [id]: !o[id] })),
@@ -675,6 +680,15 @@ export default function BucketPage({
                   onToggle={toggle}
                 >
                   <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
+                </Section>
+                <Section
+                  id="tags"
+                  summary={summary.tags}
+                  changed={changed.has('tags')}
+                  open={open.tags}
+                  onToggle={toggle}
+                >
+                  <ObjectTagsForm />
                 </Section>
                 <input type="submit" style={{ display: 'none' }} />
               </form>

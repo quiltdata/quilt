@@ -1,23 +1,37 @@
 import * as React from 'react'
 
-import * as AWS from 'utils/AWS'
-import type * as S3Tags from 'utils/s3Tags'
-import * as Request from 'utils/useRequest'
+import * as GQL from 'utils/GraphQL'
+import * as S3Tags from 'utils/s3Tags'
+import * as YAML from 'utils/yaml'
 
-import * as requests from '../../requests'
+import BUCKET_OBJECT_TAGS_CONFIG_QUERY from '../gql/BucketObjectTagsConfig.generated'
 
-/** `null` until loaded and when the bucket has no `.quilt/s3_tags.yml` */
+/** `null` when the bucket maps nothing; admins edit the mapping in Admin → Buckets */
 export type S3TagsConfigState = S3Tags.S3TagsConfig | null | Error
 
 export function useS3TagsConfig(
   open: boolean,
   bucket: string,
 ): { config: S3TagsConfigState; loading: boolean } {
-  const s3 = AWS.S3.use()
-  const req = React.useCallback(() => requests.s3TagsConfig({ s3, bucket }), [bucket, s3])
-  const result = Request.use(req, open)
-  if (result === Request.Idle) return { config: null, loading: false }
-  if (result === Request.Loading) return { config: null, loading: true }
-  // A broken config doesn't block pushing: the preview shows the error and no tags are written.
-  return { config: result, loading: false }
+  const res = GQL.useQuery(BUCKET_OBJECT_TAGS_CONFIG_QUERY, { bucket }, { pause: !open })
+  return React.useMemo(() => {
+    if (!open) return { config: null, loading: false }
+    return GQL.fold(res, {
+      data: (data, { fetching }) => {
+        if (fetching) return { config: null, loading: true }
+        const text = data.bucketConfig?.objectTagsConfig
+        if (!text) return { config: null, loading: false }
+        // A broken config doesn't block pushing: the preview shows the error.
+        try {
+          const parsed = YAML.parseStrict(text)
+          if (parsed instanceof Error) throw parsed
+          return { config: S3Tags.parseConfig(parsed), loading: false }
+        } catch (e) {
+          return { config: e instanceof Error ? e : new Error(`${e}`), loading: false }
+        }
+      },
+      fetching: () => ({ config: null, loading: true }),
+      error: (e) => ({ config: e, loading: false }),
+    })
+  }, [open, res])
 }

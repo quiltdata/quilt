@@ -257,6 +257,8 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   tabulatorTables: [TabulatorTable!]!
+  "YAML mapping of package metadata onto S3 object tags; null when the bucket maps none"
+  objectTagsConfig: String
 }
 
 # Role-scoped view of a bucket, surfaced via `buckets` / `bucket` queries.
@@ -819,6 +821,8 @@ input BucketUpdateInput {
   indexContentBytes: Int
   browsable: Boolean
   prefixes: [String!]
+  "Omit to keep the current mapping; null or empty to remove it"
+  objectTagsConfig: String
 }
 
 type BucketAddSuccess {
@@ -843,6 +847,10 @@ type BucketFileExtensionsToIndexInvalid {
 
 type BucketIndexContentBytesInvalid {
   _: Boolean
+}
+
+type BucketObjectTagsConfigInvalid {
+  message: String!
 }
 
 type SnsInvalid {
@@ -890,6 +898,7 @@ union BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | BucketObjectTagsConfigInvalid
   | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
