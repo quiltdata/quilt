@@ -42,6 +42,7 @@ complete sentence without it.
 - [Fixed] Preview: a file the preview service cannot read, such as a CSV named `.parquet`, shows the service's reason instead of a generic error ([#5376](https://github.com/quiltdata/quilt/pull/5376))
 - [Fixed] Opening Qurator no longer logs an aborted request to the platform MCP server in the browser console ([#5375](https://github.com/quiltdata/quilt/pull/5375))
 - [Fixed] Tabular previews: an h5ad file too large to preview shows its metadata and says it is too large, instead of reporting that the table could not be rendered ([#5374](https://github.com/quiltdata/quilt/pull/5374))
+- [Added] Qurator's menu has an "Open full page" item that continues the conversation at `/qurator` ([#5443](https://github.com/quiltdata/quilt/pull/5443))
 - [Fixed] Documentation links that led to a docs 404 now open the right page: the `/install` redirect, the Python code-sample help links, and the Athena help icon ([#5373](https://github.com/quiltdata/quilt/pull/5373))
 - [Fixed] Image file pages (`.png`, `.jpg`, `.jpeg`, `.gif`) load with status 200 and the catalog's anti-framing header instead of a 404 ([#5372](https://github.com/quiltdata/quilt/pull/5372))
 - [Fixed] Admin users and roles: clicking a user whose name contains `@` opens their page instead of reporting no such user ([#5364](https://github.com/quiltdata/quilt/pull/5364))
