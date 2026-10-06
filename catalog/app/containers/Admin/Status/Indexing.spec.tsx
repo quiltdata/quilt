@@ -297,18 +297,23 @@ describe('containers/Admin/Status/Indexing', () => {
     expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
   })
 
-  it('labels a missing-only backfill and raises no empty-search warning while it runs', async () => {
-    mocks.req.mockReset()
-    mocks.req.mockResolvedValue({
-      results: [job({ prefix: '', ignore_dirs: false, missing_only: true })],
-    })
-    renderPanel()
+  it.each([
+    { prefix: '', ignore_dirs: false, label: 'whole bucket · missing-only' },
+    { prefix: 'raw/', ignore_dirs: false, label: 'prefix raw/ · missing-only' },
+    { prefix: '', ignore_dirs: true, label: 'top-level keys only · missing-only' },
+  ])(
+    'labels a missing-only backfill as $label and raises no empty-search warning while it runs',
+    async ({ prefix, ignore_dirs, label }) => {
+      mocks.req.mockReset()
+      mocks.req.mockResolvedValue({
+        results: [job({ prefix, ignore_dirs, missing_only: true })],
+      })
+      renderPanel()
 
-    await waitFor(() =>
-      expect(screen.getByText('whole bucket · missing-only')).toBeTruthy(),
-    )
-    expect(screen.queryByRole('alert')).toBeNull()
-  })
+      await waitFor(() => expect(screen.getByText(label)).toBeTruthy())
+      expect(screen.queryByRole('alert')).toBeNull()
+    },
+  )
 
   it('does not tell an admin to restart the re-index when a missing-only backfill runs out of attempts', async () => {
     mocks.req.mockReset()
