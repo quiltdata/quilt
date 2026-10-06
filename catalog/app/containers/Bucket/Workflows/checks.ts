@@ -51,7 +51,7 @@ interface DryRunInput {
   meta: Types.Json
 }
 
-// Mirrors the order and wording of quilt3 `WorkflowValidator.validate`, but reports every
+// Mirrors the order of quilt3 `WorkflowValidator.validate`, but reports every
 // metadata error with its location instead of stopping at the first.
 export function dryRun(
   workflow: Workflows.Workflow,
