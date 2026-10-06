@@ -3,6 +3,7 @@ query {
     quratorModels {
       allowlist
       default
+      maxToolCallsPerTurn
       names {
         id
         name
