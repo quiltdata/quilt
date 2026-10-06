@@ -160,8 +160,14 @@ class S3:
 
     def head_object(self, *, Bucket, Key):
         self.reads.append(("HeadObject", Key, None))
-        if (body := self._body(Bucket, Key)) is None:
-            raise s3_error("404", 404)  # a HEAD has no body to name its error
+        # A HEAD has no body to name its error, so its code is its status.
+        try:
+            body = self._body(Bucket, Key)
+        except botocore.exceptions.ClientError as e:
+            status = e.response["ResponseMetadata"]["HTTPStatusCode"]
+            raise s3_error(str(status), status) from None
+        if body is None:
+            raise s3_error("404", 404)
         return {"ContentLength": len(body)}
 
     def get_object(self, *, Bucket, Key, Range=None):
@@ -445,26 +451,27 @@ def test_a_pointer_is_read_by_its_first_128_bytes_and_their_first_line_stripped(
 
 
 @pytest.mark.parametrize(
-    "error",
+    "key, error",
     [
-        SLOW_DOWN,
-        s3_error("InternalError", 500),
-        botocore.exceptions.EndpointConnectionError(endpoint_url="s3"),
-        s3_error("RequestTimeout", 400),
-        s3_error("RequestTimeTooSkewed", 403),
-        s3_error("OperationAborted", 409),
+        (manifest_key(h(2)), SLOW_DOWN),
+        (manifest_key(h(2)), s3_error("InternalError", 500)),
+        (manifest_key(h(2)), botocore.exceptions.EndpointConnectionError(endpoint_url="s3")),
+        # S3 names these only on a read whose error has a body: a pointer's GET.
+        (pointer_key("u/p", "latest"), s3_error("RequestTimeout", 400)),
+        (pointer_key("u/p", "latest"), s3_error("RequestTimeTooSkewed", 403)),
+        (pointer_key("u/p", "latest"), s3_error("OperationAborted", 409)),
     ],
     ids=["throttled", "S3's fault", "unreachable", "timed out", "clock skewed", "conflicting operation"],
 )
 def test_an_object_that_cannot_be_read_for_now_is_returned_and_the_rest_of_the_batch_written(
-    handle, s3, con, sqs, error
+    handle, s3, con, sqs, key, error
 ):
     put_manifest(s3, con, h(1))
-    s3.objects[BUCKET, manifest_key(h(2))] = error
+    s3.objects[BUCKET, key] = error
 
-    response = handle(record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2))))
+    response = handle(record("m1", manifest_key(h(1))), record("bad", key))
 
-    assert response == failures("m2")
+    assert response == failures("bad")
     assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
     assert sqs.sent == []
 
