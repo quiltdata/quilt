@@ -1276,7 +1276,7 @@ export interface QuratorConfigInput {
   readonly gatewayAccountId: InputMaybe<Scalars['String']['input']>
   readonly gatewayEndpointUrl: InputMaybe<Scalars['String']['input']>
   readonly maxToolCallsPerTurn: InputMaybe<Scalars['Int']['input']>
-  /** Each id must be in `allowlist`; each name is 1 to 64 characters. */
+  /** Each id must be in `allowlist`; each name, once trimmed, is 1 to 64 printable characters. */
   readonly names: InputMaybe<ReadonlyArray<QuratorModelNameInput>>
   readonly requestTimeoutSeconds: InputMaybe<Scalars['Int']['input']>
   /** 1 to 500. */

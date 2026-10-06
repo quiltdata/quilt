@@ -18,7 +18,7 @@ export interface QuratorConfigInput {
   readonly gatewayAccountId: string | null | undefined
   readonly gatewayEndpointUrl: string | null | undefined
   readonly maxToolCallsPerTurn: number | null | undefined
-  /** Each id must be in `allowlist`; each name is 1 to 64 characters. */
+  /** Each id must be in `allowlist`; each name, once trimmed, is 1 to 64 printable characters. */
   readonly names: Array<QuratorModelNameInput> | null | undefined
   readonly requestTimeoutSeconds: number | null | undefined
   /** 1 to 500. */

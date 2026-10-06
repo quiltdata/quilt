@@ -1185,7 +1185,7 @@ input QuratorConfigInput {
   gatewayAccountId: String
   requestTimeoutSeconds: Int
   maxToolCallsPerTurn: Int
-  "Each id must be in `allowlist`; each name is 1 to 64 characters."
+  "Each id must be in `allowlist`; each name, once trimmed, is 1 to 64 printable characters."
   names: [QuratorModelNameInput!]
   "0 to 3650. 0 hides every session without deleting it; `quratorSessionsPurgeAll` deletes."
   sessionRetentionDays: Int
