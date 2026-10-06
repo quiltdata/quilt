@@ -294,6 +294,8 @@ const TOO_LARGE = 'This session is too long to keep — start a new one'
 const UNREADABLE = "That session couldn't be opened"
 const UNDELETABLE = "That session couldn't be deleted"
 const UNSWITCHABLE = "Keep sessions couldn't be changed"
+const KEPT_OFF =
+  'Not saved: Keep sessions was off during this conversation — start a new one to keep it'
 
 /**
  * Saves the conversation on screen to the registry as it changes. A reload
@@ -384,7 +386,10 @@ function useSessions(
       return
     }
     queue.resume()
-    if (head && head === offHead.current) return
+    if (head && head === offHead.current) {
+      setNotice((n) => (n?.head === head ? n : { head, text: KEPT_OFF }))
+      return
+    }
     // An empty conversation is never created, but a saved one is emptied when
     // everything in it is discarded, so the discarded messages do not reopen.
     if (head && (currentId || state.events.some((e) => !e.discarded)))
@@ -421,17 +426,16 @@ function useSessions(
 
   const remove = React.useCallback(
     async (id: string) => {
-      // Its pending save goes out, then the queue lets go of it, so no save
-      // lands after the delete and recreates it as a fork.
+      // Its pending save goes out first and none during the delete, so no save
+      // meets NotFound and recreates it.
       await queue.flush()
-      queue.reset(id)
+      queue.hold(id)
       const r = await deleteSession({ id }).catch(() => null)
+      const deleted = r?.quratorSessionDelete.__typename === 'Ok'
+      queue.release(id, deleted)
       refresh()
-      if (r?.quratorSessionDelete.__typename !== 'Ok') {
-        setNotice({ head, text: UNDELETABLE })
-        return
-      }
-      if (id === currentId) dispatch(Conversation.Action.Clear())
+      if (!deleted) setNotice({ head, text: UNDELETABLE })
+      else if (id === currentId) dispatch(Conversation.Action.Clear())
     },
     [currentId, head, queue, dispatch, deleteSession, refresh],
   )

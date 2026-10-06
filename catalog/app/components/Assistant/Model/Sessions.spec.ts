@@ -193,17 +193,32 @@ describe('components/Assistant/Model/Sessions', () => {
       ])
     })
 
-    it('drops the pending save of a deleted session', async () => {
-      const { queue, send } = setup(async () => saved('S', 2))
+    it('holds a session while it is deleted, then saves its conversation anew', async () => {
+      const { queue, send, created } = setup(async (r) => saved(r.id ?? 'F', 1))
       queue.adopt('h', 'S', 1, 'a')
+      queue.hold('S')
       queue.change('h', 'ab')
-      queue.reset('other')
-      queue.reset('S')
-      await vi.advanceTimersByTimeAsync(1000)
+      await vi.advanceTimersByTimeAsync(5000)
       expect(send).not.toHaveBeenCalled()
+      queue.release('S', true)
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(send.mock.calls.map(([r]) => r)).toEqual([
+        { id: null, baseVersion: null, events: 'ab' },
+      ])
+      expect(created).toEqual([{ head: 'h', basis: 'S', id: 'F' }])
     })
 
-    it('sends nothing while paused, not even a fork, and resumes the same session', async () => {
+    it('saves to the same session when a delete fails', async () => {
+      const { queue, send } = setup(async (r) => saved(r.id ?? 'F', 2))
+      queue.adopt('h', 'S', 1, 'a')
+      queue.hold('S')
+      queue.change('h', 'ab')
+      queue.release('S', false)
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(send.mock.calls[0][0]).toEqual({ id: 'S', baseVersion: 1, events: 'ab' })
+    })
+
+    it('sends nothing while paused, not even a fork or what was pending', async () => {
       let resolve: (o: Sessions.SaveOutcome) => void = () => {}
       const { queue, send } = setup((r) =>
         r.id === 'S'
@@ -220,11 +235,26 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(send).toHaveBeenCalledTimes(1)
       queue.resume()
       await vi.advanceTimersByTimeAsync(1000)
+      expect(send).toHaveBeenCalledTimes(1)
+      queue.change('h', 'abcd')
+      await vi.advanceTimersByTimeAsync(1000)
       expect(send.mock.calls[1][0]).toEqual({
         id: null,
         baseVersion: null,
-        events: 'abc',
+        events: 'abcd',
       })
+    })
+
+    it('sends a retry at once when flushed', async () => {
+      const outcomes: Sessions.SaveOutcome[] = [{ _tag: 'Failed' }, saved('s', 1)]
+      const { queue, send } = setup(async () => outcomes.shift()!)
+      queue.change('h', 'a')
+      await vi.advanceTimersByTimeAsync(1000)
+      let settled = false
+      queue.flush().then(() => (settled = true))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(send).toHaveBeenCalledTimes(2)
+      expect(settled).toBe(true)
     })
 
     it('settles a flush only once an earlier conversation’s save is done too', async () => {
@@ -246,7 +276,7 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(settled).toBe(true)
     })
 
-    it('does not hold a flush for a failed save waiting to retry', async () => {
+    it('settles a flush on a save that fails twice, without waiting out the retry delay', async () => {
       const { queue } = setup(async () => ({ _tag: 'Failed' }))
       queue.change('h', 'a')
       let settled = false

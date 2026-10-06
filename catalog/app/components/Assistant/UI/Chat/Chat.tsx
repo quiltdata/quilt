@@ -472,7 +472,8 @@ interface LastSessionProps {
 /** Offered, never opened by itself: two tabs would otherwise write one session. */
 export function LastSession({ sessions, state }: LastSessionProps) {
   const last = sessions.list.find((s) => s.id !== sessions.currentId)
-  if (!last || state.events.some((e) => !e.discarded)) return null
+  if (!last || state._tag !== 'Idle' || state.events.some((e) => !e.discarded))
+    return null
   return (
     <MessageContainer
       color="faint"

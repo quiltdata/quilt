@@ -197,6 +197,7 @@ export function createSaveQueue<T>({
   let slot: Slot<T> | null = null
   // The current slot, and earlier ones whose save may still be in flight.
   const slots = new Set<Slot<T>>()
+  const held = new Set<string>()
   let paused = false
 
   const later = (s: Slot<T>, ms: number) => {
@@ -209,7 +210,13 @@ export function createSaveQueue<T>({
 
   const pump = (s: Slot<T>) => {
     if (s.inFlight) return
-    if (paused || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
+    // A flush does not wait out a retry delay: it sends now.
+    if (s.timer && s.waiters.length) {
+      clearTimeout(s.timer)
+      s.timer = null
+    }
+    const isHeld = s.id !== null && held.has(s.id)
+    if (paused || isHeld || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
       s.waiters.splice(0).forEach((resolve) => resolve())
       if (s !== slot && !s.timer) slots.delete(s)
       return
@@ -310,25 +317,36 @@ export function createSaveQueue<T>({
     },
     flush,
     /** Send nothing, not even a retry or a fork, until `resume`. */
+    /** Drops what is pending too: a save the user opted out of never goes out later. */
     pause() {
       paused = true
-      if (slot?.timer) clearTimeout(slot.timer)
-      if (slot) slot.timer = null
-    },
-    resume() {
-      if (!paused) return
-      paused = false
-      if (slot) later(slot, delayMs)
-    },
-    /** Drop the session `id` from the queue, if it holds it, and ignore what is in flight. */
-    reset(id: string) {
       for (const s of slots) {
-        if (s.id !== id && s.shown !== id) continue
         if (s.timer) clearTimeout(s.timer)
-        s.stopped = true
-        s.waiters.splice(0).forEach((resolve) => resolve())
-        slots.delete(s)
-        if (s === slot) slot = null
+        s.timer = null
+        s.latest = s.sent
+      }
+    },
+    /** Saving picks up with the next change. */
+    resume() {
+      paused = false
+    },
+    /** Send nothing to session `id` while it is being deleted. */
+    hold(id: string) {
+      held.add(id)
+    },
+    /**
+     * Once deleted, the conversation it held saves as a new session on its next
+     * change, and the actor follows it there as from a fork.
+     */
+    release(id: string, deleted: boolean) {
+      held.delete(id)
+      for (const s of slots) {
+        if (s.id !== id) continue
+        if (deleted) {
+          s.id = null
+          s.version = null
+        }
+        if (s.latest !== s.sent) later(s, delayMs)
       }
     },
   }

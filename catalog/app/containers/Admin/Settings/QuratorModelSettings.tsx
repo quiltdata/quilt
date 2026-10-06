@@ -443,6 +443,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
             className={classes.save}
             size="small"
             variant="outlined"
+            disabled={pending}
             onClick={confirmPurge.open}
           >
             Delete all saved sessions
