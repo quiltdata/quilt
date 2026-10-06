@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.primary.contrastText,
   },
   pending: {
-    border: `1px dashed ${t.palette.divider}`,
+    border: `1px dashed ${t.palette.text.disabled}`,
     color: t.palette.text.disabled,
   },
 }))

@@ -10,8 +10,8 @@ export default function MilestonesPage() {
   return (
     <Layout>
       <MetaTitle>Milestones</MetaTitle>
-      <M.Container maxWidth="lg">
-        <Panel />
+      <M.Container maxWidth="lg" disableGutters>
+        <Panel heading="h1" />
       </M.Container>
     </Layout>
   )

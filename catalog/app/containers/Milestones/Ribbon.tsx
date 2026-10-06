@@ -3,7 +3,8 @@ import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { authenticated } from 'containers/Auth/selectors'
+import * as Column from 'components/Layout/Column'
+import { username } from 'containers/Auth/selectors'
 import { useFeature } from 'utils/features'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -12,22 +13,22 @@ import Medallion from './Medallion'
 import { ShareButton } from './ShareMenu'
 import useMilestones from './useMilestones'
 
-const DISMISSED_KEY = 'quilt.milestones.dismissed'
+const dismissedKey = (user: string) => `quilt.milestones.dismissed:${user}`
 
-// Per browser, not per account: dismissal is a viewer convenience, and losing it
-// (private window, cleared storage) only brings the ribbon back.
-function readDismissed(): string[] {
+// Kept in this browser, per user: losing it (private window, cleared storage)
+// only brings the ribbon back.
+function readDismissed(user: string): string[] {
   try {
-    const v = JSON.parse(window.localStorage.getItem(DISMISSED_KEY) ?? '[]')
+    const v = JSON.parse(window.localStorage.getItem(dismissedKey(user)) ?? '[]')
     return Array.isArray(v) ? v : []
   } catch {
     return []
   }
 }
 
-function writeDismissed(ids: string[]) {
+function writeDismissed(user: string, ids: string[]) {
   try {
-    window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(ids))
+    window.localStorage.setItem(dismissedKey(user), JSON.stringify(ids))
   } catch {
     // Storage blocked: the ribbon hides for this page view only.
   }
@@ -49,8 +50,20 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(1.5),
     padding: t.spacing(1, 2),
     paddingBottom: `max(${t.spacing(1)}px, env(safe-area-inset-bottom))`,
+    paddingLeft: `max(${t.spacing(2)}px, env(safe-area-inset-left))`,
+    paddingRight: `max(${t.spacing(2)}px, env(safe-area-inset-right))`,
     position: 'sticky',
     zIndex: t.zIndex.appBar - 1,
+    [Column.down('sm')]: {
+      gap: t.spacing(1),
+    },
+  },
+  // At phone width the badge title needs the room; the region's label still
+  // names it for screen readers.
+  prefix: {
+    [Column.down('sm')]: {
+      display: 'none',
+    },
   },
   text: {
     flexGrow: 1,
@@ -61,18 +74,18 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function RibbonBar({ badges }: { badges: Badge[] }) {
+function RibbonBar({ badges, user }: { badges: Badge[]; user: string }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const [dismissed, setDismissed] = React.useState(readDismissed)
+  const [dismissed, setDismissed] = React.useState(() => readDismissed(user))
   const fresh = badges
     .filter((b) => isEarned(b) && !dismissed.includes(b.id))
     .sort(byRecency)
   const dismiss = React.useCallback(() => {
     const ids = [...dismissed, ...fresh.map((b) => b.id)]
-    writeDismissed(ids)
+    writeDismissed(user, ids)
     setDismissed(ids)
-  }, [dismissed, fresh])
+  }, [user, dismissed, fresh])
 
   const newest = fresh[0]
   if (!newest) return null
@@ -81,7 +94,8 @@ function RibbonBar({ badges }: { badges: Badge[] }) {
     <aside aria-label="Milestones reached" className={classes.root}>
       <Medallion icon={newest.icon} state="earned" size={32} />
       <M.Typography variant="body2" className={classes.text} noWrap>
-        <b>Milestone reached:</b> {newest.title}
+        <span className={classes.prefix}>Milestone reached: </span>
+        <b>{newest.title}</b>
         {fresh.length > 1 && (
           <span className={classes.more}> and {fresh.length - 1} more</span>
         )}
@@ -97,23 +111,23 @@ function RibbonBar({ badges }: { badges: Badge[] }) {
   )
 }
 
-function SignedInRibbon() {
+function SignedInRibbon({ user }: { user: string }) {
   const badges = useMilestones()
-  return badges ? <RibbonBar badges={badges} /> : null
+  return badges ? <RibbonBar badges={badges} user={user} /> : null
 }
 
-function FlaggedRibbon() {
-  return useFeature('product-badges') ? <SignedInRibbon /> : null
+function FlaggedRibbon({ user }: { user: string }) {
+  return useFeature('product-badges') ? <SignedInRibbon user={user} /> : null
 }
 
 /** Earned milestones the viewer hasn't dismissed, along the bottom of every page. */
 export default function Ribbon() {
-  const signedIn = redux.useSelector(authenticated)
-  if (!signedIn) return null
+  const user: string | undefined = redux.useSelector(username)
+  if (!user) return null
   // `useFeature` suspends on a cold settings read; nothing to show meanwhile.
   return (
     <React.Suspense fallback={null}>
-      <FlaggedRibbon />
+      <FlaggedRibbon user={user} />
     </React.Suspense>
   )
 }

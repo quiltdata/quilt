@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Column from 'components/Layout/Column'
 import { readableBytes } from 'utils/string'
 
 import { CATEGORIES, isEarned, type Badge } from './badges'
@@ -16,24 +17,28 @@ const MEDALLION = 56
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(3),
+    [Column.down('sm')]: {
+      padding: t.spacing(2),
+    },
   },
   summary: {
     color: t.palette.text.secondary,
     marginBottom: t.spacing(1),
   },
   category: {
-    ...t.typography.overline,
+    ...t.typography.subtitle2,
     color: t.palette.text.secondary,
-    lineHeight: '20px',
     margin: t.spacing(3, 0, 1),
   },
   // Four tracks per tile, shared across each row through subgrid, so medallions,
   // titles, descriptions and status lines sit on the same lines tile to tile
-  // whatever their text wraps to.
+  // whatever their text wraps to. All `auto`: a fixed track can't absorb the
+  // tile's padding, and an `fr` track would size to the tallest tile in the
+  // whole category rather than its row.
   grid: {
     display: 'grid',
     columnGap: t.spacing(2),
-    gridAutoRows: `${MEDALLION}px auto 1fr auto`,
+    gridAutoRows: 'auto auto auto auto',
     gridTemplateColumns: 'repeat(auto-fill, minmax(184px, 1fr))',
     rowGap: 0,
   },
@@ -48,7 +53,8 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(2, 2, 1.5),
     position: 'relative',
     rowGap: t.spacing(1),
-    scrollMarginTop: t.spacing(10),
+    // Under Layout's sticky ContentBar (64px); JSS drops a unitless scroll-margin.
+    scrollMarginTop: `${64 + t.spacing(2)}px`,
     textAlign: 'center',
     '&:target': {
       borderColor: t.palette.secondary.main,
@@ -151,7 +157,12 @@ function Tile({ badge }: { badge: Badge }) {
   )
 }
 
-export default function Panel({ className }: { className?: string }) {
+interface PanelProps {
+  className?: string
+  heading?: 'h1' | 'h2'
+}
+
+export default function Panel({ className, heading = 'h2' }: PanelProps) {
   const classes = useStyles()
   const badges = useMilestones()
 
@@ -164,14 +175,14 @@ export default function Panel({ className }: { className?: string }) {
 
   return (
     <M.Paper variant="outlined" className={cx(classes.root, className)} id="milestones">
-      <M.Typography variant="h5" component="h2" gutterBottom>
+      <M.Typography variant="h5" component={heading} gutterBottom>
         Milestones
       </M.Typography>
       {badges ? (
         <>
           <M.Typography variant="body2" className={classes.summary}>
             {badges.filter(isEarned).length} of {badges.length} earned · counted across
-            every bucket in this stack
+            every bucket in this catalog
           </M.Typography>
           {CATEGORIES.map((category) => {
             const group = R.filter((b: Badge) => b.category === category, badges)

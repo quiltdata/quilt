@@ -6,7 +6,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import type { Badge } from './badges'
 
 const mocks = vi.hoisted(() => ({
-  signedIn: true,
+  signedIn: 'alice' as string | null,
   flag: true,
   badges: [] as Badge[],
 }))
@@ -41,7 +41,7 @@ const renderRibbon = () =>
 describe('containers/Milestones/Ribbon', () => {
   beforeEach(() => {
     window.localStorage.clear()
-    mocks.signedIn = true
+    mocks.signedIn = 'alice'
     mocks.flag = true
     mocks.badges = [
       badge('older', 'earned', new Date('2024-01-01')),
@@ -72,11 +72,20 @@ describe('containers/Milestones/Ribbon', () => {
     expect(screen.queryByText(/more/)).toBeNull()
   })
 
+  it('keeps each user’s dismissal separate', () => {
+    const { unmount } = renderRibbon()
+    fireEvent.click(screen.getByLabelText('Dismiss milestones'))
+    unmount()
+    mocks.signedIn = 'bob'
+    renderRibbon()
+    expect(screen.getByText('newest')).toBeTruthy()
+  })
+
   it('shows nothing signed out or with the feature off', () => {
-    mocks.signedIn = false
+    mocks.signedIn = null
     renderRibbon()
     expect(screen.queryByLabelText('Milestones reached')).toBeNull()
-    mocks.signedIn = true
+    mocks.signedIn = 'alice'
     mocks.flag = false
     renderRibbon()
     expect(screen.queryByLabelText('Milestones reached')).toBeNull()

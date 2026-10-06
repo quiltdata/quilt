@@ -41,7 +41,7 @@ export type BadgeState =
 
 export type Unit = 'count' | 'bytes' | 'days'
 
-export const CATEGORIES = ['Packages', 'Volume', 'Craft', 'Team', 'Time'] as const
+export const CATEGORIES = ['Packages', 'Volume', 'Practice', 'Team', 'Time'] as const
 
 export type Category = (typeof CATEGORIES)[number]
 
@@ -87,7 +87,7 @@ const n = (x: number) => x.toLocaleString('en-US')
 const packageTier = (target: number): BadgeDef => ({
   id: `packages-${target}`,
   title: `${n(target)} packages`,
-  description: `${n(target)} named packages across this stack's buckets.`,
+  description: `${n(target)} named packages across this catalog's buckets.`,
   category: 'Packages',
   icon: 'layers',
   unit: 'count',
@@ -97,7 +97,7 @@ const packageTier = (target: number): BadgeDef => ({
 const volumeTier = (id: string, title: string, bytes: number): BadgeDef => ({
   id,
   title,
-  description: `${title} across every package revision on this stack.`,
+  description: `${title} across every package revision in this catalog.`,
   category: 'Volume',
   icon: 'storage',
   unit: 'bytes',
@@ -108,7 +108,7 @@ export const BADGES: readonly BadgeDef[] = [
   {
     id: 'first-package',
     title: 'First package',
-    description: 'The first package was pushed to this stack.',
+    description: 'The first package was pushed to this catalog.',
     category: 'Packages',
     icon: 'inbox',
     unit: 'count',
@@ -130,8 +130,8 @@ export const BADGES: readonly BadgeDef[] = [
   {
     id: 'million-files',
     title: 'Million-file package',
-    description: 'A single package revision holding a million files or more.',
-    category: 'Craft',
+    description: 'A single package revision holding 1,000,000 files or more.',
+    category: 'Practice',
     icon: 'folder_special',
     unit: 'count',
     rule: (m) => reach(m.largestFiles, 1_000_000),
@@ -140,33 +140,33 @@ export const BADGES: readonly BadgeDef[] = [
     id: 'first-workflow',
     title: 'Validated by workflow',
     description: 'The first package that passed a metadata workflow.',
-    category: 'Craft',
+    category: 'Practice',
     icon: 'verified_user',
     unit: 'count',
     rule: (m) => first(m.firstWorkflowAt),
   },
   {
     id: 'hundred-revisions',
-    title: 'Hundred revisions',
-    description: 'One package revised a hundred times.',
-    category: 'Craft',
+    title: '100 revisions',
+    description: 'One package revised 100 times.',
+    category: 'Practice',
     icon: 'history',
     unit: 'count',
     rule: (m) => reach(m.mostRevisions, 100),
   },
   {
     id: 'ten-buckets',
-    title: 'Ten buckets',
-    description: 'Packages live in ten or more buckets.',
-    category: 'Craft',
+    title: '10 buckets',
+    description: 'Packages live in 10 or more buckets.',
+    category: 'Practice',
     icon: 'view_module',
     unit: 'count',
     rule: (m) => reach(m.buckets, 10),
   },
   {
     id: 'team-10',
-    title: 'Ten people',
-    description: 'Ten active people use this catalog.',
+    title: '10 people',
+    description: '10 active people use this catalog.',
     category: 'Team',
     icon: 'group',
     unit: 'count',
@@ -174,8 +174,8 @@ export const BADGES: readonly BadgeDef[] = [
   },
   {
     id: 'team-100',
-    title: 'A hundred people',
-    description: 'A hundred active people use this catalog.',
+    title: '100 people',
+    description: '100 active people use this catalog.',
     category: 'Team',
     icon: 'groups',
     unit: 'count',
@@ -183,7 +183,7 @@ export const BADGES: readonly BadgeDef[] = [
   },
   {
     id: 'anniversary-1',
-    title: 'One year of packages',
+    title: '1 year of packages',
     description: 'A year since the first package was pushed.',
     category: 'Time',
     icon: 'event',
@@ -192,7 +192,7 @@ export const BADGES: readonly BadgeDef[] = [
   },
   {
     id: 'anniversary-5',
-    title: 'Five years of packages',
+    title: '5 years of packages',
     description: 'Five years since the first package was pushed.',
     category: 'Time',
     icon: 'event_available',

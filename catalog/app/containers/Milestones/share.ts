@@ -1,5 +1,7 @@
 import * as dateFns from 'date-fns'
 
+import wordmark from 'components/Logo/quilt-wordmark.png'
+
 import type { Badge } from './badges'
 
 const MIDNIGHT = '#19163b'
@@ -27,10 +29,49 @@ export const slackMessage = (url: string, text: string) => `:trophy: ${text}\n${
 
 const W = 1200
 const H = 630
+const TEXT_X = 430
+const TEXT_W = W - TEXT_X - 70
+const FONT = 'Roboto, Helvetica, Arial, sans-serif'
+
+/** Greedy word wrap; the last line ends in an ellipsis if text is left over. */
+function wrap(ctx: CanvasRenderingContext2D, text: string, maxLines: number): string[] {
+  const lines: string[] = []
+  let line = ''
+  const words = text.split(' ')
+  for (let i = 0; i < words.length; i += 1) {
+    const next = line ? `${line} ${words[i]}` : words[i]
+    if (ctx.measureText(next).width <= TEXT_W || !line) {
+      line = next
+    } else if (lines.length === maxLines - 1) {
+      let cut = line
+      while (cut && ctx.measureText(`${cut}…`).width > TEXT_W) cut = cut.slice(0, -1)
+      return [...lines, `${cut.trimEnd()}…`]
+    } else {
+      lines.push(line)
+      line = words[i]
+    }
+  }
+  return [...lines, line]
+}
+
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Logo failed to load'))
+    img.src = src
+  })
 
 /** A 1200×630 card (the size chat apps preview) of one earned badge. */
 export async function renderBadgeImage(host: string, b: Badge): Promise<Blob> {
-  await document.fonts?.ready
+  // `fonts.ready` resolves without loading a face nothing on the page has used
+  // yet; without these the card can draw the icon's ligature name as text.
+  const [logo] = await Promise.all([
+    loadImage(wordmark),
+    document.fonts?.load(`150px "Material Icons"`, b.icon),
+    document.fonts?.load(`500 64px Roboto`),
+    document.fonts?.load(`400 30px Roboto`),
+  ])
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
@@ -45,7 +86,7 @@ export async function renderBadgeImage(host: string, b: Badge): Promise<Blob> {
 
   // Medallion: the same mark the catalog draws, at card scale.
   const cx = 230
-  const cy = H / 2
+  const cy = H / 2 - 20
   ctx.fillStyle = MIDNIGHT
   ctx.beginPath()
   ctx.arc(cx, cy, 130, 0, 2 * Math.PI)
@@ -58,26 +99,44 @@ export async function renderBadgeImage(host: string, b: Badge): Promise<Blob> {
 
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
-  const x = 430
-  ctx.fillStyle = INK_SECONDARY
-  ctx.font = '500 28px Roboto, Helvetica, Arial, sans-serif'
-  ctx.fillText(`MILESTONE · ${b.category.toUpperCase()}`, x, 210)
-  ctx.fillStyle = MIDNIGHT
-  ctx.font = '500 68px Roboto, Helvetica, Arial, sans-serif'
-  ctx.fillText(b.title, x, 300, W - x - 60)
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.87)'
-  ctx.font = '400 32px Roboto, Helvetica, Arial, sans-serif'
-  ctx.fillText(b.description, x, 360, W - x - 60)
+  ctx.font = `500 64px ${FONT}`
+  let titleSize = 64
+  let title = wrap(ctx, b.title, 2)
+  if (title.length > 1) {
+    titleSize = 54
+    ctx.font = `500 ${titleSize}px ${FONT}`
+    title = wrap(ctx, b.title, 2)
+  }
+  const titleLead = titleSize * 1.15
+  ctx.font = `400 30px ${FONT}`
+  const desc = wrap(ctx, b.description, 2)
+  const descLead = 42
   const on = b.state.kind === 'earned' ? earnedOn(b.state.at) : null
+  const meta = [host, b.category, on && `Earned ${on}`].filter(Boolean).join(' · ')
+
+  // Title, description and readout as one block, centred on the medallion.
+  const blockH = title.length * titleLead + 20 + desc.length * descLead + 24 + 30
+  let y = cy - blockH / 2 + titleSize
+  ctx.fillStyle = MIDNIGHT
+  ctx.font = `500 ${titleSize}px ${FONT}`
+  title.forEach((l) => {
+    ctx.fillText(l, TEXT_X, y)
+    y += titleLead
+  })
+  y += 20 - titleLead + descLead
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.87)'
+  ctx.font = `400 30px ${FONT}`
+  desc.forEach((l) => {
+    ctx.fillText(l, TEXT_X, y)
+    y += descLead
+  })
+  y += 24
   ctx.fillStyle = INK_SECONDARY
-  ctx.font = '400 28px Roboto, Helvetica, Arial, sans-serif'
-  ctx.fillText(
-    [host, on && `Earned ${on}`].filter(Boolean).join(' · '),
-    x,
-    430,
-    W - x - 60,
-  )
-  ctx.fillText('Quilt', x, H - 60)
+  ctx.font = `400 26px ${FONT}`
+  ctx.fillText(meta, TEXT_X, y, TEXT_W)
+
+  const logoH = 36
+  ctx.drawImage(logo, TEXT_X, H - 56 - logoH, (logo.width / logo.height) * logoH, logoH)
 
   return new Promise((resolve, reject) =>
     canvas.toBlob(
@@ -105,5 +164,6 @@ export function downloadImage(blob: Blob, name: string) {
   a.href = url
   a.download = name
   a.click()
-  URL.revokeObjectURL(url)
+  // Safari cancels the download if the URL is revoked in the same task.
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
