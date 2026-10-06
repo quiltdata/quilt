@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Added] Buckets with a `.quilt/s3_tags.yml` can write chosen package metadata fields as S3 object tags when a package is created or revised in the catalog, with a preview in the package dialog ([#N](https://github.com/quiltdata/quilt/pull/N))
+- [Added] Buckets with a `.quilt/s3_tags.yml` can write chosen package metadata fields as S3 object tags when a package is created or revised in the catalog, with a preview in the package dialog ([#5430](https://github.com/quiltdata/quilt/pull/5430))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
