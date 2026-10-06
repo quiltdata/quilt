@@ -394,15 +394,18 @@ def test_run_multiple_queries_with_a_deadline_starts_a_commit_retry_with_a_new_t
     stubbed_athena_client.assert_no_pending_responses()
 
 
-def test_run_multiple_queries_reports_a_statement_it_cannot_start_by_its_deadline_as_not_run(
+def test_run_multiple_queries_starts_the_others_while_one_start_keeps_being_refused(
     query_runner, stubbed_athena_client, clock
 ):
+    queries = ["SELECT 1", "SELECT 2"]
     _refuse(stubbed_athena_client, "start_query_execution")
+    _stub_timed_start(stubbed_athena_client, queries[1], "exec_id_2")
+    _stub_status(stubbed_athena_client, "exec_id_2", "SUCCEEDED")
     _refuse(stubbed_athena_client, "start_query_execution")
 
-    results = query_runner.run_multiple_queries(["SELECT 1"], deadline=1.5)
+    results = query_runner.run_multiple_queries(queries, max_current_queries=1, deadline=2.5)
 
-    assert results == [None]
+    assert _ids(results) == [None, "exec_id_2"]
     stubbed_athena_client.assert_no_pending_responses()
 
 

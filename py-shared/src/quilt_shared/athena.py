@@ -254,7 +254,8 @@ class QueryRunner:
                         execution_id = self.start_query(query, token=token)
                     except refused:
                         self.logger.warning("Could not start an Athena query; retrying it", exc_info=True)
-                        remaining_queries.append((idx, query))
+                        # Bottom of the stack, so a start refused again and again holds up none of the others.
+                        remaining_queries.insert(0, (idx, query))
                         break
                     pending_execution_ids[execution_id] = idx
                     attempts[idx] = attempts.get(idx, 0) + 1
