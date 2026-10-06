@@ -1507,21 +1507,21 @@ export interface StackMilestones {
   readonly activeUsers: Scalars['Int']['output']
   /** Buckets holding at least one package revision. */
   readonly bucketsWithPackages: Scalars['Int']['output']
-  /** Earliest push of a revision of at least 10^12 bytes. Null when none. */
+  /** Earliest pointer write time of a revision of at least 10^12 bytes. Null when none. */
   readonly firstMultiTerabyteAt: Maybe<Scalars['Datetime']['output']>
-  /** Earliest revision push. Null when the stack has no packages. */
+  /** Earliest pointer write time (S3 LastModified). Null when the stack has no packages. */
   readonly firstPackageAt: Maybe<Scalars['Datetime']['output']>
-  /** Earliest push of a revision validated by a workflow. Null when none. */
+  /** Earliest pointer write time of a revision validated by a workflow. Null when none. */
   readonly firstWorkflowPackageAt: Maybe<Scalars['Datetime']['output']>
   /** Largest single revision, bytes. Null when the stack has no packages. */
   readonly largestPackageBytes: Maybe<Scalars['Float']['output']>
   /** Most files in a single revision. Null when the stack has no packages. */
   readonly largestPackageFiles: Maybe<Scalars['Int']['output']>
-  /** Revisions of the most-revised package (approximate past a few thousand). */
+  /** Revisions of the most-revised package (approximate on multi-shard indices). */
   readonly mostRevisions: Scalars['Int']['output']
   /** Named packages, one per (bucket, name). Exact, not capped. */
   readonly packages: Scalars['Int']['output']
-  /** Bytes across every revision still referenced by a package. */
+  /** Bytes across distinct manifests still referenced by a package; revisions sharing a manifest count it once. */
   readonly totalPackagedBytes: Scalars['Float']['output']
 }
 

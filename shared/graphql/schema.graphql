@@ -741,19 +741,19 @@ type StackMilestones {
   largestPackageBytes: Float
   "Most files in a single revision. Null when the stack has no packages."
   largestPackageFiles: Int
-  "Bytes across every revision still referenced by a package."
+  "Bytes across distinct manifests still referenced by a package; revisions sharing a manifest count it once."
   totalPackagedBytes: Float!
   "Buckets holding at least one package revision."
   bucketsWithPackages: Int!
-  "Revisions of the most-revised package (approximate past a few thousand)."
+  "Revisions of the most-revised package (approximate on multi-shard indices)."
   mostRevisions: Int!
   "Active catalog users."
   activeUsers: Int!
-  "Earliest revision push. Null when the stack has no packages."
+  "Earliest pointer write time (S3 LastModified). Null when the stack has no packages."
   firstPackageAt: Datetime
-  "Earliest push of a revision of at least 10^12 bytes. Null when none."
+  "Earliest pointer write time of a revision of at least 10^12 bytes. Null when none."
   firstMultiTerabyteAt: Datetime
-  "Earliest push of a revision validated by a workflow. Null when none."
+  "Earliest pointer write time of a revision validated by a workflow. Null when none."
   firstWorkflowPackageAt: Datetime
 }
 
