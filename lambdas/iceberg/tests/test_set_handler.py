@@ -30,13 +30,10 @@ def pointer_key(pkg_name: str, pointer: str) -> str:
 
 
 def record(message_id: str, key: str, group: str | None = None) -> dict:
+    """An SQS record of an S3 event, in a FIFO queue's message group where one is given."""
     body = {"detail": {"s3": {"bucket": {"name": BUCKET}, "object": {"key": key}}}}
-    return in_group({"messageId": message_id, "body": json.dumps(body)}, group)
-
-
-def in_group(record: dict, group: str | None) -> dict:
-    """The record as a FIFO queue delivers it, in its message group."""
-    return {**record, "attributes": {"MessageGroupId": group}} if group else record
+    attributes = {"attributes": {"MessageGroupId": group}} if group else {}
+    return {"messageId": message_id, "body": json.dumps(body), **attributes}
 
 
 def failures(*message_ids: str) -> dict:
@@ -127,7 +124,7 @@ def athena(mocker, con):
     fake = Athena(con)
     for name in ("start_query_execution", "get_query_execution"):
         mocker.patch.object(t4_lambda_iceberg.athena, name, getattr(fake, name))
-    mocker.patch("quilt_shared.athena.time.sleep")
+    mocker.patch("time.sleep")
     return fake
 
 
@@ -165,6 +162,13 @@ def put_manifest(s3, con, top_hash: str):
         f'INSERT INTO "{USER_DB}"."{BUCKET}_manifests" VALUES (?, ?, ?, ?, 7, ?, NULL, NULL)',
         [path, "a.txt", [f"s3://{BUCKET}/a.txt"], {"type": "SHA256", "value": "x"}, "{}"],
     )
+
+
+def manifests(s3, con, *ns: int) -> list[dict]:
+    """Manifests h(n) put, and a record `m{n}` of each."""
+    for n in ns:
+        put_manifest(s3, con, h(n))
+    return [record(f"m{n}", manifest_key(h(n))) for n in ns]
 
 
 def put_pointer(s3, pkg_name: str, pointer: str, top_hash: str):
@@ -241,14 +245,11 @@ def test_a_pointer_is_written_whether_or_not_the_set_holds_its_manifest(handle, 
 def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_alone_is_returned(
     handle, athena, s3, con
 ):
-    for n in (1, 2, 3):
-        put_manifest(s3, con, h(n))
+    batch = manifests(s3, con, 1, 2, 3)
     put_pointer(s3, "u/p", "latest", h(1))
     athena.fails = lambda sql: '"package_entry"' in sql and h(2) in sql
 
-    response = handle(
-        *(record(f"m{n}", manifest_key(h(n))) for n in (1, 2, 3)), record("tag", pointer_key("u/p", "latest"))
-    )
+    response = handle(*batch, record("tag", pointer_key("u/p", "latest")))
 
     assert response == failures("m2")
     assert holdings(con) == {
@@ -314,7 +315,7 @@ def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, at
 
     response = handle(
         record("m1", manifest_key(h(1)), "statement"),
-        in_group({"messageId": "undecodable", "body": "{}"}, "decode"),
+        {"messageId": "undecodable", "body": "{}", "attributes": {"MessageGroupId": "decode"}},
         record("m2", manifest_key(h(2)), "statement"),  # its entries fail
         record("unreadable", manifest_key(h(4)), "read"),
         record("p", pointer_key("u/p", "latest"), "decode"),
@@ -327,12 +328,11 @@ def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, at
 
 
 def test_a_statement_whose_athena_calls_are_refused_is_run_again_whole(handle, athena, s3, con):
-    for n in (1, 2, 3):
-        put_manifest(s3, con, h(n))
+    batch = manifests(s3, con, 1, 2, 3)
     refusals = iter([True, True])
     athena.refuses = lambda sql: '"package_entry"' in sql and next(refusals, False)
 
-    response = handle(*(record(f"m{n}", manifest_key(h(n))) for n in (1, 2, 3)))
+    response = handle(*batch)
 
     assert response == failures()
     assert holdings(con)["package_entry"] == {(REGISTRY, h(n)) for n in (1, 2, 3)}
@@ -340,14 +340,11 @@ def test_a_statement_whose_athena_calls_are_refused_is_run_again_whole(handle, a
 
 
 def test_a_statement_whose_athena_calls_stay_refused_returns_its_items_unsplit(handle, athena, s3, con):
-    for n in (1, 2, 3):
-        put_manifest(s3, con, h(n))
+    batch = manifests(s3, con, 1, 2, 3)
     put_pointer(s3, "u/p", "latest", h(1))
     athena.refuses = lambda sql: '"package_entry"' in sql
 
-    response = handle(
-        *(record(f"m{n}", manifest_key(h(n))) for n in (1, 2, 3)), record("tag", pointer_key("u/p", "latest"))
-    )
+    response = handle(*batch, record("tag", pointer_key("u/p", "latest")))
 
     assert response == failures("m1", "m2", "m3")
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
@@ -355,12 +352,11 @@ def test_a_statement_whose_athena_calls_stay_refused_returns_its_items_unsplit(h
 
 
 def test_a_refusal_while_retrying_item_by_item_returns_the_rest_of_the_statement_untried(handle, athena, s3, con):
-    for n in (1, 2, 3):
-        put_manifest(s3, con, h(n))
+    batch = manifests(s3, con, 1, 2, 3)
     athena.fails = lambda sql: '"package_entry"' in sql and h(1) in sql and h(2) in sql
     athena.refuses = lambda sql: '"package_entry"' in sql and h(2) in sql and h(1) not in sql
 
-    response = handle(*(record(f"m{n}", manifest_key(h(n))) for n in (1, 2, 3)))
+    response = handle(*batch)
 
     assert response == failures("m2", "m3")
     assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}

@@ -109,50 +109,48 @@ def handler(event, context):
     query_runner.run_multiple_queries(queries)
 
 
-# The time an invocation must have left to start a statement: one statement's run, commit retries included.
+# The time an invocation must have left to start a statement: one statement's run, QueryRunner's commit retries
+# included.
 STATEMENT_BUDGET_MS = 60_000
 # Runs of a statement whose Athena API calls are refused, on top of botocore's own retries of each call.
 API_ATTEMPTS = 3
 
 
-class _OutOfTime(Exception):
-    pass
-
-
-def _execute(runner: QueryRunner, context, sqls: list[str]):
+def _execute(runner: QueryRunner, context, sqls: list[str]) -> bool:
+    """Whether the statements ran: not when time ran short or Athena kept refusing its API calls."""
     for attempt in range(API_ATTEMPTS):
+        if attempt:
+            time.sleep(random.uniform(0, 2 ** (attempt - 1)))
         if context.get_remaining_time_in_millis() < STATEMENT_BUDGET_MS:
-            raise _OutOfTime
+            logger.warning("Too little of the invocation left to start a statement")
+            return False
         try:
             runner.run_multiple_queries(sqls)
-            return
+            return True
         except botocore.exceptions.ClientError:
-            if attempt == API_ATTEMPTS - 1:
-                raise
-            logger.warning("Athena refused a call; running the statement again", exc_info=True)
-            time.sleep(random.uniform(0, 2**attempt))
+            logger.warning("Athena refused a call", exc_info=True)
+    return False
 
 
 def _run(runner: QueryRunner, context, build, items, failed: set):
     for statement in build([i for i in items if i not in failed]):
         try:
-            _execute(runner, context, [statement.sql])
-        except (_OutOfTime, botocore.exceptions.ClientError):
-            logger.exception("Returning a statement's %d items unwritten", len(statement.items))
-            failed.update(statement.items)
+            if not _execute(runner, context, [statement.sql]):
+                failed.update(statement.items)
+            continue
         except AthenaQueryBaseException:
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
-            # In turn: run together, they would race one another's commits.
-            for n, item in enumerate(statement.items):
-                try:
-                    _execute(runner, context, [s.sql for s in build([item])])
-                except AthenaQueryBaseException:
-                    logger.exception("Failed to write %s", item)
-                    failed.add(item)
-                except (_OutOfTime, botocore.exceptions.ClientError):
-                    logger.exception("Returning %d items unwritten", len(statement.items) - n)
-                    failed.update(statement.items[n:])
-                    break
+        # In turn: run together, they would race one another's commits.
+        for n, item in enumerate(statement.items):
+            try:
+                ran = _execute(runner, context, [s.sql for s in build([item])])
+            except AthenaQueryBaseException:
+                logger.exception("Failed to write %s", item)
+                failed.add(item)
+                continue
+            if not ran:
+                failed.update(statement.items[n:])
+                break
 
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
