@@ -206,8 +206,12 @@ const toolCallLimit = Eff.Effect.serviceOption(ToolCallLimit).pipe(
   ),
 )
 
+/** Declined and refused calls count too: the model asked, and retrying a denial must not reset it. */
 export const toolCallsSinceAsk = (events: Event[]) => {
-  const lastAsk = events.findLastIndex((e) => e._tag === 'Message' && e.role === 'user')
+  const lastAsk = Eff.Array.findLastIndex(
+    events,
+    (e) => e._tag === 'Message' && e.role === 'user',
+  ).pipe(Eff.Option.getOrElse(() => -1))
   return events.slice(lastAsk + 1).filter((e) => e._tag === 'ToolUse').length
 }
 
