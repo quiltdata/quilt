@@ -1242,6 +1242,8 @@ export interface QuratorConfigInput {
   readonly gatewayAccountId: InputMaybe<Scalars['String']['input']>
   readonly gatewayEndpointUrl: InputMaybe<Scalars['String']['input']>
   readonly maxToolCallsPerTurn: InputMaybe<Scalars['Int']['input']>
+  /** Each id must be in `allowlist`; each name is 1 to 64 characters. */
+  readonly names: InputMaybe<ReadonlyArray<QuratorModelNameInput>>
   readonly requestTimeoutSeconds: InputMaybe<Scalars['Int']['input']>
 }
 
@@ -1269,6 +1271,8 @@ export interface QuratorModelConfig {
   readonly allowlist: Maybe<ReadonlyArray<Scalars['String']['output']>>
   readonly default: Maybe<Scalars['String']['output']>
   readonly maxToolCallsPerTurn: Maybe<Scalars['Int']['output']>
+  /** Admin-chosen names the model picker shows in place of a model's id. */
+  readonly names: Maybe<ReadonlyArray<QuratorModelName>>
   readonly requestTimeoutSeconds: Maybe<Scalars['Int']['output']>
 }
 
@@ -1277,6 +1281,17 @@ export enum QuratorModelListingUnavailable {
   GATEWAY = 'GATEWAY',
   /** Bedrock refused or failed the listing; models can still be entered by hand. */
   LISTING_FAILED = 'LISTING_FAILED',
+}
+
+export interface QuratorModelName {
+  readonly __typename: 'QuratorModelName'
+  readonly id: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
+}
+
+export interface QuratorModelNameInput {
+  readonly id: Scalars['String']['input']
+  readonly name: Scalars['String']['input']
 }
 
 export type RestoreObjectResult = InvalidInput | OperationError | RestoreObjectSuccess

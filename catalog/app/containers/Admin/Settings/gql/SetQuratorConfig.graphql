@@ -8,6 +8,10 @@ mutation ($input: QuratorConfigInput!) {
           default
           requestTimeoutSeconds
           maxToolCallsPerTurn
+          names {
+            id
+            name
+          }
         }
         gateway {
           endpointUrl

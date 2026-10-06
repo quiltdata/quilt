@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as ModelChoice from 'components/Assistant/Model/ModelChoice'
 import * as GQL from 'utils/GraphQL'
 
 import QURATOR_AVAILABLE_MODELS_QUERY from './gql/QuratorAvailableModels.generated'
@@ -41,6 +42,20 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body2,
     color: t.palette.text.secondary,
   },
+  nameRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(2),
+  },
+  nameId: {
+    flex: 1,
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+  },
+  nameField: {
+    flexShrink: 0,
+    width: 280,
+  },
   save: {
     marginLeft: 'auto',
   },
@@ -49,6 +64,9 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.error.main,
   },
 }))
+
+// The registry's limit.
+const MAX_NAME_LENGTH = 64
 
 export function parseIds(text: string): string[] {
   return Array.from(new Set(text.split(/\s+/).filter(Boolean)))
@@ -75,6 +93,21 @@ export function combineIds(
   const unlisted = checked.filter((id) => !offered.includes(id))
   return Array.from(new Set([...ticked, ...unlisted, ...parseIds(text)]))
 }
+
+type Names = Readonly<Record<string, string>>
+
+const { nameIn } = ModelChoice
+
+/** Display names for the ids being saved, in their order: trimmed, blanks dropped. */
+export function namesFor(ids: readonly string[], names: Names) {
+  return ids.flatMap((id) => {
+    const name = nameIn(names, id)?.trim()
+    return name ? [{ id, name }] : []
+  })
+}
+
+const toNames = (list: readonly { id: string; name: string }[] | null | undefined) =>
+  Object.fromEntries((list ?? []).map((n) => [n.id, n.name]))
 
 type Unavailable = GQL.DataForDoc<
   typeof QURATOR_AVAILABLE_MODELS_QUERY
@@ -148,6 +181,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
     )
   }, [offered]) // eslint-disable-line react-hooks/exhaustive-deps
   const [chosenDefault, setChosenDefault] = React.useState(saved.models.default ?? '')
+  const [names, setNames] = React.useState<Names>(() => toNames(saved.models.names))
   const [pending, setPending] = React.useState(false)
   const [errors, setErrors] = React.useState<string[]>([])
 
@@ -159,8 +193,13 @@ function Editor({ config, available, unavailable }: EditorProps) {
   // from the set itself, falling back to its first member.
   const effectiveDefault = ids.includes(chosenDefault) ? chosenDefault : (ids[0] ?? '')
 
+  const namesOut = React.useMemo(() => namesFor(ids, names), [ids, names])
+  const savedNames = React.useMemo(() => toNames(saved.models.names), [saved])
   const dirty =
-    !sameSet(ids, savedIds) || effectiveDefault !== (saved.models.default ?? '')
+    !sameSet(ids, savedIds) ||
+    effectiveDefault !== (saved.models.default ?? '') ||
+    namesOut.length !== Object.keys(savedNames).length ||
+    namesOut.some((n) => savedNames[n.id] !== n.name)
 
   const toggle = React.useCallback(
     (id: string) =>
@@ -169,9 +208,16 @@ function Editor({ config, available, unavailable }: EditorProps) {
   )
 
   const nameOf = React.useCallback(
-    (id: string) => available.find((m) => m.id === id)?.name,
-    [available],
+    (id: string) => nameIn(names, id)?.trim() || available.find((m) => m.id === id)?.name,
+    [available, names],
   )
+
+  // Typed ids, plus any saved id that already has a name, so no saved name is
+  // kept out of the admin's sight.
+  const named = React.useMemo(() => {
+    const typed = parseIds(text)
+    return ids.filter((id) => typed.includes(id) || nameIn(savedNames, id))
+  }, [ids, text, savedNames])
 
   const save = React.useCallback(async () => {
     setPending(true)
@@ -187,6 +233,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
           gatewayAccountId: saved.gateway.accountId,
           requestTimeoutSeconds: saved.models.requestTimeoutSeconds,
           maxToolCallsPerTurn: saved.models.maxToolCallsPerTurn,
+          names: namesOut.length ? namesOut : null,
         },
       })
       const r = result.setQuratorConfig
@@ -197,6 +244,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
           setChecked(next.checked)
           setText(next.extra.join('\n'))
           setChosenDefault(r.models.default ?? '')
+          setNames(toNames(r.models.names))
           break
         case 'InvalidInput':
           setErrors(r.errors.map((e) => e.message))
@@ -210,7 +258,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
     } finally {
       setPending(false)
     }
-  }, [setConfig, ids, effectiveDefault, saved, offered])
+  }, [setConfig, ids, effectiveDefault, namesOut, saved, offered])
 
   return (
     <div className={classes.root}>
@@ -264,8 +312,39 @@ function Editor({ config, available, unavailable }: EditorProps) {
         value={text}
         disabled={pending}
         onChange={(e) => setText(e.target.value)}
-        helperText="One full Bedrock model ID or inference profile ID per line."
+        helperText="One full Bedrock model ID, inference profile ID, or SageMaker endpoint ARN per line. In an ARN, write the endpoint name in the case it was created with; AWS shows it lowercased."
       />
+      {!!named.length && (
+        <M.FormControl component="fieldset" disabled={pending}>
+          <M.FormLabel component="legend">Display names</M.FormLabel>
+          <M.FormHelperText>
+            Optional. Qurator's model menu shows this instead of the model ID.
+          </M.FormHelperText>
+          {named.map((id) => (
+            <div key={id} className={classes.nameRow}>
+              <span className={`${classes.modelId} ${classes.nameId}`}>{id}</span>
+              <M.TextField
+                className={classes.nameField}
+                size="small"
+                margin="dense"
+                variant="outlined"
+                label="Display name"
+                placeholder={ModelChoice.label(id)}
+                inputProps={{
+                  'aria-label': `Display name for ${id}`,
+                  maxLength: MAX_NAME_LENGTH,
+                }}
+                value={nameIn(names, id) ?? ''}
+                disabled={pending}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setNames((n) => ({ ...n, [id]: value }))
+                }}
+              />
+            </div>
+          ))}
+        </M.FormControl>
+      )}
       <div className={classes.controls}>
         <M.TextField
           className={classes.default}
