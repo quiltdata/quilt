@@ -53,7 +53,6 @@ describe('containers/Admin/Buckets/EventWiring', () => {
           bucket="b"
           prefixes={['data/']}
           snsNotificationArn={null}
-          open
           onClose={() => {}}
         />
       </ThemeProvider>,
