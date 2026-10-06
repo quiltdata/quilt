@@ -114,7 +114,8 @@ parser:
 
 Tables of the three views join on `cell_id` or `gene_id` together with
 `$pkg_name`, `$top_hash` and `$logical_key`. Where names repeat within a file,
-join on `cell_index` or `gene_index` instead:
+join on `cell_index` or `gene_index` instead, except `gene_index` with
+`layer: raw`, which counts positions in `raw/var` rather than `var`:
 
 ```sql
 SELECT o.batch, avg(x.value) AS mean_cd3e
