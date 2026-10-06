@@ -8,6 +8,7 @@ import QURATOR_MODELS_QUERY from './gql/QuratorModels.generated'
 export interface Governed {
   allowlist: readonly string[]
   default: string | null
+  names?: Readonly<Record<string, string>>
 }
 
 /**
@@ -26,7 +27,13 @@ export function useGoverned(): {
     () =>
       GQL.fold(query, {
         data: ({ config: { quratorModels: m } }) => ({
-          governed: m?.allowlist ? { allowlist: m.allowlist, default: m.default } : null,
+          governed: m?.allowlist
+            ? {
+                allowlist: m.allowlist,
+                default: m.default,
+                names: Object.fromEntries((m.names ?? []).map((n) => [n.id, n.name])),
+              }
+            : null,
           settled: true,
           failed: false,
         }),
@@ -69,8 +76,11 @@ const TIERS: readonly [RegExp, string][] = [
   [/haiku/i, 'Light'],
 ]
 
-/** A coarse weight class for a model id, when its family name implies one. */
+const SAGEMAKER_ENDPOINT = /^arn:aws[a-z-]*:sagemaker:[^:]*:\d{12}:endpoint\/(.+)$/
+
+/** A coarse weight class for a Bedrock model id, when its family name implies one. */
 export function tier(id: string): string | null {
+  if (SAGEMAKER_ENDPOINT.test(id)) return null
   return TIERS.find(([re]) => re.test(id))?.[1] ?? null
 }
 
@@ -78,13 +88,16 @@ export function tier(id: string): string | null {
  * A readable name for a Bedrock model id: region and vendor prefixes, the
  * release date and the version suffix dropped, so
  * `us.anthropic.claude-sonnet-4-5-20250929-v1:0` reads "Claude Sonnet 4.5".
+ * A SageMaker endpoint ARN reads as its endpoint name, unstripped.
  */
 export function displayName(id: string): string {
-  const base = id
-    // Every dot-terminated leading segment: `us.`, `us-gov.`, `global.`, the vendor.
-    .replace(/^(?:[a-z0-9-]+\.)*/, '')
-    .replace(/-\d{8}/, '')
-    .replace(/-v\d+(?::\w+)*$/, '')
+  const base =
+    id.match(SAGEMAKER_ENDPOINT)?.[1] ??
+    id
+      // Every dot-terminated leading segment: `us.`, `us-gov.`, `global.`, the vendor.
+      .replace(/^(?:[a-z0-9-]+\.)*/, '')
+      .replace(/-\d{8}/, '')
+      .replace(/-v\d+(?::\w+)*$/, '')
   const words: string[] = []
   for (const part of base.split('-').filter(Boolean)) {
     const prev = words[words.length - 1]
@@ -98,8 +111,16 @@ export function displayName(id: string): string {
   return words.join(' ') || id
 }
 
-/** "Medium · Claude Sonnet 4.5", or just the name when no tier applies. */
-export function label(id: string): string {
+// Own keys only: an id such as `constructor` must not find a prototype method.
+export const nameIn = (names: Readonly<Record<string, string>>, id: string) =>
+  Object.prototype.hasOwnProperty.call(names, id) ? names[id] : undefined
+
+/**
+ * "Medium · Claude Sonnet 4.5", or just the name when no tier applies. An
+ * admin's display name stands alone: the admin chose it whole.
+ */
+export function label(id: string, name?: string): string {
+  if (name) return name
   const t = tier(id)
   return t ? `${t} · ${displayName(id)}` : displayName(id)
 }

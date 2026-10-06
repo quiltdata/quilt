@@ -18,6 +18,7 @@ where verb is one of
 ## Changes
 
 - [Added] Add `iceberg_stack_queries`, the DDL and statements for stack-wide Iceberg package tables keyed by `registry` ([#5406](https://github.com/quiltdata/quilt/pull/5406))
+- [Fixed] `QueryMaker` escapes every value it puts into SQL as a string literal or quoted identifier, and raises `ValueError` for a revision pointer that is not an integer ([#5422](https://github.com/quiltdata/quilt/pull/5422))
 - [Changed] `QueryRunner` retries `ICEBERG_COMMIT_ERROR` with bounded backoff, and Athena's failure reason now appears in the raised exception ([#5325](https://github.com/quiltdata/quilt/pull/5325))
 - [Removed] Drop the `typing-extensions` dependency from the `pydantic` extra ([#5149](https://github.com/quiltdata/quilt/pull/5149))
 - [Changed] **BREAKING**: Raise minimum Python to 3.12 ([#5018](https://github.com/quiltdata/quilt/pull/5018))

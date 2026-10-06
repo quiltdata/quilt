@@ -147,6 +147,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           QuratorConfig: () => null,
           QuratorGatewayConfig: () => null,
           QuratorModelConfig: () => null,
+          QuratorModelName: () => null,
           Collaborator: (c) => c.username as string,
           Config: () => null,
           ContentIndexingSettings: () => null,
@@ -466,7 +467,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // Written, not invalidated: the open Assistant subscribes to this,
                 // and a root-field invalidate does not reliably notify it.
                 cache.updateQuery(
-                  { query: urql.gql`{ config { quratorModels { allowlist default } } }` },
+                  {
+                    query: urql.gql`{ config { quratorModels { allowlist default names { id name } } } }`,
+                  },
                   (data) =>
                     data && {
                       config: {
@@ -475,6 +478,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                           __typename: 'QuratorModelConfig',
                           allowlist: saved.models.allowlist,
                           default: saved.models.default,
+                          names: saved.models.names,
                         },
                       },
                     },

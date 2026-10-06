@@ -141,6 +141,13 @@ type QuratorModelConfig {
   default: String
   requestTimeoutSeconds: Int
   maxToolCallsPerTurn: Int
+  "Admin-chosen names the model picker shows in place of a model's id."
+  names: [QuratorModelName!]
+}
+
+type QuratorModelName {
+  id: String!
+  name: String!
 }
 
 """
@@ -1136,6 +1143,13 @@ input QuratorConfigInput {
   gatewayAccountId: String
   requestTimeoutSeconds: Int
   maxToolCallsPerTurn: Int
+  "Each id must be in `allowlist`; each name is 1 to 64 characters."
+  names: [QuratorModelNameInput!]
+}
+
+input QuratorModelNameInput {
+  id: String!
+  name: String!
 }
 
 type QuratorConfig {

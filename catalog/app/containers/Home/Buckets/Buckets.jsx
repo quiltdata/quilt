@@ -446,7 +446,7 @@ function ZeroState({ isAdmin }) {
             component={Link}
             to={urls.adminBuckets({ add: true })}
           >
-            Add Bucket
+            Add volume
           </M.Button>
         ) : (
           <M.Button
@@ -694,7 +694,7 @@ function BucketsBody({ filter, sort, view, isAdmin, onTagClick, onDropTerm, scro
               component={Link}
               to={urls.adminBuckets({ add: true })}
             >
-              Add Bucket
+              Add volume
             </M.Button>
           )}
         </M.Box>

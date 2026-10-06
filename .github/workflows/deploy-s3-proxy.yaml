@@ -4,6 +4,11 @@ name: Deploy S3 Proxy to ECR
 # `dev` branch can pin bleeding-edge SHAs onto https://dev.quilttest.com.
 on:
   workflow_dispatch:
+    inputs:
+      tag_prefix:
+        description: Prepended to the image tag (e.g. "dev-" tags as "dev-<sha>"). "none" tags as just <sha>; an empty value falls back to "dev-". Ignored on dev, whose builds deployment pins by bare sha.
+        type: string
+        default: 'dev-'
   push:
     branches:
       - master
@@ -11,6 +16,12 @@ on:
     paths:
       - .github/workflows/deploy-s3-proxy.yaml
       - 's3-proxy/**'
+
+env:
+  # Pushes (which have no inputs) and every run on dev publish under the bare sha
+  # that deployment pins. "none" stands in for an empty prefix, which GitHub
+  # replaces with the default.
+  IMAGE_TAG: ${{ inputs.tag_prefix != 'none' && github.ref != 'refs/heads/dev' && inputs.tag_prefix || '' }}${{ github.sha }}
 
 jobs:
   deploy-s3-proxy:
@@ -32,8 +43,9 @@ jobs:
       - name: Login to Prod ECR
         id: login-prod-ecr
         uses: aws-actions/amazon-ecr-login@v2
+      # Marketplace tags are immutable, so only master's bare-sha builds go there.
       - name: Login to MP ECR
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' && env.IMAGE_TAG == github.sha
         id: login-mp-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
@@ -53,8 +65,7 @@ jobs:
           ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
           ECR_REPOSITORY: quiltdata/s3-proxy
           ECR_REPOSITORY_MP: quilt-data/quilt-payg-s3-proxy
-          IMAGE_TAG: ${{ github.sha }}
-          PUSH_MP: ${{ github.ref == 'refs/heads/master' }}
+          PUSH_MP: ${{ github.ref == 'refs/heads/master' && env.IMAGE_TAG == github.sha }}
         run: |
           tags=(
             -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG

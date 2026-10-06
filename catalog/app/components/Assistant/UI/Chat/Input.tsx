@@ -120,7 +120,8 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
     if (disabled) close()
   }, [disabled, close])
   if (!model.allowlist) return null
-  const current = ModelChoice.label(model.current)
+  const currentName = ModelChoice.nameIn(model.names, model.current)
+  const current = ModelChoice.label(model.current, currentName)
   return (
     <>
       <M.Tooltip title={model.current}>
@@ -136,7 +137,9 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
             endIcon={<M.Icon fontSize="small">expand_more</M.Icon>}
           >
             <span className={classes.label}>
-              {ModelChoice.tier(model.current) ?? ModelChoice.displayName(model.current)}
+              {currentName ??
+                ModelChoice.tier(model.current) ??
+                ModelChoice.displayName(model.current)}
             </span>
           </M.Button>
         </span>
@@ -171,7 +174,7 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
                 </M.Icon>
               </M.ListItemIcon>
               <span>
-                {ModelChoice.label(id)}
+                {ModelChoice.label(id, ModelChoice.nameIn(model.names, id))}
                 <span className={classes.itemId}>{id}</span>
               </span>
             </M.MenuItem>

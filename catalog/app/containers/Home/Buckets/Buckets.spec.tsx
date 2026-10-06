@@ -305,7 +305,7 @@ describe('website/pages/Landing/Buckets', () => {
       dataProductsEnabled = true
       mockBuckets = []
       const { queryByText } = renderBuckets()
-      expect(queryByText('Add Bucket')).toBeFalsy()
+      expect(queryByText('Add volume')).toBeFalsy()
       expect(queryByText('dp:datazone:dzd_4xample/lst_9kq2v')).toBeTruthy()
     })
 
@@ -349,7 +349,7 @@ describe('website/pages/Landing/Buckets', () => {
     meIsAdminData = null
     const { queryByText } = renderBuckets()
     expect(queryByText('bucket:bucket-one')).toBeTruthy()
-    expect(queryByText('Add Bucket')).toBeFalsy()
+    expect(queryByText('Add volume')).toBeFalsy()
   })
 
   it('renders a sort control defaulting to Relevance, with no `sort` param', () => {
@@ -375,7 +375,7 @@ describe('website/pages/Landing/Buckets', () => {
     ).toBeTruthy()
     // Exactly one: the row below withholds its copy at zero volumes, so the same
     // instruction never appears twice on one screen.
-    expect(getAllByText('Add Bucket')).toHaveLength(1)
+    expect(getAllByText('Add volume')).toHaveLength(1)
   })
 
   it('keeps one add path once volumes exist', () => {
@@ -383,7 +383,7 @@ describe('website/pages/Landing/Buckets', () => {
     const { getAllByText, queryByText } = renderBuckets()
 
     expect(queryByText('No volumes yet')).toBeFalsy()
-    expect(getAllByText('Add Bucket')).toHaveLength(1)
+    expect(getAllByText('Add volume')).toHaveLength(1)
   })
 
   // Bucket-specific copy is safe despite a volume also being able to be a data
@@ -520,7 +520,7 @@ describe('website/pages/Landing/Buckets', () => {
         'Your workspace admin connects these. Ask them which bucket holds the data you need.',
       ),
     ).toBeTruthy()
-    expect(queryByText('Add Bucket')).toBeFalsy()
+    expect(queryByText('Add volume')).toBeFalsy()
 
     const help = queryByText('What is a volume?')
     expect(help).toBeTruthy()
