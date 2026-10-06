@@ -8,6 +8,7 @@ const stub = vi.hoisted(() => ({
   saves: [] as any[],
   hang: false,
   readHang: false,
+  answerDelete: (() => {}) as (v?: unknown) => void,
   opened: null as any,
 }))
 
@@ -33,6 +34,10 @@ vi.mock('utils/GraphQL', async (importActual) => ({
           version: 8,
         },
       }
+    }
+    if (nameOf(doc).endsWith('QuratorSessionDelete')) {
+      await new Promise((resolve) => (stub.answerDelete = resolve))
+      return { quratorSessionDelete: { __typename: 'Ok' } }
     }
     return {}
   },
@@ -160,5 +165,51 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     expect(dispatch).not.toHaveBeenCalled()
     expect(hook.result.current.switching).toBe(false)
     expect(hook.result.current.notice).toBe("That session couldn't be opened")
+  })
+
+  it('keeps a session held past a slow delete, so a late delete is not undone', async () => {
+    const restored = [ask('1', 'secret')]
+    stub.opened = { id: 'S', version: 7, events: Sessions.encode(restored) }
+    interface Props {
+      state: Conversation.State
+    }
+    let rerender: (p: Props) => void = () => {}
+    const dispatch = vi.fn((a: Conversation.Action) => {
+      if (a._tag === 'Restore') rerender({ state: idle(a.events, a.sessionId) })
+    })
+    const hook = renderHook<Props, ReturnType<typeof useSessions>>(
+      ({ state }) => useSessions(state, dispatch),
+      { initialProps: { state: idle([]) } },
+    )
+    rerender = hook.rerender
+    await act(async () => {
+      await hook.result.current.open('S')
+    })
+    const events = (dispatch.mock.calls[0][0] as any).events as Conversation.Event[]
+
+    let removing: Promise<void> = Promise.resolve()
+    act(() => {
+      removing = hook.result.current.remove('S')
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000)
+      await removing
+    })
+    expect(hook.result.current.switching).toBe(false)
+    hook.rerender({ state: idle([...events, ask('2', 'more')], 'S') })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000)
+    })
+    expect(stub.saves).toEqual([])
+
+    await act(async () => {
+      stub.answerDelete()
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    hook.rerender({ state: idle([...events, ask('2', 'more'), ask('3', 'again')], 'S') })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000)
+    })
+    expect(stub.saves).toEqual([])
   })
 })

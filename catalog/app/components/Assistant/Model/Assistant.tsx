@@ -455,12 +455,27 @@ export function useSessions(
         // meets the delete and recreates it.
         queue.hold(id)
         await capped(queue.flush())
-        const answer = await capped(deleteSession({ id }).catch(() => null))
-        const r = answer === TIMED_OUT ? null : answer?.quratorSessionDelete
+        const request = deleteSession({ id }).catch(() => null)
         // Already gone (expired, or deleted elsewhere) is as good as deleted.
-        const deleted =
-          r?.__typename === 'Ok' ||
-          (r?.__typename === 'InvalidInput' && r.errors[0]?.name === 'NotFound')
+        const isDeleted = (a: Awaited<typeof request>) => {
+          const r = a?.quratorSessionDelete
+          return (
+            r?.__typename === 'Ok' ||
+            (r?.__typename === 'InvalidInput' && r.errors[0]?.name === 'NotFound')
+          )
+        }
+        const answer = await capped(request)
+        if (answer === TIMED_OUT) {
+          // The chat unlocks, but the session stays held until the delete
+          // answers: a save meeting a late delete would recreate it.
+          setNotice({ head: headNow.current, text: UNDELETABLE })
+          request.then((a) => {
+            queue.release(id, isDeleted(a))
+            refresh()
+          })
+          return
+        }
+        const deleted = isDeleted(answer)
         queue.release(id, deleted)
         refresh()
         if (!deleted) setNotice({ head: headNow.current, text: UNDELETABLE })
