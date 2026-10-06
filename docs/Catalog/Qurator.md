@@ -123,3 +123,25 @@ To enable Qurator Omni:
   summaries.
 - **Streamlined Collaboration**: Leveraging AI chat to provide background and
   context when working across disciplines.
+
+## Qurator mode (preview)
+
+Qurator mode makes the chat the main page instead of a side panel. An admin
+turns it on under **Admin > Settings > Preview features > Qurator mode**; a
+**Qurator mode** row then appears in the left-hand navigation. It continues
+the same conversation as the side panel.
+
+Beside the chat, a pane lists the packages, files and buckets the session's
+tools have touched, and **Save session as package** writes the conversation,
+as you, to a bucket you choose. The package holds:
+
+- `README.md`: the first prompt, counts of prompts and tool calls, and what was
+  touched in the target bucket
+- `transcript.md`: the conversation, readable
+- `session.json`: every event, replayable
+- package metadata under `qurator`: model, session id, counts and references
+
+Images and documents are left out. Tool inputs that look like credentials are
+redacted. When the session read other buckets, those buckets are counted but
+not named, and tool results are left out unless you tick **Include tool
+results**. Saving again adds a revision.
