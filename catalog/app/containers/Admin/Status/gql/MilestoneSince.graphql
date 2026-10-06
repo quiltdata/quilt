@@ -1,0 +1,12 @@
+query ($minBytes: Float!) {
+  searchPackages(latestOnly: false, filter: { size: { gte: $minBytes } }) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        modified {
+          min
+        }
+      }
+    }
+  }
+}

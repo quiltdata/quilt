@@ -3,12 +3,14 @@ import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
 import * as Model from 'model'
+import { useFeature } from 'utils/features'
 import { useQueryS } from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import StyledLink from 'utils/StyledLink'
 
 import Canaries from './Canaries'
 import Indexing from './Indexing'
+import Milestones from './Milestones'
 import Reports from './Reports'
 import Stats from './Stats'
 import STATUS_QUERY from './gql/Status.generated'
@@ -18,6 +20,7 @@ const DEFAULT_REPORTS_PER_PAGE = 25
 const DEFAULT_REPORTS_ORDER = Model.GQLTypes.StatusReportListOrder.NEW_FIRST
 
 export default function Status() {
+  const badges = useFeature('product-badges')
   const { status } = useQueryS(STATUS_QUERY, {
     statsWindow: STATS_WINDOW,
     reportsPerPage: DEFAULT_REPORTS_PER_PAGE,
@@ -37,6 +40,12 @@ export default function Status() {
       <MetaTitle>{['Status', 'Admin']}</MetaTitle>
       <Indexing />
       <M.Box pt={2} />
+      {badges && (
+        <>
+          <Milestones />
+          <M.Box pt={2} />
+        </>
+      )}
       {status.__typename === 'Status' ? (
         <>
           <Stats

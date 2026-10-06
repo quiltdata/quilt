@@ -1,0 +1,14 @@
+query {
+  packages: searchPackages(latestOnly: true) {
+    __typename
+    ... on PackagesSearchResultSet {
+      total
+    }
+  }
+  revisions: searchPackages(latestOnly: false) {
+    __typename
+    ... on PackagesSearchResultSet {
+      total
+    }
+  }
+}

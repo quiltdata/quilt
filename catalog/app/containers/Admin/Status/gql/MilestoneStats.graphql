@@ -1,0 +1,15 @@
+query {
+  searchPackages(latestOnly: false) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        size {
+          max
+        }
+        modified {
+          min
+        }
+      }
+    }
+  }
+}
