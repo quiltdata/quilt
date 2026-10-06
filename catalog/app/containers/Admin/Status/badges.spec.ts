@@ -23,11 +23,11 @@ describe('containers/Admin/Status/badges', () => {
     expect(states({ packages: 100 })['packages-1000']).toBe('locked')
   })
 
-  it('says unknown above the search cap instead of locking', () => {
-    const s = states({ packages: 10_000 })
-    expect(s['packages-10000']).toBe('earned')
-    expect(s['packages-100000']).toBe('unknown')
-    expect(s['packages-1000000']).toBe('unknown')
+  it('earns the top tiers from an exact count', () => {
+    const s = states({ packages: 1_000_000 })
+    expect(s['packages-100000']).toBe('earned')
+    expect(s['packages-1000000']).toBe('earned')
+    expect(states({ packages: 999_999 })['packages-1000000']).toBe('locked')
   })
 
   it('marks everything count-based unknown when counts are unavailable', () => {
@@ -48,45 +48,32 @@ describe('containers/Admin/Status/badges', () => {
 
   describe('toMetrics', () => {
     const at = new Date('2026-01-02T00:00:00Z')
-    const set = { __typename: 'PackagesSearchResultSet' } as const
-    const empty = { __typename: 'EmptySearchResultSet' } as const
-    const stats = { size: { max: 5 }, modified: { min: at } }
-    const query = (o: object) =>
-      ({
-        packages: { ...set, total: 3 },
-        revisions: { ...set, stats },
-        multiTb: empty,
-        ...o,
-      }) as Parameters<typeof toMetrics>[0]
+    const query = (milestones: object) =>
+      ({ admin: { milestones } }) as Parameters<typeof toMetrics>[0]
 
-    it('reads counts and stats', () => {
-      expect(toMetrics(query({}))).toEqual({
-        packages: 3,
-        largestBytes: 5,
+    it('reads the stack milestones', () => {
+      expect(
+        toMetrics(
+          query({
+            __typename: 'StackMilestones',
+            packages: 123_456,
+            largestPackageBytes: 2e12,
+            firstPackageAt: at,
+            firstMultiTerabyteAt: at,
+          }),
+        ),
+      ).toEqual({
+        packages: 123_456,
+        largestBytes: 2e12,
         firstPackageAt: at,
-        firstMultiTbAt: null,
+        firstMultiTbAt: at,
       })
     })
 
-    it('reads secure search as an unknown count', () => {
-      expect(toMetrics(query({ packages: { ...set, total: -1 } })).packages).toBeNull()
-    })
-
-    it('reads an empty search as zero packages', () => {
-      expect(toMetrics(query({ packages: empty }))).toEqual({
-        ...NO_METRICS,
-        packages: 0,
-      })
-    })
-
-    it('keeps stats when the count errors', () => {
-      const m = toMetrics(query({ packages: { __typename: 'OperationError' } }))
-      expect(m.packages).toBeNull()
-      expect(m.largestBytes).toBe(5)
-    })
-
-    it('dates the first multi-terabyte revision', () => {
-      expect(toMetrics(query({ multiTb: { ...set, stats } })).firstMultiTbAt).toBe(at)
+    it('reads an error as unknown, not zero', () => {
+      expect(toMetrics(query({ __typename: 'OperationError', message: 'x' }))).toEqual(
+        NO_METRICS,
+      )
     })
   })
 

@@ -6,18 +6,11 @@ import * as GQL from 'utils/GraphQL'
 import { readableBytes } from 'utils/string'
 
 import MILESTONES_QUERY from './gql/Milestones.generated'
-import {
-  NO_METRICS,
-  TERABYTE,
-  deriveBadges,
-  toMetrics,
-  type Badge,
-  type Metrics,
-} from './badges'
+import { NO_METRICS, deriveBadges, toMetrics, type Badge, type Metrics } from './badges'
 
 // Viewer-scoped search: capped at 10,000 and blind to counts under secure search.
 function useMetrics(): Metrics | undefined {
-  const result = GQL.useQuery(MILESTONES_QUERY, { minBytes: TERABYTE })
+  const result = GQL.useQuery(MILESTONES_QUERY)
   return GQL.fold(result, {
     data: toMetrics,
     fetching: () => undefined,
@@ -122,9 +115,7 @@ export default function Milestones() {
         Milestones
       </M.Typography>
       <M.Typography variant="body2" className={classes.caveat}>
-        Preview. Counted from search across the buckets you can read, dated by the
-        earliest revision it still finds. Search counts stop at 10,000, so higher tiers
-        show as unknown, and secure search hides counts altogether.
+        Preview. Counted across every bucket in this stack.
       </M.Typography>
       {metrics ? (
         <div className={classes.grid}>

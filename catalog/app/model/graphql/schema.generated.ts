@@ -601,6 +601,18 @@ export default {
             args: [],
           },
           {
+            name: 'milestones',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'StackMilestonesResult',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'packager',
             type: {
               kind: 'NON_NULL',
@@ -6816,6 +6828,66 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'StackMilestones',
+        fields: [
+          {
+            name: 'firstMultiTerabyteAt',
+            type: {
+              kind: 'SCALAR',
+              name: 'Datetime',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'firstPackageAt',
+            type: {
+              kind: 'SCALAR',
+              name: 'Datetime',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'largestPackageBytes',
+            type: {
+              kind: 'SCALAR',
+              name: 'Float',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'packages',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'StackMilestonesResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'StackMilestones',
+          },
+        ],
       },
       {
         kind: 'OBJECT',

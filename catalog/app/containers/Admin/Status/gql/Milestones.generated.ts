@@ -8,45 +8,23 @@ import * as Types from '../../../../model/graphql/types.generated'
 
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type containers_Admin_Status_gql_MilestonesQueryVariables = Exact<{
-  minBytes: number
+  [key: string]: never
 }>
 
 export interface containers_Admin_Status_gql_MilestonesQuery {
   readonly __typename: 'Query'
-  readonly packages:
-    | { readonly __typename: 'EmptySearchResultSet' }
-    | { readonly __typename: 'InvalidInput' }
-    | { readonly __typename: 'OperationError' }
-    | { readonly __typename: 'PackagesSearchResultSet'; readonly total: number }
-  readonly revisions:
-    | { readonly __typename: 'EmptySearchResultSet' }
-    | { readonly __typename: 'InvalidInput' }
-    | { readonly __typename: 'OperationError' }
-    | {
-        readonly __typename: 'PackagesSearchResultSet'
-        readonly stats: {
-          readonly __typename: 'PackagesSearchStats'
-          readonly size: { readonly __typename: 'NumberExtents'; readonly max: number }
-          readonly modified: {
-            readonly __typename: 'DatetimeExtents'
-            readonly min: Date
-          }
+  readonly admin: {
+    readonly __typename: 'AdminQueries'
+    readonly milestones:
+      | { readonly __typename: 'OperationError'; readonly message: string }
+      | {
+          readonly __typename: 'StackMilestones'
+          readonly packages: number
+          readonly largestPackageBytes: number | null
+          readonly firstPackageAt: Date | null
+          readonly firstMultiTerabyteAt: Date | null
         }
-      }
-  readonly multiTb:
-    | { readonly __typename: 'EmptySearchResultSet' }
-    | { readonly __typename: 'InvalidInput' }
-    | { readonly __typename: 'OperationError' }
-    | {
-        readonly __typename: 'PackagesSearchResultSet'
-        readonly stats: {
-          readonly __typename: 'PackagesSearchStats'
-          readonly modified: {
-            readonly __typename: 'DatetimeExtents'
-            readonly min: Date
-          }
-        }
-      }
+  }
 }
 
 export const containers_Admin_Status_gql_MilestonesDocument = {
@@ -56,175 +34,57 @@ export const containers_Admin_Status_gql_MilestonesDocument = {
       kind: 'OperationDefinition',
       operation: 'query',
       name: { kind: 'Name', value: 'containers_Admin_Status_gql_Milestones' },
-      variableDefinitions: [
-        {
-          kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'minBytes' } },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'Float' } },
-          },
-        },
-      ],
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
           {
             kind: 'Field',
-            alias: { kind: 'Name', value: 'packages' },
-            name: { kind: 'Name', value: 'searchPackages' },
-            arguments: [
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'latestOnly' },
-                value: { kind: 'BooleanValue', value: true },
-              },
-            ],
+            name: { kind: 'Name', value: 'admin' },
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
-                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
                 {
-                  kind: 'InlineFragment',
-                  typeCondition: {
-                    kind: 'NamedType',
-                    name: { kind: 'Name', value: 'PackagesSearchResultSet' },
-                  },
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'milestones' },
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-          {
-            kind: 'Field',
-            alias: { kind: 'Name', value: 'revisions' },
-            name: { kind: 'Name', value: 'searchPackages' },
-            arguments: [
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'latestOnly' },
-                value: { kind: 'BooleanValue', value: false },
-              },
-            ],
-            selectionSet: {
-              kind: 'SelectionSet',
-              selections: [
-                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
-                {
-                  kind: 'InlineFragment',
-                  typeCondition: {
-                    kind: 'NamedType',
-                    name: { kind: 'Name', value: 'PackagesSearchResultSet' },
-                  },
-                  selectionSet: {
-                    kind: 'SelectionSet',
-                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
                       {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
+                        kind: 'InlineFragment',
+                        typeCondition: {
+                          kind: 'NamedType',
+                          name: { kind: 'Name', value: 'StackMilestones' },
+                        },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'packages' } },
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'size' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  { kind: 'Field', name: { kind: 'Name', value: 'max' } },
-                                ],
-                              },
+                              name: { kind: 'Name', value: 'largestPackageBytes' },
                             },
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'modified' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  { kind: 'Field', name: { kind: 'Name', value: 'min' } },
-                                ],
-                              },
+                              name: { kind: 'Name', value: 'firstPackageAt' },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'firstMultiTerabyteAt' },
                             },
                           ],
                         },
                       },
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-          {
-            kind: 'Field',
-            alias: { kind: 'Name', value: 'multiTb' },
-            name: { kind: 'Name', value: 'searchPackages' },
-            arguments: [
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'latestOnly' },
-                value: { kind: 'BooleanValue', value: false },
-              },
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'filter' },
-                value: {
-                  kind: 'ObjectValue',
-                  fields: [
-                    {
-                      kind: 'ObjectField',
-                      name: { kind: 'Name', value: 'size' },
-                      value: {
-                        kind: 'ObjectValue',
-                        fields: [
-                          {
-                            kind: 'ObjectField',
-                            name: { kind: 'Name', value: 'gte' },
-                            value: {
-                              kind: 'Variable',
-                              name: { kind: 'Name', value: 'minBytes' },
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-            selectionSet: {
-              kind: 'SelectionSet',
-              selections: [
-                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
-                {
-                  kind: 'InlineFragment',
-                  typeCondition: {
-                    kind: 'NamedType',
-                    name: { kind: 'Name', value: 'PackagesSearchResultSet' },
-                  },
-                  selectionSet: {
-                    kind: 'SelectionSet',
-                    selections: [
                       {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
+                        kind: 'InlineFragment',
+                        typeCondition: {
+                          kind: 'NamedType',
+                          name: { kind: 'Name', value: 'OperationError' },
+                        },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'modified' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  { kind: 'Field', name: { kind: 'Name', value: 'min' } },
-                                ],
-                              },
-                            },
+                            { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                           ],
                         },
                       },

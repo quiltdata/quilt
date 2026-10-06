@@ -727,7 +727,25 @@ type AdminQueries {
   tabulatorOpenQuery: Boolean!
   packager: PackagerAdminQueries!
   apiKeys: APIKeyAdminQueries!
+  milestones: StackMilestonesResult!
 }
+
+"""
+Stack-wide package metrics the catalog derives milestone badges from, across
+every bucket in the catalog regardless of the admin's own role.
+"""
+type StackMilestones {
+  "Named packages, one per (bucket, name). Exact, not capped."
+  packages: Int!
+  "Largest single revision, bytes. Null when the stack has no packages."
+  largestPackageBytes: Float
+  "Earliest revision push. Null when the stack has no packages."
+  firstPackageAt: Datetime
+  "Earliest push of a revision of at least 10^12 bytes. Null when none."
+  firstMultiTerabyteAt: Datetime
+}
+
+union StackMilestonesResult = StackMilestones | OperationError
 
 type MyRole {
   name: String!

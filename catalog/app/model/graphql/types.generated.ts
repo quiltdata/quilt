@@ -180,6 +180,7 @@ export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly apiKeys: APIKeyAdminQueries
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
+  readonly milestones: StackMilestonesResult
   readonly packager: PackagerAdminQueries
   readonly quratorAvailableModels: QuratorAvailableModels
   readonly quratorConfig: QuratorConfig
@@ -1494,6 +1495,24 @@ export interface SsoConfigConflict {
   readonly __typename: 'SsoConfigConflict'
   readonly _: Maybe<Scalars['Boolean']['output']>
 }
+
+/**
+ * Stack-wide package metrics the catalog derives milestone badges from, across
+ * every bucket in the catalog regardless of the admin's own role.
+ */
+export interface StackMilestones {
+  readonly __typename: 'StackMilestones'
+  /** Earliest push of a revision of at least 10^12 bytes. Null when none. */
+  readonly firstMultiTerabyteAt: Maybe<Scalars['Datetime']['output']>
+  /** Earliest revision push. Null when the stack has no packages. */
+  readonly firstPackageAt: Maybe<Scalars['Datetime']['output']>
+  /** Largest single revision, bytes. Null when the stack has no packages. */
+  readonly largestPackageBytes: Maybe<Scalars['Float']['output']>
+  /** Named packages, one per (bucket, name). Exact, not capped. */
+  readonly packages: Scalars['Int']['output']
+}
+
+export type StackMilestonesResult = OperationError | StackMilestones
 
 export interface Status {
   readonly __typename: 'Status'
