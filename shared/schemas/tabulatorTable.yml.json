@@ -23,6 +23,9 @@
         },
         {
           "$ref": "#/definitions/ParquetParser"
+        },
+        {
+          "$ref": "#/definitions/H5adParser"
         }
       ]
     },
@@ -142,6 +145,37 @@
           "enum": [
             "parquet"
           ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    "H5adParser": {
+      "title": "H5adParser",
+      "type": "object",
+      "properties": {
+        "format": {
+          "title": "Format",
+          "enum": [
+            "h5ad"
+          ],
+          "type": "string"
+        },
+        "view": {
+          "title": "View",
+          "enum": [
+            "x",
+            "obs",
+            "var"
+          ],
+          "type": "string"
+        },
+        "layer": {
+          "title": "Layer",
+          "minLength": 1,
           "type": "string"
         }
       },
