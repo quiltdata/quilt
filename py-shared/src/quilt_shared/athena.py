@@ -6,6 +6,8 @@ import re
 import time
 import typing as T
 
+from botocore.exceptions import BotoCoreError, ClientError
+
 if T.TYPE_CHECKING:
     import logging
 
@@ -149,9 +151,10 @@ class QueryRunner:
             max_current_queries: Maximum number of concurrent queries to run at once.
                 Note: default quota for DDL queries is 20 per account, for DML is 200 per account.
             sleep_sec: Time in seconds to sleep between status checks.
-            deadline: A `time.monotonic()` value to give up at. Past it, or when Athena refuses a start or a
-                poll, a query this started is stopped, best effort, rather than left running, and every
-                statement not run to completion comes back as None. Without it, such errors raise.
+            deadline: A `time.monotonic()` value to give up at. A start or poll Athena refuses is retried until
+                then. Past it, or when this raises, every query it started and has not seen finish is stopped, best
+                effort, and every statement not run to completion comes back as None. The stops run after the
+                deadline, so leave room for them. Without a deadline, refused starts and polls raise.
 
         Returns:
             list[QueryExecutionTypeDef]: List of query execution results in the same order as input queries.
@@ -180,74 +183,76 @@ class QueryRunner:
         def left() -> float:
             return math.inf if deadline is None else deadline - time.monotonic()
 
-        def abandon(execution_id: str) -> None:
-            del pending_execution_ids[execution_id]
-            try:
-                self.athena.stop_query_execution(QueryExecutionId=execution_id)
-            except Exception:
-                self.logger.warning("Could not stop abandoned Athena query %s", execution_id, exc_info=True)
+        try:
+            while remaining_queries or pending_execution_ids:
+                # Largest backoff any conflict asked for this pass. Taken once, below, rather
+                # than per conflict inside the scan: concurrent conflicts would otherwise
+                # sleep serially, and no in-flight execution is polled while one sleeps.
+                backoff_sec: float = 0
+                # Remove completed queries. Make a copy of the set before iterating over it.
+                for execution_id, idx in list(pending_execution_ids.items()):
+                    # Ask for the record rather than the exception, so a commit conflict can be retried.
+                    try:
+                        query_execution = self.query_finished(execution_id, raise_on_failed=False)
+                    except (BotoCoreError, ClientError):
+                        if deadline is None:
+                            raise
+                        self.logger.warning("Could not poll Athena query %s", execution_id, exc_info=True)
+                        continue
+                    if query_execution is None:
+                        continue
+                    del pending_execution_ids[execution_id]
 
-        while remaining_queries or pending_execution_ids:
-            if left() <= 0:
-                self.logger.warning(
-                    "Deadline passed: stopping %d Athena queries, %d not started",
-                    len(pending_execution_ids),
-                    len(remaining_queries),
-                )
-                for execution_id in list(pending_execution_ids):
-                    abandon(execution_id)
-                break
-            # Largest backoff any conflict asked for this pass. Taken once, below, rather
-            # than per conflict inside the scan: concurrent conflicts would otherwise
-            # sleep serially, and no in-flight execution is polled while one sleeps.
-            backoff_sec: float = 0
-            # Remove completed queries. Make a copy of the set before iterating over it.
-            for execution_id, idx in list(pending_execution_ids.items()):
-                # Ask for the record rather than the exception, so a commit conflict can be retried.
-                try:
-                    query_execution = self.query_finished(execution_id, raise_on_failed=False)
-                except AthenaQueryBaseException:
-                    raise
-                except Exception:
-                    if deadline is None:
-                        raise
-                    self.logger.warning("Could not poll Athena query %s; stopping it", execution_id, exc_info=True)
-                    abandon(execution_id)
-                    continue
-                if query_execution is None:
-                    continue
-                del pending_execution_ids[execution_id]
+                    if self._should_retry(query_execution, attempts.get(idx, 0)):
+                        reason = query_execution["Status"]["StateChangeReason"]
+                        self.logger.warning("Retrying Athena query %s after commit conflict: %s", execution_id, reason)
+                        backoff_sec = max(
+                            backoff_sec, random.uniform(0, RETRY_BASE_SEC * 2 ** (attempts.get(idx, 1) - 1))
+                        )
+                        # Bottom of the stack: pop() takes from the end, so a retry must not
+                        # preempt queries that have never been started.
+                        remaining_queries.insert(0, (idx, query_list[idx]))
+                        continue
 
-                if self._should_retry(query_execution, attempts.get(idx, 0)):
-                    reason = query_execution["Status"]["StateChangeReason"]
-                    self.logger.warning("Retrying Athena query %s after commit conflict: %s", execution_id, reason)
-                    backoff_sec = max(backoff_sec, random.uniform(0, RETRY_BASE_SEC * 2 ** (attempts.get(idx, 1) - 1)))
-                    # Bottom of the stack: pop() takes from the end, so a retry must not
-                    # preempt queries that have never been started.
-                    remaining_queries.insert(0, (idx, query_list[idx]))
-                    continue
+                    if raise_on_failed and query_execution["Status"]["State"] == "FAILED":
+                        raise AthenaQueryFailedException(query_execution)
+                    results[idx] = query_execution
 
-                if raise_on_failed and query_execution["Status"]["State"] == "FAILED":
-                    raise AthenaQueryFailedException(query_execution)
-                results[idx] = query_execution
+                # Checked after the poll, so a query that finished in the last sleep keeps its result.
+                if left() <= 0:
+                    self.logger.warning(
+                        "Deadline passed: stopping %d Athena queries, %d not started",
+                        len(pending_execution_ids),
+                        len(remaining_queries),
+                    )
+                    break
 
-            if backoff_sec:
-                time.sleep(min(backoff_sec, max(left(), 0)))
+                if backoff_sec:
+                    time.sleep(min(backoff_sec, left()))
 
-            # Start new queries.
-            while remaining_queries and len(pending_execution_ids) < max_current_queries:
-                idx, query = remaining_queries.pop()
-                try:
-                    execution_id = self.start_query(query)
-                except Exception:
-                    if deadline is None:
-                        raise
-                    self.logger.warning("Could not start an Athena query; it is not run", exc_info=True)
-                    continue
-                pending_execution_ids[execution_id] = idx
-                attempts[idx] = attempts.get(idx, 0) + 1
+                # Start new queries.
+                while remaining_queries and len(pending_execution_ids) < max_current_queries and left() > 0:
+                    idx, query = remaining_queries.pop()
+                    try:
+                        execution_id = self.start_query(query)
+                    except (BotoCoreError, ClientError):
+                        if deadline is None:
+                            raise
+                        self.logger.warning("Could not start an Athena query; retrying it", exc_info=True)
+                        remaining_queries.append((idx, query))
+                        break
+                    pending_execution_ids[execution_id] = idx
+                    attempts[idx] = attempts.get(idx, 0) + 1
 
-            time.sleep(min(sleep_sec, max(left(), 0)))
+                time.sleep(min(sleep_sec, max(left(), 0)))
+        finally:
+            # However this stops, given a deadline, nothing it started is left running.
+            if deadline is not None:
+                for execution_id in pending_execution_ids:
+                    try:
+                        self.athena.stop_query_execution(QueryExecutionId=execution_id)
+                    except (BotoCoreError, ClientError):
+                        self.logger.warning("Could not stop Athena query %s", execution_id, exc_info=True)
 
         if deadline is None:
             assert all(results)

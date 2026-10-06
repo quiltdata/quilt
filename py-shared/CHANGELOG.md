@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] `QueryRunner.run_multiple_queries` takes an optional `deadline`: past it, or when Athena refuses a start or a poll, it stops the queries it started and returns `None` for each statement not run ([#5412](https://github.com/quiltdata/quilt/pull/5412))
+- [Added] `QueryRunner.run_multiple_queries` takes an optional `deadline`: it retries refused starts and polls until then, and past it, or on a failure, stops the queries it started and returns `None` for each statement not run ([#5412](https://github.com/quiltdata/quilt/pull/5412))
 - [Added] Add `iceberg_stack_queries`, the DDL and statements for stack-wide Iceberg package tables keyed by `registry` ([#5406](https://github.com/quiltdata/quilt/pull/5406))
 - [Changed] `QueryRunner` retries `ICEBERG_COMMIT_ERROR` with bounded backoff, and Athena's failure reason now appears in the raised exception ([#5325](https://github.com/quiltdata/quilt/pull/5325))
 - [Removed] Drop the `typing-extensions` dependency from the `pydantic` extra ([#5149](https://github.com/quiltdata/quilt/pull/5149))
