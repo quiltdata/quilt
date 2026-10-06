@@ -206,6 +206,22 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(send).not.toHaveBeenCalled()
     })
 
+    it('does not fork a session held for deletion', async () => {
+      let resolve: (o: Sessions.SaveOutcome) => void = () => {}
+      const { queue, send } = setup((r) =>
+        r.id === 'S'
+          ? new Promise((res) => (resolve = res))
+          : Promise.resolve(saved('F', 1)),
+      )
+      queue.adopt('h', 'S', 1, 'a')
+      queue.change('h', 'ab')
+      await vi.advanceTimersByTimeAsync(1000)
+      queue.hold('S')
+      resolve({ _tag: 'Conflict' })
+      await queue.flush()
+      expect(send).toHaveBeenCalledTimes(1)
+    })
+
     it('saves to the same session when a delete fails', async () => {
       const { queue, send } = setup(async (r) => saved(r.id ?? 'F', 2))
       queue.adopt('h', 'S', 1, 'a')

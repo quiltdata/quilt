@@ -794,7 +794,7 @@ export default function Chat({
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const blocked = Model.Connectors.useIsBlocked(connectors)
-  const inputDisabled = state._tag !== 'Idle' || blocked
+  const inputDisabled = state._tag !== 'Idle' || blocked || sessions.switching
   // `connectors.byId` is built once at service allocation and never
   // re-keyed, so this loop's length is stable per-mount and the
   // per-connector `Actor.useState` calls satisfy rules-of-hooks.

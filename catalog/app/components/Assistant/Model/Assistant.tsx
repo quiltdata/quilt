@@ -296,10 +296,8 @@ const UNDELETABLE = "That session couldn't be deleted"
 const UNSWITCHABLE = "Keep sessions couldn't be changed"
 
 /**
- * Saves the conversation on screen to the registry as it changes. A reload
- * loses at most the last debounce interval: there is no save on page exit,
- * because `sendBeacon` and `fetch(keepalive)` cap the body at 64 KiB and a
- * session can be 1 MiB.
+ * No save on page exit: `sendBeacon` and `fetch(keepalive)` cap the body at
+ * 64 KiB and a session can be 1 MiB, so a reload loses the last debounce.
  */
 function useSessions(
   state: Conversation.State,
@@ -311,7 +309,6 @@ function useSessions(
   const deleteSession = GQL.useMutation(DELETE_SESSION_MUTATION)
   const setSessionsEnabled = GQL.useMutation(SET_SESSIONS_ENABLED_MUTATION)
 
-  // A registry without sessions fails this query, which leaves them hidden.
   const available = !!query.data?.config.quratorModels?.sessionsEnabled
   // The user's own switch takes effect at once, not when the registry answers.
   const [choice, setChoice] = React.useState<boolean | null>(null)
@@ -390,45 +387,62 @@ function useSessions(
 
   const latestOpen = React.useRef(0)
   const headNow = usePassThru(head)
-  const open = React.useCallback(
-    async (id: string) => {
-      if (id === currentId) return
-      const ticket = ++latestOpen.current
-      // The session being opened may be the one just left, with its last save pending.
-      await queue.flush()
-      const r = await client
-        .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
-        .toPromise()
-      // A later open or a new conversation since the click wins over this one.
-      if (ticket !== latestOpen.current || headNow.current !== head) return
-      const session = r.data?.me?.quratorSession
-      const events = session && Sessions.decode(session.events)
-      if (!session || !events?.length) {
-        setNotice({ head, text: UNREADABLE })
-        refresh()
-        return
-      }
-      opening.current = { id: session.id, version: session.version, events }
-      dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
-    },
-    [client, currentId, head, headNow, queue, dispatch, refresh],
+  // Asking is blocked meanwhile: Restore and Clear apply only while Idle.
+  const [switching, setSwitching] = React.useState(0)
+  const whileSwitching = React.useCallback(
+    <A extends unknown[]>(f: (...args: A) => Promise<void>) =>
+      async (...args: A) => {
+        setSwitching((n) => n + 1)
+        try {
+          await f(...args)
+        } finally {
+          setSwitching((n) => n - 1)
+        }
+      },
+    [],
   )
 
-  const remove = React.useCallback(
-    async (id: string) => {
-      // Its pending save goes out first and none during the delete, so no save
-      // meets NotFound and recreates it.
-      await queue.flush()
-      queue.hold(id)
-      const r = await deleteSession({ id }).catch(() => null)
-      const deleted = r?.quratorSessionDelete.__typename === 'Ok'
-      queue.release(id, deleted)
-      refresh()
-      if (!deleted) setNotice({ head, text: UNDELETABLE })
-      // Read now: the user may have opened or started another conversation meanwhile.
-      else if (id === currentIdNow.current) dispatch(Conversation.Action.Clear())
-    },
-    [currentIdNow, head, queue, dispatch, deleteSession, refresh],
+  const open = React.useMemo(
+    () =>
+      whileSwitching(async (id: string) => {
+        if (id === currentId) return
+        const ticket = ++latestOpen.current
+        // The session being opened may be the one just left, with its last save pending.
+        await queue.flush()
+        const r = await client
+          .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
+          .toPromise()
+        // A later open or a new conversation since the click wins over this one.
+        if (ticket !== latestOpen.current || headNow.current !== head) return
+        const session = r.data?.me?.quratorSession
+        const events = session && Sessions.decode(session.events)
+        if (!session || !events?.length) {
+          setNotice({ head, text: UNREADABLE })
+          refresh()
+          return
+        }
+        opening.current = { id: session.id, version: session.version, events }
+        dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
+      }),
+    [whileSwitching, client, currentId, head, headNow, queue, dispatch, refresh],
+  )
+
+  const remove = React.useMemo(
+    () =>
+      whileSwitching(async (id: string) => {
+        // Held before anything else, so no save of it, nor a fork of one,
+        // meets the delete and recreates it.
+        queue.hold(id)
+        await queue.flush()
+        const r = await deleteSession({ id }).catch(() => null)
+        const deleted = r?.quratorSessionDelete.__typename === 'Ok'
+        queue.release(id, deleted)
+        refresh()
+        if (!deleted) setNotice({ head, text: UNDELETABLE })
+        // Read now: the user may have opened another conversation meanwhile.
+        else if (id === currentIdNow.current) dispatch(Conversation.Action.Clear())
+      }),
+    [whileSwitching, currentIdNow, head, queue, dispatch, deleteSession, refresh],
   )
 
   const latestToggle = React.useRef(0)
@@ -458,6 +472,7 @@ function useSessions(
       open,
       remove,
       refresh,
+      switching: switching > 0,
       notice: notice && notice.head === head ? notice.text : null,
     }),
     [
@@ -469,6 +484,7 @@ function useSessions(
       open,
       remove,
       refresh,
+      switching,
       notice,
       head,
     ],

@@ -150,6 +150,7 @@ const sessionsStub = (
   open: vi.fn(),
   remove: vi.fn(),
   refresh: vi.fn(),
+  switching: false,
   notice: null,
   ...over,
 })

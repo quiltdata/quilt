@@ -215,7 +215,8 @@ export function createSaveQueue<T>({
       clearTimeout(s.timer)
       s.timer = null
     }
-    const isHeld = s.id !== null && held.has(s.id)
+    // `shown` too: a fork of a held session must not recreate it either.
+    const isHeld = [s.id, s.shown].some((id) => id !== null && held.has(id))
     if (paused || isHeld || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
       s.waiters.splice(0).forEach((resolve) => resolve())
       if (s !== slot && !s.timer) slots.delete(s)
@@ -320,7 +321,7 @@ export function createSaveQueue<T>({
     flush,
     /**
      * Send nothing, not even a retry or a fork, until `resume`, and drop what
-     * is pending: a save the user opted out of never goes out later.
+     * is pending rather than send it then.
      */
     pause() {
       paused = true
@@ -342,7 +343,7 @@ export function createSaveQueue<T>({
     release(id: string, deleted: boolean) {
       held.delete(id)
       for (const s of slots) {
-        if (s.id !== id) continue
+        if (s.id !== id && s.shown !== id) continue
         if (deleted) {
           if (s.timer) clearTimeout(s.timer)
           s.timer = null
