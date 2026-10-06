@@ -680,6 +680,14 @@ describe('tool-call limit', () => {
           expect(Conversation.toolCallsSinceAsk(final.events)).toBe(4)
           if (final._tag !== 'Idle') throw new Error('not idle')
           expect(Eff.Option.getOrThrow(final.error).message).toMatch(/tool-call limit/)
+
+          // A new question resets the count: rounds 4 and 5 run 2 and 1 again.
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'again' }))
+          yield* awaitState(
+            actor,
+            (s) => s._tag === 'Idle' && s.events.length > final.events.length + 1,
+          )
+          expect(yield* Eff.Ref.get(runs)).toBe(6)
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))

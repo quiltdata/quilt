@@ -193,7 +193,7 @@ const llmRequest = (events: Event[]) =>
 
 /**
  * The admin's `maxToolCallsPerTurn`, `null` for unlimited. Optional: a
- * conversation run without it (tests, embeds) is unlimited.
+ * conversation run without it (tests) is unlimited.
  */
 export class ToolCallLimit extends Eff.Context.Tag('ToolCallLimit')<
   ToolCallLimit,
