@@ -191,6 +191,33 @@ const llmRequest = (events: Event[]) =>
     }),
   )
 
+/**
+ * The admin's `maxToolCallsPerTurn`, `null` for unlimited. Optional: a
+ * conversation run without it (tests, embeds) is unlimited.
+ */
+export class ToolCallLimit extends Eff.Context.Tag('ToolCallLimit')<
+  ToolCallLimit,
+  { readonly limit: Eff.Effect.Effect<number | null> }
+>() {}
+
+const toolCallLimit = Eff.Effect.serviceOption(ToolCallLimit).pipe(
+  Eff.Effect.flatMap(
+    Eff.Option.match({ onNone: () => Eff.Effect.succeed(null), onSome: (s) => s.limit }),
+  ),
+)
+
+export const toolCallsSinceAsk = (events: Event[]) => {
+  const lastAsk = events.findLastIndex((e) => e._tag === 'Message' && e.role === 'user')
+  return events.slice(lastAsk + 1).filter((e) => e._tag === 'ToolUse').length
+}
+
+const forkResult = (id: string, result: Tool.Result, dispatch: Actor.Dispatch<Action>) =>
+  Eff.Effect.fork(
+    Eff.Effect.asVoid(
+      dispatch(Action.ToolResult({ id, result: Eff.Option.some(result) })),
+    ),
+  )
+
 const currentTools = Eff.Effect.gen(function* () {
   const ctxService = yield* Context.ConversationContext
   const reactCtx = yield* ctxService.context
@@ -361,9 +388,36 @@ export const ConversationActor = Eff.Effect.succeed(
               })
             }
 
+            // Calls past the limit fail without running, which gives the model
+            // one round to answer; a further tool request ends the turn.
+            const limit = yield* toolCallLimit
+            const used = toolCallsSinceAsk(events)
+            if (limit !== null && used > limit) {
+              return yield* idle(events, {
+                message:
+                  'Qurator stopped: it reached the tool-call limit for this question.',
+                details: `This stack allows ${limit} tool calls per question. Ask again to continue.`,
+              })
+            }
+            let room = limit === null ? Infinity : limit - used
+
             const tools = yield* currentTools
             const calls: Record<string, ToolCall> = {}
             for (const tu of toolUses) {
+              if (room <= 0) {
+                const result = Tool.fail(
+                  Content.ToolResultContentBlock.Text({
+                    text: `Tool-call limit for this question reached (${limit}). Answer with what you have.`,
+                  }),
+                )
+                calls[tu.toolUseId] = {
+                  name: tu.name,
+                  input: tu.input,
+                  fiber: yield* forkResult(tu.toolUseId, result, dispatch),
+                }
+                continue
+              }
+              room--
               const effect = Eff.Record.has(tools, tu.name)
                 ? tools[tu.name].effect
                 : undefined

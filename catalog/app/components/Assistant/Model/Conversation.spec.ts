@@ -607,3 +607,80 @@ describe('write approval', () => {
       }),
     ))
 })
+
+describe('tool-call limit', () => {
+  it('fails calls past the limit, then stops when the model keeps asking', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const runs = yield* Eff.Ref.make(0)
+          const tool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Ref.update(runs, (n) => n + 1).pipe(
+                Eff.Effect.as(
+                  Eff.Option.some(
+                    Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'ran' })),
+                  ),
+                ),
+              ),
+          }
+          // Each round asks for two more calls. It gives up after 5 rounds only
+          // so that a missing limit fails this test instead of hanging it.
+          let round = 0
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.sync(() => {
+                round++
+                if (round > 5) {
+                  return { content: Eff.Option.some([]), backendResponse: {} as never }
+                }
+                return {
+                  content: Eff.Option.some(
+                    ['a', 'b'].map((x) =>
+                      Content.ResponseMessageContentBlock.ToolUse({
+                        toolUseId: `${x}${round}`,
+                        name: 'list',
+                        input: {},
+                      }),
+                    ),
+                  ),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, {
+              ...makeConnectorsStub(isBlockedRef),
+              contextContribution: Eff.Effect.succeed({
+                tools: { list: tool },
+                messages: [],
+              }),
+            }),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+            Eff.Layer.succeed(Conversation.ToolCallLimit, {
+              limit: Eff.Effect.succeed(3),
+            }),
+          )
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(
+            definition,
+            yield* Conversation.init,
+            Eff.Effect.succeed(layer),
+          )
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'go' }))
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+
+          // Round 1 runs 2, round 2 runs 1 and fails 1, round 3 ends the turn.
+          expect(yield* Eff.Ref.get(runs)).toBe(3)
+          expect(round).toBe(3)
+          expect(Conversation.toolCallsSinceAsk(final.events)).toBe(4)
+          if (final._tag !== 'Idle') throw new Error('not idle')
+          expect(Eff.Option.getOrThrow(final.error).message).toMatch(/tool-call limit/)
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+})

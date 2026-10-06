@@ -304,11 +304,17 @@ function useConstructAssistantAPI() {
     [modelId, record, getToken, onBusy],
   )
 
+  const toolCallLimit = React.useRef<number | null>(null)
+  toolCallLimit.current = ModelChoice.useToolCallLimit()
+
   const layerEff = Eff.Effect.sync(() =>
     Eff.Layer.mergeAll(
       llm,
       passThru.current.context,
       Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
+      Eff.Layer.succeed(Conversation.ToolCallLimit, {
+        limit: Eff.Effect.sync(() => toolCallLimit.current),
+      }),
     ),
   )
 
