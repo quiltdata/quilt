@@ -193,26 +193,47 @@ describe('components/Assistant/Model/Sessions', () => {
       ])
     })
 
-    it('drops a pending save on reset', async () => {
-      const { queue, send } = setup(async () => saved('s', 1))
-      queue.change('h', 'a')
-      queue.reset()
+    it('drops the pending save of a deleted session', async () => {
+      const { queue, send } = setup(async () => saved('S', 2))
+      queue.adopt('h', 'S', 1, 'a')
+      queue.change('h', 'ab')
+      queue.reset('other')
+      queue.reset('S')
       await vi.advanceTimersByTimeAsync(1000)
       expect(send).not.toHaveBeenCalled()
     })
 
-    it('resumes the same session after a pause', async () => {
-      const { queue, send } = setup(async (r) => saved(r.id ?? 'new', 1))
+    it('sends nothing while paused, not even a fork, and resumes the same session', async () => {
+      let resolve: (o: Sessions.SaveOutcome) => void = () => {}
+      const { queue, send } = setup((r) =>
+        r.id === 'S'
+          ? new Promise((res) => (resolve = res))
+          : Promise.resolve(saved('F', 1)),
+      )
       queue.adopt('h', 'S', 2, 'a')
       queue.change('h', 'ab')
+      await vi.advanceTimersByTimeAsync(1000)
       queue.pause()
-      await vi.advanceTimersByTimeAsync(1000)
-      expect(send).not.toHaveBeenCalled()
       queue.change('h', 'abc')
+      resolve({ _tag: 'Conflict' })
+      await vi.advanceTimersByTimeAsync(10000)
+      expect(send).toHaveBeenCalledTimes(1)
+      queue.resume()
       await vi.advanceTimersByTimeAsync(1000)
-      expect(send.mock.calls.map(([r]) => r)).toEqual([
-        { id: 'S', baseVersion: 2, events: 'abc' },
-      ])
+      expect(send.mock.calls[1][0]).toEqual({
+        id: null,
+        baseVersion: null,
+        events: 'abc',
+      })
+    })
+
+    it('does not hold a flush for a failed save waiting to retry', async () => {
+      const { queue } = setup(async () => ({ _tag: 'Failed' }))
+      queue.change('h', 'a')
+      let settled = false
+      queue.flush().then(() => (settled = true))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(settled).toBe(true)
     })
 
     it('settles a flush only once the save in flight is done', async () => {

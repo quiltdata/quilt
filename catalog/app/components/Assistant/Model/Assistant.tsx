@@ -292,6 +292,7 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 
 const TOO_LARGE = 'This session is too long to keep — start a new one'
 const UNREADABLE = "That session couldn't be opened"
+const UNDELETABLE = "That session couldn't be deleted"
 
 /**
  * Saves the conversation on screen to the registry as it changes. A reload
@@ -311,7 +312,9 @@ function useSessions(
 
   // A registry without sessions fails this query, which leaves them hidden.
   const available = !!query.data?.config.quratorModels?.sessionsEnabled
-  const enabled = available && !!query.data?.me?.quratorSessionsEnabled
+  // The user's own switch takes effect at once, not when the registry answers.
+  const [choice, setChoice] = React.useState<boolean | null>(null)
+  const enabled = available && (choice ?? !!query.data?.me?.quratorSessionsEnabled)
   const sessions = query.data?.me?.quratorSessions
   const list = React.useMemo(() => (enabled && sessions) || [], [enabled, sessions])
   const head = state.events[0]?.id
@@ -323,18 +326,22 @@ function useSessions(
     () => query.run({ requestPolicy: 'network-only' }),
     [query],
   )
-  const passThru = usePassThru({ saveSession, dispatch, refresh, state })
+  const passThru = usePassThru({ saveSession, dispatch, refresh })
+  const opening = React.useRef<{
+    id: string
+    version: number
+    events: Conversation.Event[]
+  }>()
 
   const queue = useConst(() =>
     Sessions.createSaveQueue<Conversation.Event[]>({
       send: async ({ id, baseVersion, events }) => {
-        const live = events.filter((e) => !e.discarded)
         const { quratorSessionSave } = await passThru.current.saveSession({
           input: {
             id,
             baseVersion,
-            title: Sessions.titleOf(live),
-            events: Sessions.encode(live) as unknown as JsonRecord,
+            title: Sessions.titleOf(events.filter((e) => !e.discarded)),
+            events: Sessions.encode(events) as unknown as JsonRecord,
           },
         })
         return Sessions.outcomeOf(quratorSessionSave)
@@ -357,10 +364,18 @@ function useSessions(
   )
 
   React.useEffect(() => {
+    // The queue switches only once the actor shows the opened events: a Restore
+    // it ignored outside Idle must not move the queue to another session alone.
+    const o = opening.current
+    if (head && o?.events === state.events) {
+      opening.current = undefined
+      queue.adopt(head, o.id, o.version, o.events)
+    }
     if (!enabled) {
       queue.pause()
       return
     }
+    queue.resume()
     if (head && state.events.some((e) => !e.discarded)) queue.change(head, state.events)
   }, [enabled, head, state.events, queue])
 
@@ -379,33 +394,36 @@ function useSessions(
         refresh()
         return
       }
-      // The actor ignores Restore outside Idle, and the queue must not switch alone.
-      if (passThru.current.state._tag !== 'Idle') return
-      queue.adopt(events[0].id, session.id, session.version, events)
+      opening.current = { id: session.id, version: session.version, events }
       dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
     },
-    [client, currentId, head, queue, dispatch, refresh, passThru],
+    [client, currentId, head, queue, dispatch, refresh],
   )
 
   const remove = React.useCallback(
     async (id: string) => {
-      if (id === currentId) {
-        queue.reset()
-        dispatch(Conversation.Action.Clear())
-      }
-      await deleteSession({ id }).catch(() => {})
+      // Its pending save goes out first, so none lands after the delete.
+      await queue.flush()
+      const r = await deleteSession({ id }).catch(() => null)
       refresh()
+      if (r?.quratorSessionDelete.__typename !== 'Ok') {
+        setNotice({ head, text: UNDELETABLE })
+        return
+      }
+      queue.reset(id)
+      if (id === currentId) dispatch(Conversation.Action.Clear())
     },
-    [currentId, queue, dispatch, deleteSession, refresh],
+    [currentId, head, queue, dispatch, deleteSession, refresh],
   )
 
   const setEnabled = React.useCallback(
     async (on: boolean) => {
-      if (!on) queue.pause()
-      await setSessionsEnabled({ enabled: on }).catch(() => {})
+      setChoice(on)
+      const r = await setSessionsEnabled({ enabled: on }).catch(() => null)
+      if (r?.quratorSessionsSetEnabled.__typename !== 'Ok') setChoice(null)
       refresh()
     },
-    [queue, setSessionsEnabled, refresh],
+    [setSessionsEnabled, refresh],
   )
 
   return React.useMemo(

@@ -506,13 +506,14 @@ export function Menu({
 
   const isIdle = state._tag === 'Idle'
 
-  const { available, refresh } = sessions
+  const { refresh } = sessions
   const toggleMenu = React.useCallback(
     (e: React.BaseSyntheticEvent) => {
-      if (!menuOpen && available) refresh()
+      // Also catches an admin turning sessions on or off since the page loaded.
+      if (!menuOpen) refresh()
       setMenuOpen(menuOpen ? null : e.currentTarget)
     },
-    [menuOpen, available, refresh],
+    [menuOpen, refresh],
   )
   const closeMenu = React.useCallback(() => setMenuOpen(null), [setMenuOpen])
 

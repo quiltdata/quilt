@@ -195,6 +195,7 @@ export function createSaveQueue<T>({
   delayMs = 1000,
 }: QueueOptions<T>) {
   let slot: Slot<T> | null = null
+  let paused = false
 
   const later = (s: Slot<T>, ms: number) => {
     if (s.timer) clearTimeout(s.timer)
@@ -205,8 +206,8 @@ export function createSaveQueue<T>({
   }
 
   const pump = (s: Slot<T>) => {
-    if (s.inFlight || s.timer) return
-    if (s.stopped || !s.latest || s.latest === s.sent) {
+    if (s.inFlight) return
+    if (paused || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
       s.waiters.splice(0).forEach((resolve) => resolve())
       return
     }
@@ -293,27 +294,30 @@ export function createSaveQueue<T>({
       const s = slot?.head === head ? slot : fresh(head, null, null, null)
       if (s.stopped || s.latest === events) return
       s.latest = events
-      later(s, delayMs)
+      if (!paused) later(s, delayMs)
     },
     /** `events` were just opened as session `id` at `version`. */
     adopt(head: string, id: string, version: number, events: T) {
       fresh(head, id, version, events)
     },
     flush,
-    /** Drop the pending save but keep the session, to resume on the next change. */
+    /** Send nothing, not even a retry or a fork, until `resume`. */
     pause() {
-      if (!slot) return
-      if (slot.timer) clearTimeout(slot.timer)
-      slot.timer = null
-      slot.latest = slot.sent
+      paused = true
+      if (slot?.timer) clearTimeout(slot.timer)
+      if (slot) slot.timer = null
     },
-    /** Drop the pending save and ignore what is in flight. */
-    reset() {
-      if (slot) {
-        if (slot.timer) clearTimeout(slot.timer)
-        slot.stopped = true
-        slot.waiters.splice(0).forEach((resolve) => resolve())
-      }
+    resume() {
+      if (!paused) return
+      paused = false
+      if (slot) later(slot, delayMs)
+    },
+    /** Drop the session `id` from the queue, if it holds it, and ignore what is in flight. */
+    reset(id: string) {
+      if (!slot || (slot.id !== id && slot.shown !== id)) return
+      if (slot.timer) clearTimeout(slot.timer)
+      slot.stopped = true
+      slot.waiters.splice(0).forEach((resolve) => resolve())
       slot = null
     },
   }
