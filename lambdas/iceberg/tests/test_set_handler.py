@@ -663,10 +663,10 @@ def test_a_statement_still_running_at_the_deadline_is_stopped_and_its_items_retu
     assert holdings(con)["package_entry"] == set()
 
 
-def test_an_item_whose_statement_athena_will_not_take_is_dead_lettered(handle, athena, s3, con, sqs):
+def test_an_item_whose_statement_botocore_will_not_send_is_dead_lettered(handle, athena, s3, con, sqs):
     batch = manifests(s3, con, 1, 2, 3)
-    too_large = botocore.exceptions.ParamValidationError(report="QueryString is longer than 262144")
-    athena.start_fails = lambda sql: too_large if '"package_entry"' in sql and h(2) in sql else None
+    invalid = botocore.exceptions.ParamValidationError(report="Invalid type for parameter QueryString")
+    athena.start_fails = lambda sql: invalid if '"package_entry"' in sql and h(2) in sql else None
 
     response = handle(*batch)
 

@@ -147,7 +147,7 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
                 failed[item] = None if e.retryable else f"statement: {e}"
                 continue
             except botocore.exceptions.ParamValidationError as e:
-                # The statement Athena will not take is this item's alone.
+                # A statement botocore will not send is this item's alone.
                 logger.exception("Failed to write %s", item)
                 failed[item] = f"input: {e}"
                 continue
