@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -167,6 +168,10 @@ function Qualification({ status }: { status: StatusResult | null }) {
   )
 }
 
+// Drops GraphQL `__typename` so the export reads as data, not a query result.
+const stripTypename = (x: unknown) =>
+  JSON.parse(JSON.stringify(x ?? null, (k, v) => (k === '__typename' ? undefined : v)))
+
 function exportEvidence(status: StatusResult | null) {
   const canaries = status?.canaries ?? null
   const evidence = {
@@ -174,14 +179,15 @@ function exportEvidence(status: StatusResult | null) {
       'Snapshot from the Quilt catalog, timestamped by the browser clock and unsigned. Supports your validation; it is not a certification.',
     generatedAt: new Date().toISOString(),
     catalog: window.location.origin,
+    stackVersion: cfg.stackVersion,
     statusMonitoring: status ? 'enabled' : 'not enabled',
     requirements: REQUIREMENTS.map((r) => {
       const live = liveCheck(r, canaries)
       return { ...r, liveCheck: live, displayedAssessment: displayedAssessment(r, live) }
     }),
-    canaries,
-    latestStats: status?.latestStats ?? null,
-    recentReports: status?.reports.page ?? [],
+    canaries: stripTypename(canaries),
+    latestStats: stripTypename(status?.latestStats),
+    recentReports: stripTypename(status?.reports.page ?? []),
   }
   const blob = new Blob([JSON.stringify(evidence, null, 2)], { type: 'application/json' })
   const a = document.createElement('a')
