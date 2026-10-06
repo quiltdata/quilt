@@ -172,6 +172,12 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     position: 'relative',
   },
+  // The guided panel sits in the same flex column; without a floor the editor
+  // is the item that shrinks, down to nothing on short windows.
+  dropzoneGuided: {
+    flexShrink: 0,
+    minHeight: t.spacing(30),
+  },
   metaContent: {
     display: 'flex',
     flexDirection: 'column',
@@ -563,7 +569,12 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
       )}
       {guided && problems}
 
-      <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+      <div
+        {...getRootProps({
+          className: cx(classes.dropzone, { [classes.dropzoneGuided]: guided }),
+        })}
+        tabIndex={undefined}
+      >
         {guided && <input {...getInputProps()} />}
         <div className={classes.metaContent} ref={ref}>
           {isDragging && <div className={classes.outlined} />}
