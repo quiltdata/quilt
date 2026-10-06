@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -11,8 +10,20 @@ vi.mock('utils/Buckets', () => ({
   useIsInStack: () => (bucket: string) => bucket === 'in-stack-bucket',
 }))
 
-import * as routes from 'constants/routes'
-import * as NamedRoutes from 'utils/NamedRoutes'
+// Stands in for the app's Router and NamedRoutes providers, at `location.path`.
+const location = vi.hoisted(() => ({ path: '/' }))
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return {
+    ...actual,
+    Link: ({ to, ...props }: { to: string }) => <a href={to} {...props} />,
+    useRouteMatch: (opts: object) => actual.matchPath(location.path, opts),
+  }
+})
+vi.mock('utils/NamedRoutes', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  use: () => ({ paths: { qurator: '/qurator' }, urls: { qurator: () => '/qurator' } }),
+}))
 
 import * as Model from '../../Model'
 
@@ -148,18 +159,14 @@ describe('components/Assistant/UI/Chat/Menu', () => {
 
   const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
 
-  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn(), path = '/') {
+  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn()) {
     render(
-      <NamedRoutes.Provider routes={routes}>
-        <MemoryRouter initialEntries={[path]}>
-          <Menu
-            state={idle}
-            dispatch={vi.fn()}
-            devToolsOpen={devToolsOpen}
-            onToggleDevTools={onToggleDevTools}
-          />
-        </MemoryRouter>
-      </NamedRoutes.Provider>,
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={devToolsOpen}
+        onToggleDevTools={onToggleDevTools}
+      />,
     )
     return onToggleDevTools
   }
@@ -180,7 +187,14 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     expect(toggle).toHaveBeenCalledTimes(1)
   })
 
+  it('CONTROL: offers Developer Tools while it is closed', () => {
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Developer Tools')).toBeTruthy()
+  })
+
   it('offers the full page from the panel', () => {
+    location.path = '/'
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText('Open full page').closest('a')?.getAttribute('href')).toBe(
@@ -189,14 +203,9 @@ describe('components/Assistant/UI/Chat/Menu', () => {
   })
 
   it('does not offer the full page on the full page', () => {
-    renderMenu(false, vi.fn(), '/qurator/')
-    fireEvent.click(screen.getByLabelText('Qurator menu'))
-    expect(screen.queryByText('Open full page')).toBeNull()
-  })
-
-  it('CONTROL: offers Developer Tools while it is closed', () => {
+    location.path = '/qurator/'
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
-    expect(screen.getByText('Developer Tools')).toBeTruthy()
+    expect(screen.queryByText('Open full page')).toBeNull()
   })
 })
