@@ -35,11 +35,17 @@ JSONSchemaError = jsonschema.ValidationError | jsonschema.SchemaError
 
 class WorkflowErrorBase(util.QuiltException):
     schema_validation_error: JSONSchemaError = None
+    # Every schema violation as {"path": <JSON pointer>, "message": ...}; the
+    # exception message keeps naming only the first, which clients display.
+    errors: list[dict] = []
 
     @classmethod
-    def from_schema_validation_error(cls, message: str, err: JSONSchemaError):
+    def from_schema_validation_error(cls, message: str, err: JSONSchemaError, all_errors=()):
         obj = cls(f'{message}: {err.message}.')
         obj.schema_validation_error = err
+        obj.errors = [
+            {'path': ''.join(f'/{p}' for p in e.absolute_path), 'message': e.message} for e in all_errors or [err]
+        ]
         return obj
 
 
@@ -245,10 +251,10 @@ class WorkflowValidator(typing.NamedTuple):
     def validate_metadata(self, meta):
         if self.metadata_validator is None:
             return
-        try:
-            self.metadata_validator.validate(meta)
-        except jsonschema.ValidationError as e:
-            raise WorkflowValidationError.from_schema_validation_error('Metadata failed validation', e) from e
+        errors = list(self.metadata_validator.iter_errors(meta))
+        if errors:
+            # errors[0] is what `.validate()` used to raise, so the message is unchanged.
+            raise WorkflowValidationError.from_schema_validation_error('Metadata failed validation', errors[0], errors)
 
     def validate_entries(self, pkg):
         if self.entries_validator is None:

@@ -185,6 +185,19 @@ class WorkflowValidatorTest(unittest.TestCase, WorkflowValidatorTestMixin):
         with pytest.raises(workflows.WorkflowValidationError):
             workflow_validator.validate_metadata({})
 
+    def test_validate_metadata_fail_lists_every_error(self):
+        schema = {
+            'type': 'object',
+            'required': ['project'],
+            'properties': {'assay': {'enum': ['rna', 'dna']}, 'lab': {'properties': {'pi': {'type': 'string'}}}},
+        }
+        workflow_validator = self.get_workflow_validator(metadata_validator=self.JSON_SCHEMA_VALIDATOR_CLS(schema))
+        with pytest.raises(workflows.WorkflowValidationError) as excinfo:
+            workflow_validator.validate_metadata({'assay': 'x', 'lab': {'pi': 1}})
+
+        assert excinfo.value.message == f'Metadata failed validation: {excinfo.value.errors[0]["message"]}.'
+        assert sorted(e['path'] for e in excinfo.value.errors) == ['', '/assay', '/lab/pi']
+
     @mock.patch.object(workflows.WorkflowValidator, 'get_pkg_entries_for_validation')
     def test_validate_pkg_entries_noop(self, get_pkg_entries_for_validation_mock):
         workflow_validator = self.get_workflow_validator()
