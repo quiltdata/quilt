@@ -14,6 +14,16 @@ def registry_uri(bucket: str) -> str:
     return f"s3://{bucket}"
 
 
+# ASCII digits that fit in a bigint; the fill's SQL applies the same pattern.
+_REVISION = "[0-9]{1,18}"
+
+
+def is_revision(pointer: str) -> bool:
+    """Whether a pointer names a revision, by its timestamp in seconds, rather than a tag. Every writer of the set
+    decides by this rule."""
+    return re.fullmatch(_REVISION, pointer) is not None
+
+
 class Table(T.NamedTuple):
     columns: str
     # Partitioned by `registry`, then by this column hashed into this many buckets.
@@ -68,6 +78,9 @@ def _str(value: str) -> str:
 def _strs(values: T.Iterable[str]) -> str:
     return ", ".join(_str(v) for v in dict.fromkeys(values))
 
+
+# Manifests before their entries, so a manifest's row never outlives them.
+_DELETE_ORDER = ("package_tag", "package_revision", "package_manifest", "package_entry")
 
 # The column a pointer table keys a pointer's name on, and how that name is written.
 _POINTERS: dict[str, tuple[str, T.Callable[[str], str]]] = {
@@ -358,7 +371,7 @@ class StackQueryMaker:
                 from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
                 top_hash
             FROM {packages}
-            WHERE TRY_CAST({pointer} AS bigint) IS NOT NULL AND {pkg_name} <> ''
+            WHERE regexp_like({pointer}, '^{_REVISION}$') AND {pkg_name} <> ''
         ) AS v"""
         tags = f"""(
             SELECT
@@ -367,7 +380,7 @@ class StackQueryMaker:
                 {pointer} AS tag_name,
                 top_hash
             FROM {packages}
-            WHERE TRY_CAST({pointer} AS bigint) IS NULL AND {pkg_name} <> ''
+            WHERE NOT regexp_like({pointer}, '^{_REVISION}$') AND {pkg_name} <> ''
         ) AS v"""
         return [
             self._merge_entries(self._entries_from(bucket, manifest_files), target),
@@ -378,7 +391,22 @@ class StackQueryMaker:
 
     def remove(self, bucket: str) -> list[str]:
         registry = _str(registry_uri(bucket))
-        return [
-            self._delete(table, f"registry = {registry}")
-            for table in ("package_tag", "package_revision", "package_manifest", "package_entry")
-        ]
+        return [self._delete(table, f"registry = {registry}") for table in _DELETE_ORDER]
+
+    def prune(self, buckets: T.Iterable[str]) -> list[str]:
+        """Deletes the rows of every registry whose bucket is not among `buckets`: every row, given none."""
+        registries = sorted({registry_uri(b) for b in buckets})
+
+        # A NOT IN list can't be split as an IN list can, so each statement covers the registries from its first
+        # kept one up to the next statement's, and lists only the kept ones in that range.
+        def fit(table: str, kept: list[str], low: str | None, high: str | None) -> list[str]:
+            where = [f"registry >= {_str(low)}"] if low else []
+            where += [f"registry < {_str(high)}"] if high else []
+            where += [f"registry NOT IN ({_strs(kept)})"] if kept else []
+            sql = self._delete(table, " AND ".join(where) or "TRUE")
+            if len(kept) <= 1 or len(sql.encode()) <= _MAX_QUERY_BYTES:
+                return [sql]
+            half = len(kept) // 2
+            return fit(table, kept[:half], low, kept[half]) + fit(table, kept[half:], kept[half], high)
+
+        return [sql for table in _DELETE_ORDER for sql in fit(table, registries, None, None)]

@@ -9,6 +9,7 @@ from quilt_shared.iceberg_stack_queries import (
     Pointer,
     PointerKey,
     StackQueryMaker,
+    is_revision,
     registry_uri,
 )
 
@@ -93,6 +94,23 @@ def ts(seconds: int) -> datetime.datetime:
 
 def test_registry_uri_is_the_bucket_under_the_s3_scheme_without_a_trailing_slash():
     assert registry_uri("my-bucket") == "s3://my-bucket"
+
+
+@pytest.mark.parametrize(
+    "pointer, revision",
+    [
+        ("1700000000", True),
+        ("9" * 18, True),  # the most digits a bigint always holds
+        ("1" * 19, False),
+        ("²", False),
+        ("-5", False),
+        ("+5", False),
+        ("٣", False),  # an Arabic-Indic digit
+        ("latest", False),
+    ],
+)
+def test_a_pointer_is_a_revision_only_when_it_is_ascii_digits_that_fit_a_bigint(pointer, revision):
+    assert is_revision(pointer) is revision
 
 
 # The per-bucket tables' columns with `registry` added first, and each table's partitioning.
@@ -398,6 +416,59 @@ def test_fill_again_writes_only_moved_pointers(qm, con):
         ("s3://b1", "u/p", ts(200), h(1)),
         ("s3://b1", "u/p", ts(300), h(9)),
     ]
+
+
+def test_fill_tells_revisions_from_tags_by_the_same_rule(qm, con):
+    for pointer in ("1700000000", "-5", "+5", "٣", "²"):
+        push_pointer(con, "b1", "u/p", pointer, h(1))
+
+    run(con, qm.fill("b1"))
+
+    assert rows(con, "package_revision", "timestamp") == [(ts(1700000000),)]
+    assert rows(con, "package_tag", "tag_name") == [("+5",), ("-5",), ("²",), ("٣",)]
+
+
+def put_registry(con, bucket: str):
+    insert(con, "package_entry", entry(bucket, h(1)))
+    insert(con, "package_manifest", (f"s3://{bucket}", h(1), "", "{}"))
+    insert(con, "package_revision", (f"s3://{bucket}", "u/p", ts(100), h(1)))
+    insert(con, "package_tag", (f"s3://{bucket}", "u/p", "latest", h(1)))
+
+
+def registries(con) -> dict[str, list[str]]:
+    return {t: [r for (r,) in rows(con, t, "DISTINCT registry")] for t in TABLES}
+
+
+def test_prune_deletes_the_rows_of_every_registry_whose_bucket_is_not_given(qm, con):
+    for bucket in ("b1", "b2", "b3"):
+        put_registry(con, bucket)
+
+    run(con, qm.prune(["b2", "b9"]))
+
+    assert registries(con) == {t: ["s3://b2"] for t in TABLES}
+
+
+def test_prune_given_no_buckets_deletes_every_row(qm, con):
+    for bucket in ("b1", "b2"):
+        put_registry(con, bucket)
+
+    run(con, qm.prune([]))
+
+    assert registries(con) == {t: [] for t in TABLES}
+
+
+def test_prune_of_more_buckets_than_one_statement_holds_stays_under_the_size_limit(qm, con):
+    kept = [f"bucket-{i:05d}-{'x' * 45}" for i in range(5000)]
+    gone = ["aaa", f"bucket-02500-{'y' * 45}", "zzz"]  # before, between and after the kept ones
+    for bucket in [kept[0], kept[2500], kept[-1], *gone]:
+        put_registry(con, bucket)
+
+    statements = qm.prune(kept)
+
+    assert len(statements) > len(TABLES)
+    assert all(len(sql.encode()) <= MAX_QUERY_BYTES for sql in statements)
+    run(con, statements)
+    assert registries(con) == {t: sorted(f"s3://{b}" for b in (kept[0], kept[2500], kept[-1])) for t in TABLES}
 
 
 def test_remove_deletes_one_registry_rows_from_every_table(qm, con):
