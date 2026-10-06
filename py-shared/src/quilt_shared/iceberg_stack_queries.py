@@ -347,7 +347,7 @@ class StackQueryMaker:
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
         prefix = _manifests_prefix(bucket)
-        manifest_files = f"""regexp_like(substr("$path", {len(prefix) + 1}), '^{_TOP_HASH}$')"""
+        manifest_files = f"""regexp_like(substr("$path", {len(prefix) + 1}), '^{_TOP_HASH}\\z')"""
         # The manifests' read can find one the entries' read did not, so a row is written only for a manifest whose
         # entries are in the set, or that has none.
         manifests = f"""
