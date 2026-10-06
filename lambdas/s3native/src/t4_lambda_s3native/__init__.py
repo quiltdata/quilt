@@ -114,8 +114,21 @@ def handler(event, context):
     # call count matter. Delivery is at-least-once per destination either way.
     for msg in event["Records"]:
         try:
-            record = to_s3_record(json.loads(msg["body"]))
+            source = json.loads(msg["body"])
+            record = to_s3_record(source)
             if record is None:
+                # A new S3 reason or deletion type would otherwise vanish without trace.
+                detail = source.get("detail", {})
+                print(
+                    json.dumps(
+                        {
+                            "skipped": source.get("detail-type"),
+                            "reason": detail.get("reason"),
+                            "deletion-type": detail.get("deletion-type"),
+                            "messageId": msg["messageId"],
+                        }
+                    )
+                )
                 continue
             body = json.dumps({"Records": [record]})
             sqs.send_message(

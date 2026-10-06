@@ -14,9 +14,11 @@ EVENTS = json.loads((pathlib.Path(__file__).parent / "probe_events.json").read_t
 def by(reason=None, deletion=None, key=None):
     for e in EVENTS:
         d = e["detail"]
-        if (reason is None or d.get("reason") == reason) and (
-            deletion is None or d.get("deletion-type") == deletion
-        ) and (key is None or d["object"]["key"] == key):
+        if (
+            (reason is None or d.get("reason") == reason)
+            and (deletion is None or d.get("deletion-type") == deletion)
+            and (key is None or d["object"]["key"] == key)
+        ):
             return e
     raise LookupError((reason, deletion, key))
 
@@ -67,6 +69,14 @@ def test_unknown_reason_is_dropped():
     e = json.loads(json.dumps(by("PutObject", key="plain.txt")))
     e["detail"]["reason"] = "SomethingNew"
     assert n.to_s3_record(e) is None
+
+
+def test_handler_logs_what_it_skips(monkeypatch, capsys):
+    monkeypatch.setattr(n.boto3, "client", lambda svc: MagicMock())
+    e = json.loads(json.dumps(by("PutObject", key="plain.txt")))
+    e["detail"]["reason"] = "SomethingNew"
+    assert n.handler({"Records": [{"messageId": "m", "body": json.dumps(e)}]}, None) == {"batchItemFailures": []}
+    assert '"reason": "SomethingNew"' in capsys.readouterr().out
 
 
 def test_handler_fans_out_and_reports_only_failed_messages(monkeypatch):
