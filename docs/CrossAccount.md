@@ -184,10 +184,20 @@ aws s3api put-bucket-policy \
 **🔒 Security Note:**
 > Quilt admins can still control user access to this bucket through the Quilt Admin Panel's Roles and Policies. The bucket policy only grants access to Quilt infrastructure, not end users.
 
-### Step 3: Configure Cross-Account SNS (Optional)
+### Step 3: Wire Bucket Events (Optional)
 
 **When You Need This:**
-If you're using [EventBridge integration](EventBridge.md) or have existing SNS topics in the Data Account that Quilt should use for notifications.
+When another service already owns the bucket's notification configuration, or
+you would rather not have Quilt write one.
+
+On a stack that supports it, use [EventBridge wiring](EventBridge.md#wire-a-bucket):
+add the bucket with **Skip S3 notifications**, then in the bucket's admin page
+open **Event wiring**, enter the Data Account ID, click **Admit account**, and
+have a Data Account admin run the three commands the panel shows. No SNS topic
+or topic policy is needed.
+
+**Older stacks: cross-account SNS.** To use an existing SNS topic in the Data
+Account, including one fed by the [CloudTrail recipe](EventBridge.md#appendix-older-stacks):
 
 **Create SNS Topic Policy:**
 
