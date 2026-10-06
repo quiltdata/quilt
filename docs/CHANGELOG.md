@@ -20,7 +20,7 @@ Entries inside each section should be ordered by type:
 
 ### Docs
 
-* [Changed] The EventBridge guide wires a bucket through native S3 EventBridge from the Admin panel, with no CloudTrail data events and with bulk deletes captured; the CloudTrail recipe moves to an appendix for older stacks ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+* [Changed] The EventBridge guide wires a bucket through native S3 EventBridge from the Admin panel, with no CloudTrail data events and with bulk deletes captured; the CloudTrail recipe moves to an appendix for older stacks ([#5451](https://github.com/quiltdata/quilt/pull/5451))
 
 ### CI
 
