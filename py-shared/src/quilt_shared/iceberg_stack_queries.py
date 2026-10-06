@@ -14,8 +14,7 @@ def registry_uri(bucket: str) -> str:
     return f"s3://{bucket}"
 
 
-# ASCII digits whose seconds an Iceberg timestamp (microseconds in a long) holds; the fill's SQL applies the same
-# pattern, anchored with `\A` and `\z`, which mean the string's start and end in every regex mode, as fullmatch does.
+# ASCII digits whose seconds an Iceberg timestamp (microseconds in a long) holds; the fill's SQL applies the same pattern.
 _REVISION = "[0-9]{1,12}"
 
 
@@ -96,6 +95,11 @@ _TOP_HASH = "[a-z0-9]{64}"
 
 def _named(manifests: T.Iterable[Manifest]) -> list[Manifest]:
     return [m for m in manifests if re.fullmatch(_TOP_HASH, m.top_hash)]
+
+
+def _sql_fullmatch(expr: str, pattern: str) -> str:
+    # `\A` and `\z` mean the string's start and end in every regex mode, as fullmatch does.
+    return f"regexp_like({expr}, '\\A(?:{pattern})\\z')"
 
 
 def _manifests_prefix(bucket: str) -> str:
@@ -347,7 +351,7 @@ class StackQueryMaker:
         registry = _str(registry_uri(bucket))
         target = f"t.registry = {registry}"
         prefix = _manifests_prefix(bucket)
-        manifest_files = f"""regexp_like(substr("$path", {len(prefix) + 1}), '\\A{_TOP_HASH}\\z')"""
+        manifest_files = _sql_fullmatch(f'substr("$path", {len(prefix) + 1})', _TOP_HASH)
         # The manifests' read can find one the entries' read did not, so a row is written only for a manifest whose
         # entries are in the set, or that has none.
         manifests = f"""
@@ -364,7 +368,7 @@ class StackQueryMaker:
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '\\As3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+\\z', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
-        revision = f"regexp_like({pointer}, '\\A{_REVISION}\\z')"
+        revision = _sql_fullmatch(pointer, _REVISION)
         packages = self._source(bucket, "packages")
         revisions = f"""(
             SELECT
@@ -396,35 +400,26 @@ class StackQueryMaker:
         return [self._delete(table, f"registry = {registry}") for table in _DELETE_ORDER]
 
     def present_registries(self) -> list[str]:
-        """Selects the registries each table's partition metadata lists; the caller unions their rows and passes
-        them to `stale_buckets` for the candidates. A deploy with nothing stale costs these four metadata reads,
-        which scan no data, and writes nothing."""
+        """Selects the registries the tables' partition metadata lists. To prune, `stale_buckets` of these rows
+        gives the candidates, and `stale_buckets` of the rows of `live_registries(candidates)` the buckets to
+        `remove`: a delete leaves a registry listed until compaction. With nothing stale, a deploy reads metadata
+        only and writes nothing; a removed bucket costs a read of its remaining files until compaction."""
         return [
-            f'SELECT DISTINCT "partition".registry AS registry FROM "{self.database}"."{table}$partitions"'
-            for table in TABLES
+            " UNION ".join(
+                f'SELECT "partition".registry AS registry FROM "{self.database}"."{table}$partitions"'
+                for table in TABLES
+            )
         ]
 
     def live_registries(self, buckets: T.Iterable[str]) -> list[str]:
-        """Selects which of the given buckets' registries still hold live rows; the caller unions their rows, passes
-        them to `stale_buckets`, and runs `remove` for each bucket returned. A delete leaves a registry listed in
-        the partition metadata until compaction, so a removed bucket costs this read of its remaining files at
-        each deploy, and no write; a registry's read stops at its first live row in each table."""
-        reads = [
-            f"(SELECT registry FROM {self._table(table)} WHERE registry = {_str(registry_uri(bucket))} LIMIT 1)"
+        """Selects, a statement a bucket, which of the given buckets' registries still hold a row."""
+        return [
+            " UNION ALL ".join(
+                f"(SELECT registry FROM {self._table(table)} WHERE registry = {_str(registry_uri(bucket))} LIMIT 1)"
+                for table in TABLES
+            )
             for bucket in sorted(set(buckets))
-            for table in TABLES
         ]
-        separator = " UNION ALL "
-        chunks: list[list[str]] = []
-        size = 0
-        for read in reads:
-            n = len(read.encode()) + len(separator)
-            if not chunks or size + n > _MAX_QUERY_BYTES:
-                chunks.append([])
-                size = 0
-            chunks[-1].append(read)
-            size += n
-        return [separator.join(chunk) for chunk in chunks]
 
 
 def stale_buckets(registries: T.Iterable[str], buckets: T.Iterable[str]) -> list[str]:

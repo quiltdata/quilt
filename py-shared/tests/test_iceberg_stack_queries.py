@@ -476,18 +476,6 @@ def test_live_registries_selects_the_given_registries_that_still_hold_a_row(qm, 
     assert live(qm, con, ["b1", "b2", "b3"]) == {"s3://b1", "s3://b2"}
 
 
-def test_live_registries_of_more_buckets_than_one_statement_holds_stays_under_the_size_limit(qm, con):
-    buckets = [f"bucket-{i:04d}-{'x' * 50}" for i in range(1500)]
-    for bucket in (buckets[0], buckets[-1]):
-        put_registry(con, bucket)
-
-    statements = qm.live_registries(buckets)
-
-    assert len(statements) > 1
-    assert all(len(sql.encode()) <= MAX_QUERY_BYTES for sql in statements)
-    assert live(qm, con, buckets) == {f"s3://{buckets[0]}", f"s3://{buckets[-1]}"}
-
-
 @pytest.mark.parametrize("kept, left", [(["b2", "b9"], ["s3://b2"]), ([], [])])
 def test_removing_the_stale_buckets_leaves_only_the_kept_registries(qm, con, kept, left):
     for bucket in ("b1", "b2", "b3"):
