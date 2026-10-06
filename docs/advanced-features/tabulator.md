@@ -131,7 +131,10 @@ GROUP BY o.batch
 
 Files must use the current AnnData encoding (written by anndata 0.8 or later).
 Re-save older files with a current anndata. In `obs` and `var` tables, a
-nullable column that a file lacks reads as null and is noted in `$issue`.
+nullable column that a file lacks reads as null and is noted in `$issue`, while
+a missing `nullable: false` column fails the file. Missing values in a
+`nullable: false` column read as the type's default (0, empty string or false),
+as for CSV. A value that cannot be cast to its declared type fails the file.
 Filters on `gene_id` or `cell_id` are applied after each matching file is read
 in full.
 

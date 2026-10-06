@@ -16,6 +16,13 @@ describe('schemas/tabulatorTable.yml.json', () => {
     expect(validate(config({ format: 'h5ad', view: 'x', layer: 'raw' }))).toEqual([])
   })
 
+  it('rejects a layer outside view x', () => {
+    expect(validate(config({ format: 'h5ad', view: 'obs', layer: 'raw' }))).not.toEqual(
+      [],
+    )
+    expect(validate(config({ format: 'h5ad', layer: 'raw' }))).toEqual([])
+  })
+
   it('rejects an unknown h5ad view', () => {
     expect(validate(config({ format: 'h5ad', view: 'uns' }))).not.toEqual([])
   })

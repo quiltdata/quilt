@@ -182,7 +182,27 @@
       "required": [
         "format"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": {
+        "required": [
+          "view"
+        ],
+        "properties": {
+          "view": {
+            "enum": [
+              "obs",
+              "var"
+            ]
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "layer"
+          ]
+        }
+      }
     }
   }
 }
