@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { makeSchemaValidator } from 'utils/JSONSchema'
 
-import { humanizeError, requiredFields } from './metaGuide'
+import { humanizeError, invalidKeys, requiredFields } from './metaGuide'
 
 const schema = {
   type: 'object',
@@ -56,8 +56,20 @@ describe('containers/Bucket/PackageDialog/State/metaGuide', () => {
   describe('requiredFields', () => {
     it('reports required fields with schema hints and fill state', () => {
       expect(requiredFields(schema, { project: 'p', assay: '' })).toEqual([
-        { key: 'project', title: 'Project', description: undefined, filled: true },
-        { key: 'assay', title: undefined, description: 'Assay type', filled: false },
+        {
+          key: 'project',
+          title: 'Project',
+          description: undefined,
+          filled: true,
+          invalid: false,
+        },
+        {
+          key: 'assay',
+          title: undefined,
+          description: 'Assay type',
+          filled: false,
+          invalid: false,
+        },
       ])
     })
 
@@ -67,6 +79,20 @@ describe('containers/Bucket/PackageDialog/State/metaGuide', () => {
         properties: { project: { type: 'string', default: 'p' } },
       }
       expect(requiredFields(withDefault, {})[0].filled).toBe(true)
+    })
+
+    it('marks a present value that fails the schema as invalid', () => {
+      const invalid = invalidKeys(
+        makeSchemaValidator(schema)({ project: 'p', assay: 'x' }) as ErrorObject[],
+      )
+      expect(invalid).toEqual(new Set(['assay']))
+      const [project, assay] = requiredFields(
+        schema,
+        { project: 'p', assay: 'x' },
+        invalid,
+      )
+      expect(project.invalid).toBe(false)
+      expect(assay).toMatchObject({ filled: true, invalid: true })
     })
 
     it('is empty without a schema', () => {

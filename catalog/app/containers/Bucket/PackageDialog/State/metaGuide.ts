@@ -66,6 +66,19 @@ export interface RequiredField {
   title?: string
   description?: string
   filled: boolean
+  /** Has a value, but the value fails the schema. */
+  invalid: boolean
+}
+
+/** Top-level keys that blocking errors point into, e.g. `/assay` → `assay`. */
+export function invalidKeys(errors: (Error | ErrorObject)[]): Set<string> {
+  const keys = new Set<string>()
+  for (const e of errors) {
+    if (!('keyword' in e) || e.keyword === 'format') continue
+    const top = e.instancePath.split('/')[1]
+    if (top) keys.add(top.replace(/~1/g, '/').replace(/~0/g, '~'))
+  }
+  return keys
 }
 
 const isFilled = (v: unknown) => v !== undefined && v !== null && v !== ''
@@ -77,6 +90,7 @@ const isFilled = (v: unknown) => v !== undefined && v !== null && v !== ''
 export function requiredFields(
   schema?: JsonSchema,
   value?: Types.JsonRecord,
+  invalid: Set<string> = new Set(),
 ): RequiredField[] {
   const required: unknown = schema?.required
   if (!Array.isArray(required)) return []
@@ -87,5 +101,6 @@ export function requiredFields(
       title: schema?.properties?.[key]?.title,
       description: schema?.properties?.[key]?.description,
       filled: isFilled(value?.[key] ?? schema?.properties?.[key]?.default),
+      invalid: isFilled(value?.[key]) && invalid.has(key),
     }))
 }

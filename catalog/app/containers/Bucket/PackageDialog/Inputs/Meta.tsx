@@ -21,7 +21,7 @@ import { JsonRecord } from 'utils/types'
 import type { FormStatus } from '../State/form'
 import type { SchemaStatus } from '../State/schema'
 import type { MetaState } from '../State/meta'
-import { humanizeError, requiredFields } from '../State/metaGuide'
+import { humanizeError, invalidKeys, requiredFields } from '../State/metaGuide'
 import { MetaInputSkeleton } from '../Skeleton'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
@@ -223,50 +223,151 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 
 const useRequiredFieldsStyles = M.makeStyles((t) => ({
   root: {
+    borderLeft: `4px solid ${t.palette.warning.main}`,
     marginBottom: t.spacing(2),
+    padding: t.spacing(1.5, 2),
   },
-  chips: {
+  complete: {
+    borderLeftColor: t.palette.success.main,
+  },
+  header: {
+    alignItems: 'center',
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: t.spacing(0.5),
-    marginTop: t.spacing(0.5),
+    gap: t.spacing(1),
+  },
+  title: {
+    ...t.typography.subtitle2,
+    flexGrow: 1,
+  },
+  count: {
+    ...t.typography.subtitle2,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  progress: {
+    borderRadius: 2,
+    height: 4,
+    margin: t.spacing(1, 0),
+  },
+  list: {
+    display: 'grid',
+    gap: t.spacing(0.75, 2),
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+  },
+  field: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    gap: t.spacing(1),
+    minWidth: 0,
+  },
+  icon: {
+    color: t.palette.text.disabled,
+    marginTop: 1,
+  },
+  iconFilled: {
+    color: t.palette.success.main,
+  },
+  iconInvalid: {
+    color: t.palette.error.main,
+  },
+  fieldText: {
+    minWidth: 0,
+  },
+  fieldName: {
+    ...t.typography.body2,
+    fontWeight: t.typography.fontWeightMedium,
+  },
+  fieldKey: {
+    color: t.palette.text.secondary,
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: 12,
+    marginLeft: t.spacing(0.75),
+  },
+  fieldHint: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    display: 'block',
+  },
+  footer: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginTop: t.spacing(1.25),
   },
 }))
 
 interface RequiredFieldsProps {
+  blocked: boolean
+  errors: ValidationErrors
   schema?: JsonSchema
   value?: JsonRecord
 }
 
-function RequiredFields({ schema, value }: RequiredFieldsProps) {
+/** What the workflow requires, kept in view so a blocked Create explains itself. */
+function RequiredFields({ blocked, errors, schema, value }: RequiredFieldsProps) {
   const classes = useRequiredFieldsStyles()
-  const fields = React.useMemo(() => requiredFields(schema, value), [schema, value])
+  const fields = React.useMemo(
+    () => requiredFields(schema, value, invalidKeys(errors)),
+    [errors, schema, value],
+  )
   if (!fields.length) return null
-  const filled = fields.filter((f) => f.filled).length
+  const filled = fields.filter((f) => f.filled && !f.invalid).length
+  const complete = filled === fields.length
+  let footer = 'The package cannot be saved until every required field is filled.'
+  if (fields.some((f) => f.invalid)) {
+    footer = 'Fix the fields marked in red to save; the problems are listed below.'
+  } else if (complete) {
+    footer = blocked
+      ? 'All required fields are filled. Fix the problems listed below to save.'
+      : 'All required fields are filled.'
+  }
   return (
-    <div className={classes.root}>
-      <M.Typography variant="body2" color="textSecondary">
-        This workflow requires {fields.length} metadata field
-        {fields.length === 1 ? '' : 's'}: {filled} of {fields.length} filled
-      </M.Typography>
-      <div className={classes.chips}>
-        {fields.map((f) => (
-          <M.Tooltip key={f.key} title={f.description || ''}>
-            <M.Chip
-              size="small"
-              variant={f.filled ? 'default' : 'outlined'}
-              color={f.filled ? 'primary' : 'default'}
-              icon={
-                <M.Icon fontSize="small">
-                  {f.filled ? 'check_circle' : 'radio_button_unchecked'}
-                </M.Icon>
-              }
-              label={f.title ? `${f.title} (${f.key})` : f.key}
-            />
-          </M.Tooltip>
-        ))}
+    <M.Paper
+      variant="outlined"
+      className={cx(classes.root, { [classes.complete]: complete && !blocked })}
+      role="status"
+      aria-label={`Required metadata: ${filled} of ${fields.length} filled`}
+    >
+      <div className={classes.header}>
+        <M.Icon fontSize="small" color={complete ? 'inherit' : 'action'}>
+          {complete ? 'task_alt' : 'checklist'}
+        </M.Icon>
+        <span className={classes.title}>Required by this workflow</span>
+        <span className={classes.count}>
+          {filled} of {fields.length} filled
+        </span>
       </div>
-    </div>
+      <M.LinearProgress
+        className={classes.progress}
+        variant="determinate"
+        value={(filled / fields.length) * 100}
+      />
+      <ul className={classes.list}>
+        {fields.map((f) => (
+          <li key={f.key} className={classes.field}>
+            <M.Icon
+              fontSize="small"
+              className={cx(classes.icon, {
+                [classes.iconFilled]: f.filled && !f.invalid,
+                [classes.iconInvalid]: f.invalid,
+              })}
+              aria-label={f.invalid ? 'invalid' : f.filled ? 'filled' : 'missing'}
+            >
+              {f.invalid ? 'error' : f.filled ? 'check_circle' : 'radio_button_unchecked'}
+            </M.Icon>
+            <div className={classes.fieldText}>
+              <span className={classes.fieldName}>{f.title || f.key}</span>
+              {f.title && <code className={classes.fieldKey}>{f.key}</code>}
+              {f.description && (
+                <span className={classes.fieldHint}>{f.description}</span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className={classes.footer}>{footer}</div>
+    </M.Paper>
   )
 }
 
@@ -278,17 +379,41 @@ interface MetaInputProps {
   schema?: JsonSchema
   disabled: boolean
   guided: boolean
+  blocked: boolean
   warnings: ErrorObject[]
 }
 
 const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function MetaInput(
-  { className, disabled, errors, guided, value, onChange, schema, warnings },
+  { blocked, className, disabled, errors, guided, value, onChange, schema, warnings },
   ref,
 ) {
   const classes = useMetaInputStyles()
+  // Guided: the required-fields panel already lists missing root fields, so
+  // those errors would only repeat it.
   const humanErrors = React.useMemo(
-    () => (guided ? errors.map((e) => new Error(humanizeError(e))) : errors),
+    () =>
+      guided
+        ? errors
+            .filter(
+              (e) => !('keyword' in e && e.keyword === 'required' && !e.instancePath),
+            )
+            .map((e) => new Error(humanizeError(e)))
+        : errors,
     [errors, guided],
+  )
+  const problems = (
+    <>
+      <JsonValidationErrors className={classes.errors} error={humanErrors} />
+      {warnings.map((w) => (
+        <Lab.Alert
+          className={classes.errors}
+          key={w.instancePath + w.message}
+          severity="warning"
+        >
+          {humanizeError(w)} (not enforced when the package is pushed)
+        </Lab.Alert>
+      ))}
+    </>
   )
 
   const [open, setOpen] = React.useState(false)
@@ -433,7 +558,10 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         value={value}
       />
 
-      {guided && <RequiredFields schema={schema} value={value} />}
+      {guided && (
+        <RequiredFields blocked={blocked} errors={errors} schema={schema} value={value} />
+      )}
+      {guided && problems}
 
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {guided && <input {...getInputProps()} />}
@@ -451,16 +579,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             />
           </div>
 
-          <JsonValidationErrors className={classes.errors} error={humanErrors} />
-          {warnings.map((w) => (
-            <Lab.Alert
-              className={classes.errors}
-              key={w.instancePath + w.message}
-              severity="warning"
-            >
-              {humanizeError(w)} (not enforced when the package is pushed)
-            </Lab.Alert>
-          ))}
+          {!guided && problems}
         </div>
 
         {locked && (
@@ -533,6 +652,7 @@ const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function Inpu
   }
   return (
     <MetaInput
+      blocked={status._tag === 'error'}
       disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
       className={classes.root}
       errors={errors}
