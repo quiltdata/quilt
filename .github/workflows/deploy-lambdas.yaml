@@ -4,6 +4,11 @@ name: Deploy lambdas to S3 and ECR
 # bleeding-edge SHAs onto https://dev.quilttest.com.
 on:
   workflow_dispatch:
+    inputs:
+      tag_prefix:
+        description: Prepended to the zip key and image tag (e.g. "dev-" names them "dev-<sha>"). "none" names them just <sha>; an empty value falls back to "dev-".
+        type: string
+        default: 'dev-'
   push:
     branches:
       - master
@@ -13,11 +18,9 @@ on:
       - 'lambdas/**'
 
 env:
-  # Deployment pins master's and dev's builds by bare sha; a build from any other
-  # ref is prefixed so it can neither pass for nor overwrite one of theirs.
-  ARTIFACT_TAG: >-
-    ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
-    && github.sha || format('dev-{0}', github.sha) }}
+  # A push has no inputs, so it publishes under the bare sha that deployment pins;
+  # "none" stands in for an empty prefix, which GitHub replaces with the default.
+  ARTIFACT_TAG: ${{ inputs.tag_prefix != 'none' && inputs.tag_prefix || '' }}${{ github.sha }}
 
 jobs:
   deploy-lambda-s3:
