@@ -56,7 +56,8 @@ the panel says *This stack doesn't support EventBridge wiring yet*; use the
 6. Write an object to the bucket. **Events received (24h)** in the panel counts
    the events the stack received from the bucket. It reads a CloudWatch metric,
    so allow a few minutes. *unknown* means the metric could not be read.
-7. Run **Re-index and repair** to index the objects already in the bucket.
+7. Run **Re-index and repair** with **Repair S3 notifications** unchecked to
+   index the objects already in the bucket.
 
 If the bucket's access is granted by prefix, the rule matches only those
 prefixes and `.quilt/`, so writes elsewhere reach search only on a bulk scan.
@@ -168,7 +169,7 @@ keys.
 
    ![Quilt EventBridge Configuration](./imgs/quilt-eventbridge.png)
 
-6. Run **Re-index and repair** with **Repair** unchecked.
+6. Run **Re-index and repair** with **Repair S3 notifications** unchecked.
 
 ## Additional resources
 

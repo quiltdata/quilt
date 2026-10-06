@@ -77,7 +77,10 @@ export function commands(bucket: string, wiring: Wiring, account: string) {
           },
         )}`,
         `aws iam put-role-policy --role-name ${FORWARDER_ROLE} --policy-name ${shellQuote(
-          `quilt-${wiring.stackBusArn.split('/').pop()}`,
+          `quilt-${wiring.stackAccountId}-${wiring.stackRegion}-${wiring.stackBusArn.split('/').pop()}`.slice(
+            0,
+            128,
+          ),
         )} --policy-document ${json({
           Version: '2012-10-17',
           Statement: [

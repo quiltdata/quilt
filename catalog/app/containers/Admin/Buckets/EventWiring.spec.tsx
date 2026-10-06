@@ -98,7 +98,9 @@ describe('containers/Admin/Buckets/EventWiring', () => {
       'arn:aws-us-gov:iam::222222222222:role/quilt-eventbridge-forwarder',
     )
     expect(c.forwarder).toContain(`"Resource":"${wiring.stackBusArn}"`)
-    expect(c.forwarder).toContain("--policy-name 'quilt-quilt-stk'")
+    expect(c.forwarder).toContain(
+      "--policy-name 'quilt-111111111111-us-gov-east-1-quilt-stk'",
+    )
     expect(c.forwarder).not.toContain('&&')
     expect(c.rule).toContain(`"prefix":"it'\\''s/"`)
     expect(c.rule).toContain(`RoleArn=${c.role}`)
