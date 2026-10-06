@@ -10,6 +10,8 @@ from quilt_shared.iceberg_stack_queries import (
     PointerKey,
     StackQueryMaker,
     is_revision,
+    is_top_hash,
+    parse_key,
     registry_uri,
     stale_buckets,
 )
@@ -121,6 +123,39 @@ def test_a_pointer_is_a_revision_only_when_it_is_ascii_digits_a_timestamp_holds(
     assert is_revision(pointer) is revision
 
 
+@pytest.mark.parametrize(
+    "name, top_hash",
+    [
+        ("0123456789abcdef" * 4, True),
+        ("g" * 64, False),  # 64 characters, not hex
+        ("0123456789ABCDEF" * 4, False),
+        ("a" * 63, False),
+        ("a" * 65, False),
+        ("a" * 64 + "\n", False),
+    ],
+)
+def test_a_top_hash_is_64_lowercase_hex_digits(name, top_hash):
+    assert is_top_hash(name) is top_hash
+
+
+@pytest.mark.parametrize(
+    "key, parsed",
+    [
+        (f".quilt/packages/{'a' * 64}", Manifest("b1", "a" * 64)),
+        (f".quilt/packages/{'g' * 64}", None),
+        (f".quilt/packages/sub/{'a' * 64}", None),
+        (".quilt/named_packages/ns/pkg/latest", PointerKey("b1", "ns/pkg", "latest")),
+        (".quilt/named_packages/ns/pkg/1700000000", PointerKey("b1", "ns/pkg", "1700000000")),
+        (".quilt/named_packages/README", None),
+        (".quilt/named_packages/ns/100", None),
+        (".quilt/named_packages/a/b/c/latest", None),
+        ("data/file.csv", None),
+    ],
+)
+def test_parse_key_names_a_manifest_or_a_pointer_by_the_set_key_shape(key, parsed):
+    assert parse_key("b1", key) == parsed
+
+
 # The per-bucket tables' columns with `registry` added first, and each table's partitioning.
 SCHEMA = {
     "package_revision": (
@@ -189,7 +224,7 @@ def test_entry_upsert_inserts_only_absent_rows(qm, con):
 
 
 def test_upserts_write_nothing_for_an_object_under_the_manifests_prefix_that_is_not_a_manifest(qm, con):
-    batch = [Manifest("b1", f"sub/{h(1)}"), Manifest("b1", f"{h(2)}.parquet")]
+    batch = [Manifest("b1", f"sub/{h(1)}"), Manifest("b1", f"{h(2)}.parquet"), Manifest("b1", "g" * 64)]
     for m in batch:
         push_manifest(con, m.bucket, m.top_hash)
 
@@ -355,6 +390,7 @@ def test_fill_skips_an_object_under_the_manifests_prefix_that_is_not_a_manifest(
     push_manifest(con, "b1", h(1))
     push_manifest(con, "b1", f"sub/{h(1)}", keys=("other.txt",))
     push_manifest(con, "b1", f"{h(2)}.parquet")
+    push_manifest(con, "b1", "g" * 64)  # 64 characters, not hex
 
     run(con, qm.fill("b1"))
 

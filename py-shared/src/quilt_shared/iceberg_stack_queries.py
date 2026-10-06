@@ -89,21 +89,46 @@ _POINTERS: dict[str, tuple[str, T.Callable[[str], str]]] = {
 }
 
 
-# A manifest's name under the manifests prefix, in the batch and the fill alike: any other object there is not one.
-_TOP_HASH = "[a-z0-9]{64}"
+# The set's one key shape, which the batch and the fill both apply: under its prefix, a manifest is named by its top
+# hash, a sha256 in hex, and a pointer by namespace/package/name. Any other object is neither.
+_TOP_HASH = "[0-9a-f]{64}"
+_POINTER_PATH = "([^/]+/[^/]+)/([^/]+)"
+
+
+def is_top_hash(name: str) -> bool:
+    return re.fullmatch(_TOP_HASH, name) is not None
+
+
+def parse_key(bucket: str, key: str) -> Manifest | PointerKey | None:
+    """The manifest or pointer an object's key names, by the set's key shape; None for any other object."""
+    if key.startswith(const.MANIFESTS_PREFIX):
+        top_hash = key.removeprefix(const.MANIFESTS_PREFIX)
+        return Manifest(bucket, top_hash) if is_top_hash(top_hash) else None
+    if key.startswith(const.NAMED_PACKAGES_PREFIX):
+        if m := re.fullmatch(_POINTER_PATH, key.removeprefix(const.NAMED_PACKAGES_PREFIX)):
+            return PointerKey(bucket, m[1], m[2])
+    return None
 
 
 def _named(manifests: T.Iterable[Manifest]) -> list[Manifest]:
-    return [m for m in manifests if re.fullmatch(_TOP_HASH, m.top_hash)]
+    return [m for m in manifests if is_top_hash(m.top_hash)]
 
 
+# `\A` and `\z` mean the string's start and end in every regex mode, as fullmatch does.
 def _sql_fullmatch(expr: str, pattern: str) -> str:
-    # `\A` and `\z` mean the string's start and end in every regex mode, as fullmatch does.
     return f"regexp_like({expr}, '\\A(?:{pattern})\\z')"
+
+
+def _sql_extract(expr: str, pattern: str, group: int) -> str:
+    return f"regexp_extract({expr}, '\\A(?:{pattern})\\z', {group})"
 
 
 def _manifests_prefix(bucket: str) -> str:
     return f"{registry_uri(bucket)}/{const.MANIFESTS_PREFIX}"
+
+
+def _pointers_prefix(bucket: str) -> str:
+    return f"{registry_uri(bucket)}/{const.NAMED_PACKAGES_PREFIX}"
 
 
 def _manifest_uri(manifest: Manifest) -> str:
@@ -365,9 +390,10 @@ class StackQueryMaker:
                 WHERE x.logical_key IS NOT NULL AND x."$path" = {_str(prefix)} || m.top_hash
             )
         """
+        pointer_path = f'substr("$path", {len(_pointers_prefix(bucket)) + 1})'
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
-        pkg_name = """regexp_extract("$path", '\\As3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+\\z', 1)"""
-        pointer = """regexp_extract("$path", '[^/]+$')"""
+        pkg_name = _sql_extract(pointer_path, _POINTER_PATH, 1)
+        pointer = _sql_extract(pointer_path, _POINTER_PATH, 2)
         revision = _sql_fullmatch(pointer, _REVISION)
         packages = self._source(bucket, "packages")
         revisions = f"""(
