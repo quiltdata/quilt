@@ -304,6 +304,7 @@ const capped = <T,>(p: Promise<T>): Promise<T | typeof TIMED_OUT> => {
 }
 const UNREADABLE = "That session couldn't be opened"
 const UNDELETABLE = "That session couldn't be deleted"
+const DELETED_LATE = 'This session was deleted, so it is no longer kept — start a new one'
 const UNSWITCHABLE = "Keep sessions couldn't be changed"
 
 /**
@@ -470,8 +471,11 @@ export function useSessions(
           // answers: a save meeting a late delete would recreate it.
           setNotice({ head: headNow.current, text: UNDELETABLE })
           request.then((a) => {
-            queue.release(id, isDeleted(a))
+            const late = isDeleted(a)
+            queue.release(id, late)
             refresh()
+            if (late && id === currentIdNow.current)
+              setNotice({ head: headNow.current, text: DELETED_LATE })
           })
           return
         }

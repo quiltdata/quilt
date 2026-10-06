@@ -211,5 +211,8 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
       await vi.advanceTimersByTimeAsync(5_000)
     })
     expect(stub.saves).toEqual([])
+    expect(hook.result.current.notice).toBe(
+      'This session was deleted, so it is no longer kept — start a new one',
+    )
   })
 })
