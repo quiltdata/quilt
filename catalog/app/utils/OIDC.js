@@ -89,8 +89,6 @@ export function useOIDC({ provider, popupParams }) {
           window.location.assign(url)
           return
         }
-        // A leftover redirect entry would divert a popup that lost its opener.
-        localStorage.removeItem(PENDING_KEY)
         const popup = window.open(url, `quilt_${provider}_popup`, popupParams)
         const timer = setInterval(() => {
           if (popup.closed) {
