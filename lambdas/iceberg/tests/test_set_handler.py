@@ -667,8 +667,8 @@ def test_a_refusal_until_the_deadline_while_retrying_item_by_item_returns_that_i
 
 
 def test_statements_that_could_run_into_the_timeout_are_not_started_and_their_items_returned(handle, athena, s3, con):
-    # Two statements spend the time left above the budget.
-    athena.takes = lambda sql: (TIMEOUT_S - t4_lambda_iceberg.STATEMENT_BUDGET_MS / 1000) / 2 + 1
+    # Two statements leave about 76 s: under the minute and a half a statement needs to start.
+    athena.takes = lambda sql: 110
 
     response = handle(*push(s3, con))
 
@@ -684,7 +684,8 @@ def test_statements_that_could_run_into_the_timeout_are_not_started_and_their_it
 
 def test_a_statement_still_running_at_the_deadline_is_stopped_and_its_items_returned(handle, athena, s3, con):
     batch = manifests(s3, con, 1, 2, 3)
-    athena.takes = lambda sql: TIMEOUT_S if '"package_entry"' in sql else 0
+    # Finishing half a minute before the invocation's end is too late: one bounded call can take about 48 s.
+    athena.takes = lambda sql: TIMEOUT_S - 30 if '"package_entry"' in sql else 0
 
     response = handle(*batch)
 

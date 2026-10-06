@@ -120,11 +120,12 @@ def handler(event, context):
     query_runner.run_multiple_queries(queries)
 
 
-# The time an invocation must have left to start a statement: one statement's run, QueryRunner's commit retries
-# included.
-STATEMENT_BUDGET_MS = 60_000
-# Left after QueryRunner's deadline, to stop its queries, dead-letter messages and respond.
-DEADLINE_MARGIN_MS = 10_000
+# Left after QueryRunner's deadline: one call on `set_athena` can take 3 attempts of 5 s connect and 10 s read, with
+# backoff, about 48 s, and then the queries are stopped, messages dead-lettered and the batch answered.
+DEADLINE_MARGIN_MS = 60_000
+# The time an invocation must have left to start a statement: the margin and about 30 s for the statement to run. At a
+# 300 s timeout, a batch gets about 210 s of statements.
+STATEMENT_BUDGET_MS = 90_000
 # The time an invocation must have left to dead-letter a message: one send's worst case, and a second for DNS.
 SEND_BUDGET_MS = 5_000
 
