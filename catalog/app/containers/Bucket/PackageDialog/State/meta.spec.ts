@@ -234,6 +234,20 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
 
         expect(result.current.status).toEqual(Err(userMetaError))
       })
+
+      it('drops the server field error once the metadata is edited', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const form = Form.Err(new Error('Form error'), {
+          userMeta: new Error('Rejected'),
+        })
+
+        const { result } = renderHook(() => useMeta(form, SchemaReady, Manifest.Ready()))
+        act(() => {
+          result.current.onChange({ title: 'Fixed' })
+        })
+
+        expect(result.current.status).toEqual(Ok)
+      })
     })
   })
 })

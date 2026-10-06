@@ -14,6 +14,13 @@ function fieldName(instancePath: string): string {
 
 const list = (xs: unknown[]) => xs.map((x) => JSON.stringify(x)).join(', ')
 
+const COMPARISON: Record<string, string> = {
+  '>=': 'at least',
+  '<=': 'at most',
+  '>': 'greater than',
+  '<': 'less than',
+}
+
 /**
  * Rewrites an ajv error as a sentence naming the field, instead of ajv's
  * `must have required property 'x'` under an empty instance path.
@@ -38,6 +45,15 @@ export function humanizeError(e: Error | ErrorObject): string {
       return `${at} must be a valid ${p.format}`
     case 'pattern':
       return `${at} must match the pattern ${p.pattern}`
+    case 'minimum':
+    case 'maximum':
+    case 'exclusiveMinimum':
+    case 'exclusiveMaximum':
+      return `${at} must be ${COMPARISON[p.comparison] ?? p.comparison} ${p.limit}`
+    case 'minLength':
+      return `${at} must be at least ${p.limit} characters`
+    case 'maxLength':
+      return `${at} must be at most ${p.limit} characters`
     case 'additionalProperties':
       return `${at} does not allow the field "${p.additionalProperty}"`
     default:
@@ -54,7 +70,10 @@ export interface RequiredField {
 
 const isFilled = (v: unknown) => v !== undefined && v !== null && v !== ''
 
-/** Top-level fields the workflow schema requires, and whether `value` has them. */
+/**
+ * Top-level fields the workflow schema requires, and whether `value` has them;
+ * a schema default counts, since one is applied before validation and push.
+ */
 export function requiredFields(
   schema?: JsonSchema,
   value?: Types.JsonRecord,
@@ -67,6 +86,6 @@ export function requiredFields(
       key,
       title: schema?.properties?.[key]?.title,
       description: schema?.properties?.[key]?.description,
-      filled: isFilled(value?.[key]),
+      filled: isFilled(value?.[key] ?? schema?.properties?.[key]?.default),
     }))
 }

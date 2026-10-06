@@ -41,6 +41,16 @@ export function useMeta(
 ): MetaState {
   const guided = useFeature('guided-metadata')
   const [meta, setMeta] = React.useState<Types.JsonRecord>()
+  // The form status current at the last edit: a server rejection only stands
+  // until the metadata is edited after it.
+  const [editedAt, setEditedAt] = React.useState<FormStatus>()
+  const onChange = React.useCallback(
+    (m: Types.JsonRecord) => {
+      setMeta(m)
+      setEditedAt(form)
+    },
+    [form],
+  )
   const value = React.useMemo(() => meta || getMetaFallback(manifest), [manifest, meta])
 
   const validate = React.useMemo(() => {
@@ -51,7 +61,9 @@ export function useMeta(
 
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {
-      if (form._tag === 'error' && form.fields?.userMeta) return Err(form.fields.userMeta)
+      if (form._tag === 'error' && form.fields?.userMeta && editedAt !== form) {
+        return Err(form.fields.userMeta)
+      }
       // `value`, not `meta`: a revision keeps the manifest's metadata until edited,
       // and that is what gets pushed. Failing here also stops the submit before
       // any file is uploaded.
@@ -63,12 +75,12 @@ export function useMeta(
 
     const errors = validate(meta || {})
     return errors ? Err(errors) : Ok
-  }, [form, guided, meta, validate, value])
+  }, [editedAt, form, guided, meta, validate, value])
 
   const touched = meta !== undefined
   return React.useMemo(
-    () => ({ value, status, onChange: setMeta, guided, touched }),
-    [guided, status, touched, value],
+    () => ({ value, status, onChange: guided ? onChange : setMeta, guided, touched }),
+    [guided, onChange, status, touched, value],
   )
 }
 

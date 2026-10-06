@@ -480,9 +480,11 @@ const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function Inpu
   ref,
 ) {
   const classes = useInputMetaStyles()
-  // Guided status is live, so it fails on a pristine form; errors wait for an
-  // edit or a submit, while the required-fields list says what is missing.
-  const showErrors = !guided || touched || formStatus._tag === 'error'
+  // Guided status is live, so it fails on a blank form; errors there wait for
+  // an edit or a submit, while the required-fields list says what is missing.
+  // Inherited metadata shows its errors at once: they are why Create is off.
+  const blank = !value || !Object.keys(value).length
+  const showErrors = !guided || touched || !blank || formStatus._tag === 'error'
   const errors = React.useMemo(() => {
     if (schema._tag === 'error') return [schema.error]
     if (status._tag === 'error' && showErrors) return status.errors

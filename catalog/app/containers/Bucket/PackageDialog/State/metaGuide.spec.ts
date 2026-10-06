@@ -36,6 +36,18 @@ describe('containers/Bucket/PackageDialog/State/metaGuide', () => {
       ])
     })
 
+    it('words numeric and length limits', () => {
+      const limits = {
+        type: 'object',
+        properties: { n: { minimum: 1 }, s: { maxLength: 2 } },
+      }
+      const errors = makeSchemaValidator(limits)({ n: 0, s: 'abc' }) as ErrorObject[]
+      expect(errors.map(humanizeError)).toEqual([
+        '"n" must be at least 1',
+        '"s" must be at most 2 characters',
+      ])
+    })
+
     it('passes plain errors through', () => {
       expect(humanizeError(new Error('Schema is not ready'))).toBe('Schema is not ready')
     })
@@ -47,6 +59,14 @@ describe('containers/Bucket/PackageDialog/State/metaGuide', () => {
         { key: 'project', title: 'Project', description: undefined, filled: true },
         { key: 'assay', title: undefined, description: 'Assay type', filled: false },
       ])
+    })
+
+    it('counts a schema default as filled', () => {
+      const withDefault = {
+        required: ['project'],
+        properties: { project: { type: 'string', default: 'p' } },
+      }
+      expect(requiredFields(withDefault, {})[0].filled).toBe(true)
     })
 
     it('is empty without a schema', () => {
