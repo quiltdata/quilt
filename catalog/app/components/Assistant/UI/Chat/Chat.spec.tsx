@@ -198,6 +198,41 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     expect(sessions.setEnabled).toHaveBeenCalledWith(true)
   })
 
+  const kept = () =>
+    sessionsStub({
+      enabled: true,
+      list: [
+        {
+          id: 's1',
+          title: 'Find my packages',
+          updatedAt: new Date().toISOString(),
+          envelope: { v: 1, events: [] },
+        },
+      ],
+    })
+
+  it('asks before turning off deletes kept sessions', () => {
+    const sessions = kept()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Keep sessions in this browser (preview)'))
+    expect(sessions.setEnabled).not.toHaveBeenCalled()
+    expect(
+      screen.getByText('This deletes the 1 session kept in this browser.'),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('Delete and turn off'))
+    expect(sessions.setEnabled).toHaveBeenCalledWith(false)
+  })
+
+  it('keeps sessions when turning off is cancelled', () => {
+    const sessions = kept()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Keep sessions in this browser (preview)'))
+    fireEvent.click(screen.getByText('Cancel'))
+    expect(sessions.setEnabled).not.toHaveBeenCalled()
+  })
+
   it('opens and deletes a recent session', () => {
     const sessions = sessionsStub({
       enabled: true,

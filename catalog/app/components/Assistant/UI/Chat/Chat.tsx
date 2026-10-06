@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as dateFns from 'date-fns'
 
+import { useConfirm } from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
@@ -502,13 +503,34 @@ export function Menu({
   }, [closeMenu, onToggleDevTools])
 
   const classes = useMenuStyles()
-  const toggleKeep = React.useCallback(
-    () => sessions.setEnabled(!sessions.enabled),
-    [sessions],
-  )
+  const turnOff = useConfirm({
+    title: 'Stop keeping sessions?',
+    submitTitle: 'Delete and turn off',
+    onSubmit: React.useCallback(
+      (confirmed: boolean) => {
+        if (confirmed) sessions.setEnabled(false)
+      },
+      [sessions],
+    ),
+  })
+  const toggleKeep = React.useCallback(() => {
+    // Turning off deletes what is kept, so it asks first when there is something to lose.
+    if (sessions.enabled && sessions.list.length) {
+      closeMenu()
+      turnOff.open()
+    } else {
+      sessions.setEnabled(!sessions.enabled)
+    }
+  }, [sessions, closeMenu, turnOff])
 
   return (
     <>
+      {turnOff.render(
+        <M.Typography>
+          This deletes the {sessions.list.length} session
+          {sessions.list.length === 1 ? '' : 's'} kept in this browser.
+        </M.Typography>,
+      )}
       <M.IconButton
         aria-label="Qurator menu"
         aria-haspopup="true"
