@@ -3,7 +3,7 @@ import re
 import typing as T
 
 from . import const
-from .iceberg_queries import _ident
+from .iceberg_queries import _ident, _lit
 
 # Athena's limits on one statement.
 _MAX_QUERY_BYTES = 262_144  # its query string, in UTF-8 bytes
@@ -72,12 +72,8 @@ class Statement(T.NamedTuple):
     items: tuple  # the items it covers, for retrying them one at a time
 
 
-def _str(value: str) -> str:
-    return "'" + value.replace("'", "''") + "'"
-
-
 def _strs(values: T.Iterable[str]) -> str:
-    return ", ".join(_str(v) for v in dict.fromkeys(values))
+    return ", ".join(_lit(v) for v in dict.fromkeys(values))
 
 
 # Manifests before their entries, so a manifest's row never outlives them.
@@ -86,7 +82,7 @@ _DELETE_ORDER = ("package_tag", "package_revision", "package_manifest", "package
 # The column a pointer table keys a pointer's name on, and how that name is written.
 _POINTERS: dict[str, tuple[str, T.Callable[[str], str]]] = {
     "package_revision": ("timestamp", lambda pointer: f"from_unixtime({int(pointer)})"),
-    "package_tag": ("tag_name", _str),
+    "package_tag": ("tag_name", _lit),
 }
 
 
@@ -146,7 +142,7 @@ def _group(items: T.Iterable) -> dict[str, list]:
 def _where_in(prefix: str, column: str, groups: dict[str, list]) -> str:
     # Each registry's own keys, so the scan reads only the partitions they hash to.
     return " OR ".join(
-        f"({prefix}registry = {_str(registry_uri(bucket))}"
+        f"({prefix}registry = {_lit(registry_uri(bucket))}"
         f" AND {prefix}{column} IN ({_strs(getattr(i, column) for i in items)}))"
         for bucket, items in groups.items()
     )
@@ -224,7 +220,7 @@ class StackQueryMaker:
     def _entries_from(self, bucket: str, where: str) -> str:
         return f"""
             SELECT
-                {_str(registry_uri(bucket))} AS registry,
+                {_lit(registry_uri(bucket))} AS registry,
                 regexp_extract("$path", '[^/]+$') AS top_hash,
                 logical_key,
                 physical_keys[1] AS physical_key,
@@ -239,7 +235,7 @@ class StackQueryMaker:
     def _manifests_from(self, bucket: str, where: str) -> str:
         return f"""
             SELECT
-                {_str(registry_uri(bucket))} AS registry,
+                {_lit(registry_uri(bucket))} AS registry,
                 regexp_extract("$path", '[^/]+$') AS top_hash,
                 message,
                 user_meta AS metadata
@@ -304,7 +300,7 @@ class StackQueryMaker:
 
         def render(groups: dict[str, list[Pointer]]) -> str:
             rows = ", ".join(
-                f"({_str(registry_uri(p.bucket))}, {_str(p.pkg_name)}, {value(p.pointer)}, {_str(p.top_hash)})"
+                f"({_lit(registry_uri(p.bucket))}, {_lit(p.pkg_name)}, {value(p.pointer)}, {_lit(p.top_hash)})"
                 for ps in groups.values()
                 for p in ps
             )
@@ -323,8 +319,8 @@ class StackQueryMaker:
             return self._delete(
                 table,
                 " OR ".join(
-                    f"(registry = {_str(registry_uri(bucket))} AND ("
-                    + " OR ".join(f"(pkg_name = {_str(p.pkg_name)} AND {column} = {value(p.pointer)})" for p in ps)
+                    f"(registry = {_lit(registry_uri(bucket))} AND ("
+                    + " OR ".join(f"(pkg_name = {_lit(p.pkg_name)} AND {column} = {value(p.pointer)})" for p in ps)
                     + "))"
                     for bucket, ps in groups.items()
                 ),
@@ -374,7 +370,7 @@ class StackQueryMaker:
     def fill(self, bucket: str) -> list[str]:
         """Inserts what the set lacks of a bucket's packages and updates the pointers that moved; run the first
         statement, its entries, before the second, its manifests."""
-        registry = _str(registry_uri(bucket))
+        registry = _lit(registry_uri(bucket))
         target = f"t.registry = {registry}"
         prefix = _manifests_prefix(bucket)
         manifest_files = _sql_fullmatch(f'substr("$path", {len(prefix) + 1})', _TOP_HASH)
@@ -388,7 +384,7 @@ class StackQueryMaker:
                 WHERE e.registry = m.registry AND e.top_hash = m.top_hash
             ) OR NOT EXISTS (
                 SELECT 1 FROM {self._source(bucket, "manifests")} AS x
-                WHERE x.logical_key IS NOT NULL AND x."$path" = {_str(prefix)} || m.top_hash
+                WHERE x.logical_key IS NOT NULL AND x."$path" = {_lit(prefix)} || m.top_hash
             )
         """
         pointer_path = f'substr("$path", {len(_pointers_prefix(bucket)) + 1})'
@@ -423,7 +419,7 @@ class StackQueryMaker:
         ]
 
     def remove(self, bucket: str) -> list[str]:
-        registry = _str(registry_uri(bucket))
+        registry = _lit(registry_uri(bucket))
         return [self._delete(table, f"registry = {registry}") for table in _DELETE_ORDER]
 
     def present_registries(self) -> list[str]:
@@ -441,7 +437,7 @@ class StackQueryMaker:
         """Selects, a statement a bucket, which of the given buckets' registries still hold a row."""
         return [
             " UNION ALL ".join(
-                f"(SELECT registry FROM {self._table(table)} WHERE registry = {_str(registry_uri(bucket))} LIMIT 1)"
+                f"(SELECT registry FROM {self._table(table)} WHERE registry = {_lit(registry_uri(bucket))} LIMIT 1)"
                 for table in TABLES
             )
             for bucket in sorted(set(buckets))
