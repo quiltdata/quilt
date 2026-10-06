@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 import re
 import time
@@ -107,6 +108,7 @@ class QueryRunner:
             and attempts < RETRY_MAX_ATTEMPTS
         )
 
+    @T.overload
     def run_multiple_queries(
         self,
         query_list: list[str],
@@ -114,7 +116,29 @@ class QueryRunner:
         raise_on_failed: bool = True,
         max_current_queries: int = 20,
         sleep_sec: float = 1,
-    ) -> list[QueryExecutionTypeDef]:
+        deadline: None = None,
+    ) -> list[QueryExecutionTypeDef]: ...
+
+    @T.overload
+    def run_multiple_queries(
+        self,
+        query_list: list[str],
+        *,
+        raise_on_failed: bool = True,
+        max_current_queries: int = 20,
+        sleep_sec: float = 1,
+        deadline: float,
+    ) -> list[QueryExecutionTypeDef | None]: ...
+
+    def run_multiple_queries(
+        self,
+        query_list: list[str],
+        *,
+        raise_on_failed: bool = True,
+        max_current_queries: int = 20,
+        sleep_sec: float = 1,
+        deadline: float | None = None,
+    ) -> list[QueryExecutionTypeDef] | list[QueryExecutionTypeDef | None]:
         """
         Execute multiple Athena queries in parallel with controlled concurrency.
 
@@ -125,10 +149,14 @@ class QueryRunner:
             max_current_queries: Maximum number of concurrent queries to run at once.
                 Note: default quota for DDL queries is 20 per account, for DML is 200 per account.
             sleep_sec: Time in seconds to sleep between status checks.
+            deadline: A `time.monotonic()` value to give up at. Past it, or when Athena refuses a start or a
+                poll, a query this started is stopped, best effort, rather than left running, and every
+                statement not run to completion comes back as None. Without it, such errors raise.
 
         Returns:
             list[QueryExecutionTypeDef]: List of query execution results in the same order as input queries.
-                Each element contains the full query execution information from Athena.
+                Each element contains the full query execution information from Athena, or None for a statement
+                not run, given a deadline.
 
         Raises:
             Exception: If a query fails and raise_on_failed is True.
@@ -149,7 +177,26 @@ class QueryRunner:
         pending_execution_ids = {}
         attempts: dict[int, int] = {}
 
+        def left() -> float:
+            return math.inf if deadline is None else deadline - time.monotonic()
+
+        def abandon(execution_id: str) -> None:
+            del pending_execution_ids[execution_id]
+            try:
+                self.athena.stop_query_execution(QueryExecutionId=execution_id)
+            except Exception:
+                self.logger.warning("Could not stop abandoned Athena query %s", execution_id, exc_info=True)
+
         while remaining_queries or pending_execution_ids:
+            if left() <= 0:
+                self.logger.warning(
+                    "Deadline passed: stopping %d Athena queries, %d not started",
+                    len(pending_execution_ids),
+                    len(remaining_queries),
+                )
+                for execution_id in list(pending_execution_ids):
+                    abandon(execution_id)
+                break
             # Largest backoff any conflict asked for this pass. Taken once, below, rather
             # than per conflict inside the scan: concurrent conflicts would otherwise
             # sleep serially, and no in-flight execution is polled while one sleeps.
@@ -157,7 +204,17 @@ class QueryRunner:
             # Remove completed queries. Make a copy of the set before iterating over it.
             for execution_id, idx in list(pending_execution_ids.items()):
                 # Ask for the record rather than the exception, so a commit conflict can be retried.
-                if (query_execution := self.query_finished(execution_id, raise_on_failed=False)) is None:
+                try:
+                    query_execution = self.query_finished(execution_id, raise_on_failed=False)
+                except AthenaQueryBaseException:
+                    raise
+                except Exception:
+                    if deadline is None:
+                        raise
+                    self.logger.warning("Could not poll Athena query %s; stopping it", execution_id, exc_info=True)
+                    abandon(execution_id)
+                    continue
+                if query_execution is None:
                     continue
                 del pending_execution_ids[execution_id]
 
@@ -175,17 +232,24 @@ class QueryRunner:
                 results[idx] = query_execution
 
             if backoff_sec:
-                time.sleep(backoff_sec)
+                time.sleep(min(backoff_sec, max(left(), 0)))
 
             # Start new queries.
             while remaining_queries and len(pending_execution_ids) < max_current_queries:
                 idx, query = remaining_queries.pop()
-                execution_id = self.start_query(query)
+                try:
+                    execution_id = self.start_query(query)
+                except Exception:
+                    if deadline is None:
+                        raise
+                    self.logger.warning("Could not start an Athena query; it is not run", exc_info=True)
+                    continue
                 pending_execution_ids[execution_id] = idx
                 attempts[idx] = attempts.get(idx, 0) + 1
 
-            time.sleep(sleep_sec)
+            time.sleep(min(sleep_sec, max(left(), 0)))
 
-        assert all(results)
+        if deadline is None:
+            assert all(results)
 
         return results

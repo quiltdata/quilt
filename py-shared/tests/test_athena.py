@@ -2,6 +2,7 @@ import logging
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 from botocore.stub import Stubber
 
 from quilt_shared.athena import AthenaQueryCancelledException, AthenaQueryFailedException, QueryRunner
@@ -238,6 +239,86 @@ def test_run_multiple_queries_failing_sibling_raises_while_retry_pending(
     assert exc_info.value.query_execution_id == "exec_id_2"
     assert "SYNTAX_ERROR" in str(exc_info.value)
     stubbed_athena_client.assert_no_pending_responses()
+
+
+@pytest.fixture
+def clock(monkeypatch):
+    """A monotonic clock that moves only when the runner sleeps."""
+    now = [0.0]
+    monkeypatch.setattr("quilt_shared.athena.time.monotonic", lambda: now[0])
+    monkeypatch.setattr("quilt_shared.athena.time.sleep", lambda sec: now.__setitem__(0, now[0] + sec))
+    return now
+
+
+def _stub_stop(stubber, execution_id):
+    stubber.add_response("stop_query_execution", {}, {"QueryExecutionId": execution_id})
+
+
+def test_run_multiple_queries_past_its_deadline_stops_a_running_query_and_keeps_a_finished_one(
+    query_runner, stubbed_athena_client, clock
+):
+    queries = ["SELECT 1", "SELECT 2"]
+    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_start(stubbed_athena_client, queries[1], "exec_id_2")
+    _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")
+    _stub_status(stubbed_athena_client, "exec_id_2", "RUNNING")
+    _stub_status(stubbed_athena_client, "exec_id_2", "RUNNING")
+    _stub_stop(stubbed_athena_client, "exec_id_2")
+
+    results = query_runner.run_multiple_queries(queries, deadline=2.5)
+
+    assert [r and r["QueryExecutionId"] for r in results] == ["exec_id_1", None]
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_past_its_deadline_starts_nothing_more_and_survives_a_refused_stop(
+    query_runner, stubbed_athena_client, clock
+):
+    queries = ["SELECT 1", "SELECT 2"]
+    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_status(stubbed_athena_client, "exec_id_1", "RUNNING")
+    stubbed_athena_client.add_client_error("stop_query_execution", service_error_code="InvalidRequestException")
+
+    results = query_runner.run_multiple_queries(queries, max_current_queries=1, deadline=1.5)
+
+    assert results == [None, None]
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_with_a_deadline_stops_a_query_it_cannot_poll(query_runner, stubbed_athena_client, clock):
+    queries = ["SELECT 1", "SELECT 2"]
+    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_start(stubbed_athena_client, queries[1], "exec_id_2")
+    stubbed_athena_client.add_client_error("get_query_execution", service_error_code="InvalidRequestException")
+    _stub_stop(stubbed_athena_client, "exec_id_1")
+    _stub_status(stubbed_athena_client, "exec_id_2", "SUCCEEDED")
+
+    results = query_runner.run_multiple_queries(queries, deadline=100)
+
+    assert [r and r["QueryExecutionId"] for r in results] == [None, "exec_id_2"]
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_with_a_deadline_reports_a_query_it_cannot_start_as_not_run(
+    query_runner, stubbed_athena_client, clock
+):
+    queries = ["SELECT 1", "SELECT 2"]
+    stubbed_athena_client.add_client_error("start_query_execution", service_error_code="InvalidRequestException")
+    _stub_start(stubbed_athena_client, queries[1], "exec_id_2")
+    _stub_status(stubbed_athena_client, "exec_id_2", "SUCCEEDED")
+
+    results = query_runner.run_multiple_queries(queries, deadline=100)
+
+    assert [r and r["QueryExecutionId"] for r in results] == [None, "exec_id_2"]
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_without_a_deadline_raises_a_refused_poll(query_runner, stubbed_athena_client, clock):
+    _stub_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
+    stubbed_athena_client.add_client_error("get_query_execution", service_error_code="InvalidRequestException")
+
+    with pytest.raises(ClientError):
+        query_runner.run_multiple_queries(["SELECT 1"])
 
 
 def test_should_retry_matches_reason_with_leading_text():
