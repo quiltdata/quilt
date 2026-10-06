@@ -399,11 +399,21 @@ def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s
         record("bad", pointer_key("a", "latest"), "g"),
         record("bad", manifest_key("not-a-hash"), "g"),
         record("bad", pointer_key("u/p", "latest"), "g"),  # its content is not a top hash
+        record("bad", pointer_key("u/q", "latest"), "g"),  # it is empty
     ],
-    ids=["not an S3 event", "outside the prefixes", "too deep", "too shallow", "not a manifest", "not a top hash"],
+    ids=[
+        "not an S3 event",
+        "outside the prefixes",
+        "too deep",
+        "too shallow",
+        "not a manifest",
+        "not a top hash",
+        "an empty pointer",
+    ],
 )
 def test_an_event_no_retry_can_write_is_dead_lettered_at_once_and_its_group_goes_on(handle, s3, con, sqs, bad):
     s3.objects[BUCKET, pointer_key("u/p", "latest")] = b"not a top hash"
+    s3.objects[BUCKET, pointer_key("u/q", "latest")] = b""
     put_manifest(s3, con, h(1))
 
     response = handle(bad, record("m1", manifest_key(h(1)), "g"))

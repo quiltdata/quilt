@@ -42,10 +42,10 @@ query_maker = QueryMaker(user_athena_db=QUILT_USER_ATHENA_DATABASE)
 
 
 def get_first_line(bucket, key) -> bytes | None:
+    """The object's first line, empty for an empty object, or None if there is no object."""
     try:
         resp = s3.get_object(Bucket=bucket, Key=key)
-        for line in resp["Body"].iter_lines():
-            return line
+        return next(iter(resp["Body"].iter_lines()), b"")
     except s3.exceptions.NoSuchKey:
         return None
 
@@ -151,16 +151,16 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
 
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
-    """The item an object's current state makes, and whether it is upserted rather than deleted."""
+    """The item an object's current state makes, and whether it is upserted, as it exists, or deleted."""
     if (item := parse_key(bucket, key)) is None:
         raise _Invalid(f"not a package's pointer or manifest: {key}")
     first_line = get_first_line(bucket, key)
-    if first_line and isinstance(item, PointerKey):
+    if first_line is not None and isinstance(item, PointerKey):
         top_hash = first_line.decode(errors="replace")
         if not is_top_hash(top_hash):
             raise _Invalid(f"a pointer whose content is not a top hash: {key}")
         item = Pointer(*item, top_hash)
-    return item, bool(first_line)
+    return item, first_line is not None
 
 
 def _dead_letter(queue_url: str, record, reason: str) -> bool:
