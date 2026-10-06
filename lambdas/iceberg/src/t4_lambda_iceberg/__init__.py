@@ -1,11 +1,14 @@
 import json
 import logging
 import os
+import random
+import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 import boto3
+import botocore.exceptions
 
 import quilt_shared.const
 from quilt_shared.athena import AthenaQueryBaseException, QueryRunner
@@ -106,19 +109,50 @@ def handler(event, context):
     query_runner.run_multiple_queries(queries)
 
 
-def _run(runner: QueryRunner, build, items, failed: set):
+# The time an invocation must have left to start a statement: one statement's run, commit retries included.
+STATEMENT_BUDGET_MS = 60_000
+# Runs of a statement whose Athena API calls are refused, on top of botocore's own retries of each call.
+API_ATTEMPTS = 3
+
+
+class _OutOfTime(Exception):
+    pass
+
+
+def _execute(runner: QueryRunner, context, sqls: list[str]):
+    for attempt in range(API_ATTEMPTS):
+        if context.get_remaining_time_in_millis() < STATEMENT_BUDGET_MS:
+            raise _OutOfTime
+        try:
+            runner.run_multiple_queries(sqls)
+            return
+        except botocore.exceptions.ClientError:
+            if attempt == API_ATTEMPTS - 1:
+                raise
+            logger.warning("Athena refused a call; running the statement again", exc_info=True)
+            time.sleep(random.uniform(0, 2**attempt))
+
+
+def _run(runner: QueryRunner, context, build, items, failed: set):
     for statement in build([i for i in items if i not in failed]):
         try:
-            runner.run_multiple_queries([statement.sql])
+            _execute(runner, context, [statement.sql])
+        except (_OutOfTime, botocore.exceptions.ClientError):
+            logger.exception("Returning a statement's %d items unwritten", len(statement.items))
+            failed.update(statement.items)
         except AthenaQueryBaseException:
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
             # In turn: run together, they would race one another's commits.
-            for item in statement.items:
+            for n, item in enumerate(statement.items):
                 try:
-                    runner.run_multiple_queries([s.sql for s in build([item])])
+                    _execute(runner, context, [s.sql for s in build([item])])
                 except AthenaQueryBaseException:
                     logger.exception("Failed to write %s", item)
                     failed.add(item)
+                except (_OutOfTime, botocore.exceptions.ClientError):
+                    logger.exception("Returning %d items unwritten", len(statement.items) - n)
+                    failed.update(statement.items[n:])
+                    break
 
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
@@ -137,7 +171,7 @@ def set_handler(event, context):
     maker = StackQueryMaker(database=database, user_athena_db=QUILT_USER_ATHENA_DATABASE)
     # The set's role cannot reach the Iceberg database, so its queries run in the stack database.
     run = partial(
-        _run, QueryRunner(logger=logger, athena=athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP)
+        _run, QueryRunner(logger=logger, athena=athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP), context
     )
 
     # An object is read as it now stands, so a batch's events for one key are one item.
@@ -177,6 +211,15 @@ def set_handler(event, context):
     run(maker.revision_upsert, groups["revision", True], failed)
 
     retry.update(message_id for item in failed for message_id in ids[item])
+    # A FIFO queue keeps a message group's order only if nothing after a failed message of the group succeeds.
+    stopped = set()
+    for record in event["Records"]:
+        if (group := record.get("attributes", {}).get("MessageGroupId")) is None:
+            continue
+        if record["messageId"] in retry:
+            stopped.add(group)
+        elif group in stopped:
+            retry.add(record["messageId"])
     return {
         "batchItemFailures": [
             {"itemIdentifier": record["messageId"]} for record in event["Records"] if record["messageId"] in retry

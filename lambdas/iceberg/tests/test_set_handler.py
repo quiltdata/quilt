@@ -29,13 +29,14 @@ def pointer_key(pkg_name: str, pointer: str) -> str:
     return f"{quilt_shared.const.NAMED_PACKAGES_PREFIX}{pkg_name}/{pointer}"
 
 
-def record(message_id: str, key: str) -> dict:
+def record(message_id: str, key: str, group: str | None = None) -> dict:
     body = {"detail": {"s3": {"bucket": {"name": BUCKET}, "object": {"key": key}}}}
-    return {"messageId": message_id, "body": json.dumps(body)}
+    return in_group({"messageId": message_id, "body": json.dumps(body)}, group)
 
 
-def handle(*records: dict) -> dict:
-    return t4_lambda_iceberg.set_handler({"Records": list(records)}, None)
+def in_group(record: dict, group: str | None) -> dict:
+    """The record as a FIFO queue delivers it, in its message group."""
+    return {**record, "attributes": {"MessageGroupId": group}} if group else record
 
 
 def failures(*message_ids: str) -> dict:
@@ -56,10 +57,18 @@ class Athena:
     def __init__(self, con):
         self.con = con
         self.fails = lambda sql: False
+        self.refuses = lambda sql: False  # whether the API refuses to start the query
+        self.refusals = 0
         self.reasons = {}  # a failed execution's reason
         self.held = []  # the set's holdings after each query
+        self.remaining_ms = 300_000  # the invocation's, spent as queries run
+        self.query_ms = 0
 
     def start_query_execution(self, *, QueryString, QueryExecutionContext, **kwargs):
+        if self.refuses(QueryString):
+            self.refusals += 1
+            raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "StartQueryExecution")
+        self.remaining_ms -= self.query_ms
         execution_id = str(len(self.reasons))
         self.reasons[execution_id] = None
         if QueryExecutionContext["Database"] != STACK_DB:
@@ -126,6 +135,21 @@ def s3(mocker):
     return fake
 
 
+class Context:
+    """The Lambda context, whose time runs out as Athena runs queries."""
+
+    def __init__(self, athena: Athena):
+        self.athena = athena
+
+    def get_remaining_time_in_millis(self) -> int:
+        return self.athena.remaining_ms
+
+
+@pytest.fixture
+def handle(athena):
+    return lambda *records: t4_lambda_iceberg.set_handler({"Records": list(records)}, Context(athena))
+
+
 def put_manifest(s3, con, top_hash: str):
     """A manifest of one entry, in the bucket and in the user Athena database's view of it."""
     s3.objects[BUCKET, manifest_key(top_hash)] = b'{"message": "m"}\n{"logical_key": "a.txt"}\n'
@@ -186,7 +210,7 @@ def delete(s3, con) -> list[dict]:
         (delete, {table: set() for table in TABLES}),
     ],
 )
-def test_a_batch_never_leaves_a_manifest_without_its_entries(athena, s3, con, batch, held):
+def test_a_batch_never_leaves_a_manifest_without_its_entries(handle, athena, s3, con, batch, held):
     response = handle(*batch(s3, con))
 
     assert response == failures()
@@ -194,7 +218,7 @@ def test_a_batch_never_leaves_a_manifest_without_its_entries(athena, s3, con, ba
     assert all(state["package_manifest"] <= state["package_entry"] for state in athena.held)
 
 
-def test_a_pointer_is_written_whether_or_not_the_set_holds_its_manifest(athena, s3, con):
+def test_a_pointer_is_written_whether_or_not_the_set_holds_its_manifest(handle, s3, con):
     hold_manifest(con, h(1))
     put_pointer(s3, "u/p", "latest", h(1))
     put_pointer(s3, "u/q", "latest", h(2))
@@ -211,7 +235,9 @@ def test_a_pointer_is_written_whether_or_not_the_set_holds_its_manifest(athena, 
     assert holdings(con)["package_revision"] == {(REGISTRY, h(2))}
 
 
-def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_alone_is_returned(athena, s3, con):
+def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_alone_is_returned(
+    handle, athena, s3, con
+):
     for n in (1, 2, 3):
         put_manifest(s3, con, h(n))
     put_pointer(s3, "u/p", "latest", h(1))
@@ -230,7 +256,7 @@ def test_a_failed_statement_is_retried_item_by_item_and_only_the_item_failing_al
     }
 
 
-def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_together(athena, s3, con):
+def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_together(handle, athena, s3, con):
     put_pointer(s3, "u/p", "latest", h(1))
     put_pointer(s3, "u/q", "latest", h(2))
     athena.fails = lambda sql: "'u/q'" in sql
@@ -247,7 +273,7 @@ def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_toge
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
-def test_an_event_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_batch_written(athena, s3, con):
+def test_an_event_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_batch_written(handle, s3, con):
     put_manifest(s3, con, h(1))
     s3.objects[BUCKET, manifest_key(h(2))] = botocore.exceptions.ClientError(
         {"Error": {"Code": "AccessDenied"}}, "GetObject"
@@ -263,10 +289,90 @@ def test_an_event_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_
     assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
 
 
-def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(athena, s3, con):
+def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s3, con):
     put_pointer(s3, "u/p", "²", h(1))
 
     response = handle(record("p", pointer_key("u/p", "²")))
 
     assert response == failures()
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
+
+
+def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, athena, s3, con):
+    for n in (1, 2, 3):
+        put_manifest(s3, con, h(n))
+    s3.objects[BUCKET, manifest_key(h(4))] = botocore.exceptions.ClientError(
+        {"Error": {"Code": "AccessDenied"}}, "GetObject"
+    )
+    for pkg_name in ("u/p", "u/q", "u/r"):
+        put_pointer(s3, pkg_name, "latest", h(1))
+    athena.fails = lambda sql: '"package_entry"' in sql and h(2) in sql
+
+    response = handle(
+        record("m1", manifest_key(h(1)), "statement"),
+        in_group({"messageId": "undecodable", "body": "{}"}, "decode"),
+        record("m2", manifest_key(h(2)), "statement"),  # its entries fail
+        record("unreadable", manifest_key(h(4)), "read"),
+        record("p", pointer_key("u/p", "latest"), "decode"),
+        record("m3", manifest_key(h(3)), "statement"),
+        record("q", pointer_key("u/q", "latest"), "read"),
+        record("r", pointer_key("u/r", "latest"), "other"),
+    )
+
+    assert response == failures("undecodable", "m2", "unreadable", "p", "m3", "q")
+
+
+def test_a_statement_whose_athena_calls_are_refused_is_run_again_whole(handle, athena, s3, con):
+    for n in (1, 2, 3):
+        put_manifest(s3, con, h(n))
+    refusals = iter([True, True])
+    athena.refuses = lambda sql: '"package_entry"' in sql and next(refusals, False)
+
+    response = handle(*(record(f"m{n}", manifest_key(h(n))) for n in (1, 2, 3)))
+
+    assert response == failures()
+    assert holdings(con)["package_entry"] == {(REGISTRY, h(n)) for n in (1, 2, 3)}
+    assert athena.refusals == 2
+
+
+def test_a_statement_whose_athena_calls_stay_refused_returns_its_items_unsplit(handle, athena, s3, con):
+    for n in (1, 2, 3):
+        put_manifest(s3, con, h(n))
+    put_pointer(s3, "u/p", "latest", h(1))
+    athena.refuses = lambda sql: '"package_entry"' in sql
+
+    response = handle(
+        *(record(f"m{n}", manifest_key(h(n))) for n in (1, 2, 3)), record("tag", pointer_key("u/p", "latest"))
+    )
+
+    assert response == failures("m1", "m2", "m3")
+    assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
+    assert athena.refusals == t4_lambda_iceberg.API_ATTEMPTS
+
+
+def test_a_refusal_while_retrying_item_by_item_returns_the_rest_of_the_statement_untried(handle, athena, s3, con):
+    for n in (1, 2, 3):
+        put_manifest(s3, con, h(n))
+    athena.fails = lambda sql: '"package_entry"' in sql and h(1) in sql and h(2) in sql
+    athena.refuses = lambda sql: '"package_entry"' in sql and h(2) in sql and h(1) not in sql
+
+    response = handle(*(record(f"m{n}", manifest_key(h(n))) for n in (1, 2, 3)))
+
+    assert response == failures("m2", "m3")
+    assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
+    assert athena.refusals == t4_lambda_iceberg.API_ATTEMPTS
+
+
+def test_statements_that_could_run_into_the_timeout_are_not_started_and_their_items_returned(handle, athena, s3, con):
+    # Two queries spend the time left above the budget.
+    athena.query_ms = (athena.remaining_ms - t4_lambda_iceberg.STATEMENT_BUDGET_MS) // 2 + 1
+
+    response = handle(*push(s3, con))
+
+    assert response == failures("tag", "revision")
+    assert holdings(con) == {
+        "package_revision": set(),
+        "package_tag": set(),
+        "package_manifest": {(REGISTRY, h(1))},
+        "package_entry": {(REGISTRY, h(1))},
+    }
