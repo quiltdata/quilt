@@ -3,26 +3,40 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
-import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import saveAs from 'utils/saveAs'
 
+import {
+  DEFAULT_REPORTS_ORDER,
+  DEFAULT_REPORTS_PER_PAGE,
+  STATS_WINDOW,
+} from '../Status/constants'
 import STATUS_QUERY from '../Status/gql/Status.generated'
 
 import { REQUIREMENTS, displayedAssessment, liveCheck } from './requirements'
-import type { Assessment, LiveCheck } from './requirements'
+import type { Assessment, LiveCheck, Requirement } from './requirements'
 
 type StatusResult = Extract<
   GQL.DataForDoc<typeof STATUS_QUERY>['status'],
   { __typename: 'Status' }
 >
 
-// Same variables as the Status page, so the two screens share one cached query.
 const STATUS_VARS = {
-  statsWindow: 30,
-  reportsPerPage: 25,
-  reportsOrder: Model.GQLTypes.StatusReportListOrder.NEW_FIRST,
+  statsWindow: STATS_WINDOW,
+  reportsPerPage: DEFAULT_REPORTS_PER_PAGE,
+  reportsOrder: DEFAULT_REPORTS_ORDER,
+}
+
+// 'off' = status monitoring is not provisioned on this stack.
+type Monitoring = 'loading' | 'error' | 'off' | 'on'
+
+// Stands in for every canary-backed check while the status query has no answer.
+const PENDING_CHECK: Partial<Record<Monitoring, LiveCheck>> = {
+  loading: 'loading',
+  error: 'unknown',
+  off: 'unavailable',
 }
 
 const ASSESSMENT: Record<Assessment, { label: string; color: string }> = {
@@ -32,6 +46,7 @@ const ASSESSMENT: Record<Assessment, { label: string; color: string }> = {
   gap: { label: 'Gap', color: '#b71c1c' },
   customer: { label: 'Customer-defined', color: '#455a64' },
   notEnabled: { label: 'Not enabled on this stack', color: '#616161' },
+  unverified: { label: 'Not verified', color: '#616161' },
 }
 
 const LIVE: Record<LiveCheck, { label: string; icon: string; color: string }> = {
@@ -46,6 +61,12 @@ const LIVE: Record<LiveCheck, { label: string; icon: string; color: string }> = 
   unavailable: {
     label: 'Status monitoring not enabled on this stack',
     icon: 'cloud_off',
+    color: '#757575',
+  },
+  loading: { label: 'Checking…', icon: 'hourglass_empty', color: '#757575' },
+  unknown: {
+    label: 'Status could not be loaded',
+    icon: 'help_outline',
     color: '#757575',
   },
 }
@@ -124,7 +145,13 @@ function Card({ title, subtitle, children }: CardProps) {
   )
 }
 
-function Qualification({ status }: { status: StatusResult | null }) {
+interface QualificationProps {
+  monitoring: Monitoring
+  status: StatusResult | null
+}
+
+function Qualification({ monitoring, status }: QualificationProps) {
+  const pending = <Live value={PENDING_CHECK[monitoring] ?? null} />
   const { urls } = NamedRoutes.use()
   const latest = status?.reports.page[0]
   const stats = status?.latestStats
@@ -147,7 +174,7 @@ function Qualification({ status }: { status: StatusResult | null }) {
         ) : status ? (
           <M.Typography variant="body2">No report yet</M.Typography>
         ) : (
-          <Live value="unavailable" />
+          pending
         )}
       </Card>
       <Card title="OQ" subtitle="Operational qualification (canaries)">
@@ -156,7 +183,7 @@ function Qualification({ status }: { status: StatusResult | null }) {
             {stats.passed} passing · {stats.failed} failing · {stats.running} running
           </M.Typography>
         ) : (
-          <Live value="unavailable" />
+          pending
         )}
       </Card>
       <Card title="PQ" subtitle="Performance qualification">
@@ -172,7 +199,12 @@ function Qualification({ status }: { status: StatusResult | null }) {
 const stripTypename = (x: unknown) =>
   JSON.parse(JSON.stringify(x ?? null, (k, v) => (k === '__typename' ? undefined : v)))
 
-function exportEvidence(status: StatusResult | null) {
+function checkFor(r: Requirement, monitoring: Monitoring, status: StatusResult | null) {
+  if (monitoring === 'on') return liveCheck(r, status?.canaries ?? [])
+  return r.canary ? (PENDING_CHECK[monitoring] ?? null) : null
+}
+
+function exportEvidence(monitoring: Monitoring, status: StatusResult | null) {
   const canaries = status?.canaries ?? null
   const evidence = {
     disclaimer:
@@ -180,9 +212,9 @@ function exportEvidence(status: StatusResult | null) {
     generatedAt: new Date().toISOString(),
     catalog: window.location.origin,
     stackVersion: cfg.stackVersion,
-    statusMonitoring: status ? 'enabled' : 'not enabled',
+    statusMonitoring: monitoring,
     requirements: REQUIREMENTS.map((r) => {
-      const live = liveCheck(r, canaries)
+      const live = checkFor(r, monitoring, status)
       return { ...r, liveCheck: live, displayedAssessment: displayedAssessment(r, live) }
     }),
     canaries: stripTypename(canaries),
@@ -190,22 +222,22 @@ function exportEvidence(status: StatusResult | null) {
     recentReports: stripTypename(status?.reports.page ?? []),
   }
   const blob = new Blob([JSON.stringify(evidence, null, 2)], { type: 'application/json' })
-  const a = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  a.href = url
-  a.download = `gxp-evidence-${evidence.generatedAt.slice(0, 10)}.json`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  // Revoking synchronously can cancel the download in some browsers.
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  saveAs(blob, `gxp-evidence-${evidence.generatedAt.slice(0, 10)}.json`)
 }
 
 export default function GxP() {
   const classes = useStyles()
-  const data = GQL.useQueryS(STATUS_QUERY, STATUS_VARS)
-  const status = data.status.__typename === 'Status' ? data.status : null
-  const canaries = status?.canaries ?? null
+  // Not the suspending variant: a failed status read must not take the static
+  // requirements catalogue and the export down with it.
+  const result = GQL.useQuery(STATUS_QUERY, STATUS_VARS)
+  const status = result.data?.status.__typename === 'Status' ? result.data.status : null
+  const monitoring: Monitoring = status
+    ? 'on'
+    : result.data
+      ? 'off'
+      : result.error
+        ? 'error'
+        : 'loading'
 
   return (
     <M.Box my={2}>
@@ -222,26 +254,28 @@ export default function GxP() {
           variant="outlined"
           color="primary"
           startIcon={<M.Icon>save_alt</M.Icon>}
-          onClick={() => exportEvidence(status)}
+          disabled={monitoring === 'loading'}
+          onClick={() => exportEvidence(monitoring, status)}
         >
           Export evidence
         </M.Button>
       </div>
 
-      {!status && (
+      {(monitoring === 'off' || monitoring === 'error') && (
         <M.Box mb={2}>
           <M.Paper variant="outlined">
             <M.Box p={2}>
               <M.Typography variant="body2">
-                GxP status monitoring (canaries and status reports) is not enabled on this
-                stack, so only the requirements catalogue is shown.
+                {monitoring === 'off'
+                  ? 'GxP status monitoring (canaries and status reports) is not enabled on this stack, so only the requirements catalogue is shown.'
+                  : `Status could not be loaded (${result.error?.message}), so the requirements catalogue is shown without live checks.`}
               </M.Typography>
             </M.Box>
           </M.Paper>
         </M.Box>
       )}
 
-      <Qualification status={status} />
+      <Qualification monitoring={monitoring} status={status} />
 
       <M.Box pt={3} pb={1}>
         <M.Typography variant="h6">Requirements traceability</M.Typography>
@@ -260,7 +294,7 @@ export default function GxP() {
           </M.TableHead>
           <M.TableBody>
             {REQUIREMENTS.map((r) => {
-              const live = liveCheck(r, canaries)
+              const live = checkFor(r, monitoring, status)
               return (
                 <M.TableRow key={r.id}>
                   <M.TableCell>{r.id}</M.TableCell>

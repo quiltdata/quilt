@@ -4,6 +4,7 @@ import * as Lab from '@material-ui/lab'
 import * as Sentry from '@sentry/react'
 
 import * as APIConnector from 'utils/APIConnector'
+import saveAs from 'utils/saveAs'
 
 // Carries the run id, which support asks for when several bundles are in flight.
 // Readable cross-origin only because the endpoint's CORS config exposes the header.
@@ -14,19 +15,6 @@ const FALLBACK_FILENAME = 'quilt-support-diagnostics.zip'
 function getFilename(response: Response): string {
   const match = FILENAME_RE.exec(response.headers.get('Content-Disposition') || '')
   return match?.[1] || FALLBACK_FILENAME
-}
-
-function saveAs(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  // Not synchronously: clicking only queues the download, and revoking the URL
-  // before the browser reads the blob cancels it in some of them.
-  setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
 interface Failure {

@@ -1,8 +1,22 @@
 // Assessment is Quilt's own reading of the product, not a compliance claim:
 // the customer validates.
-export type Assessment = 'supported' | 'partial' | 'gap' | 'customer' | 'notEnabled'
+export type Assessment =
+  | 'supported'
+  | 'partial'
+  | 'gap'
+  | 'customer'
+  | 'notEnabled'
+  | 'unverified'
 
-export type LiveCheck = 'pass' | 'fail' | 'running' | 'missing' | 'unavailable'
+export type LiveCheck =
+  | 'pass'
+  | 'fail'
+  | 'running'
+  | 'missing'
+  | 'unavailable'
+  // the status query is in flight or failed
+  | 'loading'
+  | 'unknown'
 
 export interface Requirement {
   id: string
@@ -159,5 +173,6 @@ export function displayedAssessment(
   live: LiveCheck | null,
 ): Assessment {
   if (live === 'missing' || live === 'unavailable') return 'notEnabled'
+  if (live === 'loading' || live === 'unknown') return 'unverified'
   return req.assessment
 }
