@@ -36,6 +36,7 @@ jobs:
           - pkgpush
           - preview
           - s3hash
+          - s3native
           - status_reports
           - manifest_indexer
           - transcode
