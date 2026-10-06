@@ -27,7 +27,14 @@ export interface MetaState {
   guided: boolean
   /** The user has edited metadata in this dialog. */
   touched: boolean
+  /** Guided only: problems shown but not blocking, see `isAdvisory`. */
+  warnings: ErrorObject[]
 }
+
+// quilt3 and quilt-rs treat `format` as an annotation, so the registry accepts
+// such values; blocking on them would refuse pushes that succeed.
+const isAdvisory = (e: Error | ErrorObject): e is ErrorObject =>
+  'keyword' in e && e.keyword === 'format'
 
 function getMetaFallback(manifest: ManifestStatus) {
   if (manifest._tag !== 'ready') return undefined
@@ -59,28 +66,41 @@ export function useMeta(
     return mkMetaValidator(schema.schema)
   }, [schema])
 
+  // `value`, not `meta`: a revision keeps the manifest's metadata until edited,
+  // and that is what gets pushed. Failing here also stops the submit before
+  // any file is uploaded.
+  const guidedErrors = React.useMemo(
+    () => (guided ? (validate(value || {}) ?? []) : []),
+    [guided, validate, value],
+  )
+  const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
+
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {
       if (form._tag === 'error' && form.fields?.userMeta && editedAt !== form) {
         return Err(form.fields.userMeta)
       }
-      // `value`, not `meta`: a revision keeps the manifest's metadata until edited,
-      // and that is what gets pushed. Failing here also stops the submit before
-      // any file is uploaded.
-      const errors = validate(value || {})
-      return errors ? Err(errors) : Ok
+      const blocking = guidedErrors.filter((e) => !isAdvisory(e))
+      return blocking.length ? Err(blocking) : Ok
     }
     if (form._tag !== 'error') return Ok
     if (form.fields?.userMeta) return Err(form.fields.userMeta)
 
     const errors = validate(meta || {})
     return errors ? Err(errors) : Ok
-  }, [editedAt, form, guided, meta, validate, value])
+  }, [editedAt, form, guided, guidedErrors, meta, validate])
 
   const touched = meta !== undefined
   return React.useMemo(
-    () => ({ value, status, onChange: guided ? onChange : setMeta, guided, touched }),
-    [guided, onChange, status, touched, value],
+    () => ({
+      value,
+      status,
+      onChange: guided ? onChange : setMeta,
+      guided,
+      touched,
+      warnings,
+    }),
+    [guided, onChange, status, touched, value, warnings],
   )
 }
 

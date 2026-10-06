@@ -206,6 +206,39 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(validate).toHaveBeenCalledWith({ title: 'T' })
       })
 
+      it('reports format errors as warnings without blocking', () => {
+        const formatError = {
+          keyword: 'format',
+          instancePath: '/date',
+          schemaPath: '#/properties/date/format',
+          params: { format: 'date' },
+          message: 'must match format "date"',
+        }
+        const requiredError = {
+          keyword: 'required',
+          instancePath: '',
+          schemaPath: '#/required',
+          params: { missingProperty: 'project' },
+          message: "must have required property 'project'",
+        }
+        mkMetaValidator.mockReturnValueOnce(() => [formatError])
+
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
+        )
+
+        expect(result.current.status).toEqual(Ok)
+        expect(result.current.warnings).toEqual([formatError])
+
+        mkMetaValidator.mockReturnValueOnce(() => [formatError, requiredError])
+        const { result: mixed } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
+        )
+
+        expect(mixed.current.status).toEqual(Err([requiredError]))
+        expect(mixed.current.warnings).toEqual([formatError])
+      })
+
       it('marks the value touched after an edit', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 

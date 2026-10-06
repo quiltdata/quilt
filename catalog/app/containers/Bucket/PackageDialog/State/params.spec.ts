@@ -53,6 +53,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     onChange,
     guided: false,
     touched: false,
+    warnings: [],
   }
 
   const useParamsWith = (overrides: Partial<FormInputs> = {}) =>
@@ -89,6 +90,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
         guided: false,
         touched: false,
+        warnings: [],
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: emptyMeta }))
@@ -114,6 +116,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
         guided: false,
         touched: false,
+        warnings: [],
       }
 
       const { result } = renderHook(() =>
@@ -257,6 +260,7 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         onChange,
         guided: false,
         touched: false,
+        warnings: [],
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: metaError }))

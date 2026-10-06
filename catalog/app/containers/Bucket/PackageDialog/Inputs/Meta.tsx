@@ -1,9 +1,11 @@
+import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import mime from 'mime-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
@@ -153,6 +155,9 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   jsonTrigger: {
     marginLeft: 'auto',
   },
+  next: {
+    marginLeft: t.spacing(1),
+  },
   key: {
     flexBasis: 100,
     flexGrow: 1,
@@ -273,10 +278,11 @@ interface MetaInputProps {
   schema?: JsonSchema
   disabled: boolean
   guided: boolean
+  warnings: ErrorObject[]
 }
 
 const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function MetaInput(
-  { className, disabled, errors, guided, value, onChange, schema },
+  { className, disabled, errors, guided, value, onChange, schema, warnings },
   ref,
 ) {
   const classes = useMetaInputStyles()
@@ -364,7 +370,12 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
 
   const isDragging = useDragging()
 
-  const { getRootProps, isDragActive } = useDropzone({
+  const {
+    getInputProps,
+    getRootProps,
+    isDragActive,
+    open: openFile,
+  } = useDropzone({
     onDrop,
     noClick: true,
     noKeyboard: true,
@@ -379,8 +390,25 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         >
           Metadata
         </M.Typography>
+        {guided && (
+          <M.Button
+            className={classes.jsonTrigger}
+            disabled={disabled}
+            onClick={openFile}
+            size="small"
+            title="Fill metadata from an XLSX, CSV or JSON file"
+            variant="outlined"
+            endIcon={
+              <M.Icon fontSize="inherit" color="primary">
+                upload_file
+              </M.Icon>
+            }
+          >
+            Import file
+          </M.Button>
+        )}
         <M.Button
-          className={classes.jsonTrigger}
+          className={guided ? classes.next : classes.jsonTrigger}
           disabled={disabled}
           onClick={openEditor}
           size="small"
@@ -408,6 +436,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
       {guided && <RequiredFields schema={schema} value={value} />}
 
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+        {guided && <input {...getInputProps()} />}
         <div className={classes.metaContent} ref={ref}>
           {isDragging && <div className={classes.outlined} />}
 
@@ -423,6 +452,15 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           </div>
 
           <JsonValidationErrors className={classes.errors} error={humanErrors} />
+          {warnings.map((w) => (
+            <Lab.Alert
+              className={classes.errors}
+              key={w.instancePath + w.message}
+              severity="warning"
+            >
+              {humanizeError(w)} (not enforced when the package is pushed)
+            </Lab.Alert>
+          ))}
         </div>
 
         {locked && (
@@ -476,7 +514,7 @@ interface InputMetaProps {
  * and can import from spreadsheet files (XLSX, CSV).
  */
 const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function InputMeta(
-  { formStatus, schema, state: { guided, status, touched, value, onChange } },
+  { formStatus, schema, state: { guided, status, touched, value, warnings, onChange } },
   ref,
 ) {
   const classes = useInputMetaStyles()
@@ -503,6 +541,7 @@ const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function Inpu
       ref={ref}
       schema={schema._tag === 'ready' ? schema.schema : undefined}
       value={value}
+      warnings={showErrors ? warnings : []}
     />
   )
 })
