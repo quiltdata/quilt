@@ -141,6 +141,8 @@ function Qualification({ status }: { status: StatusResult | null }) {
               view
             </RRDom.Link>
           </M.Typography>
+        ) : status ? (
+          <M.Typography variant="body2">No report yet</M.Typography>
         ) : (
           <Live value="unavailable" />
         )}
@@ -156,7 +158,7 @@ function Qualification({ status }: { status: StatusResult | null }) {
       </Card>
       <Card title="PQ" subtitle="Performance qualification">
         <M.Typography variant="body2">
-          Defined and run by you, in your process. Quilt supplies a protocol template.
+          Defined and run by you, in your process.
         </M.Typography>
       </Card>
     </M.Grid>
@@ -176,10 +178,12 @@ function exportEvidence(status: StatusResult | null) {
   }
   const blob = new Blob([JSON.stringify(evidence, null, 2)], { type: 'application/json' })
   const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
+  const url = URL.createObjectURL(blob)
+  a.href = url
   a.download = `gxp-evidence-${evidence.generatedAt.slice(0, 10)}.json`
   a.click()
-  URL.revokeObjectURL(a.href)
+  // Revoking synchronously can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 export default function GxP() {
