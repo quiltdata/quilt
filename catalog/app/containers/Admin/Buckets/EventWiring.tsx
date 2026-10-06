@@ -31,16 +31,6 @@ export function currentWiring(snsArn: string | null | undefined): CurrentWiring 
   }
 }
 
-// FNV-1a: rule names cap at 64 chars and bucket names reach 63, so the bucket is hashed.
-export function ruleName(bucket: string, stackId = '<stack id>'): string {
-  let h = 0x811c9dc5
-  for (let i = 0; i < bucket.length; i++) {
-    h ^= bucket.charCodeAt(i)
-    h = Math.imul(h, 0x01000193) >>> 0
-  }
-  return `quilt-${stackId}-${h.toString(16).padStart(8, '0')}`
-}
-
 // Live events must keep covering `.quilt/` even when the bulk scan is prefix-scoped,
 // or package events and Iceberg stop for that bucket.
 export function rulePattern(bucket: string, prefixes: readonly string[] | null) {
@@ -222,6 +212,7 @@ export default function EventWiring({
         </M.RadioGroup>
         {crossAccount && (
           <M.TextField
+            id="event-wiring-account"
             label="Data account ID"
             value={account}
             onChange={(e) => setAccount(e.target.value.trim())}
@@ -249,8 +240,9 @@ export default function EventWiring({
         </M.Typography>
         <pre className={classes.code}>{'"EventBridgeConfiguration": {}'}</pre>
         <M.Typography variant="body2" className={classes.step}>
-          <strong>2.</strong> Create rule <code>{ruleName(bucket)}</code> on the default
-          event bus of account {owner}, in the bucket’s region:
+          <strong>2.</strong> Create rule{' '}
+          <code>quilt-&lt;stack id&gt;-&lt;bucket hash&gt;</code> on the default event bus
+          of account {owner}, in the bucket’s region:
         </M.Typography>
         <Code>{pattern}</Code>
         <M.Typography variant="body2" className={classes.step}>
@@ -280,13 +272,12 @@ export default function EventWiring({
         </M.List>
       </M.DialogContent>
       <M.DialogActions>
-        <M.Tooltip title="Needs registry support for the EventBridge mode">
-          <span>
-            <M.Button color="primary" variant="contained" disabled>
-              Switch to EventBridge
-            </M.Button>
-          </span>
-        </M.Tooltip>
+        <M.Typography variant="caption" color="textSecondary">
+          Needs registry support for the EventBridge mode
+        </M.Typography>
+        <M.Button color="primary" variant="contained" disabled>
+          Switch to EventBridge
+        </M.Button>
         <M.Button onClick={onClose}>Close</M.Button>
       </M.DialogActions>
     </M.Dialog>

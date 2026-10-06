@@ -1,8 +1,11 @@
 import * as React from 'react'
-import { cleanup, render } from '@testing-library/react'
+import { ThemeProvider } from '@material-ui/core/styles'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { currentWiring, rulePattern, ruleName, Today } from './EventWiring'
+import * as style from 'constants/style'
+
+import EventWiring, { currentWiring, rulePattern, Today } from './EventWiring'
 
 describe('containers/Admin/Buckets/EventWiring', () => {
   it('reads the mode the bucket record encodes', () => {
@@ -43,12 +46,38 @@ describe('containers/Admin/Buckets/EventWiring', () => {
     expect(rulePattern('b', ['']).detail).toEqual({ bucket: { name: ['b'] } })
   })
 
-  it('names rules within the 64-char limit', () => {
-    const name = ruleName('a'.repeat(63), '0123abcd-0123-abcd-0123-0123456789ab')
-    expect(name.length).toBeLessThanOrEqual(64)
-    expect(name).toMatch(/^[.\-_A-Za-z0-9]+$/)
-    expect(ruleName('x')).toMatch(/^quilt-<stack id>-[0-9a-f]{8}$/)
-    expect(ruleName('x')).not.toBe(ruleName('y'))
+  it('asks for a valid data account and keeps .quilt/ in a scoped rule', () => {
+    render(
+      <ThemeProvider theme={style.appTheme}>
+        <EventWiring
+          bucket="b"
+          prefixes={['data/']}
+          snsNotificationArn={null}
+          open
+          onClose={() => {}}
+        />
+      </ThemeProvider>,
+    )
+    try {
+      const dialog = screen.getByRole('dialog')
+      expect(dialog.textContent).toContain('"prefix": ".quilt/"')
+      expect(dialog.textContent).toContain(
+        'live updates then cover only the scoped prefixes',
+      )
+      expect(dialog.textContent).not.toContain('Data account ID')
+      fireEvent.click(screen.getByLabelText('Another account'))
+      fireEvent.change(screen.getByLabelText('Data account ID'), {
+        target: { value: '1234' },
+      })
+      expect(dialog.textContent).toContain('Enter a 12-digit AWS account ID')
+      fireEvent.change(screen.getByLabelText('Data account ID'), {
+        target: { value: '123456789012' },
+      })
+      expect(dialog.textContent).not.toContain('Enter a 12-digit AWS account ID')
+      expect(dialog.textContent).toContain('an admin of account 123456789012 deploys')
+    } finally {
+      cleanup()
+    }
   })
 
   it.each([
