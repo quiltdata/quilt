@@ -209,7 +209,7 @@ def set_handler(event, context):
     with ThreadPoolExecutor(max_workers=10) as pool:  # botocore's default connection pool size
         reads = {key: pool.submit(_read, *key) for key in keys}
 
-    ids, groups = {}, defaultdict(list)
+    ids, groups, unread = {}, defaultdict(list), 0
     for key, read in reads.items():
         try:
             item, upsert = read.result()
@@ -220,6 +220,7 @@ def set_handler(event, context):
         except Exception:
             logger.exception("Failed to read s3://%s/%s", *key)
             retry.update(keys[key])
+            unread += 1
             continue
         ids[item] = keys[key]
         kind = "manifest" if isinstance(item, Manifest) else "revision" if is_revision(item.pointer) else "tag"
@@ -250,8 +251,9 @@ def set_handler(event, context):
                 dead[message_id] = reason
             else:
                 retry.add(message_id)
-    # Every item of several failing is the stack failing, not the messages: none is dead-lettered.
-    if len(ids) > 1 and ids.keys() <= failed.keys():
+    # Every item of several failing, in its read or its statements, is the stack failing, not the messages: none is
+    # dead-lettered.
+    if len(ids) + unread > 1 and ids.keys() <= failed.keys():
         retry.update(dead)
         dead.clear()
     # A FIFO queue keeps a message group's order only if nothing after a failed message of the group succeeds.

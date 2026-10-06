@@ -480,11 +480,15 @@ def test_a_message_that_cannot_be_dead_lettered_is_returned_and_holds_its_group(
     [
         [record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2)))],
         [record("m1", manifest_key(h(1))), undecodable("bad"), record("m2", manifest_key(h(2)))],
+        [record("m1", manifest_key(h(1))), record("unreadable", manifest_key(h(3)))],
     ],
-    ids=["items", "items and an event no retry can write"],
+    ids=["items", "items and an event no retry can write", "an item and one that cannot be read"],
 )
 def test_when_every_item_of_several_fails_none_is_dead_lettered(handle, athena, s3, con, sqs, events):
     manifests(s3, con, 1, 2)
+    s3.objects[BUCKET, manifest_key(h(3))] = botocore.exceptions.ClientError(
+        {"Error": {"Code": "AccessDenied"}}, "GetObject"
+    )
     athena.fails = lambda sql: BAD_DATA
 
     response = handle(*events)
