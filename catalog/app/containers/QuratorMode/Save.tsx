@@ -103,7 +103,14 @@ function useSave(api: API) {
             return { _tag: 'error', message: r.errors.map((e) => e.message).join('; ') }
         }
       } catch (e) {
-        return { _tag: 'error', message: e instanceof Error ? e.message : String(e) }
+        const message = e instanceof Error ? e.message : String(e)
+        // The bucket list shows what the role can read; whether it can write shows up only here.
+        return /AccessDenied|not authorized/i.test(message)
+          ? {
+              _tag: 'error',
+              message: `Your current role can't write to ${bucket}. Pick another bucket, or switch workspace to one that can.`,
+            }
+          : { _tag: 'error', message }
       }
     },
     [api, uploads, construct],
@@ -115,10 +122,15 @@ function SaveForm({ api }: { api: API }) {
   const { urls } = NamedRoutes.use()
   const save = useSave(api)
   const { events } = api.state
-  const [bucket, setBucket] = React.useState(() => {
-    const last = loadBucket()
-    return buckets.find((b) => b.name === last)?.name ?? buckets[0]?.name ?? ''
-  })
+  // Until the user picks, follow the session: saving where it worked needs no warning.
+  const [picked, setBucket] = React.useState<string | null>(null)
+  const listed = (b?: string | null) => buckets.find((x) => x.name === b)?.name
+  const bucket =
+    picked ??
+    listed(SessionPackage.references(events)[0]?.bucket) ??
+    listed(loadBucket()) ??
+    buckets[0]?.name ??
+    ''
   const [name, setName] = React.useState('')
   const [status, setStatus] = React.useState<Status>({ _tag: 'idle' })
   const username = redux.useSelector(authSelectors.username) as string | undefined
