@@ -264,7 +264,7 @@ class QueryRunner:
                 # Checked after the poll, so a query that finished in the last sleep keeps its result.
                 if left() <= 0:
                     self.logger.warning(
-                        "Deadline passed: stopping %d Athena queries, %d not started",
+                        "Deadline passed: stopping %d Athena queries, %d left waiting to start",
                         len(pending_execution_ids),
                         len(remaining_queries),
                     )
