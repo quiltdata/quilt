@@ -46,7 +46,7 @@ source:
   package_name: "^ccle/(?<date>[^_]+)_(?<study_id>[^_]+)_nfcore_rnaseq$"
   logical_key: "salmon/(?<sample_id>[^/]+)/quant*\\.genes\\.sf$"
 parser:
-  format: csv  # or `parquet` or `h5ad`
+  format: csv  # or `parquet`; `h5ad` takes other fields, see below
   delimiter: "\t"
   header: true
 continue_on_error: true
@@ -110,13 +110,16 @@ parser:
 ```
 
 Tables of the three views join on `cell_id` or `gene_id` together with
-`$pkg_name` and `$logical_key`:
+`$pkg_name`, `$top_hash` and `$logical_key`:
 
 ```sql
 SELECT o.batch, avg(x.value) AS mean_cd3e
 FROM "expression" x
 JOIN "cells" o
-  ON o.cell_id = x.cell_id AND o."$logical_key" = x."$logical_key"
+  ON o.cell_id = x.cell_id
+  AND o."$pkg_name" = x."$pkg_name"
+  AND o."$top_hash" = x."$top_hash"
+  AND o."$logical_key" = x."$logical_key"
 WHERE x.gene_id = 'CD3E'
 GROUP BY o.batch
 ```
