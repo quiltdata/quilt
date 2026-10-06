@@ -219,8 +219,19 @@ describe('Connectors/Mcp', () => {
       live = 'ended'
       expect(Eff.Exit.isFailure(await run(client.listTools()))).toBe(true)
       expect(Eff.Exit.isSuccess(await run(client.ping()))).toBe(true)
+      // Bootstrap's own initialize reuses the session the ping opened.
+      expect(Eff.Exit.isSuccess(await run(client.initialize()))).toBe(true)
       expect(Eff.Exit.isSuccess(await run(client.listTools()))).toBe(true)
+      expect(n).toBe(2)
       expect(sessionOf(calls.length - 1)).toBe('sess-2')
+
+      // Any request in between ends the hand-off: a later initialize is fresh.
+      live = 'ended'
+      await run(client.listTools())
+      await run(client.ping())
+      await run(client.ping())
+      await run(client.initialize())
+      expect(n).toBe(4)
     })
 
     it('withHeaders backend sends its fixed headers and no catalog token', async () => {

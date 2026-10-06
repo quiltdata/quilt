@@ -9,7 +9,9 @@
 import * as Connectors from './Connectors'
 import * as Mcp from './Connectors/Mcp'
 
-const STORAGE_KEY = 'QUILT_MCP_SERVERS_PROTOTYPE'
+// Per user: sign-out keeps localStorage, so a shared key would make Qurator send
+// one user's header secret for the next account signed in on this browser.
+const storageKey = (username: string) => `QUILT_MCP_SERVERS_PROTOTYPE:${username}`
 
 export interface Server {
   readonly slug: string
@@ -46,9 +48,10 @@ export function validate(s: Server, others: readonly Server[]): string | null {
   return null
 }
 
-export function read(): Server[] {
+export function read(username: string): Server[] {
+  if (!username) return []
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey(username)) ?? '[]')
     if (!Array.isArray(parsed)) return []
     // Anyone can write this key, so drop entries the form would have refused.
     const kept: Server[] = []
@@ -65,9 +68,10 @@ export function read(): Server[] {
   }
 }
 
-export function write(servers: readonly Server[]): void {
+export function write(username: string, servers: readonly Server[]): void {
+  if (!username) return
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(servers))
+    window.localStorage.setItem(storageKey(username), JSON.stringify(servers))
   } catch {
     // Storage blocked: the list just doesn't persist.
   }

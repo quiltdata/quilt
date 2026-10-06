@@ -32,12 +32,15 @@ describe('components/Assistant/Model/McpServers', () => {
   })
 
   it('reads back only entries the form would accept', () => {
-    window.localStorage.setItem(
-      'QUILT_MCP_SERVERS_PROTOTYPE',
-      JSON.stringify([null, server, { ...server, url: 'http://x.test' }, server]),
-    )
+    McpServers.write('alice', [
+      null,
+      server,
+      { ...server, url: 'http://x.test' },
+      server,
+    ] as any)
     try {
-      expect(McpServers.read()).toEqual([server])
+      expect(McpServers.read('alice')).toEqual([server])
+      expect(McpServers.read('bob')).toEqual([])
     } finally {
       window.localStorage.clear()
     }

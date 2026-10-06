@@ -381,6 +381,9 @@ export function make(options: McpClientOptions): McpClient {
   // Set when the server ends a session: a session-less `ping` would then get a
   // 400 and the reconnect probe would never reach bootstrap.
   let sessionExpired = false
+  // Set when that ping opened a new session and cleared by any later request, so
+  // only a bootstrap straight after the ping reuses it instead of opening another.
+  let reinitialized = false
 
   const post = (
     payload: JsonRpcRequest | Omit<JsonRpcRequest, 'id'>,
@@ -391,6 +394,7 @@ export function make(options: McpClientOptions): McpClient {
       const token = options.getToken ? yield* options.getToken() : null
       const httpClient = yield* HttpClient.HttpClient
       const sentSession = sessionId
+      reinitialized = false
 
       const base = HttpClientRequest.post(options.url).pipe(
         HttpClientRequest.setHeaders({
@@ -543,7 +547,12 @@ export function make(options: McpClientOptions): McpClient {
     })
 
   return {
-    initialize,
+    initialize: () =>
+      Eff.Effect.suspend(() => {
+        if (!reinitialized) return initialize()
+        reinitialized = false
+        return Eff.Effect.void
+      }),
     listTools: () =>
       rpc('tools/list').pipe(
         Eff.Effect.flatMap(decodeWith(ToolsListResponseSchema, 'tools/list')),
@@ -566,7 +575,13 @@ export function make(options: McpClientOptions): McpClient {
       ),
     ping: () =>
       Eff.Effect.suspend(() =>
-        sessionExpired ? initialize() : rpc('ping').pipe(Eff.Effect.asVoid),
+        sessionExpired
+          ? initialize().pipe(
+              Eff.Effect.tap(() => {
+                reinitialized = true
+              }),
+            )
+          : rpc('ping').pipe(Eff.Effect.asVoid),
       ),
   }
 }

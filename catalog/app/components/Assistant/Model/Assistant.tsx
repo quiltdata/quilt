@@ -9,6 +9,7 @@ import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import defer from 'utils/defer'
 
 import * as Relay from './Relay'
@@ -290,9 +291,10 @@ function useConstructAssistantAPI() {
   const platformConfig = usePlatformConnectorConfig()
   // Read once per mount: the connector service is allocated once, so a list
   // edited in Admin › Settings takes effect on the next page load.
+  const username: string = redux.useSelector(AuthSelectors.username) || ''
   const prototypeConfigs = React.useMemo(
-    () => McpServers.toConnectorConfigs(McpServers.read()),
-    [],
+    () => McpServers.toConnectorConfigs(McpServers.read(username)),
+    [username],
   )
   const connectorConfigs = React.useMemo(
     () => [platformConfig, ...prototypeConfigs],

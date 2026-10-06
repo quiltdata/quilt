@@ -2,6 +2,9 @@ import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+import * as redux from 'react-redux'
+
+import * as AuthSelectors from 'containers/Auth/selectors'
 
 import { McpServers } from 'components/Assistant/Model'
 
@@ -130,16 +133,20 @@ function ServerRow({
 
 export default function McpServerSettings() {
   const classes = useStyles()
-  const [servers, setServers] = React.useState(McpServers.read)
+  const username: string = redux.useSelector(AuthSelectors.username) || ''
+  const [servers, setServers] = React.useState(() => McpServers.read(username))
   const [dirty, setDirty] = React.useState(false)
   const [form, setForm] = React.useState(EMPTY_FORM)
   const [error, setError] = React.useState<string | null>(null)
 
-  const save = React.useCallback((next: McpServers.Server[]) => {
-    McpServers.write(next)
-    setServers(next)
-    setDirty(true)
-  }, [])
+  const save = React.useCallback(
+    (next: McpServers.Server[]) => {
+      McpServers.write(username, next)
+      setServers(next)
+      setDirty(true)
+    },
+    [username],
+  )
 
   const add = React.useCallback(
     (s: McpServers.Server) => {
