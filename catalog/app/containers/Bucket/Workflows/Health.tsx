@@ -102,7 +102,13 @@ function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
       ...schemaIssues('metadata', workflow.schema?.url, metadataSchema),
       ...schemaIssues('entries', workflow.entriesSchema, entriesSchema),
     ]
-    if (blocking.length) return blocking
+    // Name and message rules don't depend on schemas, so keep reporting them.
+    if (blocking.length) {
+      return [
+        ...checks.dryRun(workflow, undefined, { name, message, meta: {} }),
+        ...blocking,
+      ]
+    }
     let meta
     try {
       meta = JSON.parse(metaText || '{}')

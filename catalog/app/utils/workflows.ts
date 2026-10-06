@@ -153,21 +153,51 @@ const parseSchemaRef = (
       }
     : undefined
 
+// Python `re` classes are Unicode-aware on str; JS ones are ASCII-only unless spelled out.
+const PY_CLASSES: Record<string, [string, string]> = {
+  // [outside a class, inside a class]
+  w: ['[\\p{L}\\p{N}_]', '\\p{L}\\p{N}_'],
+  W: ['[^\\p{L}\\p{N}_]', ''],
+  d: ['\\p{Nd}', '\\p{Nd}'],
+  D: ['\\P{Nd}', '\\P{Nd}'],
+}
+
+// Rewrites a Python pattern into an equivalent JS `u` source, or explains why it can't.
+function translatePattern(src: string): { source: string } | { error: string } {
+  let out = ''
+  let inClass = false
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i]
+    if (c === '\\') {
+      const n = src[++i] ?? ''
+      if ('AZbB'.includes(n)) return { error: `Python-only \\${n} semantics` }
+      const cls = PY_CLASSES[n]
+      if (cls) {
+        if (inClass && !cls[1]) return { error: `\\${n} inside [...]` }
+        out += inClass ? cls[1] : cls[0]
+      } else {
+        out += c + n
+      }
+    } else {
+      if (c === '[' && !inClass) inClass = true
+      else if (c === ']' && inClass && src[i - 1] !== '[') inClass = false
+      out += c
+    }
+  }
+  return { source: out }
+}
+
 // quilt3 compiles `handle_pattern` with Python `re`, so a valid pattern may use syntax the
-// browser can't compile, e.g. `(?P<name>...)`. The push still enforces it; the catalog skips it.
+// browser can't reproduce, e.g. `(?P<name>...)`. The push still enforces it; the catalog skips it.
 function compilePattern(
   src?: string,
 ): Pick<Workflow, 'packageNamePattern' | 'packageNamePatternError'> {
   if (!src) return { packageNamePattern: null }
-  // JS compiles these but reads them as literal letters, so the pattern would mean something else.
-  if (/(^|[^\\])(\\\\)*\\[AZ]/.test(src)) {
-    return {
-      packageNamePattern: null,
-      packageNamePatternError: 'Python-only anchor \\A or \\Z',
-    }
-  }
+  const t = translatePattern(src)
+  if ('error' in t) return { packageNamePattern: null, packageNamePatternError: t.error }
   try {
-    return { packageNamePattern: new RegExp(src) }
+    // `u` rejects identity escapes like `\\-`, so only use it when the classes need it.
+    return { packageNamePattern: new RegExp(t.source, t.source === src ? '' : 'u') }
   } catch (e) {
     return {
       packageNamePattern: null,

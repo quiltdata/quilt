@@ -276,7 +276,25 @@ describe('utils/workflows', () => {
         'foo',
       ).workflows[1]
       expect(w.packageNamePattern).toBe(null)
-      expect(w.packageNamePatternError).toMatch('anchor')
+      expect(w.packageNamePatternError).toMatch('Python-only')
+    })
+  })
+
+  describe('handle_pattern with Python character classes', () => {
+    const pattern = (p: string) =>
+      workflows.parse(
+        `version: "1"\nworkflows:\n  a:\n    name: A\n    handle_pattern: '${p}'\n`,
+        'foo',
+      ).workflows[1]
+
+    it('matches Unicode names the way push does', () => {
+      const w = pattern('^\\w+/[\\w-]+\\d$')
+      expect(w.packageNamePattern?.test('lab/é-x1')).toBe(true)
+      expect(w.packageNamePattern?.test('lab/x!1')).toBe(false)
+    })
+
+    it('skips word boundaries, which JS keeps ASCII-only', () => {
+      expect(pattern('^lab/\\b').packageNamePatternError).toMatch('\\b')
     })
   })
 
