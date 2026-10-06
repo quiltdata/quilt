@@ -17,4 +17,4 @@ where verb is one of
 
 ## Changes
 
-- [Added] Forward native S3 EventBridge events to the indexer, package-events queue and stack bus as S3 notification records, so a bucket can feed a stack without an SNS topic ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+- [Added] Forward native S3 EventBridge events to the indexer, package-events queue and stack bus as S3 notification records, so a bucket can feed a stack without an SNS topic ([#5450](https://github.com/quiltdata/quilt/pull/5450))
