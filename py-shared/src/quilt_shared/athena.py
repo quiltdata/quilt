@@ -34,8 +34,16 @@ def _is_commit_error(reason: str) -> bool:
 
 
 def is_retryable(query_execution: QueryExecutionTypeDef) -> bool:
-    """Athena's own verdict on a failed query, `Status.AthenaError.Retryable`; False where it gives none."""
-    return query_execution.get("Status", {}).get("AthenaError", {}).get("Retryable", False)
+    """
+    Athena's verdict on a failed query, `Status.AthenaError.Retryable`, or True on a commit conflict or a
+    cancellation, perhaps a runner's own stop at its deadline: neither is the statement's fault.
+    """
+    status = query_execution.get("Status", {})
+    return (
+        status.get("State") == "CANCELLED"
+        or _is_commit_error(status.get("StateChangeReason", ""))
+        or status.get("AthenaError", {}).get("Retryable", False)
+    )
 
 
 class AthenaQueryBaseException(Exception):

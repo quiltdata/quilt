@@ -439,13 +439,23 @@ def test_run_multiple_queries_without_a_deadline_raises_a_refused_poll(query_run
         ({"State": "FAILED", "AthenaError": {"ErrorCategory": 1, "Retryable": True}}, True),
         ({"State": "FAILED", "AthenaError": {"ErrorCategory": 2, "Retryable": False}}, False),
         ({"State": "FAILED"}, False),  # no verdict from Athena
+        (
+            {
+                "State": "FAILED",
+                "StateChangeReason": COMMIT_ERROR_REASON,
+                "AthenaError": {"ErrorCategory": 2, "Retryable": False},
+            },
+            True,
+        ),
+        ({"State": "CANCELLED"}, True),
     ],
 )
-def test_a_failed_query_is_retryable_as_athena_says(status, retryable):
+def test_a_query_is_retryable_as_athena_says_or_on_a_commit_conflict_or_a_cancellation(status, retryable):
     query_execution = {"QueryExecutionId": "exec_id_1", "Status": status}
+    exception = AthenaQueryCancelledException if status["State"] == "CANCELLED" else AthenaQueryFailedException
 
     assert is_retryable(query_execution) is retryable
-    assert AthenaQueryFailedException(query_execution).retryable is retryable
+    assert exception(query_execution).retryable is retryable
 
 
 def test_should_retry_matches_reason_with_leading_text():
