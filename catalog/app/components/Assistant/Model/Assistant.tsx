@@ -443,11 +443,11 @@ function useSessions(
           (r?.__typename === 'InvalidInput' && r.errors[0]?.name === 'NotFound')
         queue.release(id, deleted)
         refresh()
-        if (!deleted) setNotice({ head, text: UNDELETABLE })
+        if (!deleted) setNotice({ head: headNow.current, text: UNDELETABLE })
         // Read now: the user may have opened another conversation meanwhile.
         else if (id === currentIdNow.current) dispatch(Conversation.Action.Clear())
       }),
-    [whileSwitching, currentIdNow, head, queue, dispatch, deleteSession, refresh],
+    [whileSwitching, currentIdNow, headNow, queue, dispatch, deleteSession, refresh],
   )
 
   const latestToggle = React.useRef(0)

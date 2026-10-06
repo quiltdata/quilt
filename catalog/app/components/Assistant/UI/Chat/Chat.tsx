@@ -574,7 +574,7 @@ export function Menu({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
+        <M.MenuItem onClick={startNewSession} disabled={!isIdle || sessions.switching}>
           New session
         </M.MenuItem>
         <M.MenuItem onClick={showDevTools}>

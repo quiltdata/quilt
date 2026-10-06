@@ -259,7 +259,8 @@ function Editor({ config, available, unavailable }: EditorProps) {
           requestTimeoutSeconds: saved.models.requestTimeoutSeconds,
           maxToolCallsPerTurn: saved.models.maxToolCallsPerTurn,
           names: namesOut.length ? namesOut : null,
-          // Omitted, retention would reset to the default and re-enable a stack set to 0.
+          // Always sent: omitted, the registry keeps the stored value, so a
+          // cleared box would never get back to the default.
           sessionRetentionDays: parseLimit(retention),
           sessionMaxPerUser: parseLimit(maxPerUser),
         },

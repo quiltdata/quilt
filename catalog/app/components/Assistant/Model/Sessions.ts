@@ -228,14 +228,20 @@ export function createSaveQueue<T>({
     }
     // `shown` too: a fork of a held session must not recreate it either.
     const isHeld = [s.id, s.shown].some((id) => id !== null && held.has(id))
-    const nothing =
-      !s.latest || s.latest === s.sent || (s.id === null && isEmpty(s.latest))
-    if (paused || isHeld || s.timer || s.stopped || nothing) {
+    const events = s.latest
+    if (
+      paused ||
+      isHeld ||
+      s.timer ||
+      s.stopped ||
+      !events ||
+      events === s.sent ||
+      (s.id === null && isEmpty(events))
+    ) {
       s.waiters.splice(0).forEach((resolve) => resolve())
       if (s !== slot && !s.timer && !isHeld && !paused) slots.delete(s)
       return
     }
-    const events = s.latest
     s.inFlight = true
     s.sent = events
     const updating = s.id !== null
