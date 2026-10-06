@@ -293,12 +293,15 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 const TOO_LARGE = 'This session is too long to keep — start a new one'
 const UNSAVABLE = "This session can't be kept — start a new one"
 
-// False if a save is still pending after 10 s: a hung save must not lock the chat.
-const settle = (p: Promise<void>) =>
-  Promise.race([
-    p.then(() => true),
-    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10_000)),
-  ])
+// A hung request must not leave the chat locked while a session opens or is deleted.
+const TIMED_OUT = Symbol('timed out')
+const capped = <T,>(p: Promise<T>): Promise<T | typeof TIMED_OUT> => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), 10_000)
+  })
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer))
+}
 const UNREADABLE = "That session couldn't be opened"
 const UNDELETABLE = "That session couldn't be deleted"
 const UNSWITCHABLE = "Keep sessions couldn't be changed"
@@ -419,13 +422,17 @@ export function useSessions(
         const ticket = ++latestOpen.current
         // The session being opened may be the one just left, with its last save pending.
         // Not past a save still pending: it may be this session's, newer than a read now.
-        if (!(await settle(queue.flush()))) {
+        const giveUp = () => {
+          latestOpen.current += 1
           setNotice({ head: headNow.current, text: UNREADABLE })
-          return
         }
-        const r = await client
-          .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
-          .toPromise()
+        if ((await capped(queue.flush())) === TIMED_OUT) return giveUp()
+        const r = await capped(
+          client
+            .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
+            .toPromise(),
+        )
+        if (r === TIMED_OUT) return giveUp()
         // A later open or a new conversation since the click wins over this one.
         if (ticket !== latestOpen.current || headNow.current !== head) return
         const session = r.data?.me?.quratorSession
@@ -447,8 +454,9 @@ export function useSessions(
         // Held before anything else, so no save of it, nor a fork of one,
         // meets the delete and recreates it.
         queue.hold(id)
-        await settle(queue.flush())
-        const r = (await deleteSession({ id }).catch(() => null))?.quratorSessionDelete
+        await capped(queue.flush())
+        const answer = await capped(deleteSession({ id }).catch(() => null))
+        const r = answer === TIMED_OUT ? null : answer?.quratorSessionDelete
         // Already gone (expired, or deleted elsewhere) is as good as deleted.
         const deleted =
           r?.__typename === 'Ok' ||

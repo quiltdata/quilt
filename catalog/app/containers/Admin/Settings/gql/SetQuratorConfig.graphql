@@ -10,7 +10,6 @@ mutation ($input: QuratorConfigInput!) {
           maxToolCallsPerTurn
           sessionRetentionDays
           sessionMaxPerUser
-          sessionsEnabled
           names {
             id
             name

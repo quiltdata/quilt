@@ -60,7 +60,6 @@ export interface containers_Admin_Settings_gql_SetQuratorConfigMutation {
             readonly maxToolCallsPerTurn: number | null
             readonly sessionRetentionDays: number | null
             readonly sessionMaxPerUser: number | null
-            readonly sessionsEnabled: boolean
             readonly names: ReadonlyArray<{
               readonly __typename: 'QuratorModelName'
               readonly id: string
@@ -160,10 +159,6 @@ export const containers_Admin_Settings_gql_SetQuratorConfigDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'sessionMaxPerUser' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'sessionsEnabled' },
                                   },
                                   {
                                     kind: 'Field',

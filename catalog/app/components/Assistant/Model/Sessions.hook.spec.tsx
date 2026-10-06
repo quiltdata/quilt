@@ -7,6 +7,7 @@ vi.mock('constants/config', () => ({ default: {} }))
 const stub = vi.hoisted(() => ({
   saves: [] as any[],
   hang: false,
+  readHang: false,
   opened: null as any,
 }))
 
@@ -41,9 +42,10 @@ vi.mock('urql', async (importActual) => ({
   ...(await importActual<typeof import('urql')>()),
   useClient: () => ({
     query: () => ({
-      toPromise: async () => ({
-        data: { me: { name: 'u', quratorSession: stub.opened } },
-      }),
+      toPromise: async () => {
+        if (stub.readHang) await new Promise(() => {})
+        return { data: { me: { name: 'u', quratorSession: stub.opened } } }
+      },
     }),
   }),
 }))
@@ -75,6 +77,7 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     vi.useFakeTimers()
     stub.saves = []
     stub.hang = false
+    stub.readHang = false
   })
   afterEach(() => vi.useRealTimers())
 
@@ -109,6 +112,28 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
 
     expect(stub.saves).toHaveLength(1)
     expect(stub.saves[0]).toMatchObject({ id: 'S', baseVersion: 7 })
+  })
+
+  it('gives up on a session read that hangs, and unlocks the chat', async () => {
+    stub.readHang = true
+    stub.opened = { id: 'S', version: 7, events: Sessions.encode([ask('9', 'x')]) }
+    const dispatch = vi.fn()
+    const hook = renderHook(
+      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch),
+      { initialProps: { state: idle([]) } },
+    )
+    let opening: Promise<void> = Promise.resolve()
+    act(() => {
+      opening = hook.result.current.open('S')
+    })
+    expect(hook.result.current.switching).toBe(true)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000)
+      await opening
+    })
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(hook.result.current.switching).toBe(false)
+    expect(hook.result.current.notice).toBe("That session couldn't be opened")
   })
 
   it('does not open past a save that hangs, and unlocks the chat', async () => {
