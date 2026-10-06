@@ -18,6 +18,8 @@ type ScannerJob = {
   time_created: string
   next_key_marker?: string | null
   next_version_id_marker?: string | null
+  // An older registry omits this, and cannot create missing-only jobs either.
+  missing_only?: boolean | null
 }
 
 const POLL_MS = 10_000
@@ -50,7 +52,8 @@ function isScannerJob(job: unknown): job is ScannerJob {
     typeof j.retries_remaining === 'number' &&
     typeof j.time_created === 'string' &&
     isNullableString(j.next_key_marker) &&
-    isNullableString(j.next_version_id_marker)
+    isNullableString(j.next_version_id_marker) &&
+    (j.missing_only == null || typeof j.missing_only === 'boolean')
   )
 }
 
@@ -130,10 +133,12 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function scopeLabel(job: ScannerJob): string {
-  if (!job.prefix) {
-    return job.ignore_dirs ? 'top-level keys only' : 'whole bucket'
-  }
-  return `prefix ${job.prefix}`
+  const scope = job.prefix
+    ? `prefix ${job.prefix}`
+    : job.ignore_dirs
+      ? 'top-level keys only'
+      : 'whole bucket'
+  return job.missing_only ? `${scope} · missing-only` : scope
 }
 
 function useBulkScannerJobs(pollMs: number) {
@@ -294,8 +299,8 @@ export default function Indexing() {
     const stalled = new Set<string>()
     for (const job of jobs ?? []) {
       // Full-bucket wipe only: a prefix or top-level-only scan leaves the rest
-      // of the index in place.
-      if (job.prefix || job.ignore_dirs) continue
+      // of the index in place, and a missing-only scan never drops it.
+      if (job.missing_only || job.prefix || job.ignore_dirs) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
       const depth = shardDepths[job.name]
