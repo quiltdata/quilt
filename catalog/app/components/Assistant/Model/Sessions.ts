@@ -120,7 +120,11 @@ export const TITLE_LENGTH = 80
 
 export function titleOf(events: readonly Conversation.Event[]): string {
   const first = events.find(
-    (e) => e._tag === 'Message' && e.role === 'user' && e.content._tag === 'Text',
+    (e) =>
+      !e.discarded &&
+      e._tag === 'Message' &&
+      e.role === 'user' &&
+      e.content._tag === 'Text',
   )
   const text =
     first?._tag === 'Message' && first.content._tag === 'Text' ? first.content.text : ''
@@ -321,7 +325,8 @@ export function createSaveQueue<T>({
     flush,
     /**
      * Send nothing, not even a retry or a fork, until `resume`, and drop what
-     * is pending rather than send it then.
+     * is pending: after `resume`, the next change saves the conversation as it
+     * then stands.
      */
     pause() {
       paused = true

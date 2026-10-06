@@ -343,7 +343,7 @@ function useSessions(
           input: {
             id,
             baseVersion,
-            title: Sessions.titleOf(events.filter((e) => !e.discarded)),
+            title: Sessions.titleOf(events),
             events: Sessions.encode(events) as unknown as JsonRecord,
           },
         })

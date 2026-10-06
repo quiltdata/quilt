@@ -582,7 +582,10 @@ export function Menu({
         </M.MenuItem>
         {sessions.available && <M.Divider />}
         {sessions.available && (
-          <M.MenuItem onClick={() => sessions.setEnabled(!sessions.enabled)}>
+          <M.MenuItem
+            onClick={() => sessions.setEnabled(!sessions.enabled)}
+            disabled={sessions.switching}
+          >
             <M.ListItemIcon>
               <M.Icon fontSize="small">
                 {sessions.enabled ? 'check_box' : 'check_box_outline_blank'}

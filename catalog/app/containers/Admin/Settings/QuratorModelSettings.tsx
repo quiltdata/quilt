@@ -292,6 +292,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
 
   const purgeSessions = GQL.useMutation(PURGE_SESSIONS_MUTATION)
   const [purged, setPurged] = React.useState<string | null>(null)
+  const [purging, setPurging] = React.useState(false)
   const confirmPurge = useConfirm({
     title: 'Delete all saved Qurator sessions?',
     submitTitle: 'Delete all',
@@ -299,6 +300,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
       async (confirmed: boolean) => {
         if (!confirmed) return
         setPurged(null)
+        setPurging(true)
         try {
           const { quratorSessionsPurgeAll: r } = await purgeSessions()
           setPurged(
@@ -310,6 +312,8 @@ function Editor({ config, available, unavailable }: EditorProps) {
           )
         } catch (e) {
           setPurged(e instanceof Error ? e.message : String(e))
+        } finally {
+          setPurging(false)
         }
       },
       [purgeSessions],
@@ -443,7 +447,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
             className={classes.save}
             size="small"
             variant="outlined"
-            disabled={pending}
+            disabled={pending || purging}
             onClick={confirmPurge.open}
           >
             Delete all saved sessions
