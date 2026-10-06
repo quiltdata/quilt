@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { TERABYTE, deriveBadges, type Metrics } from './badges'
+import { NO_METRICS, TERABYTE, deriveBadges, toMetrics, type Metrics } from './badges'
 
 const base: Metrics = {
   packages: 0,
@@ -40,6 +40,50 @@ describe('containers/Admin/Status/badges', () => {
   it('decides multi-terabyte from sizes, not counts', () => {
     expect(states({ packages: 5, largestBytes: null })['multi-tb']).toBe('unknown')
     expect(states({ packages: null, largestBytes: 5e11 })['multi-tb']).toBe('locked')
+  })
+
+  describe('toMetrics', () => {
+    const at = new Date('2026-01-02T00:00:00Z')
+    const set = { __typename: 'PackagesSearchResultSet' } as const
+    const empty = { __typename: 'EmptySearchResultSet' } as const
+    const stats = { size: { max: 5 }, modified: { min: at } }
+    const query = (o: object) =>
+      ({
+        packages: { ...set, total: 3 },
+        revisions: { ...set, stats },
+        multiTb: empty,
+        ...o,
+      }) as Parameters<typeof toMetrics>[0]
+
+    it('reads counts and stats', () => {
+      expect(toMetrics(query({}))).toEqual({
+        packages: 3,
+        largestBytes: 5,
+        firstPackageAt: at,
+        firstMultiTbAt: null,
+      })
+    })
+
+    it('reads secure search as an unknown count', () => {
+      expect(toMetrics(query({ packages: { ...set, total: -1 } })).packages).toBeNull()
+    })
+
+    it('reads an empty search as zero packages', () => {
+      expect(toMetrics(query({ packages: empty }))).toEqual({
+        ...NO_METRICS,
+        packages: 0,
+      })
+    })
+
+    it('keeps stats when the count errors', () => {
+      const m = toMetrics(query({ packages: { __typename: 'OperationError' } }))
+      expect(m.packages).toBeNull()
+      expect(m.largestBytes).toBe(5)
+    })
+
+    it('dates the first multi-terabyte revision', () => {
+      expect(toMetrics(query({ multiTb: { ...set, stats } })).firstMultiTbAt).toBe(at)
+    })
   })
 
   it('earns multi-terabyte at exactly 10^12 bytes, with its date', () => {

@@ -1,3 +1,5 @@
+import type { containers_Admin_Status_gql_MilestonesQuery as MilestonesQuery } from './gql/Milestones.generated'
+
 // Search `total` stops counting here: the registry never sets
 // `track_total_hits`, so ES reports 10,000 for anything larger.
 export const SEARCH_TOTAL_CAP = 10_000
@@ -11,6 +13,30 @@ export interface Metrics {
   largestBytes: number | null
   firstPackageAt: Date | null
   firstMultiTbAt: Date | null
+}
+
+export const NO_METRICS: Metrics = {
+  packages: null,
+  largestBytes: null,
+  firstPackageAt: null,
+  firstMultiTbAt: null,
+}
+
+export function toMetrics({
+  packages: p,
+  revisions: r,
+  multiTb: tb,
+}: MilestonesQuery): Metrics {
+  if (p.__typename === 'EmptySearchResultSet') return { ...NO_METRICS, packages: 0 }
+  const all = r.__typename === 'PackagesSearchResultSet' ? r.stats : null
+  return {
+    // `-1` is the registry's answer under secure search: no count, not zero.
+    packages: p.__typename === 'PackagesSearchResultSet' && p.total >= 0 ? p.total : null,
+    largestBytes: all?.size.max ?? null,
+    firstPackageAt: all?.modified.min ?? null,
+    firstMultiTbAt:
+      tb.__typename === 'PackagesSearchResultSet' ? tb.stats.modified.min : null,
+  }
 }
 
 export type BadgeState =

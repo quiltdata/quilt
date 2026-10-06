@@ -6,35 +6,22 @@ import * as GQL from 'utils/GraphQL'
 import { readableBytes } from 'utils/string'
 
 import MILESTONES_QUERY from './gql/Milestones.generated'
-import { TERABYTE, deriveBadges, type Badge, type Metrics } from './badges'
+import {
+  NO_METRICS,
+  TERABYTE,
+  deriveBadges,
+  toMetrics,
+  type Badge,
+  type Metrics,
+} from './badges'
 
-const EMPTY: Metrics = {
-  packages: null,
-  largestBytes: null,
-  firstPackageAt: null,
-  firstMultiTbAt: null,
-}
-
-// ponytail: reads today's viewer-scoped search (capped at 10,000, blind under
-// secure search); the shipped version reads one exact admin field instead.
+// Viewer-scoped search: capped at 10,000 and blind to counts under secure search.
 function useMetrics(): Metrics | undefined {
   const result = GQL.useQuery(MILESTONES_QUERY, { minBytes: TERABYTE })
   return GQL.fold(result, {
-    data: ({ packages: p, revisions: r, multiTb: tb }) => {
-      if (p.__typename === 'EmptySearchResultSet') return { ...EMPTY, packages: 0 }
-      const all = r.__typename === 'PackagesSearchResultSet' ? r.stats : null
-      return {
-        // `-1` is the registry's answer under secure search: no count, not zero.
-        packages:
-          p.__typename === 'PackagesSearchResultSet' && p.total >= 0 ? p.total : null,
-        largestBytes: all?.size.max ?? null,
-        firstPackageAt: all?.modified.min ?? null,
-        firstMultiTbAt:
-          tb.__typename === 'PackagesSearchResultSet' ? tb.stats.modified.min : null,
-      }
-    },
+    data: toMetrics,
     fetching: () => undefined,
-    error: () => EMPTY,
+    error: () => NO_METRICS,
   })
 }
 
@@ -117,6 +104,7 @@ function BadgeTile({ badge }: { badge: Badge }) {
       {state.kind === 'locked' && (
         <M.LinearProgress
           className={classes.progress}
+          aria-label={`${badge.title} progress`}
           variant="determinate"
           value={Math.min(100, (100 * state.value) / state.target)}
         />
@@ -135,8 +123,8 @@ export default function Milestones() {
       </M.Typography>
       <M.Typography variant="body2" className={classes.caveat}>
         Preview. Counted from search across the buckets you can read, dated by the
-        earliest revision it still finds; search counts stop at 10,000, so higher tiers
-        show as unknown.
+        earliest revision it still finds. Search counts stop at 10,000, so higher tiers
+        show as unknown, and secure search hides counts altogether.
       </M.Typography>
       {metrics ? (
         <div className={classes.grid}>
