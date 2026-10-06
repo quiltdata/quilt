@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import io
 import json
 
@@ -58,7 +60,6 @@ def manifest(user_meta, keys):
 @pytest.fixture
 def fake(monkeypatch):
     objects = {
-        ('b', m.CONFIG_KEY): b'tags:\n  project: /project\n',
         ('b', '.quilt/named_packages/a/b/1700000000'): b'old',
         ('b', '.quilt/named_packages/a/b/1700000100'): b'new',
         ('b', '.quilt/named_packages/a/b/latest'): b'old',
@@ -69,6 +70,7 @@ def fake(monkeypatch):
     }
     s3 = FakeS3(objects, {'f1': {'owner': 'ops'}, 'f2': {'project': 'apollo'}})
     monkeypatch.setattr(m, 's3', s3)
+    monkeypatch.setattr(m, 'load_config', {'b': {'project': '/project'}}.get)
     return s3
 
 
@@ -95,4 +97,32 @@ def test_handler_fails_messages_with_tagging_errors(fake):
 
 def test_superseded_revision_is_skipped(fake):
     assert m.project_revision('b', 'a/b', 'old') == {}
+    assert fake.puts == []
+
+
+def test_load_config_signs_the_request(monkeypatch):
+    signed = {}
+
+    class FakeKMS:
+        def sign(self, **kwargs):
+            signed.update(kwargs)
+            return {'Signature': b'SIG'}
+
+    def urlopen(req, timeout):
+        assert req.full_url == 'http://registry:8080/s3tags/buckets/my%2Fbucket'
+        assert req.get_method() == 'POST'
+        assert req.get_header('X-quilt-signature') == base64.b64encode(b'SIG').decode()
+        assert signed['Message'] == hashlib.sha512(req.data).digest()
+        return io.BytesIO(b'{"tags": {"project": "/project"}}')
+
+    monkeypatch.setattr(m, 'kms', FakeKMS())
+    monkeypatch.setattr(m, 'REGISTRY_ENDPOINT', 'http://registry:8080/s3tags/')
+    monkeypatch.setattr(m.urllib.request, 'urlopen', urlopen)
+    assert m.load_config('my/bucket') == {'project': '/project'}
+    assert signed['MessageType'] == 'DIGEST' and signed['SigningAlgorithm'] == 'RSASSA_PSS_SHA_512'
+
+
+def test_unmapped_bucket_is_skipped(fake, monkeypatch):
+    monkeypatch.setattr(m, 'load_config', lambda bucket: None)
+    assert m.project_revision('b', 'a/b', 'new') == {}
     assert fake.puts == []
