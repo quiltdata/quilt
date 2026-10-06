@@ -6,6 +6,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
 import boto3
+import botocore.exceptions
 
 import quilt_shared.const
 from quilt_shared.athena import AthenaQueryBaseException, QueryRunner
@@ -135,7 +136,7 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
             if not _execute(runner, context, deadline, statement.sql):
                 failed.update(dict.fromkeys(statement.items))
             continue
-        except AthenaQueryBaseException:
+        except (AthenaQueryBaseException, botocore.exceptions.ParamValidationError):
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
         # In turn: run together, they would race one another's commits.
         for n, item in enumerate(statement.items):
@@ -145,22 +146,28 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
                 logger.exception("Failed to write %s", item)
                 failed[item] = None if e.retryable else f"statement: {e}"
                 continue
+            except botocore.exceptions.ParamValidationError as e:
+                # The statement Athena will not take is this item's alone.
+                logger.exception("Failed to write %s", item)
+                failed[item] = f"input: {e}"
+                continue
             if not ran:
                 failed.update(dict.fromkeys(statement.items[n:]))
                 break
 
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
-    """The item an object's current state makes, and whether it is upserted, as it exists, or deleted."""
+    """The item an object's current state makes, and whether it is upserted rather than deleted."""
     if (item := parse_key(bucket, key)) is None:
         raise _Invalid(f"not a package's pointer or manifest: {key}")
     first_line = get_first_line(bucket, key)
+    # A pointer that exists names a manifest, so empty content is no top hash rather than a delete.
     if first_line is not None and isinstance(item, PointerKey):
         top_hash = first_line.decode(errors="replace")
         if not is_top_hash(top_hash):
             raise _Invalid(f"a pointer whose content is not a top hash: {key}")
-        item = Pointer(*item, top_hash)
-    return item, first_line is not None
+        return Pointer(*item, top_hash), True
+    return item, bool(first_line)
 
 
 def _dead_letter(queue_url: str, record, reason: str) -> bool:
@@ -220,17 +227,22 @@ def set_handler(event, context):
 
     # An item that failed is left out of every later statement: a manifest's row marks its entries complete.
     failed: dict = {}
-    for build, kind, upsert in [
-        (maker.tag_delete, "tag", False),
-        (maker.revision_delete, "revision", False),
-        (maker.manifest_delete, "manifest", False),
-        (maker.entry_delete, "manifest", False),
-        (maker.entry_upsert, "manifest", True),
-        (maker.manifest_upsert, "manifest", True),
-        (maker.tag_upsert, "tag", True),
-        (maker.revision_upsert, "revision", True),
-    ]:
-        _run(runner, context, deadline, build, groups[kind, upsert], failed)
+    try:
+        for build, kind, upsert in [
+            (maker.tag_delete, "tag", False),
+            (maker.revision_delete, "revision", False),
+            (maker.manifest_delete, "manifest", False),
+            (maker.entry_delete, "manifest", False),
+            (maker.entry_upsert, "manifest", True),
+            (maker.manifest_upsert, "manifest", True),
+            (maker.tag_upsert, "tag", True),
+            (maker.revision_upsert, "revision", True),
+        ]:
+            _run(runner, context, deadline, build, groups[kind, upsert], failed)
+    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError):
+        # Athena refusing for good is the stack failing, not the messages: none is dead-lettered.
+        logger.exception("Athena refused the set's statements; returning the batch")
+        return {"batchItemFailures": [{"itemIdentifier": record["messageId"]} for record in records]}
 
     for item, reason in failed.items():
         for message_id in ids[item]:

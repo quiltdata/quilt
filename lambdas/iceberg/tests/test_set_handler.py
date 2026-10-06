@@ -88,7 +88,7 @@ class Athena:
         self.clock = clock
         self.fails = lambda sql: None  # the AthenaError the query fails with, if it does
         self.takes = lambda sql: 0  # the seconds the query runs
-        self.refuses = lambda sql: False  # whether the API refuses to start the query
+        self.start_fails = lambda sql: None  # the error the API refuses to start the query with, if any
         self.poll_fails = lambda sql: None  # the error the API reports a started query's state with, if any
         self.started = []  # the queries started
         self.stopped = []  # the ids of those stopped
@@ -97,8 +97,8 @@ class Athena:
         self.held = []  # the set's holdings after each query
 
     def start_query_execution(self, *, QueryString, QueryExecutionContext, **kwargs):
-        if self.refuses(QueryString):
-            raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "StartQueryExecution")
+        if error := self.start_fails(QueryString):
+            raise error.with_traceback(None)
         execution_id = str(len(self.started))
         self.started.append((QueryString, QueryExecutionContext["Database"]))
         self.ends[execution_id] = self.clock.now + self.takes(QueryString)
@@ -368,6 +368,16 @@ def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_toge
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
+def test_an_empty_manifest_is_deleted_from_the_set(handle, s3, con):
+    hold_manifest(con, h(1))
+    s3.objects[BUCKET, manifest_key(h(1))] = b""
+
+    response = handle(record("m1", manifest_key(h(1))))
+
+    assert response == failures()
+    assert holdings(con)["package_manifest"] == holdings(con)["package_entry"] == set()
+
+
 def test_an_object_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_batch_written(handle, s3, con):
     put_manifest(s3, con, h(1))
     s3.objects[BUCKET, manifest_key(h(2))] = botocore.exceptions.ClientError(
@@ -513,11 +523,12 @@ def test_a_batch_of_one_failing_for_now_is_returned(handle, athena, s3, con, sqs
     assert sqs.sent == []
 
 
+THROTTLED_START = botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "StartQueryExecution")
 THROTTLED_POLL = botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution")
 
 
 @pytest.mark.parametrize(
-    "refusing, refusal", [("refuses", True), ("poll_fails", THROTTLED_POLL)], ids=["start", "poll"]
+    "refusing, refusal", [("start_fails", THROTTLED_START), ("poll_fails", THROTTLED_POLL)], ids=["start", "poll"]
 )
 def test_a_call_athena_refuses_for_a_while_is_retried_and_its_statement_written_once(
     handle, athena, s3, con, refusing, refusal
@@ -535,7 +546,7 @@ def test_a_call_athena_refuses_for_a_while_is_retried_and_its_statement_written_
 
 def test_a_statement_athena_refuses_to_start_until_the_deadline_returns_its_items(handle, athena, s3, con):
     batch = manifests(s3, con, 1, 2, 3)
-    athena.refuses = lambda sql: '"package_entry"' in sql
+    athena.start_fails = lambda sql: THROTTLED_START if '"package_entry"' in sql else None
 
     response = handle(*batch)
 
@@ -568,7 +579,7 @@ def test_a_refusal_until_the_deadline_while_retrying_item_by_item_returns_that_i
     for name in "pqr":
         put_pointer(s3, f"u/{name}", "latest", h(1))
     athena.fails = lambda sql: UNAVAILABLE if "'u/p'" in sql and "'u/q'" in sql else None
-    athena.refuses = lambda sql: "'u/q'" in sql and "'u/p'" not in sql
+    athena.start_fails = lambda sql: THROTTLED_START if "'u/q'" in sql and "'u/p'" not in sql else None
 
     response = handle(*(record(name, pointer_key(f"u/{name}", "latest")) for name in "pqr"))
 
@@ -601,3 +612,27 @@ def test_a_statement_still_running_at_the_deadline_is_stopped_and_its_items_retu
     assert response == failures("m1", "m2", "m3")
     assert athena.stopped == ["0"]
     assert holdings(con)["package_entry"] == set()
+
+
+def test_an_item_whose_statement_athena_will_not_take_is_dead_lettered(handle, athena, s3, con, sqs):
+    batch = manifests(s3, con, 1, 2, 3)
+    too_large = botocore.exceptions.ParamValidationError(report="QueryString is longer than 262144")
+    athena.start_fails = lambda sql: too_large if '"package_entry"' in sql and h(2) in sql else None
+
+    response = handle(*batch)
+
+    assert response == failures()
+    assert holdings(con)["package_manifest"] == {(REGISTRY, h(1)), (REGISTRY, h(3))}
+    assert dead_lettered(sqs).keys() == {"m2"}
+    assert dead_lettered(sqs)["m2"][2].startswith("input: ")
+
+
+def test_a_call_athena_denies_for_good_returns_the_whole_batch_and_dead_letters_none(handle, athena, s3, con, sqs):
+    batch = manifests(s3, con, 1)  # one item and an event no retry can write, which alone would be dead-lettered
+    denied = botocore.exceptions.ClientError({"Error": {"Code": "AccessDeniedException"}}, "StartQueryExecution")
+    athena.start_fails = lambda sql: denied if '"package_manifest"' in sql else None
+
+    response = handle(*batch, undecodable("bad"))
+
+    assert response == failures("m1", "bad")
+    assert sqs.sent == []
