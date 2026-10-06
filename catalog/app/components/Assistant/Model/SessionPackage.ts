@@ -32,7 +32,7 @@ function parseUri(s: string): Reference | null {
   return null
 }
 
-// Platform MCP tools name things by `uri`/`s3_uri` or by `bucket` + `package_name`/`key`.
+// Platform MCP tools name things by `uri`/`s3_uri` or by `bucket` + `package_name`/`name`/`key`.
 function collect(value: unknown, out: Reference[]) {
   if (typeof value === 'string') {
     const r = parseUri(value)
@@ -42,8 +42,10 @@ function collect(value: unknown, out: Reference[]) {
   } else if (value && typeof value === 'object') {
     const o = value as Record<string, unknown>
     if (typeof o.bucket === 'string' && o.bucket) {
-      if (typeof o.package_name === 'string' && o.package_name.includes('/'))
-        out.push({ kind: 'package', bucket: o.bucket, name: o.package_name })
+      const pkg = [o.package_name, o.name].find(
+        (n): n is string => typeof n === 'string' && n.includes('/'),
+      )
+      if (pkg) out.push({ kind: 'package', bucket: o.bucket, name: pkg })
       else if (typeof o.key === 'string' && o.key)
         out.push({ kind: 'object', bucket: o.bucket, key: o.key })
       else out.push({ kind: 'bucket', bucket: o.bucket })

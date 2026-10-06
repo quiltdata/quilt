@@ -63,6 +63,13 @@ describe('components/Assistant/Model/SessionPackage', () => {
     ])
   })
 
+  it('reads package_browse-style `name` as a package', () => {
+    const e = [tool('t', { bucket: 'b', name: 'ns/n', path: '' }, Tool.succeed())]
+    expect(SessionPackage.references(e)).toEqual([
+      { kind: 'package', bucket: 'b', name: 'ns/n' },
+    ])
+  })
+
   it('parses quilt+s3 package URIs', () => {
     const e = [tool('t', { uri: 'quilt+s3://b#package=ns/n@abc&path=x' }, Tool.succeed())]
     expect(SessionPackage.references(e)).toEqual([
