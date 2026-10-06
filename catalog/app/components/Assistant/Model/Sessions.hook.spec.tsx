@@ -6,6 +6,7 @@ vi.mock('constants/config', () => ({ default: {} }))
 
 const stub = vi.hoisted(() => ({
   saves: [] as any[],
+  hang: false,
   opened: null as any,
 }))
 
@@ -23,6 +24,7 @@ vi.mock('utils/GraphQL', async (importActual) => ({
   useMutation: (doc: any) => async (vars: any) => {
     if (nameOf(doc).endsWith('QuratorSessionSave')) {
       stub.saves.push(vars.input)
+      if (stub.hang) await new Promise(() => {})
       return {
         quratorSessionSave: {
           __typename: 'QuratorSession',
@@ -72,6 +74,7 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     stub.saves = []
+    stub.hang = false
   })
   afterEach(() => vi.useRealTimers())
 
@@ -79,24 +82,58 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     const restored = [ask('1', 'find my packages')]
     stub.opened = { id: 'S', version: 7, events: Sessions.encode(restored) }
 
-    let rerender: (p: { state: Conversation.State }) => void = () => {}
+    interface Props {
+      state: Conversation.State
+    }
+    let rerender: (p: Props) => void = () => {}
     const dispatch = vi.fn((a: Conversation.Action) => {
       if (a._tag === 'Restore') rerender({ state: idle(a.events, a.sessionId) })
     })
-    const hook = renderHook(({ state }) => useSessions(state, dispatch), {
-      initialProps: { state: idle([]) },
-    })
+    const hook = renderHook<Props, ReturnType<typeof useSessions>>(
+      ({ state }) => useSessions(state, dispatch),
+      { initialProps: { state: idle([]) } },
+    )
     rerender = hook.rerender
 
-    await act(() => hook.result.current.open('S'))
+    await act(async () => {
+      await hook.result.current.open('S')
+    })
     const opened = dispatch.mock.calls[0][0] as Extract<
       Conversation.Action,
       { _tag: 'Restore' }
     >
     hook.rerender({ state: idle([...opened.events, ask('2', 'and more')], 'S') })
-    await act(() => vi.advanceTimersByTimeAsync(1000))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
 
     expect(stub.saves).toHaveLength(1)
     expect(stub.saves[0]).toMatchObject({ id: 'S', baseVersion: 7 })
+  })
+
+  it('does not open past a save that hangs, and unlocks the chat', async () => {
+    stub.hang = true
+    stub.opened = { id: 'S', version: 7, events: Sessions.encode([ask('9', 'x')]) }
+    const dispatch = vi.fn()
+    const hook = renderHook(
+      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch),
+      { initialProps: { state: idle([ask('1', 'unsaved')]) } },
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(stub.saves).toHaveLength(1)
+    let opening: Promise<void> = Promise.resolve()
+    act(() => {
+      opening = hook.result.current.open('S')
+    })
+    expect(hook.result.current.switching).toBe(true)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000)
+      await opening
+    })
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(hook.result.current.switching).toBe(false)
+    expect(hook.result.current.notice).toBe("That session couldn't be opened")
   })
 })

@@ -293,9 +293,12 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 const TOO_LARGE = 'This session is too long to keep — start a new one'
 const UNSAVABLE = "This session can't be kept — start a new one"
 
-// A hung save must not keep the chat locked: a late reply is dropped as stale.
+// False if a save is still pending after 10 s: a hung save must not lock the chat.
 const settle = (p: Promise<void>) =>
-  Promise.race([p, new Promise<void>((resolve) => setTimeout(resolve, 10_000))])
+  Promise.race([
+    p.then(() => true),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10_000)),
+  ])
 const UNREADABLE = "That session couldn't be opened"
 const UNDELETABLE = "That session couldn't be deleted"
 const UNSWITCHABLE = "Keep sessions couldn't be changed"
@@ -415,7 +418,11 @@ export function useSessions(
         if (id === currentId) return
         const ticket = ++latestOpen.current
         // The session being opened may be the one just left, with its last save pending.
-        await settle(queue.flush())
+        // Not past a save still pending: it may be this session's, newer than a read now.
+        if (!(await settle(queue.flush()))) {
+          setNotice({ head: headNow.current, text: UNREADABLE })
+          return
+        }
         const r = await client
           .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
           .toPromise()
