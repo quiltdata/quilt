@@ -442,7 +442,7 @@ describe('write approval', () => {
         actor,
         (s) => s._tag === 'ToolUse' && Object.values(s.calls).some((c) => c.approval),
       )
-      return { actor, runs, pending }
+      return { actor, runs, pending, tools }
     })
 
   const run = (test: Eff.Effect.Effect<void, never, Eff.Scope.Scope>) =>
@@ -486,6 +486,31 @@ describe('write approval', () => {
         expect(JSON.stringify(event.result.content)).toContain('Declined by the user')
       }),
     ))
+
+  it.each([
+    [
+      'changed',
+      (t: Tool.Collection) => (t.put = { ...t.put, effect: 'read' }),
+      'changed',
+    ],
+    ['gone', (t: Tool.Collection) => delete t.put, "isn't available"],
+  ])('a tool %s while pending is not run on approval', (_, mutate, reason) =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, tools } = yield* setup([
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        mutate(tools)
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        const event = final.events.find((e) => e._tag === 'ToolUse')
+        if (event?._tag !== 'ToolUse') throw new Error('no ToolUse event')
+        expect(event.result.status).toBe('error')
+        expect(JSON.stringify(event.result.content)).toContain(reason)
+      }),
+    ),
+  )
 
   it('a tool name inherited from Object.prototype is not a tool', () =>
     run(

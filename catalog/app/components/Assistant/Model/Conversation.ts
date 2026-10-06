@@ -26,7 +26,15 @@ export interface ToolCall {
   readonly fiber?: Eff.Fiber.RuntimeFiber<void>
   /** Set while the call waits for the user's approval. */
   readonly approval?: Exclude<Tool.Effect, 'read'>
+  /** The tool when approval was asked; Approve refuses to run if it differs. */
+  readonly tool?: Tool.Descriptor<any>
 }
+
+const sameTool = (a: Tool.Descriptor<any>, b: Tool.Descriptor<any> | undefined) =>
+  !!b &&
+  a.effect === b.effect &&
+  a.description === b.description &&
+  JSON.stringify(a.schema) === JSON.stringify(b.schema)
 
 export type ToolUseId = string
 
@@ -344,7 +352,12 @@ export const ConversationActor = Eff.Effect.succeed(
                 ? tools[tu.name].effect
                 : undefined
               if (effect && effect !== 'read') {
-                calls[tu.toolUseId] = { name: tu.name, input: tu.input, approval: effect }
+                calls[tu.toolUseId] = {
+                  name: tu.name,
+                  input: tu.input,
+                  approval: effect,
+                  tool: tools[tu.name],
+                }
                 continue
               }
               calls[tu.toolUseId] = {
@@ -376,10 +389,26 @@ export const ConversationActor = Eff.Effect.succeed(
             const call = state.calls[id]
             if (!call?.approval) return state
             const tools = yield* currentTools
+            const current = Eff.Record.has(tools, call.name)
+              ? tools[call.name]
+              : undefined
+            if (!call.tool || !sameTool(call.tool, current)) {
+              const result = Tool.fail(
+                Content.ToolResultContentBlock.Text({
+                  text: current
+                    ? 'The tool changed while waiting for approval; it was not run.'
+                    : "The tool isn't available right now; it was not run.",
+                }),
+              )
+              return yield* completeCall(state, id, Eff.Option.some(result), dispatch)
+            }
             const fiber = yield* forkCall(tools, id, call.name, call.input, dispatch)
             return {
               ...state,
-              calls: { ...state.calls, [id]: { ...call, fiber, approval: undefined } },
+              calls: {
+                ...state.calls,
+                [id]: { name: call.name, input: call.input, fiber },
+              },
             }
           }),
         Deny: (state, { id }, dispatch) =>

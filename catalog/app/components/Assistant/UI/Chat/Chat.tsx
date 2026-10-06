@@ -470,7 +470,11 @@ function ApprovalCard({
           ))}
         </ul>
       )}
-      <JsonDisplay defaultExpanded={0} name="input" value={call.input} />
+      <JsonDisplay
+        defaultExpanded={args.length < Object.keys(call.input).length ? 2 : 0}
+        name="input"
+        value={call.input}
+      />
       <div className={classes.buttons}>
         <M.Button size="small" variant="contained" color="primary" onClick={approve}>
           Run
