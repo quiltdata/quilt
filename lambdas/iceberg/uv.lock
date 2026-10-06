@@ -200,8 +200,8 @@ wheels = [
 [[package]]
 name = "quilt-shared"
 version = "0.1.0"
-source = { url = "https://github.com/quiltdata/quilt/archive/8a86e70da84bea61808a53e46710e9b22956ea91.zip", subdirectory = "py-shared" }
-sdist = { hash = "sha256:01fad3a7550b17f042c2a292095fb425c86a7e68bad52d3b861cd6a3193023b4" }
+source = { url = "https://github.com/quiltdata/quilt/archive/9945d782967c4f07e245d06df6d5738a39c0c91c.zip", subdirectory = "py-shared" }
+sdist = { hash = "sha256:7949f501df9d3c52517e7b0c42ec7ff9634667de6bc79447fabeee051b04bdda" }
 
 [package.optional-dependencies]
 boto = [
@@ -264,7 +264,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.40.41,<2.0.0" },
-    { name = "quilt-shared", extras = ["boto"], url = "https://github.com/quiltdata/quilt/archive/8a86e70da84bea61808a53e46710e9b22956ea91.zip", subdirectory = "py-shared" },
+    { name = "quilt-shared", extras = ["boto"], url = "https://github.com/quiltdata/quilt/archive/9945d782967c4f07e245d06df6d5738a39c0c91c.zip", subdirectory = "py-shared" },
 ]
 
 [package.metadata.requires-dev]
