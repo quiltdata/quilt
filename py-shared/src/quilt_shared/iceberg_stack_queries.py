@@ -3,6 +3,7 @@ import re
 import typing as T
 
 from . import const
+from .iceberg_queries import _ident
 
 # Athena's limits on one statement.
 _MAX_QUERY_BYTES = 262_144  # its query string, in UTF-8 bytes
@@ -199,10 +200,10 @@ class StackQueryMaker:
         self.user_athena_db = user_athena_db
 
     def _table(self, table: str) -> str:
-        return f'"{self.database}"."{table}"'
+        return f"{_ident(self.database)}.{_ident(table)}"
 
     def _source(self, bucket: str, table: str) -> str:
-        return f'"{self.user_athena_db}"."{bucket}_{table}"'
+        return f"{_ident(self.user_athena_db)}.{_ident(f'{bucket}_{table}')}"
 
     def create_table(self, table: str, *, location: str) -> str:
         spec = TABLES[table]
@@ -431,7 +432,7 @@ class StackQueryMaker:
         `remove`: a delete leaves a registry listed until compaction."""
         return [
             " UNION ".join(
-                f'SELECT "partition".registry AS registry FROM "{self.database}"."{table}$partitions"'
+                f'SELECT "partition".registry AS registry FROM {_ident(self.database)}.{_ident(f"{table}$partitions")}'
                 for table in TABLES
             )
         ]
