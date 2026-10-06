@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
+import * as Model from 'model'
 import { useQueryS } from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import StyledLink from 'utils/StyledLink'
@@ -11,11 +12,10 @@ import Indexing from './Indexing'
 import Reports from './Reports'
 import Stats from './Stats'
 import STATUS_QUERY from './gql/Status.generated'
-import {
-  DEFAULT_REPORTS_ORDER,
-  DEFAULT_REPORTS_PER_PAGE,
-  STATS_WINDOW,
-} from './constants'
+
+const STATS_WINDOW = 30
+const DEFAULT_REPORTS_PER_PAGE = 25
+const DEFAULT_REPORTS_ORDER = Model.GQLTypes.StatusReportListOrder.NEW_FIRST
 
 export default function Status() {
   const { status } = useQueryS(STATUS_QUERY, {

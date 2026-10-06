@@ -3,16 +3,12 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
+import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import saveAs from 'utils/saveAs'
 
-import {
-  DEFAULT_REPORTS_ORDER,
-  DEFAULT_REPORTS_PER_PAGE,
-  STATS_WINDOW,
-} from '../Status/constants'
 import STATUS_QUERY from '../Status/gql/Status.generated'
 
 import { REQUIREMENTS, displayedAssessment, liveCheck } from './requirements'
@@ -23,10 +19,12 @@ type StatusResult = Extract<
   { __typename: 'Status' }
 >
 
+// Must equal the Status page's variables (Status/Status.tsx) so both screens
+// read one cached query.
 const STATUS_VARS = {
-  statsWindow: STATS_WINDOW,
-  reportsPerPage: DEFAULT_REPORTS_PER_PAGE,
-  reportsOrder: DEFAULT_REPORTS_ORDER,
+  statsWindow: 30,
+  reportsPerPage: 25,
+  reportsOrder: Model.GQLTypes.StatusReportListOrder.NEW_FIRST,
 }
 
 // 'off' = status monitoring is not provisioned on this stack.
