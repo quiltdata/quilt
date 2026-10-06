@@ -161,13 +161,16 @@ class S3:
 
 
 class SQS:
+    """SQS's API, which refuses a message attribute holding a control character other than tab, LF or CR."""
+
     def __init__(self):
         self.sent = []
         self.fails = False
 
     def send_message(self, **message):
-        if self.fails:
-            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, "SendMessage")
+        values = [a["StringValue"] for a in message.get("MessageAttributes", {}).values()]
+        if self.fails or any(ord(c) < 0x20 and c not in "\t\n\r" for v in values for c in v):
+            raise botocore.exceptions.ClientError({"Error": {"Code": "InvalidMessageContents"}}, "SendMessage")
         self.sent.append(message)
 
 
@@ -459,6 +462,7 @@ def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s
         record("bad", manifest_key("not-a-hash"), "g"),
         record("bad", pointer_key("u/p", "latest"), "g"),  # its content is not a top hash
         record("bad", pointer_key("u/q", "latest"), "g"),  # it is empty
+        record("bad", "else\x01where", "g"),
     ],
     ids=[
         "not an S3 event",
@@ -468,6 +472,7 @@ def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s
         "not a manifest",
         "not a top hash",
         "an empty pointer",
+        "a key with a control character",
     ],
 )
 def test_an_event_no_retry_can_write_is_dead_lettered_at_once_and_its_group_goes_on(handle, s3, con, sqs, bad):

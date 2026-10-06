@@ -24,9 +24,10 @@ from quilt_shared.iceberg_stack_queries import (
 
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
-# Bounded, so dead-lettering after the deadline cannot run into the invocation's timeout: about 8 s at most.
+# Bounded, so dead-lettering after the deadline cannot run into the invocation's timeout: one attempt, about 4 s at
+# most; a message whose send fails is returned for retry.
 sqs = boto3.client(
-    "sqs", config=botocore.config.Config(connect_timeout=2, read_timeout=2, retries={"total_max_attempts": 2})
+    "sqs", config=botocore.config.Config(connect_timeout=2, read_timeout=2, retries={"total_max_attempts": 1})
 )
 logger = logging.getLogger("quilt-lambda-iceberg")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
@@ -117,8 +118,8 @@ def handler(event, context):
 STATEMENT_BUDGET_MS = 60_000
 # Left after QueryRunner's deadline, to stop its queries, dead-letter messages and respond.
 DEADLINE_MARGIN_MS = 10_000
-# The time an invocation must have left to dead-letter a message: one send's worst case, its retry included.
-SEND_BUDGET_MS = 8_000
+# The time an invocation must have left to dead-letter a message: one send's worst case, and a second for DNS.
+SEND_BUDGET_MS = 5_000
 
 
 class _Invalid(Exception):
@@ -199,7 +200,8 @@ def _dead_letter(queue_url: str, context, record, reason: str) -> bool:
             MessageBody=record["body"],
             MessageGroupId=record["attributes"]["MessageGroupId"],
             MessageDeduplicationId=record["messageId"],
-            MessageAttributes={"reason": {"DataType": "String", "StringValue": reason[:1024]}},
+            # Escaped as JSON escapes it, since SQS refuses an attribute holding a control character, as a key may.
+            MessageAttributes={"reason": {"DataType": "String", "StringValue": json.dumps(reason)[1:-1][:1024]}},
         )
         return True
     except Exception:
