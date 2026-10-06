@@ -170,27 +170,42 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
                 break
 
 
-def _first_line(bucket: str, key: str) -> bytes | None:
-    """The object's first line, empty for an empty object, or None if there is no object."""
+def _manifest_has_content(bucket: str, key: str) -> bool:
+    """Whether the manifest is there and not empty, read from its headers alone, whatever its size."""
     try:
-        resp = set_s3.get_object(Bucket=bucket, Key=key)
-        return next(iter(resp["Body"].iter_lines()), b"")
+        return set_s3.head_object(Bucket=bucket, Key=key)["ContentLength"] > 0
+    except botocore.exceptions.ClientError as e:
+        # A HEAD has no body to name its error: a missing key is a bare 404, as is a missing bucket.
+        if e.response.get("Error", {}).get("Code") in {"404", "NoSuchKey", "NotFound"}:
+            return False
+        raise
+
+
+def _pointer_head(bucket: str, key: str) -> bytes | None:
+    """The pointer's first bytes, room for a top hash, or None if there is no pointer."""
+    try:
+        return set_s3.get_object(Bucket=bucket, Key=key, Range="bytes=0-127")["Body"].read()
     except set_s3.exceptions.NoSuchKey:
         return None
+    except botocore.exceptions.ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "InvalidRange":  # S3's answer for an empty object
+            return b""
+        raise
 
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
     """The item an object's current state makes, and whether it is upserted rather than deleted."""
     if (item := parse_key(bucket, key)) is None:
         raise _Invalid(f"not a package's pointer or manifest: {key}")
-    first_line = _first_line(bucket, key)
+    if isinstance(item, Manifest):
+        return item, _manifest_has_content(bucket, key)
+    if (head := _pointer_head(bucket, key)) is None:
+        return item, False
     # A pointer that exists names a manifest, so empty content is no top hash rather than a delete.
-    if first_line is not None and isinstance(item, PointerKey):
-        top_hash = first_line.decode(errors="replace")
-        if not is_top_hash(top_hash):
-            raise _Invalid(f"a pointer whose content is not a top hash: {key}")
-        return Pointer(*item, top_hash), True
-    return item, bool(first_line)
+    top_hash = head.split(b"\n", 1)[0].strip().decode(errors="replace")
+    if not is_top_hash(top_hash):
+        raise _Invalid(f"a pointer whose content is not a top hash: {key}")
+    return Pointer(*item, top_hash), True
 
 
 # S3's client errors that clear by themselves.

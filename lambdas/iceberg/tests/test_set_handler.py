@@ -146,17 +146,33 @@ class Athena:
 
 
 class S3:
+    """S3's API: an object's headers, and a range of its body, which S3 refuses for an empty object."""
+
     def __init__(self):
         self.objects = {}  # (bucket, key) -> its body, or the error reading it raises
-        self.reads = []
+        self.reads = []  # (operation, key, range) of each read
 
-    def get_object(self, *, Bucket, Key):
-        self.reads.append((Bucket, Key))
-        body = self.objects.get((Bucket, Key))
-        if body is None:
-            raise t4_lambda_iceberg.set_s3.exceptions.NoSuchKey({"Error": {"Code": "NoSuchKey"}}, "GetObject")
+    def _body(self, bucket: str, key: str) -> bytes | None:
+        body = self.objects.get((bucket, key))
         if isinstance(body, Exception):
             raise body.with_traceback(None)
+        return body
+
+    def head_object(self, *, Bucket, Key):
+        self.reads.append(("HeadObject", Key, None))
+        if (body := self._body(Bucket, Key)) is None:
+            raise s3_error("404", 404)  # a HEAD has no body to name its error
+        return {"ContentLength": len(body)}
+
+    def get_object(self, *, Bucket, Key, Range=None):
+        self.reads.append(("GetObject", Key, Range))
+        if (body := self._body(Bucket, Key)) is None:
+            raise t4_lambda_iceberg.set_s3.exceptions.NoSuchKey({"Error": {"Code": "NoSuchKey"}}, "GetObject")
+        if Range:
+            if not body:
+                raise s3_error("InvalidRange", 416)
+            first, last = map(int, Range.removeprefix("bytes=").split("-"))
+            body = body[first : last + 1]
         return {"Body": StreamingBody(io.BytesIO(body), len(body))}
 
 
@@ -210,7 +226,8 @@ def athena(mocker, con, clock):
 @pytest.fixture
 def s3(mocker):
     fake = S3()
-    mocker.patch.object(t4_lambda_iceberg.set_s3, "get_object", fake.get_object)
+    for name in ("head_object", "get_object"):
+        mocker.patch.object(t4_lambda_iceberg.set_s3, name, getattr(fake, name))
     return fake
 
 
@@ -387,7 +404,7 @@ def test_a_batchs_events_for_one_object_are_one_item_read_once_and_returned_toge
     )
 
     assert response == failures("q1", "q2")
-    assert sorted(s3.reads) == [(BUCKET, pointer_key("u/p", "latest")), (BUCKET, pointer_key("u/q", "latest"))]
+    assert sorted(key for _, key, _ in s3.reads) == [pointer_key("u/p", "latest"), pointer_key("u/q", "latest")]
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
@@ -399,6 +416,32 @@ def test_an_empty_manifest_is_deleted_from_the_set(handle, s3, con):
 
     assert response == failures()
     assert holdings(con)["package_manifest"] == holdings(con)["package_entry"] == set()
+
+
+def test_a_manifest_is_read_by_its_headers_alone_and_written_if_it_has_content(handle, s3, con):
+    put_manifest(s3, con, h(1))
+    s3.objects[BUCKET, manifest_key(h(1))] = b"\n" + b"x" * 10_000_000  # an empty first line, then a large body
+
+    response = handle(record("m1", manifest_key(h(1))))
+
+    assert response == failures()
+    assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
+    assert s3.reads == [("HeadObject", manifest_key(h(1)), None)]
+
+
+@pytest.mark.parametrize(
+    "content",
+    [b"%s", b"%s\n", b" %s \r\nmore", b"%s\n" + b"x" * 10_000_000],
+    ids=["bare", "a line", "padded, then more", "then 10 MB"],
+)
+def test_a_pointer_is_read_by_its_first_128_bytes_and_their_first_line_stripped(handle, s3, con, content):
+    s3.objects[BUCKET, pointer_key("u/p", "latest")] = content.replace(b"%s", h(1).encode())
+
+    response = handle(record("p", pointer_key("u/p", "latest")))
+
+    assert response == failures()
+    assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
+    assert s3.reads == [("GetObject", pointer_key("u/p", "latest"), "bytes=0-127")]
 
 
 @pytest.mark.parametrize(
@@ -427,19 +470,25 @@ def test_an_object_that_cannot_be_read_for_now_is_returned_and_the_rest_of_the_b
 
 
 @pytest.mark.parametrize(
-    "error", [ACCESS_DENIED, s3_error("NoSuchBucket", 404)], ids=["access denied", "no such bucket"]
+    "key, error",
+    [
+        (manifest_key(h(2)), ACCESS_DENIED),
+        (pointer_key("u/p", "latest"), ACCESS_DENIED),
+        (pointer_key("u/p", "latest"), s3_error("NoSuchBucket", 404)),  # a manifest's HEAD cannot tell
+    ],
+    ids=["manifest denied", "pointer denied", "pointer's bucket gone"],
 )
 @pytest.mark.parametrize("alone", [True, False], ids=["alone", "beside one written"])
-def test_an_object_that_cannot_be_read_for_good_is_dead_lettered(handle, s3, con, sqs, error, alone):
+def test_an_object_that_cannot_be_read_for_good_is_dead_lettered(handle, s3, con, sqs, key, error, alone):
     put_manifest(s3, con, h(1))
-    s3.objects[BUCKET, manifest_key(h(2))] = error
-    batch = [record("m2", manifest_key(h(2)))] + ([] if alone else [record("m1", manifest_key(h(1)))])
+    s3.objects[BUCKET, key] = error
+    batch = [record("bad", key)] + ([] if alone else [record("m1", manifest_key(h(1)))])
 
     response = handle(*batch)
 
     assert response == failures()
-    assert dead_lettered(sqs).keys() == {"m2"}
-    assert dead_lettered(sqs)["m2"][2].startswith("read: ")
+    assert dead_lettered(sqs).keys() == {"bad"}
+    assert dead_lettered(sqs)["bad"][2].startswith("read: ")
 
 
 def test_when_every_object_of_several_cannot_be_read_for_good_none_is_dead_lettered(handle, s3, sqs):
