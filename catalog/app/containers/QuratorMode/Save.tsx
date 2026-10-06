@@ -10,7 +10,10 @@ import * as authSelectors from 'containers/Auth/selectors'
 import * as FI from 'containers/Bucket/PackageDialog/Inputs/Files/State'
 import * as Uploads from 'containers/Bucket/PackageDialog/Uploads'
 import PACKAGE_CONSTRUCT from 'containers/Bucket/PackageDialog/gql/PackageConstruct.generated'
-import { getUsernamePrefix } from 'containers/Bucket/PackageDialog/State/name'
+import {
+  getUsernamePrefix,
+  useNameExistence,
+} from 'containers/Bucket/PackageDialog/State/name'
 import * as Buckets from 'utils/Buckets'
 import { useMutation } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -128,9 +131,21 @@ function SaveForm({ api }: { api: API }) {
       getUsernamePrefix(username).replace(/\/$/, ''),
     )
   const foreign = SessionPackage.foreignBuckets(events, bucket)
-  // Results read from another bucket would be readable by everyone who reads this one.
+  // Results read from another bucket would be readable by everyone who reads this one,
+  // so the choice is per destination.
   const [results, setResults] = React.useState<boolean | null>(null)
   const includeResults = results ?? !foreign.length
+  const onBucket = (b: string) => {
+    setBucket(b)
+    setResults(null)
+  }
+
+  // A save sends only the session files, so as a revision of another package it
+  // would drop that package's files; only a package this form saved may be revised.
+  const [saved, setSaved] = React.useState<{ bucket: string; name: string }>()
+  const dst = React.useMemo(() => ({ bucket, name: nameValue }), [bucket, nameValue])
+  const existence = useNameExistence(dst, saved)
+  const nameFree = existence._tag === 'new' || existence._tag === 'new-revision'
 
   const onSave = async () => {
     setStatus({ _tag: 'saving' })
@@ -139,7 +154,9 @@ function SaveForm({ api }: { api: API }) {
     } catch {
       // Unpersisted, the choice still holds for this save.
     }
-    setStatus(await save(bucket, nameValue, includeResults))
+    const result = await save(bucket, nameValue, includeResults)
+    if (result._tag === 'saved') setSaved({ bucket, name: nameValue })
+    setStatus(result)
   }
 
   return (
@@ -154,7 +171,7 @@ function SaveForm({ api }: { api: API }) {
         size="small"
         label="Bucket"
         value={bucket}
-        onChange={(e) => setBucket(e.target.value)}
+        onChange={(e) => onBucket(e.target.value)}
         SelectProps={{ native: true }}
       >
         {buckets.map((b) => (
@@ -168,6 +185,10 @@ function SaveForm({ api }: { api: API }) {
         label="Package name"
         value={nameValue}
         onChange={(e) => setName(e.target.value)}
+        error={existence._tag === 'exists'}
+        helperText={
+          existence._tag === 'exists' ? 'A package with this name exists' : undefined
+        }
       />
       {!!foreign.length && (
         <M.Typography variant="body2" color="textSecondary">
@@ -188,7 +209,7 @@ function SaveForm({ api }: { api: API }) {
       <M.Button
         variant="contained"
         color="primary"
-        disabled={empty || !bucket || api.busy || status._tag === 'saving'}
+        disabled={empty || !bucket || !nameFree || api.busy || status._tag === 'saving'}
         onClick={onSave}
       >
         {status._tag === 'saving' ? 'Saving…' : 'Save session'}

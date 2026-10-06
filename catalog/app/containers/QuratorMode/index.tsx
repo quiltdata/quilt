@@ -19,11 +19,13 @@ const useStyles = M.makeStyles((t) => ({
     // Outgrows Layout's trailing flex spacer, so the chat owns the column's height.
     flex: '999 1 0',
     minHeight: 0,
+    [t.breakpoints.down('sm')]: { flexDirection: 'column' },
   },
   chat: {
     borderRight: `1px solid ${t.palette.divider}`,
     display: 'flex',
     flexGrow: 1,
+    minHeight: 0,
     minWidth: 0,
   },
   pane: {
@@ -34,8 +36,11 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     padding: t.spacing(2),
     width: 320,
-    // A phone gets the full-page chat alone; the PWA shell is that surface.
-    [t.breakpoints.down('sm')]: { display: 'none' },
+    [t.breakpoints.down('sm')]: {
+      borderTop: `1px solid ${t.palette.divider}`,
+      maxHeight: '40%',
+      width: 'auto',
+    },
   },
   refs: {
     margin: 0,
