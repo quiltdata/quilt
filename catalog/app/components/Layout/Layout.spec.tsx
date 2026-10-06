@@ -43,10 +43,11 @@ vi.mock('./ContentBar', () => ({
   },
 }))
 
+vi.mock('containers/Milestones/Ribbon', () => ({ default: () => null }))
+
 // Stood in rather than rendered: the `bare` claim below is about what the shell
 // does NOT mount, which is unaffected by this header's own internals -- and the
 // real one needs router and named-route providers that have no bearing on it.
-vi.mock('containers/Milestones/Ribbon', () => ({ default: () => null }))
 vi.mock('./BareHeader', () => ({ default: () => <header data-testid="bare-header" /> }))
 
 import WebsiteLayout from 'website/components/Layout'

@@ -8,13 +8,12 @@ import MILESTONES_QUERY from './gql/Milestones.generated'
 /** `undefined` while loading. */
 export default function useMilestones(): Badge[] | undefined {
   const result = GQL.useQuery(MILESTONES_QUERY)
-  const metrics = GQL.fold(result, {
-    data: toMetrics,
-    fetching: () => undefined,
-    error: () => null,
-  })
-  return React.useMemo(
-    () => (metrics === undefined ? undefined : deriveBadges(metrics)),
-    [metrics],
-  )
+  const { data, fetching, error, operation } = result
+  return React.useMemo(() => {
+    const metrics = GQL.fold(
+      { data, fetching, error, operation },
+      { data: toMetrics, fetching: () => undefined, error: () => null },
+    )
+    return metrics === undefined ? undefined : deriveBadges(metrics)
+  }, [data, fetching, error, operation])
 }

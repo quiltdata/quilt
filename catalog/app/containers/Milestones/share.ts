@@ -120,13 +120,10 @@ export async function renderBadgeImage(host: string, b: Badge): Promise<Blob> {
   ctx.font = `400 30px ${FONT}`
   let desc = wrap(ctx, b.description, 2)
   // Balance two lines rather than leave a one-word widow.
-  if (desc.length === 2) {
-    desc = wrap(
-      ctx,
-      b.description,
-      2,
-      Math.ceil(ctx.measureText(b.description).width / 2) + 40,
-    )
+  if (desc.length === 2 && !desc[1].endsWith('…')) {
+    const half = Math.ceil(ctx.measureText(b.description).width / 2) + 40
+    const balanced = wrap(ctx, b.description, 3, half)
+    if (balanced.length === 2) desc = balanced
   }
   const descLead = 42
   const on = b.state.kind === 'earned' ? earnedOn(b.state.at) : null

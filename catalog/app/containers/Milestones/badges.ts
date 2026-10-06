@@ -75,11 +75,11 @@ const first = (at: Date | null): BadgeState =>
 const anniversary = (since: Date | null, years: number, now: Date): BadgeState => {
   const target = Math.round(years * 365.25)
   if (!since) return { kind: 'locked', value: 0, target }
-  const days = Math.floor((now.getTime() - since.getTime()) / DAY_MS)
-  if (days < target) return { kind: 'locked', value: days, target }
   const at = new Date(since)
   at.setUTCFullYear(at.getUTCFullYear() + years)
-  return { kind: 'earned', at }
+  if (now >= at) return { kind: 'earned', at }
+  const days = Math.floor((now.getTime() - since.getTime()) / DAY_MS)
+  return { kind: 'locked', value: Math.min(days, target - 1), target }
 }
 
 const n = (x: number) => x.toLocaleString('en-US')

@@ -94,11 +94,11 @@ function RibbonBar({ badges, user }: { badges: Badge[]; user: string }) {
   const fresh = badges
     .filter((b) => isEarned(b) && !dismissed.includes(b.id))
     .sort(byRecency)
-  const dismiss = React.useCallback(() => {
+  const dismiss = () => {
     const ids = [...dismissed, ...fresh.map((b) => b.id)]
     writeDismissed(user, ids)
     setDismissed(ids)
-  }, [user, dismissed, fresh])
+  }
 
   const newest = fresh[0]
   if (!newest) return null
@@ -138,7 +138,7 @@ function RibbonBar({ badges, user }: { badges: Badge[]; user: string }) {
 
 function SignedInRibbon({ user }: { user: string }) {
   const badges = useMilestones()
-  return badges ? <RibbonBar badges={badges} user={user} /> : null
+  return badges ? <RibbonBar key={user} badges={badges} user={user} /> : null
 }
 
 function FlaggedRibbon({ user }: { user: string }) {

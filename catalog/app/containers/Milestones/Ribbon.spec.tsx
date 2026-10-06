@@ -16,7 +16,8 @@ vi.mock('utils/features', () => ({ useFeature: () => mocks.flag }))
 vi.mock('utils/NamedRoutes', () => ({
   use: () => ({ urls: { milestones: (id: string) => `/milestones#${id}` } }),
 }))
-vi.mock('./useMilestones', () => ({ default: () => mocks.badges }))
+const useMilestones = vi.hoisted(() => vi.fn())
+vi.mock('./useMilestones', () => ({ default: useMilestones }))
 vi.mock('./ShareMenu', () => ({ ShareButton: () => <button>share</button> }))
 
 import Ribbon from './Ribbon'
@@ -41,6 +42,8 @@ const renderRibbon = () =>
 describe('containers/Milestones/Ribbon', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    useMilestones.mockReset()
+    useMilestones.mockImplementation(() => mocks.badges)
     mocks.signedIn = 'alice'
     mocks.flag = true
     mocks.badges = [
@@ -81,7 +84,7 @@ describe('containers/Milestones/Ribbon', () => {
     expect(screen.getByText('newest')).toBeTruthy()
   })
 
-  it('shows nothing signed out or with the feature off', () => {
+  it('queries nothing signed out or with the feature off', () => {
     mocks.signedIn = null
     renderRibbon()
     expect(screen.queryByLabelText('Milestones reached')).toBeNull()
@@ -89,5 +92,6 @@ describe('containers/Milestones/Ribbon', () => {
     mocks.flag = false
     renderRibbon()
     expect(screen.queryByLabelText('Milestones reached')).toBeNull()
+    expect(useMilestones).not.toHaveBeenCalled()
   })
 })

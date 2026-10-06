@@ -94,6 +94,19 @@ describe('containers/Milestones/badges', () => {
     ).toEqual({ kind: 'locked', value: 363, target: 365 })
   })
 
+  it('does not earn an anniversary early across a leap day', () => {
+    const state = (first: string, now: string) =>
+      deriveBadges({ ...base, firstPackageAt: new Date(first) }, new Date(now)).find(
+        (b) => b.id === 'anniversary-1',
+      )!.state
+    expect(state('2023-06-01T00:00:00Z', '2024-05-31T00:00:00Z')).toEqual({
+      kind: 'locked',
+      value: 364,
+      target: 365,
+    })
+    expect(state('2023-06-01T00:00:00Z', '2024-06-01T00:00:00Z').kind).toBe('earned')
+  })
+
   describe('toMetrics', () => {
     const at = new Date('2026-01-02T00:00:00Z')
     const query = (milestones: object) =>

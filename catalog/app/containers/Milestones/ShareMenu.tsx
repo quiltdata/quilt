@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
-import copyToClipboard from 'utils/clipboard'
 
 import type { Badge } from './badges'
 import * as Share from './share'
@@ -29,9 +28,12 @@ export default function ShareMenu({ badge, anchorEl, onClose }: ShareMenuProps) 
   }, [url, text, onClose])
 
   const slack = React.useCallback(() => {
-    copyToClipboard(Share.slackMessage(url, text))
-    push('Copied. Paste it into a Slack message.')
     onClose()
+    // A textarea copy loses its selection to the open Menu's focus trap.
+    navigator.clipboard.writeText(Share.slackMessage(url, text)).then(
+      () => push('Copied. Paste it into a Slack message.'),
+      () => push("Couldn't copy the message."),
+    )
   }, [url, text, push, onClose])
 
   const image = React.useCallback(() => {

@@ -30,11 +30,8 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     margin: t.spacing(3, 0, 1),
   },
-  // Four tracks per tile, shared across each row through subgrid, so medallions,
-  // titles, descriptions and status lines sit on the same lines tile to tile
-  // whatever their text wraps to. All `auto`: a fixed track can't absorb the
-  // tile's padding, and an `fr` track would size to the tallest tile in the
-  // whole category rather than its row.
+  // Subgrid with all-`auto` tracks keeps medallion, title, description and status
+  // level across a row; an `fr` track would size to the tallest tile in the category.
   grid: {
     display: 'grid',
     columnGap: t.spacing(2),
