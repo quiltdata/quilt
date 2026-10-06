@@ -6,7 +6,7 @@ import time
 import typing as T
 import uuid
 
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import BotoCoreError, ClientError, ConnectionError as BotoConnectionError, HTTPClientError
 
 if T.TYPE_CHECKING:
     import logging
@@ -31,6 +31,17 @@ _COMMIT_ERROR_RE = re.compile(rf"(?:[\w.]+:\s*)*{ICEBERG_COMMIT_ERROR_CODE}\b")
 
 def _is_commit_error(reason: str) -> bool:
     return _COMMIT_ERROR_RE.match(reason) is not None
+
+
+# The call errors that can clear by themselves: throttling, Athena's own fault and the network's. Any other, a
+# ParamValidationError included, is the statement's or the stack's, and retrying it would only spend the deadline.
+_REFUSAL_CODES = frozenset({"ThrottlingException", "TooManyRequestsException", "InternalServerException"})
+
+
+def _is_refusal(error: BotoCoreError | ClientError) -> bool:
+    if isinstance(error, ClientError):
+        return error.response.get("Error", {}).get("Code") in _REFUSAL_CODES
+    return isinstance(error, (BotoConnectionError, HTTPClientError))
 
 
 def is_retryable(query_execution: QueryExecutionTypeDef) -> bool:
@@ -169,10 +180,11 @@ class QueryRunner:
             max_current_queries: Maximum number of concurrent queries to run at once.
                 Note: default quota for DDL queries is 20 per account, for DML is 200 per account.
             sleep_sec: Time in seconds to sleep between status checks.
-            deadline: A `time.monotonic()` value to give up at. A start or poll Athena refuses is retried until
-                then. Past it, or when this raises, every query it has seen start and not seen finish is stopped,
-                best effort, and every statement not run to completion comes back as None. The stops run after the
-                deadline, so leave room for them. Without a deadline, refused starts and polls raise.
+            deadline: A `time.monotonic()` value to give up at. A start or poll that is throttled, or fails in Athena
+                or the network, is retried until then; any other error raises. Past it, or when this raises, every
+                query it has seen start and not seen finish is stopped, best effort, and every statement not run to
+                completion comes back as None. The stops run after the deadline, so leave room for them. Without a
+                deadline, every error raises.
 
         Returns:
             list[QueryExecutionTypeDef]: List of query execution results in the same order as input queries.
@@ -204,7 +216,9 @@ class QueryRunner:
             time.sleep(max(0, min(sec, left())))
 
         # Given a deadline, a refused start or poll is retried rather than raised.
-        refused = (BotoCoreError, ClientError) if deadline is not None else ()
+        def refused(error: BotoCoreError | ClientError) -> bool:
+            return deadline is not None and _is_refusal(error)
+
         # Athena answers a repeated token with the execution it already started, so retrying a refused start
         # never runs a statement twice; a commit-conflict retry, a new attempt, takes a new token.
         run = uuid.uuid4().hex
@@ -220,7 +234,9 @@ class QueryRunner:
                     # Ask for the record rather than the exception, so a commit conflict can be retried.
                     try:
                         query_execution = self.query_finished(execution_id, raise_on_failed=False)
-                    except refused:
+                    except (BotoCoreError, ClientError) as e:
+                        if not refused(e):
+                            raise
                         self.logger.warning("Could not poll Athena query %s", execution_id, exc_info=True)
                         continue
                     if query_execution is None:
@@ -260,7 +276,9 @@ class QueryRunner:
                     token = None if deadline is None else f"{run}-{idx}-{attempts.get(idx, 0)}"
                     try:
                         execution_id = self.start_query(query, token=token)
-                    except refused:
+                    except (BotoCoreError, ClientError) as e:
+                        if not refused(e):
+                            raise
                         self.logger.warning("Could not start an Athena query; retrying it", exc_info=True)
                         # Bottom of the stack, so a start refused again and again holds up none of the others.
                         remaining_queries.insert(0, (idx, query))

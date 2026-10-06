@@ -3,7 +3,7 @@ import types
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError, ReadTimeoutError
 from botocore.stub import ANY, Stubber
 
 from quilt_shared.athena import (
@@ -260,7 +260,19 @@ def _stub_stop(stubber, execution_id):
 
 
 def _refuse(stubber, operation):
-    stubber.add_client_error(operation, service_error_code="InvalidRequestException")
+    stubber.add_client_error(operation, service_error_code="TooManyRequestsException")
+
+
+def _time_out_once(athena_client, operation):
+    """The operation's next call times out on the network, before any stubbed response is taken."""
+    calls = []
+
+    def time_out(**kwargs):
+        if not calls:
+            calls.append(operation)
+            raise ReadTimeoutError(endpoint_url="https://athena.us-east-1.amazonaws.com")
+
+    athena_client.meta.events.register(f"before-parameter-build.athena.{operation}", time_out)
 
 
 def _ids(results):
@@ -363,11 +375,11 @@ def test_run_multiple_queries_stops_a_query_it_cannot_poll_by_its_deadline(query
     stubbed_athena_client.assert_no_pending_responses()
 
 
-def test_run_multiple_queries_with_a_deadline_starts_a_refused_start_again_with_the_same_token(
+def test_run_multiple_queries_with_a_deadline_starts_a_start_that_timed_out_again_with_the_same_token(
     query_runner, athena_client, stubbed_athena_client, clock
 ):
     tokens = _start_tokens(athena_client)
-    _refuse(stubbed_athena_client, "start_query_execution")
+    _time_out_once(athena_client, "StartQueryExecution")
     _stub_timed_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
     _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")
 
@@ -422,6 +434,27 @@ def test_run_multiple_queries_with_a_deadline_stops_its_other_queries_when_one_f
         query_runner.run_multiple_queries(queries, deadline=100)
 
     stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_with_a_deadline_raises_a_poll_it_is_denied_after_stopping_its_queries(
+    query_runner, stubbed_athena_client, clock
+):
+    queries = ["SELECT 1", "SELECT 2"]
+    _stub_timed_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, queries[1], "exec_id_2")
+    stubbed_athena_client.add_client_error("get_query_execution", service_error_code="AccessDeniedException")
+    _stub_stop(stubbed_athena_client, "exec_id_1")
+    _stub_stop(stubbed_athena_client, "exec_id_2")
+
+    with pytest.raises(ClientError, match="AccessDeniedException"):
+        query_runner.run_multiple_queries(queries, deadline=100)
+
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_with_a_deadline_raises_a_statement_botocore_rejects(query_runner, clock):
+    with pytest.raises(ParamValidationError):
+        query_runner.run_multiple_queries([""], deadline=100)
 
 
 def test_run_multiple_queries_without_a_deadline_raises_a_refused_poll(query_runner, stubbed_athena_client, clock):
