@@ -61,7 +61,7 @@ const job = ({
   retries_remaining,
   time_created,
   next_key_marker,
-  // Omitted unless given, as an older registry omits it.
+  // Omitted unless given, like a registry that doesn't send it.
   ...(missing_only === undefined ? {} : { missing_only }),
 })
 

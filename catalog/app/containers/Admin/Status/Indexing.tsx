@@ -18,7 +18,7 @@ type ScannerJob = {
   time_created: string
   next_key_marker?: string | null
   next_version_id_marker?: string | null
-  // An older registry omits this, and cannot create missing-only jobs either.
+  // A registry that omits this cannot create missing-only jobs.
   missing_only?: boolean | null
 }
 
