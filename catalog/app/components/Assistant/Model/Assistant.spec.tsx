@@ -102,6 +102,29 @@ describe('components/Assistant/Model/Assistant useRegisteredConnectorConfigs', (
     expect(warn).toHaveBeenCalledTimes(1)
   })
 
+  it('after commit, a new suspension propagates from the read itself', () => {
+    // A new urql client (sign-in/out) suspends between urql's own hooks, so
+    // swallowing it after mount would break the hook order.
+    mcpRead.current = () => [{ data: { mcpServers: [] } }]
+    const read: { current: unknown } = { current: null }
+    function ReadOnly() {
+      read.current = useMcpServersRead()
+      return <>ready</>
+    }
+    const tree = () => (
+      <React.Suspense fallback="loading">
+        <ReadOnly />
+      </React.Suspense>
+    )
+    const { getByText, rerender } = render(tree())
+    expect(getByText('ready')).toBeTruthy()
+    mcpRead.current = () => {
+      throw new Promise(() => {})
+    }
+    rerender(tree())
+    expect(getByText('loading')).toBeTruthy()
+  })
+
   it('suspends while the read is in flight instead of degrading', () => {
     mcpRead.current = () => {
       throw new Promise(() => {})

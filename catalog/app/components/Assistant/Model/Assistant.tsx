@@ -122,6 +122,9 @@ const RELAYED_HEARTBEAT_TIMEOUT = Eff.Duration.seconds(10)
 
 export type McpServersRead = { servers: RegisteredServers } | { pending: unknown }
 
+// Module-level: a ref resets on every render that suspends before commit.
+let mcpReadWarned = false
+
 const isThenable = (e: unknown) =>
   typeof (e as { then?: unknown } | null)?.then === 'function'
 
@@ -132,21 +135,24 @@ const isThenable = (e: unknown) =>
  * state mid-update.
  */
 export function useMcpServersRead(): McpServersRead {
-  const warned = React.useRef(false)
-  let data: { mcpServers: RegisteredServers } | undefined
-  let error: unknown
+  const committed = React.useRef(false)
+  React.useEffect(() => {
+    committed.current = true
+  }, [])
+  let result
   try {
-    const [result] = urql.useQuery({ query: MCP_SERVERS_QUERY, context: SUSPENSE })
-    data = result.data
-    error = result.error
+    ;[result] = urql.useQuery({ query: MCP_SERVERS_QUERY, context: SUSPENSE })
   } catch (e) {
-    if (isThenable(e)) return { pending: e }
-    error = e
+    // urql throws between its own hooks. Carrying on is safe only on a first
+    // mount, which never commits with the hooks it skipped; after that (a new
+    // client on sign-in or sign-out) the hook order would break.
+    if (committed.current || !isThenable(e)) throw e
+    return { pending: e }
   }
-  if (data) return { servers: data.mcpServers }
-  if (!warned.current) {
-    warned.current = true
-    logger.warn('Could not read the MCP server list; platform tools only', error)
+  if (result.data) return { servers: result.data.mcpServers }
+  if (!mcpReadWarned) {
+    mcpReadWarned = true
+    logger.warn('Could not read the MCP server list; platform tools only', result.error)
   }
   return { servers: NO_SERVERS }
 }

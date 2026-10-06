@@ -748,7 +748,7 @@ const adaptError = (e: McpError): BackendError => {
     }
   }
   // The relay's back-pressure: busy, not unhealthy.
-  if (e.status === 429) {
+  if (e.status === 429 && e.errorCode === 'Busy') {
     return {
       _tag: 'Transport',
       message: 'busy, try again shortly',

@@ -411,6 +411,31 @@ describe('Connectors/Mcp', () => {
       },
     )
 
+    it('a relay 502 that is not UpstreamAuth still counts toward health', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response(JSON.stringify({ error_code: 'UpstreamUnavailable' }), {
+            status: 502,
+            headers: { 'content-type': 'application/json' },
+          }),
+      )
+      const backend = Mcp.relayed({
+        slug: 'gpu',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(
+        withFetch(backend.callTool('foo', {}), fetchSpy),
+      )
+      const failure = Eff.Exit.isFailure(exit)
+        ? Eff.Cause.failureOption(exit.cause)
+        : Eff.Option.none()
+      expect(Eff.Option.isSome(failure)).toBe(true)
+      if (Eff.Option.isNone(failure)) return
+      expect(failure.value._tag).toBe('Transport')
+      expect(failure.value.transient).toBe(true)
+      expect(failure.value.inertToHealth).toBeUndefined()
+    })
+
     it('decodes tools/list result via Schema; bad shape → McpProtocolError', async () => {
       // Envelope is well-formed; result.tools is a string (not array).
       const { fetchSpy } = captureCalls(

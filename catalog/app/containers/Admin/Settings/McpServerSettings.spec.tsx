@@ -114,6 +114,40 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       expect(JSON.stringify([reported.message, rest])).not.toContain('s3cret')
     })
 
+    it('a conflicting save reloads the stored state and says why', async () => {
+      servers = [server()]
+      mutate.mockResolvedValue(
+        setResult({ __typename: 'OperationError', name: 'Conflict', message: 'Stale.' }),
+      )
+      const { getByText } = mount()
+      fireEvent.click(getByText('Edit'))
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      expect(push).toHaveBeenCalledWith(
+        'GPU cluster was changed elsewhere; showing the stored version. Stale.',
+      )
+      expect(getByText('Edit')).toBeTruthy()
+    })
+
+    it('a toggle stored without its secret says the server stays disabled', async () => {
+      servers = [server()]
+      mutate.mockResolvedValue(
+        setResult({
+          __typename: 'OperationError',
+          name: 'SavedWithoutSecret',
+          message: 'saved',
+        }),
+      )
+      const { getByLabelText } = mount()
+      await act(async () => {
+        fireEvent.click(getByLabelText('Enabled'))
+      })
+      expect(push).toHaveBeenCalledWith(
+        'GPU cluster was saved but stays disabled until a secret is supplied.',
+      )
+    })
+
     it('a save stored without its secret refetches and says the server is disabled', async () => {
       servers = [server()]
       mutate.mockResolvedValue(
