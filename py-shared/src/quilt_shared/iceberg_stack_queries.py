@@ -14,8 +14,9 @@ def registry_uri(bucket: str) -> str:
     return f"s3://{bucket}"
 
 
-# ASCII digits that fit in a bigint; the fill's SQL applies the same pattern.
-_REVISION = "[0-9]{1,18}"
+# ASCII digits whose seconds an Iceberg timestamp (microseconds in a long) holds; the fill's SQL applies the same
+# pattern, anchored with `\z` since Athena's `$` also matches before a trailing newline.
+_REVISION = "[0-9]{1,12}"
 
 
 def is_revision(pointer: str) -> bool:
@@ -363,7 +364,7 @@ class StackQueryMaker:
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+$', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
-        revision = f"regexp_like({pointer}, '^{_REVISION}$')"
+        revision = f"regexp_like({pointer}, '^{_REVISION}\\z')"
         packages = self._source(bucket, "packages")
         revisions = f"""(
             SELECT
@@ -394,30 +395,17 @@ class StackQueryMaker:
         registry = _str(registry_uri(bucket))
         return [self._delete(table, f"registry = {registry}") for table in _DELETE_ORDER]
 
-    def prune(self, buckets: T.Iterable[str]) -> list[str]:
-        """Deletes the rows of every registry whose bucket is not among `buckets`: every row, given none."""
-        registries = sorted({registry_uri(b) for b in buckets})
+    def present_registries(self) -> list[str]:
+        """Selects the registries each table holds, from its partition metadata; the caller unions their rows,
+        passes them to `stale_buckets`, and runs `remove` for each bucket returned. A deploy with nothing stale
+        costs these four metadata reads, which scan no data, and writes nothing."""
+        return [
+            f'SELECT DISTINCT "partition".registry AS registry FROM "{self.database}"."{table}$partitions"'
+            for table in TABLES
+        ]
 
-        # A NOT IN list can't be split as an IN list can, so each statement covers the registries from its first
-        # kept one up to the next statement's, and lists only the kept ones in that range.
-        def fit(table: str, kept: list[str], low: str | None, high: str | None) -> list[str]:
-            where = [f"registry >= {_str(low)}"] if low else []
-            where += [f"registry < {_str(high)}"] if high else []
-            where += [f"registry NOT IN ({_strs(kept)})"] if kept else []
-            sql = self._delete(table, " AND ".join(where) or "TRUE")
-            size = len(sql.encode())
-            if len(kept) <= 1 or size <= _MAX_QUERY_BYTES:
-                return [sql]
-            step = math.ceil(len(kept) / math.ceil(size / _MAX_QUERY_BYTES))
-            return [
-                s
-                for k in range(0, len(kept), step)
-                for s in fit(
-                    table,
-                    kept[k : k + step],
-                    kept[k] if k else low,
-                    kept[k + step] if k + step < len(kept) else high,
-                )
-            ]
 
-        return [sql for table in _DELETE_ORDER for sql in fit(table, registries, None, None)]
+def stale_buckets(registries: T.Iterable[str], buckets: T.Iterable[str]) -> list[str]:
+    """The buckets of the given registries that are not among `buckets`."""
+    kept = {registry_uri(b) for b in buckets}
+    return sorted(r.removeprefix(registry_uri("")) for r in set(registries) - kept)

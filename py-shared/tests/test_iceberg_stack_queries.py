@@ -11,6 +11,7 @@ from quilt_shared.iceberg_stack_queries import (
     StackQueryMaker,
     is_revision,
     registry_uri,
+    stale_buckets,
 )
 
 DB = "quilt__test"
@@ -36,6 +37,11 @@ def con():
     con.execute(f"CREATE SCHEMA {USER_DB}")
     for name, table in TABLES.items():
         con.execute(f'CREATE TABLE "{DB}"."{name}" ({table.columns})')
+        # Athena's Iceberg partition metadata table, its `partition` row carrying the partition values.
+        con.execute(
+            f'CREATE VIEW "{DB}"."{name}$partitions" AS'
+            f' SELECT {{\'registry\': registry}} AS "partition" FROM "{DB}"."{name}"'
+        )
     for bucket in BUCKETS:
         con.execute(
             f'CREATE TABLE "{USER_DB}"."{bucket}_manifests" ("$path" VARCHAR, logical_key VARCHAR,'
@@ -100,8 +106,10 @@ def test_registry_uri_is_the_bucket_under_the_s3_scheme_without_a_trailing_slash
     "pointer, revision",
     [
         ("1700000000", True),
-        ("9" * 18, True),  # the most digits a bigint always holds
+        ("9" * 12, True),  # the most seconds an Iceberg timestamp holds
+        ("1" * 13, False),
         ("1" * 19, False),
+        ("123\n", False),
         ("²", False),
         ("-5", False),
         ("+5", False),
@@ -109,7 +117,7 @@ def test_registry_uri_is_the_bucket_under_the_s3_scheme_without_a_trailing_slash
         ("latest", False),
     ],
 )
-def test_a_pointer_is_a_revision_only_when_it_is_ascii_digits_that_fit_a_bigint(pointer, revision):
+def test_a_pointer_is_a_revision_only_when_it_is_ascii_digits_a_timestamp_holds(pointer, revision):
     assert is_revision(pointer) is revision
 
 
@@ -439,36 +447,32 @@ def registries(con) -> dict[str, list[str]]:
     return {t: [r for (r,) in rows(con, t, "DISTINCT registry")] for t in TABLES}
 
 
-def test_prune_deletes_the_rows_of_every_registry_whose_bucket_is_not_given(qm, con):
+def present(qm, con) -> set[str]:
+    return {r for sql in qm.present_registries() for (r,) in con.execute(sql).fetchall()}
+
+
+def test_present_registries_selects_every_registry_any_table_holds(qm, con):
+    for bucket in ("b1", "b2"):
+        put_registry(con, bucket)
+    insert(con, "package_tag", ("s3://b3", "u/p", "latest", h(1)))  # a pointer alone
+
+    assert present(qm, con) == {"s3://b1", "s3://b2", "s3://b3"}
+
+
+def test_stale_buckets_are_those_of_registries_not_among_the_buckets():
+    assert stale_buckets(["s3://b1", "s3://b2", "s3://b3", "s3://b1"], ["b2", "b9"]) == ["b1", "b3"]
+    assert stale_buckets(["s3://b1"], []) == ["b1"]
+
+
+@pytest.mark.parametrize("kept, left", [(["b2", "b9"], ["s3://b2"]), ([], [])])
+def test_removing_the_stale_buckets_leaves_only_the_kept_registries(qm, con, kept, left):
     for bucket in ("b1", "b2", "b3"):
         put_registry(con, bucket)
 
-    run(con, qm.prune(["b2", "b9"]))
+    for bucket in stale_buckets(present(qm, con), kept):
+        run(con, qm.remove(bucket))
 
-    assert registries(con) == {t: ["s3://b2"] for t in TABLES}
-
-
-def test_prune_given_no_buckets_deletes_every_row(qm, con):
-    for bucket in ("b1", "b2"):
-        put_registry(con, bucket)
-
-    run(con, qm.prune([]))
-
-    assert registries(con) == {t: [] for t in TABLES}
-
-
-def test_prune_of_more_buckets_than_one_statement_holds_stays_under_the_size_limit(qm, con):
-    kept = [f"bucket-{i:05d}-{'x' * 45}" for i in range(5000)]
-    gone = ["aaa", f"bucket-02500-{'y' * 45}", "zzz"]  # before, between and after the kept ones
-    for bucket in [kept[0], kept[2500], kept[-1], *gone]:
-        put_registry(con, bucket)
-
-    statements = qm.prune(kept)
-
-    assert len(statements) > len(TABLES)
-    assert all(len(sql.encode()) <= MAX_QUERY_BYTES for sql in statements)
-    run(con, statements)
-    assert registries(con) == {t: sorted(f"s3://{b}" for b in (kept[0], kept[2500], kept[-1])) for t in TABLES}
+    assert registries(con) == dict.fromkeys(TABLES, left)
 
 
 def test_remove_deletes_one_registry_rows_from_every_table(qm, con):
