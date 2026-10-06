@@ -5,6 +5,7 @@ import random
 import re
 import time
 import typing as T
+import uuid
 
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -69,11 +70,12 @@ class QueryRunner:
         self.database = database
         self.workgroup = workgroup
 
-    def start_query(self, query: str) -> str:
+    def start_query(self, query: str, *, token: str | None = None) -> str:
         response = self.athena.start_query_execution(
             QueryString=query,
             WorkGroup=self.workgroup,
             QueryExecutionContext={"Database": self.database},
+            **({"ClientRequestToken": token} if token else {}),
         )
         self.logger.info(f"Started Athena query: {query}")
 
@@ -183,6 +185,13 @@ class QueryRunner:
         def left() -> float:
             return math.inf if deadline is None else deadline - time.monotonic()
 
+        # Athena answers a repeated token with the execution it already started, so retrying a refused start
+        # never runs a statement twice; a commit-conflict retry, a new attempt, takes a new token.
+        run = uuid.uuid4().hex
+
+        def token(idx: int) -> str | None:
+            return None if deadline is None else f"{run}-{idx}-{attempts.get(idx, 0)}"
+
         try:
             while remaining_queries or pending_execution_ids:
                 # Largest backoff any conflict asked for this pass. Taken once, below, rather
@@ -234,7 +243,7 @@ class QueryRunner:
                 while remaining_queries and len(pending_execution_ids) < max_current_queries and left() > 0:
                     idx, query = remaining_queries.pop()
                     try:
-                        execution_id = self.start_query(query)
+                        execution_id = self.start_query(query, token=token(idx))
                     except (BotoCoreError, ClientError):
                         if deadline is None:
                             raise

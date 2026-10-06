@@ -4,7 +4,7 @@ import types
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from botocore.stub import Stubber
+from botocore.stub import ANY, Stubber
 
 from quilt_shared.athena import AthenaQueryCancelledException, AthenaQueryFailedException, QueryRunner
 
@@ -99,16 +99,15 @@ def no_backoff(monkeypatch):
     return bounds
 
 
-def _stub_start(stubber, query, execution_id):
-    stubber.add_response(
-        "start_query_execution",
-        {"QueryExecutionId": execution_id},
-        {
-            "QueryString": query,
-            "WorkGroup": "test_workgroup",
-            "QueryExecutionContext": {"Database": "test_database"},
-        },
-    )
+def _stub_start(stubber, query, execution_id, token=None):
+    expected = {
+        "QueryString": query,
+        "WorkGroup": "test_workgroup",
+        "QueryExecutionContext": {"Database": "test_database"},
+    }
+    if token is not None:
+        expected["ClientRequestToken"] = token
+    stubber.add_response("start_query_execution", {"QueryExecutionId": execution_id}, expected)
 
 
 def _stub_status(stubber, execution_id, state, reason=None):
@@ -263,12 +262,26 @@ def _ids(results):
     return [r and r["QueryExecutionId"] for r in results]
 
 
+def _stub_timed_start(stubber, query, execution_id):
+    """A start under a deadline, which carries a ClientRequestToken."""
+    _stub_start(stubber, query, execution_id, token=ANY)
+
+
+def _start_tokens(athena_client):
+    tokens = []
+    athena_client.meta.events.register(
+        "provide-client-params.athena.StartQueryExecution",
+        lambda params, **kw: tokens.append(params.get("ClientRequestToken")),
+    )
+    return tokens
+
+
 def test_run_multiple_queries_past_its_deadline_stops_a_running_query_and_keeps_a_finished_one(
     query_runner, stubbed_athena_client, clock
 ):
     queries = ["SELECT 1", "SELECT 2"]
-    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
-    _stub_start(stubbed_athena_client, queries[1], "exec_id_2")
+    _stub_timed_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, queries[1], "exec_id_2")
     _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")
     for _ in range(3):
         _stub_status(stubbed_athena_client, "exec_id_2", "RUNNING")
@@ -284,7 +297,7 @@ def test_run_multiple_queries_past_its_deadline_starts_nothing_more_and_survives
     query_runner, stubbed_athena_client, clock
 ):
     queries = ["SELECT 1", "SELECT 2"]
-    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, queries[0], "exec_id_1")
     _stub_status(stubbed_athena_client, "exec_id_1", "RUNNING")
     _stub_status(stubbed_athena_client, "exec_id_1", "RUNNING")
     _refuse(stubbed_athena_client, "stop_query_execution")
@@ -298,7 +311,7 @@ def test_run_multiple_queries_past_its_deadline_starts_nothing_more_and_survives
 def test_run_multiple_queries_keeps_a_query_that_finished_as_its_deadline_came(
     query_runner, stubbed_athena_client, clock
 ):
-    _stub_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
     _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")
 
     results = query_runner.run_multiple_queries(["SELECT 1"], deadline=1)
@@ -311,11 +324,8 @@ def test_run_multiple_queries_starts_nothing_once_a_commit_retry_backoff_runs_in
     query_runner, athena_client, stubbed_athena_client, clock, monkeypatch
 ):
     monkeypatch.setattr("quilt_shared.athena.random.uniform", lambda a, b: 10)
-    starts = []
-    athena_client.meta.events.register(
-        "provide-client-params.athena.StartQueryExecution", lambda **kw: starts.append(1)
-    )
-    _stub_start(stubbed_athena_client, "MERGE INTO t", "exec_id_1")
+    starts = _start_tokens(athena_client)
+    _stub_timed_start(stubbed_athena_client, "MERGE INTO t", "exec_id_1")
     _stub_status(stubbed_athena_client, "exec_id_1", "FAILED", COMMIT_ERROR_REASON)
 
     results = query_runner.run_multiple_queries(["MERGE INTO t"], deadline=1.5)
@@ -326,7 +336,7 @@ def test_run_multiple_queries_starts_nothing_once_a_commit_retry_backoff_runs_in
 
 
 def test_run_multiple_queries_with_a_deadline_polls_a_refused_poll_again(query_runner, stubbed_athena_client, clock):
-    _stub_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
     _refuse(stubbed_athena_client, "get_query_execution")
     _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")
 
@@ -337,7 +347,7 @@ def test_run_multiple_queries_with_a_deadline_polls_a_refused_poll_again(query_r
 
 
 def test_run_multiple_queries_stops_a_query_it_cannot_poll_by_its_deadline(query_runner, stubbed_athena_client, clock):
-    _stub_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
     _refuse(stubbed_athena_client, "get_query_execution")
     _refuse(stubbed_athena_client, "get_query_execution")
     _stub_stop(stubbed_athena_client, "exec_id_1")
@@ -348,14 +358,34 @@ def test_run_multiple_queries_stops_a_query_it_cannot_poll_by_its_deadline(query
     stubbed_athena_client.assert_no_pending_responses()
 
 
-def test_run_multiple_queries_with_a_deadline_starts_a_refused_start_again(query_runner, stubbed_athena_client, clock):
+def test_run_multiple_queries_with_a_deadline_starts_a_refused_start_again_with_the_same_token(
+    query_runner, athena_client, stubbed_athena_client, clock
+):
+    tokens = _start_tokens(athena_client)
     _refuse(stubbed_athena_client, "start_query_execution")
-    _stub_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
     _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")
 
     results = query_runner.run_multiple_queries(["SELECT 1"], deadline=100)
 
     assert _ids(results) == ["exec_id_1"]
+    assert len(tokens) == 2 and tokens[0] and tokens[0] == tokens[1]
+    stubbed_athena_client.assert_no_pending_responses()
+
+
+def test_run_multiple_queries_with_a_deadline_starts_a_commit_retry_with_a_new_token(
+    query_runner, athena_client, stubbed_athena_client, clock, no_backoff
+):
+    tokens = _start_tokens(athena_client)
+    _stub_timed_start(stubbed_athena_client, "MERGE INTO t", "exec_id_1")
+    _stub_status(stubbed_athena_client, "exec_id_1", "FAILED", COMMIT_ERROR_REASON)
+    _stub_timed_start(stubbed_athena_client, "MERGE INTO t", "exec_id_2")
+    _stub_status(stubbed_athena_client, "exec_id_2", "SUCCEEDED")
+
+    results = query_runner.run_multiple_queries(["MERGE INTO t"], deadline=100)
+
+    assert _ids(results) == ["exec_id_2"]
+    assert len(set(tokens)) == 2
     stubbed_athena_client.assert_no_pending_responses()
 
 
@@ -375,8 +405,8 @@ def test_run_multiple_queries_with_a_deadline_stops_its_other_queries_when_one_f
     query_runner, stubbed_athena_client, clock
 ):
     queries = ["SELECT 1", "SELECT 2"]
-    _stub_start(stubbed_athena_client, queries[0], "exec_id_1")
-    _stub_start(stubbed_athena_client, queries[1], "exec_id_2")
+    _stub_timed_start(stubbed_athena_client, queries[0], "exec_id_1")
+    _stub_timed_start(stubbed_athena_client, queries[1], "exec_id_2")
     _stub_status(stubbed_athena_client, "exec_id_1", "FAILED", "SYNTAX_ERROR: line 1:1: mismatched input")
     _stub_stop(stubbed_athena_client, "exec_id_2")
 
