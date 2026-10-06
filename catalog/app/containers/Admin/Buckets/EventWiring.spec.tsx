@@ -60,11 +60,18 @@ describe('containers/Admin/Buckets/EventWiring', () => {
     ],
     [
       currentWiring('arn:aws:sns:us-east-1:123456789012:fanout'),
-      'Quilt didn’t create it',
+      'the registry didn’t create it',
+    ],
+    [
+      currentWiring('arn:aws:sns:us-east-1:123456789012:fanout'),
+      'swap it for a new Quilt topic',
     ],
   ])('describes %j', (wiring, sentence) => {
     const { container } = render(<Today wiring={wiring} />)
-    expect(container.textContent).toContain(sentence)
-    cleanup()
+    try {
+      expect(container.textContent).toContain(sentence)
+    } finally {
+      cleanup()
+    }
   })
 })

@@ -75,6 +75,13 @@ const useStyles = M.makeStyles((t) => ({
   health: {
     marginTop: t.spacing(1),
   },
+  srOnly: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    overflow: 'hidden',
+    clip: 'rect(0 0 0 0)',
+  },
 }))
 
 interface CodeProps {
@@ -84,16 +91,22 @@ interface CodeProps {
 function Code({ children }: CodeProps) {
   const classes = useStyles()
   const [copied, setCopied] = React.useState(false)
+  // The copy helper's scratch textarea must sit inside the dialog: the dialog's focus
+  // trap pulls focus out of anything appended to document.body and the copy is lost.
+  const containerRef = React.useRef<HTMLDivElement>(null)
   const copy = React.useCallback(() => {
-    setCopied(copyToClipboard(children))
+    setCopied(copyToClipboard(children, { container: containerRef.current }))
   }, [children])
   return (
-    <>
+    <div ref={containerRef}>
       <pre className={classes.code}>{children}</pre>
       <M.Button size="small" onClick={copy}>
         {copied ? 'Copied' : 'Copy'}
       </M.Button>
-    </>
+      <span aria-live="polite" className={classes.srOnly}>
+        {copied ? 'Copied to clipboard' : ''}
+      </span>
+    </div>
   )
 }
 
@@ -121,8 +134,10 @@ export function Today({ wiring }: { wiring: CurrentWiring }) {
           {wiring.managed ? 'Quilt-named' : 'Your'} SNS topic in account{' '}
           <strong>{wiring.account}</strong>, region <strong>{wiring.region}</strong>.{' '}
           {wiring.managed
-            ? 'Quilt likely created it and replaced the bucket’s notification configuration to wire it.'
-            : 'Quilt subscribes to it; Quilt didn’t create it.'}
+            ? 'The registry likely created it, writing the bucket’s notification configuration when it had none.'
+            : 'Quilt subscribes to it; the registry didn’t create it.'}{' '}
+          Re-index and repair would swap it for a new Quilt topic and replace the bucket’s
+          notification configuration, removing its other targets.
         </>
       )
   }
@@ -244,7 +259,7 @@ export default function EventWiring({
           events on it. A stack-side normalizer feeds search, package events and your
           EventBridge rules in the same shapes as today
           {prefixes?.some(Boolean) &&
-            ', though those rules only see the scoped prefixes and .quilt/'}
+            '. Unlike today, live updates then cover only the scoped prefixes and .quilt/: writes elsewhere reach search only on a bulk scan'}
           .
         </M.Typography>
 
