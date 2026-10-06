@@ -442,7 +442,7 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
             helperText={
               errors.secret ??
               (existing?.hasSecret
-                ? 'Stored. Leave blank to keep it.'
+                ? 'Stored. Leave blank to keep it; a new endpoint host clears it.'
                 : 'Write-only: it cannot be read back.')
             }
             size="small"
@@ -638,7 +638,8 @@ export default function McpServerSettings() {
       <M.Typography variant="body2" color="textSecondary">
         MCP servers Qurator may use. The registry relays every call, so a server’s
         credential never reaches a browser. Enabling a server lets it see what users ask
-        Qurator about their data.
+        Qurator about their data. Disabling or removing one takes effect at once; other
+        changes reach Qurator on each user’s next page load.
       </M.Typography>
 
       {GQL.fold(query, {
