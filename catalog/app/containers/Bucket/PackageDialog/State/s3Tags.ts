@@ -13,7 +13,15 @@ export function useS3TagsConfig(
   open: boolean,
   bucket: string,
 ): { config: S3TagsConfigState; loading: boolean } {
-  const res = GQL.useQuery(BUCKET_OBJECT_TAGS_CONFIG_QUERY, { bucket }, { pause: !open })
+  const res = GQL.useQuery(
+    BUCKET_OBJECT_TAGS_CONFIG_QUERY,
+    { bucket },
+    {
+      pause: !open,
+      // An admin may have changed the mapping since this browser cached it.
+      requestPolicy: 'network-only',
+    },
+  )
   return React.useMemo(() => {
     if (!open) return { config: null, loading: false }
     return GQL.fold(res, {
