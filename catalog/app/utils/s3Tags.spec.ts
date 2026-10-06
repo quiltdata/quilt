@@ -9,6 +9,10 @@ describe('utils/s3Tags', () => {
     expect(() => S3Tags.parseConfig({})).toThrow()
     expect(() => S3Tags.parseConfig({ tags: { 'aws:x': '/x' } })).toThrow(/reserved/)
     expect(() => S3Tags.parseConfig({ tags: { x: 'x' } })).toThrow(/JSON pointer/)
+    const eleven = Object.fromEntries(
+      Array.from({ length: 11 }, (_, i) => [`k${i}`, '/x']),
+    )
+    expect(() => S3Tags.parseConfig({ tags: eleven })).toThrow(/at most 10/)
   })
 
   it('projects scalar values and flags the rest', () => {
@@ -36,5 +40,11 @@ describe('utils/s3Tags', () => {
         constructor: 'x',
       },
     )
+  })
+
+  it("doesn't copy inherited Object props into the tag set", () => {
+    const own = S3Tags.parseConfig({ tags: { constructor: '/c' } })
+    const projected = S3Tags.project(own, { c: { x: 1 } })
+    expect(S3Tags.merge(own, projected, {})).toEqual({})
   })
 })

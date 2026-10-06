@@ -65,6 +65,7 @@ export interface State {
   workflowsConfig: WorkflowsConfigStatus
   metadataSchema: SchemaStatus
   s3TagsConfig: S3TagsConfigState
+  s3TagsLoading: boolean
 
   params: FormParams
   formStatus: FormStatus
@@ -113,7 +114,10 @@ export function useState(
   const manifest = useManifestRequest(!!open, src, disableRestore)
   const workflowsConfig = useWorkflowsConfig(!!open, dst)
   // The copy dialog doesn't write tags.
-  const s3TagsConfig = useS3TagsConfig(!!open && !disableRestore, dst.bucket)
+  const { config: s3TagsConfig, loading: s3TagsLoading } = useS3TagsConfig(
+    !!open && !disableRestore,
+    dst.bucket,
+  )
 
   const workflow = useWorkflow(formStatus, manifest, workflowsConfig)
 
@@ -177,6 +181,7 @@ export function useState(
     metadataSchema,
     entriesSchema,
     s3TagsConfig,
+    s3TagsLoading,
 
     create,
     copy,

@@ -19,6 +19,9 @@ export function parseConfig(input: unknown): S3TagsConfig {
   if (!tags || typeof tags !== 'object' || Array.isArray(tags)) {
     throw new Error('s3_tags config must have a `tags` map of tag key to JSON pointer')
   }
+  if (Object.keys(tags).length > MAX_TAGS) {
+    throw new Error(`s3_tags: at most ${MAX_TAGS} tags, the S3 limit per object`)
+  }
   Object.entries(tags).forEach(([key, pointer]) => {
     if (typeof pointer !== 'string' || !pointer.startsWith('/')) {
       throw new Error(`s3_tags: tag "${key}" must map to a JSON pointer like "/field"`)
@@ -73,13 +76,13 @@ export function merge(
   existing: Record<string, string>,
 ): Record<string, string> {
   const merged: Record<string, string> = {}
-  const owned = (k: string) => Object.prototype.hasOwnProperty.call(config.tags, k)
+  const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
   Object.entries(existing).forEach(([k, v]) => {
-    if (!owned(k)) merged[k] = v
+    if (!has(config.tags, k)) merged[k] = v
   })
   projected.forEach(({ key, value, error }) => {
     if (error) {
-      if (key in existing) merged[key] = existing[key]
+      if (has(existing, key)) merged[key] = existing[key]
     } else if (value !== undefined) {
       merged[key] = value
     }

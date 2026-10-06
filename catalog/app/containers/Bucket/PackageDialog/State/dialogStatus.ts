@@ -7,6 +7,7 @@ interface DialogStatusDeps {
   formStatus: FormStatus
   manifest: ManifestStatus
   resolveError: Error | null
+  s3TagsLoading?: boolean
   waitingListing: boolean
   workflowsConfig: WorkflowsConfigStatus
 }
@@ -15,6 +16,7 @@ export function computeDialogStatus({
   formStatus,
   manifest,
   resolveError,
+  s3TagsLoading,
   waitingListing,
   workflowsConfig,
 }: DialogStatusDeps): DialogStatus {
@@ -23,7 +25,11 @@ export function computeDialogStatus({
     return { _tag: 'success', ...formStatus.handle, s3Tags: formStatus.s3Tags }
   }
   if (waitingListing) return { _tag: 'loading', waitListing: true }
-  if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
+  if (
+    workflowsConfig._tag === 'loading' ||
+    manifest._tag === 'loading' ||
+    s3TagsLoading
+  ) {
     return { _tag: 'loading', waitListing: false }
   }
   if (workflowsConfig._tag === 'error') {

@@ -207,5 +207,33 @@ describe('app/containers/Bucket/requests/object', () => {
         },
       })
     })
+
+    it("doesn't write or count a tag set that is already up to date", async () => {
+      const putObjectTagging = vi.fn()
+      const s3 = {
+        headObject: () => ({ promise: () => Promise.resolve({ VersionId: 'v1' }) }),
+        getObjectTagging: () => ({
+          promise: () =>
+            Promise.resolve({ TagSet: [{ Key: 'project', Value: 'apollo' }] }),
+        }),
+        putObjectTagging,
+      } as unknown as S3
+
+      const result = await applyS3Tags({
+        s3,
+        config: { tags: { project: '/project' } },
+        meta: { project: 'apollo' },
+        bucket: 'b',
+        physicalKeys: ['s3://b/k?versionId=v1'],
+      })
+
+      expect(result).toEqual({
+        tagged: 0,
+        skipped: [
+          { physicalKey: 's3://b/k?versionId=v1', reason: 'Tags already up to date' },
+        ],
+      })
+      expect(putObjectTagging).not.toHaveBeenCalled()
+    })
   })
 })

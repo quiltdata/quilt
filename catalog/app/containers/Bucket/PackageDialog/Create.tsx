@@ -423,6 +423,7 @@ export function useCreateDialog({
     manifest,
     open: isOpen,
     reset,
+    s3TagsLoading,
     setDst,
     setOpen,
     workflowsConfig,
@@ -483,6 +484,7 @@ export function useCreateDialog({
     formStatus,
     manifest,
     resolveError,
+    s3TagsLoading,
     waitingListing,
     workflowsConfig,
   })

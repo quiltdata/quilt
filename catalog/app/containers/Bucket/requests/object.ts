@@ -1,4 +1,5 @@
 import type { S3 } from 'aws-sdk'
+import * as R from 'ramda'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
 import { getArchiveState } from 'utils/glacier'
@@ -276,6 +277,7 @@ export async function applyS3Tags({
       if (Object.keys(tags).length > S3Tags.MAX_TAGS) {
         return skip(physicalKey, 'More than 10 tags')
       }
+      if (R.equals(tags, existing)) return skip(physicalKey, 'Tags already up to date')
       // ponytail: a write landing after headObject gets these tags; the projector tags by version.
       await s3
         .putObjectTagging({
