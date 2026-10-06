@@ -81,6 +81,12 @@ function TryIt({ workflow, metadataSchema }: TryItProps) {
 
   const issues = React.useMemo((): checks.Issue[] => {
     // Fail closed: a schema we couldn't load must not read as "passes".
+    if (workflow.undefinedSchemas?.length) {
+      return workflow.undefinedSchemas.map((id) => ({
+        path: 'workflow',
+        message: `There is no '${id}' in schemas.`,
+      }))
+    }
     if (workflow.schema) {
       if (metadataSchema === Request.Idle || metadataSchema === Request.Loading) {
         return [{ path: 'metadata', message: 'Loading the metadata schema…' }]
@@ -180,6 +186,12 @@ export default function Health({ workflow }: HealthProps) {
           {workflow.packageNamePatternError}). Pushes still enforce it.
         </M.Typography>
       )}
+      {workflow.undefinedSchemas?.map((id) => (
+        <M.Typography key={id} variant="body2" color="error" gutterBottom>
+          Schema &quot;{id}&quot; is not defined under <code>schemas</code> in the config,
+          so every push with this workflow fails.
+        </M.Typography>
+      ))}
       {hasSchemas ? (
         <M.List dense>
           <SchemaCheck
@@ -193,7 +205,7 @@ export default function Health({ workflow }: HealthProps) {
             result={entriesSchema}
           />
         </M.List>
-      ) : (
+      ) : workflow.undefinedSchemas?.length ? null : (
         <M.Typography variant="body2">
           No schemas: only the package name and message rules apply.
         </M.Typography>

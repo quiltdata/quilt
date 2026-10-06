@@ -71,6 +71,7 @@ export interface Workflow {
   name?: string
   packageNamePattern: RegExp | null
   packageNamePatternError?: string
+  undefinedSchemas?: string[]
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
@@ -185,6 +186,10 @@ function parseWorkflow(
       workflow.catalog?.package_handle,
     ),
     ...compilePattern(workflow.handle_pattern),
+    // quilt3 rejects every push through such a workflow ("There is no ... in schemas").
+    undefinedSchemas: [workflow.metadata_schema, workflow.entries_schema].filter(
+      (id): id is string => !!id && !data.schemas?.[id],
+    ),
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
     schemas: {

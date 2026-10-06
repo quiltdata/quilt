@@ -269,4 +269,18 @@ describe('utils/workflows', () => {
       expect(w.packageNamePatternError).toMatch('Invalid')
     })
   })
+  describe('workflow naming a schema the config does not define', () => {
+    const data = dedent`
+      version: "1"
+      workflows:
+        a:
+          name: A
+          metadata_schema: missing
+    `
+    it('reports it, since push rejects that workflow', () => {
+      expect(workflows.parse(data, 'foo').workflows[1].undefinedSchemas).toEqual([
+        'missing',
+      ])
+    })
+  })
 })
