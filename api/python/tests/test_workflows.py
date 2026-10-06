@@ -185,6 +185,22 @@ class WorkflowValidatorTest(unittest.TestCase, WorkflowValidatorTestMixin):
         with pytest.raises(workflows.WorkflowValidationError):
             workflow_validator.validate_metadata({})
 
+    def test_validate_metadata_reports_every_error(self):
+        schema = {'type': 'object', 'required': ['a'], 'properties': {'b': {'type': 'number'}, 'c': {'type': 'string'}}}
+        workflow_validator = self.get_workflow_validator(metadata_validator=self.JSON_SCHEMA_VALIDATOR_CLS(schema))
+        with pytest.raises(workflows.WorkflowValidationError) as exc_info:
+            workflow_validator.validate_metadata({'b': 'x', 'c': 1})
+
+        first = next(self.JSON_SCHEMA_VALIDATOR_CLS(schema).iter_errors({'b': 'x', 'c': 1}))
+        assert str(exc_info.value) == f'Metadata failed validation: {first.message}.'
+        assert [e['path'] for e in exc_info.value.errors] == ['meta', 'meta/b', 'meta/c']
+
+    def test_validate_name_reports_path(self):
+        workflow_validator = self.get_workflow_validator(pkg_name_pattern=re.compile('^lab/'))
+        with pytest.raises(workflows.WorkflowValidationError) as exc_info:
+            workflow_validator.validate_name('x/y')
+        assert exc_info.value.errors == [{'path': 'name', 'message': "Package name doesn't match required pattern."}]
+
     @mock.patch.object(workflows.WorkflowValidator, 'get_pkg_entries_for_validation')
     def test_validate_pkg_entries_noop(self, get_pkg_entries_for_validation_mock):
         workflow_validator = self.get_workflow_validator()

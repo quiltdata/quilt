@@ -1,4 +1,5 @@
 import functools
+import itertools
 import json
 import re
 import typing
@@ -35,6 +36,9 @@ JSONSchemaError = jsonschema.ValidationError | jsonschema.SchemaError
 
 class WorkflowErrorBase(util.QuiltException):
     schema_validation_error: JSONSchemaError = None
+    # Every failure as {"path", "message"}; `path` is "name", "message", or a JSON pointer
+    # prefixed by what was validated ("meta/a/b", "entries/0/logical_key").
+    errors: list[dict] = []
 
     @classmethod
     def from_schema_validation_error(cls, message: str, err: JSONSchemaError):
@@ -55,6 +59,23 @@ class UnsupportedConfigurationVersionError(ConfigurationError):
 
 class WorkflowValidationError(WorkflowErrorBase):
     pass
+
+
+MAX_REPORTED_ERRORS = 20
+
+
+def _raise_all(validator, instance, message: str, prefix: str):
+    # The message keeps naming the first error `iter_errors` yields, which is the one
+    # `validator.validate()` would have raised, so `str(e)` is unchanged.
+    errors = list(itertools.islice(validator.iter_errors(instance), MAX_REPORTED_ERRORS))
+    if not errors:
+        return
+    exc = WorkflowValidationError.from_schema_validation_error(message, errors[0])
+    exc.errors = sorted(
+        ({'path': '/'.join([prefix, *map(str, e.absolute_path)]), 'message': e.message} for e in errors),
+        key=lambda e: e['path'],
+    )
+    raise exc
 
 
 @functools.cache
@@ -234,29 +255,31 @@ class WorkflowValidator(typing.NamedTuple):
     metadata_validator: typing.Any
     entries_validator: typing.Any
 
+    @staticmethod
+    def _error(path, message):
+        exc = WorkflowValidationError(message)
+        exc.errors = [{'path': path, 'message': message}]
+        return exc
+
     def validate_name(self, name):
         if self.pkg_name_pattern and not self.pkg_name_pattern.search(name):
-            raise WorkflowValidationError("Package name doesn't match required pattern.")
+            raise self._error('name', "Package name doesn't match required pattern.")
 
     def validate_message(self, message):
         if self.is_message_required and not message:
-            raise WorkflowValidationError('Commit message is required by workflow, but none was provided.')
+            raise self._error('message', 'Commit message is required by workflow, but none was provided.')
 
     def validate_metadata(self, meta):
         if self.metadata_validator is None:
             return
-        try:
-            self.metadata_validator.validate(meta)
-        except jsonschema.ValidationError as e:
-            raise WorkflowValidationError.from_schema_validation_error('Metadata failed validation', e) from e
+        _raise_all(self.metadata_validator, meta, 'Metadata failed validation', 'meta')
 
     def validate_entries(self, pkg):
         if self.entries_validator is None:
             return
-        try:
-            self.entries_validator.validate(self.get_pkg_entries_for_validation(pkg))
-        except jsonschema.ValidationError as e:
-            raise WorkflowValidationError.from_schema_validation_error("Package entries failed validation", e) from e
+        _raise_all(
+            self.entries_validator, self.get_pkg_entries_for_validation(pkg), 'Package entries failed validation', 'entries'
+        )
 
     def get_pkg_entries_for_validation(self, pkg):
         # TODO: this should be validated without fully populating array.

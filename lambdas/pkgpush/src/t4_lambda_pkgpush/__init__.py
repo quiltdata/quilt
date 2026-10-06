@@ -164,10 +164,9 @@ def get_checksum_algorithms():
 class PkgpushException(LambdaError):
     @classmethod
     def from_quilt_exception(cls, qe: quilt3.util.QuiltException):
-        name = (
-            "WorkflowValidationError" if isinstance(qe, quilt3.workflows.WorkflowValidationError) else "QuiltException"
-        )
-        return cls(name, {"details": qe.message})
+        if isinstance(qe, quilt3.workflows.WorkflowValidationError):
+            return cls("WorkflowValidationError", {"details": qe.message, "errors": qe.errors})
+        return cls("QuiltException", {"details": qe.message})
 
 
 def invoke_lambda(*, function_name: str, params: pydantic.v1.BaseModel, err_prefix: str):
