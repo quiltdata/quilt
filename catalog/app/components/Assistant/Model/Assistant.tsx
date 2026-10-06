@@ -316,17 +316,21 @@ function useSessions(
   const [choice, setChoice] = React.useState<boolean | null>(null)
   const enabled = available && (choice ?? !!query.data?.me?.quratorSessionsEnabled)
   const sessions = query.data?.me?.quratorSessions
-  const list = React.useMemo(() => (enabled && sessions) || [], [enabled, sessions])
+  // One emptied by discarding everything holds nothing to reopen.
+  const list = React.useMemo(
+    () => (enabled && sessions?.filter((s) => s.eventCount > 0)) || [],
+    [enabled, sessions],
+  )
   const head = state.events[0]?.id
   const currentId = Eff.Option.getOrNull(state.sessionId)
 
   const [notice, setNotice] = React.useState<{ head?: string; text: string } | null>(null)
 
-  const refresh = React.useCallback(
-    () => query.run({ requestPolicy: 'network-only' }),
-    [query],
-  )
+  const { run } = query
+  const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
   const passThru = usePassThru({ saveSession, dispatch, refresh })
+  const settled = !!query.data
+  const offHead = React.useRef<string>()
   const opening = React.useRef<{
     id: string
     version: number
@@ -373,14 +377,18 @@ function useSessions(
     }
     if (!enabled) {
       queue.pause()
+      // Known off, not still loading: what is said now is never saved, even
+      // once sessions are turned back on.
+      if (settled) offHead.current = head
       return
     }
     queue.resume()
+    if (head && head === offHead.current) return
     // An empty conversation is never created, but a saved one is emptied when
     // everything in it is discarded, so the discarded messages do not reopen.
     if (head && (currentId || state.events.some((e) => !e.discarded)))
       queue.change(head, state.events)
-  }, [enabled, head, currentId, state.events, queue])
+  }, [enabled, settled, head, currentId, state.events, queue])
 
   React.useEffect(() => () => queue.pause(), [queue])
 
@@ -429,11 +437,14 @@ function useSessions(
   const setEnabled = React.useCallback(
     async (on: boolean) => {
       setChoice(on)
-      const r = await setSessionsEnabled({ enabled: on }).catch(() => null)
-      if (r?.quratorSessionsSetEnabled.__typename !== 'Ok') setChoice(null)
-      refresh()
+      await setSessionsEnabled({ enabled: on }).catch(() => null)
+      // The registry's answer stands from here, including a change from another tab.
+      await client
+        .query(SESSIONS_QUERY, {}, { requestPolicy: 'network-only' })
+        .toPromise()
+      setChoice(null)
     },
-    [setSessionsEnabled, refresh],
+    [client, setSessionsEnabled],
   )
 
   return React.useMemo(

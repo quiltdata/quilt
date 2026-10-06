@@ -162,6 +162,7 @@ const kept = () =>
         id: 's1',
         title: 'Find my packages',
         updatedAt: new Date(),
+        eventCount: 2,
       },
     ],
   })
@@ -183,10 +184,18 @@ describe('components/Assistant/UI/Chat/LastSession', () => {
   it('shows the exact time on hover', () => {
     const updatedAt = new Date('2026-10-06T12:00:00Z')
     const sessions = sessionsStub({
-      list: [{ __typename: 'QuratorSession', id: 's1', title: 't', updatedAt }],
+      list: [
+        { __typename: 'QuratorSession', id: 's1', title: 't', updatedAt, eventCount: 1 },
+      ],
     })
     render(<LastSession sessions={sessions} state={state([])} />)
     expect(screen.getByTitle(updatedAt.toLocaleString())).toBeTruthy()
+  })
+
+  it('never offers the session already on screen', () => {
+    const sessions = { ...kept(), currentId: 's1' }
+    render(<LastSession sessions={sessions} state={state([])} />)
+    expect(screen.queryByText(/Last session/)).toBeNull()
   })
 
   it('stays out of a chat already under way', () => {

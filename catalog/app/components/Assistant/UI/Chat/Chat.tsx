@@ -2,7 +2,6 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as dateFns from 'date-fns'
 
 import { useConfirm } from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
@@ -10,6 +9,7 @@ import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
 import * as Buckets from 'utils/Buckets'
 import { runtime } from 'utils/Effect'
+import * as Format from 'utils/format'
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
@@ -451,7 +451,7 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
 function SavedAgo({ date }: { date: Date }) {
   return (
     <span title={date.toLocaleString()}>
-      {dateFns.formatDistanceToNow(date, { addSuffix: true })}
+      <Format.Relative value={date} />
     </span>
   )
 }
@@ -471,7 +471,7 @@ interface LastSessionProps {
 
 /** Offered, never opened by itself: two tabs would otherwise write one session. */
 export function LastSession({ sessions, state }: LastSessionProps) {
-  const last = sessions.list[0]
+  const last = sessions.list.find((s) => s.id !== sessions.currentId)
   if (!last || state.events.some((e) => !e.discarded)) return null
   return (
     <MessageContainer

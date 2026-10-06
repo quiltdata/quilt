@@ -22,6 +22,7 @@ export interface components_Assistant_Model_gql_QuratorSessionsQuery {
       readonly id: string
       readonly title: string
       readonly updatedAt: Date
+      readonly eventCount: number
     }>
   } | null
   readonly config: {
@@ -63,6 +64,7 @@ export const components_Assistant_Model_gql_QuratorSessionsDocument = {
                       { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'eventCount' } },
                     ],
                   },
                 },

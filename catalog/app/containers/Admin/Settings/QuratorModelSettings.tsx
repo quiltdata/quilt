@@ -400,7 +400,8 @@ function Editor({ config, available, unavailable }: EditorProps) {
           <M.TextField
             size="small"
             variant="outlined"
-            type="number"
+            // Not type="number": a browser hands an invalid entry over as "", the default.
+            inputProps={{ inputMode: 'numeric' }}
             id="qurator-session-retention"
             label="Keep for (days)"
             placeholder="90"
@@ -415,7 +416,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
           <M.TextField
             size="small"
             variant="outlined"
-            type="number"
+            inputProps={{ inputMode: 'numeric' }}
             id="qurator-session-max"
             label="Most per user"
             placeholder="50"
