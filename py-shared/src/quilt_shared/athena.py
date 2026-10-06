@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import random
 import re
 import time
@@ -160,8 +159,7 @@ class QueryRunner:
 
         Returns:
             list[QueryExecutionTypeDef]: List of query execution results in the same order as input queries.
-                Each element contains the full query execution information from Athena, or None for a statement
-                not run, given a deadline.
+                Each element contains the full query execution information from Athena, or None as above.
 
         Raises:
             Exception: If a query fails and raise_on_failed is True.
@@ -183,14 +181,16 @@ class QueryRunner:
         attempts: dict[int, int] = {}
 
         def left() -> float:
-            return math.inf if deadline is None else deadline - time.monotonic()
+            return float("inf") if deadline is None else deadline - time.monotonic()
 
+        def nap(sec: float) -> None:
+            time.sleep(max(0, min(sec, left())))
+
+        # Given a deadline, a refused start or poll is retried rather than raised.
+        refused = (BotoCoreError, ClientError) if deadline is not None else ()
         # Athena answers a repeated token with the execution it already started, so retrying a refused start
         # never runs a statement twice; a commit-conflict retry, a new attempt, takes a new token.
         run = uuid.uuid4().hex
-
-        def token(idx: int) -> str | None:
-            return None if deadline is None else f"{run}-{idx}-{attempts.get(idx, 0)}"
 
         try:
             while remaining_queries or pending_execution_ids:
@@ -203,9 +203,7 @@ class QueryRunner:
                     # Ask for the record rather than the exception, so a commit conflict can be retried.
                     try:
                         query_execution = self.query_finished(execution_id, raise_on_failed=False)
-                    except (BotoCoreError, ClientError):
-                        if deadline is None:
-                            raise
+                    except refused:
                         self.logger.warning("Could not poll Athena query %s", execution_id, exc_info=True)
                         continue
                     if query_execution is None:
@@ -237,25 +235,23 @@ class QueryRunner:
                     break
 
                 if backoff_sec:
-                    time.sleep(min(backoff_sec, left()))
+                    nap(backoff_sec)
 
                 # Start new queries.
                 while remaining_queries and len(pending_execution_ids) < max_current_queries and left() > 0:
                     idx, query = remaining_queries.pop()
+                    token = None if deadline is None else f"{run}-{idx}-{attempts.get(idx, 0)}"
                     try:
-                        execution_id = self.start_query(query, token=token(idx))
-                    except (BotoCoreError, ClientError):
-                        if deadline is None:
-                            raise
+                        execution_id = self.start_query(query, token=token)
+                    except refused:
                         self.logger.warning("Could not start an Athena query; retrying it", exc_info=True)
                         remaining_queries.append((idx, query))
                         break
                     pending_execution_ids[execution_id] = idx
                     attempts[idx] = attempts.get(idx, 0) + 1
 
-                time.sleep(min(sleep_sec, max(left(), 0)))
+                nap(sleep_sec)
         finally:
-            # However this stops, given a deadline, nothing it started is left running.
             if deadline is not None:
                 for execution_id in pending_execution_ids:
                     try:

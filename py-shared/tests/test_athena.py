@@ -418,7 +418,8 @@ def test_run_multiple_queries_with_a_deadline_stops_its_other_queries_when_one_f
 
 def test_run_multiple_queries_without_a_deadline_raises_a_refused_poll(query_runner, stubbed_athena_client, clock):
     _stub_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
-    stubbed_athena_client.add_client_error("get_query_execution", service_error_code="InvalidRequestException")
+    _refuse(stubbed_athena_client, "get_query_execution")
+    _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")  # what a retry would see
 
     with pytest.raises(ClientError):
         query_runner.run_multiple_queries(["SELECT 1"])
