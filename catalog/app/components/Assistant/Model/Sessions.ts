@@ -54,7 +54,29 @@ const storeBlock = (b: Content.MessageContentBlock | Content.ToolResultContentBl
       ? { _tag: 'Json' as const, json: b.json }
       : { _tag: 'Text' as const, text: b.text }
 
+// Postgres JSONB refuses NUL and lone surrogates, which a file preview or a query
+// row can carry; one such character would make every save of the session fail.
+const SURROGATES = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDFFF]/g
+
+const storable = (v: unknown): unknown => {
+  if (typeof v === 'string')
+    return v
+      .split('\u0000')
+      .join('')
+      .replace(SURROGATES, (m) => (m.length === 2 ? m : '�'))
+  if (Array.isArray(v)) return v.map(storable)
+  if (v && typeof v === 'object')
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [storable(k) as string, storable(x)]),
+    )
+  return v
+}
+
 export function encode(events: readonly Conversation.Event[]): Envelope {
+  return storable(encodeRaw(events)) as Envelope
+}
+
+function encodeRaw(events: readonly Conversation.Event[]): Envelope {
   return {
     v: 1,
     events: events
@@ -136,7 +158,7 @@ export function titleOf(events: readonly Conversation.Event[]): string {
     : line
 }
 
-export type Stop = 'TooLarge' | 'Disabled'
+export type Stop = 'TooLarge' | 'BadEnvelope' | 'Disabled'
 
 export type SaveOutcome =
   | { readonly _tag: 'Saved'; readonly id: string; readonly version: number }
@@ -151,7 +173,7 @@ type SaveResult =
   | { readonly __typename: 'InvalidInput'; readonly errors: readonly { name: string }[] }
   | { readonly __typename: 'OperationError'; readonly name: string }
 
-const OUTCOMES = ['Conflict', 'NotFound', 'TooLarge', 'Disabled'] as const
+const OUTCOMES = ['Conflict', 'NotFound', 'TooLarge', 'BadEnvelope', 'Disabled'] as const
 
 export function outcomeOf(r: SaveResult): SaveOutcome {
   if (r.__typename === 'QuratorSession')
@@ -268,6 +290,7 @@ export function createSaveQueue<T>({
             s.sent = null
             break
           case 'TooLarge':
+          case 'BadEnvelope':
             s.stopped = true
             onStopped(s.head, r._tag)
             break

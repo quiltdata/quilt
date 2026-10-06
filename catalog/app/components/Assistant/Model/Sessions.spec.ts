@@ -63,6 +63,19 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(serialized).toContain('[document a.csv not retained')
     })
 
+    it('makes every string storable: no NUL, no lone surrogate', () => {
+      const env = Sessions.encode([
+        toolUse('1', [
+          Content.ToolResultContentBlock.Text({ text: 'a\u0000b\uD800c😀' }),
+          Content.ToolResultContentBlock.Json({ json: { 'k\u0000': ['\uDC00'] } }),
+        ]),
+      ])
+      expect(JSON.stringify(env)).not.toMatch(/\\u0000|\\ud8|\\udc/i)
+      const [textBlock, json] = (env.events[0] as any).result.content
+      expect(textBlock.text).toBe('ab�c😀')
+      expect(json.json).toEqual({ k: ['�'] })
+    })
+
     it('drops discarded events', () => {
       const kept = message('1', 'user', text('keep'))
       const gone = { ...message('2', 'user', text('gone')), discarded: true }
@@ -106,7 +119,8 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(invalid('Conflict')).toBe('Conflict')
       expect(invalid('NotFound')).toBe('NotFound')
       expect(invalid('TooLarge')).toBe('TooLarge')
-      expect(invalid('BadEnvelope')).toBe('Failed')
+      expect(invalid('BadEnvelope')).toBe('BadEnvelope')
+      expect(invalid('Whatever')).toBe('Failed')
       expect(
         Sessions.outcomeOf({ __typename: 'OperationError', name: 'Disabled' })._tag,
       ).toBe('Disabled')
@@ -351,12 +365,21 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(settled).toBe(true)
     })
 
-    it('settles a flush on a save that fails twice, without waiting out the retry delay', async () => {
-      const { queue } = setup(async () => ({ _tag: 'Failed' }))
-      queue.change('h', 'a')
+    it('sends the retry of an update at once when a flush is waiting', async () => {
+      let resolve: (o: Sessions.SaveOutcome) => void = () => {}
+      const { queue, send } = setup((r) =>
+        send.mock.calls.length === 1
+          ? new Promise((res) => (resolve = res))
+          : Promise.resolve(saved(r.id!, 3)),
+      )
+      queue.adopt('h', 'S', 1, 'x')
+      queue.change('h', 'xy')
+      await vi.advanceTimersByTimeAsync(1000)
       let settled = false
       queue.flush().then(() => (settled = true))
+      resolve({ _tag: 'Failed' })
       await vi.advanceTimersByTimeAsync(0)
+      expect(send).toHaveBeenCalledTimes(2)
       expect(settled).toBe(true)
     })
 

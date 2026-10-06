@@ -483,20 +483,6 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                       },
                     },
                 )
-                // Separately: a cache without this field must not block the write above.
-                cache.updateQuery(
-                  { query: urql.gql`{ config { quratorModels { sessionsEnabled } } }` },
-                  (data) =>
-                    data && {
-                      config: {
-                        ...data.config,
-                        quratorModels: {
-                          __typename: 'QuratorModelConfig',
-                          sessionsEnabled: saved.models.sessionsEnabled,
-                        },
-                      },
-                    },
-                )
               }
               if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(

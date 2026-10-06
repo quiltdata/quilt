@@ -291,6 +291,11 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 }
 
 const TOO_LARGE = 'This session is too long to keep — start a new one'
+const UNSAVABLE = "This session can't be kept — start a new one"
+
+// A hung save must not keep the chat locked: a late reply is dropped as stale.
+const settle = (p: Promise<void>) =>
+  Promise.race([p, new Promise<void>((resolve) => setTimeout(resolve, 10_000))])
 const UNREADABLE = "That session couldn't be opened"
 const UNDELETABLE = "That session couldn't be deleted"
 const UNSWITCHABLE = "Keep sessions couldn't be changed"
@@ -299,7 +304,7 @@ const UNSWITCHABLE = "Keep sessions couldn't be changed"
  * No save on page exit: `sendBeacon` and `fetch(keepalive)` cap the body at
  * 64 KiB and a session can be 1 MiB, so a reload loses the last debounce.
  */
-function useSessions(
+export function useSessions(
   state: Conversation.State,
   dispatch: (action: Conversation.Action) => unknown,
 ) {
@@ -361,8 +366,8 @@ function useSessions(
       },
       isEmpty: (events) => events.every((e) => e.discarded),
       onStopped: (h, reason) => {
-        if (reason === 'TooLarge') setNotice({ head: h, text: TOO_LARGE })
-        else passThru.current.refresh()
+        if (reason === 'Disabled') passThru.current.refresh()
+        else setNotice({ head: h, text: reason === 'TooLarge' ? TOO_LARGE : UNSAVABLE })
       },
     }),
   )
@@ -410,7 +415,7 @@ function useSessions(
         if (id === currentId) return
         const ticket = ++latestOpen.current
         // The session being opened may be the one just left, with its last save pending.
-        await queue.flush()
+        await settle(queue.flush())
         const r = await client
           .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
           .toPromise()
@@ -435,7 +440,7 @@ function useSessions(
         // Held before anything else, so no save of it, nor a fork of one,
         // meets the delete and recreates it.
         queue.hold(id)
-        await queue.flush()
+        await settle(queue.flush())
         const r = (await deleteSession({ id }).catch(() => null))?.quratorSessionDelete
         // Already gone (expired, or deleted elsewhere) is as good as deleted.
         const deleted =
