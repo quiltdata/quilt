@@ -154,7 +154,7 @@ class S3:
         self.reads.append((Bucket, Key))
         body = self.objects.get((Bucket, Key))
         if body is None:
-            raise t4_lambda_iceberg.s3.exceptions.NoSuchKey({"Error": {"Code": "NoSuchKey"}}, "GetObject")
+            raise t4_lambda_iceberg.set_s3.exceptions.NoSuchKey({"Error": {"Code": "NoSuchKey"}}, "GetObject")
         if isinstance(body, Exception):
             raise body.with_traceback(None)
         return {"Body": StreamingBody(io.BytesIO(body), len(body))}
@@ -210,7 +210,7 @@ def athena(mocker, con, clock):
 @pytest.fixture
 def s3(mocker):
     fake = S3()
-    mocker.patch.object(t4_lambda_iceberg.s3, "get_object", fake.get_object)
+    mocker.patch.object(t4_lambda_iceberg.set_s3, "get_object", fake.get_object)
     return fake
 
 
@@ -299,13 +299,14 @@ def dead_lettered(sqs) -> dict[str, tuple[str, str, str]]:
     }
 
 
-def test_the_sets_athena_client_bounds_each_call():
-    """A structural test: the client's bounds are the contract that lets QueryRunner's deadline hold."""
-    config = t4_lambda_iceberg.set_athena.meta.config
+@pytest.mark.parametrize("name, shared", [("set_athena", "athena"), ("set_s3", "s3")])
+def test_the_sets_clients_bound_each_call(name, shared):
+    """A structural test: the clients' bounds are the contract that lets a batch be answered in time."""
+    config = getattr(t4_lambda_iceberg, name).meta.config
 
     assert (config.connect_timeout, config.read_timeout) == (5, 10)
     assert config.retries == {"mode": "standard", "total_max_attempts": 3}
-    assert t4_lambda_iceberg.set_athena is not t4_lambda_iceberg.athena
+    assert getattr(t4_lambda_iceberg, name) is not getattr(t4_lambda_iceberg, shared)
 
 
 @pytest.mark.parametrize(

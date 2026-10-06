@@ -23,14 +23,13 @@ from quilt_shared.iceberg_stack_queries import (
 )
 
 athena = boto3.client("athena")
-# The set's own, bounded so that a hung start or poll cannot keep QueryRunner from its deadline.
-set_athena = boto3.client(
-    "athena",
-    config=botocore.config.Config(
-        connect_timeout=5, read_timeout=10, retries={"mode": "standard", "total_max_attempts": 3}
-    ),
-)
 s3 = boto3.client("s3")
+# The set's own clients, bounded so that no hung call keeps a batch from its answer: about 48 s a call at most.
+_SET_CLIENT = botocore.config.Config(
+    connect_timeout=5, read_timeout=10, retries={"mode": "standard", "total_max_attempts": 3}
+)
+set_athena = boto3.client("athena", config=_SET_CLIENT)
+set_s3 = boto3.client("s3", config=_SET_CLIENT)
 # Bounded, so dead-lettering after the deadline cannot run into the invocation's timeout: one attempt, about 4 s at
 # most; a message whose send fails is returned for retry.
 sqs = boto3.client(
@@ -55,10 +54,10 @@ query_maker = QueryMaker(user_athena_db=QUILT_USER_ATHENA_DATABASE)
 
 
 def get_first_line(bucket, key) -> bytes | None:
-    """The object's first line, empty for an empty object, or None if there is no object."""
     try:
         resp = s3.get_object(Bucket=bucket, Key=key)
-        return next(iter(resp["Body"].iter_lines()), b"")
+        for line in resp["Body"].iter_lines():
+            return line
     except s3.exceptions.NoSuchKey:
         return None
 
@@ -171,11 +170,20 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
                 break
 
 
+def _first_line(bucket: str, key: str) -> bytes | None:
+    """The object's first line, empty for an empty object, or None if there is no object."""
+    try:
+        resp = set_s3.get_object(Bucket=bucket, Key=key)
+        return next(iter(resp["Body"].iter_lines()), b"")
+    except set_s3.exceptions.NoSuchKey:
+        return None
+
+
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
     """The item an object's current state makes, and whether it is upserted rather than deleted."""
     if (item := parse_key(bucket, key)) is None:
         raise _Invalid(f"not a package's pointer or manifest: {key}")
-    first_line = get_first_line(bucket, key)
+    first_line = _first_line(bucket, key)
     # A pointer that exists names a manifest, so empty content is no top hash rather than a delete.
     if first_line is not None and isinstance(item, PointerKey):
         top_hash = first_line.decode(errors="replace")
