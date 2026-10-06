@@ -55,7 +55,9 @@ class Athena:
         self.con = con
         self.fails = lambda sql: False
         self.refuses = lambda sql: False  # whether the API refuses to start the query
+        self.refuses_polls = lambda sql: False  # whether it refuses to report a started query's state
         self.refusals = 0
+        self.started = []  # the queries started
         self.reasons = {}  # a failed execution's reason
         self.held = []  # the set's holdings after each query
         self.remaining_ms = 300_000  # the invocation's, spent as queries run
@@ -66,7 +68,8 @@ class Athena:
             self.refusals += 1
             raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "StartQueryExecution")
         self.remaining_ms -= self.query_ms
-        execution_id = str(len(self.reasons))
+        execution_id = str(len(self.started))
+        self.started.append(QueryString)
         self.reasons[execution_id] = None
         if QueryExecutionContext["Database"] != STACK_DB:
             self.reasons[execution_id] = "AccessDeniedException: no access to the database"
@@ -81,6 +84,8 @@ class Athena:
         return {"QueryExecutionId": execution_id}
 
     def get_query_execution(self, *, QueryExecutionId):
+        if self.refuses_polls(self.started[int(QueryExecutionId)]):
+            raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution")
         status = {"State": "SUCCEEDED"}
         if reason := self.reasons[QueryExecutionId]:
             status = {"State": "FAILED", "StateChangeReason": reason}
@@ -327,7 +332,7 @@ def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, at
     assert response == failures("undecodable", "m2", "unreadable", "p", "m3", "q")
 
 
-def test_a_statement_whose_athena_calls_are_refused_is_run_again_whole(handle, athena, s3, con):
+def test_a_statement_athena_refuses_to_start_is_started_again_whole(handle, athena, s3, con):
     batch = manifests(s3, con, 1, 2, 3)
     refusals = iter([True, True])
     athena.refuses = lambda sql: '"package_entry"' in sql and next(refusals, False)
@@ -339,7 +344,7 @@ def test_a_statement_whose_athena_calls_are_refused_is_run_again_whole(handle, a
     assert athena.refusals == 2
 
 
-def test_a_statement_whose_athena_calls_stay_refused_returns_its_items_unsplit(handle, athena, s3, con):
+def test_a_statement_athena_keeps_refusing_to_start_returns_its_items_unsplit(handle, athena, s3, con):
     batch = manifests(s3, con, 1, 2, 3)
     put_pointer(s3, "u/p", "latest", h(1))
     athena.refuses = lambda sql: '"package_entry"' in sql
@@ -349,6 +354,19 @@ def test_a_statement_whose_athena_calls_stay_refused_returns_its_items_unsplit(h
     assert response == failures("m1", "m2", "m3")
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
     assert athena.refusals == t4_lambda_iceberg.API_ATTEMPTS
+
+
+def test_a_statement_whose_state_athena_refuses_to_report_is_not_started_again(handle, athena, s3, con):
+    batch = manifests(s3, con, 1, 2, 3)
+    put_pointer(s3, "u/p", "latest", h(1))
+    athena.refuses_polls = lambda sql: '"package_entry"' in sql
+
+    response = handle(*batch, record("tag", pointer_key("u/p", "latest")))
+
+    assert response == failures("m1", "m2", "m3")
+    assert sum('"package_entry"' in sql for sql in athena.started) == 1
+    assert holdings(con)["package_manifest"] == set()
+    assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
 def test_a_refusal_while_retrying_item_by_item_returns_the_rest_of_the_statement_untried(handle, athena, s3, con):

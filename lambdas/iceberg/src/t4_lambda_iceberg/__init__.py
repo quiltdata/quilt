@@ -116,8 +116,9 @@ STATEMENT_BUDGET_MS = 60_000
 API_ATTEMPTS = 3
 
 
-def _execute(runner: QueryRunner, context, sqls: list[str]) -> bool:
-    """Whether the statements ran: not when time ran short or Athena kept refusing its API calls."""
+def _execute(runner: QueryRunner, context, sql: str) -> bool:
+    """Whether the statement ran: not when time ran short, Athena kept refusing to start it, or it refused a call
+    once the statement had started."""
     for attempt in range(API_ATTEMPTS):
         if attempt:
             time.sleep(random.uniform(0, 2 ** (attempt - 1)))
@@ -125,17 +126,20 @@ def _execute(runner: QueryRunner, context, sqls: list[str]) -> bool:
             logger.warning("Too little of the invocation left to start a statement")
             return False
         try:
-            runner.run_multiple_queries(sqls)
+            runner.run_multiple_queries([sql])
             return True
-        except botocore.exceptions.ClientError:
-            logger.warning("Athena refused a call", exc_info=True)
+        except botocore.exceptions.ClientError as e:
+            logger.warning("Athena refused %s", e.operation_name, exc_info=True)
+            # Refused after the start, the execution may still run: starting another would put two writers on it.
+            if e.operation_name != "StartQueryExecution":
+                return False
     return False
 
 
 def _run(runner: QueryRunner, context, build, items, failed: set):
     for statement in build([i for i in items if i not in failed]):
         try:
-            if not _execute(runner, context, [statement.sql]):
+            if not _execute(runner, context, statement.sql):
                 failed.update(statement.items)
             continue
         except AthenaQueryBaseException:
@@ -143,7 +147,7 @@ def _run(runner: QueryRunner, context, build, items, failed: set):
         # In turn: run together, they would race one another's commits.
         for n, item in enumerate(statement.items):
             try:
-                ran = _execute(runner, context, [s.sql for s in build([item])])
+                ran = all(_execute(runner, context, s.sql) for s in build([item]))
             except AthenaQueryBaseException:
                 logger.exception("Failed to write %s", item)
                 failed.add(item)
