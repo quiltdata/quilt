@@ -63,10 +63,10 @@ function countBadge(packages: number | null, target: number): BadgeState {
 
 export function deriveBadges(m: Metrics): Badge[] {
   const first: BadgeState =
-    m.packages === null
-      ? { kind: 'unknown', reason: 'Package count unavailable' }
-      : m.packages > 0
-        ? { kind: 'earned', at: m.firstPackageAt }
+    m.firstPackageAt !== null || (m.packages ?? 0) > 0
+      ? { kind: 'earned', at: m.firstPackageAt }
+      : m.packages === null
+        ? { kind: 'unknown', reason: 'Package count unavailable' }
         : { kind: 'locked', value: 0, target: 1 }
 
   const multiTb: BadgeState =

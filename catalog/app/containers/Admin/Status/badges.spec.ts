@@ -37,6 +37,10 @@ describe('containers/Admin/Status/badges', () => {
     expect(s['multi-tb']).toBe('unknown')
   })
 
+  it('earns the first package from its date when the count is hidden', () => {
+    expect(states({ packages: null, firstPackageAt: new Date() }).first).toBe('earned')
+  })
+
   it('decides multi-terabyte from sizes, not counts', () => {
     expect(states({ packages: 5, largestBytes: null })['multi-tb']).toBe('unknown')
     expect(states({ packages: null, largestBytes: 5e11 })['multi-tb']).toBe('locked')
