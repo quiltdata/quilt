@@ -70,6 +70,7 @@ export interface Workflow {
   entriesSchema?: string
   name?: string
   packageNamePattern: RegExp | null
+  packageNamePatternError?: string
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
@@ -151,6 +152,22 @@ const parseSchemaRef = (
       }
     : undefined
 
+// quilt3 compiles `handle_pattern` with Python `re`, so a valid pattern may use syntax the
+// browser can't compile, e.g. `(?P<name>...)`. The push still enforces it; the catalog skips it.
+function compilePattern(
+  src?: string,
+): Pick<Workflow, 'packageNamePattern' | 'packageNamePatternError'> {
+  if (!src) return { packageNamePattern: null }
+  try {
+    return { packageNamePattern: new RegExp(src) }
+  } catch (e) {
+    return {
+      packageNamePattern: null,
+      packageNamePatternError: e instanceof Error ? e.message : String(e),
+    }
+  }
+}
+
 function parseWorkflow(
   workflowSlug: string,
   workflow: WorkflowYaml,
@@ -167,9 +184,7 @@ function parseWorkflow(
       data.catalog?.package_handle,
       workflow.catalog?.package_handle,
     ),
-    packageNamePattern: workflow.handle_pattern
-      ? new RegExp(workflow.handle_pattern)
-      : null,
+    ...compilePattern(workflow.handle_pattern),
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
     schemas: {
@@ -241,7 +256,14 @@ function validateConfig(data: unknown): asserts data is WorkflowsYaml {
   if (versionErrors)
     throw new bucketErrors.WorkflowsConfigInvalid({ errors: versionErrors })
 
-  const errors = workflowsConfigValidator(data)
+  const errors = workflowsConfigValidator(data).filter(
+    (e) =>
+      !(
+        'keyword' in e &&
+        e.keyword === 'format' &&
+        e.instancePath.endsWith('/handle_pattern')
+      ),
+  )
   if (errors.length) throw new bucketErrors.WorkflowsConfigInvalid({ errors })
 }
 

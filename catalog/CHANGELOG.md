@@ -21,7 +21,8 @@ complete sentence without it.
 
 ## Changes
 
-- [Added] A workflow's page in the Workflows tab checks that its schemas can be read and will be accepted on push, and has a form that lists every error a package name, message and metadata would hit ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+- [Fixed] A workflow whose `handle_pattern` uses Python-only regex syntax no longer makes the catalog reject the bucket's whole workflows config; the push still enforces the pattern ([#5434](https://github.com/quiltdata/quilt/pull/5434))
+- [Added] A workflow's page in the Workflows tab checks that its schemas can be read and will be accepted on push, and has a form that lists every error a package name, message and metadata would hit ([#5434](https://github.com/quiltdata/quilt/pull/5434))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))

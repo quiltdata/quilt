@@ -35,7 +35,7 @@ describe('containers/Bucket/Workflows/checks', () => {
     })
 
     it('flags schemas that do not compile', () => {
-      expect(checks.checkSchema({ type: 'nope' })[0]).toMatch('does not compile')
+      expect(checks.checkSchema({ type: 'nope' })[0]).toMatch("can't use")
     })
 
     it('flags non-objects', () => {
@@ -56,7 +56,7 @@ describe('containers/Bucket/Workflows/checks', () => {
         message: '',
         meta: { c: 'x' },
       })
-      expect(issues.map((i) => i.path)).toEqual(['/', '/', '/c'])
+      expect(issues.map((i) => i.path)).toEqual(['/a', '/b', '/c'])
     })
 
     it('checks name pattern and required message', () => {
@@ -66,6 +66,24 @@ describe('containers/Bucket/Workflows/checks', () => {
         { name: 'x/y', message: '', meta: {} },
       )
       expect(issues.map((i) => i.path)).toEqual(['message', 'name'])
+    })
+
+    it('accepts what push accepts: unknown formats and keywords', () => {
+      expect(
+        checks.checkSchema({
+          type: 'object',
+          properties: { e: { format: 'email', 'x-ui': 1 } },
+        }),
+      ).toEqual([])
+    })
+
+    it('does not fill defaults that push would not fill', () => {
+      const issues = checks.dryRun(
+        workflow(),
+        { type: 'object', required: ['a'], properties: { a: { default: 1 } } },
+        { name: 'a/b', message: '', meta: {} },
+      )
+      expect(issues.map((i) => i.path)).toEqual(['/a'])
     })
 
     it('passes valid input', () => {

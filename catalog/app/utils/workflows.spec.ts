@@ -255,4 +255,18 @@ describe('utils/workflows', () => {
       })
     })
   })
+  describe('handle_pattern the browser cannot compile', () => {
+    const data = dedent`
+      version: "1"
+      workflows:
+        a:
+          name: A
+          handle_pattern: "^(?P<lab>[a-z]+)/"
+    `
+    it('keeps the config usable and records why the pattern is skipped', () => {
+      const w = workflows.parse(data, 'foo').workflows[1]
+      expect(w.packageNamePattern).toBe(null)
+      expect(w.packageNamePatternError).toMatch('Invalid')
+    })
+  })
 })

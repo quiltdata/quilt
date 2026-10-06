@@ -79,11 +79,25 @@ function TryIt({ workflow, metadataSchema }: TryItProps) {
   const [message, setMessage] = React.useState('')
   const [metaText, setMetaText] = React.useState('{}')
 
-  const issues = React.useMemo(() => {
+  const issues = React.useMemo((): checks.Issue[] => {
+    // Fail closed: a schema we couldn't load must not read as "passes".
+    if (workflow.schema) {
+      if (metadataSchema === Request.Idle || metadataSchema === Request.Loading) {
+        return [{ path: 'metadata', message: 'Loading the metadata schema…' }]
+      }
+      if (metadataSchema instanceof Error) {
+        return [
+          {
+            path: 'metadata',
+            message: `Metadata schema unavailable, so metadata can't be checked: ${metadataSchema.message}`,
+          },
+        ]
+      }
+    }
     let meta
     try {
       meta = JSON.parse(metaText || '{}')
-    } catch (e) {
+    } catch {
       return [{ path: 'metadata', message: 'Metadata is not valid JSON' }]
     }
     const schema =
@@ -160,6 +174,12 @@ export default function Health({ workflow }: HealthProps) {
           Checked with your permissions. Pushes run under the stack&apos;s own role.
         </M.Typography>
       </M.Box>
+      {workflow.packageNamePatternError && (
+        <M.Typography variant="body2" color="error" gutterBottom>
+          Package name pattern uses syntax the browser can&apos;t check (
+          {workflow.packageNamePatternError}). Pushes still enforce it.
+        </M.Typography>
+      )}
       {hasSchemas ? (
         <M.List dense>
           <SchemaCheck

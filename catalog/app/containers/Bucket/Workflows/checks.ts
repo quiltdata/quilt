@@ -8,6 +8,10 @@ import * as Workflows from 'utils/workflows'
 // push: see `SUPPORTED_META_SCHEMAS` and `_schema_load_object_hook` in quilt3/workflows.
 const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
 
+// quilt3's jsonschema ignores unknown keywords and formats and doesn't fill defaults, so ajv
+// must not be stricter (or more lenient) than the push.
+const AJV_LIKE_PUSH = { strict: false, useDefaults: false }
+
 export interface Issue {
   path: string
   message: string
@@ -33,17 +37,24 @@ export function checkSchema(schema: unknown): string[] {
   if (hasRef(schema)) {
     problems.push('Schema uses $ref, which push rejects')
   }
-  const compileError = makeSchemaValidator(schema as JsonSchema)({}).find(
-    (e): e is Error => e instanceof Error,
-  )
-  if (compileError) problems.push(`Schema does not compile: ${compileError.message}`)
+  const compileError = makeSchemaValidator(
+    schema as JsonSchema,
+    undefined,
+    AJV_LIKE_PUSH,
+  )({}).find((e): e is Error => e instanceof Error)
+  if (compileError)
+    problems.push(`Catalog can't use this schema: ${compileError.message}`)
   return problems
 }
 
-const toIssue = (e: ErrorObject | Error): Issue =>
-  e instanceof Error
-    ? { path: '', message: e.message }
-    : { path: e.instancePath || '/', message: e.message || 'is invalid' }
+function toIssue(e: ErrorObject | Error): Issue {
+  if (e instanceof Error) return { path: '', message: e.message }
+  const missing = e.keyword === 'required' ? `/${e.params.missingProperty}` : ''
+  return {
+    path: `${e.instancePath}${missing}` || '/',
+    message: e.message || 'is invalid',
+  }
+}
 
 interface DryRunInput {
   name: string
@@ -51,7 +62,7 @@ interface DryRunInput {
   meta: Types.Json
 }
 
-// Mirrors the order of quilt3 `WorkflowValidator.validate`, but reports every
+// Same checks, order and wording as quilt3 `WorkflowValidator.validate`, but reports every
 // metadata error with its location instead of stopping at the first.
 export function dryRun(
   workflow: Workflows.Workflow,
@@ -60,16 +71,22 @@ export function dryRun(
 ): Issue[] {
   const issues: Issue[] = []
   if (workflow.isMessageRequired && !message) {
-    issues.push({ path: 'message', message: 'Commit message is required by workflow' })
-  }
-  if (workflow.packageNamePattern && !workflow.packageNamePattern.test(name)) {
     issues.push({
-      path: 'name',
-      message: `Package name doesn't match ${workflow.packageNamePattern}`,
+      path: 'message',
+      message: 'Commit message is required by workflow, but none was provided.',
     })
   }
+  if (workflow.packageNamePattern && !workflow.packageNamePattern.test(name)) {
+    issues.push({ path: 'name', message: "Package name doesn't match required pattern." })
+  }
   if (metadataSchema) {
-    issues.push(...makeSchemaValidator(metadataSchema)(meta ?? {}).map(toIssue))
+    issues.push(
+      ...makeSchemaValidator(
+        metadataSchema,
+        undefined,
+        AJV_LIKE_PUSH,
+      )(meta ?? {}).map(toIssue),
+    )
   }
   return issues
 }
