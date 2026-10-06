@@ -59,6 +59,9 @@ describe('utils/OIDC takeRedirectResult', () => {
   it('surfaces an IdP error', () => {
     pend('s1')
     callback('?error=access_denied&state=s1')
-    expect(takeRedirectResult()?.error).toBeInstanceOf(OIDCError)
+    const { error } = takeRedirectResult() ?? {}
+    expect(error).toBeInstanceOf(OIDCError)
+    // No error_description: the message falls back to the code.
+    expect((error as OIDCError).details).toBe('access_denied')
   })
 })
