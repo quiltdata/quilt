@@ -203,7 +203,7 @@ def clock(mocker):
 def athena(mocker, con, clock):
     fake = Athena(con, clock)
     for name in ("start_query_execution", "get_query_execution", "stop_query_execution"):
-        mocker.patch.object(t4_lambda_iceberg.athena, name, getattr(fake, name))
+        mocker.patch.object(t4_lambda_iceberg.set_athena, name, getattr(fake, name))
     return fake
 
 
@@ -297,6 +297,15 @@ def dead_lettered(sqs) -> dict[str, tuple[str, str, str]]:
         )
         for m in sqs.sent
     }
+
+
+def test_the_sets_athena_client_bounds_each_call():
+    """A structural test: the client's bounds are the contract that lets QueryRunner's deadline hold."""
+    config = t4_lambda_iceberg.set_athena.meta.config
+
+    assert (config.connect_timeout, config.read_timeout) == (5, 10)
+    assert config.retries == {"mode": "standard", "total_max_attempts": 3}
+    assert t4_lambda_iceberg.set_athena is not t4_lambda_iceberg.athena
 
 
 @pytest.mark.parametrize(

@@ -23,6 +23,13 @@ from quilt_shared.iceberg_stack_queries import (
 )
 
 athena = boto3.client("athena")
+# The set's own, bounded so that a hung start or poll cannot keep QueryRunner from its deadline.
+set_athena = boto3.client(
+    "athena",
+    config=botocore.config.Config(
+        connect_timeout=5, read_timeout=10, retries={"mode": "standard", "total_max_attempts": 3}
+    ),
+)
 s3 = boto3.client("s3")
 # Bounded, so dead-lettering after the deadline cannot run into the invocation's timeout: one attempt, about 4 s at
 # most; a message whose send fails is returned for retry.
@@ -216,7 +223,7 @@ def set_handler(event, context):
     dead_letter_queue = os.environ["QUILT_STACK_DEAD_LETTER_QUEUE_URL"]
     maker = StackQueryMaker(database=database, user_athena_db=QUILT_USER_ATHENA_DATABASE)
     # The set's role cannot reach the Iceberg database, so its queries run in the stack database.
-    runner = QueryRunner(logger=logger, athena=athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP)
+    runner = QueryRunner(logger=logger, athena=set_athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP)
     deadline = time.monotonic() + (context.get_remaining_time_in_millis() - DEADLINE_MARGIN_MS) / 1000
 
     records = event["Records"]
