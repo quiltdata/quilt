@@ -4,9 +4,11 @@ import * as quiltConfigs from 'constants/quiltConfigs'
 import { getArchiveState } from 'utils/glacier'
 import Log from 'utils/Logging'
 import type * as Model from 'model'
+import * as S3Tags from 'utils/s3Tags'
 import * as s3paths from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
+import * as YAML from 'utils/yaml'
 
 import { FileNotFound, VersionNotFound } from '../errors'
 
@@ -200,6 +202,103 @@ export const metadataSchema = async ({ s3, schemaUrl }: MetadataSchemaArgs) => {
 
   const response = await fetchFile({ s3, handle })
   return JSON.parse(response.body?.toString('utf-8') || '{}')
+}
+
+interface S3TagsConfigArgs {
+  s3: S3
+  bucket: string
+}
+
+/** `null` when the bucket doesn't project metadata onto S3 tags */
+export const s3TagsConfig = async ({
+  s3,
+  bucket,
+}: S3TagsConfigArgs): Promise<S3Tags.S3TagsConfig | null> => {
+  try {
+    const response = await fetchFile({ s3, handle: { bucket, key: quiltConfigs.s3Tags } })
+    const parsed = YAML.parseStrict(response.body?.toString('utf-8'))
+    if (parsed instanceof Error) throw parsed
+    return S3Tags.parseConfig(parsed)
+  } catch (e) {
+    if (e instanceof FileNotFound || e instanceof VersionNotFound) return null
+    throw e
+  }
+}
+
+interface ApplyS3TagsArgs {
+  s3: S3
+  config: S3Tags.S3TagsConfig
+  meta: JsonRecord | undefined
+  bucket: string
+  physicalKeys: string[]
+}
+
+export interface ApplyS3TagsResult {
+  tagged: number
+  skipped: { physicalKey: string; reason: string }[]
+}
+
+const TAGGING_CONCURRENCY = 8
+
+// ponytail: tags are written from the browser after the push; a stack-side projector
+// on the package-revision event replaces this for all clients.
+export async function applyS3Tags({
+  s3,
+  config,
+  meta,
+  bucket,
+  physicalKeys,
+}: ApplyS3TagsArgs): Promise<ApplyS3TagsResult> {
+  const projected = S3Tags.project(config, meta)
+  const result: ApplyS3TagsResult = { tagged: 0, skipped: [] }
+  const skip = (physicalKey: string, reason: string) => {
+    result.skipped.push({ physicalKey, reason })
+  }
+
+  const tagOne = async (physicalKey: string) => {
+    try {
+      const handle = s3paths.parseS3Url(physicalKey)
+      // Objects outside the destination bucket may be shared with other packages
+      // or owned by another account, so they keep their tags.
+      if (handle.bucket !== bucket) return skip(physicalKey, 'Outside the package bucket')
+      // Without a version the current object may not be the one in the manifest.
+      if (!handle.version) return skip(physicalKey, 'No object version')
+      // Registry roles hold s3:PutObjectTagging but not s3:PutObjectVersionTagging,
+      // so only the current version can be tagged, addressed without VersionId.
+      const head = await s3
+        .headObject({ Bucket: handle.bucket, Key: handle.key })
+        .promise()
+      if (head.VersionId !== handle.version) {
+        return skip(physicalKey, 'Not the current version of the object')
+      }
+      const existing = await objectTags({ s3, handle })
+      const tags = S3Tags.merge(config, projected, existing)
+      if (Object.keys(tags).length > S3Tags.MAX_TAGS) {
+        return skip(physicalKey, 'More than 10 tags')
+      }
+      // ponytail: a write landing after headObject gets these tags; the projector tags by version.
+      await s3
+        .putObjectTagging({
+          Bucket: handle.bucket,
+          Key: handle.key,
+          Tagging: {
+            TagSet: Object.entries(tags).map(([Key, Value]) => ({ Key, Value })),
+          },
+        })
+        .promise()
+      result.tagged += 1
+    } catch (e) {
+      Log.error(e)
+      skip(physicalKey, e instanceof Error ? e.message : 'Tagging failed')
+    }
+  }
+
+  const queue = [...physicalKeys]
+  const worker = async () => {
+    while (queue.length) await tagOne(queue.shift()!)
+  }
+  await Promise.all(Array.from({ length: TAGGING_CONCURRENCY }, worker))
+  return result
 }
 
 export const WORKFLOWS_CONFIG_PATH = quiltConfigs.workflows

@@ -1,10 +1,14 @@
 import * as React from 'react'
 
 import cfg from 'constants/config'
+import * as AWS from 'utils/AWS'
 import Log from 'utils/Logging'
 import assertNever from 'utils/assertNever'
 import { useMutation } from 'utils/GraphQL'
 import * as s3paths from 'utils/s3paths'
+import type * as S3Tags from 'utils/s3Tags'
+
+import * as requests from '../../requests'
 
 import * as Uploads from '../Uploads'
 
@@ -39,7 +43,8 @@ function invalidInput(errors: ReadonlyArray<InputError>): FormStatus {
   return Err(error, fields)
 }
 
-function useCreate() {
+function useCreate(s3TagsConfig: S3Tags.S3TagsConfig | null) {
+  const s3 = AWS.S3.use()
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const uploads = Uploads.useUploads()
 
@@ -133,12 +138,22 @@ function useCreate() {
         }
 
         switch (r.__typename) {
-          case 'PackagePushSuccess':
-            return Success({
+          case 'PackagePushSuccess': {
+            const handle = {
               bucket: params.bucket,
               name: params.name,
               hash: r.revision.hash,
+            }
+            if (!s3TagsConfig) return Success(handle)
+            const s3Tags = await requests.applyS3Tags({
+              s3,
+              config: s3TagsConfig,
+              meta: params.userMeta ?? undefined,
+              bucket: params.bucket,
+              physicalKeys: entries.map((e) => e.physicalKey),
             })
+            return Success(handle, s3Tags)
+          }
           case 'OperationError':
             return Err(new Error(r.message))
           case 'InvalidInput':
@@ -147,7 +162,7 @@ function useCreate() {
             assertNever(r)
         }
       },
-      [constructPackage, upload],
+      [constructPackage, upload, s3, s3TagsConfig],
     ),
     progress: uploads.progress,
   }
@@ -161,12 +176,13 @@ export function useCreateHandler(
   params: FormParams,
   files: FilesState,
   setFormStatus: React.Dispatch<React.SetStateAction<FormStatus>>,
+  s3TagsConfig: S3Tags.S3TagsConfig | null = null,
 ): {
   create: CreateHandler
   progress: Uploads.UploadTotalProgress
   onAddReadme: ReadmeHandler
 } {
-  const { create: createPackage, progress } = useCreate()
+  const { create: createPackage, progress } = useCreate(s3TagsConfig)
 
   const create = React.useCallback(
     async (whenNoFiles?: 'allow' | 'add-readme') => {

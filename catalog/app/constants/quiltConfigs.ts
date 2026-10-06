@@ -12,6 +12,8 @@ export const esQueries = '.quilt/queries/config.yaml'
 // ]
 export const workflows = '.quilt/workflows/config.yml'
 
+export const s3Tags = '.quilt/s3_tags.yml'
+
 export const quiltSummarize = 'quilt_summarize.json'
 
 export const all = [...bucketPreferences, esQueries, workflows]

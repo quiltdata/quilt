@@ -212,6 +212,7 @@ function PackageCreationForm({
     onAddReadme,
     params,
     progress,
+    s3TagsConfig,
     setDst,
     setSrc,
     src,
@@ -270,6 +271,11 @@ function PackageCreationForm({
                 schema={metadataSchema}
                 state={meta}
                 ref={setEditorElement}
+              />
+              <Inputs.S3Tags
+                config={s3TagsConfig}
+                meta={meta.value}
+                schema={metadataSchema}
               />
             </Layout.LeftColumn>
             <Layout.RightColumn>
@@ -372,6 +378,7 @@ function RenderDialog({
           browseText={ui.successBrowse}
           title={ui.successTitle}
           renderMessage={ui.successRenderMessage}
+          s3Tags={dialogStatus.s3Tags}
         />
       )
     case 'ready':

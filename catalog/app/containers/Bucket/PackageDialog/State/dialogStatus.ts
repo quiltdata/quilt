@@ -19,7 +19,9 @@ export function computeDialogStatus({
   workflowsConfig,
 }: DialogStatusDeps): DialogStatus {
   if (resolveError) return { _tag: 'error', error: resolveError }
-  if (formStatus._tag === 'success') return { _tag: 'success', ...formStatus.handle }
+  if (formStatus._tag === 'success') {
+    return { _tag: 'success', ...formStatus.handle, s3Tags: formStatus.s3Tags }
+  }
   if (waitingListing) return { _tag: 'loading', waitListing: true }
   if (workflowsConfig._tag === 'loading' || manifest._tag === 'loading') {
     return { _tag: 'loading', waitListing: false }
