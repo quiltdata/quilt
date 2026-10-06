@@ -44,7 +44,11 @@ export function useGoverned(): {
   )
 }
 
-/** The admin's tool-call limit per question; `null` while unread, unset or unreadable. */
+/**
+ * The admin's tool-call limit per question; `null` (unlimited) while unread,
+ * unset or unreadable. A failed read leaves the turn unlimited, as before the
+ * limit existed: the setting caps cost, it is not a safety control.
+ */
 export function useToolCallLimit(): number | null {
   const query = GQL.useQuery(QURATOR_MODELS_QUERY)
   return React.useMemo(
