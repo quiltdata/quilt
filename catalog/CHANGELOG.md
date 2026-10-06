@@ -21,7 +21,6 @@ complete sentence without it.
 
 ## Changes
 
-- [Added] The Tabulator table editor accepts `parser.format: h5ad`, so admins can declare tables over single-cell `.h5ad` files: expression as one row per cell, gene and value, or cell and gene annotations ([#5438](https://github.com/quiltdata/quilt/pull/5438))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
@@ -33,6 +32,7 @@ complete sentence without it.
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
 - [Fixed] When the approved-model list cannot be read, Qurator sends the stack's default model instead of a saved one the registry would refuse ([#5392](https://github.com/quiltdata/quilt/pull/5392))
 - [Changed] Admin > Settings > Qurator models lists the models in this account's Bedrock as a checklist, with a box for any other model IDs, instead of a bare text box ([#5393](https://github.com/quiltdata/quilt/pull/5393))
+- [Added] The Tabulator table editor accepts `parser.format: h5ad`, so admins can declare tables over single-cell `.h5ad` files: expression as one row per cell, gene and value, or cell and gene annotations ([#5438](https://github.com/quiltdata/quilt/pull/5438))
 - [Added] Admins can approve the models Qurator may run under Admin > Settings > Qurator models, and users then pick among those in the Qurator menu instead of typing a model ID ([#5389](https://github.com/quiltdata/quilt/pull/5389))
 - [Fixed] Signed-in users get the admin-configured catalog settings (front door, theme, Qurator, feature flags) right after sign-in, without reloading the page ([#5371](https://github.com/quiltdata/quilt/pull/5371))
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
