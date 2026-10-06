@@ -1,6 +1,8 @@
+import * as React from 'react'
+import { cleanup, render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { currentWiring, rulePattern, ruleName } from './EventWiring'
+import { currentWiring, rulePattern, ruleName, Today } from './EventWiring'
 
 describe('containers/Admin/Buckets/EventWiring', () => {
   it('reads the mode the bucket record encodes', () => {
@@ -42,11 +44,27 @@ describe('containers/Admin/Buckets/EventWiring', () => {
   })
 
   it('names rules within the 64-char limit', () => {
-    const name = ruleName('a'.repeat(63), 's'.repeat(128))
+    const name = ruleName('a'.repeat(63), '0123abcd-0123-abcd-0123-0123456789ab')
     expect(name.length).toBeLessThanOrEqual(64)
     expect(name).toMatch(/^[.\-_A-Za-z0-9]+$/)
-    expect(ruleName('x')).toMatch(/^[.\-_A-Za-z0-9]+$/)
-    expect(ruleName('x')).toBe(ruleName('x'))
+    expect(ruleName('x')).toMatch(/^quilt-<stack id>-[0-9a-f]{8}$/)
     expect(ruleName('x')).not.toBe(ruleName('y'))
+  })
+
+  it.each([
+    [{ kind: 'skipped' } as const, 'without touching its notification targets'],
+    [{ kind: 'unconfigured' } as const, 'removing its other targets'],
+    [
+      currentWiring('arn:aws:sns:us-east-1:123456789012:b-QuiltNotifications-abc'),
+      'Quilt-named SNS topic',
+    ],
+    [
+      currentWiring('arn:aws:sns:us-east-1:123456789012:fanout'),
+      'Quilt didn’t create it',
+    ],
+  ])('describes %j', (wiring, sentence) => {
+    const { container } = render(<Today wiring={wiring} />)
+    expect(container.textContent).toContain(sentence)
+    cleanup()
   })
 })

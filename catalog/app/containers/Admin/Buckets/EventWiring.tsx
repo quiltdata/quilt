@@ -31,15 +31,14 @@ export function currentWiring(snsArn: string | null | undefined): CurrentWiring 
   }
 }
 
-// FNV-1a: rule names cap at 64 chars, bucket names reach 63 and stack names 128, so the
-// bucket is hashed and the stack name truncated.
-export function ruleName(bucket: string, stackName = 'stackname'): string {
+// FNV-1a: rule names cap at 64 chars and bucket names reach 63, so the bucket is hashed.
+export function ruleName(bucket: string, stackId = '<stack id>'): string {
   let h = 0x811c9dc5
   for (let i = 0; i < bucket.length; i++) {
     h ^= bucket.charCodeAt(i)
     h = Math.imul(h, 0x01000193) >>> 0
   }
-  return `quilt-${stackName.slice(0, 49)}-${h.toString(16).padStart(8, '0')}`
+  return `quilt-${stackId}-${h.toString(16).padStart(8, '0')}`
 }
 
 // Live events must keep covering `.quilt/` even when the bulk scan is prefix-scoped,
@@ -98,7 +97,7 @@ function Code({ children }: CodeProps) {
   )
 }
 
-function Today({ wiring }: { wiring: CurrentWiring }) {
+export function Today({ wiring }: { wiring: CurrentWiring }) {
   switch (wiring.kind) {
     case 'skipped':
       return (
@@ -110,8 +109,8 @@ function Today({ wiring }: { wiring: CurrentWiring }) {
     case 'unconfigured':
       return (
         <>
-          No topic is recorded. Re-index and repair would adopt or create one, and fails
-          if the bucket already has other notification targets.
+          No topic is recorded. Re-index and repair would create a Quilt topic and replace
+          the bucket’s notification configuration, removing its other targets.
         </>
       )
     case 'unparsed':
@@ -123,7 +122,7 @@ function Today({ wiring }: { wiring: CurrentWiring }) {
           <strong>{wiring.account}</strong>, region <strong>{wiring.region}</strong>.{' '}
           {wiring.managed
             ? 'Quilt likely created it and replaced the bucket’s notification configuration to wire it.'
-            : 'Quilt only subscribes; routing events to it is wired by hand outside Quilt.'}
+            : 'Quilt subscribes to it; Quilt didn’t create it.'}
         </>
       )
   }
@@ -165,8 +164,14 @@ export default function EventWiring({
   const pattern = JSON.stringify(rulePattern(bucket, prefixes), null, 2)
 
   return (
-    <M.Dialog open onClose={onClose} fullWidth maxWidth="md">
-      <M.DialogTitle>Event wiring: {bucket}</M.DialogTitle>
+    <M.Dialog
+      open
+      onClose={onClose}
+      fullWidth
+      maxWidth="md"
+      aria-labelledby="event-wiring-title"
+    >
+      <M.DialogTitle id="event-wiring-title">Event wiring: {bucket}</M.DialogTitle>
       <M.DialogContent>
         <Lab.Alert severity="info">
           Preview of the proposed EventBridge mode. Nothing here is applied to the bucket
@@ -184,6 +189,7 @@ export default function EventWiring({
           Where the bucket lives
         </M.Typography>
         <M.RadioGroup
+          aria-label="Where the bucket lives"
           row
           value={crossAccount ? 'other' : 'stack'}
           onChange={(e) => setCrossAccount(e.target.value === 'other')}
@@ -226,7 +232,7 @@ export default function EventWiring({
           <strong>1.</strong> Turn on EventBridge for <code>{bucket}</code>. Its existing
           SNS, SQS and Lambda notification targets are kept, not replaced.
         </M.Typography>
-        <Code>{'"EventBridgeConfiguration": {}'}</Code>
+        <pre className={classes.code}>{'"EventBridgeConfiguration": {}'}</pre>
         <M.Typography variant="body2" className={classes.step}>
           <strong>2.</strong> Create rule <code>{ruleName(bucket)}</code> on the default
           event bus of account {owner}, in the bucket’s region:
