@@ -6,7 +6,9 @@ import { useLocation, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
+import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
@@ -118,21 +120,81 @@ function PasswordSignIn({ mutex }) {
   )
 }
 
+const EXPECTED_SSO_ERRORS = [
+  errors.SSOUserNotFound,
+  errors.NoDefaultRole,
+  errors.SubscriptionInvalid,
+]
+
+const ssoErrorMessage = (e) => {
+  if (e instanceof errors.SSOUserNotFound) {
+    return 'No Quilt user is linked to this account. Notify your Quilt administrator.'
+  }
+  if (e instanceof errors.NoDefaultRole) {
+    return 'Unable to assign role. Ask your Quilt administrator to set a default role.'
+  }
+  if (e instanceof errors.SubscriptionInvalid) {
+    return 'Unable to sign up because of invalid subscription. Contact your Quilt administrator.'
+  }
+  if (e instanceof OIDC.OIDCError) return `Unable to sign in. ${e.details}`
+  return 'Unable to sign in. Try again later or contact support.'
+}
+
+// Completes an SSO sign-in that an installed app started by redirect, from the
+// callback that oauth-callback.html stored instead of answering a popup.
+function useRedirectSignIn() {
+  const dispatch = redux.useDispatch()
+  const { push: notify } = Notifications.use()
+  const sentry = Sentry.use()
+  const [result] = React.useState(OIDC.takeRedirectResult)
+  const [busy, setBusy] = React.useState(!!result && !result.error)
+  React.useEffect(() => {
+    if (!result) return
+    const fail = (e) => {
+      notify(ssoErrorMessage(e))
+      const expected =
+        EXPECTED_SSO_ERRORS.some((E) => e instanceof E) || e.code === 'no_pending_sign_in'
+      if (!expected) sentry('captureException', e)
+      setBusy(false)
+    }
+    if (result.error) {
+      fail(result.error)
+      return
+    }
+    const d = defer()
+    dispatch(actions.signIn({ provider: result.provider, code: result.code }, d.resolver))
+    d.promise.catch(fail)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return { busy, next: result?.next }
+}
+
 export default () => {
   const { search } = useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
   const mutex = useMutex()
   const { urls } = NamedRoutes.use()
+  const redirected = useRedirectSignIn()
 
   const ssoEnabled = (provider) => {
     if (!cfg.ssoAuth) return false
     return provider ? cfg.ssoProviders.includes(provider) : !!cfg.ssoProviders.length
   }
 
-  const { next } = parseSearch(search)
+  // The callback lands on /qurator, so the URL's `next` is always /qurator.
+  const next = redirected.next || parseSearch(search).next
 
   if (authenticated) {
     return <Redirect to={next || '/'} />
+  }
+
+  if (redirected.busy) {
+    return (
+      <Container>
+        <M.Box display="flex" justifyContent="center" mt={4}>
+          <M.CircularProgress />
+        </M.Box>
+      </Container>
+    )
   }
 
   return (
