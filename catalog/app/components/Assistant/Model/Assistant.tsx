@@ -293,6 +293,7 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 const TOO_LARGE = 'This session is too long to keep — start a new one'
 const UNREADABLE = "That session couldn't be opened"
 const UNDELETABLE = "That session couldn't be deleted"
+const UNSWITCHABLE = "Keep sessions couldn't be changed"
 
 /**
  * Saves the conversation on screen to the registry as it changes. A reload
@@ -420,31 +421,36 @@ function useSessions(
 
   const remove = React.useCallback(
     async (id: string) => {
-      // Its pending save goes out first, so none lands after the delete.
+      // Its pending save goes out, then the queue lets go of it, so no save
+      // lands after the delete and recreates it as a fork.
       await queue.flush()
+      queue.reset(id)
       const r = await deleteSession({ id }).catch(() => null)
       refresh()
       if (r?.quratorSessionDelete.__typename !== 'Ok') {
         setNotice({ head, text: UNDELETABLE })
         return
       }
-      queue.reset(id)
       if (id === currentId) dispatch(Conversation.Action.Clear())
     },
     [currentId, head, queue, dispatch, deleteSession, refresh],
   )
 
+  const latestToggle = React.useRef(0)
   const setEnabled = React.useCallback(
     async (on: boolean) => {
+      const ticket = ++latestToggle.current
       setChoice(on)
-      await setSessionsEnabled({ enabled: on }).catch(() => null)
+      const r = await setSessionsEnabled({ enabled: on }).catch(() => null)
+      if (r?.quratorSessionsSetEnabled.__typename !== 'Ok')
+        setNotice({ head, text: UNSWITCHABLE })
       // The registry's answer stands from here, including a change from another tab.
       await client
         .query(SESSIONS_QUERY, {}, { requestPolicy: 'network-only' })
         .toPromise()
-      setChoice(null)
+      if (ticket === latestToggle.current) setChoice(null)
     },
-    [client, setSessionsEnabled],
+    [client, head, setSessionsEnabled],
   )
 
   return React.useMemo(

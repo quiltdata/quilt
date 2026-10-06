@@ -117,6 +117,13 @@ export const parseLimit = (text: string) =>
 
 const showLimit = (n: number | null) => (n == null ? '' : String(n))
 
+// The registry's limits.
+const RETENTION_DAYS = [0, 3650] as const
+const MAX_PER_USER = [1, 500] as const
+
+const outside = (n: number | null, [lo, hi]: readonly [number, number]) =>
+  n !== null && !(n >= lo && n <= hi)
+
 type Unavailable = GQL.DataForDoc<
   typeof QURATOR_AVAILABLE_MODELS_QUERY
 >['admin']['quratorAvailableModels']['unavailable']
@@ -216,8 +223,8 @@ function Editor({ config, available, unavailable }: EditorProps) {
     namesOut.some((n) => savedNames[n.id] !== n.name) ||
     parseLimit(retention) !== saved.models.sessionRetentionDays ||
     parseLimit(maxPerUser) !== saved.models.sessionMaxPerUser
-  const badRetention = Number.isNaN(parseLimit(retention))
-  const badMaxPerUser = Number.isNaN(parseLimit(maxPerUser))
+  const badRetention = outside(parseLimit(retention), RETENTION_DAYS)
+  const badMaxPerUser = outside(parseLimit(maxPerUser), MAX_PER_USER)
 
   const toggle = React.useCallback(
     (id: string) =>
@@ -410,7 +417,9 @@ function Editor({ config, available, unavailable }: EditorProps) {
             onChange={(e) => setRetention(e.target.value)}
             error={badRetention}
             helperText={
-              badRetention ? 'A whole number' : '0 stops saving and hides saved sessions'
+              badRetention
+                ? 'A whole number from 0 to 3650'
+                : '0 stops saving and hides saved sessions'
             }
           />
           <M.TextField
@@ -424,7 +433,11 @@ function Editor({ config, available, unavailable }: EditorProps) {
             disabled={pending}
             onChange={(e) => setMaxPerUser(e.target.value)}
             error={badMaxPerUser}
-            helperText={badMaxPerUser ? 'A whole number' : 'Older ones are deleted first'}
+            helperText={
+              badMaxPerUser
+                ? 'A whole number from 1 to 500'
+                : 'Older ones are deleted first'
+            }
           />
           <M.Button
             className={classes.save}

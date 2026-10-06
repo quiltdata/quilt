@@ -164,7 +164,14 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
   it('refuses a limit that is not a whole number', () => {
     const { getByLabelText, getByText } = render(<QuratorModelSettings />)
     fireEvent.change(getByLabelText('Keep for (days)'), { target: { value: '1.5' } })
-    expect(getByText('A whole number')).toBeTruthy()
+    expect(getByText('A whole number from 0 to 3650')).toBeTruthy()
+    expect(getByText('Save').closest('button')?.disabled).toBe(true)
+  })
+
+  it('refuses a limit outside the registry range', () => {
+    const { getByLabelText, getByText } = render(<QuratorModelSettings />)
+    fireEvent.change(getByLabelText('Most per user'), { target: { value: '0' } })
+    expect(getByText('A whole number from 1 to 500')).toBeTruthy()
     expect(getByText('Save').closest('button')?.disabled).toBe(true)
   })
 

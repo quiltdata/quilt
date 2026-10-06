@@ -227,6 +227,25 @@ describe('components/Assistant/Model/Sessions', () => {
       })
     })
 
+    it('settles a flush only once an earlier conversation’s save is done too', async () => {
+      let resolve: (o: Sessions.SaveOutcome) => void = () => {}
+      const { queue } = setup((r) =>
+        r.id === 'A'
+          ? new Promise((res) => (resolve = res))
+          : Promise.resolve(saved('B', 1)),
+      )
+      queue.adopt('a', 'A', 1, 'x')
+      queue.change('a', 'xy')
+      queue.change('b', 'z')
+      let settled = false
+      queue.flush().then(() => (settled = true))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(settled).toBe(false)
+      resolve(saved('A', 2))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(settled).toBe(true)
+    })
+
     it('does not hold a flush for a failed save waiting to retry', async () => {
       const { queue } = setup(async () => ({ _tag: 'Failed' }))
       queue.change('h', 'a')

@@ -195,6 +195,8 @@ export function createSaveQueue<T>({
   delayMs = 1000,
 }: QueueOptions<T>) {
   let slot: Slot<T> | null = null
+  // The current slot, and earlier ones whose save may still be in flight.
+  const slots = new Set<Slot<T>>()
   let paused = false
 
   const later = (s: Slot<T>, ms: number) => {
@@ -209,6 +211,7 @@ export function createSaveQueue<T>({
     if (s.inFlight) return
     if (paused || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
       s.waiters.splice(0).forEach((resolve) => resolve())
+      if (s !== slot && !s.timer) slots.delete(s)
       return
     }
     const events = s.latest
@@ -257,13 +260,17 @@ export function createSaveQueue<T>({
 
   /** Sends what is pending now; settles once nothing is pending or in flight. */
   const flush = () =>
-    new Promise<void>((resolve) => {
-      if (!slot) return resolve()
-      slot.waiters.push(resolve)
-      if (slot.timer) clearTimeout(slot.timer)
-      slot.timer = null
-      pump(slot)
-    })
+    Promise.all(
+      [...slots].map(
+        (s) =>
+          new Promise<void>((resolve) => {
+            s.waiters.push(resolve)
+            if (s.timer) clearTimeout(s.timer)
+            s.timer = null
+            pump(s)
+          }),
+      ),
+    ).then(() => {})
 
   const fresh = (
     head: string,
@@ -285,6 +292,7 @@ export function createSaveQueue<T>({
       retried: false,
       waiters: [],
     }
+    slots.add(slot)
     return slot
   }
 
@@ -314,11 +322,14 @@ export function createSaveQueue<T>({
     },
     /** Drop the session `id` from the queue, if it holds it, and ignore what is in flight. */
     reset(id: string) {
-      if (!slot || (slot.id !== id && slot.shown !== id)) return
-      if (slot.timer) clearTimeout(slot.timer)
-      slot.stopped = true
-      slot.waiters.splice(0).forEach((resolve) => resolve())
-      slot = null
+      for (const s of slots) {
+        if (s.id !== id && s.shown !== id) continue
+        if (s.timer) clearTimeout(s.timer)
+        s.stopped = true
+        s.waiters.splice(0).forEach((resolve) => resolve())
+        slots.delete(s)
+        if (s === slot) slot = null
+      }
     },
   }
 }
