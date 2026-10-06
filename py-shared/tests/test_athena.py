@@ -6,7 +6,12 @@ import pytest
 from botocore.exceptions import ClientError
 from botocore.stub import ANY, Stubber
 
-from quilt_shared.athena import AthenaQueryCancelledException, AthenaQueryFailedException, QueryRunner
+from quilt_shared.athena import (
+    AthenaQueryCancelledException,
+    AthenaQueryFailedException,
+    QueryRunner,
+    is_retryable,
+)
 
 
 @pytest.fixture
@@ -423,6 +428,21 @@ def test_run_multiple_queries_without_a_deadline_raises_a_refused_poll(query_run
 
     with pytest.raises(ClientError):
         query_runner.run_multiple_queries(["SELECT 1"])
+
+
+@pytest.mark.parametrize(
+    "status, retryable",
+    [
+        ({"State": "FAILED", "AthenaError": {"ErrorCategory": 1, "Retryable": True}}, True),
+        ({"State": "FAILED", "AthenaError": {"ErrorCategory": 2, "Retryable": False}}, False),
+        ({"State": "FAILED"}, False),  # no verdict from Athena
+    ],
+)
+def test_a_failed_query_is_retryable_as_athena_says(status, retryable):
+    query_execution = {"QueryExecutionId": "exec_id_1", "Status": status}
+
+    assert is_retryable(query_execution) is retryable
+    assert AthenaQueryFailedException(query_execution).retryable is retryable
 
 
 def test_should_retry_matches_reason_with_leading_text():

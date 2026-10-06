@@ -33,6 +33,11 @@ def _is_commit_error(reason: str) -> bool:
     return _COMMIT_ERROR_RE.match(reason) is not None
 
 
+def is_retryable(query_execution: QueryExecutionTypeDef) -> bool:
+    """Athena's own verdict on a failed query, `Status.AthenaError.Retryable`; False where it gives none."""
+    return query_execution.get("Status", {}).get("AthenaError", {}).get("Retryable", False)
+
+
 class AthenaQueryBaseException(Exception):
     query_execution: QueryExecutionTypeDef
     state: str
@@ -44,6 +49,10 @@ class AthenaQueryBaseException(Exception):
     def query_execution_id(self) -> str:
         assert "QueryExecutionId" in self.query_execution
         return self.query_execution["QueryExecutionId"]
+
+    @property
+    def retryable(self) -> bool:
+        return is_retryable(self.query_execution)
 
     def __str__(self) -> str:
         msg = f"Athena query {self.query_execution_id} failed with state {self.state}"
