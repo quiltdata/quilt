@@ -33,28 +33,31 @@ def _is_commit_error(reason: str) -> bool:
     return _COMMIT_ERROR_RE.match(reason) is not None
 
 
-# The call errors that can clear by themselves: throttling, Athena's own fault and the network's. Any other, a
+# The call errors that can clear by themselves: throttling, a server's fault (a 5xx) and the network's. Any other, a
 # ParamValidationError included, is the statement's or the stack's, and retrying it would only spend the deadline.
-_REFUSAL_CODES = frozenset({"ThrottlingException", "TooManyRequestsException", "InternalServerException"})
+_THROTTLING_CODES = frozenset({"Throttling", "ThrottlingException", "TooManyRequestsException"})
 
 
 def _is_refusal(error: BotoCoreError | ClientError) -> bool:
     if isinstance(error, ClientError):
-        return error.response.get("Error", {}).get("Code") in _REFUSAL_CODES
+        return (
+            error.response.get("Error", {}).get("Code") in _THROTTLING_CODES
+            or error.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) >= 500
+        )
     return isinstance(error, (BotoConnectionError, HTTPClientError))
 
 
 def is_retryable(query_execution: QueryExecutionTypeDef) -> bool:
     """
-    Athena's verdict on a failed query, `Status.AthenaError.Retryable`, or True on a commit conflict or a
-    cancellation, perhaps a runner's own stop at its deadline: neither is the statement's fault.
+    Whether a failed query may succeed if run again: True on a commit conflict, which is no fault of the statement,
+    else Athena's verdict, `Status.AthenaError.Retryable`, and where it gives none, True only for a cancellation.
     """
     status = query_execution.get("Status", {})
-    return (
-        status.get("State") == "CANCELLED"
-        or _is_commit_error(status.get("StateChangeReason", ""))
-        or status.get("AthenaError", {}).get("Retryable", False)
-    )
+    if _is_commit_error(status.get("StateChangeReason", "")):
+        return True
+    if "Retryable" in (error := status.get("AthenaError", {})):
+        return error["Retryable"]
+    return status.get("State") == "CANCELLED"
 
 
 class AthenaQueryBaseException(Exception):
@@ -180,11 +183,11 @@ class QueryRunner:
             max_current_queries: Maximum number of concurrent queries to run at once.
                 Note: default quota for DDL queries is 20 per account, for DML is 200 per account.
             sleep_sec: Time in seconds to sleep between status checks.
-            deadline: A `time.monotonic()` value to give up at. A start or poll that is throttled, or fails in Athena
-                or the network, is retried until then; any other error raises. Past it, or when this raises, every
-                query it has seen start and not seen finish is stopped, best effort, and every statement not run to
-                completion comes back as None. The stops run after the deadline, so leave room for them. Without a
-                deadline, every error raises.
+            deadline: A `time.monotonic()` value to give up at. A start or poll that is throttled, or fails on the
+                server's side (a 5xx) or the network's, is retried until then; any other error raises. Past it, or
+                when this raises, every query it has seen start and not seen finish is stopped, best effort, and every
+                statement not run to completion comes back as None. The stops run after the deadline, so leave room
+                for them. Without a deadline, every error raises.
 
         Returns:
             list[QueryExecutionTypeDef]: List of query execution results in the same order as input queries.

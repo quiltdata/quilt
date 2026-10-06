@@ -352,9 +352,20 @@ def test_run_multiple_queries_starts_nothing_once_a_commit_retry_backoff_runs_in
     stubbed_athena_client.assert_no_pending_responses()
 
 
-def test_run_multiple_queries_with_a_deadline_polls_a_refused_poll_again(query_runner, stubbed_athena_client, clock):
+@pytest.mark.parametrize(
+    "code, http_status",
+    [
+        ("TooManyRequestsException", 400),  # throttled
+        ("ServiceUnavailable", 503),  # a server's fault
+    ],
+)
+def test_run_multiple_queries_with_a_deadline_polls_a_refused_poll_again(
+    query_runner, stubbed_athena_client, clock, code, http_status
+):
     _stub_timed_start(stubbed_athena_client, "SELECT 1", "exec_id_1")
-    _refuse(stubbed_athena_client, "get_query_execution")
+    stubbed_athena_client.add_client_error(
+        "get_query_execution", service_error_code=code, http_status_code=http_status
+    )
     _stub_status(stubbed_athena_client, "exec_id_1", "SUCCEEDED")
 
     results = query_runner.run_multiple_queries(["SELECT 1"], deadline=100)
@@ -480,10 +491,11 @@ def test_run_multiple_queries_without_a_deadline_raises_a_refused_poll(query_run
             },
             True,
         ),
-        ({"State": "CANCELLED"}, True),
+        ({"State": "CANCELLED", "AthenaError": {"ErrorCategory": 2, "Retryable": False}}, False),
+        ({"State": "CANCELLED"}, True),  # no verdict from Athena
     ],
 )
-def test_a_query_is_retryable_as_athena_says_or_on_a_commit_conflict_or_a_cancellation(status, retryable):
+def test_a_query_is_retryable_on_a_commit_conflict_else_as_athena_says_else_if_cancelled(status, retryable):
     query_execution = {"QueryExecutionId": "exec_id_1", "Status": status}
     exception = AthenaQueryCancelledException if status["State"] == "CANCELLED" else AthenaQueryFailedException
 
