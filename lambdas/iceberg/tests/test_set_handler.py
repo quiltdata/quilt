@@ -56,7 +56,10 @@ class Athena:
         self.fails = lambda sql: False
         self.refuses = lambda sql: False  # whether the API refuses to start the query
         self.refusal = "ThrottlingException"  # the error it refuses with
-        self.refuses_polls = lambda sql: False  # whether it refuses to report a started query's state
+        self.refuses_polls = lambda sql: False  # whether it fails to report a started query's state
+        self.poll_error = lambda: botocore.exceptions.ClientError(
+            {"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution"
+        )
         self.refusals = 0
         self.started = []  # the queries started
         self.reasons = {}  # a failed execution's reason
@@ -86,7 +89,7 @@ class Athena:
 
     def get_query_execution(self, *, QueryExecutionId):
         if self.refuses_polls(self.started[int(QueryExecutionId)]):
-            raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution")
+            raise self.poll_error()
         status = {"State": "SUCCEEDED"}
         if reason := self.reasons[QueryExecutionId]:
             status = {"State": "FAILED", "StateChangeReason": reason}
@@ -368,10 +371,19 @@ def test_a_statement_whose_start_failed_other_than_by_throttling_is_not_started_
     assert athena.refusals == 1
 
 
-def test_a_statement_whose_state_athena_refuses_to_report_is_not_started_again(handle, athena, s3, con):
+@pytest.mark.parametrize(
+    "error",
+    [
+        lambda: botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution"),
+        lambda: botocore.exceptions.ReadTimeoutError(endpoint_url="https://athena"),
+    ],
+    ids=["refused", "unreachable"],
+)
+def test_a_statement_whose_state_athena_fails_to_report_is_not_started_again(handle, athena, s3, con, error):
     batch = manifests(s3, con, 1, 2, 3)
     put_pointer(s3, "u/p", "latest", h(1))
     athena.refuses_polls = lambda sql: '"package_entry"' in sql
+    athena.poll_error = error
 
     response = handle(*batch, record("tag", pointer_key("u/p", "latest")))
 

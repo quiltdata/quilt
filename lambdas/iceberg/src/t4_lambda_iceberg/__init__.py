@@ -118,8 +118,8 @@ _THROTTLED = {"ThrottlingException", "TooManyRequestsException"}
 
 
 def _execute(runner: QueryRunner, context, sql: str) -> bool:
-    """Whether the statement ran: not when time ran short, Athena kept throttling its start, or any other call of
-    Athena's failed."""
+    """Whether the statement ran: not when time ran short, Athena kept throttling its start, or any other call to
+    Athena failed, at the service or at the network."""
     for attempt in range(API_ATTEMPTS):
         if attempt:
             time.sleep(random.uniform(0, 2 ** (attempt - 1)))
@@ -135,6 +135,9 @@ def _execute(runner: QueryRunner, context, sql: str) -> bool:
             # still run, and starting another would put two writers on it.
             if e.operation_name != "StartQueryExecution" or e.response["Error"]["Code"] not in _THROTTLED:
                 return False
+        except botocore.exceptions.BotoCoreError:
+            logger.warning("Athena could not be reached", exc_info=True)
+            return False
     return False
 
 
