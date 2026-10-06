@@ -50,6 +50,7 @@ class FakeS3:
 
 def manifest(user_meta, keys):
     lines = [json.dumps({'version': 'v0', 'user_meta': user_meta})]
+    lines += [json.dumps({'logical_key': 'dir/', 'meta': {}})]
     lines += [json.dumps({'logical_key': k, 'physical_keys': [k]}) for k in keys]
     return '\n'.join(lines).encode()
 
@@ -75,6 +76,21 @@ def test_project_revision_tags_in_bucket_versions(fake):
     # `latest` still names the old hash, as it does when the event arrives.
     assert m.project_revision('b', 'a/b', 'new') == {'tagged': 1, 'unchanged': 1, 'other-bucket': 1}
     assert fake.puts == [('f1', 'v1', {'owner': 'ops', 'project': 'apollo'})]
+
+
+def test_handler_fails_messages_with_tagging_errors(fake):
+    def denied(**kwargs):
+        raise m.botocore.exceptions.ClientError({'Error': {'Code': 'AccessDenied'}}, 'PutObjectTagging')
+
+    fake.put_object_tagging = denied
+    records = [
+        {'messageId': 'ok', 'body': json.dumps({'detail': {'bucket': 'b', 'handle': 'a/b', 'topHash': 'old'}})},
+        {'messageId': 'denied', 'body': json.dumps({'detail': {'bucket': 'b', 'handle': 'a/b', 'topHash': 'new'}})},
+        {'messageId': 'bad', 'body': '{}'},
+    ]
+    assert m.handler({'Records': records}, None) == {
+        'batchItemFailures': [{'itemIdentifier': 'denied'}, {'itemIdentifier': 'bad'}]
+    }
 
 
 def test_superseded_revision_is_skipped(fake):

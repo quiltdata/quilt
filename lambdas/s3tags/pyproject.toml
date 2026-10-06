@@ -21,5 +21,3 @@ test = [
 
 [tool.uv]
 default-groups = ["test"]
-
-

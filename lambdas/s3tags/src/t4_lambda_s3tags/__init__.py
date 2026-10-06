@@ -6,10 +6,12 @@ A bucket opts in with `.quilt/s3_tags.yml`: `tags: {<tag key>: <JSON pointer int
 
 import concurrent.futures
 import json
+import logging
 import re
 import urllib.parse
 
 import boto3
+import botocore.config
 import botocore.exceptions
 import yaml
 
@@ -20,10 +22,13 @@ POINTER_RE = re.compile(r'[0-9]{10}')
 # S3 object tag limits.
 MAX_TAGS = 10
 MAX_VALUE_LENGTH = 256
-ALLOWED_CHARS = re.compile(r'^[\w .:/=+\-@]*$')
+ALLOWED_CHARS = re.compile(r'[\w .:/=+\-@]*')
 TAGGING_CONCURRENCY = 16
+# Outcomes that retrying the revision cannot change; any other error code fails the message.
+FINAL_OUTCOMES = {'tagged', 'unchanged', 'too-many-tags', 'other-bucket', 'NoSuchKey', 'NoSuchVersion'}
 
-s3 = boto3.client('s3')
+logger = logging.getLogger(__name__)
+s3 = boto3.client('s3', config=botocore.config.Config(max_pool_connections=TAGGING_CONCURRENCY))
 
 
 def load_config(bucket: str) -> dict[str, str] | None:
@@ -32,8 +37,8 @@ def load_config(bucket: str) -> dict[str, str] | None:
     except s3.exceptions.NoSuchKey:
         return None
     tags = (yaml.safe_load(body) or {}).get('tags')
-    if not isinstance(tags, dict):
-        raise ValueError(f'{CONFIG_KEY} in {bucket} has no `tags` map')
+    if not isinstance(tags, dict) or not all(isinstance(p, str) and p.startswith('/') for p in tags.values()):
+        raise ValueError(f'{CONFIG_KEY} in {bucket} needs a `tags` map of JSON pointers')
     return tags
 
 
@@ -59,7 +64,7 @@ def project(config: dict[str, str], user_meta: dict) -> dict[str, str | None]:
             projected[key] = None
         elif isinstance(raw, (str, int, float, bool)):
             value = json.dumps(raw) if isinstance(raw, bool) else str(raw)
-            if len(value) <= MAX_VALUE_LENGTH and ALLOWED_CHARS.match(value):
+            if len(value) <= MAX_VALUE_LENGTH and ALLOWED_CHARS.fullmatch(value):
                 projected[key] = value
     return projected
 
@@ -95,7 +100,9 @@ def read_manifest(bucket: str, top_hash: str) -> tuple[dict, list[str]]:
     # ponytail: reads the whole manifest into memory; stream it for multi-GB manifests.
     lines = iter(s3.get_object(Bucket=bucket, Key=f'{MANIFESTS_PREFIX}{top_hash}')['Body'].read().splitlines())
     header = json.loads(next(lines))
-    physical_keys = [json.loads(line)['physical_keys'][0] for line in lines if line]
+    entries = (json.loads(line) for line in lines if line)
+    # Directory metadata records carry no physical_keys.
+    physical_keys = [e['physical_keys'][0] for e in entries if e.get('physical_keys')]
     return header.get('user_meta') or {}, physical_keys
 
 
@@ -149,13 +156,16 @@ def project_revision(bucket: str, handle: str, top_hash: str) -> dict[str, int]:
 def handler(event, context):
     # ponytail: one revision per message, whole manifest in one invocation; fan out per
     # chunk of entries when packages outgrow the lambda timeout.
+    # Writes are idempotent, so a failed message is retried whole and dead-lettered alone.
+    failed = []
     for record in event['Records']:
-        detail = json.loads(record['body'])['detail']
-        print(
-            json.dumps(
-                {
-                    'revision': detail,
-                    'outcome': project_revision(detail['bucket'], detail['handle'], detail['topHash']),
-                }
-            )
-        )
+        try:
+            detail = json.loads(record['body'])['detail']
+            outcome = project_revision(detail['bucket'], detail['handle'], detail['topHash'])
+            print(json.dumps({'revision': detail, 'outcome': outcome}))
+            if set(outcome) - FINAL_OUTCOMES:
+                failed.append(record['messageId'])
+        except Exception:
+            logger.exception('failed to process message %s', record['messageId'])
+            failed.append(record['messageId'])
+    return {'batchItemFailures': [{'itemIdentifier': i} for i in failed]}

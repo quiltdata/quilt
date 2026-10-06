@@ -17,4 +17,4 @@ where verb is one of
 
 ## Changes
 
-- [Added] A lambda writes the package-metadata fields a bucket maps in `.quilt/s3_tags.yml` as S3 tags on the package's object versions, on every package revision
+- [Added] A lambda writes the package-metadata fields a bucket maps in `.quilt/s3_tags.yml` as S3 tags on the package's object versions, on every package revision ([#5441](https://github.com/quiltdata/quilt/pull/5441))
