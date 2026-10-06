@@ -363,6 +363,7 @@ class StackQueryMaker:
         # NULL in Athena, empty elsewhere, for a path that names no package; either fails `<> ''`.
         pkg_name = """regexp_extract("$path", '^s3://[^/]+/[^/]+/[^/]+/([^/]+/[^/]+)/[^/]+$', 1)"""
         pointer = """regexp_extract("$path", '[^/]+$')"""
+        revision = f"regexp_like({pointer}, '^{_REVISION}$')"
         packages = self._source(bucket, "packages")
         revisions = f"""(
             SELECT
@@ -371,7 +372,7 @@ class StackQueryMaker:
                 from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
                 top_hash
             FROM {packages}
-            WHERE regexp_like({pointer}, '^{_REVISION}$') AND {pkg_name} <> ''
+            WHERE {revision} AND {pkg_name} <> ''
         ) AS v"""
         tags = f"""(
             SELECT
@@ -380,7 +381,7 @@ class StackQueryMaker:
                 {pointer} AS tag_name,
                 top_hash
             FROM {packages}
-            WHERE NOT regexp_like({pointer}, '^{_REVISION}$') AND {pkg_name} <> ''
+            WHERE NOT {revision} AND {pkg_name} <> ''
         ) AS v"""
         return [
             self._merge_entries(self._entries_from(bucket, manifest_files), target),
@@ -404,9 +405,19 @@ class StackQueryMaker:
             where += [f"registry < {_str(high)}"] if high else []
             where += [f"registry NOT IN ({_strs(kept)})"] if kept else []
             sql = self._delete(table, " AND ".join(where) or "TRUE")
-            if len(kept) <= 1 or len(sql.encode()) <= _MAX_QUERY_BYTES:
+            size = len(sql.encode())
+            if len(kept) <= 1 or size <= _MAX_QUERY_BYTES:
                 return [sql]
-            half = len(kept) // 2
-            return fit(table, kept[:half], low, kept[half]) + fit(table, kept[half:], kept[half], high)
+            step = math.ceil(len(kept) / math.ceil(size / _MAX_QUERY_BYTES))
+            return [
+                s
+                for k in range(0, len(kept), step)
+                for s in fit(
+                    table,
+                    kept[k : k + step],
+                    kept[k] if k else low,
+                    kept[k + step] if k + step < len(kept) else high,
+                )
+            ]
 
         return [sql for table in _DELETE_ORDER for sql in fit(table, registries, None, None)]

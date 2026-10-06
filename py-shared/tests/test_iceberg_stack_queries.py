@@ -473,10 +473,7 @@ def test_prune_of_more_buckets_than_one_statement_holds_stays_under_the_size_lim
 
 def test_remove_deletes_one_registry_rows_from_every_table(qm, con):
     for bucket in BUCKETS:
-        insert(con, "package_entry", entry(bucket, h(1)))
-        insert(con, "package_manifest", (f"s3://{bucket}", h(1), "", "{}"))
-        insert(con, "package_revision", (f"s3://{bucket}", "u/p", ts(100), h(1)))
-        insert(con, "package_tag", (f"s3://{bucket}", "u/p", "latest", h(1)))
+        put_registry(con, bucket)
 
     run(con, qm.remove("b1"))
 
