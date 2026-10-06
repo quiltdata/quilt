@@ -9,7 +9,7 @@ export interface ToolbarProps {
 }
 
 interface ToolbarOptions {
-  Toolbar: React.FC<ToolbarProps>
+  Toolbar: React.FC<React.PropsWithChildren<ToolbarProps>>
 }
 
 const Ctx = React.createContext<ToolbarOptions | null>(null)

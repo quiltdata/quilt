@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook } from 'utils/renderHook'
 
 import { DirHandleCreate } from 'containers/Bucket/Toolbar'
 import noop from 'utils/noop'

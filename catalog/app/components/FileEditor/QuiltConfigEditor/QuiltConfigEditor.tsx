@@ -51,7 +51,7 @@ export default function QuiltConfigEditorSuspended({
   )
   const [value, setValue] = React.useState(YAML.parse(initialValue))
   const handleChange = React.useCallback(
-    (json) => {
+    (json: any) => {
       setErrors(validate(json))
       setValue(json)
       onChange(YAML.stringify(json))

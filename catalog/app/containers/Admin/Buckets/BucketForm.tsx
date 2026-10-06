@@ -132,7 +132,7 @@ interface PFSCheckboxProps extends Form.CheckboxProps, M.CheckboxProps {
 export function PFSCheckbox({ input, meta, onToggle, ...props }: PFSCheckboxProps) {
   const classes = usePFSCheckboxStyles()
   const confirm = React.useCallback(
-    (checked) => {
+    (checked: any) => {
       input?.onChange(checked)
       if (onToggle) {
         onToggle()
@@ -147,7 +147,7 @@ export function PFSCheckbox({ input, meta, onToggle, ...props }: PFSCheckboxProp
     onSubmit: confirm,
   })
   const handleCheckbox = React.useCallback(
-    (_event, checked: boolean) => {
+    (_event: any, checked: boolean) => {
       if (checked) {
         dialog.open()
       } else {
@@ -316,14 +316,14 @@ function SnsField({
   const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const handleSkipChange = React.useCallback(
-    (_e, checked) => {
+    (_e: any, checked: any) => {
       onChange(checked ? DO_NOT_SUBSCRIBE_SYM : '')
     },
     [onChange],
   )
 
   const handleArnChange = React.useCallback(
-    (e) => {
+    (e: any) => {
       onChange(e.target.value)
     },
     [onChange],

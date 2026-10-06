@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook } from 'utils/renderHook'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const useQuery = vi.hoisted(() => vi.fn())

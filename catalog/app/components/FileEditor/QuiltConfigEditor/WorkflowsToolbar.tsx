@@ -94,7 +94,7 @@ function FormError({ error }: FormErrorProps) {
       <M.Icon color="error">error_outline</M.Icon>
       <M.Box pl={1} />
       <M.Typography variant="body2" color="error">
-        {error}
+        {error.message}
       </M.Typography>
     </M.Box>
   )

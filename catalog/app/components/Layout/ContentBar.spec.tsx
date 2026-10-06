@@ -43,7 +43,9 @@ import { SearchInputProvider, useSearchInput } from './SearchInput'
 
 function Page({ onReady }: { onReady: (h: ReturnType<typeof useSearchInput>) => void }) {
   const searchInput = useSearchInput()
-  React.useEffect(() => onReady(searchInput), [onReady, searchInput])
+  React.useEffect(() => {
+    onReady(searchInput)
+  }, [onReady, searchInput])
   return null
 }
 

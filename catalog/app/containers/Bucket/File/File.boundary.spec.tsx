@@ -168,7 +168,7 @@ const exists = () =>
 // suite sat at ~91% of the budget on CI (4567ms on #5178) and tipped over as
 // soon as `File.jsx` grew. Module setup belongs in a hook, where `hookTimeout`
 // governs and the cost is not attributed to whichever test happens to run first.
-let File: React.ComponentType
+let File: React.ComponentType<React.PropsWithChildren<unknown>>
 
 beforeAll(async () => {
   File = (await import('./File')).default

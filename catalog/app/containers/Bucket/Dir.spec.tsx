@@ -71,7 +71,7 @@ const listDenied = () =>
     })
     .catch((e: unknown) => e)
 
-let Dir: React.ComponentType
+let Dir: React.ComponentType<React.PropsWithChildren<unknown>>
 
 beforeAll(async () => {
   Dir = (await import('./Dir')).default

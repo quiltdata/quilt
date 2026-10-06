@@ -69,7 +69,7 @@ function DirContents({
   const { urls } = NamedRoutes.use<RouteMap>()
 
   const setPrefix = React.useCallback(
-    (newPrefix) => {
+    (newPrefix: any) => {
       history.push(urls.bucketDir(bucket, path, newPrefix))
     },
     [history, urls, bucket, path],
@@ -221,7 +221,7 @@ export default function Dir() {
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const handleSelection = React.useCallback(
-    (ids) => slt.merge(ids, bucket, path, prefix),
+    (ids: any) => slt.merge(ids, bucket, path, prefix),
     [bucket, path, prefix, slt],
   )
 
@@ -233,7 +233,7 @@ export default function Dir() {
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
   const guardNavigation = React.useCallback(
-    (location) => {
+    (location: any) => {
       if (
         !RRDom.matchPath(location.pathname, {
           path: paths.bucketDir,

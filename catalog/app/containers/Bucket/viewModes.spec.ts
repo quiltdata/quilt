@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react-hooks'
+import { renderHook, act } from 'utils/renderHook'
 import { describe, expect, it } from 'vitest'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests

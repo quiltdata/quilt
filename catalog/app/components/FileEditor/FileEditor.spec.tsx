@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook } from 'utils/renderHook'
 
 import AsyncResult from 'utils/AsyncResult'
 import noop from 'utils/noop'

@@ -562,7 +562,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         s3://b
         s3://c
          from [
-        
         ]
       </div>
       <div
@@ -589,7 +588,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       class="MuiTypography-root title MuiTypography-h6"
     >
       Package List: common display settings
-      
     </h6>
     <div
       class="layout"
@@ -647,7 +645,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             $.Some.Key
             $.Another.Key
              from [
-            
             ]
           </div>
           <div
@@ -688,7 +685,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             id="autocomplete"
           >
              from [
-            
             ]
           </div>
           <div
@@ -720,7 +716,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       class="MuiTypography-root title MuiTypography-h6"
     >
       Athena
-      
     </h6>
     <div
       class="layout"
@@ -1295,7 +1290,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       >
         test-bucket
          from [
-        
         ]
       </div>
       <div
@@ -1322,7 +1316,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       class="MuiTypography-root title MuiTypography-h6"
     >
       Package List: common display settings
-      
     </h6>
     <div
       class="layout"
@@ -1378,7 +1371,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             id="autocomplete"
           >
              from [
-            
             ]
           </div>
           <div
@@ -1419,7 +1411,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             id="autocomplete"
           >
              from [
-            
             ]
           </div>
           <div
@@ -1451,7 +1442,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       class="MuiTypography-root title MuiTypography-h6"
     >
       Athena
-      
     </h6>
     <div
       class="layout"

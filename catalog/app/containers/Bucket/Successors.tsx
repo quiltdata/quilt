@@ -207,7 +207,7 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
     setNoAutoFetch(false)
   }, [])
   const handleChange = React.useCallback(
-    ({ valueOf, toString, ...s }) => {
+    ({ valueOf, toString, ...s }: any) => {
       if (onChange) onChange(s)
     },
     [onChange],
@@ -276,12 +276,12 @@ export function Button({
   const successors = useSuccessors(bucket, { strict: true })
 
   const onButtonClick = React.useCallback(
-    (event) => setMenuAnchorEl(event.currentTarget),
+    (event: any) => setMenuAnchorEl(event.currentTarget),
     [setMenuAnchorEl],
   )
 
   const onMenuClick = React.useCallback(
-    (menuItem) => {
+    (menuItem: any) => {
       onChange(menuItem)
       setMenuAnchorEl(null)
     },

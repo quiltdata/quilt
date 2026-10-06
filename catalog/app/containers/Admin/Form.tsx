@@ -101,7 +101,7 @@ export function FormError({ error, errors, margin = 'normal', ...rest }: FormErr
   )
 }
 
-interface FormErrorAutoProps extends M.TypographyProps {
+interface FormErrorAutoProps extends Omit<M.TypographyProps, 'children'> {
   children: ErrorMessageMap
 }
 

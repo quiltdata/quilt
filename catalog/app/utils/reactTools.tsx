@@ -1,7 +1,12 @@
 import * as React from 'react'
 
-type ComponentWithProps = [React.ComponentType, {} | undefined]
-type ComponentOrComponentWithProps = React.ComponentType | ComponentWithProps
+type ComponentWithProps = [
+  React.ComponentType<React.PropsWithChildren<unknown>>,
+  {} | undefined,
+]
+type ComponentOrComponentWithProps =
+  | React.ComponentType<React.PropsWithChildren<unknown>>
+  | ComponentWithProps
 /**
  * Render nested components.
  *
@@ -20,8 +25,10 @@ export const nest = (...components: ComponentOrComponentWithProps[]) =>
   ) as React.ReactElement
 
 export const mkLazy = (
-  importFunc: () => Promise<{ default: React.ComponentType<any> }>,
-  FallbackComp: React.FC,
+  importFunc: () => Promise<{
+    default: React.ComponentType<React.PropsWithChildren<any>>
+  }>,
+  FallbackComp: React.FC<React.PropsWithChildren<unknown>>,
 ) => {
   const Component = React.lazy(importFunc)
   return (props = {}) => (

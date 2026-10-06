@@ -225,7 +225,7 @@ export function PrefixFilter({ prefix = '', setPrefix }: PrefixFilterProps) {
   }, [prefix, prefixValue, setPrefix, setPrefixValue])
 
   const handleKeyDown = React.useCallback(
-    (e) => {
+    (e: any) => {
       if (e.key === 'Escape') {
         clear()
         blur()
@@ -238,7 +238,7 @@ export function PrefixFilter({ prefix = '', setPrefix }: PrefixFilterProps) {
   )
 
   const handleChange = React.useCallback(
-    (e) => {
+    (e: any) => {
       setPrefixValue(e.target.value)
     },
     [setPrefixValue],
@@ -668,7 +668,7 @@ function Panel({ children, open }: DG.GridPanelProps) {
   }, [apiRef])
 
   const handleKeyDown = React.useCallback(
-    (event) => {
+    (event: any) => {
       if (event.key === 'Escape') {
         apiRef!.current.hidePreferences()
       }
@@ -1110,7 +1110,7 @@ interface ListingProps {
   loadMore?: () => void
   selection?: Selection.SelectionItem[]
   onSelectionChange?: (newSelection: Selection.SelectionItem[]) => void
-  CellComponent?: React.ComponentType<CellProps>
+  CellComponent?: React.ComponentType<React.PropsWithChildren<CellProps>>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
   dataGridProps?: Partial<DG.DataGridProps>

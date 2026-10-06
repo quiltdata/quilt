@@ -492,7 +492,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
     title: `You are about to delete "${table.name}" table`,
     submitTitle: 'Delete',
     onSubmit: React.useCallback(
-      async (confirmed) => {
+      async (confirmed: any) => {
         if (!confirmed) return
         const error = await onDelete({ tableName: table.name })
         if (error) {

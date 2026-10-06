@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { act, renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from 'utils/renderHook'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as routes from 'constants/routes'
@@ -120,9 +120,7 @@ describe('app/containers/Queries/Athena/model/state', () => {
       <Model.Provider>{children}</Model.Provider>
     )
     const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
-    await act(async () => {
-      await waitFor(() => typeof result.current.executions.data === 'object')
-    })
+    await waitFor(() => typeof result.current.executions.data === 'object')
     expect(result.current.workgroups.data).toMatchObject({ list: ['bar', 'foo', 'w'] })
     expect(result.current.workgroup.data).toBe('w')
     unmount()
@@ -138,9 +136,7 @@ describe('app/containers/Queries/Athena/model/state', () => {
       <Model.Provider>{children}</Model.Provider>
     )
     const { waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
-    await act(async () => {
-      await waitFor(() => redirectedTo !== null)
-    })
+    await waitFor(() => redirectedTo !== null)
 
     expect(redirectedTo).toBe('/queries/athena/bar?bucket=my-bucket&table=drugs')
     unmount()
@@ -160,21 +156,15 @@ describe('app/containers/Queries/Athena/model/state', () => {
       <Model.Provider>{children}</Model.Provider>
     )
     const { result, waitFor, unmount } = renderHook(() => Model.useState(), { wrapper })
-    await act(async () => {
-      await waitFor(() => Model.hasData(result.current.database.value))
-    })
+    await waitFor(() => Model.hasData(result.current.database.value))
     await act(async () => {
       result.current.queryBody.setValue('SELECT 1')
     })
-    await act(async () => {
-      await waitFor(() => result.current.queryRun === null)
-    })
+    await waitFor(() => result.current.queryRun === null)
     await act(async () => {
       await result.current.submit(false)
     })
-    await act(async () => {
-      await waitFor(() => redirectedTo !== null)
-    })
+    await waitFor(() => redirectedTo !== null)
 
     expect(redirectedTo).toBe('/queries/athena/w/exec-1?bucket=my-bucket')
     unmount()

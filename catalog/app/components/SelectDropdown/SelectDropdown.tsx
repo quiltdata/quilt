@@ -71,7 +71,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
 
   const handleOpen = React.useCallback(
-    (event) => {
+    (event: any) => {
       if (disabled) return
       if (onOpen) onOpen()
       setAnchorEl(event.currentTarget)

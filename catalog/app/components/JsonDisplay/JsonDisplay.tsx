@@ -255,7 +255,7 @@ function CollapsedEntry({
             return (
               <span key={key}>
                 <span className={classes.brace}>&quot;</span>
-                <span className={classes.value}>{item.original}</span>
+                <span className={classes.value}>{item.original as React.ReactNode}</span>
                 <span className={classes.brace}>&quot;</span>
               </span>
             )
@@ -321,32 +321,23 @@ function CompoundEntry({
         )}
       </div>
       {expanded && (
-        <React.Suspense
-          fallback={
-            <>
-              <WaitingJsonRender />
-              {braces[1]}
-            </>
-          }
-        >
-          <div className={cx(classes.compoundInner)}>
-            {entries.map(([k, v]) => (
-              <JsonDisplayInner
-                classes={classes}
-                key={k}
-                name={k}
-                value={v}
-                topLevel={false}
-                defaultExpanded={defaultExpanded - 1}
-                showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
-                showValuesWhenCollapsed={showValuesWhenCollapsed}
-                noS3Links={noS3Links}
-              />
-            ))}
-            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-            <div onClick={toggle}>{braces[1]}</div>
-          </div>
-        </React.Suspense>
+        <div className={cx(classes.compoundInner)}>
+          {entries.map(([k, v]) => (
+            <JsonDisplayInner
+              classes={classes}
+              key={k}
+              name={k}
+              value={v}
+              topLevel={false}
+              defaultExpanded={defaultExpanded - 1}
+              showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
+              showValuesWhenCollapsed={showValuesWhenCollapsed}
+              noS3Links={noS3Links}
+            />
+          ))}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+          <div onClick={toggle}>{braces[1]}</div>
+        </div>
       )}
     </div>
   )
@@ -371,8 +362,14 @@ function JsonDisplayInner({ value, ...rest }: JsonDisplayInnerProps<unknown>) {
     () => React.lazy(() => wait(0).then(() => ({ default: Component }))),
     [Component],
   )
-  // @ts-expect-error
-  return <Lazy {...rest} value={normalizedValue} />
+  // The boundary lives here, not above: React 18 drops the state of a tree
+  // that suspends on mount, so a boundary above would re-create `Lazy` forever.
+  return (
+    <React.Suspense fallback={<WaitingJsonRender />}>
+      {/* @ts-expect-error */}
+      <Lazy {...rest} value={normalizedValue} />
+    </React.Suspense>
+  )
 }
 
 interface JsonDisplayProps extends M.BoxProps {
@@ -417,20 +414,18 @@ export default function JsonDisplay({
 
   return (
     <M.Box className={cx(className, classes.root)} {...props} ref={ref}>
-      <React.Suspense fallback={<WaitingJsonRender />}>
-        <JsonDisplayInner
-          {...{
-            name,
-            value,
-            topLevel,
-            defaultExpanded: defaultExpandedComputed,
-            classes,
-            showValuesWhenCollapsed,
-            showKeysWhenCollapsed: computedKeys,
-            noS3Links,
-          }}
-        />
-      </React.Suspense>
+      <JsonDisplayInner
+        {...{
+          name,
+          value,
+          topLevel,
+          defaultExpanded: defaultExpandedComputed,
+          classes,
+          showValuesWhenCollapsed,
+          showKeysWhenCollapsed: computedKeys,
+          noS3Links,
+        }}
+      />
     </M.Box>
   )
 }

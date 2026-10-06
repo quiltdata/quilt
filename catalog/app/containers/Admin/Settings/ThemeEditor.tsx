@@ -55,7 +55,7 @@ function InputColor({
   const error = meta.submitFailed && (meta.error || meta.submitError)
   const classes = useInputColorStyles()
   const handleChange = React.useCallback(
-    (event) => onChange(event.target.value),
+    (event: any) => onChange(event.target.value),
     [onChange],
   )
   const isValidHex = React.useMemo(

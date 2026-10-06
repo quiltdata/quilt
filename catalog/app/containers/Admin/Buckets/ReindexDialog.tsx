@@ -47,7 +47,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
     setError(false)
   }, [])
 
-  const handleRepairChange = React.useCallback((_e, v) => {
+  const handleRepairChange = React.useCallback((_e: any, v: any) => {
     setRepair(v)
   }, [])
 

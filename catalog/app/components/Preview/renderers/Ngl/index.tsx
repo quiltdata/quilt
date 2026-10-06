@@ -18,7 +18,10 @@ function NglError({ error }: FallbackProps) {
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const Ngl: React.FC<NglProps> = RT.mkLazy(() => import('./Ngl'), SuspensePlaceholder)
+const Ngl: React.FC<React.PropsWithChildren<NglProps>> = RT.mkLazy(
+  () => import('./Ngl'),
+  SuspensePlaceholder,
+)
 
 const useStyles = M.makeStyles((t) => ({
   root: {

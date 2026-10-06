@@ -259,7 +259,7 @@ export default function History({ executions, onLoadMore }: HistoryProps) {
   const [page, setPage] = React.useState(1)
 
   const handlePagination = React.useCallback(
-    (_event, value) => {
+    (_event: any, value: any) => {
       setPage(value)
     },
     [setPage],

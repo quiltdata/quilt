@@ -187,7 +187,7 @@ function WorkflowCard({ bucket, workflow }: WorkflowCardProps) {
           to={urls.bucketWorkflowDetail(bucket, workflow.slug)}
         >
           <span className={cx(classes.linkText, workflow.isDisabled && classes.disabled)}>
-            {workflow.slug}
+            {String(workflow.slug)}
           </span>
           <div className={classes.linkClickArea} />
         </RR.Link>

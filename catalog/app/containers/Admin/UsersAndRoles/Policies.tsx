@@ -176,7 +176,7 @@ function Create({ close }: CreateProps) {
   const [managed, setManaged] = React.useState(true)
 
   const onSubmit = React.useCallback(
-    async (values) => {
+    async (values: any) => {
       try {
         let data
         if (managed) {
@@ -460,7 +460,7 @@ function Edit({ policy, close }: EditProps) {
   const updateUnmanaged = GQL.useMutation(POLICY_UPDATE_UNMANAGED_MUTATION)
 
   const onSubmit = React.useCallback(
-    async (values) => {
+    async (values: any) => {
       try {
         let data
         if (policy.managed) {

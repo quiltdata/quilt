@@ -50,7 +50,7 @@ function Toggle({ name, enabled }: ToggleProps) {
   const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
 
   const handleChange = React.useCallback(
-    async (_event, checked: boolean) => {
+    async (_event: any, checked: boolean) => {
       if (mutation) return
       setMutation({ enabled: checked })
       try {

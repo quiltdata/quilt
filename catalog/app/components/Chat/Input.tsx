@@ -17,7 +17,7 @@ export default function ChatInput({
   value,
 }: ChatInputProps) {
   const handleSubmit = React.useCallback(
-    (event) => {
+    (event: any) => {
       event.preventDefault()
       if (!value || disabled) return
       onSubmit()

@@ -229,7 +229,7 @@ function PackageCreationForm({
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
 
   const handleSubmit = React.useCallback(
-    (event) => {
+    (event: any) => {
       event.preventDefault()
       create()
     },

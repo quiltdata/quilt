@@ -209,7 +209,7 @@ export const Loader = function TabularLoader({
     [options.context, gated],
   )
   const showLoadMore = React.useCallback(
-    (truncated) =>
+    (truncated: any) =>
       // There is more data to show
       truncated &&
       // We explicitly had shown less data

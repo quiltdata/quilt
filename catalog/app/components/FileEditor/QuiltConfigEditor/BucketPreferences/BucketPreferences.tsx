@@ -37,7 +37,7 @@ function InputBoolean({
 }: FieldProps<TypedValue<boolean>>) {
   const classes = useInputBooleanStyles()
   const handleChange = React.useCallback(
-    (_e, checked: boolean) => onChange({ isDefault: false, key, value: checked }),
+    (_e: any, checked: boolean) => onChange({ isDefault: false, key, value: checked }),
     [key, onChange],
   )
   return (
@@ -65,7 +65,7 @@ function AthenaDefaultWorkgroup({
   ...props
 }: FieldProps<KeyedValue<'ui.athena.defaultWorkgroup'>>) {
   const handleChange = React.useCallback(
-    (event) => onChange({ isDefault: false, key, value: event.target.value }),
+    (event: any) => onChange({ isDefault: false, key, value: event.target.value }),
     [key, onChange],
   )
   return (
@@ -93,7 +93,8 @@ function InputDefaultSourceBucket({
 }: FieldPropsWithConfig<TypedValue<string>>) {
   const options = config['ui.sourceBuckets'].value
   const handleChange = React.useCallback(
-    (event) => onChange({ isDefault: false, value: event.target.value as string, key }),
+    (event: any) =>
+      onChange({ isDefault: false, value: event.target.value as string, key }),
     [key, onChange],
   )
   return (
@@ -124,7 +125,7 @@ function InputSourceBuckets({
   const buckets = Buckets.useRelevantBuckets()
   const options = React.useMemo(() => buckets.map((b) => `s3://${b.name}`), [buckets])
   const handleChange = React.useCallback(
-    (_e, selected: string[]) => onChange({ isDefault: false, key, value: selected }),
+    (_e: any, selected: string[]) => onChange({ isDefault: false, key, value: selected }),
     [key, onChange],
   )
   return (

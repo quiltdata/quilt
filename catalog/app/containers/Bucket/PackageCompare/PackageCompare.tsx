@@ -38,7 +38,7 @@ interface ChangesOnlyCheckboxProps {
 
 function ChangesOnlyCheckbox({ className, onChange, value }: ChangesOnlyCheckboxProps) {
   const handleChange = React.useCallback(
-    (_event: React.ChangeEvent<HTMLInputElement>, checked) => onChange(checked),
+    (_event: React.ChangeEvent<HTMLInputElement>, checked: any) => onChange(checked),
     [onChange],
   )
   return (

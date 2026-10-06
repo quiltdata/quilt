@@ -83,7 +83,7 @@ export default function Slider<Value extends NumberLike>({
   const classes = useSliderStyles()
   const { marks, scale } = useScale(min.valueOf(), max.valueOf())
   const handleSlider = React.useCallback(
-    (_event, range: number | number[]) => {
+    (_event: any, range: number | number[]) => {
       if (!Array.isArray(range)) {
         Log.error(
           `Expected an array of numbers for range, but received: ${JSON.stringify(range)} (type: ${typeof range})`,

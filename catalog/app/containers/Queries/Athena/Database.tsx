@@ -83,7 +83,7 @@ function Select({ className, data, disabled, label, onChange, value }: SelectPro
   const labelId = useId()
   const buttonId = useId()
   const handleChange = React.useCallback(
-    (event) => {
+    (event: any) => {
       onChange(event.target.value)
     },
     [onChange],
@@ -124,7 +124,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
   const { catalogName, catalogNames, queryRun } = Model.use()
 
   const handleChange = React.useCallback(
-    (value) => {
+    (value: any) => {
       storage.setCatalog(value)
       storage.clearDatabase()
       catalogName.setValue(value)
@@ -162,7 +162,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   const { catalogName, database, databases, queryRun } = Model.use()
 
   const handleChange = React.useCallback(
-    (value) => {
+    (value: any) => {
       storage.setDatabase(value)
       database.setValue(value)
     },

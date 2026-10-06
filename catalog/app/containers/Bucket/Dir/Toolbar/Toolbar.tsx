@@ -48,7 +48,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
   })
 
   const openPackageCreationDialog = React.useCallback(
-    (successor) =>
+    (successor: any) =>
       packageDirectoryDialog.open({
         files: FromHandles(Selection.toHandlesList(slt.selection)),
         successor,

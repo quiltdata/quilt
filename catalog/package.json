@@ -40,6 +40,7 @@
     "check:icon-crop": "tsc app/containers/Admin/Buckets/iconCrop.ts --ignoreConfig --outDir internals/manual/build --target es2020 --module esnext --moduleResolution bundler --skipLibCheck && cd internals/manual && echo \"open http://127.0.0.1:8099/icon-crop-check.html\" && python3 -m http.server 8099",
     "format": "oxfmt --write",
     "gql:generate": "graphql-codegen",
+    "postinstall": "patch-package",
     "prepare": "cd .. && husky install catalog/.husky"
   },
   "lint-staged": {
@@ -103,6 +104,7 @@
     "io-ts-reporters": "^2.0.1",
     "io-ts-types": "^0.5.19",
     "js-yaml": "^4.3.2",
+    "jsoneditor": "^9.4.1",
     "jsoneditor-react": "^3.1.2",
     "jsonpath-plus": "^10.4.0",
     "jss": "10.10.0",
@@ -125,9 +127,9 @@
     "process": "^0.11.10",
     "prop-types": "^15.8.1",
     "ramda": "^0.27.1",
-    "react": "^17.0.2",
+    "react": "~18.2.0",
     "react-ace": "^10.1.0",
-    "react-dom": "^17.0.2",
+    "react-dom": "~18.2.0",
     "react-dropzone": "^14.2.3",
     "react-easy-crop": "^6.2.3",
     "react-error-boundary": "^5.0.0",
@@ -174,9 +176,9 @@
     "@graphql-typed-document-node/core": "^3.2.0",
     "@peculiar/webcrypto": "^1.4.3",
     "@statelyai/inspect": "^0.4.0",
+    "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^12.1.5",
-    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/react": "^16.3.0",
     "@types/d3-scale": "^4.0.8",
     "@types/dedent": "^0.7.0",
     "@types/fontfaceobserver": "^2.1.0",
@@ -188,8 +190,8 @@
     "@types/markdown-it": "^14.1.2",
     "@types/mime-types": "^2.1.1",
     "@types/ramda": "^0.27.44",
-    "@types/react": "^17.0.34",
-    "@types/react-dom": "^17.0.17",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "@types/react-helmet": "^6.1.6",
     "@types/react-input-autosize": "^2.2.1",
     "@types/react-redux": "^7.1.25",
@@ -220,6 +222,7 @@
     "minimist": "^1.2.8",
     "oxfmt": "^0.56.0",
     "oxlint": "^1.71.0",
+    "patch-package": "^8.0.1",
     "redux-logger": "^3.0.6",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.5",
@@ -233,11 +236,15 @@
     "vitest": "^4.1.11",
     "webpack": "^5.108.1",
     "webpack-cli": "^7.1.0",
-    "webpack-dev-server": "^5.2.5"
+    "webpack-dev-server": "^5.2.5",
+    "xstate": "^5.15.0"
   },
   "overrides": {
     "jss": "$jss",
-    "rrweb-cssom": "0.8.0"
+    "rrweb-cssom": "0.8.0",
+    "@types/react": {
+      "csstype": "3.0.8"
+    }
   },
   "browserslist": [
     "chrome >= 105",
