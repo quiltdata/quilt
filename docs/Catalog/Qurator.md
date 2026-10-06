@@ -46,20 +46,6 @@ The Developer Tools menu (upper right of the Qurator chat window) provides:
   (or clear) the resulting JSON log. Useful for tuning or debugging prompts
   and capturing structured results.
 
-### Connector Status
-
-Qurator's chat input shows the live connection status of each tool backend
-(e.g. the Platform MCP Server). When a backend is unhealthy the input is
-gated and inline actions appear in the helper-text region:
-
-- `connecting…` / `reconnecting…` — auto-progressing, no action required.
-- `couldn't connect` — click **reconnect** to retry, or **continue without**
-  to proceed with reduced tool access for the rest of the conversation. The
-  latter dismisses the error and moves the connector to `unavailable`.
-- `unavailable` — sticky; click **reconnect** to try again at any time.
-
-![Qurator platform tools connector ready](../imgs/qurator-tools.png)
-
 ### Approving Actions
 
 Qurator runs tools that only read (search, browse, preview) on its
@@ -76,6 +62,20 @@ asked for each call, and only you can give it: content Qurator reads cannot.
 Athena queries currently run without asking, including statements that
 create or drop tables, so keep Athena write access out of roles that should
 only read.
+
+### Connector Status
+
+Qurator's chat input shows the live connection status of each tool backend
+(e.g. the Platform MCP Server). When a backend is unhealthy the input is
+gated and inline actions appear in the helper-text region:
+
+- `connecting…` / `reconnecting…` — auto-progressing, no action required.
+- `couldn't connect` — click **reconnect** to retry, or **continue without**
+  to proceed with reduced tool access for the rest of the conversation. The
+  latter dismisses the error and moves the connector to `unavailable`.
+- `unavailable` — sticky; click **reconnect** to try again at any time.
+
+![Qurator platform tools connector ready](../imgs/qurator-tools.png)
 
 ## Getting Started
 
