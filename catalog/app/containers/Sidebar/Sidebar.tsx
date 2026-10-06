@@ -566,19 +566,6 @@ function NavRow({
   )
 }
 
-function MilestonesItem({ onClick }: { onClick: () => void }) {
-  const { urls } = NamedRoutes.use()
-  if (!useFeature('product-badges')) return null
-  return (
-    <M.MenuItem component={Link} to={urls.milestones()} onClick={onClick}>
-      <M.ListItemIcon>
-        <OutlinedIcon>emoji_events</OutlinedIcon>
-      </M.ListItemIcon>
-      Milestones
-    </M.MenuItem>
-  )
-}
-
 function AccountMenu({
   name,
   signOutUrl,
@@ -597,6 +584,8 @@ function AccountMenu({
     [],
   )
   const close = React.useCallback(() => setAnchor(null), [])
+  const { urls } = NamedRoutes.use()
+  const milestones = useFeature('product-badges')
   const rowClass = cx(classes.identityRow, collapsed && classes.rowCollapsed)
   const textClass = cx(classes.wsText, classes.label, collapsed && classes.labelHidden)
 
@@ -660,9 +649,14 @@ function AccountMenu({
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          <React.Suspense fallback={null}>
-            <MilestonesItem onClick={close} />
-          </React.Suspense>
+          {milestones && (
+            <M.MenuItem component={Link} to={urls.milestones()} onClick={close}>
+              <M.ListItemIcon>
+                <OutlinedIcon>emoji_events</OutlinedIcon>
+              </M.ListItemIcon>
+              Milestones
+            </M.MenuItem>
+          )}
           <M.MenuItem component={Link} to={signOutUrl} onClick={close}>
             <M.ListItemIcon>
               <OutlinedIcon>meeting_room</OutlinedIcon>
