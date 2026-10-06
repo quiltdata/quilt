@@ -6,6 +6,7 @@ import * as redux from 'react-redux'
 
 import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
+import * as GQL from 'utils/GraphQL'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
@@ -14,6 +15,7 @@ import defer from 'utils/defer'
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
 import * as Mcp from './Connectors/Mcp'
+import MCP_SERVERS_QUERY from './gql/McpServers.generated'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
@@ -107,6 +109,39 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
   )
 }
 
+type RegisteredServers = GQL.DataForDoc<typeof MCP_SERVERS_QUERY>['mcpServers']
+
+const NO_SERVERS: RegisteredServers = []
+
+/**
+ * Suspends on first read: the connector set is allocated once per mount, so a
+ * later list would never reach the assistant. A failed read degrades to
+ * platform tools only; a registry without this field is a real state mid-update.
+ */
+export function useRegisteredConnectorConfigs(): readonly Connectors.ConnectorConfig[] {
+  const getToken = useSessionToken()
+  let servers: RegisteredServers = NO_SERVERS
+  try {
+    servers = GQL.useQueryS(MCP_SERVERS_QUERY).mcpServers
+  } catch (e) {
+    // A suspension is a thrown promise, not a failure.
+    // `useQueryS` has already logged and reported a failure.
+    if (typeof (e as { then?: unknown } | null)?.then === 'function') throw e
+  }
+  return React.useMemo(
+    () =>
+      servers.map((s) => ({
+        id: s.slug,
+        title: s.title,
+        hint: s.hint ?? undefined,
+        optional: true,
+        thirdParty: !s.trusted,
+        backend: Mcp.relayed({ slug: s.slug, getToken }),
+      })),
+    [servers, getToken],
+  )
+}
+
 /**
  * The catalog session token, resolved through the auth saga so an expired
  * session is refreshed rather than handed over stale. Reading the store
@@ -142,11 +177,12 @@ function useSessionToken(): () => Eff.Effect.Effect<string | null> {
  * If React aborts the render before commit (Suspense unwind, Error
  * Boundary, concurrent-mode discard), the cleanup `useEffect` never
  * fires and the lifecycle fibers leak. Mitigation: in
- * `useConstructAssistantAPI`, `useDualInstructionsContext` (the only
- * suspending hook, via `CatalogSettings.use()`) runs before this one, so
- * a cold-load suspend throws before `useConst` allocates; keep that
- * order. Proper fix is to defer allocation into `useEffect` and expose a
- * Loading state on AssistantAPI.
+ * `useConstructAssistantAPI`, the suspending hooks
+ * (`useDualInstructionsContext` via `CatalogSettings.use()`, and
+ * `useRegisteredConnectorConfigs` via the registry query) run before this
+ * one, so a cold-load suspend throws before `useConst` allocates; keep
+ * that order. Proper fix is to defer allocation into `useEffect` and
+ * expose a Loading state on AssistantAPI.
  */
 function useConnectors(
   configs: readonly Connectors.ConnectorConfig[],
@@ -287,7 +323,13 @@ function useConstructAssistantAPI() {
   const instructions = useDualInstructionsContext()
 
   const platformConfig = usePlatformConnectorConfig()
-  const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
+  // Before `useConnectors`: this suspends on first render, and a render
+  // unwound after `useConnectors` allocates would orphan its fibers.
+  const registeredConfigs = useRegisteredConnectorConfigs()
+  const connectorConfigs = React.useMemo(
+    () => [platformConfig, ...registeredConfigs],
+    [platformConfig, registeredConfigs],
+  )
   const connectors = useConnectors(connectorConfigs)
 
   const getToken = useSessionToken()

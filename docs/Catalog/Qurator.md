@@ -60,6 +60,21 @@ gated and inline actions appear in the helper-text region:
 
 ![Qurator platform tools connector ready](../imgs/qurator-tools.png)
 
+### MCP Servers
+
+An admin can give Qurator the tools of other MCP servers in **Admin > Settings >
+Qurator MCP servers**: register a server's URL and, if it needs one, a secret
+sent in a request header; **Probe** it to see its tools; then enable it. Each
+server's tools appear to Qurator prefixed with its identifier.
+
+The stack's registry relays every call, so the secret stays server-side and
+never reaches a browser. A server that is down shows as `unavailable` and does
+not block the chat. Unless an admin marks a server **Trusted**, Qurator treats
+its tool descriptions and results as untrusted data.
+
+MCP servers are off until the stack's `QuratorMcpServers` CloudFormation
+parameter is set to `Enabled`.
+
 ## Getting Started
 
 To enable Qurator Omni:

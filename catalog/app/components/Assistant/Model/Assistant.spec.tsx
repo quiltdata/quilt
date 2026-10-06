@@ -24,7 +24,62 @@ vi.mock('./ModelChoice', async (importActual) => ({
   }),
 }))
 
-import { useModelIdOverride } from './Assistant'
+const mcpRead = vi.hoisted(() => ({ current: (): any => ({ mcpServers: [] }) }))
+
+vi.mock('utils/GraphQL', async (importActual) => ({
+  ...(await importActual<typeof import('utils/GraphQL')>()),
+  useQueryS: () => mcpRead.current(),
+}))
+
+vi.mock('react-redux', async (importActual) => ({
+  ...(await importActual<typeof import('react-redux')>()),
+  useDispatch: () => vi.fn(),
+}))
+
+import { useModelIdOverride, useRegisteredConnectorConfigs } from './Assistant'
+
+describe('components/Assistant/Model/Assistant useRegisteredConnectorConfigs', () => {
+  afterEach(cleanup)
+
+  const configs = () => {
+    const box: { current: ReturnType<typeof useRegisteredConnectorConfigs> | null } = {
+      current: null,
+    }
+    function Harness() {
+      box.current = useRegisteredConnectorConfigs()
+      return null
+    }
+    render(<Harness />)
+    return box.current!
+  }
+
+  it('relays each enabled server as optional, third-party unless trusted', () => {
+    mcpRead.current = () => ({
+      mcpServers: [
+        { slug: 'gpu', title: 'GPU', hint: null, trusted: false },
+        { slug: 'docs', title: 'Docs', hint: 'Docs search', trusted: true },
+      ],
+    })
+    expect(
+      configs().map(({ id, optional, thirdParty, hint }) => ({
+        id,
+        optional,
+        thirdParty,
+        hint,
+      })),
+    ).toEqual([
+      { id: 'gpu', optional: true, thirdParty: true, hint: undefined },
+      { id: 'docs', optional: true, thirdParty: false, hint: 'Docs search' },
+    ])
+  })
+
+  it('degrades to no servers when the read fails', () => {
+    mcpRead.current = () => {
+      throw new Error('Cannot query field "mcpServers" on type "Query".')
+    }
+    expect(configs()).toEqual([])
+  })
+})
 
 function setup() {
   const box: { current: ReturnType<typeof useModelIdOverride> | null } = { current: null }

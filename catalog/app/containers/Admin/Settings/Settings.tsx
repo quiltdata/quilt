@@ -16,6 +16,7 @@ import * as validators from 'utils/validators'
 import * as Form from '../Form'
 import DataProductConnections from './DataProductConnections'
 import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
+import McpServerSettings from './McpServerSettings'
 import PackagerSettings from './PackagerSettings'
 import QuratorModelSettings from './QuratorModelSettings'
 import QuratorSettings from './QuratorSettings'
@@ -456,6 +457,7 @@ const GROUPS: { name: string; items: { id: string; title: string }[] }[] = [
       { id: 'search', title: 'Default search mode' },
       { id: 'qurator', title: 'Qurator instructions' },
       { id: 'qurator-models', title: 'Qurator models' },
+      { id: 'qurator-mcp', title: 'Qurator MCP servers' },
     ],
   },
   {
@@ -556,6 +558,13 @@ export default function Settings() {
           hint="Which models Qurator may run on this stack, and the one it starts on."
         >
           <QuratorModelSettings />
+        </Section>
+        <Section
+          id="qurator-mcp"
+          title="Qurator MCP servers"
+          hint="Extra tool servers Qurator may call, relayed by this stack’s registry."
+        >
+          <McpServerSettings />
         </Section>
 
         <M.Typography className={classes.groupHeading}>Data</M.Typography>

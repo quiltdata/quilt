@@ -1,0 +1,8 @@
+query {
+  mcpServers {
+    slug
+    title
+    hint
+    trusted
+  }
+}
