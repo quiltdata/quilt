@@ -285,14 +285,9 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 }
 
 /**
- * Saved sessions (preview, opt-in per user). Saves on every change to the
- * event list, in any state, so a long tool loop survives a reload mid-way.
- * Nothing reopens on its own: a new tab starts fresh and offers the latest
- * session instead, so two tabs never end up writing the same one.
- *
- * Session identity is a ref, not actor state, because the store is
- * synchronous: no save is ever in flight when `Clear` or `Restore` lands. An
- * async store must move it into actor state.
+ * Nothing reopens on its own, so two tabs never write the same session.
+ * Session identity is a ref only because the store is synchronous; an async
+ * store must move it into actor state.
  */
 function useSessions(
   state: Conversation.State,

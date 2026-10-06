@@ -4,13 +4,8 @@ import * as Content from './Content'
 import * as Conversation from './Conversation'
 
 /**
- * Saved Qurator sessions: the transcript in a versioned envelope, stored per
- * signed-in user. Only the event list is kept — page context, connectors and
- * instructions rebuild on mount, and a reopened session is always idle.
- *
- * Image and document blocks are replaced by a placeholder before saving, so
- * object bytes never leave the request that fetched them under the user's own
- * permissions.
+ * Image and document blocks are saved as a placeholder, so object bytes never
+ * outlive the request that fetched them under the user's own permissions.
  */
 
 const S = Eff.Schema
@@ -146,13 +141,11 @@ export function titleOf(events: readonly Conversation.Event[]): string {
 }
 
 /**
- * The prototype's store: this browser's `localStorage`, one key per username,
- * so the next account signed in here never sees them. The registry-backed store
- * (see the quilt-specs change `qurator-session-persistence`) replaces it with
- * the same four calls.
+ * One key per username, so the next account signed in to this browser never
+ * sees them.
  *
- * ponytail: one JSON blob per user, rewritten on each save; capped at
- * MAX_SESSIONS, and a quota error drops the oldest until the write fits.
+ * ponytail: one JSON blob per user, rewritten on each save; a quota error drops
+ * the oldest until the write fits. A server-side store replaces it.
  */
 const KEY = 'qurator.sessions'
 const ENABLED_KEY = 'qurator.sessions.enabled'
