@@ -66,11 +66,18 @@ interface ChatPanelProps {
 
 function ChatPanel({ open, onClose, title }: ChatPanelProps) {
   const classes = useStyles()
+  const closeRef = React.useRef<HTMLButtonElement>(null)
 
   React.useEffect(() => {
     if (!open) return
     whenReady(() => conversations().load())
-    return () => whenReady(() => conversations().remove())
+    // A persistent drawer does not trap focus; move it in and give it back.
+    const opener = document.activeElement as HTMLElement | null
+    closeRef.current?.focus()
+    return () => {
+      whenReady(() => conversations().remove())
+      opener?.focus()
+    }
   }, [open])
 
   return (
@@ -84,7 +91,7 @@ function ChatPanel({ open, onClose, title }: ChatPanelProps) {
         <M.Typography variant="subtitle1" className={classes.title}>
           {title}
         </M.Typography>
-        <M.IconButton onClick={onClose} aria-label="Close chat">
+        <M.IconButton ref={closeRef} onClick={onClose} aria-label="Close chat">
           <M.Icon>close</M.Icon>
         </M.IconButton>
       </div>

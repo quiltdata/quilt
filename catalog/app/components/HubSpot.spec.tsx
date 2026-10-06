@@ -36,8 +36,11 @@ describe('components/HubSpot chat panel', () => {
     })
 
     const widget = { load: vi.fn(), remove: vi.fn() }
-    fireEvent.click(screen.getByRole('button', { name: 'Talk to Sales' }))
+    const opener = screen.getByRole('button', { name: 'Talk to Sales' })
+    opener.focus()
+    fireEvent.click(opener)
     expect(document.getElementById('hs-chat-panel')).toBeTruthy()
+    expect(document.activeElement).toBe(screen.getByLabelText('Close chat'))
     // Loader not ready yet: the load is queued, then runs when HubSpot calls back.
     expect(widget.load).not.toHaveBeenCalled()
     ;(window as any).HubSpotConversations = { widget }
@@ -46,6 +49,7 @@ describe('components/HubSpot chat panel', () => {
 
     fireEvent.click(screen.getByLabelText('Close chat'))
     expect(widget.remove).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).toBe(opener)
 
     fireEvent.click(screen.getByRole('button', { name: 'Talk to Sales' }))
     expect(widget.load).toHaveBeenCalledTimes(2)
