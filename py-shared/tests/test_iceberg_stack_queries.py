@@ -464,12 +464,37 @@ def test_stale_buckets_are_those_of_registries_not_among_the_buckets():
     assert stale_buckets(["s3://b1"], []) == ["b1"]
 
 
+def live(qm, con, buckets) -> set[str]:
+    return {r for sql in qm.live_registries(buckets) for (r,) in con.execute(sql).fetchall()}
+
+
+def test_live_registries_selects_the_given_registries_that_still_hold_a_row(qm, con):
+    put_registry(con, "b1")
+    insert(con, "package_entry", entry("b2", h(1)))  # a removal that stopped before its entries
+    put_registry(con, "b4")
+
+    assert live(qm, con, ["b1", "b2", "b3"]) == {"s3://b1", "s3://b2"}
+
+
+def test_live_registries_of_more_buckets_than_one_statement_holds_stays_under_the_size_limit(qm, con):
+    buckets = [f"bucket-{i:04d}-{'x' * 50}" for i in range(1500)]
+    for bucket in (buckets[0], buckets[-1]):
+        put_registry(con, bucket)
+
+    statements = qm.live_registries(buckets)
+
+    assert len(statements) > 1
+    assert all(len(sql.encode()) <= MAX_QUERY_BYTES for sql in statements)
+    assert live(qm, con, buckets) == {f"s3://{buckets[0]}", f"s3://{buckets[-1]}"}
+
+
 @pytest.mark.parametrize("kept, left", [(["b2", "b9"], ["s3://b2"]), ([], [])])
 def test_removing_the_stale_buckets_leaves_only_the_kept_registries(qm, con, kept, left):
     for bucket in ("b1", "b2", "b3"):
         put_registry(con, bucket)
 
-    for bucket in stale_buckets(present(qm, con), kept):
+    candidates = stale_buckets(present(qm, con), kept)
+    for bucket in stale_buckets(live(qm, con, candidates), kept):
         run(con, qm.remove(bucket))
 
     assert registries(con) == dict.fromkeys(TABLES, left)
