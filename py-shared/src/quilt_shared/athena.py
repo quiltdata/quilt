@@ -162,8 +162,8 @@ class QueryRunner:
                 Note: default quota for DDL queries is 20 per account, for DML is 200 per account.
             sleep_sec: Time in seconds to sleep between status checks.
             deadline: A `time.monotonic()` value to give up at. A start or poll Athena refuses is retried until
-                then. Past it, or when this raises, every query it started and has not seen finish is stopped, best
-                effort, and every statement not run to completion comes back as None. The stops run after the
+                then. Past it, or when this raises, every query it has seen start and not seen finish is stopped,
+                best effort, and every statement not run to completion comes back as None. The stops run after the
                 deadline, so leave room for them. Without a deadline, refused starts and polls raise.
 
         Returns:
