@@ -28,29 +28,37 @@ def qm():
     return StackQueryMaker(database=DB, user_athena_db=USER_DB)
 
 
+def q(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def create_databases(con, db: str, user_db: str):
+    """The set's tables beside the user Athena database's tables over each bucket's manifests and pointers."""
+    con.execute(f"CREATE SCHEMA {q(db)}")
+    con.execute(f"CREATE SCHEMA {q(user_db)}")
+    for name, table in TABLES.items():
+        con.execute(f"CREATE TABLE {q(db)}.{q(name)} ({table.columns})")
+        # Athena's Iceberg partition metadata table, its `partition` row carrying the partition values.
+        con.execute(
+            f"CREATE VIEW {q(db)}.{q(f'{name}$partitions')} AS"
+            f" SELECT {{'registry': registry}} AS \"partition\" FROM {q(db)}.{q(name)}"
+        )
+    for bucket in BUCKETS:
+        con.execute(
+            f"CREATE TABLE {q(user_db)}.{q(f'{bucket}_manifests')} (\"$path\" VARCHAR, logical_key VARCHAR,"
+            " physical_keys VARCHAR[], hash STRUCT(type VARCHAR, value VARCHAR), size BIGINT, meta VARCHAR,"
+            " message VARCHAR, user_meta VARCHAR)"
+        )
+        con.execute(f"CREATE TABLE {q(user_db)}.{q(f'{bucket}_packages')} (\"$path\" VARCHAR, top_hash VARCHAR)")
+
+
 @pytest.fixture
 def con():
-    """The set's tables beside the user Athena database's tables over each bucket's manifests and pointers."""
     con = duckdb.connect()
     # Athena's spelling of what DuckDB names otherwise.
     con.execute("CREATE MACRO from_unixtime(x) AS make_timestamp(CAST(x AS BIGINT) * 1000000)")
     con.execute("CREATE MACRO regexp_like(s, p) AS regexp_matches(s, p)")
-    con.execute(f"CREATE SCHEMA {DB}")
-    con.execute(f"CREATE SCHEMA {USER_DB}")
-    for name, table in TABLES.items():
-        con.execute(f'CREATE TABLE "{DB}"."{name}" ({table.columns})')
-        # Athena's Iceberg partition metadata table, its `partition` row carrying the partition values.
-        con.execute(
-            f'CREATE VIEW "{DB}"."{name}$partitions" AS'
-            f' SELECT {{\'registry\': registry}} AS "partition" FROM "{DB}"."{name}"'
-        )
-    for bucket in BUCKETS:
-        con.execute(
-            f'CREATE TABLE "{USER_DB}"."{bucket}_manifests" ("$path" VARCHAR, logical_key VARCHAR,'
-            " physical_keys VARCHAR[], hash STRUCT(type VARCHAR, value VARCHAR), size BIGINT, meta VARCHAR,"
-            " message VARCHAR, user_meta VARCHAR)"
-        )
-        con.execute(f'CREATE TABLE "{USER_DB}"."{bucket}_packages" ("$path" VARCHAR, top_hash VARCHAR)')
+    create_databases(con, DB, USER_DB)
     return con
 
 
@@ -607,6 +615,24 @@ def test_quotes_in_values_reach_the_set_verbatim(qm, con):
         + qm.entry_delete([manifest]),
     )
     assert [t for t in TABLES if rows(con, t)] == []
+
+
+def test_quotes_in_database_names_reach_the_named_tables(con):
+    # Doubled, so a name left unescaped still parses, and names the decoy one quote short.
+    db, user_db = 'quilt__""t', 'user""db'
+    create_databases(con, db, user_db)
+    create_databases(con, 'quilt__"t', 'user"db')
+    con.execute(
+        f"INSERT INTO {q(user_db)}.\"b1_packages\" VALUES (?, ?)", ["s3://b1/.quilt/named_packages/a/b/latest", h(1)]
+    )
+    qm = StackQueryMaker(database=db, user_athena_db=user_db)
+
+    run(con, qm.fill("b1"))
+
+    assert con.execute(f'SELECT registry, pkg_name, tag_name FROM {q(db)}."package_tag"').fetchall() == [
+        ("s3://b1", "a/b", "latest")
+    ]
+    assert con.execute(qm.present_registries()[0]).fetchall() == [("s3://b1",)]
 
 
 @pytest.mark.parametrize("builder", BATCHES)
