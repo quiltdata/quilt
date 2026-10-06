@@ -457,8 +457,6 @@ function SavedAgo({ iso }: { iso: string }) {
   )
 }
 
-const RECENT_IN_MENU = 10
-
 const useMenuStyles = M.makeStyles({
   session: {
     maxWidth: 360,
@@ -548,7 +546,7 @@ export function Menu({
           <M.ListSubheader>Recent sessions</M.ListSubheader>
         )}
         {sessions.enabled &&
-          sessions.list.slice(0, RECENT_IN_MENU).map((s) => (
+          sessions.list.map((s) => (
             <M.MenuItem
               key={s.id}
               className={classes.session}
@@ -557,6 +555,10 @@ export function Menu({
               onClick={() => {
                 sessions.open(s.id)
                 closeMenu()
+              }}
+              aria-keyshortcuts="Delete"
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === 'Delete') sessions.remove(s.id)
               }}
             >
               <M.ListItemText

@@ -126,7 +126,7 @@ export interface Session {
   envelope: Envelope
 }
 
-export const MAX_SESSIONS = 20
+export const MAX_SESSIONS = 10
 export const TITLE_LENGTH = 80
 
 export function titleOf(events: readonly Conversation.Event[]): string {
@@ -140,8 +140,8 @@ export function titleOf(events: readonly Conversation.Event[]): string {
 }
 
 /**
- * One key per username, so the next account signed in to this browser never
- * sees them.
+ * One key per username, so the next account signed in to this browser is never
+ * shown them. Sign-out leaves them in storage.
  *
  * ponytail: one JSON blob per user, rewritten on each save; a server-side store
  * replaces it.

@@ -215,6 +215,10 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Delete session: Find my packages'))
     expect(sessions.remove).toHaveBeenCalledWith('s1')
     expect(sessions.open).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: /Find my packages/ }), {
+      key: 'Delete',
+    })
+    expect(sessions.remove).toHaveBeenCalledTimes(2)
     fireEvent.click(screen.getByText('Find my packages'))
     expect(sessions.open).toHaveBeenCalledWith('s1')
   })

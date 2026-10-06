@@ -326,20 +326,21 @@ function useSessions(
   }, [username, select])
 
   React.useEffect(() => {
-    if (!enabled || !username) return
+    if (!username) return
+    const live = events.filter((e) => !e.discarded)
+    if (!live.length) owner.current = username
+    if (!enabled) return
     if (pending.current?.events === events) {
       const { id, updatedAt } = pending.current
       pending.current = null
       owner.current = username
       return select({ id, updatedAt })
     }
-    const live = events.filter((e) => !e.discarded)
     // An emptied conversation is "New session": the next turn saves as a new one.
-    if (!live.length) {
-      owner.current = username
-      return select(null)
-    }
+    if (!live.length) return select(null)
     if (owner.current !== username) return
+    // Turned off in another tab since this one loaded.
+    if (!Sessions.isEnabled(username)) return setEnabledState(false)
     const open = current.current
     const stored = open && Sessions.list(username).find((s) => s.id === open.id)
     const id = open && stored?.updatedAt === open.updatedAt ? open.id : uuid.v4()
@@ -360,7 +361,6 @@ function useSessions(
       setEnabledState(on)
       setList(on ? Sessions.list(username) : [])
       pending.current = null
-      owner.current = username
       select(null)
     },
     [username, select],
