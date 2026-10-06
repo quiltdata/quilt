@@ -208,7 +208,7 @@ describe('app/containers/Bucket/requests/object', () => {
       })
     })
 
-    it("doesn't write or count a tag set that is already up to date", async () => {
+    it("doesn't write a tag set that is already up to date", async () => {
       const putObjectTagging = vi.fn()
       const s3 = {
         headObject: () => ({ promise: () => Promise.resolve({ VersionId: 'v1' }) }),
@@ -227,12 +227,7 @@ describe('app/containers/Bucket/requests/object', () => {
         physicalKeys: ['s3://b/k?versionId=v1'],
       })
 
-      expect(result).toEqual({
-        tagged: 0,
-        skipped: [
-          { physicalKey: 's3://b/k?versionId=v1', reason: 'Tags already up to date' },
-        ],
-      })
+      expect(result).toEqual({ tagged: 0, unchanged: 1, skipped: [] })
       expect(putObjectTagging).not.toHaveBeenCalled()
     })
   })

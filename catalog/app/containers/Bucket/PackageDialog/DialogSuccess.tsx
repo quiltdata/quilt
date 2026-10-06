@@ -24,11 +24,14 @@ const defaultRenderMessage = (props: DialogSuccessRenderMessageProps) => (
   </>
 )
 
-function S3TagsSummary({ tagged, skipped }: ApplyS3TagsResult) {
+const files = (n: number) => `${n} ${n === 1 ? 'file' : 'files'}`
+
+function S3TagsSummary({ tagged, unchanged, skipped }: ApplyS3TagsResult) {
   return (
     <>
       <M.Typography variant="body2">
-        S3 tags written to {tagged} {tagged === 1 ? 'file' : 'files'}
+        S3 tags written to {files(tagged)}
+        {unchanged ? `, already current on ${files(unchanged)}` : ''}
         {skipped.length ? `, ${skipped.length} skipped:` : ''}
       </M.Typography>
       {skipped.slice(0, 5).map(({ physicalKey, reason }) => (

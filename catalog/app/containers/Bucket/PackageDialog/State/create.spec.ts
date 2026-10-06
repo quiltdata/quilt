@@ -188,7 +188,7 @@ describe('containers/Bucket/PackageDialog/State/create', () => {
     upload.mockResolvedValue({
       'a.txt': { physicalKey: 's3://dst-bucket/a.txt?versionId=1' },
     })
-    const s3Tags = { tagged: 1, skipped: [] }
+    const s3Tags = { tagged: 1, unchanged: 0, skipped: [] }
     applyS3Tags.mockResolvedValue(s3Tags)
     const config = { tags: { any: '/any' } }
 

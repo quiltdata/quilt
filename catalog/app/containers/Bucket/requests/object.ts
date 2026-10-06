@@ -236,6 +236,8 @@ interface ApplyS3TagsArgs {
 
 export interface ApplyS3TagsResult {
   tagged: number
+  /** Already carried the projected tags, so nothing was written */
+  unchanged: number
   skipped: { physicalKey: string; reason: string }[]
 }
 
@@ -251,7 +253,7 @@ export async function applyS3Tags({
   physicalKeys,
 }: ApplyS3TagsArgs): Promise<ApplyS3TagsResult> {
   const projected = S3Tags.project(config, meta)
-  const result: ApplyS3TagsResult = { tagged: 0, skipped: [] }
+  const result: ApplyS3TagsResult = { tagged: 0, unchanged: 0, skipped: [] }
   const skip = (physicalKey: string, reason: string) => {
     result.skipped.push({ physicalKey, reason })
   }
@@ -277,7 +279,10 @@ export async function applyS3Tags({
       if (Object.keys(tags).length > S3Tags.MAX_TAGS) {
         return skip(physicalKey, 'More than 10 tags')
       }
-      if (R.equals(tags, existing)) return skip(physicalKey, 'Tags already up to date')
+      if (R.equals(tags, existing)) {
+        result.unchanged += 1
+        return
+      }
       // ponytail: a write landing after headObject gets these tags; the projector tags by version.
       await s3
         .putObjectTagging({
