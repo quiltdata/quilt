@@ -323,6 +323,8 @@ function useSessions(
   const currentId = Eff.Option.getOrNull(state.sessionId)
 
   const [notice, setNotice] = React.useState<{ head?: string; text: string } | null>(null)
+  // A notice belongs to the conversation it was raised on, empty ones included.
+  React.useEffect(() => setNotice((n) => (n?.head === head ? n : null)), [head])
 
   const { run } = query
   const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
@@ -434,8 +436,11 @@ function useSessions(
         // meets the delete and recreates it.
         queue.hold(id)
         await queue.flush()
-        const r = await deleteSession({ id }).catch(() => null)
-        const deleted = r?.quratorSessionDelete.__typename === 'Ok'
+        const r = (await deleteSession({ id }).catch(() => null))?.quratorSessionDelete
+        // Already gone (expired, or deleted elsewhere) is as good as deleted.
+        const deleted =
+          r?.__typename === 'Ok' ||
+          (r?.__typename === 'InvalidInput' && r.errors[0]?.name === 'NotFound')
         queue.release(id, deleted)
         refresh()
         if (!deleted) setNotice({ head, text: UNDELETABLE })

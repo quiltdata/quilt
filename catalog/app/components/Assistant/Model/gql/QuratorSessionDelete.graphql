@@ -1,5 +1,10 @@
 mutation ($id: ID!) {
   quratorSessionDelete(id: $id) {
     __typename
+    ... on InvalidInput {
+      errors {
+        name
+      }
+    }
   }
 }

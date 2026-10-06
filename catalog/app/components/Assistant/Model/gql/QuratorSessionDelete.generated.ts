@@ -14,7 +14,13 @@ export type components_Assistant_Model_gql_QuratorSessionDeleteMutationVariables
 export interface components_Assistant_Model_gql_QuratorSessionDeleteMutation {
   readonly __typename: 'Mutation'
   readonly quratorSessionDelete:
-    | { readonly __typename: 'InvalidInput' }
+    | {
+        readonly __typename: 'InvalidInput'
+        readonly errors: ReadonlyArray<{
+          readonly __typename: 'InputError'
+          readonly name: string
+        }>
+      }
     | { readonly __typename: 'Ok' }
     | { readonly __typename: 'OperationError' }
 }
@@ -56,6 +62,28 @@ export const components_Assistant_Model_gql_QuratorSessionDeleteDocument = {
               kind: 'SelectionSet',
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'InvalidInput' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'errors' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
               ],
             },
           },

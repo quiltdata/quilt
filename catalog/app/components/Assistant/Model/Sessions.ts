@@ -219,7 +219,7 @@ export function createSaveQueue<T>({
     const isHeld = [s.id, s.shown].some((id) => id !== null && held.has(id))
     if (paused || isHeld || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
       s.waiters.splice(0).forEach((resolve) => resolve())
-      if (s !== slot && !s.timer) slots.delete(s)
+      if (s !== slot && !s.timer && !isHeld) slots.delete(s)
       return
     }
     const events = s.latest

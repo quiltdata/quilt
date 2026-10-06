@@ -449,11 +449,7 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
 }
 
 function SavedAgo({ date }: { date: Date }) {
-  return (
-    <span title={date.toLocaleString()}>
-      <Format.Relative value={date} />
-    </span>
-  )
+  return <span title={date.toLocaleString()}>{Format.relativify(date)}</span>
 }
 
 const useMenuStyles = M.makeStyles({
@@ -472,7 +468,12 @@ interface LastSessionProps {
 /** Offered, never opened by itself: two tabs would otherwise write one session. */
 export function LastSession({ sessions, state }: LastSessionProps) {
   const last = sessions.list.find((s) => s.id !== sessions.currentId)
-  if (!last || state._tag !== 'Idle' || state.events.some((e) => !e.discarded))
+  if (
+    !last ||
+    state._tag !== 'Idle' ||
+    sessions.switching ||
+    state.events.some((e) => !e.discarded)
+  )
     return null
   return (
     <MessageContainer
@@ -596,7 +597,7 @@ export function Menu({
             key={s.id}
             className={classes.session}
             selected={s.id === sessions.currentId}
-            disabled={!isIdle}
+            disabled={!isIdle || sessions.switching}
             onClick={() => {
               sessions.open(s.id)
               closeMenu()
