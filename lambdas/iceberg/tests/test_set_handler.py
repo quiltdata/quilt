@@ -766,3 +766,44 @@ def test_a_call_athena_denies_for_good_returns_the_whole_batch_and_dead_letters_
 
     assert response == failures("m1", "bad")
     assert sqs.sent == []
+
+
+def missing(message: str) -> dict:
+    """Athena's error for a statement naming a table or database the stack has not created, by its verdict final."""
+    return {"ErrorCategory": 2, "Retryable": False, "ErrorMessage": message}
+
+
+MISSING = [
+    missing("TABLE_NOT_FOUND: line 1:12: Table 'awsdatacatalog.test_stack_db.package_entry' does not exist"),
+    missing("SCHEMA_NOT_FOUND: line 1:12: Schema 'test_stack_db' does not exist"),
+    missing("Table test_stack_db.package_entry does not exist"),
+    missing("Database test_stack_db does not exist"),
+]
+
+
+@pytest.mark.parametrize("error", MISSING, ids=["table not found", "schema not found", "table", "database"])
+@pytest.mark.parametrize(
+    "events",
+    [[record("m1", manifest_key(h(1)))], [record("m1", manifest_key(h(1))), undecodable("bad")]],
+    ids=["one item", "an item and an event no retry can write"],
+)
+def test_a_statement_naming_a_table_the_stack_lacks_returns_the_whole_batch(
+    handle, athena, s3, con, sqs, error, events
+):
+    manifests(s3, con, 1)
+    athena.fails = lambda sql: error if '"package_entry"' in sql else None
+
+    response = handle(*events)
+
+    assert response == failures(*(event["messageId"] for event in events))
+    assert sqs.sent == []
+
+
+def test_a_failure_merely_mentioning_a_missing_table_is_the_items_own(handle, athena, s3, con, sqs):
+    manifests(s3, con, 1)
+    athena.fails = lambda sql: missing("HIVE_BAD_DATA unreadable manifest; Table t does not exist")
+
+    response = handle(record("m1", manifest_key(h(1))))
+
+    assert response == failures()
+    assert dead_lettered(sqs).keys() == {"m1"}

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -133,6 +134,25 @@ class _Invalid(Exception):
     """An event no retry can write."""
 
 
+class _StackFailing(Exception):
+    """A statement failed for want of a table or database the stack has not created, as before its migration ran."""
+
+
+# Athena's reason, at its head behind any category, as quilt_shared's commit-conflict check reads it, so a statement
+# it echoes after is not read as the reason.
+_MISSING_TABLE = re.compile(
+    r"(?:[\w.]+:\s*)*(?:(?:TABLE|SCHEMA)_NOT_FOUND\b|(?:Table|Database|Schema) \S+ does not exist)"
+)
+
+
+def _stack_failing(error: Exception) -> bool:
+    if not isinstance(error, AthenaQueryBaseException):
+        return False
+    status = error.query_execution.get("Status", {})
+    reasons = (status.get("StateChangeReason", ""), status.get("AthenaError", {}).get("ErrorMessage", ""))
+    return any(_MISSING_TABLE.match(reason) for reason in reasons)
+
+
 def _execute(runner: QueryRunner, context, deadline: float, sql: str) -> bool:
     """Whether the statement ran to completion: not when time ran short, or when the deadline passed or a call to
     Athena failed, and QueryRunner stopped what it had started rather than leave it running."""
@@ -150,7 +170,9 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
             if not _execute(runner, context, deadline, statement.sql):
                 failed.update(dict.fromkeys(statement.items))
             continue
-        except (AthenaQueryBaseException, botocore.exceptions.ParamValidationError):
+        except (AthenaQueryBaseException, botocore.exceptions.ParamValidationError) as e:
+            if _stack_failing(e):
+                raise _StackFailing from e
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
         # In turn: run together, they would race one another's commits.
         for n, item in enumerate(statement.items):
@@ -298,9 +320,10 @@ def set_handler(event, context):
             (maker.revision_upsert, "revision", True),
         ]:
             _run(runner, context, deadline, build, groups[kind, upsert], failed)
-    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError):
-        # Athena refusing for good is the stack failing, not the messages: none is dead-lettered.
-        logger.exception("Athena refused the set's statements; returning the batch")
+    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError, _StackFailing):
+        # Athena refusing for good, or the set's tables missing, is the stack failing, not the messages: none is
+        # dead-lettered, a batch of one included, and the queue's receive limit is the backstop.
+        logger.exception("The set's statements cannot run; returning the batch")
         return {"batchItemFailures": [{"itemIdentifier": record["messageId"]} for record in records]}
 
     for item, reason in failed.items():
