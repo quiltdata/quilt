@@ -95,7 +95,7 @@ function Code({ children }: CodeProps) {
   // trap pulls focus out of anything appended to document.body and the copy is lost.
   const containerRef = React.useRef<HTMLDivElement>(null)
   const copy = React.useCallback(() => {
-    setCopied(copyToClipboard(children, { container: containerRef.current }))
+    setCopied(copyToClipboard(children, { container: containerRef.current ?? undefined }))
   }, [children])
   return (
     <div ref={containerRef}>
