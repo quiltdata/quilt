@@ -46,9 +46,11 @@ export function deriveBadges(m: Metrics): Badge[] {
   const multiTb: BadgeState =
     m.largestBytes !== null && m.largestBytes >= TERABYTE
       ? { kind: 'earned', at: m.firstMultiTbAt }
-      : m.packages === null
-        ? { kind: 'unknown', reason: 'Package sizes unavailable' }
-        : { kind: 'locked', value: m.largestBytes ?? 0, target: TERABYTE }
+      : m.packages === 0
+        ? { kind: 'locked', value: 0, target: TERABYTE }
+        : m.largestBytes === null
+          ? { kind: 'unknown', reason: 'Package sizes unavailable' }
+          : { kind: 'locked', value: m.largestBytes, target: TERABYTE }
 
   return [
     { id: 'first', title: 'First package', state: first },

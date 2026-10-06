@@ -1,0 +1,31 @@
+query ($minBytes: Float!) {
+  packages: searchPackages(latestOnly: true) {
+    __typename
+    ... on PackagesSearchResultSet {
+      total
+    }
+  }
+  revisions: searchPackages(latestOnly: false) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        size {
+          max
+        }
+        modified {
+          min
+        }
+      }
+    }
+  }
+  multiTb: searchPackages(latestOnly: false, filter: { size: { gte: $minBytes } }) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        modified {
+          min
+        }
+      }
+    }
+  }
+}

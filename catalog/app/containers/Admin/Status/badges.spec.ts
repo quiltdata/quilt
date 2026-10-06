@@ -37,6 +37,11 @@ describe('containers/Admin/Status/badges', () => {
     expect(s['multi-tb']).toBe('unknown')
   })
 
+  it('decides multi-terabyte from sizes, not counts', () => {
+    expect(states({ packages: 5, largestBytes: null })['multi-tb']).toBe('unknown')
+    expect(states({ packages: null, largestBytes: 5e11 })['multi-tb']).toBe('locked')
+  })
+
   it('earns multi-terabyte at exactly 10^12 bytes, with its date', () => {
     const at = new Date('2026-01-02T00:00:00Z')
     expect(states({ packages: 1, largestBytes: TERABYTE - 1 })['multi-tb']).toBe('locked')

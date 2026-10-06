@@ -5,65 +5,37 @@ import * as M from '@material-ui/core'
 import * as GQL from 'utils/GraphQL'
 import { readableBytes } from 'utils/string'
 
-import COUNTS_QUERY from './gql/MilestoneCounts.generated'
-import STATS_QUERY from './gql/MilestoneStats.generated'
-import SINCE_QUERY from './gql/MilestoneSince.generated'
+import MILESTONES_QUERY from './gql/Milestones.generated'
 import { TERABYTE, deriveBadges, type Badge, type Metrics } from './badges'
 
-type Total = { __typename: string; total?: number }
-
-// `-1` is the registry's answer under secure search: no count, not zero.
-function total(r: Total): number | null {
-  if (r.__typename === 'EmptySearchResultSet') return 0
-  if (r.__typename !== 'PackagesSearchResultSet' || r.total == null) return null
-  return r.total >= 0 ? r.total : null
+const EMPTY: Metrics = {
+  packages: null,
+  largestBytes: null,
+  firstPackageAt: null,
+  firstMultiTbAt: null,
 }
-
-type Stats = {
-  __typename: string
-  stats?: { size?: { max: number }; modified: { min: Date } }
-}
-
-const stats = (r: Stats) => (r.__typename === 'PackagesSearchResultSet' ? r.stats : null)
 
 // ponytail: reads today's viewer-scoped search (capped at 10,000, blind under
 // secure search); the shipped version reads one exact admin field instead.
 function useMetrics(): Metrics | undefined {
-  const counts = GQL.useQuery(COUNTS_QUERY)
-  const c = GQL.fold(counts, {
-    data: (d) => ({ packages: total(d.packages), revisions: total(d.revisions) }),
+  const result = GQL.useQuery(MILESTONES_QUERY, { minBytes: TERABYTE })
+  return GQL.fold(result, {
+    data: ({ packages: p, revisions: r, multiTb: tb }) => {
+      if (p.__typename === 'EmptySearchResultSet') return { ...EMPTY, packages: 0 }
+      const all = r.__typename === 'PackagesSearchResultSet' ? r.stats : null
+      return {
+        // `-1` is the registry's answer under secure search: no count, not zero.
+        packages:
+          p.__typename === 'PackagesSearchResultSet' && p.total >= 0 ? p.total : null,
+        largestBytes: all?.size.max ?? null,
+        firstPackageAt: all?.modified.min ?? null,
+        firstMultiTbAt:
+          tb.__typename === 'PackagesSearchResultSet' ? tb.stats.modified.min : null,
+      }
+    },
     fetching: () => undefined,
-    error: () => ({ packages: null, revisions: null }),
+    error: () => EMPTY,
   })
-  // The registry asserts on stats for an empty result, so only ask when there is something.
-  const statsQuery = GQL.useQuery(STATS_QUERY, undefined, {
-    pause: !c || c.revisions === 0,
-  })
-  const s = GQL.fold(statsQuery, {
-    data: (d) => stats(d.searchPackages) ?? null,
-    fetching: () => undefined,
-    error: () => null,
-  })
-  const largestBytes = s?.size?.max ?? null
-  const sinceQuery = GQL.useQuery(
-    SINCE_QUERY,
-    { minBytes: TERABYTE },
-    { pause: largestBytes === null || largestBytes < TERABYTE },
-  )
-  const since = GQL.fold(sinceQuery, {
-    data: (d) => stats(d.searchPackages)?.modified.min ?? null,
-    fetching: () => undefined,
-    error: () => null,
-  })
-
-  if (!c) return undefined
-  if (c.revisions !== 0 && s === undefined) return undefined
-  return {
-    packages: c.packages,
-    largestBytes,
-    firstPackageAt: s?.modified.min ? new Date(s.modified.min) : null,
-    firstMultiTbAt: since ? new Date(since) : null,
-  }
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -89,14 +61,11 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(2),
     textAlign: 'center',
   },
-  earned: {
-    borderColor: t.palette.warning.main,
-  },
   icon: {
     fontSize: 40,
   },
   iconEarned: {
-    color: t.palette.warning.main,
+    color: t.palette.primary.main,
   },
   iconMuted: {
     color: t.palette.text.disabled,
@@ -128,7 +97,7 @@ function BadgeTile({ badge }: { badge: Badge }) {
         : 'help_outline'
   return (
     <div
-      className={`${classes.badge} ${state.kind === 'earned' ? classes.earned : ''}`}
+      className={classes.badge}
       data-testid={`badge-${badge.id}`}
       data-state={state.kind}
     >
@@ -165,8 +134,9 @@ export default function Milestones() {
         Milestones
       </M.Typography>
       <M.Typography variant="body2" className={classes.caveat}>
-        Preview. Counted from search across the buckets you can read; search counts stop
-        at 10,000, so higher tiers show as unknown.
+        Preview. Counted from search across the buckets you can read, dated by the
+        earliest revision it still finds; search counts stop at 10,000, so higher tiers
+        show as unknown.
       </M.Typography>
       {metrics ? (
         <div className={classes.grid}>
