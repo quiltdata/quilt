@@ -28,6 +28,11 @@ export interface Feature {
 }
 
 export const FEATURES = {
+  'guided-metadata': {
+    label: 'Guided package metadata',
+    description:
+      'In the create and revise package dialogs, list the fields the workflow requires, check metadata as it is typed, explain errors in plain words, and block Create before files upload when metadata is invalid. Off, the inline editor shows metadata errors only after a submit fails.',
+  },
   'front-door': {
     label: 'New front door',
     description:
@@ -42,11 +47,6 @@ export const FEATURES = {
     label: 'Data products',
     description:
       'Browse data products defined in an enterprise catalog (AWS DataZone, Databricks Unity, Snowflake). Off, no data-product route or nav entry exists. Reads fixture data until catalog adapters land.',
-  },
-  'guided-metadata': {
-    label: 'Guided package metadata',
-    description:
-      'In the create and revise package dialogs, list the fields the workflow requires, check metadata as it is typed, explain errors in plain words, and block Create before files upload when metadata is invalid. Off, the inline editor shows metadata errors only after a submit fails.',
   },
 } satisfies Record<string, Feature>
 
