@@ -414,6 +414,14 @@ const useApprovalStyles = M.makeStyles((t) => ({
     margin: t.spacing(0.5, 0),
     overflowWrap: 'anywhere',
     padding: 0,
+    // An inline file body must not push Run / Don't run off-screen; the full
+    // input is in the expander below.
+    '& li': {
+      WebkitBoxOrient: 'vertical',
+      WebkitLineClamp: 3,
+      display: '-webkit-box',
+      overflow: 'hidden',
+    },
   },
   buttons: {
     display: 'flex',

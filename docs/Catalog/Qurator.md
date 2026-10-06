@@ -73,6 +73,10 @@ wants to do and waits:
 Tools their server marks destructive carry a warning. Approval is
 asked for each call, and only you can give it: content Qurator reads cannot.
 
+Athena queries currently run without asking, including statements that
+create or drop tables, so keep Athena write access out of roles that should
+only read.
+
 ## Getting Started
 
 To enable Qurator Omni:
