@@ -124,16 +124,9 @@ export default function QuratorMode() {
           {/* Registered presence drops the docked panel: one conversation, one place. */}
           <InlinePresence.Provide value>
             <div className={classes.chat}>
-              <Chat
-                state={api.state}
-                dispatch={api.dispatch}
-                devTools={api.devTools}
-                connectors={api.connectors}
-                instructions={api.instructions}
-                model={api.model}
-                busy={api.busy}
-                onClose={toCatalog}
-              />
+              {/* The whole API, not a prop list: peer PRs add Chat props (e.g.
+                  `sessions`), and a missing one crashes the chat on render. */}
+              <Chat {...api} onClose={toCatalog} />
             </div>
           </InlinePresence.Provide>
           <ContextPane api={api} onCatalog={toCatalog} />
