@@ -699,7 +699,7 @@ export function PreviewForm() {
   return <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
 }
 
-/** Same rules the registry enforces on save; returns the message to show. */
+/** Same rules the registry enforces on save. */
 export function validateObjectTagsConfig(v: string | null | undefined) {
   if (!v?.trim()) return undefined
   try {
@@ -718,7 +718,7 @@ export function ObjectTagsForm() {
       name="objectTagsConfig"
       label="Package metadata written as S3 object tags"
       placeholder={'tags:\n  project: /project\n  retention: /lifecycle/retention'}
-      helperText="YAML: S3 tag key → JSON pointer into package metadata. The stack writes these tags on every package revision. Leave empty to write none."
+      helperText="YAML: S3 tag key → JSON pointer into package metadata. Packages created or revised in the catalog get these tags. Leave empty to write none."
       validate={validateObjectTagsConfig}
       fullWidth
       margin="normal"
