@@ -8,6 +8,9 @@ import * as Schema from './schema'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+const useFeature = vi.fn(() => false)
+vi.mock('utils/features', () => ({ useFeature: () => useFeature() }))
+
 const mkMetaValidator = vi.fn()
 vi.mock('./schema', async () => ({
   ...(await vi.importActual('./schema')),
@@ -20,6 +23,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
   describe('useMeta', () => {
     beforeEach(() => {
       vi.clearAllMocks()
+      useFeature.mockReturnValue(false)
     })
 
     describe('value', () => {
@@ -171,6 +175,64 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
 
           expect(result.current.status).toEqual(Err(validationErrors))
         })
+      })
+    })
+    describe('guided-metadata', () => {
+      beforeEach(() => {
+        useFeature.mockReturnValue(true)
+      })
+
+      it('validates before any submit, and reports untouched', () => {
+        const validationErrors = [new Error('Required field missing')]
+        mkMetaValidator.mockReturnValue(() => validationErrors)
+
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
+        )
+
+        expect(result.current.status).toEqual(Err(validationErrors))
+        expect(result.current.guided).toBe(true)
+        expect(result.current.touched).toBe(false)
+      })
+
+      it('validates the manifest metadata a revision would push', () => {
+        const validate = vi.fn(() => undefined)
+        mkMetaValidator.mockReturnValue(validate)
+
+        renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready({ meta: { title: 'T' } })),
+        )
+
+        expect(validate).toHaveBeenCalledWith({ title: 'T' })
+      })
+
+      it('marks the value touched after an edit', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
+        )
+        act(() => {
+          result.current.onChange({ title: 'T' })
+        })
+
+        expect(result.current.status).toEqual(Ok)
+        expect(result.current.touched).toBe(true)
+      })
+
+      it('prefers the server field error after a rejected submit', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const userMetaError = new Error('Rejected by server')
+
+        const { result } = renderHook(() =>
+          useMeta(
+            Form.Err(new Error('Form error'), { userMeta: userMetaError }),
+            SchemaReady,
+            Manifest.Ready(),
+          ),
+        )
+
+        expect(result.current.status).toEqual(Err(userMetaError))
       })
     })
   })

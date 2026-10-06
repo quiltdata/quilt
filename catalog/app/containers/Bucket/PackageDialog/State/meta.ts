@@ -1,6 +1,7 @@
 import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 
+import { useFeature } from 'utils/features'
 import * as Types from 'utils/types'
 
 import type { FormStatus } from './form'
@@ -22,6 +23,10 @@ export interface MetaState {
   onChange: (m: Types.JsonRecord) => void
   status: MetaStatus
   value: Types.JsonRecord | undefined
+  /** The `guided-metadata` preview: validate as the user types, not on submit. */
+  guided: boolean
+  /** The user has edited metadata in this dialog. */
+  touched: boolean
 }
 
 function getMetaFallback(manifest: ManifestStatus) {
@@ -34,6 +39,7 @@ export function useMeta(
   schema: SchemaStatus,
   manifest: ManifestStatus,
 ): MetaState {
+  const guided = useFeature('guided-metadata')
   const [meta, setMeta] = React.useState<Types.JsonRecord>()
   const value = React.useMemo(() => meta || getMetaFallback(manifest), [manifest, meta])
 
@@ -44,14 +50,26 @@ export function useMeta(
   }, [schema])
 
   const status: MetaStatus = React.useMemo(() => {
+    if (guided) {
+      if (form._tag === 'error' && form.fields?.userMeta) return Err(form.fields.userMeta)
+      // `value`, not `meta`: a revision keeps the manifest's metadata until edited,
+      // and that is what gets pushed. Failing here also stops the submit before
+      // any file is uploaded.
+      const errors = validate(value || {})
+      return errors ? Err(errors) : Ok
+    }
     if (form._tag !== 'error') return Ok
     if (form.fields?.userMeta) return Err(form.fields.userMeta)
 
     const errors = validate(meta || {})
     return errors ? Err(errors) : Ok
-  }, [form, meta, validate])
+  }, [form, guided, meta, validate, value])
 
-  return React.useMemo(() => ({ value, status, onChange: setMeta }), [status, value])
+  const touched = meta !== undefined
+  return React.useMemo(
+    () => ({ value, status, onChange: setMeta, guided, touched }),
+    [guided, status, touched, value],
+  )
 }
 
 export { useMeta as use }

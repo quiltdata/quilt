@@ -19,6 +19,7 @@ import { JsonRecord } from 'utils/types'
 import type { FormStatus } from '../State/form'
 import type { SchemaStatus } from '../State/schema'
 import type { MetaState } from '../State/meta'
+import { humanizeError, requiredFields } from '../State/metaGuide'
 import { MetaInputSkeleton } from '../Skeleton'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
@@ -215,6 +216,55 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useRequiredFieldsStyles = M.makeStyles((t) => ({
+  root: {
+    marginBottom: t.spacing(2),
+  },
+  chips: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(0.5),
+    marginTop: t.spacing(0.5),
+  },
+}))
+
+interface RequiredFieldsProps {
+  schema?: JsonSchema
+  value?: JsonRecord
+}
+
+function RequiredFields({ schema, value }: RequiredFieldsProps) {
+  const classes = useRequiredFieldsStyles()
+  const fields = React.useMemo(() => requiredFields(schema, value), [schema, value])
+  if (!fields.length) return null
+  const filled = fields.filter((f) => f.filled).length
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="body2" color="textSecondary">
+        This workflow requires {fields.length} metadata field
+        {fields.length === 1 ? '' : 's'}: {filled} of {fields.length} filled
+      </M.Typography>
+      <div className={classes.chips}>
+        {fields.map((f) => (
+          <M.Tooltip key={f.key} title={f.description || ''}>
+            <M.Chip
+              size="small"
+              variant={f.filled ? 'default' : 'outlined'}
+              color={f.filled ? 'primary' : 'default'}
+              icon={
+                <M.Icon fontSize="small">
+                  {f.filled ? 'check_circle' : 'radio_button_unchecked'}
+                </M.Icon>
+              }
+              label={f.title ? `${f.title} (${f.key})` : f.key}
+            />
+          </M.Tooltip>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 interface MetaInputProps {
   className?: string
   errors: ValidationErrors
@@ -222,13 +272,18 @@ interface MetaInputProps {
   onChange: (value: JsonRecord) => void
   schema?: JsonSchema
   disabled: boolean
+  guided: boolean
 }
 
 const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function MetaInput(
-  { className, disabled, errors, value, onChange, schema },
+  { className, disabled, errors, guided, value, onChange, schema },
   ref,
 ) {
   const classes = useMetaInputStyles()
+  const humanErrors = React.useMemo(
+    () => (guided ? errors.map((e) => new Error(humanizeError(e))) : errors),
+    [errors, guided],
+  )
 
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
@@ -350,6 +405,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         value={value}
       />
 
+      {guided && <RequiredFields schema={schema} value={value} />}
+
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         <div className={classes.metaContent} ref={ref}>
           {isDragging && <div className={classes.outlined} />}
@@ -365,7 +422,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             />
           </div>
 
-          <JsonValidationErrors className={classes.errors} error={errors} />
+          <JsonValidationErrors className={classes.errors} error={humanErrors} />
         </div>
 
         {locked && (
@@ -419,15 +476,18 @@ interface InputMetaProps {
  * and can import from spreadsheet files (XLSX, CSV).
  */
 const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function InputMeta(
-  { formStatus, schema, state: { status, value, onChange } },
+  { formStatus, schema, state: { guided, status, touched, value, onChange } },
   ref,
 ) {
   const classes = useInputMetaStyles()
+  // Guided status is live, so it fails on a pristine form; errors wait for an
+  // edit or a submit, while the required-fields list says what is missing.
+  const showErrors = !guided || touched || formStatus._tag === 'error'
   const errors = React.useMemo(() => {
     if (schema._tag === 'error') return [schema.error]
-    if (status._tag === 'error') return status.errors
+    if (status._tag === 'error' && showErrors) return status.errors
     return []
-  }, [schema, status])
+  }, [schema, showErrors, status])
   if (schema._tag === 'loading') {
     return <MetaInputSkeleton ref={ref} className={classes.root} />
   }
@@ -436,6 +496,7 @@ const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function Inpu
       disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
       className={classes.root}
       errors={errors}
+      guided={guided}
       onChange={onChange}
       ref={ref}
       schema={schema._tag === 'ready' ? schema.schema : undefined}
