@@ -4,7 +4,6 @@ import os
 import re
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 
 import boto3
 import botocore.config
@@ -135,22 +134,24 @@ class _Invalid(Exception):
 
 
 class _StackFailing(Exception):
-    """A statement failed for want of a table or database the stack has not created, as before its migration ran."""
+    """A statement failed for want of the set's own database or table, as before the registry's migration ran."""
 
 
 # Athena's reason, at its head behind any category, as quilt_shared's commit-conflict check reads it, so a statement
-# it echoes after is not read as the reason.
-_MISSING_TABLE = re.compile(
-    r"(?:[\w.]+:\s*)*(?:(?:TABLE|SCHEMA)_NOT_FOUND\b|(?:Table|Database|Schema) \S+ does not exist)"
-)
+# it echoes after is not read as the reason; the name is the missing object's, qualified.
+_MISSING = re.compile(r"(?:[\w.]+:\s*)*(?:line \d+:\d+:\s*)?(?:Table|Database|Schema) '?([^'\s]+)'? does not exist")
 
 
-def _stack_failing(error: Exception) -> bool:
+def _stack_failing(error: Exception, database: str) -> bool:
+    """Whether the statement failed for want of the stack database or a table in it. A bucket's missing source view
+    is not the stack's but that bucket's, and goes to the item-by-item retry."""
     if not isinstance(error, AthenaQueryBaseException):
         return False
     status = error.query_execution.get("Status", {})
-    reasons = (status.get("StateChangeReason", ""), status.get("AthenaError", {}).get("ErrorMessage", ""))
-    return any(_MISSING_TABLE.match(reason) for reason in reasons)
+    for reason in (status.get("StateChangeReason", ""), status.get("AthenaError", {}).get("ErrorMessage", "")):
+        if (m := _MISSING.match(reason)) and database in m[1].replace('"', "").split("."):
+            return True
+    return False
 
 
 def _execute(runner: QueryRunner, context, deadline: float, sql: str) -> bool:
@@ -171,7 +172,7 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
                 failed.update(dict.fromkeys(statement.items))
             continue
         except (AthenaQueryBaseException, botocore.exceptions.ParamValidationError) as e:
-            if _stack_failing(e):
+            if _stack_failing(e, runner.database):
                 raise _StackFailing from e
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
         # In turn: run together, they would race one another's commits.
@@ -179,6 +180,8 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
             try:
                 ran = all(_execute(runner, context, deadline, s.sql) for s in build([item]))
             except AthenaQueryBaseException as e:
+                if _stack_failing(e, runner.database):
+                    raise _StackFailing from e
                 logger.exception("Failed to write %s", item)
                 failed[item] = None if e.retryable else f"statement: {e}"
                 continue
@@ -283,13 +286,12 @@ def set_handler(event, context):
         except Exception as e:
             logger.exception("Failed to decode message %s", record["messageId"])
             dead[record["messageId"]] = f"input: not an S3 event: {e!r}"
-    with ThreadPoolExecutor(max_workers=10) as pool:  # botocore's default connection pool size
-        reads = {key: pool.submit(_read, *key) for key in keys}
 
+    # One read at a time: a FIFO queue's batch holds at most ten messages.
     ids, groups, unread = {}, defaultdict(list), 0
-    for key, read in reads.items():
+    for key in keys:
         try:
-            item, upsert = read.result()
+            item, upsert = _read(*key)
         except _Invalid as e:
             logger.warning("Failed to read s3://%s/%s: %s", *key, e)
             dead.update(dict.fromkeys(keys[key], f"input: {e}"))

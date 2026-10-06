@@ -45,9 +45,9 @@ def pointer_key(pkg_name: str, pointer: str) -> str:
     return f"{quilt_shared.const.NAMED_PACKAGES_PREFIX}{pkg_name}/{pointer}"
 
 
-def record(message_id: str, key: str, group: str | None = None) -> dict:
+def record(message_id: str, key: str, group: str | None = None, bucket: str = BUCKET) -> dict:
     """An SQS record of an S3 event from the set's FIFO queue, in its own message group unless one is given."""
-    body = {"detail": {"s3": {"bucket": {"name": BUCKET}, "object": {"key": key}}}}
+    body = {"detail": {"s3": {"bucket": {"name": bucket}, "object": {"key": key}}}}
     return {"messageId": message_id, "body": json.dumps(body), "attributes": {"MessageGroupId": group or message_id}}
 
 
@@ -769,8 +769,12 @@ def test_a_call_athena_denies_for_good_returns_the_whole_batch_and_dead_letters_
 
 
 def missing(message: str) -> dict:
-    """Athena's error for a statement naming a table or database the stack has not created, by its verdict final."""
+    """Athena's error for a statement naming a table or database that does not exist, by its verdict final."""
     return {"ErrorCategory": 2, "Retryable": False, "ErrorMessage": message}
+
+
+def view_missing(bucket: str) -> dict:
+    return missing(f"TABLE_NOT_FOUND: line 9:16: Table 'awsdatacatalog.{USER_DB}.{bucket}_manifests' does not exist")
 
 
 MISSING = [
@@ -796,6 +800,46 @@ def test_a_statement_naming_a_table_the_stack_lacks_returns_the_whole_batch(
     response = handle(*events)
 
     assert response == failures(*(event["messageId"] for event in events))
+    assert sqs.sent == []
+
+
+def test_a_table_the_stack_lacks_met_in_an_item_by_item_retry_returns_the_whole_batch(handle, athena, s3, con, sqs):
+    batch = manifests(s3, con, 1, 2)
+    athena.fails = lambda sql: (
+        None
+        if '"package_entry"' not in sql
+        else BAD_DATA
+        if h(1) in sql and h(2) in sql
+        else MISSING[0]
+        if h(2) in sql
+        else None
+    )
+
+    response = handle(*batch)
+
+    assert response == failures("m1", "m2")
+    assert sqs.sent == []
+
+
+def test_a_buckets_missing_source_view_is_that_buckets_items_alone(handle, athena, s3, con, sqs):
+    put_manifest(s3, con, h(1))
+    s3.objects["b2", manifest_key(h(2))] = b'{"message": "m"}\n'
+    athena.fails = lambda sql: view_missing("b2") if '"b2_manifests"' in sql else None
+
+    response = handle(record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2)), bucket="b2"))
+
+    assert response == failures()
+    assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
+    assert dead_lettered(sqs).keys() == {"m2"}
+
+
+def test_when_every_items_source_view_is_missing_the_batch_is_returned(handle, athena, s3, con, sqs):
+    batch = manifests(s3, con, 1, 2)
+    athena.fails = lambda sql: view_missing(BUCKET) if f'"{BUCKET}_manifests"' in sql else None
+
+    response = handle(*batch)
+
+    assert response == failures("m1", "m2")
     assert sqs.sent == []
 
 
