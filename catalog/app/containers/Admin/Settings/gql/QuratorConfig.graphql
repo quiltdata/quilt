@@ -6,6 +6,8 @@ query {
         default
         requestTimeoutSeconds
         maxToolCallsPerTurn
+        sessionRetentionDays
+        sessionMaxPerUser
         names {
           id
           name

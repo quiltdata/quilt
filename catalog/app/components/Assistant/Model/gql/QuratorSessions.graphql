@@ -1,0 +1,16 @@
+query {
+  me {
+    name
+    quratorSessionsEnabled
+    quratorSessions {
+      id
+      title
+      updatedAt
+    }
+  }
+  config {
+    quratorModels {
+      sessionsEnabled
+    }
+  }
+}

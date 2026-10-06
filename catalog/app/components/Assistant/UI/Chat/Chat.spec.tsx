@@ -12,7 +12,7 @@ vi.mock('utils/Buckets', () => ({
 
 import * as Model from '../../Model'
 
-import { ConnectorHelperLine, Menu, MessageEvent } from './Chat'
+import { ConnectorHelperLine, LastSession, Menu, MessageEvent } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
 // any block element there is invalid DOM nesting.
@@ -139,16 +139,77 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
   })
 })
 
+const sessionsStub = (
+  over: Partial<Model.Assistant.API['sessions']> = {},
+): Model.Assistant.API['sessions'] => ({
+  available: true,
+  enabled: true,
+  setEnabled: vi.fn(),
+  list: [],
+  currentId: null,
+  open: vi.fn(),
+  remove: vi.fn(),
+  refresh: vi.fn(),
+  notice: null,
+  ...over,
+})
+
+const kept = () =>
+  sessionsStub({
+    list: [
+      {
+        __typename: 'QuratorSession',
+        id: 's1',
+        title: 'Find my packages',
+        updatedAt: new Date(),
+      },
+    ],
+  })
+
+describe('components/Assistant/UI/Chat/LastSession', () => {
+  afterEach(cleanup)
+
+  const state = (events: unknown[]) =>
+    ({ _tag: 'Idle', events }) as unknown as Model.Assistant.API['state']
+
+  it('offers the latest session in an empty chat, and opens it on continue', () => {
+    const sessions = kept()
+    render(<LastSession sessions={sessions} state={state([])} />)
+    expect(screen.getByText(/Last session: Find my packages/)).toBeTruthy()
+    fireEvent.click(screen.getByText('continue'))
+    expect(sessions.open).toHaveBeenCalledWith('s1')
+  })
+
+  it('shows the exact time on hover', () => {
+    const updatedAt = new Date('2026-10-06T12:00:00Z')
+    const sessions = sessionsStub({
+      list: [{ __typename: 'QuratorSession', id: 's1', title: 't', updatedAt }],
+    })
+    render(<LastSession sessions={sessions} state={state([])} />)
+    expect(screen.getByTitle(updatedAt.toLocaleString())).toBeTruthy()
+  })
+
+  it('stays out of a chat already under way', () => {
+    render(<LastSession sessions={kept()} state={state([{ id: '1' }])} />)
+    expect(screen.queryByText(/Last session/)).toBeNull()
+  })
+})
+
 describe('components/Assistant/UI/Chat/Menu', () => {
   afterEach(cleanup)
 
   const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
 
-  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn()) {
+  function renderMenu(
+    devToolsOpen: boolean,
+    onToggleDevTools = vi.fn(),
+    sessions = sessionsStub(),
+  ) {
     render(
       <Menu
         state={idle}
         dispatch={vi.fn()}
+        sessions={sessions}
         devToolsOpen={devToolsOpen}
         onToggleDevTools={onToggleDevTools}
       />,
@@ -170,6 +231,44 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     fireEvent.click(screen.getByText('Hide Developer Tools'))
     expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('turns kept sessions off and on from the menu', () => {
+    const sessions = kept()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Keep sessions'))
+    expect(sessions.setEnabled).toHaveBeenCalledWith(false)
+  })
+
+  it('shows no session controls on a stack that does not keep them', () => {
+    renderMenu(false, vi.fn(), sessionsStub({ available: false }))
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Keep sessions')).toBeNull()
+  })
+
+  it('opens a recent session', () => {
+    const sessions = kept()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Find my packages'))
+    expect(sessions.open).toHaveBeenCalledWith('s1')
+  })
+
+  it('deletes a recent session only once confirmed', () => {
+    const sessions = kept()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByLabelText('Delete session: Find my packages'))
+    expect(sessions.open).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Cancel'))
+    expect(sessions.remove).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: /Find my packages/ }), {
+      key: 'Delete',
+    })
+    fireEvent.click(screen.getByText('Delete'))
+    expect(sessions.remove).toHaveBeenCalledWith('s1')
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {

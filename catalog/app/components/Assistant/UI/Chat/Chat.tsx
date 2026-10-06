@@ -2,7 +2,9 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as dateFns from 'date-fns'
 
+import { useConfirm } from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
@@ -446,9 +448,47 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
+function SavedAgo({ date }: { date: Date }) {
+  return (
+    <span title={date.toLocaleString()}>
+      {dateFns.formatDistanceToNow(date, { addSuffix: true })}
+    </span>
+  )
+}
+
+const useMenuStyles = M.makeStyles({
+  session: {
+    maxWidth: 360,
+  },
+})
+
+type Sessions = Model.Assistant.API['sessions']
+
+interface LastSessionProps {
+  sessions: Sessions
+  state: Model.Assistant.API['state']
+}
+
+/** Offered, never opened by itself: two tabs would otherwise write one session. */
+export function LastSession({ sessions, state }: LastSessionProps) {
+  const last = sessions.list[0]
+  if (!last || state.events.some((e) => !e.discarded)) return null
+  return (
+    <MessageContainer
+      color="faint"
+      actions={
+        <MessageAction onClick={() => sessions.open(last.id)}>continue</MessageAction>
+      }
+    >
+      Last session: {last.title} (<SavedAgo date={last.updatedAt} />)
+    </MessageContainer>
+  )
+}
+
 interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
+  sessions: Sessions
   onToggleDevTools: () => void
   devToolsOpen: boolean
   className?: string
@@ -457,6 +497,7 @@ interface MenuProps {
 export function Menu({
   state,
   dispatch,
+  sessions,
   devToolsOpen,
   onToggleDevTools,
   className,
@@ -465,10 +506,13 @@ export function Menu({
 
   const isIdle = state._tag === 'Idle'
 
+  const { available, refresh } = sessions
   const toggleMenu = React.useCallback(
-    (e: React.BaseSyntheticEvent) =>
-      setMenuOpen((prev) => (prev ? null : e.currentTarget)),
-    [setMenuOpen],
+    (e: React.BaseSyntheticEvent) => {
+      if (!menuOpen && available) refresh()
+      setMenuOpen(menuOpen ? null : e.currentTarget)
+    },
+    [menuOpen, available, refresh],
   )
   const closeMenu = React.useCallback(() => setMenuOpen(null), [setMenuOpen])
 
@@ -482,8 +526,33 @@ export function Menu({
     closeMenu()
   }, [closeMenu, onToggleDevTools])
 
+  const classes = useMenuStyles()
+  const [deleting, setDeleting] = React.useState<Sessions['list'][number] | null>(null)
+  const confirmDelete = useConfirm({
+    title: 'Delete this session?',
+    submitTitle: 'Delete',
+    onSubmit: React.useCallback(
+      (confirmed: boolean) => {
+        if (confirmed && deleting) sessions.remove(deleting.id)
+        setDeleting(null)
+      },
+      [sessions, deleting],
+    ),
+  })
+  const askDelete = React.useCallback(
+    (session: Sessions['list'][number]) => {
+      setDeleting(session)
+      closeMenu()
+      confirmDelete.open()
+    },
+    [closeMenu, confirmDelete],
+  )
+
   return (
     <>
+      {confirmDelete.render(
+        <M.Typography>"{deleting?.title}" will be deleted for good.</M.Typography>,
+      )}
       <M.IconButton
         aria-label="Qurator menu"
         aria-haspopup="true"
@@ -508,6 +577,50 @@ export function Menu({
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
+        {sessions.available && <M.Divider />}
+        {sessions.available && (
+          <M.MenuItem onClick={() => sessions.setEnabled(!sessions.enabled)}>
+            <M.ListItemIcon>
+              <M.Icon fontSize="small">
+                {sessions.enabled ? 'check_box' : 'check_box_outline_blank'}
+              </M.Icon>
+            </M.ListItemIcon>
+            Keep sessions
+          </M.MenuItem>
+        )}
+        {sessions.list.length > 0 && <M.ListSubheader>Recent sessions</M.ListSubheader>}
+        {sessions.list.map((s) => (
+          <M.MenuItem
+            key={s.id}
+            className={classes.session}
+            selected={s.id === sessions.currentId}
+            disabled={!isIdle}
+            onClick={() => {
+              sessions.open(s.id)
+              closeMenu()
+            }}
+            aria-keyshortcuts="Delete"
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Delete') askDelete(s)
+            }}
+          >
+            <M.ListItemText
+              primary={s.title}
+              secondary={<SavedAgo date={s.updatedAt} />}
+              primaryTypographyProps={{ noWrap: true }}
+            />
+            <M.IconButton
+              size="small"
+              aria-label={`Delete session: ${s.title}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                askDelete(s)
+              }}
+            >
+              <M.Icon fontSize="small">delete_outline</M.Icon>
+            </M.IconButton>
+          </M.MenuItem>
+        ))}
       </M.Menu>
     </>
   )
@@ -656,6 +769,7 @@ interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
+  sessions: Sessions
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
@@ -667,6 +781,7 @@ export default function Chat({
   state,
   dispatch,
   devTools,
+  sessions,
   connectors,
   instructions,
   model,
@@ -746,6 +861,7 @@ export default function Chat({
         <Menu
           state={state}
           dispatch={dispatch}
+          sessions={sessions}
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
           className={cx(classes.headerButton, classes.trailing)}
@@ -776,6 +892,7 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
+          <LastSession sessions={sessions} state={state} />
           {state.events
             .filter((e) => !e.discarded)
             .map(
@@ -820,6 +937,9 @@ export default function Chat({
               <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),
           })}
+          {sessions.notice && (
+            <M.Chip size="small" variant="outlined" label={sessions.notice} />
+          )}
           <div ref={scrollRef} />
         </div>
       </div>

@@ -1,0 +1,13 @@
+mutation {
+  quratorSessionsPurgeAll {
+    __typename
+    ... on InvalidInput {
+      errors {
+        message
+      }
+    }
+    ... on OperationError {
+      message
+    }
+  }
+}

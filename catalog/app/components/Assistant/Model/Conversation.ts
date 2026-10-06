@@ -59,6 +59,8 @@ interface ConversationError {
 interface StateBase {
   readonly events: Event[]
   readonly timestamp: Date
+  /** The saved session these events belong to; none until the first save creates one. */
+  readonly sessionId: Eff.Option.Option<string>
 }
 
 export type State = Eff.Data.TaggedEnum<{
@@ -97,9 +99,13 @@ export type State = Eff.Data.TaggedEnum<{
   }
 }>
 
-const idle = (events: Event[], error?: ConversationError) =>
+const idle = (
+  events: Event[],
+  sessionId: Eff.Option.Option<string>,
+  error?: ConversationError,
+) =>
   Eff.Effect.map(getNow, (timestamp) =>
-    State.Idle({ events, timestamp, error: Eff.Option.fromNullable(error) }),
+    State.Idle({ events, timestamp, sessionId, error: Eff.Option.fromNullable(error) }),
   )
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -129,6 +135,16 @@ export type Action = Eff.Data.TaggedEnum<{
   Clear: {}
   Discard: { readonly id: string }
   ConnectorReady: {}
+  Restore: { readonly sessionId: string; readonly events: Event[] }
+  /**
+   * A save under `sessionId` stored the conversation whose first event is
+   * `head` as session `id`.
+   */
+  Saved: {
+    readonly sessionId: Eff.Option.Option<string>
+    readonly head: string
+    readonly id: string
+  }
 }>
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -138,9 +154,25 @@ export const init = Eff.Effect.gen(function* () {
   return State.Idle({
     timestamp: yield* getNow,
     events: [],
+    sessionId: Eff.Option.none(),
     error: Eff.Option.none(),
   })
 })
+
+/**
+ * Only a result for the conversation on screen applies. A save still in flight
+ * when the user starts or opens another one would otherwise put the old
+ * session's id on it, and its next save would overwrite the old session.
+ */
+const saved = <S extends State>(
+  state: S,
+  { sessionId, head, id }: Extract<Action, { _tag: 'Saved' }>,
+) =>
+  Eff.Effect.succeed(
+    Eff.Equal.equals(state.sessionId, sessionId) && state.events[0]?.id === head
+      ? { ...state, sessionId: Eff.Option.some(id) }
+      : state,
+  )
 
 const llmRequest = (events: Event[]) =>
   Log.scoped({
@@ -183,6 +215,7 @@ const llmRequest = (events: Event[]) =>
  */
 const advanceFromEvents = (
   events: Event[],
+  sessionId: Eff.Option.Option<string>,
   dispatch: Actor.Dispatch<Action>,
 ): Eff.Effect.Effect<
   State,
@@ -200,7 +233,7 @@ const advanceFromEvents = (
           yield* dispatch(Action.ConnectorReady())
         }),
       )
-      return State.AwaitingConnector({ events, timestamp, waiter })
+      return State.AwaitingConnector({ events, timestamp, sessionId, waiter })
     }
     const requestFiber = yield* Actor.forkRequest(
       llmRequest(events),
@@ -208,7 +241,7 @@ const advanceFromEvents = (
       (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
       (error) => Eff.Effect.succeed(Action.LLMError({ error })),
     )
-    return State.WaitingForAssistant({ events, timestamp, requestFiber })
+    return State.WaitingForAssistant({ events, timestamp, sessionId, requestFiber })
   })
 
 // XXX: separate "service" from handlers
@@ -230,9 +263,12 @@ export const ConversationActor = Eff.Effect.succeed(
               content: Content.text(action.content),
             })
             const events = state.events.concat(event)
-            return yield* advanceFromEvents(events, dispatch)
+            return yield* advanceFromEvents(events, state.sessionId, dispatch)
           }),
-        Clear: () => idle([]),
+        Clear: () => idle([], Eff.Option.none()),
+        Restore: (_state, { sessionId, events }) =>
+          idle(events, Eff.Option.some(sessionId)),
+        Saved: saved,
         Discard: (state, { id }) =>
           Eff.Effect.succeed({
             ...state,
@@ -242,8 +278,9 @@ export const ConversationActor = Eff.Effect.succeed(
           }),
       },
       WaitingForAssistant: {
-        LLMError: ({ events }, { error }) =>
-          idle(events, {
+        Saved: saved,
+        LLMError: ({ events, sessionId }, { error }) =>
+          idle(events, sessionId, {
             message: 'Error while interacting with LLM.',
             details: error.message,
           }),
@@ -270,7 +307,12 @@ export const ConversationActor = Eff.Effect.succeed(
             }
 
             if (!toolUses.length) {
-              return State.Idle({ events, timestamp, error: Eff.Option.none() })
+              return State.Idle({
+                events,
+                timestamp,
+                sessionId: state.sessionId,
+                error: Eff.Option.none(),
+              })
             }
 
             const ctxService = yield* Context.ConversationContext
@@ -293,21 +335,28 @@ export const ConversationActor = Eff.Effect.succeed(
               }
             }
 
-            return State.ToolUse({ events, timestamp: state.timestamp, calls })
+            return State.ToolUse({
+              events,
+              timestamp: state.timestamp,
+              sessionId: state.sessionId,
+              calls,
+            })
           }),
-        Abort: ({ events, requestFiber }) =>
+        Abort: ({ events, sessionId, requestFiber }) =>
           Eff.Effect.gen(function* () {
             // interrupt current request fiber and go back to idle
             yield* Eff.Fiber.interruptFork(requestFiber)
 
             return State.Idle({
               events,
+              sessionId,
               timestamp: yield* getNow,
               error: Eff.Option.none(),
             })
           }),
       },
       ToolUse: {
+        Saved: saved,
         ToolResult: (state, { id, result }, dispatch) =>
           Eff.Effect.gen(function* () {
             if (!(id in state.calls)) return state
@@ -331,13 +380,18 @@ export const ConversationActor = Eff.Effect.succeed(
 
             if (Object.keys(calls).length) {
               // some calls still in progress
-              return State.ToolUse({ events, timestamp: state.timestamp, calls })
+              return State.ToolUse({
+                events,
+                timestamp: state.timestamp,
+                sessionId: state.sessionId,
+                calls,
+              })
             }
 
             // all calls completed: gate on connectors before the next LLM round
-            return yield* advanceFromEvents(events, dispatch)
+            return yield* advanceFromEvents(events, state.sessionId, dispatch)
           }),
-        Abort: ({ events, calls }) =>
+        Abort: ({ events, sessionId, calls }) =>
           Eff.Effect.gen(function* () {
             // interrupt current tool use fibers and go back to idle
             yield* Eff.pipe(
@@ -349,19 +403,22 @@ export const ConversationActor = Eff.Effect.succeed(
 
             return State.Idle({
               events,
+              sessionId,
               timestamp: yield* getNow,
               error: Eff.Option.none(),
             })
           }),
       },
       AwaitingConnector: {
-        ConnectorReady: ({ events }, _action, dispatch) =>
-          advanceFromEvents(events, dispatch),
-        Abort: ({ events, waiter }) =>
+        Saved: saved,
+        ConnectorReady: ({ events, sessionId }, _action, dispatch) =>
+          advanceFromEvents(events, sessionId, dispatch),
+        Abort: ({ events, sessionId, waiter }) =>
           Eff.Effect.gen(function* () {
             yield* Eff.Fiber.interruptFork(waiter)
             return State.Idle({
               events,
+              sessionId,
               timestamp: yield* getNow,
               error: Eff.Option.none(),
             })
@@ -369,7 +426,7 @@ export const ConversationActor = Eff.Effect.succeed(
         Clear: ({ waiter }) =>
           Eff.Effect.gen(function* () {
             yield* Eff.Fiber.interruptFork(waiter)
-            return yield* idle([])
+            return yield* idle([], Eff.Option.none())
           }),
         Discard: (state, { id }) =>
           Eff.Effect.succeed({

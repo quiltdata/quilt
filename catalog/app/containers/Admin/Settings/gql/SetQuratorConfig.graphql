@@ -8,6 +8,9 @@ mutation ($input: QuratorConfigInput!) {
           default
           requestTimeoutSeconds
           maxToolCallsPerTurn
+          sessionRetentionDays
+          sessionMaxPerUser
+          sessionsEnabled
           names {
             id
             name

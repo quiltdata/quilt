@@ -1,0 +1,18 @@
+mutation ($input: QuratorSessionSaveInput!) {
+  quratorSessionSave(input: $input) {
+    __typename
+    ... on QuratorSession {
+      id
+      version
+    }
+    ... on InvalidInput {
+      errors {
+        name
+        context
+      }
+    }
+    ... on OperationError {
+      name
+    }
+  }
+}

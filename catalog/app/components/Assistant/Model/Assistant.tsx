@@ -3,9 +3,12 @@ import invariant from 'invariant'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 
 import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
+import * as GQL from 'utils/GraphQL'
+import type { JsonRecord } from 'utils/types'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
@@ -19,8 +22,14 @@ import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import * as ModelChoice from './ModelChoice'
+import * as Sessions from './Sessions'
 import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
+import SESSION_QUERY from './gql/QuratorSession.generated'
+import DELETE_SESSION_MUTATION from './gql/QuratorSessionDelete.generated'
+import SAVE_SESSION_MUTATION from './gql/QuratorSessionSave.generated'
+import SESSIONS_QUERY from './gql/QuratorSessions.generated'
+import SET_SESSIONS_ENABLED_MUTATION from './gql/QuratorSessionsSetEnabled.generated'
 
 export const DISABLED = Symbol('DISABLED')
 
@@ -281,6 +290,151 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
   return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
+const TOO_LARGE = 'This session is too long to keep — start a new one'
+const UNREADABLE = "That session couldn't be opened"
+
+/**
+ * Saves the conversation on screen to the registry as it changes. A reload
+ * loses at most the last debounce interval: there is no save on page exit,
+ * because `sendBeacon` and `fetch(keepalive)` cap the body at 64 KiB and a
+ * session can be 1 MiB.
+ */
+function useSessions(
+  state: Conversation.State,
+  dispatch: (action: Conversation.Action) => unknown,
+) {
+  const client = urql.useClient()
+  const query = GQL.useQuery(SESSIONS_QUERY)
+  const saveSession = GQL.useMutation(SAVE_SESSION_MUTATION)
+  const deleteSession = GQL.useMutation(DELETE_SESSION_MUTATION)
+  const setSessionsEnabled = GQL.useMutation(SET_SESSIONS_ENABLED_MUTATION)
+
+  // A registry without sessions fails this query, which leaves them hidden.
+  const available = !!query.data?.config.quratorModels?.sessionsEnabled
+  const enabled = available && !!query.data?.me?.quratorSessionsEnabled
+  const sessions = query.data?.me?.quratorSessions
+  const list = React.useMemo(() => (enabled && sessions) || [], [enabled, sessions])
+  const head = state.events[0]?.id
+  const currentId = Eff.Option.getOrNull(state.sessionId)
+
+  const [notice, setNotice] = React.useState<{ head?: string; text: string } | null>(null)
+
+  const refresh = React.useCallback(
+    () => query.run({ requestPolicy: 'network-only' }),
+    [query],
+  )
+  const passThru = usePassThru({ saveSession, dispatch, refresh, state })
+
+  const queue = useConst(() =>
+    Sessions.createSaveQueue<Conversation.Event[]>({
+      send: async ({ id, baseVersion, events }) => {
+        const live = events.filter((e) => !e.discarded)
+        const { quratorSessionSave } = await passThru.current.saveSession({
+          input: {
+            id,
+            baseVersion,
+            title: Sessions.titleOf(live),
+            events: Sessions.encode(live) as unknown as JsonRecord,
+          },
+        })
+        return Sessions.outcomeOf(quratorSessionSave)
+      },
+      onCreated: ({ head: h, basis, id }) => {
+        passThru.current.dispatch(
+          Conversation.Action.Saved({
+            sessionId: Eff.Option.fromNullable(basis),
+            head: h,
+            id,
+          }),
+        )
+        passThru.current.refresh()
+      },
+      onStopped: (h, reason) => {
+        if (reason === 'TooLarge') setNotice({ head: h, text: TOO_LARGE })
+        else passThru.current.refresh()
+      },
+    }),
+  )
+
+  React.useEffect(() => {
+    if (!enabled) {
+      queue.pause()
+      return
+    }
+    if (head && state.events.some((e) => !e.discarded)) queue.change(head, state.events)
+  }, [enabled, head, state.events, queue])
+
+  const open = React.useCallback(
+    async (id: string) => {
+      if (id === currentId) return
+      // The session being opened may be the one just left, with its last save pending.
+      await queue.flush()
+      const r = await client
+        .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
+        .toPromise()
+      const session = r.data?.me?.quratorSession
+      const events = session && Sessions.decode(session.events)
+      if (!session || !events?.length) {
+        setNotice({ head, text: UNREADABLE })
+        refresh()
+        return
+      }
+      // The actor ignores Restore outside Idle, and the queue must not switch alone.
+      if (passThru.current.state._tag !== 'Idle') return
+      queue.adopt(events[0].id, session.id, session.version, events)
+      dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
+    },
+    [client, currentId, head, queue, dispatch, refresh, passThru],
+  )
+
+  const remove = React.useCallback(
+    async (id: string) => {
+      if (id === currentId) {
+        queue.reset()
+        dispatch(Conversation.Action.Clear())
+      }
+      await deleteSession({ id }).catch(() => {})
+      refresh()
+    },
+    [currentId, queue, dispatch, deleteSession, refresh],
+  )
+
+  const setEnabled = React.useCallback(
+    async (on: boolean) => {
+      if (!on) queue.pause()
+      await setSessionsEnabled({ enabled: on }).catch(() => {})
+      refresh()
+    },
+    [queue, setSessionsEnabled, refresh],
+  )
+
+  return React.useMemo(
+    () => ({
+      available,
+      enabled,
+      setEnabled,
+      list,
+      currentId,
+      open,
+      remove,
+      refresh,
+      notice: notice && notice.head === head ? notice.text : null,
+    }),
+    [
+      available,
+      enabled,
+      setEnabled,
+      list,
+      currentId,
+      open,
+      remove,
+      refresh,
+      notice,
+      head,
+    ],
+  )
+}
+
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
@@ -320,6 +474,8 @@ function useConstructAssistantAPI() {
 
   GlobalContext.use(llm)
 
+  const sessions = useSessions(state, dispatch)
+
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
   const show = React.useCallback(() => setVisible(true), [])
@@ -341,6 +497,7 @@ function useConstructAssistantAPI() {
     state,
     dispatch,
     busy,
+    sessions,
     connectors,
     instructions,
     model,

@@ -40,6 +40,8 @@ const config = (
     default: dflt,
     requestTimeoutSeconds: 120,
     maxToolCallsPerTurn: 20,
+    sessionRetentionDays: null as number | null,
+    sessionMaxPerUser: null as number | null,
     names,
   },
   gateway: { endpointUrl: 'https://gw.example.net/bedrock', accountId: '123456789012' },
@@ -130,7 +132,52 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
       requestTimeoutSeconds: 120,
       maxToolCallsPerTurn: 20,
       names: null,
+      sessionRetentionDays: null,
+      sessionMaxPerUser: null,
     })
+  })
+
+  // The mutation replaces the whole row: an omitted 0 would turn saving back on.
+  it('always sends the session limits, a saved 0 included', async () => {
+    state.config = config([HAIKU], HAIKU)
+    state.config.models.sessionRetentionDays = 0
+    state.config.models.sessionMaxPerUser = 30
+    const { getByLabelText, getByText } = render(<QuratorModelSettings />)
+    fireEvent.change(getByLabelText('Allowed model IDs'), {
+      target: { value: `${HAIKU}\n${OPUS}` },
+    })
+    fireEvent.click(getByText('Save'))
+    await waitFor(() => expect(state.mutate).toHaveBeenCalled())
+    const { input } = state.mutate.mock.calls[0][0]
+    expect(input.sessionRetentionDays).toBe(0)
+    expect(input.sessionMaxPerUser).toBe(30)
+  })
+
+  it('saves an edited retention', async () => {
+    const { getByLabelText, getByText } = render(<QuratorModelSettings />)
+    fireEvent.change(getByLabelText('Keep for (days)'), { target: { value: '7' } })
+    fireEvent.click(getByText('Save'))
+    await waitFor(() => expect(state.mutate).toHaveBeenCalled())
+    expect(state.mutate.mock.calls[0][0].input.sessionRetentionDays).toBe(7)
+  })
+
+  it('refuses a limit that is not a whole number', () => {
+    const { getByLabelText, getByText } = render(<QuratorModelSettings />)
+    fireEvent.change(getByLabelText('Keep for (days)'), { target: { value: '1.5' } })
+    expect(getByText('A whole number')).toBeTruthy()
+    expect(getByText('Save').closest('button')?.disabled).toBe(true)
+  })
+
+  it('deletes every saved session only once confirmed', async () => {
+    state.mutate = vi.fn(async () => ({ quratorSessionsPurgeAll: { __typename: 'Ok' } }))
+    const { getByText, findByText } = render(<QuratorModelSettings />)
+    fireEvent.click(getByText('Delete all saved sessions'))
+    fireEvent.click(getByText('Cancel'))
+    expect(state.mutate).not.toHaveBeenCalled()
+    fireEvent.click(getByText('Delete all saved sessions'))
+    fireEvent.click(getByText('Delete all'))
+    expect(await findByText('All saved sessions were deleted.')).toBeTruthy()
+    expect(state.mutate).toHaveBeenCalledTimes(1)
   })
 
   it('unsets the governance when the list is emptied', async () => {
