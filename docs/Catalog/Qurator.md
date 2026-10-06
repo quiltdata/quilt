@@ -60,6 +60,19 @@ gated and inline actions appear in the helper-text region:
 
 ![Qurator platform tools connector ready](../imgs/qurator-tools.png)
 
+### Approving Actions
+
+Qurator runs tools that only read (search, browse, preview) on its
+own. Before it runs a tool that changes data, such as creating or updating a
+package, writing an S3 object, or changing a Tabulator table, it shows what it
+wants to do and waits:
+
+- **Run** — the tool runs under your own permissions.
+- **Don't run** — nothing is written; Qurator is told you declined.
+
+Tools their server marks destructive carry a warning. Approval is
+asked for each call, and only you can give it: content Qurator reads cannot.
+
 ## Getting Started
 
 To enable Qurator Omni:

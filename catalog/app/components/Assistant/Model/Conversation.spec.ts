@@ -304,6 +304,7 @@ describe('Conversation actor — connector gating', () => {
           const responded = yield* Eff.Ref.make(false)
 
           const connectorTool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
             schema: {} as Eff.JSONSchema.JsonSchema7Root,
             executor: () =>
               Eff.Effect.gen(function* () {
@@ -372,5 +373,153 @@ describe('Conversation actor — connector gating', () => {
           expect(event.result.status).toBe('success')
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+})
+
+describe('write approval', () => {
+  /**
+   * One LLM round asking for `toolUses`, then a settling round with none.
+   * `runs` counts executions per tool name.
+   */
+  const setup = (toolUses: { id: string; name: string; effect: Tool.Effect }[]) =>
+    Eff.Effect.gen(function* () {
+      const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+      const runs = yield* Eff.Ref.make<Record<string, number>>({})
+      const responded = yield* Eff.Ref.make(false)
+      const tools: Tool.Collection = Object.fromEntries(
+        toolUses.map(({ name, effect }) => [
+          name,
+          {
+            effect,
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Ref.update(runs, (r) => ({ ...r, [name]: (r[name] ?? 0) + 1 })).pipe(
+                Eff.Effect.as(
+                  Eff.Option.some(
+                    Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'ran' })),
+                  ),
+                ),
+              ),
+          },
+        ]),
+      )
+      const llm: LLM.LLM['Type'] = {
+        converse: () =>
+          Eff.Effect.gen(function* () {
+            if (yield* Eff.Ref.getAndSet(responded, true)) {
+              return { content: Eff.Option.some([]), backendResponse: {} as never }
+            }
+            return {
+              content: Eff.Option.some(
+                toolUses.map(({ id, name }) =>
+                  Content.ResponseMessageContentBlock.ToolUse({
+                    toolUseId: id,
+                    name,
+                    input: { bucket: 'b' },
+                  }),
+                ),
+              ),
+              backendResponse: {} as never,
+            }
+          }),
+      }
+      const layer = Eff.Layer.mergeAll(
+        Eff.Layer.succeed(Connectors.Connectors, {
+          ...makeConnectorsStub(isBlockedRef),
+          contextContribution: Eff.Effect.succeed({ tools, messages: [] }),
+        }),
+        Eff.Layer.succeed(LLM.LLM, llm),
+        Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+      )
+      const definition = yield* Conversation.ConversationActor
+      const actor = yield* Actor.start(
+        definition,
+        yield* Conversation.init,
+        Eff.Effect.succeed(layer),
+      )
+      yield* actor.dispatch(Conversation.Action.Ask({ content: 'go' }))
+      const pending = yield* awaitState(
+        actor,
+        (s) => s._tag === 'ToolUse' && Object.values(s.calls).some((c) => c.approval),
+      )
+      return { actor, runs, pending }
+    })
+
+  const run = (test: Eff.Effect.Effect<void, never, Eff.Scope.Scope>) =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(test).pipe(
+        Eff.Effect.provide(TestContext.TestContext),
+      ) as Eff.Effect.Effect<void>,
+    )
+
+  const settled = (s: Conversation.State) => s._tag === 'Idle'
+
+  it('holds a write until approved, then runs it once', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, pending } = yield* setup([
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        expect(pending._tag === 'ToolUse' && pending.calls.w.approval).toBe('write')
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
+        yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({ put: 1 })
+      }),
+    ))
+
+  it('a denied write never runs and the model is told why', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup([
+          { id: 'w', name: 'create', effect: 'destructive' },
+        ])
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w' }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        const event = final.events.find((e) => e._tag === 'ToolUse')
+        if (event?._tag !== 'ToolUse') throw new Error('no ToolUse event')
+        expect(event.result.status).toBe('error')
+        expect(JSON.stringify(event.result.content)).toContain('Declined by the user')
+      }),
+    ))
+
+  it('a tool name inherited from Object.prototype is not a tool', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const result = yield* Tool.execute({}, 'toString', {})
+        expect(Eff.Option.getOrThrow(result).status).toBe('error')
+      }),
+    ))
+
+  it('Abort drops a pending write without running it', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup([{ id: 'w', name: 'put', effect: 'write' }])
+        yield* actor.dispatch(Conversation.Action.Abort())
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        expect(final.events.some((e) => e._tag === 'ToolUse')).toBe(false)
+      }),
+    ))
+
+  it('reads in the same batch run without waiting', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup([
+          { id: 'r', name: 'list', effect: 'read' },
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        yield* awaitState(
+          actor,
+          (s) => s._tag === 'ToolUse' && !('r' in s.calls) && 'w' in s.calls,
+        )
+        expect(yield* Eff.Ref.get(runs)).toEqual({ list: 1 })
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w' }))
+        yield* awaitState(actor, settled)
+      }),
     ))
 })
