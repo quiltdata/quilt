@@ -21,7 +21,6 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] The HubSpot chat launcher no longer loads on the open catalog (app.quilt.bio), so it stops covering pagination and other controls; page-view tracking is unchanged ([#5446](https://github.com/quiltdata/quilt/pull/5446))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
@@ -38,6 +37,7 @@ complete sentence without it.
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
 - [Fixed] Opening a folder or file your role cannot read shows Access Denied below the breadcrumbs instead of replacing the page with an error ([#5382](https://github.com/quiltdata/quilt/pull/5382))
 - [Fixed] Bucket directory listings keep their page in the URL, so Back from a file, a reload or a shared link returns to the same page instead of the first ([#5378](https://github.com/quiltdata/quilt/pull/5378))
+- [Fixed] The HubSpot chat launcher no longer loads on the open catalog (app.quilt.bio), so it stops covering pagination and other controls; page-view tracking is unchanged ([#5446](https://github.com/quiltdata/quilt/pull/5446))
 - [Fixed] Screen readers announce the labels of the Qurator chat input, the package dialog's name, message and workflow fields, and the Athena workgroup, data catalog and database selects ([#5377](https://github.com/quiltdata/quilt/pull/5377))
 - [Fixed] Preview: a file the preview service cannot read, such as a CSV named `.parquet`, shows the service's reason instead of a generic error ([#5376](https://github.com/quiltdata/quilt/pull/5376))
 - [Fixed] Opening Qurator no longer logs an aborted request to the platform MCP server in the browser console ([#5375](https://github.com/quiltdata/quilt/pull/5375))
