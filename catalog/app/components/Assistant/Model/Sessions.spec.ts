@@ -173,6 +173,13 @@ describe('components/Assistant/Model/Sessions', () => {
       },
     )
 
+    it('does not loop when a create is answered NotFound', async () => {
+      const { queue, send } = setup(async () => ({ _tag: 'NotFound' }))
+      queue.change('h', 'a')
+      await vi.advanceTimersByTimeAsync(10000)
+      expect(send).toHaveBeenCalledTimes(1)
+    })
+
     it('stops saving a session that is too long', async () => {
       const { queue, send, stopped } = setup(async () => ({ _tag: 'TooLarge' }))
       queue.change('h', 'a')

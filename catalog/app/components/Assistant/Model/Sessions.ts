@@ -233,6 +233,7 @@ export function createSaveQueue<T>({
     const events = s.latest
     s.inFlight = true
     s.sent = events
+    const updating = s.id !== null
     send({ id: s.id, baseVersion: s.version, events })
       .catch((): SaveOutcome => ({ _tag: 'Failed' }))
       .then((r) => {
@@ -249,6 +250,8 @@ export function createSaveQueue<T>({
             break
           case 'Conflict':
           case 'NotFound':
+            // Only an update forks; a create answered so would loop.
+            if (!updating) break
             s.id = null
             s.version = null
             s.sent = null

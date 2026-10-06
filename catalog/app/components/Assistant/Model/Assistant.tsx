@@ -456,8 +456,10 @@ function useSessions(
       const ticket = ++latestToggle.current
       setChoice(on)
       const r = await setSessionsEnabled({ enabled: on }).catch(() => null)
-      if (r?.quratorSessionsSetEnabled.__typename !== 'Ok')
+      if (r?.quratorSessionsSetEnabled.__typename !== 'Ok') {
         setNotice({ head: headNow.current, text: UNSWITCHABLE })
+        if (ticket === latestToggle.current) setChoice(null)
+      }
       // The registry's answer stands from here, including a change from another tab.
       const read = await client
         .query(SESSIONS_QUERY, {}, { requestPolicy: 'network-only' })
@@ -544,10 +546,11 @@ function useConstructAssistantAPI() {
 
   const assist = React.useCallback(
     (msg?: string) => {
-      if (msg) dispatch(Conversation.Action.Ask({ content: msg }))
+      // Not while a session opens or is deleted: those apply only while Idle.
+      if (msg && !sessions.switching) dispatch(Conversation.Action.Ask({ content: msg }))
       show()
     },
-    [show, dispatch],
+    [show, dispatch, sessions.switching],
   )
 
   return {
