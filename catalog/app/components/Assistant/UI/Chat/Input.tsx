@@ -185,6 +185,134 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
   )
 }
 
+const useSkillsStyles = M.makeStyles((t) => ({
+  // Below sm the text field would shrink to a few characters beside both menus.
+  wideOnly: {
+    [t.breakpoints.down('xs')]: { display: 'none' },
+  },
+  narrowOnly: {
+    fontSize: 16,
+    marginRight: t.spacing(0.5),
+    [t.breakpoints.up('sm')]: { display: 'none' },
+  },
+  item: {
+    alignItems: 'flex-start',
+    maxWidth: t.spacing(48),
+    whiteSpace: 'normal',
+  },
+  check: {
+    marginTop: t.spacing(0.5),
+    minWidth: 0,
+    marginRight: t.spacing(1),
+  },
+  name: {
+    ...t.typography.body2,
+    fontWeight: t.typography.fontWeightMedium,
+  },
+  badge: {
+    marginLeft: t.spacing(1),
+  },
+  description: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    display: '-webkit-box',
+    overflow: 'hidden',
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 2,
+  },
+}))
+
+const RUN_CLASS_LABEL = {
+  guide: { label: 'Guide', title: 'Qurator follows these instructions itself' },
+  shell: {
+    label: 'Needs shell',
+    title: "Qurator explains the steps and gives you the commands; it can't run them",
+  },
+}
+
+interface SkillsMenuProps {
+  skills: Model.Assistant.API['skills']
+  disabled?: boolean
+}
+
+/** Turns the stack's skills on and off for this browser. Renders nothing without skills. */
+export function SkillsMenu({ skills, disabled }: SkillsMenuProps) {
+  const pickerClasses = usePickerStyles()
+  const classes = useSkillsStyles()
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
+  const close = React.useCallback(() => setAnchor(null), [])
+  React.useEffect(() => {
+    if (disabled) close()
+  }, [disabled, close])
+  if (!skills.all.length) return null
+  const on = skills.all.filter((s) => !skills.disabled.has(s.name)).length
+  return (
+    <>
+      <M.Button
+        className={pickerClasses.button}
+        aria-haspopup="menu"
+        aria-expanded={!!anchor}
+        aria-label={`Skills ${on} (${on} of ${skills.all.length} on)`}
+        disabled={disabled}
+        onClick={(e) => setAnchor(e.currentTarget)}
+        size="small"
+        endIcon={
+          <M.Icon className={classes.wideOnly} fontSize="small">
+            expand_more
+          </M.Icon>
+        }
+      >
+        <M.Icon className={classes.narrowOnly}>extension</M.Icon>
+        <span className={pickerClasses.label}>
+          <span className={classes.wideOnly}>Skills </span>
+          {on}
+        </span>
+      </M.Button>
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <M.Menu
+          anchorEl={anchor}
+          open={!!anchor && !disabled}
+          onClose={close}
+          getContentAnchorEl={null}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          {skills.all.map((s) => {
+            const checked = !skills.disabled.has(s.name)
+            const runClass = RUN_CLASS_LABEL[s.runClass]
+            return (
+              <M.MenuItem
+                key={s.name}
+                className={classes.item}
+                onClick={() => skills.toggle(s.name)}
+                aria-checked={checked}
+                role="menuitemcheckbox"
+              >
+                <M.ListItemIcon className={classes.check}>
+                  <M.Icon fontSize="small">
+                    {checked ? 'check_box' : 'check_box_outline_blank'}
+                  </M.Icon>
+                </M.ListItemIcon>
+                <span>
+                  <span className={classes.name}>{s.name}</span>
+                  <M.Tooltip title={runClass.title}>
+                    <M.Chip
+                      className={classes.badge}
+                      label={runClass.label}
+                      size="small"
+                    />
+                  </M.Tooltip>
+                  <span className={classes.description}>{s.description}</span>
+                </span>
+              </M.MenuItem>
+            )
+          })}
+        </M.Menu>
+      </M.MuiThemeProvider>
+    </>
+  )
+}
+
 // The Focus Ring Rule on the dark ground: amber, which the base theme does not set here.
 const darkTheme = createCustomAppTheme({
   palette: { type: 'dark' },
@@ -207,6 +335,7 @@ interface ChatInputProps {
   helperText?: React.ReactNode
   helperSeverity?: 'warning' | 'error'
   model?: Model.Assistant.API['model']
+  skills?: Model.Assistant.API['skills']
   onSubmit: (value: string) => void
 }
 
@@ -218,6 +347,7 @@ export default function ChatInput({
   helperText,
   helperSeverity,
   model,
+  skills,
   onSubmit,
 }: ChatInputProps) {
   const classes = useStyles()
@@ -255,6 +385,7 @@ export default function ChatInput({
             classes: useInputStyles(),
             endAdornment: (
               <M.InputAdornment position="end">
+                {skills && <SkillsMenu skills={skills} disabled={disabled} />}
                 {model && <ModelPicker model={model} disabled={disabled} />}
                 <M.IconButton
                   aria-label="Send"

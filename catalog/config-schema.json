@@ -93,6 +93,10 @@
       "type": "string",
       "description": "Bedrock model ID for Qurator AI Assistant (overrides built-in default)"
     },
+    "quratorSkills": {
+      "type": "string",
+      "description": "Pinned package (quilt+s3://bucket#package=name@hash) holding the Agent Skills Qurator offers; empty disables skills"
+    },
     "stackVersion": {
       "type": "string",
       "description": "Stack release version"
