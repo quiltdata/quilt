@@ -1,6 +1,6 @@
 // Assessment is Quilt's own reading of the product, not a compliance claim:
 // the customer validates.
-export type Assessment = 'supported' | 'partial' | 'gap' | 'customer'
+export type Assessment = 'supported' | 'partial' | 'gap' | 'customer' | 'notEnabled'
 
 export type LiveCheck = 'pass' | 'fail' | 'running' | 'missing' | 'unavailable'
 
@@ -70,11 +70,11 @@ export const REQUIREMENTS: Requirement[] = [
   },
   {
     id: 'DI-1',
-    anchor: 'ALCOA+ Accurate · Enduring',
-    requirement: 'Records cannot change undetected',
-    control: 'Per-entry and package hashes, Package.verify, S3 versioning',
+    anchor: 'ALCOA+ Original · Accurate',
+    requirement: 'Content changes are detectable by hash verification',
+    control: 'Per-entry and package hashes, Package.verify (run on demand)',
     evidence: 'quilt3 verify output',
-    assessment: 'supported',
+    assessment: 'partial',
   },
   {
     id: 'DI-2',
@@ -86,11 +86,11 @@ export const REQUIREMENTS: Requirement[] = [
   },
   {
     id: 'AT-1',
-    anchor: '21 CFR 11.10(e) · Annex 11 §9',
+    anchor: '21 CFR 11.10(d) · Annex 11 §12.4',
     requirement: 'Audit trail of administrative and access actions',
-    control: 'Registry audit trail (Firehose → S3 → Athena)',
+    control: 'Registry audit trail (Firehose → S3 → Athena), best-effort delivery',
     evidence: 'Athena workgroup <stack>-audit',
-    assessment: 'supported',
+    assessment: 'partial',
   },
   {
     id: 'AT-2',
@@ -146,8 +146,18 @@ export function liveCheck(
 ): LiveCheck | null {
   if (!req.canary) return null
   if (!canaries) return 'unavailable'
-  const c = canaries.find((x) => x.name.endsWith(req.canary!))
-  if (!c) return 'missing'
+  const matches = canaries.filter((x) => x.name.endsWith(req.canary!))
+  if (matches.length !== 1) return 'missing'
+  const c = matches[0]
   if (c.ok === null) return 'running'
   return c.ok ? 'pass' : 'fail'
+}
+
+// A live-backed claim is only as good as the check behind it on this stack.
+export function displayedAssessment(
+  req: Requirement,
+  live: LiveCheck | null,
+): Assessment {
+  if (live === 'missing' || live === 'unavailable') return 'notEnabled'
+  return req.assessment
 }

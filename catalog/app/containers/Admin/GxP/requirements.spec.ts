@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { REQUIREMENTS, liveCheck } from './requirements'
+import { REQUIREMENTS, displayedAssessment, liveCheck } from './requirements'
 
 const byId = (id: string) => REQUIREMENTS.find((r) => r.id === id)!
 
@@ -24,6 +24,26 @@ describe('containers/Admin/GxP/requirements', () => {
       expect(liveCheck(byId('OQ-2'), canaries)).toBe('fail')
       expect(liveCheck(byId('OQ-3'), canaries)).toBe('running')
       expect(liveCheck(byId('OQ-4'), canaries)).toBe('missing')
+    })
+  })
+
+  it('treats an ambiguous canary match as missing', () => {
+    const canaries = [
+      { name: 'a-ctlg-uri', ok: true },
+      { name: 'b-ctlg-uri', ok: true },
+    ]
+    expect(liveCheck(byId('OQ-2'), canaries)).toBe('missing')
+  })
+
+  describe('displayedAssessment', () => {
+    it('does not show a canary-backed row as supported when the canary is absent', () => {
+      expect(displayedAssessment(byId('OQ-1'), 'unavailable')).toBe('notEnabled')
+      expect(displayedAssessment(byId('OQ-1'), 'missing')).toBe('notEnabled')
+    })
+
+    it('keeps the static assessment when the check runs', () => {
+      expect(displayedAssessment(byId('OQ-1'), 'fail')).toBe('supported')
+      expect(displayedAssessment(byId('DI-2'), null)).toBe('gap')
     })
   })
 

@@ -9,7 +9,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import STATUS_QUERY from '../Status/gql/Status.generated'
 
-import { REQUIREMENTS, liveCheck } from './requirements'
+import { REQUIREMENTS, displayedAssessment, liveCheck } from './requirements'
 import type { Assessment, LiveCheck } from './requirements'
 
 type StatusResult = Extract<
@@ -25,10 +25,12 @@ const STATUS_VARS = {
 }
 
 const ASSESSMENT: Record<Assessment, { label: string; color: string }> = {
-  supported: { label: 'Supported', color: '#2e7d32' },
-  partial: { label: 'Partial', color: '#ef6c00' },
-  gap: { label: 'Gap', color: '#c62828' },
-  customer: { label: 'Customer-defined', color: '#546e7a' },
+  // Dark shades keep white chip text above 4.5:1 contrast.
+  supported: { label: 'Supported', color: '#1b5e20' },
+  partial: { label: 'Partial', color: '#8a3b00' },
+  gap: { label: 'Gap', color: '#b71c1c' },
+  customer: { label: 'Customer-defined', color: '#455a64' },
+  notEnabled: { label: 'Not enabled on this stack', color: '#616161' },
 }
 
 const LIVE: Record<LiveCheck, { label: string; icon: string; color: string }> = {
@@ -130,7 +132,7 @@ function Qualification({ status }: { status: StatusResult | null }) {
       <Card title="IQ" subtitle="Installation qualification">
         {latest ? (
           <M.Typography variant="body2">
-            Latest report {latest.timestamp.toISOString()} ·{' '}
+            Latest IQ snapshot {latest.timestamp.toISOString()} ·{' '}
             <RRDom.Link
               to={urls.bucketFile(
                 latest.renderedReportLocation.bucket,
@@ -168,10 +170,15 @@ function Qualification({ status }: { status: StatusResult | null }) {
 function exportEvidence(status: StatusResult | null) {
   const canaries = status?.canaries ?? null
   const evidence = {
+    disclaimer:
+      'Snapshot from the Quilt catalog, timestamped by the browser clock and unsigned. Supports your validation; it is not a certification.',
     generatedAt: new Date().toISOString(),
     catalog: window.location.origin,
     statusMonitoring: status ? 'enabled' : 'not enabled',
-    requirements: REQUIREMENTS.map((r) => ({ ...r, liveCheck: liveCheck(r, canaries) })),
+    requirements: REQUIREMENTS.map((r) => {
+      const live = liveCheck(r, canaries)
+      return { ...r, liveCheck: live, displayedAssessment: displayedAssessment(r, live) }
+    }),
     canaries,
     latestStats: status?.latestStats ?? null,
     recentReports: status?.reports.page ?? [],
@@ -181,7 +188,9 @@ function exportEvidence(status: StatusResult | null) {
   const url = URL.createObjectURL(blob)
   a.href = url
   a.download = `gxp-evidence-${evidence.generatedAt.slice(0, 10)}.json`
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   // Revoking synchronously can cancel the download in some browsers.
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
@@ -213,6 +222,19 @@ export default function GxP() {
         </M.Button>
       </div>
 
+      {!status && (
+        <M.Box mb={2}>
+          <M.Paper variant="outlined">
+            <M.Box p={2}>
+              <M.Typography variant="body2">
+                GxP status monitoring (canaries and status reports) is not enabled on this
+                stack, so only the requirements catalogue is shown.
+              </M.Typography>
+            </M.Box>
+          </M.Paper>
+        </M.Box>
+      )}
+
       <Qualification status={status} />
 
       <M.Box pt={3} pb={1}>
@@ -231,25 +253,28 @@ export default function GxP() {
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
-            {REQUIREMENTS.map((r) => (
-              <M.TableRow key={r.id}>
-                <M.TableCell>{r.id}</M.TableCell>
-                <M.TableCell>
-                  {r.requirement}
-                  <M.Typography variant="caption" className={classes.anchor}>
-                    {r.anchor}
-                  </M.Typography>
-                </M.TableCell>
-                <M.TableCell>{r.control}</M.TableCell>
-                <M.TableCell>{r.evidence}</M.TableCell>
-                <M.TableCell>
-                  <AssessmentChip value={r.assessment} />
-                </M.TableCell>
-                <M.TableCell>
-                  <Live value={liveCheck(r, canaries)} />
-                </M.TableCell>
-              </M.TableRow>
-            ))}
+            {REQUIREMENTS.map((r) => {
+              const live = liveCheck(r, canaries)
+              return (
+                <M.TableRow key={r.id}>
+                  <M.TableCell>{r.id}</M.TableCell>
+                  <M.TableCell>
+                    {r.requirement}
+                    <M.Typography variant="caption" className={classes.anchor}>
+                      {r.anchor}
+                    </M.Typography>
+                  </M.TableCell>
+                  <M.TableCell>{r.control}</M.TableCell>
+                  <M.TableCell>{r.evidence}</M.TableCell>
+                  <M.TableCell>
+                    <AssessmentChip value={displayedAssessment(r, live)} />
+                  </M.TableCell>
+                  <M.TableCell>
+                    <Live value={live} />
+                  </M.TableCell>
+                </M.TableRow>
+              )
+            })}
           </M.TableBody>
         </M.Table>
       </M.Paper>
