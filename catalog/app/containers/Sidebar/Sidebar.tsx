@@ -13,6 +13,7 @@ import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
+import { useFeature } from 'utils/features'
 import isTypingTarget from 'utils/isTypingTarget'
 
 import * as NavMenu from './AuthState'
@@ -565,6 +566,19 @@ function NavRow({
   )
 }
 
+function MilestonesItem({ onClick }: { onClick: () => void }) {
+  const { urls } = NamedRoutes.use()
+  if (!useFeature('product-badges')) return null
+  return (
+    <M.MenuItem component={Link} to={urls.milestones()} onClick={onClick}>
+      <M.ListItemIcon>
+        <OutlinedIcon>emoji_events</OutlinedIcon>
+      </M.ListItemIcon>
+      Milestones
+    </M.MenuItem>
+  )
+}
+
 function AccountMenu({
   name,
   signOutUrl,
@@ -646,6 +660,9 @@ function AccountMenu({
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
+          <React.Suspense fallback={null}>
+            <MilestonesItem onClick={close} />
+          </React.Suspense>
           <M.MenuItem component={Link} to={signOutUrl} onClick={close}>
             <M.ListItemIcon>
               <OutlinedIcon>meeting_room</OutlinedIcon>
