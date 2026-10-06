@@ -359,6 +359,7 @@ function useSessions(
         )
         passThru.current.refresh()
       },
+      isEmpty: (events) => events.every((e) => e.discarded),
       onStopped: (h, reason) => {
         if (reason === 'TooLarge') setNotice({ head: h, text: TOO_LARGE })
         else passThru.current.refresh()
@@ -379,10 +380,9 @@ function useSessions(
       return
     }
     queue.resume()
-    // An empty conversation is never created, but a saved one is emptied when
-    // everything in it is discarded, so the discarded messages do not reopen.
-    if (head && (currentId || state.events.some((e) => !e.discarded)))
-      queue.change(head, state.events)
+    // Every change, discards included: a saved conversation whose messages are
+    // all discarded is saved empty, so they do not reopen.
+    if (head) queue.change(head, state.events)
   }, [enabled, head, currentId, state.events, queue])
 
   React.useEffect(() => () => queue.pause(), [queue])

@@ -188,6 +188,8 @@ interface QueueOptions<T> {
   /** A save made while the conversation `head` was under `basis` stored it as `id`. */
   onCreated: (created: { head: string; basis: string | null; id: string }) => void
   onStopped: (head: string, reason: Stop) => void
+  /** Never created as a session; an existing one is still saved empty. */
+  isEmpty?: (events: T) => boolean
   delayMs?: number
 }
 
@@ -200,6 +202,7 @@ export function createSaveQueue<T>({
   send,
   onCreated,
   onStopped,
+  isEmpty = () => false,
   delayMs = 1000,
 }: QueueOptions<T>) {
   let slot: Slot<T> | null = null
@@ -225,7 +228,9 @@ export function createSaveQueue<T>({
     }
     // `shown` too: a fork of a held session must not recreate it either.
     const isHeld = [s.id, s.shown].some((id) => id !== null && held.has(id))
-    if (paused || isHeld || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
+    const nothing =
+      !s.latest || s.latest === s.sent || (s.id === null && isEmpty(s.latest))
+    if (paused || isHeld || s.timer || s.stopped || nothing) {
       s.waiters.splice(0).forEach((resolve) => resolve())
       if (s !== slot && !s.timer && !isHeld && !paused) slots.delete(s)
       return
@@ -266,9 +271,10 @@ export function createSaveQueue<T>({
             onStopped(s.head, r._tag)
             break
           case 'Failed':
-            // Once, so the last reply of a turn survives a blip; after that,
-            // the next change retries, never a loop.
-            if (!s.retried) {
+            // Once, so the last reply of a turn survives a blip; after that the
+            // next change retries. Never a create: one the registry kept
+            // despite the error would be made twice.
+            if (!s.retried && updating) {
               s.retried = true
               s.sent = null
               later(s, delayMs * 5)

@@ -173,6 +173,31 @@ describe('components/Assistant/Model/Sessions', () => {
       },
     )
 
+    it('never creates an empty session, but empties a saved one', async () => {
+      const send = vi.fn(async (r: Sessions.SaveRequest<string>) => saved(r.id ?? 'n', 2))
+      const queue = Sessions.createSaveQueue<string>({
+        send,
+        onCreated: () => {},
+        onStopped: () => {},
+        isEmpty: (e) => e === 'none',
+      })
+      queue.change('h', 'a')
+      queue.change('h', 'none')
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(send).not.toHaveBeenCalled()
+      queue.adopt('k', 'S', 1, 'x')
+      queue.change('k', 'none')
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(send.mock.calls[0][0]).toEqual({ id: 'S', baseVersion: 1, events: 'none' })
+    })
+
+    it('does not retry a failed create', async () => {
+      const { queue, send } = setup(async () => ({ _tag: 'Failed' }))
+      queue.change('h', 'a')
+      await vi.advanceTimersByTimeAsync(10000)
+      expect(send).toHaveBeenCalledTimes(1)
+    })
+
     it('does not loop when a create is answered NotFound', async () => {
       const { queue, send } = setup(async () => ({ _tag: 'NotFound' }))
       queue.change('h', 'a')
@@ -278,6 +303,7 @@ describe('components/Assistant/Model/Sessions', () => {
     it('sends a retry at once when flushed', async () => {
       const outcomes: Sessions.SaveOutcome[] = [{ _tag: 'Failed' }, saved('s', 1)]
       const { queue, send } = setup(async () => outcomes.shift()!)
+      queue.adopt('h', 'S', 1, 'x')
       queue.change('h', 'a')
       await vi.advanceTimersByTimeAsync(1000)
       let settled = false
@@ -330,6 +356,7 @@ describe('components/Assistant/Model/Sessions', () => {
 
     it('retries a failed save once, then waits for the next change', async () => {
       const { queue, send } = setup(async () => ({ _tag: 'Failed' }))
+      queue.adopt('h', 'S', 1, 'x')
       queue.change('h', 'a')
       await vi.advanceTimersByTimeAsync(1000)
       await vi.advanceTimersByTimeAsync(5000)
