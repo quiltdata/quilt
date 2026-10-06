@@ -190,6 +190,12 @@ export default function App() {
         <AuthCode />
       </Route>
 
+      <Route path={paths.quratorMode} exact>
+        <React.Suspense fallback={<Placeholder />}>
+          <QuratorModeGate />
+        </React.Suspense>
+      </Route>
+
       <Route path={paths.activationError} exact>
         <AuthActivationError />
       </Route>
@@ -218,12 +224,6 @@ export default function App() {
           auth can redirect to sign-in. */}
       <Route path={paths.dataProducts}>
         <DataProductsRoute />
-      </Route>
-
-      <Route path={paths.quratorMode} exact>
-        <React.Suspense fallback={<Placeholder />}>
-          <QuratorModeGate />
-        </React.Suspense>
       </Route>
 
       <Route path={paths.queries}>
