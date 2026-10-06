@@ -12,6 +12,9 @@ const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
 // must not be stricter (or more lenient) than the push.
 const AJV_LIKE_PUSH = { strict: false, useDefaults: false, validateFormats: false }
 
+// quilt3 `PACKAGE_NAME_FORMAT` checked on every push; Python's `\w` is Unicode-aware.
+const PACKAGE_NAME_FORMAT = new RegExp('^[\\p{L}\\p{N}_-]+/[\\p{L}\\p{N}_-]+$', 'u')
+
 export interface Issue {
   path: string
   message: string
@@ -49,9 +52,14 @@ export function checkSchema(schema: unknown): string[] {
 
 function toIssue(e: ErrorObject | Error): Issue {
   if (e instanceof Error) return { path: '', message: e.message }
-  const missing = e.keyword === 'required' ? `/${e.params.missingProperty}` : ''
+  const prop =
+    e.keyword === 'required'
+      ? `/${e.params.missingProperty}`
+      : e.keyword === 'additionalProperties'
+        ? `/${e.params.additionalProperty}`
+        : ''
   return {
-    path: `${e.instancePath}${missing}` || '/',
+    path: `${e.instancePath}${prop}` || '/',
     message: e.message || 'is invalid',
   }
 }
@@ -76,7 +84,9 @@ export function dryRun(
       message: 'Commit message is required by workflow, but none was provided.',
     })
   }
-  if (workflow.packageNamePatternError) {
+  if (!PACKAGE_NAME_FORMAT.test(name)) {
+    issues.push({ path: 'name', message: `Invalid package name: ${name}.` })
+  } else if (workflow.packageNamePatternError) {
     issues.push({
       path: 'name',
       message: `Name pattern can't be checked in the browser (${workflow.packageNamePatternError}); push still enforces it.`,

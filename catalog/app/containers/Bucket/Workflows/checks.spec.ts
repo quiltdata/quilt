@@ -104,6 +104,31 @@ describe('containers/Bucket/Workflows/checks', () => {
       expect(issues.map((i) => i.path)).toEqual(['name'])
     })
 
+    it('checks the name format every push enforces', () => {
+      const issues = checks.dryRun(workflow(), undefined, {
+        name: 'foobar',
+        message: '',
+        meta: {},
+      })
+      expect(issues).toEqual([{ path: 'name', message: 'Invalid package name: foobar.' }])
+      expect(
+        checks.dryRun(workflow(), undefined, {
+          name: 'lab-é/x_1',
+          message: '',
+          meta: {},
+        }),
+      ).toEqual([])
+    })
+
+    it('points additionalProperties errors at the property', () => {
+      const issues = checks.dryRun(
+        workflow(),
+        { type: 'object', additionalProperties: false },
+        { name: 'a/b', message: '', meta: { extra: 1 } },
+      )
+      expect(issues.map((i) => i.path)).toEqual(['/extra'])
+    })
+
     it('passes valid input', () => {
       expect(
         checks.dryRun(workflow({ packageNamePattern: /^lab\// }), schema, {
