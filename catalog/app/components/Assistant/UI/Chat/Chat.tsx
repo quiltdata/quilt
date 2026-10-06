@@ -447,8 +447,15 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
-const savedAgo = (iso: string) =>
-  dateFns.formatDistanceToNow(new Date(iso), { addSuffix: true })
+function SavedAgo({ iso }: { iso: string }) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return (
+    <span title={date.toLocaleString()}>
+      {dateFns.formatDistanceToNow(date, { addSuffix: true })}
+    </span>
+  )
+}
 
 const RECENT_IN_MENU = 10
 
@@ -554,7 +561,7 @@ export function Menu({
             >
               <M.ListItemText
                 primary={s.title}
-                secondary={savedAgo(s.updatedAt)}
+                secondary={<SavedAgo iso={s.updatedAt} />}
                 primaryTypographyProps={{ noWrap: true }}
               />
               <M.IconButton
@@ -840,19 +847,21 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
-          {sessions.enabled && !state.events.length && !!sessions.list[0] && (
-            <MessageContainer
-              color="faint"
-              actions={
-                <MessageAction onClick={() => sessions.open(sessions.list[0].id)}>
-                  continue
-                </MessageAction>
-              }
-            >
-              Last session: {sessions.list[0].title} (
-              {savedAgo(sessions.list[0].updatedAt)})
-            </MessageContainer>
-          )}
+          {sessions.enabled &&
+            !state.events.some((e) => !e.discarded) &&
+            !!sessions.list[0] && (
+              <MessageContainer
+                color="faint"
+                actions={
+                  <MessageAction onClick={() => sessions.open(sessions.list[0].id)}>
+                    continue
+                  </MessageAction>
+                }
+              >
+                Last session: {sessions.list[0].title} (
+                <SavedAgo iso={sessions.list[0].updatedAt} />)
+              </MessageContainer>
+            )}
           {state.events
             .filter((e) => !e.discarded)
             .map(

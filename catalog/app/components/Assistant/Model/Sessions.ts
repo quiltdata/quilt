@@ -4,8 +4,7 @@ import * as Content from './Content'
 import * as Conversation from './Conversation'
 
 /**
- * Image and document blocks are saved as a placeholder, so object bytes never
- * outlive the request that fetched them under the user's own permissions.
+ * Image and document blocks are saved as a placeholder, never as their bytes.
  */
 
 const S = Eff.Schema
@@ -20,14 +19,14 @@ const StoredEvent = S.Union(
   S.Struct({
     _tag: S.Literal('Message'),
     id: S.String,
-    timestamp: S.String,
+    timestamp: S.Date,
     role: S.Literal('user', 'assistant'),
     content: Text,
   }),
   S.Struct({
     _tag: S.Literal('ToolUse'),
     id: S.String,
-    timestamp: S.String,
+    timestamp: S.Date,
     toolUseId: S.String,
     name: S.String,
     input: S.Record({ key: S.String, value: S.Unknown }),
@@ -37,10 +36,10 @@ const StoredEvent = S.Union(
     }),
   }),
 )
-type StoredEvent = typeof StoredEvent.Type
+type StoredEvent = typeof StoredEvent.Encoded
 
 const Envelope = S.Struct({ v: S.Literal(1), events: S.Array(StoredEvent) })
-export type Envelope = typeof Envelope.Type
+export type Envelope = typeof Envelope.Encoded
 
 const placeholder = (b: { _tag: 'Image' | 'Document'; format: string; name?: string }) =>
   ({
@@ -102,13 +101,13 @@ export function decode(raw: unknown): Conversation.Event[] | null {
     e._tag === 'Message'
       ? Conversation.Event.Message({
           id: e.id,
-          timestamp: new Date(e.timestamp),
+          timestamp: e.timestamp,
           role: e.role,
           content: Content.MessageContentBlock.Text({ text: e.content.text }),
         })
       : Conversation.Event.ToolUse({
           id: e.id,
-          timestamp: new Date(e.timestamp),
+          timestamp: e.timestamp,
           toolUseId: e.toolUseId,
           name: e.name,
           input: e.input,
@@ -144,8 +143,8 @@ export function titleOf(events: readonly Conversation.Event[]): string {
  * One key per username, so the next account signed in to this browser never
  * sees them.
  *
- * ponytail: one JSON blob per user, rewritten on each save; a quota error drops
- * the oldest until the write fits. A server-side store replaces it.
+ * ponytail: one JSON blob per user, rewritten on each save; a server-side store
+ * replaces it.
  */
 const KEY = 'qurator.sessions'
 const ENABLED_KEY = 'qurator.sessions.enabled'
@@ -161,33 +160,44 @@ function readJson(key: string): unknown {
   }
 }
 
+const isSession = (s: any): s is Session =>
+  typeof s?.id === 'string' &&
+  typeof s.title === 'string' &&
+  typeof s.updatedAt === 'string' &&
+  Number.isFinite(Date.parse(s.updatedAt)) &&
+  typeof s.envelope === 'object' &&
+  s.envelope !== null
+
 export function list(username: string): Session[] {
   const all = readJson(scoped(KEY, username))
-  return Array.isArray(all) ? (all as Session[]) : []
+  return Array.isArray(all) ? all.filter(isSession) : []
 }
 
-function write(username: string, sessions: Session[]) {
-  for (let keep = sessions.length; keep > 0; keep -= 1) {
+/** Drops the oldest until the write fits, never the first; `false` leaves the store as it was. */
+function write(username: string, sessions: Session[]): boolean {
+  const key = scoped(KEY, username)
+  if (!sessions.length) {
     try {
-      window.localStorage.setItem(
-        scoped(KEY, username),
-        JSON.stringify(sessions.slice(0, keep)),
-      )
-      return
+      window.localStorage.removeItem(key)
+      return true
     } catch {
-      // quota exceeded (or storage blocked): retry without the oldest
+      return false
     }
   }
-  try {
-    window.localStorage.removeItem(scoped(KEY, username))
-  } catch {
-    // storage unavailable: sessions are simply not kept
+  for (let keep = sessions.length; keep > 0; keep -= 1) {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(sessions.slice(0, keep)))
+      return true
+    } catch {
+      // quota exceeded (or storage blocked)
+    }
   }
+  return false
 }
 
-export function save(username: string, session: Session) {
+export function save(username: string, session: Session): boolean {
   const rest = list(username).filter((s) => s.id !== session.id)
-  write(username, [session, ...rest].slice(0, MAX_SESSIONS))
+  return write(username, [session, ...rest].slice(0, MAX_SESSIONS))
 }
 
 export function remove(username: string, id: string) {

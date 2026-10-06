@@ -284,10 +284,17 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
   return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
+interface Saved {
+  id: string
+  updatedAt: string
+}
+
 /**
- * Nothing reopens on its own, so two tabs never write the same session.
- * Session identity is a ref only because the store is synchronous; an async
- * store must move it into actor state.
+ * The open session changes only once state shows the restored events, so a
+ * `Restore` the actor ignores never saves one conversation under another's id.
+ * A session another tab has saved since this one last did is forked, not
+ * overwritten. A conversation already on screen when the account changes is
+ * never saved for the new account.
  */
 function useSessions(
   state: Conversation.State,
@@ -297,34 +304,53 @@ function useSessions(
   const [enabled, setEnabledState] = React.useState(false)
   const [list, setList] = React.useState<Sessions.Session[]>([])
   const [currentId, setCurrentId] = React.useState<string | null>(null)
-  const current = React.useRef<string | null>(null)
+  const current = React.useRef<Saved | null>(null)
+  const pending = React.useRef<(Saved & { events: Conversation.Event[] }) | null>(null)
+  const owner = React.useRef<string | null>(null)
+  const { events } = state
+  const latestEvents = React.useRef(events)
+  latestEvents.current = events
 
-  const select = React.useCallback((id: string | null) => {
-    current.current = id
-    setCurrentId(id)
+  const select = React.useCallback((saved: Saved | null) => {
+    current.current = saved
+    setCurrentId(saved?.id ?? null)
   }, [])
 
   React.useEffect(() => {
     const on = !!username && Sessions.isEnabled(username)
     setEnabledState(on)
     setList(on ? Sessions.list(username) : [])
+    pending.current = null
+    owner.current = latestEvents.current.some((e) => !e.discarded) ? null : username
     select(null)
   }, [username, select])
 
-  const { events } = state
   React.useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !username) return
+    if (pending.current?.events === events) {
+      const { id, updatedAt } = pending.current
+      pending.current = null
+      owner.current = username
+      return select({ id, updatedAt })
+    }
     const live = events.filter((e) => !e.discarded)
     // An emptied conversation is "New session": the next turn saves as a new one.
-    if (!live.length) return select(null)
-    const id = current.current ?? uuid.v4()
-    if (!current.current) select(id)
-    Sessions.save(username, {
+    if (!live.length) {
+      owner.current = username
+      return select(null)
+    }
+    if (owner.current !== username) return
+    const open = current.current
+    const stored = open && Sessions.list(username).find((s) => s.id === open.id)
+    const id = open && stored?.updatedAt === open.updatedAt ? open.id : uuid.v4()
+    const updatedAt = new Date().toISOString()
+    const saved = Sessions.save(username, {
       id,
       title: Sessions.titleOf(live),
-      updatedAt: new Date().toISOString(),
+      updatedAt,
       envelope: Sessions.encode(live),
     })
+    if (saved) select({ id, updatedAt })
     setList(Sessions.list(username))
   }, [enabled, events, username, select])
 
@@ -333,6 +359,8 @@ function useSessions(
       Sessions.setEnabled(username, on)
       setEnabledState(on)
       setList(on ? Sessions.list(username) : [])
+      pending.current = null
+      owner.current = username
       select(null)
     },
     [username, select],
@@ -340,20 +368,21 @@ function useSessions(
 
   const open = React.useCallback(
     (id: string) => {
+      if (current.current?.id === id) return
       const session = Sessions.list(username).find((s) => s.id === id)
       const restored = session && Sessions.decode(session.envelope)
       if (!restored) return
-      select(id)
+      pending.current = { id, updatedAt: session.updatedAt, events: restored }
       dispatch(Conversation.Action.Restore({ events: restored }))
     },
-    [username, dispatch, select],
+    [username, dispatch],
   )
 
   const remove = React.useCallback(
     (id: string) => {
       Sessions.remove(username, id)
       setList(Sessions.list(username))
-      if (current.current === id) dispatch(Conversation.Action.Clear())
+      if (current.current?.id === id) dispatch(Conversation.Action.Clear())
     },
     [username, dispatch],
   )

@@ -75,6 +75,10 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(Sessions.decode({ v: 2, events: [] })).toBeNull()
       expect(Sessions.decode({ v: 1, events: [{ _tag: 'Nope' }] })).toBeNull()
       expect(Sessions.decode(null)).toBeNull()
+      const bad = Sessions.encode([message('1', 'user', text('hi'))])
+      expect(
+        Sessions.decode({ ...bad, events: [{ ...bad.events[0], timestamp: 'nope' }] }),
+      ).toBeNull()
     })
   })
 
@@ -119,6 +123,28 @@ describe('components/Assistant/Model/Sessions', () => {
       Sessions.setEnabled('u', false)
       expect(Sessions.isEnabled('u')).toBe(false)
       expect(Sessions.list('u')).toEqual([])
+    })
+
+    it('keeps existing sessions when one save alone exceeds the quota', () => {
+      Sessions.save('u', session('s1'))
+      const setItem = Storage.prototype.setItem
+      function quota(this: Storage, k: string, v: string) {
+        if (v.length > 5000) throw new Error('QuotaExceededError')
+        setItem.call(this, k, v)
+      }
+      const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(quota)
+      const huge = { ...session('big'), title: 'x'.repeat(10000) }
+      expect(Sessions.save('u', huge)).toBe(false)
+      spy.mockRestore()
+      expect(Sessions.list('u').map((s) => s.id)).toEqual(['s1'])
+    })
+
+    it('skips corrupt rows', () => {
+      window.localStorage.setItem(
+        'qurator.sessions:u',
+        JSON.stringify([session('ok'), { ...session('bad'), updatedAt: 'nope' }, 7]),
+      )
+      expect(Sessions.list('u').map((s) => s.id)).toEqual(['ok'])
     })
 
     it('removes one session', () => {
