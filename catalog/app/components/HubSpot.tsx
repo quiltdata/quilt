@@ -23,6 +23,9 @@ function HubSpotTracker() {
   const path = `${location.pathname}${location.search}`
 
   React.useEffect(() => {
+    // The loader also brings the HubSpot chat launcher, which floats over
+    // catalog controls (pagination). Must be set before the loader runs.
+    ;(window as any).hsConversationsSettings = { loadImmediately: false }
     const script = document.createElement('script')
     script.type = 'text/javascript'
     script.id = 'hs-script-loader'
