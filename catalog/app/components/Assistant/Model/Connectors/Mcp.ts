@@ -157,9 +157,13 @@ export class McpTransportError {
 
   readonly status?: number
 
-  constructor(props: { detail: string; status?: number }) {
+  /** The registry relay's `error_code`, e.g. `UpstreamAuth`. */
+  readonly errorCode?: string
+
+  constructor(props: { detail: string; status?: number; errorCode?: string }) {
     this.detail = props.detail
     this.status = props.status
+    this.errorCode = props.errorCode
   }
 
   get message() {
@@ -493,10 +497,14 @@ export function make(options: McpClientOptions): McpClient {
       }
 
       if (resp.status < 200 || resp.status >= 300) {
+        const errorCode = Eff.Either.isRight(body)
+          ? relayErrorCode(body.right)
+          : undefined
         return yield* Eff.Effect.fail(
           new McpTransportError({
-            detail: `HTTP ${resp.status}`,
+            detail: errorCode ?? `HTTP ${resp.status}`,
             status: resp.status,
+            errorCode,
           }),
         )
       }
@@ -717,13 +725,57 @@ const ERROR_TAG_MAP: Record<McpError['_tag'], BackendError['_tag']> = {
   McpRpcError: 'Application',
 }
 
-const adaptError = (e: McpError): BackendError => ({
-  _tag: ERROR_TAG_MAP[e._tag],
-  message: e.message,
-  transient: e._tag === 'McpTransportError',
-  retryable: e._tag === 'McpTransportError' && e.status === undefined,
-  cause: e._tag,
-})
+const adaptError = (e: McpError): BackendError => {
+  if (e._tag !== 'McpTransportError') {
+    return {
+      _tag: ERROR_TAG_MAP[e._tag],
+      message: e.message,
+      transient: false,
+      retryable: false,
+      cause: e._tag,
+    }
+  }
+  // The server refusing the credential the registry holds for it: not the
+  // catalog session, and no reconnect will fix it.
+  if (e.errorCode === 'UpstreamAuth') {
+    return {
+      _tag: 'Application',
+      message: 'the server refused the credential this stack holds for it',
+      transient: false,
+      retryable: false,
+      inertToHealth: true,
+      cause: e.errorCode,
+    }
+  }
+  // The relay's back-pressure: busy, not unhealthy.
+  if (e.status === 429) {
+    return {
+      _tag: 'Transport',
+      message: 'busy, try again shortly',
+      transient: false,
+      retryable: false,
+      inertToHealth: true,
+      cause: e._tag,
+    }
+  }
+  return {
+    _tag: 'Transport',
+    message: e.message,
+    transient: true,
+    retryable: e.status === undefined,
+    cause: e._tag,
+  }
+}
+
+/** The `error_code` of a registry error body, if it has one. */
+const relayErrorCode = (text: string): string | undefined => {
+  try {
+    const code = (JSON.parse(text) as { error_code?: unknown } | null)?.error_code
+    return typeof code === 'string' ? code : undefined
+  } catch {
+    return undefined
+  }
+}
 
 export interface BearerPassthruOptions {
   readonly url: string

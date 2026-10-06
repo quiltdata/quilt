@@ -62,6 +62,12 @@ export interface BackendError {
    */
   readonly retryable?: boolean
   /**
+   * Says nothing about transport health (back-pressure, or a server refusing
+   * a credential the stack holds), so a failed ping neither counts toward the
+   * threshold nor resets it.
+   */
+  readonly inertToHealth?: boolean
+  /**
    * Optional wire-level error tag (e.g., MCP's `McpTransportError`).
    * Surfaced in DevTools detail / hover; not used for control flow.
    */
@@ -166,6 +172,8 @@ export interface ConnectorConfig {
   readonly optional?: boolean
   /** Not marked trusted by an admin: the prompt overview tells the model its tools are untrusted. */
   readonly thirdParty?: boolean
+  /** Ping timeout; defaults to `HEARTBEAT_TIMEOUT`. */
+  readonly heartbeatTimeout?: Eff.Duration.Duration
 }
 
 // ---------------------------------------------------------------------------
@@ -532,10 +540,11 @@ const sleepOrWake = (
 
 const pingOrTimeout = (
   backend: Backend,
+  timeout: Eff.Duration.Duration,
 ): Eff.Effect.Effect<Eff.Either.Either<void, BackendError>> =>
   backend.ping().pipe(
     Eff.Effect.timeoutFail({
-      duration: HEARTBEAT_TIMEOUT,
+      duration: timeout,
       onTimeout: (): BackendError => transientError('PingTimeout', 'ping timeout'),
     }),
     Eff.Effect.either,
@@ -554,15 +563,16 @@ const pingOrTimeout = (
  */
 const runHeartbeat = (
   backend: Backend,
+  timeout: Eff.Duration.Duration,
   health: Eff.SubscriptionRef.SubscriptionRef<Health>,
   wake: Eff.Stream.Stream<void>,
 ): Eff.Effect.Effect<never> =>
   Eff.Effect.gen(function* () {
     while (true) {
       yield* sleepOrWake(HEARTBEAT_CADENCE, wake)
-      const result = yield* pingOrTimeout(backend)
+      const result = yield* pingOrTimeout(backend, timeout)
       if (Eff.Either.isLeft(result)) {
-        yield* bumpHealth(health, result.left)
+        if (!result.left.inertToHealth) yield* bumpHealth(health, result.left)
       } else {
         yield* resetHealth(health)
       }
@@ -613,7 +623,10 @@ const runReconnectWithProbe = (
     let lastError: BackendError | null = null
     while (bootstrapAttempts < RECONNECT_MAX_ATTEMPTS) {
       yield* sleepOrWake(cadence, wake)
-      const probe = yield* pingOrTimeout(config.backend)
+      const probe = yield* pingOrTimeout(
+        config.backend,
+        config.heartbeatTimeout ?? HEARTBEAT_TIMEOUT,
+      )
       if (Eff.Either.isLeft(probe)) {
         cadence = escalate(cadence)
         continue
@@ -715,7 +728,12 @@ export const manageConnector = (
         // fires (and wins) when consecutiveFailures ≥ THRESHOLD from any
         // source (heartbeat itself or external tool-call bumps).
         yield* Eff.Effect.race(
-          runHeartbeat(config.backend, health, wake),
+          runHeartbeat(
+            config.backend,
+            config.heartbeatTimeout ?? HEARTBEAT_TIMEOUT,
+            health,
+            wake,
+          ),
           awaitThresholdCrossed(health),
         )
 

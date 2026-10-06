@@ -40,6 +40,36 @@ const toInput = (
   ...overrides,
 })
 
+/**
+ * Every MCP mutation runs `silent` and is reported through here: the wrapper
+ * would send the whole result to Sentry, and its variables carry the secret.
+ */
+const SILENT = { silent: true }
+
+const report = (what: string, e: unknown) =>
+  Sentry.captureException(
+    new Error(`${what}: ${e instanceof Error ? e.message : 'unknown error'}`),
+  )
+
+type SetResult = GQL.DataForDoc<typeof MCP_SERVER_SET_MUTATION>['admin']['mcpServerSet']
+
+/** What to tell the admin when a save did not return the server. */
+const setNotice = (
+  title: string,
+  result: Exclude<SetResult, { __typename: 'McpServerAdmin' }>,
+) => {
+  if (result.__typename === 'InvalidInput') {
+    return `Couldn't save ${title}: ${result.errors.map((e) => e.message).join('; ')}`
+  }
+  if (result.name === 'SavedWithoutSecret') {
+    return `${title} was saved but stays disabled until a secret is supplied.`
+  }
+  if (result.name === 'Conflict') {
+    return `${title} was changed elsewhere; showing the stored version. ${result.message}`
+  }
+  return `Couldn't save ${title}: ${result.message}`
+}
+
 /** The registry connects to the saved server and lists its tools, as the relay would. */
 function useProbe(slug: string) {
   const probeMutation = GQL.useMutation(MCP_SERVER_PROBE_MUTATION)
@@ -50,9 +80,9 @@ function useProbe(slug: string) {
     setProbing(true)
     setProbe(null)
     try {
-      setProbe((await probeMutation({ slug })).admin.mcpServerProbe)
+      setProbe((await probeMutation({ slug }, SILENT)).admin.mcpServerProbe)
     } catch (e) {
-      Sentry.captureException(e)
+      report('MCP server probe failed', e)
       setProbe({
         __typename: 'McpServerProbe',
         ok: false,
@@ -250,6 +280,7 @@ interface ServerFormProps {
 
 function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
   const classes = useStyles()
+  const { push: notify } = Notifications.use()
   const set = GQL.useMutation(MCP_SERVER_SET_MUTATION)
 
   const [values, setValues] = React.useState<ServerFormValues>(() =>
@@ -295,12 +326,15 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
       secret: header && values.secret ? values.secret : null,
     }
     try {
-      const res = await set({
-        slug: values.slug.trim(),
-        input: existing
-          ? toInput(existing, fields)
-          : { ...fields, enabled: false, trusted: false, forwardIdentity: false },
-      })
+      const res = await set(
+        {
+          slug: values.slug.trim(),
+          input: existing
+            ? toInput(existing, fields)
+            : { ...fields, enabled: false, trusted: false, forwardIdentity: false },
+        },
+        SILENT,
+      )
       const result = res.admin.mcpServerSet
       switch (result.__typename) {
         case 'McpServerAdmin':
@@ -316,18 +350,24 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
           return
         }
         case 'OperationError':
+          // Both changed what is stored, so show that rather than this form.
+          if (result.name === 'Conflict' || result.name === 'SavedWithoutSecret') {
+            notify(setNotice(values.title || values.slug, result))
+            onSaved()
+            return
+          }
           setFormError(result.message)
           return
         default:
           setFormError('Unexpected response from the registry')
       }
     } catch (e) {
-      Sentry.captureException(e)
-      setFormError(`Couldn't save: ${e}`)
+      report('MCP server save failed', e)
+      setFormError(`Couldn't save: ${e instanceof Error ? e.message : e}`)
     } finally {
       setPending(false)
     }
-  }, [pending, set, values, existing, onSaved])
+  }, [pending, set, values, existing, onSaved, notify])
 
   return (
     <div className={classes.form}>
@@ -497,19 +537,17 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
       if (busy) return
       setBusy(true)
       try {
-        const res = await set({ slug: server.slug, input: toInput(server, overrides) })
+        const res = await set(
+          { slug: server.slug, input: toInput(server, overrides) },
+          SILENT,
+        )
         const result = res.admin.mcpServerSet
-        if (result.__typename !== 'McpServerAdmin') {
-          notify(
-            result.__typename === 'InvalidInput'
-              ? `Couldn't update ${server.title}: ${result.errors.map((e) => e.message).join('; ')}`
-              : `Couldn't update ${server.title}: ${result.message}`,
-          )
-        }
+        if (result.__typename !== 'McpServerAdmin')
+          notify(setNotice(server.title, result))
         onChanged()
       } catch (e) {
-        Sentry.captureException(e)
-        notify(`Couldn't update ${server.title}: ${e}`)
+        report('MCP server update failed', e)
+        notify(`Couldn't update ${server.title}: ${e instanceof Error ? e.message : e}`)
       } finally {
         setBusy(false)
       }
@@ -524,7 +562,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
     if (!window.confirm(`Remove ${server.title} from the registry?`)) return
     setBusy(true)
     try {
-      const res = await remove({ slug: server.slug })
+      const res = await remove({ slug: server.slug }, SILENT)
       const result = res.admin.mcpServerRemove
       if (result.__typename !== 'Ok') {
         notify(
@@ -535,8 +573,8 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
       }
       onChanged()
     } catch (e) {
-      Sentry.captureException(e)
-      notify(`Couldn't remove ${server.title}: ${e}`)
+      report('MCP server removal failed', e)
+      notify(`Couldn't remove ${server.title}: ${e instanceof Error ? e.message : e}`)
     } finally {
       setBusy(false)
     }

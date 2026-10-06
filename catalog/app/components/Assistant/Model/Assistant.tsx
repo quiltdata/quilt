@@ -3,10 +3,12 @@ import invariant from 'invariant'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 
 import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
 import * as GQL from 'utils/GraphQL'
+import logger from 'utils/Logging'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
@@ -113,22 +115,52 @@ type RegisteredServers = GQL.DataForDoc<typeof MCP_SERVERS_QUERY>['mcpServers']
 
 const NO_SERVERS: RegisteredServers = []
 
+const SUSPENSE = { suspense: true }
+
+/** The registry adds a hop to every relayed call. */
+const RELAYED_HEARTBEAT_TIMEOUT = Eff.Duration.seconds(10)
+
+export type McpServersRead = { servers: RegisteredServers } | { pending: unknown }
+
+const isThenable = (e: unknown) =>
+  typeof (e as { then?: unknown } | null)?.then === 'function'
+
 /**
- * Suspends on first read: the connector set is allocated once per mount, so a
- * later list would never reach the assistant. A failed read degrades to
- * platform tools only; a registry without this field is a real state mid-update.
+ * Starts the MCP server read without suspending, so it runs alongside the
+ * suspending reads after it instead of after them. A failed read degrades to
+ * platform tools only, warned once: a registry without this field is a real
+ * state mid-update.
  */
-export function useRegisteredConnectorConfigs(): readonly Connectors.ConnectorConfig[] {
-  const getToken = useSessionToken()
-  let servers: RegisteredServers = NO_SERVERS
+export function useMcpServersRead(): McpServersRead {
+  const warned = React.useRef(false)
+  let data: { mcpServers: RegisteredServers } | undefined
+  let error: unknown
   try {
-    servers = GQL.useQueryS(MCP_SERVERS_QUERY).mcpServers
+    const [result] = urql.useQuery({ query: MCP_SERVERS_QUERY, context: SUSPENSE })
+    data = result.data
+    error = result.error
   } catch (e) {
-    // A suspension is a thrown promise, not a failure.
-    // `useQueryS` has already logged and reported a failure.
-    if (typeof (e as { then?: unknown } | null)?.then === 'function') throw e
+    if (isThenable(e)) return { pending: e }
+    error = e
   }
-  return React.useMemo(
+  if (data) return { servers: data.mcpServers }
+  if (!warned.current) {
+    warned.current = true
+    logger.warn('Could not read the MCP server list; platform tools only', error)
+  }
+  return { servers: NO_SERVERS }
+}
+
+/**
+ * Suspends until `read` settles: the connector set is allocated once per
+ * mount, so a later list would never reach the assistant.
+ */
+export function useRegisteredConnectorConfigs(
+  read: McpServersRead,
+): readonly Connectors.ConnectorConfig[] {
+  const getToken = useSessionToken()
+  const servers = 'servers' in read ? read.servers : NO_SERVERS
+  const configs = React.useMemo(
     () =>
       servers.map((s) => ({
         id: s.slug,
@@ -136,10 +168,13 @@ export function useRegisteredConnectorConfigs(): readonly Connectors.ConnectorCo
         hint: s.hint ?? undefined,
         optional: true,
         thirdParty: !s.trusted,
+        heartbeatTimeout: RELAYED_HEARTBEAT_TIMEOUT,
         backend: Mcp.relayed({ slug: s.slug, getToken }),
       })),
     [servers, getToken],
   )
+  if ('pending' in read) throw read.pending
+  return configs
 }
 
 /**
@@ -318,6 +353,8 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
 }
 
 function useConstructAssistantAPI() {
+  // First, so the registry read is in flight while the settings read suspends.
+  const mcpRead = useMcpServersRead()
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
   const instructions = useDualInstructionsContext()
@@ -325,7 +362,7 @@ function useConstructAssistantAPI() {
   const platformConfig = usePlatformConnectorConfig()
   // Before `useConnectors`: this suspends on first render, and a render
   // unwound after `useConnectors` allocates would orphan its fibers.
-  const registeredConfigs = useRegisteredConnectorConfigs()
+  const registeredConfigs = useRegisteredConnectorConfigs(mcpRead)
   const connectorConfigs = React.useMemo(
     () => [platformConfig, ...registeredConfigs],
     [platformConfig, registeredConfigs],

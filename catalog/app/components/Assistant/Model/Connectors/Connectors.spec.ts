@@ -354,6 +354,31 @@ describe('Connectors', () => {
         }),
       ))
 
+    it('pings that fail inert to health (relay busy) never disconnect', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                ping: () =>
+                  Eff.Effect.fail({
+                    ...transportError,
+                    transient: false,
+                    inertToHealth: true,
+                  }),
+              }),
+            ),
+          )
+          const reachReady = yield* Eff.Effect.fork(
+            awaitState(runtime, (s) => s._tag === 'Ready'),
+          )
+          yield* Eff.Fiber.join(reachReady)
+          yield* TestClock.adjust(Eff.Duration.seconds(120))
+          const state = yield* Eff.SubscriptionRef.get(runtime.state)
+          expect(state._tag).toBe('Ready')
+        }),
+      ))
+
     it('reconnect succeeds via probe → returns to Ready', () =>
       runWithTest(
         Eff.Effect.gen(function* () {

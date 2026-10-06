@@ -380,6 +380,37 @@ describe('Connectors/Mcp', () => {
       }
     })
 
+    it.each([
+      [429, { error_code: 'Busy' }, 'Transport'],
+      [502, { error_code: 'UpstreamAuth' }, 'Application'],
+    ])(
+      'maps relay HTTP %i to %j as inert to health, not a session problem',
+      async (status, body, tag) => {
+        const { fetchSpy } = captureCalls(
+          () =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: { 'content-type': 'application/json' },
+            }),
+        )
+        const backend = Mcp.relayed({
+          slug: 'gpu',
+          getToken: () => Eff.Effect.succeed('t'),
+        })
+        const exit = await Eff.Effect.runPromiseExit(
+          withFetch(backend.callTool('foo', {}), fetchSpy),
+        )
+        const failure = Eff.Exit.isFailure(exit)
+          ? Eff.Cause.failureOption(exit.cause)
+          : Eff.Option.none()
+        expect(Eff.Option.isSome(failure)).toBe(true)
+        if (Eff.Option.isNone(failure)) return
+        expect(failure.value._tag).toBe(tag)
+        expect(failure.value.transient).toBe(false)
+        expect(failure.value.inertToHealth).toBe(true)
+      },
+    )
+
     it('decodes tools/list result via Schema; bad shape → McpProtocolError', async () => {
       // Envelope is well-formed; result.tools is a string (not array).
       const { fetchSpy } = captureCalls(

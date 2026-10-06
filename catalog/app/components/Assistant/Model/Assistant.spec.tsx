@@ -24,42 +24,61 @@ vi.mock('./ModelChoice', async (importActual) => ({
   }),
 }))
 
-const mcpRead = vi.hoisted(() => ({ current: (): any => ({ mcpServers: [] }) }))
-
-vi.mock('utils/GraphQL', async (importActual) => ({
-  ...(await importActual<typeof import('utils/GraphQL')>()),
-  useQueryS: () => mcpRead.current(),
+// What the MCP server query yields: urql's `[result]`, or a throw.
+const mcpRead = vi.hoisted(() => ({
+  current: (): any => [{ data: { mcpServers: [] } }],
 }))
+
+vi.mock('urql', async (importActual) => ({
+  ...(await importActual<typeof import('urql')>()),
+  useQuery: () => mcpRead.current(),
+}))
+
+import logger from 'utils/Logging'
+
+const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
 
 vi.mock('react-redux', async (importActual) => ({
   ...(await importActual<typeof import('react-redux')>()),
   useDispatch: () => vi.fn(),
 }))
 
-import { useModelIdOverride, useRegisteredConnectorConfigs } from './Assistant'
+import {
+  useMcpServersRead,
+  useModelIdOverride,
+  useRegisteredConnectorConfigs,
+} from './Assistant'
 
 describe('components/Assistant/Model/Assistant useRegisteredConnectorConfigs', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    warn.mockClear()
+  })
 
+  const box: { current: ReturnType<typeof useRegisteredConnectorConfigs> | null } = {
+    current: null,
+  }
+  function Harness() {
+    box.current = useRegisteredConnectorConfigs(useMcpServersRead())
+    return null
+  }
   const configs = () => {
-    const box: { current: ReturnType<typeof useRegisteredConnectorConfigs> | null } = {
-      current: null,
-    }
-    function Harness() {
-      box.current = useRegisteredConnectorConfigs()
-      return null
-    }
+    box.current = null
     render(<Harness />)
     return box.current!
   }
 
   it('relays each enabled server as optional, third-party unless trusted', () => {
-    mcpRead.current = () => ({
-      mcpServers: [
-        { slug: 'gpu', title: 'GPU', hint: null, trusted: false },
-        { slug: 'docs', title: 'Docs', hint: 'Docs search', trusted: true },
-      ],
-    })
+    mcpRead.current = () => [
+      {
+        data: {
+          mcpServers: [
+            { slug: 'gpu', title: 'GPU', hint: null, trusted: false },
+            { slug: 'docs', title: 'Docs', hint: 'Docs search', trusted: true },
+          ],
+        },
+      },
+    ]
     expect(
       configs().map(({ id, optional, thirdParty, hint }) => ({
         id,
@@ -73,11 +92,29 @@ describe('components/Assistant/Model/Assistant useRegisteredConnectorConfigs', (
     ])
   })
 
-  it('degrades to no servers when the read fails', () => {
+  it('degrades to no servers when the read fails, warning once', () => {
+    mcpRead.current = () => [
+      { error: new Error('Cannot query field "mcpServers" on type "Query".') },
+    ]
+    const { rerender } = render(<Harness />)
+    rerender(<Harness />)
+    expect(box.current).toEqual([])
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+
+  it('suspends while the read is in flight instead of degrading', () => {
     mcpRead.current = () => {
-      throw new Error('Cannot query field "mcpServers" on type "Query".')
+      throw new Promise(() => {})
     }
-    expect(configs()).toEqual([])
+    box.current = null
+    const { getByText } = render(
+      <React.Suspense fallback="loading">
+        <Harness />
+      </React.Suspense>,
+    )
+    expect(getByText('loading')).toBeTruthy()
+    expect(box.current).toBeNull()
+    expect(warn).not.toHaveBeenCalled()
   })
 })
 

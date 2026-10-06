@@ -15,8 +15,10 @@ vi.mock('utils/GraphQL', () => ({
   fold: (_q: unknown, handlers: any) =>
     handlers.data({ admin: { mcpServers: servers, mcpServersAvailable: available } }),
 }))
-vi.mock('containers/Notifications', () => ({ use: () => ({ push: vi.fn() }) }))
-vi.mock('@sentry/react', () => ({ captureException: vi.fn() }))
+const push = vi.hoisted(() => vi.fn())
+const captureException = vi.hoisted(() => vi.fn())
+vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
+vi.mock('@sentry/react', () => ({ captureException }))
 
 import * as style from 'constants/style'
 
@@ -54,6 +56,8 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
     afterEach(() => {
       cleanup()
       mutate.mockReset()
+      push.mockReset()
+      captureException.mockReset()
       servers = []
       available = true
     })
@@ -90,6 +94,47 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       expect(mutate.mock.calls[1][0].input.secret).toBe('s3cret')
     })
 
+    it('a failed save never hands the secret to Sentry', async () => {
+      servers = [server()]
+      const err = Object.assign(new Error('Network error'), {
+        result: { operation: { variables: { input: { secret: 's3cret' } } } },
+      })
+      mutate.mockRejectedValue(err)
+      const { getByText, getByLabelText } = mount()
+      fireEvent.click(getByText('Edit'))
+      fireEvent.change(getByLabelText('Secret'), { target: { value: 's3cret' } })
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      // The wrapper's own reporting, which attaches the result, is off.
+      expect(mutate.mock.calls[0][1]).toEqual({ silent: true })
+      expect(captureException).toHaveBeenCalledTimes(1)
+      const [reported, ...rest] = captureException.mock.calls[0]
+      expect(reported).not.toBe(err)
+      expect(JSON.stringify([reported.message, rest])).not.toContain('s3cret')
+    })
+
+    it('a save stored without its secret refetches and says the server is disabled', async () => {
+      servers = [server()]
+      mutate.mockResolvedValue(
+        setResult({
+          __typename: 'OperationError',
+          name: 'SavedWithoutSecret',
+          message: 'saved; secret cleared',
+        }),
+      )
+      const { getByText } = mount()
+      fireEvent.click(getByText('Edit'))
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      expect(push).toHaveBeenCalledWith(
+        'GPU cluster was saved but stays disabled until a secret is supplied.',
+      )
+      // Back to the list, which the refetch refreshes.
+      expect(getByText('Edit')).toBeTruthy()
+    })
+
     it('Probe lists the tools with the flags the server declares', async () => {
       servers = [server()]
       mutate.mockResolvedValue({
@@ -109,7 +154,7 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       await act(async () => {
         fireEvent.click(getByText('Probe'))
       })
-      expect(mutate).toHaveBeenCalledWith({ slug: 'gpu' })
+      expect(mutate).toHaveBeenCalledWith({ slug: 'gpu' }, { silent: true })
       expect(getByText('Connected, 2 tools')).toBeTruthy()
       expect(getByText('read-only')).toBeTruthy()
       expect(getByText('destructive')).toBeTruthy()
