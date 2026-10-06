@@ -726,10 +726,10 @@ interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
+  sessions: Model.Assistant.API['sessions']
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
-  sessions: Model.Assistant.API['sessions']
   busy?: boolean
   onClose: () => void
 }
@@ -738,10 +738,10 @@ export default function Chat({
   state,
   dispatch,
   devTools,
+  sessions,
   connectors,
   instructions,
   model,
-  sessions,
   busy,
   onClose,
 }: ChatProps) {

@@ -21,8 +21,8 @@ import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import * as ModelChoice from './ModelChoice'
-import * as Sessions from './Sessions'
 import * as UserInstructions from './UserInstructions'
+import * as Sessions from './Sessions'
 import useIsEnabled from './enabled'
 
 export const DISABLED = Symbol('DISABLED')
@@ -455,10 +455,10 @@ function useConstructAssistantAPI() {
     state,
     dispatch,
     busy,
+    sessions,
     connectors,
     instructions,
     model,
-    sessions,
     devTools: { recording, modelIdOverride },
   }
 }
