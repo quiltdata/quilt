@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -9,6 +10,9 @@ vi.mock('constants/config', () => ({ default: {} }))
 vi.mock('utils/Buckets', () => ({
   useIsInStack: () => (bucket: string) => bucket === 'in-stack-bucket',
 }))
+
+import * as routes from 'constants/routes'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as Model from '../../Model'
 
@@ -144,14 +148,18 @@ describe('components/Assistant/UI/Chat/Menu', () => {
 
   const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
 
-  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn()) {
+  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn(), path = '/') {
     render(
-      <Menu
-        state={idle}
-        dispatch={vi.fn()}
-        devToolsOpen={devToolsOpen}
-        onToggleDevTools={onToggleDevTools}
-      />,
+      <NamedRoutes.Provider routes={routes}>
+        <MemoryRouter initialEntries={[path]}>
+          <Menu
+            state={idle}
+            dispatch={vi.fn()}
+            devToolsOpen={devToolsOpen}
+            onToggleDevTools={onToggleDevTools}
+          />
+        </MemoryRouter>
+      </NamedRoutes.Provider>,
     )
     return onToggleDevTools
   }
@@ -170,6 +178,20 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     fireEvent.click(screen.getByText('Hide Developer Tools'))
     expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers the full page from the panel', () => {
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Open full page').closest('a')?.getAttribute('href')).toBe(
+      '/qurator',
+    )
+  })
+
+  it('does not offer the full page on the full page', () => {
+    renderMenu(false, vi.fn(), '/qurator')
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {
