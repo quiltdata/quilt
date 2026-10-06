@@ -82,18 +82,22 @@ describe('containers/Admin/Buckets/EventWiring', () => {
   })
 
   it('forwards a stack-account bucket through the stack role', () => {
-    const c = commands('b', wiring, '111111111111')
+    const c = commands('b', wiring, '111111111111', 'eu-west-1')
     expect(c.forwarder).toBeNull()
     expect(c.role).toBe(wiring.forwardingRoleArn)
     expect(c.rule).toContain(
       `--targets 'Id=quilt-stack-bus,Arn=${wiring.stackBusArn},RoleArn=${wiring.forwardingRoleArn}'`,
     )
-    expect(c.enable).toContain("--bucket 'b' --output json > nc.json && \\")
+    expect(c.enable).toContain(
+      "--region 'eu-west-1' --bucket 'b' --output json > nc.json && \\",
+    )
+    expect(c.rule).toContain("aws events put-rule --region 'eu-west-1'")
+    expect(c.rule).toContain("aws events put-targets --region 'eu-west-1'")
     expect(c.enable).toContain("jq -s '(.[0] // {}) + {EventBridgeConfiguration: {}}'")
   })
 
   it('creates a forwarding role in a data account and quotes the pattern for the shell', () => {
-    const c = commands('b', wiring, '222222222222')
+    const c = commands('b', wiring, '222222222222', 'eu-west-1')
     expect(c.role).toBe(
       'arn:aws-us-gov:iam::222222222222:role/quilt-eventbridge-forwarder',
     )
@@ -108,6 +112,19 @@ describe('containers/Admin/Buckets/EventWiring', () => {
 
   it('says an older stack has no wiring', () => {
     query.current = data(null)
+    renderDialog()
+    expect(screen.getByRole('dialog').textContent).toContain(
+      'This stack doesn’t support EventBridge wiring yet',
+    )
+  })
+
+  it('says a registry without the wiring fields has no wiring', () => {
+    query.current = {
+      fetching: false,
+      error: new Error(
+        '[GraphQL] Cannot query field "eventBridgeWiring" on type "BucketConfig".',
+      ),
+    }
     renderDialog()
     expect(screen.getByRole('dialog').textContent).toContain(
       'This stack doesn’t support EventBridge wiring yet',

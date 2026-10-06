@@ -44,7 +44,12 @@ const shellQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
 
 const json = (v: unknown) => shellQuote(JSON.stringify(v))
 
-export function commands(bucket: string, wiring: Wiring, account: string) {
+export function commands(
+  bucket: string,
+  wiring: Wiring,
+  account: string,
+  region: string,
+) {
   const sameAccount = account === wiring.stackAccountId
   const partition = wiring.stackBusArn.split(':')[1]
   const role = sameAccount
@@ -52,12 +57,14 @@ export function commands(bucket: string, wiring: Wiring, account: string) {
     : `arn:${partition}:iam::${account}:role/${FORWARDER_ROLE}`
   const b = shellQuote(bucket)
   const r = shellQuote(wiring.ruleName)
+  // The rule must sit on the default bus of the bucket's region, not the CLI's default.
+  const rg = `--region ${shellQuote(region)}`
   // Chained with && so a failed read never writes a configuration that drops the
   // bucket's other targets; -s turns the empty output of an unconfigured bucket into {}.
   const enable = [
-    `aws s3api get-bucket-notification-configuration --bucket ${b} --output json > nc.json`,
+    `aws s3api get-bucket-notification-configuration ${rg} --bucket ${b} --output json > nc.json`,
     `jq -s '(.[0] // {}) + {EventBridgeConfiguration: {}}' nc.json > nc2.json`,
-    `aws s3api put-bucket-notification-configuration --bucket ${b} --notification-configuration file://nc2.json --skip-destination-validation`,
+    `aws s3api put-bucket-notification-configuration ${rg} --bucket ${b} --notification-configuration file://nc2.json --skip-destination-validation`,
   ].join(' && \\\n  ')
   // Not chained: create-role fails once the role exists, and a second stack fed from
   // this account still needs its own policy on the role.
@@ -93,8 +100,8 @@ export function commands(bucket: string, wiring: Wiring, account: string) {
         })}`,
       ].join('\n')
   const rule = [
-    `aws events put-rule --name ${r} --event-pattern ${json(wiring.eventPattern)}`,
-    `aws events put-targets --rule ${r} --targets ${shellQuote(
+    `aws events put-rule ${rg} --name ${r} --event-pattern ${json(wiring.eventPattern)}`,
+    `aws events put-targets ${rg} --rule ${r} --targets ${shellQuote(
       `Id=quilt-stack-bus,Arn=${wiring.stackBusArn},RoleArn=${role}`,
     )}`,
   ].join(' && \\\n  ')
@@ -102,6 +109,7 @@ export function commands(bucket: string, wiring: Wiring, account: string) {
 }
 
 const ACCOUNT_RE = /^\d{12}$/
+const REGION_RE = /^[a-z]{2}(-[a-z]+)+-\d$/
 
 const useStyles = M.makeStyles((t) => ({
   step: {
@@ -251,9 +259,12 @@ export function Panel({
 }: PanelProps) {
   const classes = useStyles()
   const [account, setAccount] = React.useState(wiring.stackAccountId)
+  const [region, setRegion] = React.useState(wiring.stackRegion)
   const accountValid = ACCOUNT_RE.test(account)
+  const regionValid = REGION_RE.test(region)
   const sameAccount = account === wiring.stackAccountId
-  const cmds = accountValid ? commands(bucket, wiring, account) : null
+  const cmds =
+    accountValid && regionValid ? commands(bucket, wiring, account, region) : null
   return (
     <>
       <M.TextField
@@ -268,6 +279,17 @@ export function Panel({
             : sameAccount
               ? 'This stack’s account'
               : 'Another account'
+        }
+        size="small"
+      />{' '}
+      <M.TextField
+        id="event-wiring-region"
+        label="Bucket region"
+        value={region}
+        onChange={(e) => setRegion(e.target.value.trim())}
+        error={!regionValid}
+        helperText={
+          regionValid ? 'Where the bucket lives' : 'Enter an AWS region, e.g. us-east-1'
         }
         size="small"
       />
@@ -311,6 +333,7 @@ export function Panel({
             stack-side normalizer feeds search, package events and your EventBridge rules
             in the same shapes as today
             {prefixes?.some(Boolean) &&
+              !prefixes?.includes('') &&
               '. Unlike today, live updates then cover only the scoped prefixes and .quilt/: writes elsewhere reach search only on a bulk scan'}
             .
           </M.Typography>
@@ -390,7 +413,15 @@ export default function EventWiring({
               </M.Typography>
             ),
           fetching: () => <M.CircularProgress size={24} />,
-          error: (e) => <Lab.Alert severity="error">{e.message}</Lab.Alert>,
+          // A registry without the wiring fields rejects the whole query.
+          error: (e) =>
+            /Cannot query field "eventBridge/.test(e.message) ? (
+              <M.Typography variant="body2">
+                This stack doesn’t support EventBridge wiring yet.
+              </M.Typography>
+            ) : (
+              <Lab.Alert severity="error">{e.message}</Lab.Alert>
+            ),
         })}
       </M.DialogContent>
       <M.DialogActions>
