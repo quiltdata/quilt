@@ -376,17 +376,27 @@ function useSessions(
       return
     }
     queue.resume()
-    if (head && state.events.some((e) => !e.discarded)) queue.change(head, state.events)
-  }, [enabled, head, state.events, queue])
+    // An empty conversation is never created, but a saved one is emptied when
+    // everything in it is discarded, so the discarded messages do not reopen.
+    if (head && (currentId || state.events.some((e) => !e.discarded)))
+      queue.change(head, state.events)
+  }, [enabled, head, currentId, state.events, queue])
 
+  React.useEffect(() => () => queue.pause(), [queue])
+
+  const latestOpen = React.useRef(0)
+  const headNow = usePassThru(head)
   const open = React.useCallback(
     async (id: string) => {
       if (id === currentId) return
+      const ticket = ++latestOpen.current
       // The session being opened may be the one just left, with its last save pending.
       await queue.flush()
       const r = await client
         .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
         .toPromise()
+      // A later open or a new conversation since the click wins over this one.
+      if (ticket !== latestOpen.current || headNow.current !== head) return
       const session = r.data?.me?.quratorSession
       const events = session && Sessions.decode(session.events)
       if (!session || !events?.length) {
@@ -397,7 +407,7 @@ function useSessions(
       opening.current = { id: session.id, version: session.version, events }
       dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
     },
-    [client, currentId, head, queue, dispatch, refresh],
+    [client, currentId, head, headNow, queue, dispatch, refresh],
   )
 
   const remove = React.useCallback(
