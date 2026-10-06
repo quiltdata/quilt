@@ -19,7 +19,8 @@ function hsq(...cmd: HsqCommand[]) {
 }
 
 const PANEL_ID = 'hs-chat-panel'
-const PANEL_WIDTH = 400
+/** Also the gutter the page gives up while chat is open (Assistant UI Host). */
+export const CHAT_WIDTH = '400px'
 
 const conversations = () => (window as any).HubSpotConversations?.widget
 
@@ -31,7 +32,7 @@ function whenReady(fn: () => void) {
 
 const useStyles = M.makeStyles((t) => ({
   paper: {
-    width: PANEL_WIDTH,
+    width: CHAT_WIDTH,
     maxWidth: '100vw',
   },
   header: {
@@ -102,7 +103,9 @@ function ChatPanel({ open, onClose, title }: ChatPanelProps) {
 
 interface Chat {
   label: string
+  open: boolean
   show: () => void
+  hide: () => void
 }
 
 const ChatCtx = React.createContext<Chat | null>(null)
@@ -155,15 +158,17 @@ function HubSpotProvider({ children }: { children?: React.ReactNode }) {
   const chat = React.useMemo(
     () => ({
       label: cfg.mode === 'OPEN' ? 'Talk to Sales' : 'Chat with support',
+      open,
       show: () => setOpen(true),
+      hide: () => setOpen(false),
     }),
-    [],
+    [open],
   )
   return (
     <ChatCtx.Provider value={chat}>
       <HubSpotTracker />
       {children}
-      <ChatPanel open={open} onClose={() => setOpen(false)} title={chat.label} />
+      <ChatPanel open={open} onClose={chat.hide} title={chat.label} />
     </ChatCtx.Provider>
   )
 }

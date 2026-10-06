@@ -21,6 +21,12 @@ vi.mock('./Chat', () => ({
   },
 }))
 
+let chat: { open: boolean; hide: () => void } | null = null
+vi.mock('components/HubSpot', () => ({
+  CHAT_WIDTH: '400px',
+  useChat: () => chat,
+}))
+
 let inlined = false
 vi.mock('./InlinePresence', () => ({
   Provider: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
@@ -90,6 +96,7 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     vi.clearAllMocks()
     inlined = false
     chatProps = null
+    chat = null
     delete (window as any).matchMedia
   })
 
@@ -155,6 +162,32 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(paper(baseElement)).toBeTruthy()
     expect(chatProps).toBeTruthy()
     expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
+  })
+
+  it('gives the gutter to an open HubSpot chat and steps Qurator aside', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    chat = { open: true, hide: vi.fn() }
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(baseElement.querySelector('.MuiDrawer-root')).toBeFalsy()
+    expect(getByTestId('reflow').textContent).toBe('400px')
+    expect(api.hide).toHaveBeenCalled()
+  })
+
+  it('closes HubSpot chat when Qurator opens', () => {
+    const api = makeAPI()
+    useAssistantAPI.mockReturnValue(api)
+    chat = { open: false, hide: vi.fn() }
+    const { rerender } = render(<WithAssistantUI />)
+    expect(chat.hide).not.toHaveBeenCalled()
+    api.visible = true
+    rerender(<WithAssistantUI />)
+    expect(chat.hide).toHaveBeenCalled()
   })
 
   it('stays an overlay below 960px and reserves no gutter', () => {

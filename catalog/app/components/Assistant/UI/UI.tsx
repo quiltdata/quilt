@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as HubSpot from 'components/HubSpot'
 import * as style from 'constants/style'
 
 import * as Model from '../Model'
@@ -341,15 +342,31 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   const compact = useCompact()
   // An inlined chat replaces the panel outright -- a docked rail would take a
   // gutter for a second copy of the same conversation.
-  const present = !!api && !inlined
-  const open = present && !!api?.visible
+  // HubSpot chat docks on the same right edge: while it is open it takes the
+  // gutter and Qurator steps aside, or one panel would cover the other.
+  const chat = HubSpot.useChat()
+  const chatOpen = !!chat?.open
+  const visible = !!api?.visible
+  React.useEffect(() => {
+    if (chatOpen && visible) api?.hide()
+  }, [chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    if (visible) chat?.hide()
+  }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
+  const present = !!api && !inlined && !chatOpen
+  const open = present && visible
   const [width, resize] = usePanelWidth()
+  const gutter = chatOpen
+    ? HubSpot.CHAT_WIDTH
+    : present
+      ? open
+        ? widthCss(width)
+        : RAIL_WIDTH
+      : null
   return (
-    <ReflowContext.Provider
-      value={present && !compact ? (open ? widthCss(width) : RAIL_WIDTH) : null}
-    >
+    <ReflowContext.Provider value={compact ? null : gutter}>
       {children}
-      {!inlined && api && (
+      {present && api && (
         <Panel api={api} compact={compact} open={open} width={width} onResize={resize} />
       )}
     </ReflowContext.Provider>
