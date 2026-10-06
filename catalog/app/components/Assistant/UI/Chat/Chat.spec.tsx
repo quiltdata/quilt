@@ -189,7 +189,7 @@ describe('components/Assistant/UI/Chat/Menu', () => {
   })
 
   it('does not offer the full page on the full page', () => {
-    renderMenu(false, vi.fn(), '/qurator')
+    renderMenu(false, vi.fn(), '/qurator/')
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.queryByText('Open full page')).toBeNull()
   })

@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
@@ -465,7 +465,7 @@ export function Menu({
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
   const { paths, urls } = NamedRoutes.use()
-  const fullPage = useLocation().pathname === paths.qurator
+  const fullPage = !!useRouteMatch({ path: paths.qurator, exact: true })
 
   const isIdle = state._tag === 'Idle'
 
