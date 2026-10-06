@@ -456,39 +456,41 @@ def test_a_message_that_cannot_be_dead_lettered_is_returned_and_holds_its_group(
 
 
 @pytest.mark.parametrize(
-    "fails, events",
+    "events",
     [
-        (BAD_DATA, [record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2)))]),
-        (None, [undecodable("m1"), undecodable("m2")]),
+        [record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2)))],
+        [record("m1", manifest_key(h(1))), undecodable("bad"), record("m2", manifest_key(h(2)))],
     ],
-    ids=["statements", "events"],
+    ids=["items", "items and an event no retry can write"],
 )
-def test_when_every_item_of_several_fails_none_is_dead_lettered(handle, athena, s3, con, sqs, fails, events):
+def test_when_every_item_of_several_fails_none_is_dead_lettered(handle, athena, s3, con, sqs, events):
     manifests(s3, con, 1, 2)
-    athena.fails = lambda sql: fails
+    athena.fails = lambda sql: BAD_DATA
 
     response = handle(*events)
 
-    assert response == failures("m1", "m2")
+    assert response == failures(*(event["messageId"] for event in events))
     assert sqs.sent == []
 
 
 @pytest.mark.parametrize(
-    "fails, event",
+    "fails, events",
     [
-        (BAD_DATA, record("m1", manifest_key(h(1)))),
-        (None, undecodable("m1")),
+        (BAD_DATA, [record("m1", manifest_key(h(1)))]),
+        (BAD_DATA, [record("m1", manifest_key(h(1))), record("m2", manifest_key(h(1)))]),  # one object's events
+        (None, [undecodable("m1")]),
+        (None, [undecodable("m1"), record("m2", "elsewhere/key")]),
     ],
-    ids=["statement", "event"],
+    ids=["statement", "one object's events", "event", "events"],
 )
-def test_a_batch_of_one_failing_for_good_is_dead_lettered(handle, athena, s3, con, sqs, fails, event):
+def test_a_batch_of_one_item_or_none_failing_for_good_is_dead_lettered(handle, athena, s3, con, sqs, fails, events):
     put_manifest(s3, con, h(1))
     athena.fails = lambda sql: fails
 
-    response = handle(event)
+    response = handle(*events)
 
     assert response == failures()
-    assert dead_lettered(sqs).keys() == {"m1"}
+    assert dead_lettered(sqs).keys() == {event["messageId"] for event in events}
 
 
 def test_a_batch_of_one_failing_for_now_is_returned(handle, athena, s3, con, sqs):

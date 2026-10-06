@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -11,7 +10,15 @@ import boto3
 import quilt_shared.const
 from quilt_shared.athena import AthenaQueryBaseException, QueryRunner
 from quilt_shared.iceberg_queries import QueryMaker
-from quilt_shared.iceberg_stack_queries import Manifest, Pointer, PointerKey, StackQueryMaker, is_revision
+from quilt_shared.iceberg_stack_queries import (
+    Manifest,
+    Pointer,
+    PointerKey,
+    StackQueryMaker,
+    is_revision,
+    is_top_hash,
+    parse_key,
+)
 
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
@@ -54,19 +61,9 @@ def process_s3_event(event):
     return decode_record(record)
 
 
-def parse_key(bucket, key) -> PointerKey | Manifest:
-    if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
-        pkg_name, pointer = key.removeprefix(quilt_shared.const.NAMED_PACKAGES_PREFIX).rsplit("/", 1)
-        return PointerKey(bucket, pkg_name, pointer)
-    if key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
-        return Manifest(bucket, key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX))
-    raise ValueError(f"Unexpected key prefix: {key}")
-
-
 def generate_queries(bucket, key, first_line):
-    item = parse_key(bucket, key)
-    if isinstance(item, PointerKey):
-        pkg_name, pointer_name = item.pkg_name, item.pointer
+    if key.startswith(quilt_shared.const.NAMED_PACKAGES_PREFIX):
+        pkg_name, pointer_name = key.removeprefix(quilt_shared.const.NAMED_PACKAGES_PREFIX).rsplit("/", 1)
         return (
             [
                 (
@@ -84,8 +81,8 @@ def generate_queries(bucket, key, first_line):
                 )(bucket=bucket, pkg_name=pkg_name, pointer=pointer_name)
             ]
         )
-    else:
-        top_hash = item.top_hash
+    elif key.startswith(quilt_shared.const.MANIFESTS_PREFIX):
+        top_hash = key.removeprefix(quilt_shared.const.MANIFESTS_PREFIX)
         return (
             [
                 query_maker.package_manifest_add_single(bucket=bucket, top_hash=top_hash),
@@ -97,6 +94,8 @@ def generate_queries(bucket, key, first_line):
                 query_maker.package_entry_delete_single(bucket=bucket, top_hash=top_hash),
             ]
         )
+    else:
+        raise ValueError(f"Unexpected key prefix: {key}")
 
 
 def handler(event, context):
@@ -113,12 +112,6 @@ def handler(event, context):
 STATEMENT_BUDGET_MS = 60_000
 # Left after QueryRunner's deadline, to stop its queries, dead-letter messages and respond.
 DEADLINE_MARGIN_MS = 10_000
-_TOP_HASH = re.compile("[0-9a-f]{64}")
-# A package's pointer, at `namespace/package/name`, or a manifest named by its top hash.
-_KEY = re.compile(
-    f"{re.escape(quilt_shared.const.NAMED_PACKAGES_PREFIX)}[^/]+/[^/]+/[^/]+"
-    f"|{re.escape(quilt_shared.const.MANIFESTS_PREFIX)}{_TOP_HASH.pattern}"
-)
 
 
 class _Invalid(Exception):
@@ -150,8 +143,7 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
                 ran = all(_execute(runner, context, deadline, s.sql) for s in build([item]))
             except AthenaQueryBaseException as e:
                 logger.exception("Failed to write %s", item)
-                retryable = e.query_execution["Status"].get("AthenaError", {}).get("Retryable") is not False
-                failed[item] = None if retryable else f"statement: {e}"
+                failed[item] = None if e.retryable else f"statement: {e}"
                 continue
             if not ran:
                 failed.update(dict.fromkeys(statement.items[n:]))
@@ -160,13 +152,12 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, failed: di
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
     """The item an object's current state makes, and whether it is upserted rather than deleted."""
-    if not _KEY.fullmatch(key):
+    if (item := parse_key(bucket, key)) is None:
         raise _Invalid(f"not a package's pointer or manifest: {key}")
-    item = parse_key(bucket, key)
     first_line = get_first_line(bucket, key)
     if first_line and isinstance(item, PointerKey):
         top_hash = first_line.decode(errors="replace")
-        if not _TOP_HASH.fullmatch(top_hash):
+        if not is_top_hash(top_hash):
             raise _Invalid(f"a pointer whose content is not a top hash: {key}")
         item = Pointer(*item, top_hash)
     return item, bool(first_line)
@@ -248,7 +239,7 @@ def set_handler(event, context):
             else:
                 retry.add(message_id)
     # Every item of several failing is the stack failing, not the messages: none is dead-lettered.
-    if len(records) > 1 and ids.keys() <= failed.keys():
+    if len(ids) > 1 and ids.keys() <= failed.keys():
         retry.update(dead)
         dead.clear()
     # A FIFO queue keeps a message group's order only if nothing after a failed message of the group succeeds.
