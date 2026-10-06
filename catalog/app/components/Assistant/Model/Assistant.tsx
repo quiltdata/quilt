@@ -13,6 +13,7 @@ import defer from 'utils/defer'
 
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
+import * as McpServers from './McpServers'
 import * as Mcp from './Connectors/Mcp'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
@@ -287,7 +288,16 @@ function useConstructAssistantAPI() {
   const instructions = useDualInstructionsContext()
 
   const platformConfig = usePlatformConnectorConfig()
-  const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
+  // Read once per mount: the connector service is allocated once, so a list
+  // edited in Admin › Settings takes effect on the next page load.
+  const prototypeConfigs = React.useMemo(
+    () => McpServers.toConnectorConfigs(McpServers.read()),
+    [],
+  )
+  const connectorConfigs = React.useMemo(
+    () => [platformConfig, ...prototypeConfigs],
+    [platformConfig, prototypeConfigs],
+  )
   const connectors = useConnectors(connectorConfigs)
 
   const getToken = useSessionToken()

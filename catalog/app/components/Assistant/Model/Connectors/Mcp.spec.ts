@@ -140,6 +140,101 @@ describe('Connectors/Mcp', () => {
       expect(headers.authorization).toBe('Bearer the-token')
     })
 
+    it('sends NO Authorization header when getToken is omitted', async () => {
+      // The load-bearing property of the admin-registered server path: the
+      // catalog's session token is a Quilt credential, and forwarding it to a
+      // third-party endpoint would hand that operator a bearer for this
+      // deployment. Asserting on the absence, not on a placeholder value.
+      const { fetchSpy, calls } = captureCalls(okResponse)
+
+      const client = Mcp.make({ url: 'https://third-party.invalid/mcp' })
+      await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+
+      expect(calls).toHaveLength(1)
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      const keys = Object.keys(headers).map((k) => k.toLowerCase())
+      expect(keys).not.toContain('authorization')
+      // The rest of the envelope is unchanged — this is the same protocol, just
+      // unauthenticated.
+      expect(headers['mcp-protocol-version']).toBeTruthy()
+      expect(calls[0].body.method).toBe('tools/list')
+    })
+
+    it('anonymous backend reaches the wire without a token and adapts results', async () => {
+      const { fetchSpy, calls } = captureCalls(
+        (req: any) =>
+          new Response(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: req?.id,
+              result: {
+                tools: [
+                  { name: 'job_status', description: 'Job status', inputSchema: {} },
+                ],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      )
+
+      const backend = Mcp.anonymous({ url: 'https://third-party.invalid/mcp' })
+      const tools = await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
+
+      expect(tools.map((t) => t.name)).toEqual(['job_status'])
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      expect(Object.keys(headers).map((k) => k.toLowerCase())).not.toContain(
+        'authorization',
+      )
+    })
+
+    it('replays the session id a stateful server assigns, and drops it on 404', async () => {
+      let expired = false
+      const { fetchSpy, calls } = captureCalls((req: any) => {
+        if (req?.method === 'initialize') {
+          return new Response(
+            JSON.stringify({ jsonrpc: '2.0', id: req.id, result: {} }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json', 'mcp-session-id': 'sess-1' },
+            },
+          )
+        }
+        if (!req?.id) return new Response(null, { status: 202 })
+        if (expired) return new Response('', { status: 404 })
+        return okResponse(req)
+      })
+      const client = Mcp.make({ url: 'https://stateful.invalid/mcp' })
+      const sessionOf = (i: number) =>
+        ((calls[i].init?.headers ?? {}) as Record<string, string>)['mcp-session-id']
+
+      await Eff.Effect.runPromise(withFetch(client.initialize(), fetchSpy))
+      await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+      expect(sessionOf(0)).toBeUndefined()
+      expect(sessionOf(1)).toBe('sess-1') // notifications/initialized
+      expect(sessionOf(2)).toBe('sess-1')
+
+      expired = true
+      const exit = await Eff.Effect.runPromiseExit(
+        withFetch(client.listTools(), fetchSpy),
+      )
+      expect(Eff.Exit.isFailure(exit)).toBe(true)
+      expired = false
+      await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+      expect(sessionOf(4)).toBeUndefined()
+    })
+
+    it('withHeaders backend sends its fixed headers and no catalog token', async () => {
+      const { fetchSpy, calls } = captureCalls(okResponse)
+      const backend = Mcp.withHeaders({
+        url: 'https://third-party.invalid/mcp',
+        headers: { 'X-API-Key': 'k' },
+      })
+      await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      expect(headers['x-api-key']).toBe('k')
+      expect(Object.keys(headers)).not.toContain('authorization')
+    })
+
     it('propagates McpAuthError without firing fetch when getToken fails', async () => {
       const fetchSpy = vi.fn()
 

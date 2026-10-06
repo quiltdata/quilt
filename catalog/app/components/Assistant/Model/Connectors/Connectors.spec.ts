@@ -822,6 +822,156 @@ describe('Connectors', () => {
       )
     })
 
+    it('an optional connector stuck in Failed does not gate the conversation', () => {
+      // The registry case: an admin-registered server is down. Before optional
+      // connectors existed, `isBlocked` was `some(...)` over every connector, so
+      // this state held chat until the user dismissed it — once per dead server.
+      const platform = baseConfig(stubBackend())
+      const thirdParty = baseConfig(
+        stubBackend({ initialize: () => Eff.Effect.fail(authError) }),
+        { id: 'gpu', title: 'GPU cluster jobs', optional: true, thirdParty: true },
+      )
+      return runWithLayer(
+        [platform, thirdParty],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId.platform, (s) => s._tag === 'Ready')
+          yield* awaitState(svc.byId.gpu, (s) => s._tag === 'Failed')
+
+          // The optional connector really is in the state that would otherwise
+          // demand a dismissal — otherwise this test would pass for the wrong
+          // reason (e.g. if it had quietly reached Ready).
+          const gpuState = yield* Eff.SubscriptionRef.get(svc.byId.gpu.state)
+          expect(Connectors.stateRequiresAck(gpuState)).toBe(true)
+
+          expect(yield* svc.requiresAck).toBe(false)
+          expect(yield* svc.isBlocked).toBe(false)
+          yield* svc.awaitUnblocked
+        }),
+      )
+    })
+
+    it('an optional connector in unacked Failed is still reported as unavailable', () => {
+      // It never blocks, so nobody will ever ack it — omitting it from the
+      // overview would leave the model with no idea the server is down.
+      const platform = baseConfig(stubBackend())
+      const thirdParty = baseConfig(
+        stubBackend({ initialize: () => Eff.Effect.fail(authError) }),
+        { id: 'gpu', title: 'GPU cluster jobs', optional: true, thirdParty: true },
+      )
+      return runWithLayer(
+        [platform, thirdParty],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId.platform, (s) => s._tag === 'Ready')
+          yield* awaitState(svc.byId.gpu, (s) => s._tag === 'Failed')
+          const gpuState = yield* Eff.SubscriptionRef.get(svc.byId.gpu.state)
+          expect(Connectors.stateRequiresAck(gpuState)).toBe(true)
+          const overview = (yield* svc.contextContribution).messages?.[0] ?? ''
+          expect(overview).toContain('id="gpu"')
+          expect(overview).toContain('state="unavailable"')
+        }),
+      )
+    })
+
+    it('bootstrap drops a tool whose namespaced name Bedrock would reject', () => {
+      // Bedrock rejects the entire Converse request on one bad name, so keeping
+      // it would take the first-party tools down with it.
+      const config = baseConfig(
+        stubBackend({
+          listTools: () =>
+            Eff.Effect.succeed([
+              { name: 'job_status', inputSchema: {} },
+              { name: 'has spaces', inputSchema: {} },
+              { name: 'x'.repeat(64), inputSchema: {} },
+            ]),
+        }),
+        { id: 'gpu', title: 'GPU cluster jobs', optional: true },
+      )
+      return runWithLayer(
+        [config],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId.gpu, (s) => s._tag === 'Ready')
+          const tools = Object.keys((yield* svc.contextContribution).tools ?? {})
+          expect(tools).toEqual(['gpu__job_status'])
+        }),
+      )
+    })
+
+    it('a duplicate connector id does not replace the connector already there', () => {
+      const platform = baseConfig(stubBackend())
+      const impostor = baseConfig(stubBackend(), { title: 'Registered impostor' })
+      return runWithLayer(
+        [platform, impostor],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          expect(Object.keys(svc.byId)).toEqual(['platform'])
+          expect(svc.byId.platform.config.title).toBe(platform.title)
+        }),
+      )
+    })
+
+    it('a required connector stuck in Failed still gates the conversation', () => {
+      // CONTROL for the test above: pins that skipping optional connectors did
+      // not disable gating altogether. Passes before and after the change.
+      const platform = baseConfig(
+        stubBackend({ initialize: () => Eff.Effect.fail(authError) }),
+      )
+      return runWithLayer(
+        [platform],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId.platform, (s) => s._tag === 'Failed')
+          expect(yield* svc.requiresAck).toBe(true)
+          expect(yield* svc.isBlocked).toBe(true)
+        }),
+      )
+    })
+
+    it('contextContribution: an optional connector still reports its tools and state', () => {
+      // Not gating must not mean not visible: a registered server's tools are
+      // the point, and once acknowledged-failed it has to appear as unavailable
+      // rather than vanishing from the prompt.
+      const platform = baseConfig(stubBackend())
+      const thirdParty = baseConfig(
+        stubBackend({
+          listTools: () =>
+            Eff.Effect.succeed([
+              { name: 'job_status', description: 'Job status', inputSchema: {} },
+            ]),
+        }),
+        {
+          id: 'gpu',
+          title: 'GPU cluster jobs',
+          hint: 'Submits and monitors cluster jobs.',
+          optional: true,
+          thirdParty: true,
+        },
+      )
+      return runWithLayer(
+        [platform, thirdParty],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId.platform, (s) => s._tag === 'Ready')
+          yield* awaitState(svc.byId.gpu, (s) => s._tag === 'Ready')
+          const ctx = yield* svc.contextContribution
+          expect(Object.keys(ctx.tools ?? {})).toContain('gpu__job_status')
+          const overview = ctx.messages?.[0] ?? ''
+          expect(overview).toContain('id="gpu"')
+          expect(overview).toContain('tool-prefix="gpu__"')
+          // Marked untrusted: its descriptions and results reach the same tool
+          // loop as the first-party tools that read S3 and write packages.
+          expect(overview).toContain('third-party="true"')
+          expect(overview).toContain('untrusted data')
+          // The first-party connector carries no such marking.
+          expect(overview).not.toContain(
+            'id="platform" tool-prefix="platform__" third-party',
+          )
+        }),
+      )
+    })
+
     it('awaitUnblocked returns once all connectors reach a non-blocking state', () => {
       const config = baseConfig(stubBackend())
       return runWithLayer(

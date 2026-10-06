@@ -348,8 +348,17 @@ export interface McpClientOptions {
    * circuits the request without firing a fetch. The token is read fresh on
    * every call — callers can close over a redux store and project the
    * current token via a memoized selector.
+   *
+   * Omit it for an unauthenticated server: the request then carries no
+   * `Authorization` header at all. That is not a convenience — an
+   * admin-registered third-party server must never receive the catalog's
+   * session token. It is a Quilt credential, the server has no use for it, and
+   * forwarding it would hand a bearer for this deployment to whoever operates
+   * that endpoint.
    */
-  getToken: () => Eff.Effect.Effect<string, McpAuthError>
+  getToken?: () => Eff.Effect.Effect<string, McpAuthError>
+  /** Extra request headers, sent verbatim on every call. */
+  headers?: Readonly<Record<string, string>>
 }
 
 export interface McpClient {
@@ -370,21 +379,29 @@ export interface McpClient {
 }
 
 export function make(options: McpClientOptions): McpClient {
+  // Streamable HTTP: a stateful server assigns `Mcp-Session-Id` on `initialize`
+  // and rejects later requests without it. Stateless servers never send one.
+  let sessionId: string | null = null
+
   const post = (
     payload: JsonRpcRequest | Omit<JsonRpcRequest, 'id'>,
   ): Eff.Effect.Effect<JsonRpcResponse | null, McpError> =>
     Eff.Effect.gen(function* () {
-      const token = yield* options.getToken()
+      // No resolver means an unauthenticated server: the request carries no
+      // `Authorization` header at all, rather than an empty or placeholder one.
+      const token = options.getToken ? yield* options.getToken() : null
       const httpClient = yield* HttpClient.HttpClient
 
-      const request = HttpClientRequest.post(options.url).pipe(
-        HttpClientRequest.bearerToken(token),
+      const base = HttpClientRequest.post(options.url).pipe(
         HttpClientRequest.setHeaders({
+          ...options.headers,
           Accept: 'application/json, text/event-stream',
           'MCP-Protocol-Version': PROTOCOL_VERSION,
+          ...(sessionId ? { 'Mcp-Session-Id': sessionId } : {}),
         }),
         HttpClientRequest.bodyText(JSON.stringify(payload), 'application/json'),
       )
+      const request = token === null ? base : HttpClientRequest.bearerToken(token)(base)
 
       // Strip W3C `traceparent` + Zipkin `b3` headers — the MCP server's
       // CORS allow-list rejects them (preflight: "Disallowed CORS
@@ -405,7 +422,19 @@ export function make(options: McpClientOptions): McpClient {
       // an unread response is aborted when collected, which logs a failed request.
       const body = yield* Eff.Effect.either(resp.text)
 
+      const assigned = resp.headers['mcp-session-id']
+      if (assigned) sessionId = assigned
+
       if (resp.status === 202) return null
+
+      // The server ended the session. Drop it so the connector's reconnect
+      // re-initializes into a new one.
+      if (resp.status === 404 && sessionId) {
+        sessionId = null
+        return yield* Eff.Effect.fail(
+          new McpTransportError({ detail: 'session expired', status: 404 }),
+        )
+      }
 
       // 401/403: token missing/expired/revoked. Surface as auth error so
       // the connector layer doesn't bump health and trigger a futile
@@ -500,6 +529,7 @@ export function make(options: McpClientOptions): McpClient {
   return {
     initialize: () =>
       Eff.Effect.gen(function* () {
+        sessionId = null
         yield* rpc('initialize', {
           protocolVersion: PROTOCOL_VERSION,
           capabilities: {},
@@ -647,18 +677,12 @@ export interface BearerPassthruOptions {
  * doesn't manage refresh, expiry, or session state. Pairs with FastMCP's
  * `stateless_http=True` transport mode.
  */
-export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
-  const wire = make({
-    url: opts.url,
-    getToken: () =>
-      opts
-        .getToken()
-        .pipe(
-          Eff.Effect.flatMap((tok) =>
-            tok ? Eff.Effect.succeed(tok) : Eff.Effect.fail(new McpAuthError()),
-          ),
-        ),
-  })
+/**
+ * Adapt a wire client to the abstract `Backend`. Shared by every backend
+ * factory below; the factories differ only in how (and whether) they
+ * authenticate, never in how the protocol maps onto the connector contract.
+ */
+const adaptBackend = (wire: McpClient): Backend => {
   const lift = <A>(eff: Eff.Effect.Effect<A, McpError>) =>
     eff.pipe(Eff.Effect.mapError(adaptError))
   return {
@@ -686,3 +710,52 @@ export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
     ping: () => lift(wire.ping()),
   }
 }
+
+export const bearerPassthru = (opts: BearerPassthruOptions): Backend =>
+  adaptBackend(
+    make({
+      url: opts.url,
+      getToken: () =>
+        opts
+          .getToken()
+          .pipe(
+            Eff.Effect.flatMap((tok) =>
+              tok ? Eff.Effect.succeed(tok) : Eff.Effect.fail(new McpAuthError()),
+            ),
+          ),
+    }),
+  )
+
+export interface AnonymousOptions {
+  readonly url: string
+}
+
+/**
+ * Backend for a server Quilt does not operate and holds no credential for.
+ *
+ * Sends no `Authorization` header. That is the design, not a gap: the catalog's
+ * session token is a Quilt credential, the third-party server has no use for
+ * it, and forwarding it would hand a bearer for this deployment to whoever runs
+ * that endpoint. A single shared secret is no better — it would have to reach
+ * every user's browser to be usable, which publishes it. So such a server
+ * authorizes its own callers, typically by the network it sits on.
+ *
+ * The connector built on this is registered `optional` and `thirdParty`, so its
+ * failure does not gate the conversation and its output is marked untrusted in
+ * the prompt.
+ */
+export const anonymous = (opts: AnonymousOptions): Backend =>
+  adaptBackend(make({ url: opts.url }))
+
+export interface WithHeadersOptions {
+  readonly url: string
+  readonly headers: Readonly<Record<string, string>>
+}
+
+/**
+ * Backend that sends fixed headers, such as a user's own API key. Whatever the
+ * browser holds is readable by that browser's user, so this is only for a
+ * credential the user owns; a stack-wide secret has to stay server-side.
+ */
+export const withHeaders = (opts: WithHeadersOptions): Backend =>
+  adaptBackend(make({ url: opts.url, headers: opts.headers }))
