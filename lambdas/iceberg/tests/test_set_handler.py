@@ -522,9 +522,7 @@ def test_a_message_that_cannot_be_dead_lettered_is_returned_and_holds_its_group(
     assert response == failures("undecodable", "m2")
 
 
-def test_a_message_is_returned_rather_than_dead_lettered_with_too_little_time_left_to_send_it(
-    handle, clock, sqs
-):
+def test_a_message_is_returned_rather_than_dead_lettered_with_too_little_time_left_to_send_it(handle, clock, sqs):
     clock.now = TIMEOUT_S - t4_lambda_iceberg.SEND_BUDGET_MS / 1000 + 1
 
     response = handle(undecodable("undecodable"))
