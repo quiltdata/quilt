@@ -97,7 +97,7 @@ const packageTier = (target: number): BadgeDef => ({
 const volumeTier = (id: string, title: string, bytes: number): BadgeDef => ({
   id,
   title,
-  description: `${title} across every package revision in this catalog.`,
+  description: `${title} of packaged data across this catalog.`,
   category: 'Volume',
   icon: 'storage',
   unit: 'bytes',
