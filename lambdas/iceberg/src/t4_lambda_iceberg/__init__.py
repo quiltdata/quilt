@@ -170,6 +170,14 @@ def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]
     return item, bool(first_line)
 
 
+def _refused_for_good(error: Exception) -> bool:
+    """Whether S3 refused a read with a client error no retry clears, as for a bucket the stack no longer reads."""
+    if not isinstance(error, botocore.exceptions.ClientError):
+        return False
+    status = error.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+    return 400 <= status < 500 and status != 429  # 429 is throttling
+
+
 def _dead_letter(queue_url: str, record, reason: str) -> bool:
     try:
         sqs.send_message(
@@ -217,10 +225,13 @@ def set_handler(event, context):
             logger.warning("Failed to read s3://%s/%s: %s", *key, e)
             dead.update(dict.fromkeys(keys[key], f"input: {e}"))
             continue
-        except Exception:
+        except Exception as e:
             logger.exception("Failed to read s3://%s/%s", *key)
-            retry.update(keys[key])
             unread += 1
+            if _refused_for_good(e):
+                dead.update(dict.fromkeys(keys[key], f"read: {e}"))
+            else:
+                retry.update(keys[key])
             continue
         ids[item] = keys[key]
         kind = "manifest" if isinstance(item, Manifest) else "revision" if is_revision(item.pointer) else "tag"

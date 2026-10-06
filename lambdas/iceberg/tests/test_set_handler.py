@@ -23,6 +23,16 @@ BAD_DATA = {"ErrorCategory": 2, "Retryable": False, "ErrorMessage": "HIVE_BAD_DA
 UNAVAILABLE = {"ErrorCategory": 1, "Retryable": True, "ErrorMessage": "Athena is unavailable"}
 
 
+def s3_error(code: str, status: int) -> botocore.exceptions.ClientError:
+    return botocore.exceptions.ClientError(
+        {"Error": {"Code": code}, "ResponseMetadata": {"HTTPStatusCode": status}}, "GetObject"
+    )
+
+
+SLOW_DOWN = s3_error("SlowDown", 503)  # a read that clears by itself
+ACCESS_DENIED = s3_error("AccessDenied", 403)  # one that does not, as for a bucket removed from the stack
+
+
 def h(n: int) -> str:
     return f"{n:064x}"
 
@@ -146,7 +156,7 @@ class S3:
         if body is None:
             raise t4_lambda_iceberg.s3.exceptions.NoSuchKey({"Error": {"Code": "NoSuchKey"}}, "GetObject")
         if isinstance(body, Exception):
-            raise body
+            raise body.with_traceback(None)
         return {"Body": StreamingBody(io.BytesIO(body), len(body))}
 
 
@@ -378,16 +388,48 @@ def test_an_empty_manifest_is_deleted_from_the_set(handle, s3, con):
     assert holdings(con)["package_manifest"] == holdings(con)["package_entry"] == set()
 
 
-def test_an_object_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_batch_written(handle, s3, con):
+@pytest.mark.parametrize(
+    "error",
+    [SLOW_DOWN, s3_error("InternalError", 500), botocore.exceptions.EndpointConnectionError(endpoint_url="s3")],
+    ids=["throttled", "S3's fault", "unreachable"],
+)
+def test_an_object_that_cannot_be_read_for_now_is_returned_and_the_rest_of_the_batch_written(
+    handle, s3, con, sqs, error
+):
     put_manifest(s3, con, h(1))
-    s3.objects[BUCKET, manifest_key(h(2))] = botocore.exceptions.ClientError(
-        {"Error": {"Code": "AccessDenied"}}, "GetObject"
-    )
+    s3.objects[BUCKET, manifest_key(h(2))] = error
 
     response = handle(record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2))))
 
     assert response == failures("m2")
     assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
+    assert sqs.sent == []
+
+
+@pytest.mark.parametrize(
+    "error", [ACCESS_DENIED, s3_error("NoSuchBucket", 404)], ids=["access denied", "no such bucket"]
+)
+@pytest.mark.parametrize("alone", [True, False], ids=["alone", "beside one written"])
+def test_an_object_that_cannot_be_read_for_good_is_dead_lettered(handle, s3, con, sqs, error, alone):
+    put_manifest(s3, con, h(1))
+    s3.objects[BUCKET, manifest_key(h(2))] = error
+    batch = [record("m2", manifest_key(h(2)))] + ([] if alone else [record("m1", manifest_key(h(1)))])
+
+    response = handle(*batch)
+
+    assert response == failures()
+    assert dead_lettered(sqs).keys() == {"m2"}
+    assert dead_lettered(sqs)["m2"][2].startswith("read: ")
+
+
+def test_when_every_object_of_several_cannot_be_read_for_good_none_is_dead_lettered(handle, s3, sqs):
+    s3.objects[BUCKET, manifest_key(h(1))] = ACCESS_DENIED
+    s3.objects[BUCKET, manifest_key(h(2))] = ACCESS_DENIED
+
+    response = handle(record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2))))
+
+    assert response == failures("m1", "m2")
+    assert sqs.sent == []
 
 
 @pytest.mark.parametrize("name", ["²", "9" * 13])  # a numeral but not ASCII digits; seconds past a timestamp's
@@ -439,9 +481,7 @@ def test_an_event_no_retry_can_write_is_dead_lettered_at_once_and_its_group_goes
 def test_a_message_group_is_returned_from_its_first_failed_message_on(handle, athena, s3, con, sqs):
     for n in (1, 2, 3):
         put_manifest(s3, con, h(n))
-    s3.objects[BUCKET, manifest_key(h(4))] = botocore.exceptions.ClientError(
-        {"Error": {"Code": "AccessDenied"}}, "GetObject"
-    )
+    s3.objects[BUCKET, manifest_key(h(4))] = SLOW_DOWN
     for pkg_name in ("u/p", "u/q", "u/r"):
         put_pointer(s3, pkg_name, "latest", h(1))
     athena.fails = lambda sql: UNAVAILABLE if '"package_entry"' in sql and h(2) in sql else None
@@ -481,14 +521,19 @@ def test_a_message_that_cannot_be_dead_lettered_is_returned_and_holds_its_group(
         [record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2)))],
         [record("m1", manifest_key(h(1))), undecodable("bad"), record("m2", manifest_key(h(2)))],
         [record("m1", manifest_key(h(1))), record("unreadable", manifest_key(h(3)))],
+        [record("m1", manifest_key(h(1))), record("denied", manifest_key(h(4)))],
     ],
-    ids=["items", "items and an event no retry can write", "an item and one that cannot be read"],
+    ids=[
+        "items",
+        "items and an event no retry can write",
+        "an item and one that cannot be read for now",
+        "an item and one that cannot be read for good",
+    ],
 )
 def test_when_every_item_of_several_fails_none_is_dead_lettered(handle, athena, s3, con, sqs, events):
     manifests(s3, con, 1, 2)
-    s3.objects[BUCKET, manifest_key(h(3))] = botocore.exceptions.ClientError(
-        {"Error": {"Code": "AccessDenied"}}, "GetObject"
-    )
+    s3.objects[BUCKET, manifest_key(h(3))] = SLOW_DOWN
+    s3.objects[BUCKET, manifest_key(h(4))] = ACCESS_DENIED
     athena.fails = lambda sql: BAD_DATA
 
     response = handle(*events)
