@@ -1015,6 +1015,15 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                 collapsed={collapsed}
               />
             )}
+            {user?.isAdmin && (
+              <NavRow
+                icon={<OutlinedIcon>security</OutlinedIcon>}
+                label="Admin"
+                to={urls.admin()}
+                selected={adminActive}
+                collapsed={collapsed}
+              />
+            )}
             {chat && (
               <NavRow
                 icon={<OutlinedIcon>chat_bubble_outline</OutlinedIcon>}
@@ -1024,15 +1033,6 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                   onClose?.()
                   chat.show()
                 }}
-                collapsed={collapsed}
-              />
-            )}
-            {user?.isAdmin && (
-              <NavRow
-                icon={<OutlinedIcon>security</OutlinedIcon>}
-                label="Admin"
-                to={urls.admin()}
-                selected={adminActive}
                 collapsed={collapsed}
               />
             )}
