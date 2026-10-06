@@ -198,6 +198,25 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(send).toHaveBeenCalledTimes(1)
     })
 
+    it('drops a fork whose conflict lands after a pause, even through a later flush', async () => {
+      let resolve: (o: Sessions.SaveOutcome) => void = () => {}
+      const { queue, send } = setup((r) =>
+        r.id === 'A'
+          ? new Promise((res) => (resolve = res))
+          : Promise.resolve(saved('F', 1)),
+      )
+      queue.adopt('a', 'A', 1, 'x')
+      queue.change('a', 'xy')
+      await vi.advanceTimersByTimeAsync(1000)
+      queue.change('b', 'z')
+      queue.pause()
+      resolve({ _tag: 'Conflict' })
+      await vi.advanceTimersByTimeAsync(0)
+      queue.resume()
+      await queue.flush()
+      expect(send).toHaveBeenCalledTimes(1)
+    })
+
     it('does not loop when a create is answered NotFound', async () => {
       const { queue, send } = setup(async () => ({ _tag: 'NotFound' }))
       queue.change('h', 'a')

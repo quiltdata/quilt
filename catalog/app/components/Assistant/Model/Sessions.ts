@@ -280,6 +280,12 @@ export function createSaveQueue<T>({
             }
             break
         }
+        // A reply landing after `pause` must not leave a fork or retry behind.
+        if (paused) {
+          if (s.timer) clearTimeout(s.timer)
+          s.timer = null
+          s.latest = s.sent
+        }
         pump(s)
       })
   }
