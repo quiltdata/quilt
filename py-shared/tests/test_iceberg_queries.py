@@ -139,11 +139,16 @@ def _render(method: str, **values: str) -> str:
 METHODS = [
     name for name, _ in inspect.getmembers(iceberg_queries.QueryMaker, inspect.isfunction) if not name.startswith("_")
 ]
+# A method's own parameter is always a case, so a value the SQL transforms fails rather than drops out.
 ESCAPED_SLOTS = [
     (method, slot)
     for method in METHODS
     for slot in BENIGN
-    if (method, slot) not in NUMERIC_SLOTS and BENIGN[slot] in _render(method)
+    if (method, slot) not in NUMERIC_SLOTS
+    and (
+        slot in inspect.signature(getattr(iceberg_queries.QueryMaker, method)).parameters
+        or BENIGN[slot] in _render(method)
+    )
 ]
 
 
