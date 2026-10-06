@@ -1,5 +1,6 @@
 import json
 import pathlib
+import re
 from unittest.mock import MagicMock
 from urllib.parse import unquote_plus
 
@@ -46,6 +47,15 @@ def test_package_keys_pass_through_unchanged():
     rec = n.to_s3_record(by(key=".quilt/packages/1220abc"))
     assert rec["s3"]["object"]["key"] == ".quilt/packages/1220abc"
     assert rec["eventSource"] == "aws:s3"
+
+
+def test_named_package_pointer_still_matches_pkgevents():
+    e = json.loads(json.dumps(by("PutObject", key="plain.txt")))
+    e["detail"]["object"]["key"] = ".quilt/named_packages/owner/pkg-name/1759708800"
+    rec = n.to_s3_record(e)
+    assert rec["eventName"].startswith("ObjectCreated:")
+    # pkgevents' PKG_POINTER_REGEX.
+    assert re.fullmatch(r"\.quilt/named_packages/([\w-]+/[\w-]+)/([0-9]{10})", rec["s3"]["object"]["key"])
 
 
 def test_permanent_delete_has_no_size_or_etag():
