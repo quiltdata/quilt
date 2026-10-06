@@ -5,7 +5,6 @@ import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
 
 import boto3
 
@@ -115,6 +114,11 @@ STATEMENT_BUDGET_MS = 60_000
 # Left after QueryRunner's deadline, to stop its queries, dead-letter messages and respond.
 DEADLINE_MARGIN_MS = 10_000
 _TOP_HASH = re.compile("[0-9a-f]{64}")
+# A package's pointer, at `namespace/package/name`, or a manifest named by its top hash.
+_KEY = re.compile(
+    f"{re.escape(quilt_shared.const.NAMED_PACKAGES_PREFIX)}[^/]+/[^/]+/[^/]+"
+    f"|{re.escape(quilt_shared.const.MANIFESTS_PREFIX)}{_TOP_HASH.pattern}"
+)
 
 
 class _Invalid(Exception):
@@ -131,11 +135,12 @@ def _execute(runner: QueryRunner, context, deadline: float, sql: str) -> bool:
     return execution is not None
 
 
-def _run(runner: QueryRunner, context, deadline: float, build, items, *, failed: set, dead: dict):
+def _run(runner: QueryRunner, context, deadline: float, build, items, failed: dict):
+    """Records in `failed` each item that failed, with why if no retry can write it."""
     for statement in build([i for i in items if i not in failed]):
         try:
             if not _execute(runner, context, deadline, statement.sql):
-                failed.update(statement.items)
+                failed.update(dict.fromkeys(statement.items))
             continue
         except AthenaQueryBaseException:
             logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
@@ -145,27 +150,19 @@ def _run(runner: QueryRunner, context, deadline: float, build, items, *, failed:
                 ran = all(_execute(runner, context, deadline, s.sql) for s in build([item]))
             except AthenaQueryBaseException as e:
                 logger.exception("Failed to write %s", item)
-                failed.add(item)
-                if e.query_execution["Status"].get("AthenaError", {}).get("Retryable") is False:
-                    dead[item] = f"statement: {e}"
+                retryable = e.query_execution["Status"].get("AthenaError", {}).get("Retryable") is not False
+                failed[item] = None if retryable else f"statement: {e}"
                 continue
             if not ran:
-                failed.update(statement.items[n:])
+                failed.update(dict.fromkeys(statement.items[n:]))
                 break
 
 
 def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
     """The item an object's current state makes, and whether it is upserted rather than deleted."""
-    try:
-        item = parse_key(bucket, key)
-    except ValueError:
-        item = None
-    if isinstance(item, Manifest):
-        valid = _TOP_HASH.fullmatch(item.top_hash)
-    else:
-        valid = item and len(names := item.pkg_name.split("/")) == 2 and all(names) and item.pointer
-    if not valid:
+    if not _KEY.fullmatch(key):
         raise _Invalid(f"not a package's pointer or manifest: {key}")
+    item = parse_key(bucket, key)
     first_line = get_first_line(bucket, key)
     if first_line and isinstance(item, PointerKey):
         top_hash = first_line.decode(errors="replace")
@@ -196,18 +193,9 @@ def set_handler(event, context):
     database = os.environ["QUILT_STACK_DATABASE"]
     dead_letter_queue = os.environ["QUILT_STACK_DEAD_LETTER_QUEUE_URL"]
     maker = StackQueryMaker(database=database, user_athena_db=QUILT_USER_ATHENA_DATABASE)
-    # An item that failed is left out of every later statement: a manifest's row marks its entries complete.
-    failed: set = set()
-    dead_items: dict = {}  # failed items no retry can write, with why
-    run = partial(
-        _run,
-        # The set's role cannot reach the Iceberg database, so its queries run in the stack database.
-        QueryRunner(logger=logger, athena=athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP),
-        context,
-        time.monotonic() + (context.get_remaining_time_in_millis() - DEADLINE_MARGIN_MS) / 1000,
-        failed=failed,
-        dead=dead_items,
-    )
+    # The set's role cannot reach the Iceberg database, so its queries run in the stack database.
+    runner = QueryRunner(logger=logger, athena=athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP)
+    deadline = time.monotonic() + (context.get_remaining_time_in_millis() - DEADLINE_MARGIN_MS) / 1000
 
     records = event["Records"]
     retry: set = set()  # message ids returned for retry
@@ -239,34 +227,39 @@ def set_handler(event, context):
         kind = "manifest" if isinstance(item, Manifest) else "revision" if is_revision(item.pointer) else "tag"
         groups[kind, upsert].append(item)
 
-    run(maker.tag_delete, groups["tag", False])
-    run(maker.revision_delete, groups["revision", False])
-    run(maker.manifest_delete, groups["manifest", False])
-    run(maker.entry_delete, groups["manifest", False])
-    run(maker.entry_upsert, groups["manifest", True])
-    run(maker.manifest_upsert, groups["manifest", True])
-    run(maker.tag_upsert, groups["tag", True])
-    run(maker.revision_upsert, groups["revision", True])
+    # An item that failed is left out of every later statement: a manifest's row marks its entries complete.
+    failed: dict = {}
+    for build, kind, upsert in [
+        (maker.tag_delete, "tag", False),
+        (maker.revision_delete, "revision", False),
+        (maker.manifest_delete, "manifest", False),
+        (maker.entry_delete, "manifest", False),
+        (maker.entry_upsert, "manifest", True),
+        (maker.manifest_upsert, "manifest", True),
+        (maker.tag_upsert, "tag", True),
+        (maker.revision_upsert, "revision", True),
+    ]:
+        _run(runner, context, deadline, build, groups[kind, upsert], failed)
 
-    retry.update(message_id for item in failed.difference(dead_items) for message_id in ids[item])
-    dead.update((message_id, reason) for item, reason in dead_items.items() for message_id in ids[item])
+    for item, reason in failed.items():
+        for message_id in ids[item]:
+            if reason:
+                dead[message_id] = reason
+            else:
+                retry.add(message_id)
     # Every item of several failing is the stack failing, not the messages: none is dead-lettered.
-    if len(records) > 1 and all(item in failed for item in ids):
+    if len(records) > 1 and ids.keys() <= failed.keys():
         retry.update(dead)
         dead.clear()
     # A FIFO queue keeps a message group's order only if nothing after a failed message of the group succeeds.
-    stopped = set()
+    stopped, failures = set(), []
     for record in records:
         message_id, group = record["messageId"], record["attributes"]["MessageGroupId"]
-        if group in stopped:
-            retry.add(message_id)
-        elif message_id in retry or (
-            message_id in dead and not _dead_letter(dead_letter_queue, record, dead[message_id])
+        if (
+            group in stopped
+            or message_id in retry
+            or (message_id in dead and not _dead_letter(dead_letter_queue, record, dead[message_id]))
         ):
-            retry.add(message_id)
             stopped.add(group)
-    return {
-        "batchItemFailures": [
-            {"itemIdentifier": record["messageId"]} for record in records if record["messageId"] in retry
-        ]
-    }
+            failures.append({"itemIdentifier": message_id})
+    return {"batchItemFailures": failures}

@@ -89,11 +89,7 @@ class Athena:
         self.fails = lambda sql: None  # the AthenaError the query fails with, if it does
         self.takes = lambda sql: 0  # the seconds the query runs
         self.refuses = lambda sql: False  # whether the API refuses to start the query
-        self.refuses_polls = lambda sql: False  # whether it fails to report a started query's state
-        self.poll_error = lambda: botocore.exceptions.ClientError(
-            {"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution"
-        )
-        self.refused = []  # the queries refused a start
+        self.poll_fails = lambda sql: None  # the error the API reports a started query's state with, if any
         self.started = []  # the queries started
         self.stopped = []  # the ids of those stopped
         self.ends = {}  # each query's end
@@ -102,7 +98,6 @@ class Athena:
 
     def start_query_execution(self, *, QueryString, QueryExecutionContext, **kwargs):
         if self.refuses(QueryString):
-            self.refused.append(QueryString)
             raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "StartQueryExecution")
         execution_id = str(len(self.started))
         self.started.append((QueryString, QueryExecutionContext["Database"]))
@@ -122,8 +117,8 @@ class Athena:
         self.errors[execution_id] = error
 
     def get_query_execution(self, *, QueryExecutionId):
-        if self.refuses_polls(self.started[int(QueryExecutionId)][0]):
-            raise self.poll_error()
+        if error := self.poll_fails(self.started[int(QueryExecutionId)][0]):
+            raise error.with_traceback(None)  # each raise its own, not one traceback grown by every poll
         if QueryExecutionId in self.stopped:
             status = {"State": "CANCELLED"}
         elif self.clock.now < self.ends[QueryExecutionId]:
@@ -395,25 +390,20 @@ def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
-def bad_pointer(s3, message_id: str) -> dict:
-    s3.objects[BUCKET, pointer_key("u/p", "latest")] = b"not a top hash"
-    return record(message_id, pointer_key("u/p", "latest"), "g")
-
-
 @pytest.mark.parametrize(
-    "event",
+    "bad",
     [
-        lambda s3, message_id: undecodable(message_id, "g"),
-        lambda s3, message_id: record(message_id, "elsewhere/key", "g"),
-        lambda s3, message_id: record(message_id, pointer_key("a/b/c", "latest"), "g"),
-        lambda s3, message_id: record(message_id, pointer_key("a", "latest"), "g"),
-        lambda s3, message_id: record(message_id, manifest_key("not-a-hash"), "g"),
-        bad_pointer,
+        undecodable("bad", "g"),
+        record("bad", "elsewhere/key", "g"),
+        record("bad", pointer_key("a/b/c", "latest"), "g"),
+        record("bad", pointer_key("a", "latest"), "g"),
+        record("bad", manifest_key("not-a-hash"), "g"),
+        record("bad", pointer_key("u/p", "latest"), "g"),  # its content is not a top hash
     ],
     ids=["not an S3 event", "outside the prefixes", "too deep", "too shallow", "not a manifest", "not a top hash"],
 )
-def test_an_event_no_retry_can_write_is_dead_lettered_at_once_and_its_group_goes_on(handle, s3, con, sqs, event):
-    bad = event(s3, "bad")
+def test_an_event_no_retry_can_write_is_dead_lettered_at_once_and_its_group_goes_on(handle, s3, con, sqs, bad):
+    s3.objects[BUCKET, pointer_key("u/p", "latest")] = b"not a top hash"
     put_manifest(s3, con, h(1))
 
     response = handle(bad, record("m1", manifest_key(h(1)), "g"))
@@ -466,18 +456,18 @@ def test_a_message_that_cannot_be_dead_lettered_is_returned_and_holds_its_group(
 
 
 @pytest.mark.parametrize(
-    "fails, event",
+    "fails, events",
     [
-        (BAD_DATA, lambda n: record(f"m{n}", manifest_key(h(n)))),
-        (None, lambda n: undecodable(f"m{n}")),
+        (BAD_DATA, [record("m1", manifest_key(h(1))), record("m2", manifest_key(h(2)))]),
+        (None, [undecodable("m1"), undecodable("m2")]),
     ],
     ids=["statements", "events"],
 )
-def test_when_every_item_of_several_fails_none_is_dead_lettered(handle, athena, s3, con, sqs, fails, event):
+def test_when_every_item_of_several_fails_none_is_dead_lettered(handle, athena, s3, con, sqs, fails, events):
     manifests(s3, con, 1, 2)
     athena.fails = lambda sql: fails
 
-    response = handle(event(1), event(2))
+    response = handle(*events)
 
     assert response == failures("m1", "m2")
     assert sqs.sent == []
@@ -511,13 +501,18 @@ def test_a_batch_of_one_failing_for_now_is_returned(handle, athena, s3, con, sqs
     assert sqs.sent == []
 
 
-@pytest.mark.parametrize("refusing", ["refuses", "refuses_polls"], ids=["start", "poll"])
+THROTTLED_POLL = botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution")
+
+
+@pytest.mark.parametrize(
+    "refusing, refusal", [("refuses", True), ("poll_fails", THROTTLED_POLL)], ids=["start", "poll"]
+)
 def test_a_call_athena_refuses_for_a_while_is_retried_and_its_statement_written_once(
-    handle, athena, s3, con, refusing
+    handle, athena, s3, con, refusing, refusal
 ):
     batch = manifests(s3, con, 1, 2, 3)
-    refusals = iter([True, True])
-    setattr(athena, refusing, lambda sql: '"package_entry"' in sql and next(refusals, False))
+    refusals = iter([refusal, refusal])
+    setattr(athena, refusing, lambda sql: next(refusals, None) if '"package_entry"' in sql else None)
 
     response = handle(*batch)
 
@@ -538,18 +533,14 @@ def test_a_statement_athena_refuses_to_start_until_the_deadline_returns_its_item
 
 @pytest.mark.parametrize(
     "error",
-    [
-        lambda: botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "GetQueryExecution"),
-        lambda: botocore.exceptions.ReadTimeoutError(endpoint_url="https://athena"),
-    ],
+    [THROTTLED_POLL, botocore.exceptions.ReadTimeoutError(endpoint_url="https://athena")],
     ids=["refused", "unreachable"],
 )
 def test_a_statement_whose_state_athena_fails_to_report_until_the_deadline_is_stopped_and_its_items_returned(
     handle, athena, s3, con, error
 ):
     batch = manifests(s3, con, 1, 2, 3)
-    athena.refuses_polls = lambda sql: '"package_entry"' in sql
-    athena.poll_error = error
+    athena.poll_fails = lambda sql: error if '"package_entry"' in sql else None
 
     response = handle(*batch)
 
