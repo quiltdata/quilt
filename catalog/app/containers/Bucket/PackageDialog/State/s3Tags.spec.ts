@@ -49,6 +49,12 @@ describe('containers/Bucket/PackageDialog/State/s3Tags', () => {
         requestPolicy: 'network-only',
       },
     )
+    run({ fetching: true })
+    expect(useQueryMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      { bucket: 'b' },
+      { pause: false, requestPolicy: 'network-only' },
+    )
   })
 
   it('is loading while the query runs', () => {
