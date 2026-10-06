@@ -21,7 +21,6 @@ complete sentence without it.
 
 ## Changes
 
-- [Added] Admins can turn on the "Milestone badges" preview feature to see package-count and first multi-terabyte package milestones on Admin → Status ([#5429](https://github.com/quiltdata/quilt/pull/5429))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
@@ -29,6 +28,7 @@ complete sentence without it.
 - [Fixed] Files, folders and package entries whose path contains a `%` open instead of crashing the page, including from a Quilt+ URI ([#5403](https://github.com/quiltdata/quilt/pull/5403))
 - [Fixed] Qurator: the panel's header menu opens below its button instead of covering it and the close button ([#5402](https://github.com/quiltdata/quilt/pull/5402))
 - [Added] Qurator can summarize PDFs and Office files up to 4 MiB and the first 2 MiB of text or CSV files, past the 500 KiB preview limit, and says how much of each it read ([#5404](https://github.com/quiltdata/quilt/pull/5404))
+- [Added] Admins can turn on the "Milestone badges" preview feature to see package-count and first multi-terabyte package milestones on Admin → Status ([#5429](https://github.com/quiltdata/quilt/pull/5429))
 - [Changed] Qurator: the model picker sits in the Ask Qurator box with Heavy, Medium and Light labels, and the panel's header shows one aligned menu and close button ([#5394](https://github.com/quiltdata/quilt/pull/5394))
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
 - [Fixed] When the approved-model list cannot be read, Qurator sends the stack's default model instead of a saved one the registry would refuse ([#5392](https://github.com/quiltdata/quilt/pull/5392))
