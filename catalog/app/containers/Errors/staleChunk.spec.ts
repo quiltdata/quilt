@@ -9,7 +9,7 @@ describe('containers/Errors/staleChunk', () => {
   const reload = vi.fn()
 
   beforeEach(() => {
-    localStorage.clear()
+    sessionStorage.clear()
     vi.stubGlobal('location', { ...window.location, reload })
   })
 
@@ -31,7 +31,7 @@ describe('containers/Errors/staleChunk', () => {
   })
 
   it('reloads again once the retry window has passed', () => {
-    localStorage.setItem('CHUNK_RELOAD', JSON.stringify(Date.now() - 2 * 60 * 1000))
+    sessionStorage.setItem('CHUNK_RELOAD', String(Date.now() - 2 * 60 * 1000))
     expect(reloadIfStaleChunk(chunkError())).toBe(true)
     expect(reload).toHaveBeenCalledTimes(1)
   })

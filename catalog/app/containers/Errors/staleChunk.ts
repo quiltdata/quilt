@@ -1,19 +1,17 @@
-import mkStorage from 'utils/storage'
-
-const storage = mkStorage({ chunkReload: 'CHUNK_RELOAD' })
+const KEY = 'CHUNK_RELOAD'
 
 const RETRY_WINDOW = 60 * 1000
 
-// A deploy removes the previous build's chunks, so a page loaded before it
-// fails on its next lazy import. One reload picks up the new build; a second
-// failure within the window is a real error and is left to the fallback.
+// A tab loaded before a deploy fails on its next lazy import; one reload picks
+// up the new build. The guard is per tab, and a repeat failure within the
+// window is a real error left to the fallback.
 export function reloadIfStaleChunk(error: unknown): boolean {
   if (!(error instanceof Error) || error.name !== 'ChunkLoadError') return false
   try {
-    const last: number | null = storage.get('chunkReload')
-    if (last && Date.now() - last < RETRY_WINDOW) return false
-    storage.set('chunkReload', Date.now())
+    if (Date.now() - Number(sessionStorage.getItem(KEY)) < RETRY_WINDOW) return false
+    sessionStorage.setItem(KEY, String(Date.now()))
   } catch {
+    // Without a guard a reload could loop, so leave it to the fallback.
     return false
   }
   window.location.reload()
