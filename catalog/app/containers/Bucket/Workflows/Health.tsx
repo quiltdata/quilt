@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
-import type { JsonSchema } from 'utils/JSONSchema'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
@@ -10,7 +9,7 @@ import * as requests from '../requests'
 
 import * as checks from './checks'
 
-type SchemaResult = Request.Result<JsonSchema | null>
+type SchemaResult = checks.SchemaResult
 
 function useSchema(schemaUrl?: string): SchemaResult {
   const s3 = AWS.S3.use()
@@ -75,52 +74,20 @@ interface TryItProps {
   entriesSchema: SchemaResult
 }
 
-// Issues that fail every push before name, message or metadata are looked at.
-function schemaIssues(label: string, url: string | undefined, result: SchemaResult) {
-  if (!url) return []
-  if (result === Request.Idle || result === Request.Loading) {
-    return [{ path: label, message: `Loading the ${label} schema…` }]
-  }
-  if (result instanceof Error) {
-    return [{ path: label, message: `Can't read the ${label} schema: ${result.message}` }]
-  }
-  return checks.checkSchema(result).map((message) => ({ path: label, message }))
-}
-
 function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
   const [name, setName] = React.useState('')
   const [message, setMessage] = React.useState('')
   const [metaText, setMetaText] = React.useState('{}')
 
-  const issues = React.useMemo((): checks.Issue[] => {
-    // Fail closed: a schema push can't use must not read as "passes".
-    const blocking: checks.Issue[] = [
-      ...(workflow.undefinedSchemas || []).map((id) => ({
-        path: 'workflow',
-        message: `There is no '${id}' in schemas.`,
-      })),
-      ...schemaIssues('metadata', workflow.schema?.url, metadataSchema),
-      ...schemaIssues('entries', workflow.entriesSchema, entriesSchema),
-    ]
-    // Name and message rules don't depend on schemas, so keep reporting them.
-    if (blocking.length) {
-      return [
-        ...checks.dryRun(workflow, undefined, { name, message, meta: {} }),
-        ...blocking,
-      ]
-    }
-    let meta
-    try {
-      meta = JSON.parse(metaText || '{}')
-    } catch {
-      return [{ path: 'metadata', message: 'Metadata is not valid JSON' }]
-    }
-    const schema =
-      metadataSchema instanceof Error || typeof metadataSchema === 'symbol'
-        ? undefined
-        : metadataSchema || undefined
-    return checks.dryRun(workflow, schema, { name, message, meta })
-  }, [workflow, metadataSchema, entriesSchema, name, message, metaText])
+  const issues = React.useMemo(
+    () =>
+      checks.tryIt(
+        workflow,
+        { metadata: metadataSchema, entries: entriesSchema },
+        { name, message, metaText },
+      ),
+    [workflow, metadataSchema, entriesSchema, name, message, metaText],
+  )
 
   return (
     <>

@@ -2,6 +2,7 @@ import type { ErrorObject } from 'ajv'
 
 import { JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
+import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
 // quilt3 accepts only these, so a schema the catalog can validate may still be rejected on
@@ -104,4 +105,66 @@ export function dryRun(
     )
   }
   return issues
+}
+
+export type SchemaResult = Request.Result<JsonSchema | null>
+
+// Problems that fail every push before name, message or metadata are looked at.
+function schemaIssues(
+  label: string,
+  url: string | undefined,
+  result: SchemaResult,
+): Issue[] {
+  if (!url) return []
+  if (result === Request.Idle || result === Request.Loading) {
+    return [{ path: label, message: `Loading the ${label} schema…` }]
+  }
+  if (result instanceof Error) {
+    return [{ path: label, message: `Can't read the ${label} schema: ${result.message}` }]
+  }
+  return checkSchema(result).map((message) => ({ path: label, message }))
+}
+
+interface TryItInput {
+  name: string
+  message: string
+  metaText: string
+}
+
+// Fails closed: a schema push can't use never reads as "passes", and name and message
+// rules, which don't depend on schemas, are always reported.
+export function tryIt(
+  workflow: Workflows.Workflow,
+  schemas: { metadata: SchemaResult; entries: SchemaResult },
+  { name, message, metaText }: TryItInput,
+): Issue[] {
+  const blocking: Issue[] = [
+    ...(workflow.undefinedSchemas || []).map((id) => ({
+      path: 'workflow',
+      message: `There is no '${id}' in schemas.`,
+    })),
+    ...schemaIssues('metadata', workflow.schema?.url, schemas.metadata),
+    ...schemaIssues('entries', workflow.entriesSchema, schemas.entries),
+  ]
+  let meta: Types.Json = {}
+  try {
+    meta = JSON.parse(metaText || '{}')
+  } catch {
+    blocking.push({ path: 'metadata', message: 'Metadata is not valid JSON' })
+  }
+  if (blocking.length) {
+    return [...dryRun(workflow, undefined, { name, message, meta: {} }), ...blocking]
+  }
+  const schema = schemas.metadata
+  return dryRun(
+    workflow,
+    schema && typeof schema === 'object' && !(schema instanceof Error)
+      ? schema
+      : undefined,
+    {
+      name,
+      message,
+      meta,
+    },
+  )
 }

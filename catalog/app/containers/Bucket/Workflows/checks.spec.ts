@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
+import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
 import * as checks from './checks'
@@ -137,6 +138,56 @@ describe('containers/Bucket/Workflows/checks', () => {
           meta: { a: 1, b: 2, c: 3 },
         }),
       ).toEqual([])
+    })
+  })
+
+  describe('tryIt', () => {
+    const withSchema = workflow({
+      schema: { url: 's3://b/s.json' },
+      packageNamePattern: /^lab\//,
+    })
+    const input = { name: 'x/y', message: '', metaText: '{}' }
+    const schemas = (
+      metadata: checks.SchemaResult,
+    ): { metadata: checks.SchemaResult; entries: checks.SchemaResult } => ({
+      metadata,
+      entries: Request.Idle,
+    })
+
+    it('never passes while the metadata schema is loading, and still checks the name', () => {
+      const issues = checks.tryIt(withSchema, schemas(Request.Loading), input)
+      expect(issues.map((i) => i.path)).toEqual(['name', 'metadata'])
+    })
+
+    it('reports an unreadable or unusable schema instead of passing', () => {
+      expect(
+        checks.tryIt(withSchema, schemas(new Error('denied')), input)[1].message,
+      ).toMatch('denied')
+      expect(
+        checks.tryIt(
+          withSchema,
+          schemas({ properties: { a: { $ref: '#/x' } } }),
+          input,
+        )[1].message,
+      ).toMatch('$ref')
+    })
+
+    it('reports undefined schema ids and bad JSON alongside the name', () => {
+      const issues = checks.tryIt(
+        workflow({ undefinedSchemas: ['gone'], packageNamePattern: /^lab\// }),
+        schemas(Request.Idle),
+        { ...input, metaText: '{' },
+      )
+      expect(issues.map((i) => i.path)).toEqual(['name', 'workflow', 'metadata'])
+    })
+
+    it('validates metadata once the schema is ready', () => {
+      const issues = checks.tryIt(
+        withSchema,
+        schemas({ type: 'object', required: ['a'] }),
+        { ...input, name: 'lab/y' },
+      )
+      expect(issues).toEqual([{ path: '/a', message: "must have required property 'a'" }])
     })
   })
 })
