@@ -55,6 +55,7 @@ class Athena:
         self.con = con
         self.fails = lambda sql: False
         self.refuses = lambda sql: False  # whether the API refuses to start the query
+        self.refusal = "ThrottlingException"  # the error it refuses with
         self.refuses_polls = lambda sql: False  # whether it refuses to report a started query's state
         self.refusals = 0
         self.started = []  # the queries started
@@ -66,7 +67,7 @@ class Athena:
     def start_query_execution(self, *, QueryString, QueryExecutionContext, **kwargs):
         if self.refuses(QueryString):
             self.refusals += 1
-            raise botocore.exceptions.ClientError({"Error": {"Code": "ThrottlingException"}}, "StartQueryExecution")
+            raise botocore.exceptions.ClientError({"Error": {"Code": self.refusal}}, "StartQueryExecution")
         self.remaining_ms -= self.query_ms
         execution_id = str(len(self.started))
         self.started.append(QueryString)
@@ -354,6 +355,17 @@ def test_a_statement_athena_keeps_refusing_to_start_returns_its_items_unsplit(ha
     assert response == failures("m1", "m2", "m3")
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
     assert athena.refusals == t4_lambda_iceberg.API_ATTEMPTS
+
+
+def test_a_statement_whose_start_failed_other_than_by_throttling_is_not_started_again(handle, athena, s3, con):
+    batch = manifests(s3, con, 1, 2, 3)
+    athena.refuses = lambda sql: '"package_entry"' in sql
+    athena.refusal = "InternalServerException"  # its outcome unknown: the statement may have started
+
+    response = handle(*batch)
+
+    assert response == failures("m1", "m2", "m3")
+    assert athena.refusals == 1
 
 
 def test_a_statement_whose_state_athena_refuses_to_report_is_not_started_again(handle, athena, s3, con):

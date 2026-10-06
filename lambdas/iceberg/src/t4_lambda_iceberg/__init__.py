@@ -112,13 +112,14 @@ def handler(event, context):
 # The time an invocation must have left to start a statement: one statement's run, QueryRunner's commit retries
 # included.
 STATEMENT_BUDGET_MS = 60_000
-# Runs of a statement whose Athena API calls are refused, on top of botocore's own retries of each call.
+# Starts of a statement Athena throttles, on top of botocore's own retries of each call.
 API_ATTEMPTS = 3
+_THROTTLED = {"ThrottlingException", "TooManyRequestsException"}
 
 
 def _execute(runner: QueryRunner, context, sql: str) -> bool:
-    """Whether the statement ran: not when time ran short, Athena kept refusing to start it, or it refused a call
-    once the statement had started."""
+    """Whether the statement ran: not when time ran short, Athena kept throttling its start, or any other call of
+    Athena's failed."""
     for attempt in range(API_ATTEMPTS):
         if attempt:
             time.sleep(random.uniform(0, 2 ** (attempt - 1)))
@@ -130,8 +131,9 @@ def _execute(runner: QueryRunner, context, sql: str) -> bool:
             return True
         except botocore.exceptions.ClientError as e:
             logger.warning("Athena refused %s", e.operation_name, exc_info=True)
-            # Refused after the start, the execution may still run: starting another would put two writers on it.
-            if e.operation_name != "StartQueryExecution":
+            # Only a throttled start is known to have started nothing. After any other error the execution may
+            # still run, and starting another would put two writers on it.
+            if e.operation_name != "StartQueryExecution" or e.response["Error"]["Code"] not in _THROTTLED:
                 return False
     return False
 
