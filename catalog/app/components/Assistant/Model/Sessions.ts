@@ -129,7 +129,11 @@ export function titleOf(events: readonly Conversation.Event[]): string {
   const text =
     first?._tag === 'Message' && first.content._tag === 'Text' ? first.content.text : ''
   const line = text.trim().split('\n')[0] || 'Untitled session'
-  return line.length > TITLE_LENGTH ? `${line.slice(0, TITLE_LENGTH - 1)}…` : line
+  // By code point: a cut surrogate pair is text the registry cannot store.
+  const chars = Array.from(line)
+  return chars.length > TITLE_LENGTH
+    ? `${chars.slice(0, TITLE_LENGTH - 1).join('')}…`
+    : line
 }
 
 export type Stop = 'TooLarge' | 'Disabled'
@@ -223,7 +227,7 @@ export function createSaveQueue<T>({
     const isHeld = [s.id, s.shown].some((id) => id !== null && held.has(id))
     if (paused || isHeld || s.timer || s.stopped || !s.latest || s.latest === s.sent) {
       s.waiters.splice(0).forEach((resolve) => resolve())
-      if (s !== slot && !s.timer && !isHeld) slots.delete(s)
+      if (s !== slot && !s.timer && !isHeld && !paused) slots.delete(s)
       return
     }
     const events = s.latest

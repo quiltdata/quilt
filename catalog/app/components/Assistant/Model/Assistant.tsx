@@ -457,14 +457,14 @@ function useSessions(
       setChoice(on)
       const r = await setSessionsEnabled({ enabled: on }).catch(() => null)
       if (r?.quratorSessionsSetEnabled.__typename !== 'Ok')
-        setNotice({ head, text: UNSWITCHABLE })
+        setNotice({ head: headNow.current, text: UNSWITCHABLE })
       // The registry's answer stands from here, including a change from another tab.
-      await client
+      const read = await client
         .query(SESSIONS_QUERY, {}, { requestPolicy: 'network-only' })
         .toPromise()
-      if (ticket === latestToggle.current) setChoice(null)
+      if (ticket === latestToggle.current && read.data) setChoice(null)
     },
-    [client, head, setSessionsEnabled],
+    [client, headNow, setSessionsEnabled],
   )
 
   return React.useMemo(

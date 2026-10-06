@@ -87,6 +87,15 @@ describe('components/Assistant/Model/Sessions', () => {
         Sessions.titleOf([message('1', 'user', text(`${long}\nmore`))]),
       ).toHaveLength(Sessions.TITLE_LENGTH)
       expect(Sessions.titleOf([])).toBe('Untitled session')
+      const astral = Sessions.titleOf([
+        message('1', 'user', text(`${'x'.repeat(78)}😀😀😀`)),
+      ])
+      expect(astral).toBe(`${'x'.repeat(78)}😀…`)
+    })
+
+    it('skips a discarded first message', () => {
+      const gone = { ...message('1', 'user', text('gone')), discarded: true }
+      expect(Sessions.titleOf([gone, message('2', 'user', text('kept'))])).toBe('kept')
     })
   })
 
