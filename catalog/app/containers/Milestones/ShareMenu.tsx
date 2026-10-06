@@ -30,7 +30,8 @@ export default function ShareMenu({ badge, anchorEl, onClose }: ShareMenuProps) 
   const slack = React.useCallback(() => {
     onClose()
     // A textarea copy loses its selection to the open Menu's focus trap.
-    navigator.clipboard.writeText(Share.slackMessage(url, text)).then(
+    const msg = Share.slackMessage(url, text)
+    ;(navigator.clipboard ? navigator.clipboard.writeText(msg) : Promise.reject()).then(
       () => push('Copied. Paste it into a Slack message.'),
       () => push("Couldn't copy the message."),
     )
