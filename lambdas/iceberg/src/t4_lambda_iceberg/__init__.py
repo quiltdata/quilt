@@ -13,7 +13,7 @@ import botocore.exceptions
 import quilt_shared.const
 from quilt_shared.athena import AthenaQueryBaseException, QueryRunner
 from quilt_shared.iceberg_queries import QueryMaker
-from quilt_shared.iceberg_stack_queries import Manifest, Pointer, PointerKey, StackQueryMaker
+from quilt_shared.iceberg_stack_queries import Manifest, Pointer, PointerKey, StackQueryMaker, is_revision
 
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
@@ -195,8 +195,7 @@ def set_handler(event, context):
             retry.update(keys[key])
             continue
         ids[item] = keys[key]
-        # Not isnumeric(), which takes "²": the statements read a revision's name with int().
-        kind = "manifest" if isinstance(item, Manifest) else "revision" if item.pointer.isdecimal() else "tag"
+        kind = "manifest" if isinstance(item, Manifest) else "revision" if is_revision(item.pointer) else "tag"
         groups[kind, upsert].append(item)
 
     # An item that failed is left out of every later statement: a manifest's row marks its entries complete.

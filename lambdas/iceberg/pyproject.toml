@@ -28,4 +28,4 @@ test = [
 default-groups = ["test"]
 
 [tool.uv.sources]
-quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/02f3b550393a179b56c77cb5012dfded00744a76.zip", subdirectory = "py-shared" }
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/f73bfab9df1c1df33b03eef374ff74e1af5af75a.zip", subdirectory = "py-shared" }

@@ -76,7 +76,10 @@ class Athena:
         elif self.fails(QueryString):
             self.reasons[execution_id] = "HIVE_BAD_DATA: unreadable manifest"
         else:
-            self.con.execute(QueryString)
+            try:
+                self.con.execute(QueryString)
+            except duckdb.Error as e:
+                self.reasons[execution_id] = f"GENERIC_INTERNAL_ERROR: {e}"
             self.held.append(holdings(self.con))
         return {"QueryExecutionId": execution_id}
 
@@ -289,10 +292,11 @@ def test_an_event_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_
     assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
 
 
-def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s3, con):
-    put_pointer(s3, "u/p", "²", h(1))
+@pytest.mark.parametrize("name", ["²", "9" * 19])  # a numeral but not ASCII digits; digits past a timestamp
+def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s3, con, name):
+    put_pointer(s3, "u/p", name, h(1))
 
-    response = handle(record("p", pointer_key("u/p", "²")))
+    response = handle(record("p", pointer_key("u/p", name)))
 
     assert response == failures()
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
