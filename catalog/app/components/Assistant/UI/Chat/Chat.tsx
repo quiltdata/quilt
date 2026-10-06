@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as dateFns from 'date-fns'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
@@ -446,9 +447,21 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
+const savedAgo = (iso: string) =>
+  dateFns.formatDistanceToNow(new Date(iso), { addSuffix: true })
+
+const RECENT_IN_MENU = 10
+
+const useMenuStyles = M.makeStyles({
+  session: {
+    maxWidth: 360,
+  },
+})
+
 interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
+  sessions: Model.Assistant.API['sessions']
   onToggleDevTools: () => void
   devToolsOpen: boolean
   className?: string
@@ -457,6 +470,7 @@ interface MenuProps {
 export function Menu({
   state,
   dispatch,
+  sessions,
   devToolsOpen,
   onToggleDevTools,
   className,
@@ -481,6 +495,12 @@ export function Menu({
     onToggleDevTools()
     closeMenu()
   }, [closeMenu, onToggleDevTools])
+
+  const classes = useMenuStyles()
+  const toggleKeep = React.useCallback(
+    () => sessions.setEnabled(!sessions.enabled),
+    [sessions],
+  )
 
   return (
     <>
@@ -508,6 +528,47 @@ export function Menu({
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
+        <M.Divider />
+        <M.MenuItem onClick={toggleKeep} disabled={!sessions.available}>
+          <M.ListItemIcon>
+            <M.Icon fontSize="small">
+              {sessions.enabled ? 'check_box' : 'check_box_outline_blank'}
+            </M.Icon>
+          </M.ListItemIcon>
+          Keep sessions in this browser (preview)
+        </M.MenuItem>
+        {sessions.enabled && sessions.list.length > 0 && (
+          <M.ListSubheader>Recent sessions</M.ListSubheader>
+        )}
+        {sessions.enabled &&
+          sessions.list.slice(0, RECENT_IN_MENU).map((s) => (
+            <M.MenuItem
+              key={s.id}
+              className={classes.session}
+              selected={s.id === sessions.currentId}
+              disabled={!isIdle}
+              onClick={() => {
+                sessions.open(s.id)
+                closeMenu()
+              }}
+            >
+              <M.ListItemText
+                primary={s.title}
+                secondary={savedAgo(s.updatedAt)}
+                primaryTypographyProps={{ noWrap: true }}
+              />
+              <M.IconButton
+                size="small"
+                aria-label={`Delete session: ${s.title}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  sessions.remove(s.id)
+                }}
+              >
+                <M.Icon fontSize="small">delete_outline</M.Icon>
+              </M.IconButton>
+            </M.MenuItem>
+          ))}
       </M.Menu>
     </>
   )
@@ -659,6 +720,7 @@ interface ChatProps {
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
+  sessions: Model.Assistant.API['sessions']
   busy?: boolean
   onClose: () => void
 }
@@ -670,6 +732,7 @@ export default function Chat({
   connectors,
   instructions,
   model,
+  sessions,
   busy,
   onClose,
 }: ChatProps) {
@@ -746,6 +809,7 @@ export default function Chat({
         <Menu
           state={state}
           dispatch={dispatch}
+          sessions={sessions}
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
           className={cx(classes.headerButton, classes.trailing)}
@@ -776,6 +840,19 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
+          {sessions.enabled && !state.events.length && !!sessions.list[0] && (
+            <MessageContainer
+              color="faint"
+              actions={
+                <MessageAction onClick={() => sessions.open(sessions.list[0].id)}>
+                  continue
+                </MessageAction>
+              }
+            >
+              Last session: {sessions.list[0].title} (
+              {savedAgo(sessions.list[0].updatedAt)})
+            </MessageContainer>
+          )}
           {state.events
             .filter((e) => !e.discarded)
             .map(

@@ -144,11 +144,29 @@ describe('components/Assistant/UI/Chat/Menu', () => {
 
   const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
 
-  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn()) {
+  const sessionsStub = (
+    over: Partial<Model.Assistant.API['sessions']> = {},
+  ): Model.Assistant.API['sessions'] => ({
+    available: true,
+    enabled: false,
+    setEnabled: vi.fn(),
+    list: [],
+    currentId: null,
+    open: vi.fn(),
+    remove: vi.fn(),
+    ...over,
+  })
+
+  function renderMenu(
+    devToolsOpen: boolean,
+    onToggleDevTools = vi.fn(),
+    sessions = sessionsStub(),
+  ) {
     render(
       <Menu
         state={idle}
         dispatch={vi.fn()}
+        sessions={sessions}
         devToolsOpen={devToolsOpen}
         onToggleDevTools={onToggleDevTools}
       />,
@@ -170,6 +188,35 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     fireEvent.click(screen.getByText('Hide Developer Tools'))
     expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('turns kept sessions on from the menu', () => {
+    const sessions = sessionsStub()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Keep sessions in this browser (preview)'))
+    expect(sessions.setEnabled).toHaveBeenCalledWith(true)
+  })
+
+  it('opens and deletes a recent session', () => {
+    const sessions = sessionsStub({
+      enabled: true,
+      list: [
+        {
+          id: 's1',
+          title: 'Find my packages',
+          updatedAt: new Date().toISOString(),
+          envelope: { v: 1, events: [] },
+        },
+      ],
+    })
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByLabelText('Delete session: Find my packages'))
+    expect(sessions.remove).toHaveBeenCalledWith('s1')
+    expect(sessions.open).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Find my packages'))
+    expect(sessions.open).toHaveBeenCalledWith('s1')
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {

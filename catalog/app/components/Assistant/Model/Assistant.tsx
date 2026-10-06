@@ -1,5 +1,6 @@
 import * as Eff from 'effect'
 import invariant from 'invariant'
+import * as uuid from 'uuid'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -9,6 +10,7 @@ import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import defer from 'utils/defer'
 
 import * as Relay from './Relay'
@@ -19,6 +21,7 @@ import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import * as ModelChoice from './ModelChoice'
+import * as Sessions from './Sessions'
 import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
 
@@ -281,6 +284,91 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
   return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
+/**
+ * Saved sessions (preview, opt-in per user). Saves on every change to the
+ * event list, in any state, so a long tool loop survives a reload mid-way.
+ * Nothing reopens on its own: a new tab starts fresh and offers the latest
+ * session instead, so two tabs never end up writing the same one.
+ *
+ * Session identity is a ref, not actor state, because the store is
+ * synchronous: no save is ever in flight when `Clear` or `Restore` lands. An
+ * async store must move it into actor state.
+ */
+function useSessions(
+  state: Conversation.State,
+  dispatch: (action: Conversation.Action) => unknown,
+) {
+  const username: string = redux.useSelector(AuthSelectors.username) || ''
+  const [enabled, setEnabledState] = React.useState(false)
+  const [list, setList] = React.useState<Sessions.Session[]>([])
+  const [currentId, setCurrentId] = React.useState<string | null>(null)
+  const current = React.useRef<string | null>(null)
+
+  const select = React.useCallback((id: string | null) => {
+    current.current = id
+    setCurrentId(id)
+  }, [])
+
+  React.useEffect(() => {
+    const on = !!username && Sessions.isEnabled(username)
+    setEnabledState(on)
+    setList(on ? Sessions.list(username) : [])
+    select(null)
+  }, [username, select])
+
+  const { events } = state
+  React.useEffect(() => {
+    if (!enabled) return
+    const live = events.filter((e) => !e.discarded)
+    // An emptied conversation is "New session": the next turn saves as a new one.
+    if (!live.length) return select(null)
+    const id = current.current ?? uuid.v4()
+    if (!current.current) select(id)
+    Sessions.save(username, {
+      id,
+      title: Sessions.titleOf(live),
+      updatedAt: new Date().toISOString(),
+      envelope: Sessions.encode(live),
+    })
+    setList(Sessions.list(username))
+  }, [enabled, events, username, select])
+
+  const setEnabled = React.useCallback(
+    (on: boolean) => {
+      Sessions.setEnabled(username, on)
+      setEnabledState(on)
+      setList(on ? Sessions.list(username) : [])
+      select(null)
+    },
+    [username, select],
+  )
+
+  const open = React.useCallback(
+    (id: string) => {
+      const session = Sessions.list(username).find((s) => s.id === id)
+      const restored = session && Sessions.decode(session.envelope)
+      if (!restored) return
+      select(id)
+      dispatch(Conversation.Action.Restore({ events: restored }))
+    },
+    [username, dispatch, select],
+  )
+
+  const remove = React.useCallback(
+    (id: string) => {
+      Sessions.remove(username, id)
+      setList(Sessions.list(username))
+      if (current.current === id) dispatch(Conversation.Action.Clear())
+    },
+    [username, dispatch],
+  )
+
+  return React.useMemo(
+    () => ({ available: !!username, enabled, setEnabled, list, currentId, open, remove }),
+    [username, enabled, setEnabled, list, currentId, open, remove],
+  )
+}
+
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
@@ -320,6 +408,8 @@ function useConstructAssistantAPI() {
 
   GlobalContext.use(llm)
 
+  const sessions = useSessions(state, dispatch)
+
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
   const show = React.useCallback(() => setVisible(true), [])
@@ -344,6 +434,7 @@ function useConstructAssistantAPI() {
     connectors,
     instructions,
     model,
+    sessions,
     devTools: { recording, modelIdOverride },
   }
 }
