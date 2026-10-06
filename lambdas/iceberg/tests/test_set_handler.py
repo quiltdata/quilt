@@ -293,7 +293,7 @@ def test_an_event_that_cannot_be_read_is_returned_for_retry_and_the_rest_of_the_
     assert holdings(con)["package_manifest"] == {(REGISTRY, h(1))}
 
 
-@pytest.mark.parametrize("name", ["²", "9" * 19])  # a numeral but not ASCII digits; digits past a timestamp
+@pytest.mark.parametrize("name", ["²", "9" * 13])  # a numeral but not ASCII digits; seconds past a timestamp's
 def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s3, con, name):
     put_pointer(s3, "u/p", name, h(1))
 
