@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_prefix:
-        description: Prepended to the image tag (e.g. "dev-" tags as "dev-<sha>"). "none" tags as just <sha>; an empty value falls back to "dev-".
+        description: Prepended to the image tag (e.g. "dev-" tags as "dev-<sha>"). "none" tags as just <sha>; an empty value falls back to "dev-". Ignored on dev, whose builds deployment pins by bare sha.
         type: string
         default: 'dev-'
   push:
@@ -19,9 +19,10 @@ on:
       - 'shared/**'
 
 env:
-  # A push has no inputs, so it publishes under the bare sha that deployment pins;
-  # "none" stands in for an empty prefix, which GitHub replaces with the default.
-  IMAGE_TAG: ${{ inputs.tag_prefix != 'none' && inputs.tag_prefix || '' }}${{ github.sha }}
+  # Pushes (which have no inputs) and every run on dev publish under the bare sha
+  # that deployment pins. "none" stands in for an empty prefix, which GitHub
+  # replaces with the default.
+  IMAGE_TAG: ${{ inputs.tag_prefix != 'none' && github.ref != 'refs/heads/dev' && inputs.tag_prefix || '' }}${{ github.sha }}
 
 jobs:
   deploy-catalog-ecr:

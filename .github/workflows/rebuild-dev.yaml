@@ -107,8 +107,7 @@ jobs:
           git push --force-with-lease="$TARGET:$old" origin "HEAD:refs/heads/$TARGET"
 
       # A push made with GITHUB_TOKEN triggers no workflows, so the image builds
-      # that dev.quilttest.com pins have to be dispatched, with no tag prefix: the
-      # pin looks them up by bare sha.
+      # that dev.quilttest.com pins have to be dispatched.
       - name: Dispatch image builds
         if: env.TARGET == 'dev'
         run: |
@@ -123,6 +122,6 @@ jobs:
             [ -n "$sha" ] && { git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "$sha" 2>/dev/null; } \
               && git diff --quiet "$sha" HEAD -- ".github/workflows/deploy-$w.yaml" "$@"
           }
-          built catalog catalog shared || gh workflow run deploy-catalog.yaml --ref dev -f tag_prefix=none
-          built lambdas lambdas || gh workflow run deploy-lambdas.yaml --ref dev -f tag_prefix=none
-          built s3-proxy s3-proxy || gh workflow run deploy-s3-proxy.yaml --ref dev -f tag_prefix=none
+          built catalog catalog shared || gh workflow run deploy-catalog.yaml --ref dev
+          built lambdas lambdas || gh workflow run deploy-lambdas.yaml --ref dev
+          built s3-proxy s3-proxy || gh workflow run deploy-s3-proxy.yaml --ref dev
