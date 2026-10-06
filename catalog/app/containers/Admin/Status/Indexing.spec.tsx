@@ -280,22 +280,28 @@ describe('containers/Admin/Status/Indexing', () => {
     },
   )
 
-  it('escalates rather than hides a wiped index whose re-index ran out of attempts', async () => {
-    mocks.req.mockReset()
-    mocks.req.mockResolvedValue({
-      results: [job({ prefix: '', ignore_dirs: false, retries_remaining: 0 })],
-    })
-    renderPanel()
+  it.each([undefined, false])(
+    'escalates rather than hides a wiped index whose re-index ran out of attempts (missing_only: %s)',
+    async (missing_only) => {
+      mocks.req.mockReset()
+      mocks.req.mockResolvedValue({
+        results: [
+          job({ prefix: '', ignore_dirs: false, retries_remaining: 0, missing_only }),
+        ],
+      })
+      renderPanel()
 
-    // The index is empty and nothing is going to refill it: the state an admin
-    // most needs to see, and the one a "finishes" promise would misreport.
-    await waitFor(() =>
-      expect(
-        screen.getByText(/stays empty until the re-index is started again/),
-      ).toBeTruthy(),
-    )
-    expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
-  })
+      // The index is empty and nothing is going to refill it: the state an admin
+      // most needs to see, and the one a "finishes" promise would misreport.
+      await waitFor(() =>
+        expect(
+          screen.getByText(/stays empty until the re-index is started again/),
+        ).toBeTruthy(),
+      )
+      expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
+      expect(screen.getByRole('alert')).toBeTruthy()
+    },
+  )
 
   it.each([
     { prefix: '', ignore_dirs: false, label: 'whole bucket · missing-only' },
@@ -327,13 +333,20 @@ describe('containers/Admin/Status/Indexing', () => {
 
     await waitFor(() => expect(screen.getByText('No jobs outstanding')).toBeTruthy())
     expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('whole bucket · missing-only')).toBeTruthy()
   })
 
   it("keeps an exhausted full re-index's error up while a missing-only backfill runs on the bucket", async () => {
     mocks.req.mockReset()
     mocks.req.mockResolvedValue({
       results: [
-        job({ id: 1, prefix: '', ignore_dirs: false, retries_remaining: 0 }),
+        job({
+          id: 1,
+          prefix: '',
+          ignore_dirs: false,
+          retries_remaining: 0,
+          missing_only: false,
+        }),
         job({ id: 2, prefix: '', ignore_dirs: false, missing_only: true }),
       ],
     })
@@ -345,6 +358,49 @@ describe('containers/Admin/Status/Indexing', () => {
       ).toBeTruthy(),
     )
     expect(screen.queryByText(/Full-bucket re-index outstanding/)).toBeNull()
+  })
+
+  it.each([
+    { prefix: 'raw/', ignore_dirs: false, retries_remaining: 3, label: 'prefix raw/' },
+    { prefix: 'raw/', ignore_dirs: false, retries_remaining: 0, label: 'prefix raw/' },
+    { prefix: '', ignore_dirs: true, retries_remaining: 3, label: 'top-level keys only' },
+    { prefix: '', ignore_dirs: true, retries_remaining: 0, label: 'top-level keys only' },
+  ])(
+    'raises no empty-search warning for a full $label re-index ($retries_remaining attempts left)',
+    async ({ prefix, ignore_dirs, retries_remaining, label }) => {
+      mocks.req.mockReset()
+      mocks.req.mockResolvedValue({
+        results: [job({ prefix, ignore_dirs, retries_remaining, missing_only: false })],
+      })
+      renderPanel()
+
+      await waitFor(() => expect(screen.getByText(label)).toBeTruthy())
+      expect(screen.queryByRole('alert')).toBeNull()
+    },
+  )
+
+  it('lets a running full re-index stand in for an exhausted one on the same bucket', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValue({
+      results: [
+        job({
+          id: 1,
+          prefix: '',
+          ignore_dirs: false,
+          retries_remaining: 0,
+          missing_only: false,
+        }),
+        job({ id: 2, prefix: '', ignore_dirs: false, missing_only: false }),
+      ],
+    })
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Full-bucket re-index outstanding/)).toBeTruthy(),
+    )
+    expect(
+      screen.queryByText(/stays empty until the re-index is started again/),
+    ).toBeNull()
   })
 
   it('leaves Refresh usable when the very first load fails', async () => {

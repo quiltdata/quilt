@@ -310,8 +310,8 @@ export default function Indexing() {
       else stalled.add(job.name)
     }
     return {
-      // A bucket with another job still trying is covered by the live warning;
-      // it must not also read as abandoned.
+      // A bucket with another full re-index still trying is covered by the live
+      // warning; it must not also read as abandoned.
       stalled: [...stalled].filter((n) => !live.has(n)).sort(),
       live: [...live].sort(),
     }
