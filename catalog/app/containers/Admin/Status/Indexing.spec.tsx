@@ -42,6 +42,7 @@ type JobOverrides = {
   prefix?: string
   ignore_dirs?: boolean | null
   time_created?: string
+  missing_only?: boolean
 }
 
 const job = ({
@@ -51,6 +52,7 @@ const job = ({
   prefix = '',
   ignore_dirs = true,
   time_created = new Date().toISOString(),
+  missing_only,
 }: JobOverrides = {}) => ({
   id,
   name: 'bucket-a',
@@ -59,6 +61,8 @@ const job = ({
   retries_remaining,
   time_created,
   next_key_marker,
+  // Omitted unless given, like a registry that doesn't send it.
+  ...(missing_only === undefined ? {} : { missing_only }),
 })
 
 const strip = (c: HTMLElement) => c.querySelector('.MuiLinearProgress-root')
@@ -255,38 +259,146 @@ describe('containers/Admin/Status/Indexing', () => {
     }
   })
 
-  it('warns about empty search while a whole bucket is being re-indexed', async () => {
+  it.each([undefined, false])(
+    'warns about empty search while a whole bucket is being re-indexed (missing_only: %s)',
+    async (missing_only) => {
+      mocks.req.mockReset()
+      // An unsharded full re-index: the one job shape the panel reads as a wipe.
+      mocks.req.mockResolvedValue({
+        results: [job({ prefix: '', ignore_dirs: false, missing_only })],
+      })
+      renderPanel()
+
+      // A job with attempts left may be stalled, so the copy must not promise completion.
+      await waitFor(() =>
+        expect(screen.getByText(/which the queue cannot promise/)).toBeTruthy(),
+      )
+      expect(screen.queryByText(/until the rescan finishes/)).toBeNull()
+      expect(screen.getByText('whole bucket')).toBeTruthy()
+    },
+  )
+
+  it.each([undefined, false])(
+    'escalates rather than hides a wiped index whose re-index ran out of attempts (missing_only: %s)',
+    async (missing_only) => {
+      mocks.req.mockReset()
+      mocks.req.mockResolvedValue({
+        results: [
+          job({ prefix: '', ignore_dirs: false, retries_remaining: 0, missing_only }),
+        ],
+      })
+      renderPanel()
+
+      // Wiped and abandoned: the state an admin most needs to see, and the one a
+      // "finishes" promise would misreport.
+      await waitFor(() =>
+        expect(
+          screen.getByText(/stays empty until the re-index is started again/),
+        ).toBeTruthy(),
+      )
+      expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
+      expect(screen.getByRole('alert')).toBeTruthy()
+    },
+  )
+
+  it.each([
+    { prefix: '', ignore_dirs: false, label: 'whole bucket · missing-only' },
+    { prefix: 'raw/', ignore_dirs: false, label: 'prefix raw/ · missing-only' },
+    { prefix: '', ignore_dirs: true, label: 'top-level keys only · missing-only' },
+  ])(
+    'labels a missing-only backfill as $label and raises no empty-search warning while it runs',
+    async ({ prefix, ignore_dirs, label }) => {
+      mocks.req.mockReset()
+      mocks.req.mockResolvedValue({
+        results: [job({ prefix, ignore_dirs, missing_only: true })],
+      })
+      renderPanel()
+
+      await waitFor(() => expect(screen.getByText(label)).toBeTruthy())
+      expect(screen.queryByRole('alert')).toBeNull()
+    },
+  )
+
+  it('does not tell an admin to restart the re-index when a missing-only backfill runs out of attempts', async () => {
     mocks.req.mockReset()
-    // prefix '' with ignore_dirs false is the only shape that empties the whole
-    // index; a prefix scan or a top-level-only scan must not raise this.
+    // Restarting the re-index would drop an index that was never emptied.
     mocks.req.mockResolvedValue({
-      results: [job({ prefix: '', ignore_dirs: false })],
+      results: [
+        job({ prefix: '', ignore_dirs: false, missing_only: true, retries_remaining: 0 }),
+      ],
     })
     renderPanel()
 
-    // Attempts left says the job is not exhausted, never that it is moving, so
-    // the copy must not promise the rescan finishes.
-    await waitFor(() =>
-      expect(screen.getByText(/which the queue cannot promise/)).toBeTruthy(),
-    )
-    expect(screen.queryByText(/until the rescan finishes/)).toBeNull()
+    await waitFor(() => expect(screen.getByText('No jobs outstanding')).toBeTruthy())
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('whole bucket · missing-only')).toBeTruthy()
   })
 
-  it('escalates rather than hides a wiped index whose re-index ran out of attempts', async () => {
+  it("keeps an exhausted full re-index's error up while a missing-only backfill runs on the bucket", async () => {
     mocks.req.mockReset()
     mocks.req.mockResolvedValue({
-      results: [job({ prefix: '', ignore_dirs: false, retries_remaining: 0 })],
+      results: [
+        job({
+          id: 1,
+          prefix: '',
+          ignore_dirs: false,
+          retries_remaining: 0,
+          missing_only: false,
+        }),
+        job({ id: 2, prefix: '', ignore_dirs: false, missing_only: true }),
+      ],
     })
     renderPanel()
 
-    // The index is empty and nothing is going to refill it: the state an admin
-    // most needs to see, and the one a "finishes" promise would misreport.
     await waitFor(() =>
       expect(
         screen.getByText(/stays empty until the re-index is started again/),
       ).toBeTruthy(),
     )
-    expect(screen.queryByText(/returns nothing until the rescan finishes/)).toBeNull()
+    expect(screen.queryByText(/Full-bucket re-index outstanding/)).toBeNull()
+  })
+
+  it.each([
+    { prefix: 'raw/', ignore_dirs: false, retries_remaining: 3, label: 'prefix raw/' },
+    { prefix: 'raw/', ignore_dirs: false, retries_remaining: 0, label: 'prefix raw/' },
+    { prefix: '', ignore_dirs: true, retries_remaining: 3, label: 'top-level keys only' },
+    { prefix: '', ignore_dirs: true, retries_remaining: 0, label: 'top-level keys only' },
+  ])(
+    'raises no empty-search warning for a full $label re-index ($retries_remaining attempts left)',
+    async ({ prefix, ignore_dirs, retries_remaining, label }) => {
+      mocks.req.mockReset()
+      mocks.req.mockResolvedValue({
+        results: [job({ prefix, ignore_dirs, retries_remaining, missing_only: false })],
+      })
+      renderPanel()
+
+      await waitFor(() => expect(screen.getByText(label)).toBeTruthy())
+      expect(screen.queryByRole('alert')).toBeNull()
+    },
+  )
+
+  it('lets a running full re-index stand in for an exhausted one on the same bucket', async () => {
+    mocks.req.mockReset()
+    mocks.req.mockResolvedValue({
+      results: [
+        job({
+          id: 1,
+          prefix: '',
+          ignore_dirs: false,
+          retries_remaining: 0,
+          missing_only: false,
+        }),
+        job({ id: 2, prefix: '', ignore_dirs: false, missing_only: false }),
+      ],
+    })
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Full-bucket re-index outstanding/)).toBeTruthy(),
+    )
+    expect(
+      screen.queryByText(/stays empty until the re-index is started again/),
+    ).toBeNull()
   })
 
   it('leaves Refresh usable when the very first load fails', async () => {
@@ -372,6 +484,19 @@ describe('containers/Admin/Status/Indexing', () => {
       expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
     )
     expect(screen.queryByText(/No scanner jobs queued/)).toBeNull()
+  })
+
+  it('reports a non-boolean missing_only as a malformed payload', async () => {
+    mocks.req.mockReset()
+    // Read as truthy, 'false' would hide the warning for a real wipe.
+    mocks.req.mockResolvedValue({
+      results: [{ ...job({ prefix: '', ignore_dirs: false }), missing_only: 'false' }],
+    })
+    renderPanel()
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not load scanner jobs/)).toBeTruthy(),
+    )
   })
 
   it('says the wipe check is unavailable when bucket configuration cannot be read', async () => {
