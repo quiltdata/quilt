@@ -263,15 +263,13 @@ describe('containers/Admin/Status/Indexing', () => {
     'warns about empty search while a whole bucket is being re-indexed (missing_only: %s)',
     async (missing_only) => {
       mocks.req.mockReset()
-      // Only a full re-index with prefix '' and ignore_dirs false empties the whole
-      // index; a prefix, top-level-only or missing-only scan must not raise this.
+      // An unsharded full re-index: the one job shape the panel reads as a wipe.
       mocks.req.mockResolvedValue({
         results: [job({ prefix: '', ignore_dirs: false, missing_only })],
       })
       renderPanel()
 
-      // Attempts left says the job is not exhausted, never that it is moving, so
-      // the copy must not promise the rescan finishes.
+      // A job with attempts left may be stalled, so the copy must not promise completion.
       await waitFor(() =>
         expect(screen.getByText(/which the queue cannot promise/)).toBeTruthy(),
       )
@@ -291,8 +289,8 @@ describe('containers/Admin/Status/Indexing', () => {
       })
       renderPanel()
 
-      // The index is empty and nothing is going to refill it: the state an admin
-      // most needs to see, and the one a "finishes" promise would misreport.
+      // Wiped and abandoned: the state an admin most needs to see, and the one a
+      // "finishes" promise would misreport.
       await waitFor(() =>
         expect(
           screen.getByText(/stays empty until the re-index is started again/),
@@ -490,8 +488,7 @@ describe('containers/Admin/Status/Indexing', () => {
 
   it('reports a non-boolean missing_only as a malformed payload', async () => {
     mocks.req.mockReset()
-    // Read as truthy, the string 'false' would hide the warning for an index a
-    // full re-index really did drop.
+    // Read as truthy, 'false' would hide the warning for a real wipe.
     mocks.req.mockResolvedValue({
       results: [{ ...job({ prefix: '', ignore_dirs: false }), missing_only: 'false' }],
     })

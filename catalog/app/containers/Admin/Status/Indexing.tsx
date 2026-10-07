@@ -298,8 +298,8 @@ export default function Indexing() {
     const live = new Set<string>()
     const stalled = new Set<string>()
     for (const job of jobs ?? []) {
-      // Full-bucket wipe only: a prefix or top-level-only scan leaves the rest
-      // of the index in place, and a missing-only scan never drops it.
+      // Prefix and missing-only re-indexes keep the index. A sharded full re-index
+      // wipes it as prefix and top-level-only jobs; sharded buckets go unwarned (below).
       if (job.missing_only || job.prefix || job.ignore_dirs) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
