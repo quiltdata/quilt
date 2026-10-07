@@ -849,9 +849,20 @@ def get_latest_top_hash(registry: S3PackageRegistryV1, name: str) -> str | None:
         if e.response.get("Error", {}).get("Code") == "NoSuchKey":
             return None
         raise PkgpushException.from_boto_error(e)
+    except quilt3.data_transfer.S3NoValidClientError as e:
+        raise PkgpushException("Forbidden", {"details": e.message})
+
+
+def check_parent_is_latest(registry: S3PackageRegistryV1, name: str, parent: str):
+    latest = get_latest_top_hash(registry, name)
+    if latest != parent:
+        raise PkgpushException("ParentNotLatest", {"parent": parent, "latest": latest})
 
 
 def load_patch_parent(registry: S3PackageRegistryV1, name: str, patch: PackagePatchBase) -> quilt3.Package:
+    if patch.parent is not None:
+        # Fail before hashing; construct_package checks again before writing.
+        check_parent_is_latest(registry, name, patch.parent)
     top_hash = patch.parent or get_latest_top_hash(registry, name)
     if top_hash is None:
         return quilt3.Package()
@@ -901,6 +912,7 @@ def construct_package(
         # Phase 1: Parse entries and create PackageEntry objects (store temporarily)
         logger.info("[PERF] Parsing entries and creating PackageEntry objects")
         pkg_entries: dict[str, quilt3.packages.PackageEntry] = {}
+        expanded: dict[str, quilt3.packages.PackageEntry] = {}
         user_s3_client = None
 
         for line in req_file:
@@ -920,6 +932,8 @@ def construct_package(
                 )
 
             if params.patch is not None and (not physical_key.path or physical_key.path.endswith("/")):
+                if physical_key.version_id is not None:
+                    raise PkgpushException("InvalidS3PhysicalKey", {"physical_key": entry.physical_key})
                 if not entry.logical_key.endswith("/"):
                     raise PkgpushException(
                         "InvalidLogicalKey",
@@ -932,7 +946,7 @@ def construct_package(
                 try:
                     for obj in list_prefix_latest_versions(physical_key.bucket, physical_key.path, user_s3_client):
                         key = obj["Key"]
-                        pkg_entries[entry.logical_key + key[len(physical_key.path) :]] = quilt3.packages.PackageEntry(
+                        expanded[entry.logical_key + key[len(physical_key.path) :]] = quilt3.packages.PackageEntry(
                             PhysicalKey(physical_key.bucket, key, obj.get("VersionId")),
                             obj["Size"],
                             None,
@@ -950,6 +964,9 @@ def construct_package(
                 entry.meta,
             )
 
+        if expanded:
+            # An entry listed explicitly wins over the same key swept by a prefix, whatever the order.
+            pkg_entries = {**expanded, **pkg_entries}
         logger.info(f"[PERF] Created {len(pkg_entries)} PackageEntry objects")
 
         # Phase 2: Fetch missing metadata and precomputed checksums concurrently
@@ -999,9 +1016,7 @@ def construct_package(
     calculate_pkg_hashes(pkg, params.scratch_buckets, checksum_algorithms)
 
     if params.patch is not None and params.patch.parent is not None:
-        latest = get_latest_top_hash(package_registry, params.name)
-        if latest != params.patch.parent:
-            raise PkgpushException("ParentNotLatest", {"parent": params.patch.parent, "latest": latest})
+        check_parent_is_latest(package_registry, params.name, params.patch.parent)
 
     try:
         logger.info("[PERF] pkg._build START")
@@ -1037,6 +1052,12 @@ class PackagerEvent(pydantic.v1.BaseModel):
             raise ValueError("metadata and metadata_uri are mutually exclusive")
         if (values.get("source_prefix") is None) == (values.get("patch_request") is None):
             raise ValueError("exactly one of source_prefix and patch_request must be set")
+        # A patch request carries its own parameters in the request file.
+        if values.get("patch_request") is not None and any(
+            values.get(f) is not None
+            for f in ("registry", "package_name", "metadata", "metadata_uri", "workflow", "commit_message")
+        ):
+            raise ValueError("patch_request takes no other fields")
         return values
 
     def get_source_prefix_pk(self) -> PhysicalKey:

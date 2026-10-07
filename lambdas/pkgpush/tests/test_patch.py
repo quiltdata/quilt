@@ -163,13 +163,48 @@ def test_prefix_needs_directory_logical_key(env):
     assert exc.value.name == "InvalidLogicalKey"
 
 
-def test_parent_not_latest(env):
+def test_explicit_entry_wins_over_prefix(env):
+    env.user_s3.get_paginator.return_value.paginate.return_value = [
+        {"Versions": [{"Key": "pre/x", "VersionId": "vx", "IsLatest": True, "Size": 3}]}
+    ]
+    explicit = new_entry("data/x", size=1, hash={"type": "SHA256", "value": "1" * 64})
+    pkg = env.run(header(), explicit, new_entry("data/", "s3://src/pre/"))
+    assert pkg["data/x"].physical_key == PhysicalKey.from_url(explicit["physical_key"])
+
+
+def test_prefix_rejects_version(env):
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header(), new_entry("data/", "s3://src/pre/?versionId=v"))
+    assert exc.value.name == "InvalidS3PhysicalKey"
+
+
+def test_parent_not_latest_fails_before_hashing(env):
     env.latest["value"] = OTHER_HASH
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
         env.run(header(parent=PARENT_HASH), new_entry("new.txt"))
     assert exc.value.name == "ParentNotLatest"
     assert exc.value.context == {"parent": PARENT_HASH, "latest": OTHER_HASH}
+    env.browse.assert_not_called()
+    assert env.hashed == []
     env.build.assert_not_called()
+
+
+def test_parent_not_latest_rechecked_before_build(env, mocker):
+    # The latest pointer moves while the patch is hashing.
+    mocker.patch.object(
+        t4_lambda_pkgpush, "calculate_pkg_hashes", side_effect=lambda *_: env.latest.update(value=OTHER_HASH)
+    )
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header(parent=PARENT_HASH))
+    assert exc.value.name == "ParentNotLatest"
+    env.build.assert_not_called()
+
+
+def test_unreadable_latest_pointer_is_forbidden(env, mocker):
+    mocker.patch("quilt3.data_transfer.get_bytes", side_effect=quilt3.data_transfer.S3NoValidClientError("denied"))
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header())
+    assert exc.value.name == "Forbidden"
 
 
 @pytest.mark.parametrize(
@@ -222,6 +257,7 @@ def test_async_patch_request(env, mocker):
         ({"patch_request": "req-v1"}, True),
         ({}, False),
         ({"source_prefix": "s3://bucket/prefix/", "patch_request": "req-v1"}, False),
+        ({"patch_request": "req-v1", "package_name": "a/b"}, False),
     ],
 )
 def test_packager_event_needs_exactly_one_source(fields, valid):
