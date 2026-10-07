@@ -180,6 +180,7 @@ export default function Qurator() {
       ) : (
         <M.Box p={4} textAlign="center">
           <M.Typography>Qurator isn&apos;t enabled on this stack.</M.Typography>
+          <M.Button onClick={toCatalog}>Open catalog</M.Button>
         </M.Box>
       )}
     </div>
