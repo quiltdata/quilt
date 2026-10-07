@@ -6,6 +6,7 @@ import contextlib
 import functools
 import json
 import logging
+import math
 import os
 import re
 import tempfile
@@ -31,11 +32,13 @@ from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.data_transfer import CHECKSUM_MAX_PARTS, get_checksum_chunksize, is_mpu
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import LAMBDA_READ_TIMEOUT
+from quilt_shared.const import LAMBDA_READ_TIMEOUT, LAMBDA_TMP_SPACE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
+    VersionId,
     large_request_handler,
+    request_from_file,
 )
 from quilt_shared.pkgpush import (
     Checksum,
@@ -44,6 +47,7 @@ from quilt_shared.pkgpush import (
     CopyResult,
     PackageConstructEntry,
     PackageConstructParams,
+    PackagePatchBase,
     PackagePromoteParams,
     PackagePushResult,
     S3CopyLambdaParams,
@@ -835,6 +839,48 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
     logger=logger,
 )
 def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
+    return construct_package(req_file, max_files_to_hash=MAX_FILES_TO_HASH, max_bytes_to_hash=MAX_BYTES_TO_HASH)
+
+
+def get_latest_top_hash(registry: S3PackageRegistryV1, name: str) -> str | None:
+    try:
+        return quilt3.data_transfer.get_bytes(registry.pointer_latest_pk(name)).decode()
+    except botocore.exceptions.ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "NoSuchKey":
+            return None
+        raise PkgpushException.from_boto_error(e)
+
+
+def load_patch_parent(registry: S3PackageRegistryV1, name: str, patch: PackagePatchBase) -> quilt3.Package:
+    top_hash = patch.parent or get_latest_top_hash(registry, name)
+    if top_hash is None:
+        return quilt3.Package()
+    try:
+        pkg = quilt3.Package.browse(name, registry=registry, top_hash=top_hash)
+    except botocore.exceptions.ClientError as e:
+        raise PkgpushException.from_boto_error(e)
+    except quilt3.data_transfer.S3NoValidClientError as e:
+        raise PkgpushException("Forbidden", {"details": e.message})
+
+    for logical_key in patch.delete:
+        is_dir = logical_key.endswith("/")
+        path = logical_key.rstrip("/")
+        try:
+            node = pkg[path]
+        # AttributeError: a path segment is a file.
+        except (KeyError, AttributeError):
+            continue
+        if isinstance(node, quilt3.Package) is is_dir:
+            pkg.delete(path)
+    return pkg
+
+
+def construct_package(
+    req_file: T.IO[bytes],
+    *,
+    max_files_to_hash: float,
+    max_bytes_to_hash: float,
+) -> PackagePushResult:
     params = PackageConstructParams.parse_raw(next(req_file))
     checksum_algorithms = get_checksum_algorithms()
     logger.info(f"[PERF] create_package START: {params.bucket}/{params.name}")
@@ -845,13 +891,17 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
         package_registry = get_registry(registry_url)
 
         quilt3.util.validate_package_name(params.name)
-        pkg = quilt3.Package()
+        if params.patch is None:
+            pkg = quilt3.Package()
+        else:
+            pkg = load_patch_parent(package_registry, params.name, params.patch)
         if params.user_meta is not None:
             pkg.set_meta(params.user_meta)
 
         # Phase 1: Parse entries and create PackageEntry objects (store temporarily)
         logger.info("[PERF] Parsing entries and creating PackageEntry objects")
         pkg_entries: dict[str, quilt3.packages.PackageEntry] = {}
+        user_s3_client = None
 
         for line in req_file:
             entry = PackageConstructEntry.parse_raw(line)
@@ -868,6 +918,29 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                     "InvalidLocalPhysicalKey",
                     {"physical_key": str(physical_key)},
                 )
+
+            if params.patch is not None and (not physical_key.path or physical_key.path.endswith("/")):
+                if not entry.logical_key.endswith("/"):
+                    raise PkgpushException(
+                        "InvalidLogicalKey",
+                        {
+                            "logical_key": entry.logical_key,
+                            "details": 'A prefix physical key needs a logical key ending in "/"',
+                        },
+                    )
+                user_s3_client = user_s3_client or get_user_s3_client()
+                try:
+                    for obj in list_prefix_latest_versions(physical_key.bucket, physical_key.path, user_s3_client):
+                        key = obj["Key"]
+                        pkg_entries[entry.logical_key + key[len(physical_key.path) :]] = quilt3.packages.PackageEntry(
+                            PhysicalKey(physical_key.bucket, key, obj.get("VersionId")),
+                            obj["Size"],
+                            None,
+                            entry.meta,
+                        )
+                except botocore.exceptions.ClientError as e:
+                    raise PkgpushException.from_boto_error(e)
+                continue
 
             # Create PackageEntry (may need metadata later)
             pkg_entries[entry.logical_key] = quilt3.packages.PackageEntry(
@@ -894,21 +967,21 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                 size_to_hash += pkg_entry.size
                 files_to_hash += 1
 
-            if size_to_hash > MAX_BYTES_TO_HASH:
+            if size_to_hash > max_bytes_to_hash:
                 raise PkgpushException(
                     "PackageTooLargeToHash",
                     {
                         "size": size_to_hash,
-                        "max_size": MAX_BYTES_TO_HASH,
+                        "max_size": max_bytes_to_hash,
                     },
                 )
 
-            if files_to_hash > MAX_FILES_TO_HASH:
+            if files_to_hash > max_files_to_hash:
                 raise PkgpushException(
                     "TooManyFilesToHash",
                     {
                         "num_files": files_to_hash,
-                        "max_files": MAX_FILES_TO_HASH,
+                        "max_files": max_files_to_hash,
                     },
                 )
 
@@ -924,6 +997,11 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
         raise PkgpushException.from_quilt_exception(qe)
 
     calculate_pkg_hashes(pkg, params.scratch_buckets, checksum_algorithms)
+
+    if params.patch is not None and params.patch.parent is not None:
+        latest = get_latest_top_hash(package_registry, params.name)
+        if latest != params.patch.parent:
+            raise PkgpushException("ParentNotLatest", {"parent": params.patch.parent, "latest": latest})
 
     try:
         logger.info("[PERF] pkg._build START")
@@ -942,7 +1020,9 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
 
 class PackagerEvent(pydantic.v1.BaseModel):
-    source_prefix: str
+    source_prefix: str | None = None
+    # Version of a "patch-package" request file in the service bucket.
+    patch_request: VersionId | None = None
     registry: str | None = None
     package_name: str | None = None
     metadata: dict[str, T.Any] | None = None
@@ -955,9 +1035,12 @@ class PackagerEvent(pydantic.v1.BaseModel):
         metadata, metadata_uri = values["metadata"], values["metadata_uri"]
         if metadata is not None and metadata_uri is not None:
             raise ValueError("metadata and metadata_uri are mutually exclusive")
+        if (values.get("source_prefix") is None) == (values.get("patch_request") is None):
+            raise ValueError("exactly one of source_prefix and patch_request must be set")
         return values
 
     def get_source_prefix_pk(self) -> PhysicalKey:
+        assert self.source_prefix is not None
         pk = PhysicalKey.from_url(self.source_prefix)
         if pk.is_local():
             raise PkgpushException("InvalidLocalPhysicalKey", {"physical_key": str(pk)})
@@ -1037,6 +1120,19 @@ def list_prefix_latest_versions(bucket: str, prefix: str, s3_client=None):
 
 def package_prefix(event, context):
     params = PackagerEvent.parse_raw(event)
+    if params.patch_request is not None:
+        with request_from_file(
+            bucket=SERVICE_BUCKET,
+            request_type="patch-package",
+            version_id=params.patch_request,
+            s3=s3,
+            max_size=LAMBDA_TMP_SPACE,
+            logger=logger,
+        ) as req_file:
+            result = construct_package(req_file, max_files_to_hash=math.inf, max_bytes_to_hash=math.inf)
+        logger.info(f"[PERF] package_prefix END: patch top_hash={result.top_hash}")
+        return
+
     checksum_algorithms = get_checksum_algorithms()
     logger.info(f"[PERF] package_prefix START: {params.source_prefix}")
     logger.info(f"[PERF] Using checksum algorithms: {format_checksum_algorithms(checksum_algorithms)}")
