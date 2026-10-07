@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from urllib.parse import unquote_plus
 
 import boto3
 
@@ -43,7 +44,8 @@ def process_s3_event(event):
     event_body = json.loads(record["body"])
     s3_event = event_body["detail"]["s3"]
     bucket = s3_event["bucket"]["name"]
-    key = s3_event["object"]["key"]
+    # S3 event notifications URL-encode the key, with a space as "+".
+    key = unquote_plus(s3_event["object"]["key"])
     return bucket, key
 
 
