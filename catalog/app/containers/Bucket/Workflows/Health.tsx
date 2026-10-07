@@ -2,12 +2,20 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
+import useId from 'utils/useId'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 
 import * as checks from './checks'
+import * as model from './model'
+
+// MUI only links a TextField's label to its input when it has an id.
+function Field(props: M.TextFieldProps) {
+  const id = useId()
+  return <M.TextField id={id} {...props} />
+}
 
 type SchemaResult = checks.SchemaResult
 
@@ -91,22 +99,24 @@ function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
 
   return (
     <>
-      <M.TextField
+      <Field
         fullWidth
         label="Package name"
         margin="dense"
+        variant="outlined"
         onChange={(e) => setName(e.target.value)}
         placeholder="namespace/name"
         value={name}
       />
-      <M.TextField
+      <Field
         fullWidth
         label="Commit message"
         margin="dense"
+        variant="outlined"
         onChange={(e) => setMessage(e.target.value)}
         value={message}
       />
-      <M.TextField
+      <Field
         fullWidth
         label="Metadata (JSON)"
         margin="dense"
@@ -131,10 +141,87 @@ function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
           </M.List>
         ) : (
           <M.Typography variant="body2">
-            Passes the name, message and metadata rules of this workflow.
+            Passes this flow's name, message and metadata rules.
           </M.Typography>
         )}
       </M.Box>
+    </>
+  )
+}
+
+const TYPE_WORDS: Record<model.FieldType, string> = {
+  text: 'text',
+  number: 'a number',
+  integer: 'a whole number',
+  boolean: 'yes or no',
+  date: 'a date',
+  choice: 'one of',
+}
+
+function RulesSummary({
+  workflow,
+  metadataSchema,
+}: {
+  workflow: Workflows.Workflow
+  metadataSchema: SchemaResult
+}) {
+  const fields =
+    metadataSchema &&
+    typeof metadataSchema === 'object' &&
+    !(metadataSchema instanceof Error)
+      ? model.schemaToFields(metadataSchema)
+      : undefined
+  const rules: React.ReactNode[] = []
+  if (workflow.packageNamePattern) {
+    rules.push(
+      <>
+        Package names match{' '}
+        <code>{workflow.packageNamePattern.source.replace(/\\\//g, '/')}</code>
+      </>,
+    )
+  }
+  if (workflow.isMessageRequired) rules.push('A commit message is required')
+  if (workflow.schema) {
+    if (fields === undefined) rules.push("Metadata must match this flow's schema")
+    else if (fields === null) {
+      rules.push("Metadata must match a schema with rules the builder can't show")
+    } else {
+      fields.forEach((f) =>
+        rules.push(
+          <>
+            <strong>{f.name}</strong> is {TYPE_WORDS[f.type]}
+            {f.type === 'choice' ? ` ${f.options.join(', ')}` : ''}
+            {f.required ? '' : ' (optional)'}
+          </>,
+        ),
+      )
+    }
+  }
+  return (
+    <>
+      <M.Box mt={3} mb={1}>
+        <M.Typography variant="h5">Rules</M.Typography>
+        <M.Typography variant="body2" color="textSecondary">
+          What a package must have to be pushed with this flow.
+        </M.Typography>
+      </M.Box>
+      {rules.length ? (
+        <M.List dense>
+          {rules.map((r, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <M.ListItem key={i} disableGutters>
+              <M.ListItemIcon>
+                <M.Icon fontSize="small">rule</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary={r} />
+            </M.ListItem>
+          ))}
+        </M.List>
+      ) : (
+        <M.Typography variant="body2">
+          No rules: any package can use this flow.
+        </M.Typography>
+      )}
     </>
   )
 }
@@ -150,6 +237,7 @@ export default function Health({ workflow }: HealthProps) {
 
   return (
     <>
+      <RulesSummary workflow={workflow} metadataSchema={metadataSchema} />
       <M.Box mt={3} mb={1}>
         <M.Typography variant="h5">Health</M.Typography>
         <M.Typography variant="body2" color="textSecondary">
