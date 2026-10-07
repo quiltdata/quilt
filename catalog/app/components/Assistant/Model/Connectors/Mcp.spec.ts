@@ -14,10 +14,6 @@ import * as Content from '../Content'
 
 import * as Mcp from './Mcp'
 
-vi.mock('constants/config', () => ({
-  default: { registryUrl: 'https://registry.invalid' },
-}))
-
 describe('Connectors/Mcp', () => {
   describe('mapContent', () => {
     it('maps text blocks directly', () => {
@@ -160,18 +156,31 @@ describe('Connectors/Mcp', () => {
       expect(calls[0].body.method).toBe('tools/list')
     })
 
-    it('relayed backend posts to the registry relay with the catalog token', async () => {
-      const { fetchSpy, calls } = captureCalls(okResponse)
+    it('anonymous backend reaches the wire without a token and adapts results', async () => {
+      const { fetchSpy, calls } = captureCalls(
+        (req: any) =>
+          new Response(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: req?.id,
+              result: {
+                tools: [
+                  { name: 'job_status', description: 'Job status', inputSchema: {} },
+                ],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      )
 
-      const backend = Mcp.relayed({
-        slug: 'gpu',
-        getToken: () => Eff.Effect.succeed('catalog-jwt'),
-      })
-      await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
+      const backend = Mcp.anonymous({ url: 'https://third-party.invalid/mcp' })
+      const tools = await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
 
-      expect(calls[0].url).toBe('https://registry.invalid/api/mcp/gpu')
+      expect(tools.map((t) => t.name)).toEqual(['job_status'])
       const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
-      expect(headers.authorization).toBe('Bearer catalog-jwt')
+      expect(Object.keys(headers).map((k) => k.toLowerCase())).not.toContain(
+        'authorization',
+      )
     })
 
     it('replays the session id, and re-initializes on the ping after a 404', async () => {
@@ -225,47 +234,16 @@ describe('Connectors/Mcp', () => {
       expect(n).toBe(4)
     })
 
-    it('resolves SSE on the answering event while the stream stays open', async () => {
-      // Some servers hold the stream open after answering, past the ping timeout.
-      const enc = new TextEncoder()
-      let cancelled = false
-      const { fetchSpy } = captureCalls(
-        (req) =>
-          new Response(
-            new ReadableStream({
-              start(c) {
-                const send = (msg: object) =>
-                  c.enqueue(enc.encode(`data: ${JSON.stringify(msg)}\n\n`))
-                send({ jsonrpc: '2.0', method: 'notifications/progress', params: {} })
-                send({ jsonrpc: '2.0', id: req.id, result: { tools: [] } })
-              },
-              cancel() {
-                cancelled = true
-              },
-            }),
-            { status: 200, headers: { 'content-type': 'text/event-stream' } },
-          ),
-      )
-
-      const client = Mcp.make({ url: 'https://example.invalid/mcp' })
-      const tools = await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
-
-      expect(tools).toEqual([])
-      expect(cancelled).toBe(true)
-    })
-
-    it('finds the answer after a notification when the stream ends mid-event', async () => {
-      const { fetchSpy } = captureCalls(
-        (req) =>
-          new Response(
-            `data: ${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/message' })}\r\n\r\n` +
-              `data: ${JSON.stringify({ jsonrpc: '2.0', id: req.id, result: { tools: [] } })}`,
-            { status: 200, headers: { 'content-type': 'text/event-stream' } },
-          ),
-      )
-      const client = Mcp.make({ url: 'https://example.invalid/mcp' })
-      const tools = await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
-      expect(tools).toEqual([])
+    it('withHeaders backend sends its fixed headers and no catalog token', async () => {
+      const { fetchSpy, calls } = captureCalls(okResponse)
+      const backend = Mcp.withHeaders({
+        url: 'https://third-party.invalid/mcp',
+        headers: { 'X-API-Key': 'k' },
+      })
+      await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      expect(headers['x-api-key']).toBe('k')
+      expect(Object.keys(headers)).not.toContain('authorization')
     })
 
     it('propagates McpAuthError without firing fetch when getToken fails', async () => {
@@ -378,62 +356,6 @@ describe('Connectors/Mcp', () => {
           expect(failure.value.cause).toBe('McpAuthError')
         }
       }
-    })
-
-    it.each([
-      [429, { error_code: 'Busy' }, 'Transport'],
-      [502, { error_code: 'UpstreamAuth' }, 'Application'],
-    ])(
-      'maps relay HTTP %i to %j as inert to health, not a session problem',
-      async (status, body, tag) => {
-        const { fetchSpy } = captureCalls(
-          () =>
-            new Response(JSON.stringify(body), {
-              status,
-              headers: { 'content-type': 'application/json' },
-            }),
-        )
-        const backend = Mcp.relayed({
-          slug: 'gpu',
-          getToken: () => Eff.Effect.succeed('t'),
-        })
-        const exit = await Eff.Effect.runPromiseExit(
-          withFetch(backend.callTool('foo', {}), fetchSpy),
-        )
-        const failure = Eff.Exit.isFailure(exit)
-          ? Eff.Cause.failureOption(exit.cause)
-          : Eff.Option.none()
-        expect(Eff.Option.isSome(failure)).toBe(true)
-        if (Eff.Option.isNone(failure)) return
-        expect(failure.value._tag).toBe(tag)
-        expect(failure.value.transient).toBe(false)
-        expect(failure.value.inertToHealth).toBe(true)
-      },
-    )
-
-    it('a relay 502 that is not UpstreamAuth still counts toward health', async () => {
-      const { fetchSpy } = captureCalls(
-        () =>
-          new Response(JSON.stringify({ error_code: 'UpstreamUnavailable' }), {
-            status: 502,
-            headers: { 'content-type': 'application/json' },
-          }),
-      )
-      const backend = Mcp.relayed({
-        slug: 'gpu',
-        getToken: () => Eff.Effect.succeed('t'),
-      })
-      const exit = await Eff.Effect.runPromiseExit(
-        withFetch(backend.callTool('foo', {}), fetchSpy),
-      )
-      const failure = Eff.Exit.isFailure(exit)
-        ? Eff.Cause.failureOption(exit.cause)
-        : Eff.Option.none()
-      expect(Eff.Option.isSome(failure)).toBe(true)
-      if (Eff.Option.isNone(failure)) return
-      expect(failure.value._tag).toBe('Transport')
-      expect(failure.value.transient).toBe(true)
-      expect(failure.value.inertToHealth).toBeUndefined()
     })
 
     it('decodes tools/list result via Schema; bad shape → McpProtocolError', async () => {

@@ -16,8 +16,8 @@ import * as validators from 'utils/validators'
 import * as Form from '../Form'
 import DataProductConnections from './DataProductConnections'
 import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
-import McpServerSettings from './McpServerSettings'
 import PackagerSettings from './PackagerSettings'
+import McpServerSettings from './McpServerSettings'
 import QuratorModelSettings from './QuratorModelSettings'
 import QuratorSettings from './QuratorSettings'
 import SearchSettings from './SearchSettings'
@@ -561,8 +561,8 @@ export default function Settings() {
         </Section>
         <Section
           id="qurator-mcp"
-          title="Qurator MCP servers"
-          hint="Extra tool servers Qurator may call, relayed by this stack’s registry."
+          title="Qurator MCP servers (prototype)"
+          hint="Extra MCP servers whose tools Qurator offers next to the Quilt Platform tools."
         >
           <McpServerSettings />
         </Section>

@@ -16,6 +16,8 @@ import * as Model from '../../Model'
 
 import DevTools from './DevTools'
 import Input from './Input'
+import Composer from '../Composer/Composer'
+import type { SessionSave } from '../../Model/SessionSave'
 import Instructions from './Instructions'
 import MessageAction from './MessageAction'
 import { toCurrentStack } from './links'
@@ -203,7 +205,7 @@ interface ConversationStateProps {
 }
 
 /** `platform__package_patch` → `package patch` */
-export const toolTitle = (name: string) => name.replace(/^.*?__/, '').replace(/_/g, ' ')
+export const toolTitle = Model.Tool.title
 
 interface ToolMessageProps {
   name: string
@@ -878,6 +880,47 @@ const useStyles = M.makeStyles((t) => ({
     height: '50%',
     position: 'relative',
   },
+  starters: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `${t.spacing(1.5)}px`,
+    margin: '0 auto',
+    maxWidth: 640,
+    width: '100%',
+  },
+  starterGrid: {
+    display: 'grid',
+    gap: `${t.spacing(1)}px`,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+  },
+  starter: {
+    ...t.typography.body2,
+    alignItems: 'flex-start',
+    background: t.palette.background.paper,
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius * 2,
+    display: 'flex',
+    gap: `${t.spacing(1.25)}px`,
+    justifyContent: 'flex-start',
+    minHeight: 44,
+    padding: t.spacing(1.25, 1.5),
+    textAlign: 'left',
+    '&:hover': { borderColor: t.palette.text.disabled },
+    '&.Mui-focusVisible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 1,
+    },
+  },
+  starterIcon: { color: t.palette.text.secondary, fontSize: 18, marginTop: 1 },
+  starterHint: {
+    ...t.typography.caption,
+    background: M.fade(t.palette.warning.main, 0.1),
+    borderRadius: 10,
+    color: t.palette.warning.dark,
+    marginLeft: t.spacing(0.75),
+    padding: t.spacing(0, 0.75),
+    whiteSpace: 'nowrap',
+  },
   historyContainer: {
     flexGrow: 1,
     overflowY: 'auto',
@@ -904,9 +947,35 @@ interface ChatProps {
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
+  mode?: Model.Assistant.API['mode']
+  setMode?: Model.Assistant.API['setMode']
   busy?: boolean
   onClose: () => void
+  /** `compact`: the + menu composer (Qurator mode, /qurator); `classic`: the docked panel's input. */
+  composer?: 'classic' | 'compact'
+  /** Save target for the + menu's Save row; the row is hidden without it. */
+  save?: SessionSave
 }
+
+interface Starter {
+  icon: string
+  text: string
+  hint?: string
+}
+
+const STARTERS: Starter[] = [
+  { icon: 'search', text: 'Search my buckets for CSV files from this month' },
+  {
+    icon: 'hub',
+    text: "Using DeepWiki, what does the quiltdata/quilt repo's catalog do?",
+  },
+  { icon: 'swap_horiz', text: 'Summarize the most recently updated package' },
+  {
+    icon: 'edit_note',
+    text: 'Create a package qurator-demo/hello with a README that says hello',
+    hint: 'asks first',
+  },
+]
 
 export default function Chat({
   state,
@@ -916,10 +985,15 @@ export default function Chat({
   connectors,
   instructions,
   model,
+  mode = 'agent',
+  setMode,
   busy,
   onClose,
+  composer = 'classic',
+  save,
 }: ChatProps) {
   const classes = useStyles()
+  const [draft, setDraft] = React.useState<{ text: string; at: number }>()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const blocked = Model.Connectors.useIsBlocked(connectors)
@@ -1085,17 +1159,55 @@ export default function Chat({
               <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),
           })}
+          {composer === 'compact' && !state.events.some((e) => !e.discarded) && (
+            <div className={classes.starterGrid}>
+              {STARTERS.filter(
+                (s) =>
+                  (s.icon !== 'hub' ||
+                    Object.values(connectors.byId).some((c) =>
+                      /deepwiki/i.test(`${c.id} ${c.config.title}`),
+                    )) &&
+                  (s.icon !== 'edit_note' || mode !== 'ask'),
+              ).map((s) => (
+                <M.ButtonBase
+                  key={s.text}
+                  className={classes.starter}
+                  onClick={() => setDraft({ text: s.text, at: Date.now() })}
+                >
+                  <M.Icon className={classes.starterIcon}>{s.icon}</M.Icon>
+                  <span>
+                    {s.text}
+                    {s.hint && <span className={classes.starterHint}>{s.hint}</span>}
+                  </span>
+                </M.ButtonBase>
+              ))}
+            </div>
+          )}
           <div ref={scrollRef} />
         </div>
       </div>
-      <Instructions instructions={instructions} />
-      <Input
-        disabled={inputDisabled}
-        model={model}
-        helperText={helperText}
-        helperSeverity={helperSeverity}
-        onSubmit={ask}
-      />
+      {composer === 'compact' && setMode ? (
+        <Composer
+          api={{ model, connectors, instructions, mode, setMode }}
+          disabled={inputDisabled}
+          helperText={helperText}
+          helperSeverity={helperSeverity}
+          onSubmit={ask}
+          save={save}
+          draft={draft}
+        />
+      ) : (
+        <>
+          <Instructions instructions={instructions} />
+          <Input
+            disabled={inputDisabled}
+            model={model}
+            helperText={helperText}
+            helperSeverity={helperSeverity}
+            onSubmit={ask}
+          />
+        </>
+      )}
     </div>
   )
 }

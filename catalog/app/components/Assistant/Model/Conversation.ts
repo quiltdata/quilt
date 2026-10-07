@@ -172,7 +172,7 @@ const llmRequest = (events: Event[]) =>
       const reactCtx = yield* ctxService.context
       const connectors = yield* Connectors.Connectors
       const connectorsCtx = yield* connectors.contextContribution
-      const ctx = Context.merge(reactCtx, connectorsCtx)
+      const ctx = Context.forMode(Context.merge(reactCtx, connectorsCtx))
       const filteredEvents = events.filter((e) => !e.discarded)
       const prompt = yield* constructPrompt(filteredEvents, ctx)
 
@@ -197,7 +197,7 @@ const currentTools = Eff.Effect.gen(function* () {
   const reactCtx = yield* ctxService.context
   const connectors = yield* Connectors.Connectors
   const connectorsCtx = yield* connectors.contextContribution
-  return Context.merge(reactCtx, connectorsCtx).tools
+  return Context.forMode(Context.merge(reactCtx, connectorsCtx)).tools
 })
 
 const forkCall = (

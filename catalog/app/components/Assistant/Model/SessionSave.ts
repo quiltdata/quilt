@@ -1,10 +1,8 @@
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Link } from 'react-router-dom'
-import * as M from '@material-ui/core'
 
-import * as Assistant from 'components/Assistant'
-import * as SessionPackage from 'components/Assistant/Model/SessionPackage'
+import type * as Assistant from './Assistant'
+import * as SessionPackage from './SessionPackage'
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as FI from 'containers/Bucket/PackageDialog/Inputs/Files/State'
@@ -14,12 +12,11 @@ import {
   getUsernamePrefix,
   useNameExistence,
 } from 'containers/Bucket/PackageDialog/State/name'
-import * as Buckets from 'utils/Buckets'
-import { useMutation } from 'utils/GraphQL'
-import * as NamedRoutes from 'utils/NamedRoutes'
+import BUCKETS_QUERY from 'utils/Buckets.generated'
+import * as GQL from 'utils/GraphQL'
 import * as s3paths from 'utils/s3paths'
 
-type API = NonNullable<ReturnType<typeof Assistant.Model.useAssistantAPI>>
+type API = Assistant.AssistantAPI
 
 const BUCKET_KEY = 'QURATOR_SAVE_BUCKET'
 
@@ -37,7 +34,7 @@ async function localFile(path: string, body: string, type: string) {
   return { path, file }
 }
 
-type Status =
+export type Status =
   | { _tag: 'idle' }
   | { _tag: 'saving' }
   | { _tag: 'error'; message: string }
@@ -45,9 +42,9 @@ type Status =
 
 // The user's click is the consent: this writes as them, through the same
 // upload + `packageConstruct` path as the Create package dialog, never as a tool call.
-function useSave(api: API) {
+export function useSave(api: API) {
   const uploads = Uploads.useUploads()
-  const construct = useMutation(PACKAGE_CONSTRUCT)
+  const construct = GQL.useMutation(PACKAGE_CONSTRUCT)
   return React.useCallback(
     async (bucket: string, name: string, includeResults: boolean): Promise<Status> => {
       const { events } = api.state
@@ -117,13 +114,43 @@ function useSave(api: API) {
   )
 }
 
-function SaveForm({ api }: { api: API }) {
-  const buckets = Buckets.useRelevantBuckets()
-  const { urls } = NamedRoutes.use()
-  const save = useSave(api)
+export const NAME_TAKEN = 'A package with this name exists'
+
+export interface SessionSave {
+  bucket: string
+  buckets: readonly string[]
+  setBucket: (b: string) => void
+  name: string
+  setName: (n: string) => void
+  foreign: readonly string[]
+  includeResults: boolean
+  setIncludeResults: (on: boolean) => void
+  /** Why the save is unavailable right now, if it is. */
+  blocked: string | null
+  status: Status
+  save: () => Promise<void>
+}
+
+/** Save target + action, shared by the composer's + menu and the context pane. */
+export function useSessionSave(api: API): SessionSave {
+  // Not the suspending bucket read: a re-suspend would unmount the chat this sits beside.
+  // Same variables as `utils/Buckets`, so both share one cache entry.
+  const bucketsQuery = GQL.useQuery(BUCKETS_QUERY, {
+    includeCollaborators: cfg.mode === 'PRODUCT',
+  })
+  const buckets = React.useMemo(
+    () =>
+      (bucketsQuery.data?.buckets ?? [])
+        .filter((b) => b.relevanceScore >= 0)
+        .sort(
+          (a, b) => b.relevanceScore - a.relevanceScore || a.name.localeCompare(b.name),
+        ),
+    [bucketsQuery.data],
+  )
+  const doSave = useSave(api)
   const { events } = api.state
   // Until the user picks, follow the session: saving where it worked needs no warning.
-  const [picked, setBucket] = React.useState<string | null>(null)
+  const [picked, setPicked] = React.useState<string | null>(null)
   const listed = (b?: string | null) => buckets.find((x) => x.name === b)?.name
   const bucket =
     picked ??
@@ -131,15 +158,16 @@ function SaveForm({ api }: { api: API }) {
     listed(loadBucket()) ??
     buckets[0]?.name ??
     ''
-  const [name, setName] = React.useState('')
+  const [typed, setName] = React.useState('')
   const [status, setStatus] = React.useState<Status>({ _tag: 'idle' })
   const username = redux.useSelector(authSelectors.username) as string | undefined
   const empty = !events.some((e) => !e.discarded)
-  const nameValue =
-    name ||
+  const name =
+    typed ||
     SessionPackage.defaultName(
       events,
-      new Date(),
+      // Dated by the session's start, so a save after midnight still revises the same package.
+      events.find((e) => !e.discarded)?.timestamp ?? new Date(),
       getUsernamePrefix(username).replace(/\/$/, ''),
     )
   const foreign = SessionPackage.foreignBuckets(events, bucket)
@@ -147,109 +175,55 @@ function SaveForm({ api }: { api: API }) {
   // so the choice is per destination.
   const [results, setResults] = React.useState<boolean | null>(null)
   const includeResults = results ?? !foreign.length
-  const onBucket = (b: string) => {
-    setBucket(b)
+  const setBucket = React.useCallback((b: string) => {
+    setPicked(b)
     setResults(null)
-  }
+  }, [])
 
   // A save sends only the session files, so as a revision of another package it
-  // would drop that package's files; only a package this form saved may be revised.
+  // would drop that package's files; only a package this session saved may be revised.
   const [saved, setSaved] = React.useState<{ bucket: string; name: string }>()
-  const dst = React.useMemo(() => ({ bucket, name: nameValue }), [bucket, nameValue])
+  const dst = React.useMemo(() => ({ bucket, name }), [bucket, name])
   const existence = useNameExistence(dst, saved)
-  const nameFree = existence._tag === 'new' || existence._tag === 'new-revision'
+  const blocked = empty
+    ? 'Ask something first'
+    : !bucket
+      ? bucketsQuery.fetching
+        ? 'Loading buckets…'
+        : 'No bucket to save to'
+      : existence._tag === 'exists'
+        ? NAME_TAKEN
+        : existence._tag === 'error'
+          ? existence.error.message
+          : existence._tag !== 'new' && existence._tag !== 'new-revision'
+            ? 'Checking the name…'
+            : api.busy || status._tag === 'saving'
+              ? 'Busy'
+              : null
 
-  const onSave = async () => {
+  const save = React.useCallback(async () => {
     setStatus({ _tag: 'saving' })
     try {
       localStorage.setItem(BUCKET_KEY, bucket)
     } catch {
       // Unpersisted, the choice still holds for this save.
     }
-    const result = await save(bucket, nameValue, includeResults)
-    if (result._tag === 'saved') setSaved({ bucket, name: nameValue })
+    const result = await doSave(bucket, name, includeResults)
+    if (result._tag === 'saved') setSaved({ bucket, name })
     setStatus(result)
+  }, [bucket, name, includeResults, doSave])
+
+  return {
+    bucket,
+    buckets: React.useMemo(() => buckets.map((b) => b.name), [buckets]),
+    setBucket,
+    name,
+    setName,
+    foreign,
+    includeResults,
+    setIncludeResults: setResults,
+    blocked,
+    status,
+    save,
   }
-
-  return (
-    <>
-      <M.Typography variant="subtitle2">Save session as package</M.Typography>
-      <M.Typography variant="body2" color="textSecondary">
-        README, readable transcript and replayable <code>session.json</code>. Saving again
-        adds a revision.
-      </M.Typography>
-      <M.TextField
-        select
-        size="small"
-        label="Bucket"
-        value={bucket}
-        onChange={(e) => onBucket(e.target.value)}
-        SelectProps={{ native: true }}
-      >
-        {buckets.map((b) => (
-          <option key={b.name} value={b.name}>
-            {b.name}
-          </option>
-        ))}
-      </M.TextField>
-      <M.TextField
-        size="small"
-        label="Package name"
-        value={nameValue}
-        onChange={(e) => setName(e.target.value)}
-        error={existence._tag === 'exists'}
-        helperText={
-          existence._tag === 'exists' ? 'A package with this name exists' : undefined
-        }
-      />
-      {!!foreign.length && (
-        <M.Typography variant="body2" color="textSecondary">
-          This session also read {foreign.join(', ')}. Anyone who can read {bucket} will
-          see what you save.
-        </M.Typography>
-      )}
-      <M.FormControlLabel
-        control={
-          <M.Checkbox
-            size="small"
-            checked={includeResults}
-            onChange={(e) => setResults(e.target.checked)}
-          />
-        }
-        label="Include tool results"
-      />
-      <M.Button
-        variant="contained"
-        color="primary"
-        disabled={empty || !bucket || !nameFree || api.busy || status._tag === 'saving'}
-        onClick={onSave}
-      >
-        {status._tag === 'saving' ? 'Saving…' : 'Save session'}
-      </M.Button>
-      {status._tag === 'error' && (
-        <M.Typography variant="body2" color="error">
-          {status.message}
-        </M.Typography>
-      )}
-      {status._tag === 'saved' && (
-        <M.Typography variant="body2">
-          Saved{' '}
-          <M.Link
-            component={Link}
-            to={urls.bucketPackageTree(status.bucket, status.name, status.hash)}
-          >
-            {status.name}@{status.hash.slice(0, 8)}
-          </M.Link>
-        </M.Typography>
-      )}
-    </>
-  )
-}
-
-export default function Save({ api }: { api: API }) {
-  return (
-    <React.Suspense fallback={<M.CircularProgress size={20} />}>
-      <SaveForm api={api} />
-    </React.Suspense>
-  )
 }

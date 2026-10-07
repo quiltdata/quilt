@@ -62,12 +62,6 @@ export interface BackendError {
    */
   readonly retryable?: boolean
   /**
-   * Says nothing about transport health (back-pressure, or a server refusing
-   * a credential the stack holds), so a failed ping neither counts toward the
-   * threshold nor resets it.
-   */
-  readonly inertToHealth?: boolean
-  /**
    * Optional wire-level error tag (e.g., MCP's `McpTransportError`).
    * Surfaced in DevTools detail / hover; not used for control flow.
    */
@@ -128,7 +122,7 @@ export interface BackendResourceDescriptor {
 /**
  * The connector's behavioral surface. Implementations adapt a wire
  * protocol (today: MCP, via `Mcp.bearerPassthru` for the first-party
- * platform server and `Mcp.relayed` for admin-registered ones) into
+ * platform server and `Mcp.anonymous` for admin-registered ones) into
  * this interface; the lifecycle is fully generic in `Backend`.
  */
 export interface Backend {
@@ -181,10 +175,8 @@ export interface ConnectorConfig {
    * prompt overview.
    */
   readonly optional?: boolean
-  /** Not marked trusted by an admin: the prompt overview tells the model its tools are untrusted. */
+  /** Operated outside this stack: the prompt overview tells the model its tools are untrusted. */
   readonly thirdParty?: boolean
-  /** Ping timeout; defaults to `HEARTBEAT_TIMEOUT`. */
-  readonly heartbeatTimeout?: Eff.Duration.Duration
 }
 
 // ---------------------------------------------------------------------------
@@ -552,11 +544,10 @@ const sleepOrWake = (
 
 const pingOrTimeout = (
   backend: Backend,
-  timeout: Eff.Duration.Duration,
 ): Eff.Effect.Effect<Eff.Either.Either<void, BackendError>> =>
   backend.ping().pipe(
     Eff.Effect.timeoutFail({
-      duration: timeout,
+      duration: HEARTBEAT_TIMEOUT,
       onTimeout: (): BackendError => transientError('PingTimeout', 'ping timeout'),
     }),
     Eff.Effect.either,
@@ -575,16 +566,15 @@ const pingOrTimeout = (
  */
 const runHeartbeat = (
   backend: Backend,
-  timeout: Eff.Duration.Duration,
   health: Eff.SubscriptionRef.SubscriptionRef<Health>,
   wake: Eff.Stream.Stream<void>,
 ): Eff.Effect.Effect<never> =>
   Eff.Effect.gen(function* () {
     while (true) {
       yield* sleepOrWake(HEARTBEAT_CADENCE, wake)
-      const result = yield* pingOrTimeout(backend, timeout)
+      const result = yield* pingOrTimeout(backend)
       if (Eff.Either.isLeft(result)) {
-        if (!result.left.inertToHealth) yield* bumpHealth(health, result.left)
+        yield* bumpHealth(health, result.left)
       } else {
         yield* resetHealth(health)
       }
@@ -635,10 +625,7 @@ const runReconnectWithProbe = (
     let lastError: BackendError | null = null
     while (bootstrapAttempts < RECONNECT_MAX_ATTEMPTS) {
       yield* sleepOrWake(cadence, wake)
-      const probe = yield* pingOrTimeout(
-        config.backend,
-        config.heartbeatTimeout ?? HEARTBEAT_TIMEOUT,
-      )
+      const probe = yield* pingOrTimeout(config.backend)
       if (Eff.Either.isLeft(probe)) {
         cadence = escalate(cadence)
         continue
@@ -740,12 +727,7 @@ export const manageConnector = (
         // fires (and wins) when consecutiveFailures ≥ THRESHOLD from any
         // source (heartbeat itself or external tool-call bumps).
         yield* Eff.Effect.race(
-          runHeartbeat(
-            config.backend,
-            config.heartbeatTimeout ?? HEARTBEAT_TIMEOUT,
-            health,
-            wake,
-          ),
+          runHeartbeat(config.backend, health, wake),
           awaitThresholdCrossed(health),
         )
 
@@ -782,7 +764,7 @@ export const manageConnector = (
  * fiber under the surrounding scope. The `backend` is sourced from
  * `config.backend` directly — tests construct configs with stub
  * backends; production wires `Mcp.bearerPassthru(...)` or
- * `Mcp.relayed(...)` at the catalog layer.
+ * `Mcp.anonymous(...)` at the catalog layer.
  */
 export const buildConnectorRuntime = (
   config: ConnectorConfig,

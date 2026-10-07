@@ -25,8 +25,6 @@ import * as HttpClientRequest from '@effect/platform/HttpClientRequest'
 import * as Eff from 'effect'
 import * as uuid from 'uuid'
 
-import cfg from 'constants/config'
-
 import * as Content from '../Content'
 import * as Tool from '../Tool'
 
@@ -156,13 +154,9 @@ export class McpTransportError {
 
   readonly status?: number
 
-  /** The registry relay's `error_code`, e.g. `UpstreamAuth`. */
-  readonly errorCode?: string
-
-  constructor(props: { detail: string; status?: number; errorCode?: string }) {
+  constructor(props: { detail: string; status?: number }) {
     this.detail = props.detail
     this.status = props.status
-    this.errorCode = props.errorCode
   }
 
   get message() {
@@ -342,42 +336,6 @@ export function parseSseToJson(text: string): unknown | null {
   return null
 }
 
-/** The first complete event in `text` that answers request `id`, if any. */
-function findSseAnswer(text: string, id: string): string | null {
-  // The last segment may be an event still arriving.
-  const events = text.replace(/\r\n/g, '\n').split('\n\n').slice(0, -1)
-  for (const event of events) {
-    try {
-      const json = parseSseToJson(event) as { id?: unknown } | null
-      if (json && String(json.id) === id) return event
-    } catch {
-      // Not JSON: not the answer.
-    }
-  }
-  return null
-}
-
-/**
- * Read an SSE body until the event answering `id` arrives, else to its end.
- * A server may hold the stream open well after answering, past the
- * connector's ping timeout; ending the read early aborts the request.
- */
-const readSseUntilAnswer = <E>(stream: Eff.Stream.Stream<Uint8Array, E>, id: string) =>
-  stream.pipe(
-    Eff.Stream.decodeText(),
-    Eff.Stream.runFoldWhile(
-      { text: '', answer: null as string | null },
-      (s) => s.answer === null,
-      (s, chunk) => {
-        const text = s.text + chunk
-        // An event can only complete on a chunk carrying a newline.
-        return { text, answer: chunk.includes('\n') ? findSseAnswer(text, id) : null }
-      },
-    ),
-    // The stream's end also ends its last event.
-    Eff.Effect.map((s) => s.answer ?? findSseAnswer(`${s.text}\n\n`, id) ?? s.text),
-  )
-
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -390,10 +348,12 @@ export interface McpClientOptions {
    * every call — callers can close over a redux store and project the
    * current token via a memoized selector.
    *
-   * Omitted, the request carries no `Authorization` header at all, rather
-   * than an empty or placeholder one.
+   * Omit it for a third-party server: the request then carries no
+   * `Authorization` header, so the catalog session token never reaches it.
    */
   getToken?: () => Eff.Effect.Effect<string, McpAuthError>
+  /** Extra request headers, sent verbatim on every call. */
+  headers?: Readonly<Record<string, string>>
 }
 
 export interface McpClient {
@@ -428,6 +388,8 @@ export function make(options: McpClientOptions): McpClient {
     payload: JsonRpcRequest | Omit<JsonRpcRequest, 'id'>,
   ): Eff.Effect.Effect<JsonRpcResponse | null, McpError> =>
     Eff.Effect.gen(function* () {
+      // No resolver means an unauthenticated server: the request carries no
+      // `Authorization` header at all, rather than an empty or placeholder one.
       const token = options.getToken ? yield* options.getToken() : null
       const httpClient = yield* HttpClient.HttpClient
       const sentSession = sessionId
@@ -435,6 +397,7 @@ export function make(options: McpClientOptions): McpClient {
 
       const base = HttpClientRequest.post(options.url).pipe(
         HttpClientRequest.setHeaders({
+          ...options.headers,
           Accept: 'application/json, text/event-stream',
           'MCP-Protocol-Version': PROTOCOL_VERSION,
           ...(sentSession ? { 'Mcp-Session-Id': sentSession } : {}),
@@ -460,19 +423,10 @@ export function make(options: McpClientOptions): McpClient {
 
       // Read the body on every status, even the empty 202 of a notification:
       // an unread response is aborted when collected, which logs a failed request.
-      const isSse = (resp.headers['content-type'] ?? '')
-        .toLowerCase()
-        .includes('text/event-stream')
-      const body = yield* Eff.Effect.either(
-        isSse && 'id' in payload
-          ? readSseUntilAnswer(resp.stream, payload.id)
-          : resp.text,
-      )
+      const body = yield* Eff.Effect.either(resp.text)
 
-      // Only a session-less request (`initialize`) opens a session: a late reply
-      // echoing an ended one must not overwrite its replacement.
       const assigned = resp.headers['mcp-session-id']
-      if (assigned && sentSession === null) sessionId = assigned
+      if (assigned) sessionId = assigned
 
       if (resp.status === 202) return null
 
@@ -496,14 +450,10 @@ export function make(options: McpClientOptions): McpClient {
       }
 
       if (resp.status < 200 || resp.status >= 300) {
-        const errorCode = Eff.Either.isRight(body)
-          ? relayErrorCode(body.right)
-          : undefined
         return yield* Eff.Effect.fail(
           new McpTransportError({
-            detail: errorCode ?? `HTTP ${resp.status}`,
+            detail: `HTTP ${resp.status}`,
             status: resp.status,
-            errorCode,
           }),
         )
       }
@@ -725,57 +675,13 @@ const ERROR_TAG_MAP: Record<McpError['_tag'], BackendError['_tag']> = {
   McpRpcError: 'Application',
 }
 
-const adaptError = (e: McpError): BackendError => {
-  if (e._tag !== 'McpTransportError') {
-    return {
-      _tag: ERROR_TAG_MAP[e._tag],
-      message: e.message,
-      transient: false,
-      retryable: false,
-      cause: e._tag,
-    }
-  }
-  // The server refusing the credential the registry holds for it: not the
-  // catalog session, and no reconnect will fix it.
-  if (e.errorCode === 'UpstreamAuth') {
-    return {
-      _tag: 'Application',
-      message: 'the server refused the credential this stack holds for it',
-      transient: false,
-      retryable: false,
-      inertToHealth: true,
-      cause: e.errorCode,
-    }
-  }
-  // The relay's back-pressure: busy, not unhealthy.
-  if (e.status === 429 && e.errorCode === 'Busy') {
-    return {
-      _tag: 'Transport',
-      message: 'busy, try again shortly',
-      transient: false,
-      retryable: false,
-      inertToHealth: true,
-      cause: e._tag,
-    }
-  }
-  return {
-    _tag: 'Transport',
-    message: e.message,
-    transient: true,
-    retryable: e.status === undefined,
-    cause: e._tag,
-  }
-}
-
-/** The `error_code` of a registry error body, if it has one. */
-const relayErrorCode = (text: string): string | undefined => {
-  try {
-    const code = (JSON.parse(text) as { error_code?: unknown } | null)?.error_code
-    return typeof code === 'string' ? code : undefined
-  } catch {
-    return undefined
-  }
-}
+const adaptError = (e: McpError): BackendError => ({
+  _tag: ERROR_TAG_MAP[e._tag],
+  message: e.message,
+  transient: e._tag === 'McpTransportError',
+  retryable: e._tag === 'McpTransportError' && e.status === undefined,
+  cause: e._tag,
+})
 
 export interface BearerPassthruOptions {
   readonly url: string
@@ -788,25 +694,8 @@ export interface BearerPassthruOptions {
   readonly getToken: () => Eff.Effect.Effect<string | null>
 }
 
-/**
- * 1st-party MCP backend with bearer-passthrough auth. The caller
- * resolves the bearer token (typically a catalog session JWT) on every
- * call; the backend forwards it as `Authorization: Bearer <token>` and
- * doesn't manage refresh, expiry, or session state. Pairs with FastMCP's
- * `stateless_http=True` transport mode.
- */
-export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
-  const wire = make({
-    url: opts.url,
-    getToken: () =>
-      opts
-        .getToken()
-        .pipe(
-          Eff.Effect.flatMap((tok) =>
-            tok ? Eff.Effect.succeed(tok) : Eff.Effect.fail(new McpAuthError()),
-          ),
-        ),
-  })
+/** Shared by every backend factory below; they differ only in authentication. */
+const adaptBackend = (wire: McpClient): Backend => {
   const lift = <A>(eff: Eff.Effect.Effect<A, McpError>) =>
     eff.pipe(Eff.Effect.mapError(adaptError))
   return {
@@ -835,18 +724,49 @@ export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
   }
 }
 
-export interface RelayedOptions {
-  readonly slug: string
-  readonly getToken: BearerPassthruOptions['getToken']
+/**
+ * 1st-party MCP backend with bearer-passthrough auth. The caller
+ * resolves the bearer token (typically a catalog session JWT) on every
+ * call; the backend forwards it as `Authorization: Bearer <token>` and
+ * doesn't manage refresh, expiry, or session state. Pairs with FastMCP's
+ * `stateless_http=True` transport mode.
+ */
+export const bearerPassthru = (opts: BearerPassthruOptions): Backend =>
+  adaptBackend(
+    make({
+      url: opts.url,
+      getToken: () =>
+        opts
+          .getToken()
+          .pipe(
+            Eff.Effect.flatMap((tok) =>
+              tok ? Eff.Effect.succeed(tok) : Eff.Effect.fail(new McpAuthError()),
+            ),
+          ),
+    }),
+  )
+
+export interface AnonymousOptions {
+  readonly url: string
 }
 
 /**
- * An admin-registered server, reached through the registry's relay. The
- * catalog token goes only to the registry, which holds the server's own
- * credential and never sends it to the browser.
+ * Backend for a server Quilt does not operate. Sends no `Authorization`: the
+ * catalog session token is a bearer for this deployment, and a shared secret
+ * would have to reach every browser.
  */
-export const relayed = (opts: RelayedOptions): Backend =>
-  bearerPassthru({
-    url: `${cfg.registryUrl}/api/mcp/${encodeURIComponent(opts.slug)}`,
-    getToken: opts.getToken,
-  })
+export const anonymous = (opts: AnonymousOptions): Backend =>
+  adaptBackend(make({ url: opts.url }))
+
+export interface WithHeadersOptions {
+  readonly url: string
+  readonly headers: Readonly<Record<string, string>>
+}
+
+/**
+ * Backend that sends fixed headers, such as a user's own API key. Whatever the
+ * browser holds is readable by that browser's user, so this is only for a
+ * credential the user owns; a stack-wide secret has to stay server-side.
+ */
+export const withHeaders = (opts: WithHeadersOptions): Backend =>
+  adaptBackend(make({ url: opts.url, headers: opts.headers }))
