@@ -115,8 +115,7 @@ function useFlowStore(bucket: string) {
       const body = await prepare(
         model.applyPromote(model.applyFlow(raw, draft, schema), promote),
       )
-      const writeSchema = async () => {
-        if (!schema || !draft.fields) return
+      if (schema && draft.fields) {
         await s3
           .putObject({
             Bucket: bucket,
@@ -126,18 +125,7 @@ function useFlowStore(bucket: string) {
           })
           .promise()
       }
-      // A new schema file goes first (an unused file is harmless). A file the config
-      // already uses is rewritten last, so a failed config write leaves its rules in force.
-      const fileInUse =
-        !!schema &&
-        Object.values(raw?.schemas ?? {}).some((x: any) => x?.url === schema.url)
-      if (fileInUse) {
-        await putConfig(body)
-        await writeSchema()
-      } else {
-        await writeSchema()
-        await putConfig(body)
-      }
+      await putConfig(body)
     },
     [s3, bucket, prepare, putConfig],
   )

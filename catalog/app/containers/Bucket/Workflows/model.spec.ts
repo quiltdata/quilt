@@ -64,7 +64,7 @@ describe('containers/Bucket/Workflows/model', () => {
   })
 
   it('writes a new flow and its schema into an empty bucket', () => {
-    const loc = model.schemaLocation({}, 'b', draft())
+    const loc = model.schemaLocation({}, 'b', draft(), 'x1')
     const next = model.applyFlow(undefined, draft({ fields, messageRequired: true }), loc)
     expect(next).toEqual({
       version: '1',
@@ -72,7 +72,7 @@ describe('containers/Bucket/Workflows/model', () => {
       workflows: {
         lab: { name: 'Lab', is_message_required: true, metadata_schema: 'lab' },
       },
-      schemas: { lab: { url: 's3://b/.quilt/workflows/lab.json' } },
+      schemas: { lab: { url: 's3://b/.quilt/workflows/lab-x1.json' } },
     })
   })
 
@@ -94,9 +94,9 @@ describe('containers/Bucket/Workflows/model', () => {
         e: { url: 's3://b/e' },
       },
     }
-    const loc = model.schemaLocation(config, 'b', draft())
-    // `shared` is used by another flow, so this flow gets its own file
-    expect(loc).toEqual({ key: 'lab', url: 's3://b/.quilt/workflows/lab.json' })
+    const loc = model.schemaLocation(config, 'b', draft(), 'x1')
+    // `shared` is used by another flow, so this flow gets its own key and file
+    expect(loc).toEqual({ key: 'lab', url: 's3://b/.quilt/workflows/lab-x1.json' })
     const next = model.applyFlow(config, draft({ name: 'New', fields }), loc)
     expect(next.workflows.lab).toEqual({
       name: 'New',
@@ -222,7 +222,7 @@ describe('containers/Bucket/Workflows/model', () => {
     expect(model.schemaToFields(obj({}))).toBe(null)
   })
 
-  it('treats a file another flow uses under a different key as shared', () => {
+  it('never rewrites an existing schema file', () => {
     const url = 's3://b/.quilt/workflows/a.json'
     const config = {
       version: '1',
@@ -232,6 +232,7 @@ describe('containers/Bucket/Workflows/model', () => {
       },
       schemas: { a: { url }, alias: { url } },
     }
-    expect(model.schemaLocation(config, 'b', draft({ id: 'a' })).url).not.toBe(url)
+    const loc = model.schemaLocation(config, 'b', draft({ id: 'a' }), 'x2')
+    expect(loc).toEqual({ key: 'a', url: 's3://b/.quilt/workflows/a-x2.json' })
   })
 })
