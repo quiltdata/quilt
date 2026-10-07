@@ -115,7 +115,8 @@ function useFlowStore(bucket: string) {
       const body = await prepare(
         model.applyPromote(model.applyFlow(raw, draft, schema), promote),
       )
-      if (schema && draft.fields) {
+      const writeSchema = async () => {
+        if (!schema || !draft.fields) return
         await s3
           .putObject({
             Bucket: bucket,
@@ -125,7 +126,18 @@ function useFlowStore(bucket: string) {
           })
           .promise()
       }
-      await putConfig(body)
+      // A new schema file goes first (an unused file is harmless). A file the config
+      // already uses is rewritten last, so a failed config write leaves its rules in force.
+      const fileInUse =
+        !!schema &&
+        Object.values(raw?.schemas ?? {}).some((x: any) => x?.url === schema.url)
+      if (fileInUse) {
+        await putConfig(body)
+        await writeSchema()
+      } else {
+        await writeSchema()
+        await putConfig(body)
+      }
     },
     [s3, bucket, prepare, putConfig],
   )
@@ -324,7 +336,11 @@ export default function Editor({
   const [hasComments, setHasComments] = React.useState(false)
   const [canRemove, setCanRemove] = React.useState(false)
   // Bumped when fields are replaced wholesale, so rows don't keep stale inputs
-  const [generation, setGeneration] = React.useState(0)
+  // Stable keys, so removing a row never shows another row's inputs
+  const idRef = React.useRef(0)
+  const nextId = () => (idRef.current += 1)
+  const [rowIds, setRowIds] = React.useState<number[]>([])
+  const [promoteIds, setPromoteIds] = React.useState<number[]>([])
   const [originalPattern, setOriginalPattern] = React.useState<string>()
 
   React.useEffect(() => {
@@ -333,19 +349,31 @@ export default function Editor({
       try {
         const loaded = await store.load()
         const prev = workflow && loaded.raw?.workflows?.[draft.id]
-        const schemaUrl = workflow?.schema?.url
-        let fields: model.Field[] | null = []
+        if (workflow && !prev) throw new Error('This flow was removed. Close and reload.')
+        const schemaKey = prev?.metadata_schema
+        const schemaUrl = schemaKey ? loaded.raw?.schemas?.[schemaKey]?.url : undefined
+        let fields: model.Field[] | null = schemaKey && !schemaUrl ? null : []
         if (schemaUrl) {
           fields = model.schemaToFields(await requests.metadataSchema({ s3, schemaUrl }))
         }
         if (cancelled) return
-        setDraft((d) => ({
-          ...d,
-          // The raw pattern, not the browser translation of it
-          namePattern: prev?.handle_pattern ?? d.namePattern,
-          fields,
-        }))
-        setPromote(model.promoteFromConfig(loaded.raw))
+        setDraft((d) =>
+          prev
+            ? {
+                ...d,
+                name: prev.name ?? '',
+                description: prev.description ?? '',
+                // The raw pattern, not the browser translation of it
+                namePattern: prev.handle_pattern ?? '',
+                messageRequired: !!prev.is_message_required,
+                fields,
+              }
+            : { ...d, fields },
+        )
+        setRowIds((fields ?? []).map(nextId))
+        const targets = model.promoteFromConfig(loaded.raw)
+        setPromote(targets)
+        setPromoteIds(targets.map(nextId))
         setHasComments(loaded.hasComments)
         setOriginalPattern(prev?.handle_pattern)
         setCanRemove(model.canRemove(loaded.raw))
@@ -408,8 +436,9 @@ export default function Editor({
   const handleStartFrom = async () => {
     setError(undefined)
     try {
-      setFields(await startFrom(pkgName))
-      setGeneration((g) => g + 1)
+      const fields = await startFrom(pkgName)
+      setFields(fields)
+      setRowIds(fields.map(nextId))
     } catch (e) {
       setError(explain(e))
     }
@@ -514,19 +543,25 @@ export default function Editor({
                     <FieldRow
                       // Index keys: rows have no identity until named
                       // eslint-disable-next-line react/no-array-index-key
-                      key={`${generation}-${i}`}
+                      key={rowIds[i]}
                       error={shownErrors[`fields.${i}`]}
                       field={f}
                       onChange={(nf) =>
                         setFields(draft.fields!.map((x, j) => (j === i ? nf : x)))
                       }
-                      onRemove={() => setFields(draft.fields!.filter((_, j) => j !== i))}
+                      onRemove={() => {
+                        setFields(draft.fields!.filter((_, j) => j !== i))
+                        setRowIds(rowIds.filter((_, j) => j !== i))
+                      }}
                     />
                   ))}
                   <div className={classes.inline}>
                     <M.Button
                       color="primary"
-                      onClick={() => setFields([...draft.fields!, model.emptyField()])}
+                      onClick={() => {
+                        setFields([...draft.fields!, model.emptyField()])
+                        setRowIds([...rowIds, nextId()])
+                      }}
                       size="small"
                       startIcon={<M.Icon>add</M.Icon>}
                     >
@@ -562,7 +597,7 @@ export default function Editor({
               </div>
               {promote.map((p, i) => (
                 // eslint-disable-next-line react/no-array-index-key
-                <div className={classes.promoteRow} key={i}>
+                <div className={classes.promoteRow} key={promoteIds[i]}>
                   <Field
                     error={!!shownErrors[`promote.${i}`]}
                     helperText={shownErrors[`promote.${i}`]}
@@ -609,7 +644,10 @@ export default function Editor({
                   />
                   <M.IconButton
                     aria-label={`Remove ${p.bucket || 'bucket'}`}
-                    onClick={() => setPromote(promote.filter((_, j) => j !== i))}
+                    onClick={() => {
+                      setPromote(promote.filter((_, j) => j !== i))
+                      setPromoteIds(promoteIds.filter((_, j) => j !== i))
+                    }}
                   >
                     <M.Icon>delete_outline</M.Icon>
                   </M.IconButton>
@@ -617,9 +655,10 @@ export default function Editor({
               ))}
               <M.Button
                 color="primary"
-                onClick={() =>
+                onClick={() => {
                   setPromote([...promote, { bucket: '', title: '', copyData: true }])
-                }
+                  setPromoteIds([...promoteIds, nextId()])
+                }}
                 size="small"
                 startIcon={<M.Icon>add</M.Icon>}
               >
