@@ -12,8 +12,8 @@ import {
   getUsernamePrefix,
   useNameExistence,
 } from 'containers/Bucket/PackageDialog/State/name'
-import * as Buckets from 'utils/Buckets'
-import { useMutation } from 'utils/GraphQL'
+import BUCKETS_QUERY from 'utils/Buckets.generated'
+import * as GQL from 'utils/GraphQL'
 import * as s3paths from 'utils/s3paths'
 
 type API = Assistant.AssistantAPI
@@ -44,7 +44,7 @@ export type Status =
 // upload + `packageConstruct` path as the Create package dialog, never as a tool call.
 export function useSave(api: API) {
   const uploads = Uploads.useUploads()
-  const construct = useMutation(PACKAGE_CONSTRUCT)
+  const construct = GQL.useMutation(PACKAGE_CONSTRUCT)
   return React.useCallback(
     async (bucket: string, name: string, includeResults: boolean): Promise<Status> => {
       const { events } = api.state
@@ -114,6 +114,8 @@ export function useSave(api: API) {
   )
 }
 
+export const NAME_TAKEN = 'A package with this name exists'
+
 export interface SessionSave {
   bucket: string
   buckets: readonly string[]
@@ -131,7 +133,20 @@ export interface SessionSave {
 
 /** Save target + action, shared by the composer's + menu and the context pane. */
 export function useSessionSave(api: API): SessionSave {
-  const buckets = Buckets.useRelevantBuckets()
+  // Not the suspending bucket read: a re-suspend would unmount the chat this sits beside.
+  // Same variables as `utils/Buckets`, so both share one cache entry.
+  const bucketsQuery = GQL.useQuery(BUCKETS_QUERY, {
+    includeCollaborators: cfg.mode === 'PRODUCT',
+  })
+  const buckets = React.useMemo(
+    () =>
+      (bucketsQuery.data?.buckets ?? [])
+        .filter((b) => b.relevanceScore >= 0)
+        .sort(
+          (a, b) => b.relevanceScore - a.relevanceScore || a.name.localeCompare(b.name),
+        ),
+    [bucketsQuery.data],
+  )
   const doSave = useSave(api)
   const { events } = api.state
   // Until the user picks, follow the session: saving where it worked needs no warning.
@@ -151,7 +166,8 @@ export function useSessionSave(api: API): SessionSave {
     typed ||
     SessionPackage.defaultName(
       events,
-      new Date(),
+      // Dated by the session's start, so a save after midnight still revises the same package.
+      events.find((e) => !e.discarded)?.timestamp ?? new Date(),
       getUsernamePrefix(username).replace(/\/$/, ''),
     )
   const foreign = SessionPackage.foreignBuckets(events, bucket)
@@ -169,17 +185,21 @@ export function useSessionSave(api: API): SessionSave {
   const [saved, setSaved] = React.useState<{ bucket: string; name: string }>()
   const dst = React.useMemo(() => ({ bucket, name }), [bucket, name])
   const existence = useNameExistence(dst, saved)
-  const nameFree = existence._tag === 'new' || existence._tag === 'new-revision'
-
   const blocked = empty
     ? 'Ask something first'
     : !bucket
-      ? 'No bucket to save to'
-      : !nameFree
-        ? 'A package with this name exists'
-        : api.busy || status._tag === 'saving'
-          ? 'Busy'
-          : null
+      ? bucketsQuery.fetching
+        ? 'Loading buckets…'
+        : 'No bucket to save to'
+      : existence._tag === 'exists'
+        ? NAME_TAKEN
+        : existence._tag === 'error'
+          ? existence.error.message
+          : existence._tag !== 'new' && existence._tag !== 'new-revision'
+            ? 'Checking the name…'
+            : api.busy || status._tag === 'saving'
+              ? 'Busy'
+              : null
 
   const save = React.useCallback(async () => {
     setStatus({ _tag: 'saving' })

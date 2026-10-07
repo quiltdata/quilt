@@ -203,7 +203,7 @@ interface ConversationStateProps {
 }
 
 /** `platform__package_patch` → `package patch` */
-export const toolTitle = (name: string) => name.replace(/^.*?__/, '').replace(/_/g, ' ')
+export const toolTitle = Model.Tool.title
 
 interface ToolMessageProps {
   name: string
@@ -1010,8 +1010,11 @@ export default function Chat({
               <div className={classes.starterGrid}>
                 {STARTERS.filter(
                   (s) =>
-                    s.icon !== 'hub' ||
-                    Object.keys(connectors.byId).some((id) => id !== 'platform'),
+                    (s.icon !== 'hub' ||
+                      Object.values(connectors.byId).some((c) =>
+                        /deepwiki/i.test(`${c.id} ${c.config.title}`),
+                      )) &&
+                    (s.icon !== 'edit_note' || mode !== 'ask'),
                 ).map((s) => (
                   <M.ButtonBase
                     key={s.text}
