@@ -587,6 +587,7 @@ function DirDisplay({
                           files={summaryHandles}
                           mkUrl={mkUrl}
                           packageHandle={packageHandle}
+                          locked={!!lock}
                         />
                       </M.Box>
                     </>
@@ -1137,20 +1138,15 @@ function PackageTree({
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
 
-  const { lock, latestHash } = PackageLock.useLock(bucket, name)
+  const { lock, latestHash, refresh: refreshLock } = PackageLock.useLock(bucket, name)
   const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
-  const [lockDialog, setLockDialog] = React.useState<
-    { action: 'lock'; hash: string } | { action: 'unlock' } | null
-  >(null)
+  const [lockDialog, setLockDialog] = React.useState<'lock' | 'unlock' | null>(null)
   const closeLockDialog = React.useCallback(() => setLockDialog(null), [])
   const openLock = React.useMemo(
-    () =>
-      isAdmin && !lock && latestHash
-        ? () => setLockDialog({ action: 'lock', hash: latestHash })
-        : undefined,
+    () => (isAdmin && !lock && latestHash ? () => setLockDialog('lock') : undefined),
     [isAdmin, lock, latestHash],
   )
-  const openUnlock = React.useCallback(() => setLockDialog({ action: 'unlock' }), [])
+  const openUnlock = React.useCallback(() => setLockDialog('unlock'), [])
   // Navigating to another package must not leave a dialog that would act on it.
   React.useEffect(() => setLockDialog(null), [bucket, name])
 
@@ -1227,12 +1223,22 @@ function PackageTree({
       {lock && (
         <PackageLock.Notice lock={lock} onUnlock={isAdmin ? openUnlock : undefined} />
       )}
-      {lockDialog && (
+      {lockDialog === 'lock' && latestHash && (
         <PackageLock.Dialog
+          action="lock"
+          bucket={bucket}
+          name={name}
+          hash={latestHash}
+          onClose={closeLockDialog}
+          onLatestMoved={refreshLock}
+        />
+      )}
+      {lockDialog === 'unlock' && (
+        <PackageLock.Dialog
+          action="unlock"
           bucket={bucket}
           name={name}
           onClose={closeLockDialog}
-          {...lockDialog}
         />
       )}
       {packageHandle ? (

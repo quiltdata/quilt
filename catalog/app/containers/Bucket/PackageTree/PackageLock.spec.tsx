@@ -7,6 +7,7 @@ import { renderHook } from '@testing-library/react-hooks'
 import * as style from 'constants/style'
 
 import * as PackageLock from './PackageLock'
+import LOCK_QUERY from './gql/Lock.generated'
 
 const { lock, unlock, useQuery } = vi.hoisted(() => ({
   lock: vi.fn(),
@@ -31,7 +32,21 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
   it('reads a registry without locks as unlocked with nothing to lock', () => {
     useQuery.mockReturnValueOnce({ data: undefined, error: new Error('no lock field') })
     const { result } = renderHook(() => PackageLock.useLock('b', 'team/ds'))
-    expect(result.current).toEqual({ lock: null, latestHash: undefined })
+    expect(result.current).toMatchObject({ lock: null, latestHash: undefined })
+  })
+
+  it('refreshes the latest hash from the network', () => {
+    const run = vi.fn()
+    useQuery.mockReturnValueOnce({ data: undefined, run })
+    const { result } = renderHook(() => PackageLock.useLock('b', 'team/ds'))
+    result.current.refresh()
+    expect(run).toHaveBeenCalledWith({ requestPolicy: 'network-only' })
+  })
+
+  it('keys the latest revision the way the revision query does', () => {
+    // Without `modified` the PackageRevision cache key differs, so a push never updates it.
+    const latest = JSON.stringify(LOCK_QUERY)
+    expect(latest).toMatch(/"latest".*"hash".*"modified"/)
   })
 
   it('locks the given hash with a trimmed reason and closes', async () => {
@@ -64,6 +79,7 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
       packageLock: { __typename: 'OperationError', name: 'LatestMoved', message: 'x' },
     })
     const onClose = vi.fn()
+    const onLatestMoved = vi.fn()
     const dialog = mount(
       <PackageLock.Dialog
         action="lock"
@@ -71,11 +87,13 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
         name="team/ds"
         hash={HASH}
         onClose={onClose}
+        onLatestMoved={onLatestMoved}
       />,
     )
     fireEvent.click(dialog.getByRole('button', { name: 'Lock' }))
-    await dialog.findByText(/A new revision was pushed since this page loaded/)
+    await dialog.findByText(/A new revision was pushed since this dialog opened/)
     expect(onClose).not.toHaveBeenCalled()
+    expect(onLatestMoved).toHaveBeenCalled()
   })
 
   it('shows other errors as the registry words them', async () => {
