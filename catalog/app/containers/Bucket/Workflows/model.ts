@@ -186,36 +186,24 @@ const referencedBy = (config: RawConfig, key: string, exceptId?: string) =>
       id !== exceptId && (w?.metadata_schema === key || w?.entries_schema === key),
   )
 
-// Two schema keys can name one file, so sharing is decided by URL, not key.
-const urlInUse = (config: RawConfig, url: string, exceptId?: string) =>
-  Object.entries(config.workflows ?? {}).some(
-    ([id, w]: [string, any]) =>
-      id !== exceptId &&
-      [w?.metadata_schema, w?.entries_schema].some(
-        (k) => k && config.schemas?.[k]?.url === url,
-      ),
-  )
-
-// Returns the schema location to write. The flow keeps its own schema file only when no
-// other flow uses it; otherwise it gets a fresh key, so other flows' rules never change.
-export function schemaLocation(config: RawConfig, bucket: string, draft: FlowDraft) {
+// Returns where to write this flow's schema. Every save writes a new file and only then
+// points the config at it, so a failure at either step leaves the old rules in force.
+// ponytail: superseded files are left in place (another bucket's config may point at
+// them); add cleanup if `.quilt/workflows/` clutter becomes a problem.
+export function schemaLocation(
+  config: RawConfig,
+  bucket: string,
+  draft: FlowDraft,
+  suffix: string = Date.now().toString(36),
+) {
   const current = config.workflows?.[draft.id]?.metadata_schema
-  const currentUrl = current && config.schemas?.[current]?.url
-  if (currentUrl && !urlInUse(config, currentUrl, draft.id)) {
-    const loc = s3paths.parseS3Url(currentUrl)
-    if (loc.bucket === bucket && currentUrl === schemaUrl(bucket, current)) {
-      return { key: current as string, url: currentUrl as string }
+  let key = current && !referencedBy(config, current, draft.id) ? current : draft.id
+  if (key !== current) {
+    for (let n = 2; config.schemas?.[key] || referencedBy(config, key); n++) {
+      key = `${draft.id}-${n}`
     }
   }
-  let key = draft.id
-  const taken = (k: string) =>
-    !!config.schemas?.[k] ||
-    referencedBy(config, k) ||
-    Object.values(config.schemas ?? {}).some((x: any) => x?.url === schemaUrl(bucket, k))
-  for (let n = 2; taken(key); n++) {
-    key = `${draft.id}-${n}`
-  }
-  return { key, url: schemaUrl(bucket, key) }
+  return { key: key as string, url: schemaUrl(bucket, `${key}-${suffix}`) }
 }
 
 export function applyFlow(
