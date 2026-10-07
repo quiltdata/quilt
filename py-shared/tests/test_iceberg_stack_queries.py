@@ -429,6 +429,18 @@ def test_fill_skips_an_object_under_the_pointers_prefix_that_names_no_package(qm
     assert rows(con, "package_revision") == []
 
 
+def test_fill_skips_a_pointer_whose_content_is_not_a_top_hash(qm, con):
+    push_pointer(con, "b1", "u/p", "100", h(1))
+    push_pointer(con, "b1", "u/p", "200", "A" * 64)
+    push_pointer(con, "b1", "u/p", "latest", h(1))
+    push_pointer(con, "b1", "u/p", "v1", "g" * 64)
+
+    run(con, qm.fill("b1"))
+
+    assert rows(con, "package_revision", "timestamp") == [(ts(100),)]
+    assert rows(con, "package_tag", "tag_name") == [("latest",)]
+
+
 def test_fill_writes_a_manifest_row_only_with_its_entries_in_the_set_or_none_to_write(qm, con):
     push_manifest(con, "b1", h(1))
     entries, manifests, *_ = qm.fill("b1")

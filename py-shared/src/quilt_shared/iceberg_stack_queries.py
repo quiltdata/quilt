@@ -392,6 +392,8 @@ class StackQueryMaker:
         pkg_name = _sql_extract(pointer_path, _POINTER_PATH, 1)
         pointer = _sql_extract(pointer_path, _POINTER_PATH, 2)
         revision = _sql_fullmatch(pointer, _REVISION)
+        # The set holds a pointer only to a top hash.
+        to_top_hash = _sql_fullmatch("top_hash", _TOP_HASH)
         packages = self._source(bucket, "packages")
         revisions = f"""(
             SELECT
@@ -400,7 +402,7 @@ class StackQueryMaker:
                 from_unixtime(CAST({pointer} AS bigint)) AS timestamp,
                 top_hash
             FROM {packages}
-            WHERE {revision} AND {pkg_name} <> ''
+            WHERE {revision} AND {pkg_name} <> '' AND {to_top_hash}
         ) AS v"""
         tags = f"""(
             SELECT
@@ -409,7 +411,7 @@ class StackQueryMaker:
                 {pointer} AS tag_name,
                 top_hash
             FROM {packages}
-            WHERE NOT {revision} AND {pkg_name} <> ''
+            WHERE NOT {revision} AND {pkg_name} <> '' AND {to_top_hash}
         ) AS v"""
         return [
             self._merge_entries(self._entries_from(bucket, manifest_files), target),
