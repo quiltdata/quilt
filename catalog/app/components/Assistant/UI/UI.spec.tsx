@@ -21,10 +21,12 @@ vi.mock('./Chat', () => ({
   },
 }))
 
-let chat: { open: boolean; hide: () => void } | null = null
+let chat: { open: boolean; show: () => void; hide: () => void } | null = null
 vi.mock('components/HubSpot', () => ({
-  CHAT_WIDTH: '400px',
   useChat: () => chat,
+}))
+vi.mock('./Help', () => ({
+  default: () => <div data-testid="help" />,
 }))
 
 let inlined = false
@@ -164,25 +166,53 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
   })
 
-  it('gives the gutter to an open HubSpot chat and steps Qurator aside', () => {
+  it("shows Help as the panel's second face, on the same gutter, and steps Qurator aside", () => {
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
-    chat = { open: true, hide: vi.fn() }
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
     const { baseElement, getByTestId } = render(
       <WithAssistantUI>
         <Reflow />
       </WithAssistantUI>,
     )
-    expect(baseElement.querySelector('.MuiDrawer-root')).toBeFalsy()
-    expect(getByTestId('reflow').textContent).toBe('400px')
+    expect(baseElement.querySelector('.MuiDrawer-docked')).toBeTruthy()
+    expect(getByTestId('help')).toBeTruthy()
+    expect(chatProps).toBeNull()
+    expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
     expect(api.hide).toHaveBeenCalled()
   })
 
-  it('closes HubSpot chat when Qurator opens', () => {
+  it('offers Help on the collapsed rail beside Qurator', () => {
+    useAssistantAPI.mockReturnValue(makeAPI())
+    chat = { open: false, show: vi.fn(), hide: vi.fn() }
+    const { getByLabelText, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(getByLabelText('Ask Qurator')).toBeTruthy()
+    expect(getByTestId('reflow').textContent).toBe(RAIL_WIDTH)
+    fireEvent.click(getByLabelText('Help'))
+    expect(chat.show).toHaveBeenCalled()
+  })
+
+  it('docks Help alone when there is no Qurator', () => {
+    useAssistantAPI.mockReturnValue(null)
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(getByTestId('help')).toBeTruthy()
+    expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
+  })
+
+  it('closes Help when Qurator opens', () => {
     const api = makeAPI()
     useAssistantAPI.mockReturnValue(api)
-    chat = { open: false, hide: vi.fn() }
+    chat = { open: false, show: vi.fn(), hide: vi.fn() }
     const { rerender } = render(<WithAssistantUI />)
     expect(chat.hide).not.toHaveBeenCalled()
     api.visible = true

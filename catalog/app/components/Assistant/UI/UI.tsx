@@ -7,6 +7,7 @@ import * as style from 'constants/style'
 
 import * as Model from '../Model'
 import Chat from './Chat'
+import Help from './Help'
 import * as InlinePresence from './InlinePresence'
 import {
   DRAGGING,
@@ -254,10 +255,14 @@ function Resizer({ className, width, onResize }: ResizerProps) {
   )
 }
 
+type Help = NonNullable<ReturnType<typeof HubSpot.useChat>>
+
 interface PanelProps {
-  api: NonNullable<ReturnType<typeof Model.useAssistantAPI>>
+  api: ReturnType<typeof Model.useAssistantAPI> | null
+  help: Help | null
+  // Which face the panel shows; `null` is the collapsed rail.
+  mode: 'qurator' | 'help' | null
   compact: boolean
-  open: boolean
   width: number | null
   onResize: (px: number, persist?: boolean) => void
 }
@@ -265,11 +270,15 @@ interface PanelProps {
 // A drag re-renders the panel on every move; the conversation needn't follow.
 const MemoChat = React.memo(Chat)
 
-function Panel({ api, compact, open, width, onResize }: PanelProps) {
+const noop = () => {}
+
+function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
   const classes = usePanelStyles()
   const instant = useInstant()
   const railRef = React.useRef<HTMLButtonElement>(null)
-  useEscapeToCollapse(open && !compact, api.hide)
+  const open = mode != null
+  const hide = (mode === 'help' ? help?.hide : api?.hide) ?? noop
+  useEscapeToCollapse(open && !compact, hide)
   // Above the breakpoint Qurator is furniture like the left rail: `permanent`
   // renders no Slide and ignores `open`, so the panel narrows to a rail
   // instead of leaving. Below it, a rail plus a 40rem panel both lose, so the
@@ -282,7 +291,7 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
         anchor="right"
         variant={compact ? 'temporary' : 'permanent'}
         open={open}
-        onClose={api.hide}
+        onClose={hide}
         PaperProps={{
           id: PANEL_ID,
           style: open && !compact ? { width: widthCss(width) } : undefined,
@@ -301,7 +310,9 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
         {open && !compact && (
           <Resizer className={classes.resizer} width={width} onResize={onResize} />
         )}
-        {expanded ? (
+        {expanded && mode === 'help' && help ? (
+          <Help onClose={help.hide} />
+        ) : expanded && api ? (
           <MemoChat
             state={api.state}
             dispatch={api.dispatch}
@@ -316,17 +327,32 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
           <div className={classes.rail}>
             {/* One string for both, as the rail's own rows do: the tooltip is
                 the sighted user's copy of the accessible name. */}
-            <M.Tooltip title="Ask Qurator" placement="left">
-              <M.IconButton
-                ref={railRef}
-                onClick={api.show}
-                aria-label="Ask Qurator"
-                aria-expanded={false}
-                aria-controls={PANEL_ID}
-              >
-                <M.Icon>auto_awesome</M.Icon>
-              </M.IconButton>
-            </M.Tooltip>
+            {api && (
+              <M.Tooltip title="Ask Qurator" placement="left">
+                <M.IconButton
+                  ref={railRef}
+                  onClick={api.show}
+                  aria-label="Ask Qurator"
+                  aria-expanded={false}
+                  aria-controls={PANEL_ID}
+                >
+                  <M.Icon>auto_awesome</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            )}
+            {help && (
+              <M.Tooltip title="Help" placement="left">
+                <M.IconButton
+                  ref={api ? undefined : railRef}
+                  onClick={help.show}
+                  aria-label="Help"
+                  aria-expanded={false}
+                  aria-controls={PANEL_ID}
+                >
+                  <M.Icon>support_agent</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            )}
           </div>
         )}
       </M.Drawer>
@@ -340,34 +366,37 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   const api = Model.useAssistantAPI()
   const inlined = InlinePresence.useInlined()
   const compact = useCompact()
-  // An inlined chat replaces the panel outright -- a docked rail would take a
-  // gutter for a second copy of the same conversation.
-  // HubSpot chat docks on the same right edge: while it is open it takes the
-  // gutter and Qurator steps aside, or one panel would cover the other.
-  const chat = HubSpot.useChat()
-  const chatOpen = !!chat?.open
+  // Help (HubSpot chat) is the panel's second face: one dock, one width, one
+  // face at a time -- opening either closes the other.
+  const help = HubSpot.useChat()
+  const helpOpen = !!help?.open
   const visible = !!api?.visible
   React.useEffect(() => {
-    if (chatOpen && visible) api?.hide()
-  }, [chatOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (helpOpen && visible) api?.hide()
+  }, [helpOpen]) // eslint-disable-line react-hooks/exhaustive-deps
   React.useEffect(() => {
-    if (visible) chat?.hide()
+    if (visible) help?.hide()
   }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
-  const present = !!api && !inlined && !chatOpen
-  const open = present && visible
+  // An inlined chat replaces the panel outright -- a docked rail would take a
+  // gutter for a second copy of the same conversation.
+  const qurator = !!api && !inlined
+  const present = qurator || !!help
+  const mode = helpOpen ? 'help' : qurator && visible ? 'qurator' : null
   const [width, resize] = usePanelWidth()
-  const gutter = chatOpen
-    ? HubSpot.CHAT_WIDTH
-    : present
-      ? open
-        ? widthCss(width)
-        : RAIL_WIDTH
-      : null
   return (
-    <ReflowContext.Provider value={compact ? null : gutter}>
+    <ReflowContext.Provider
+      value={present && !compact ? (mode ? widthCss(width) : RAIL_WIDTH) : null}
+    >
       {children}
-      {present && api && (
-        <Panel api={api} compact={compact} open={open} width={width} onResize={resize} />
+      {present && (
+        <Panel
+          api={qurator ? api : null}
+          help={help}
+          mode={mode}
+          compact={compact}
+          width={width}
+          onResize={resize}
+        />
       )}
     </ReflowContext.Provider>
   )

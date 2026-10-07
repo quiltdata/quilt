@@ -1026,10 +1026,10 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
             )}
             {chat && (
               <NavRow
-                icon={<OutlinedIcon>chat_bubble_outline</OutlinedIcon>}
-                label={chat.label}
+                icon={<OutlinedIcon>support_agent</OutlinedIcon>}
+                label="Help"
                 onClick={() => {
-                  // The compact sidebar is a modal drawer stacked above the chat panel.
+                  // The compact sidebar is a modal drawer stacked above the Help panel.
                   onClose?.()
                   chat.show()
                 }}

@@ -9,14 +9,30 @@ vi.mock('react-router-dom', () => ({
   useLocation: () => ({ pathname: '/', search: '' }),
 }))
 
-import HubSpot, { useChat } from './HubSpot'
+import HubSpot, { EMBED_ID, useChat, useEmbed } from './HubSpot'
 
-function OpenChat() {
-  const chat = useChat()
-  return <button onClick={chat?.show}>{chat?.label}</button>
+function Embed() {
+  useEmbed()
+  return <div id={EMBED_ID} />
 }
 
-describe('components/HubSpot chat panel', () => {
+function Probe() {
+  const chat = useChat()
+  return (
+    <>
+      <button onClick={chat?.show}>show</button>
+      <button onClick={chat?.hide}>hide</button>
+      {chat?.open && <Embed />}
+    </>
+  )
+}
+
+const ready = () =>
+  act(() =>
+    (window as any).hsConversationsOnReady.splice(0).forEach((f: () => void) => f()),
+  )
+
+describe('components/HubSpot', () => {
   afterEach(() => {
     cleanup()
     delete (window as any).HubSpotConversations
@@ -24,49 +40,63 @@ describe('components/HubSpot chat panel', () => {
     delete (window as any).hsConversationsSettings
   })
 
-  it('embeds chat only in the panel: no floating launcher, load on open, remove on close', () => {
-    render(
-      <HubSpot>
-        <OpenChat />
-      </HubSpot>,
-    )
+  it('never mounts the floating launcher: chat goes only into the embed element', () => {
+    render(<HubSpot />)
     expect((window as any).hsConversationsSettings).toEqual({
       loadImmediately: false,
-      inlineEmbedSelector: '#hs-chat-panel',
+      inlineEmbedSelector: `#${EMBED_ID}`,
     })
+  })
 
+  it('loads chat while the embed is mounted, queued until HubSpot is ready', () => {
     const widget = { load: vi.fn(), remove: vi.fn() }
-    const opener = screen.getByRole('button', { name: 'Talk to Sales' })
-    opener.focus()
-    fireEvent.click(opener)
-    expect(document.getElementById('hs-chat-panel')).toBeTruthy()
-    expect(document.activeElement).toBe(screen.getByLabelText('Close chat'))
-    // Loader not ready yet: the load is queued, then runs when HubSpot calls back.
+    render(
+      <HubSpot>
+        <Probe />
+      </HubSpot>,
+    )
+    fireEvent.click(screen.getByText('show'))
+    expect(document.getElementById(EMBED_ID)).toBeTruthy()
     expect(widget.load).not.toHaveBeenCalled()
     ;(window as any).HubSpotConversations = { widget }
-    act(() => (window as any).hsConversationsOnReady.forEach((f: () => void) => f()))
+    ready()
     expect(widget.load).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByLabelText('Close chat'))
+    fireEvent.click(screen.getByText('hide'))
     expect(widget.remove).toHaveBeenCalledTimes(1)
-    expect(document.activeElement).toBe(opener)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Talk to Sales' }))
+    fireEvent.click(screen.getByText('show'))
     expect(widget.load).toHaveBeenCalledTimes(2)
   })
 
-  it('closing before HubSpot is ready runs load, then remove, once ready', () => {
+  it('removes a chat closed before HubSpot was ready', () => {
+    const widget = { load: vi.fn(), remove: vi.fn() }
     render(
       <HubSpot>
-        <OpenChat />
+        <Probe />
       </HubSpot>,
     )
-    const calls: string[] = []
-    const widget = { load: () => calls.push('load'), remove: () => calls.push('remove') }
-    fireEvent.click(screen.getByRole('button', { name: 'Talk to Sales' }))
-    fireEvent.click(screen.getByLabelText('Close chat'))
+    fireEvent.click(screen.getByText('show'))
+    fireEvent.click(screen.getByText('hide'))
     ;(window as any).HubSpotConversations = { widget }
-    act(() => (window as any).hsConversationsOnReady.forEach((f: () => void) => f()))
-    expect(calls).toEqual(['load', 'remove'])
+    ready()
+    expect(widget.load).toHaveBeenCalledTimes(1)
+    expect(widget.remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders children without HubSpot context when no portal is configured', async () => {
+    vi.resetModules()
+    vi.doMock('constants/config', () => ({ default: { hubspotId: '' } }))
+    const mod = await import('./HubSpot')
+    function Read() {
+      return <span>{String(mod.useChat())}</span>
+    }
+    render(
+      <mod.default>
+        <Read />
+      </mod.default>,
+    )
+    expect(screen.getByText('null')).toBeTruthy()
+    expect((window as any).hsConversationsSettings).toBeUndefined()
   })
 })

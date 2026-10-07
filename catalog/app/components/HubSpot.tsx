@@ -1,5 +1,4 @@
 import * as React from 'react'
-import * as M from '@material-ui/core'
 import * as redux from 'react-redux'
 import { useLocation } from 'react-router-dom'
 
@@ -18,9 +17,8 @@ function hsq(...cmd: HsqCommand[]) {
   cmd.forEach((c) => q.push(c))
 }
 
-const PANEL_ID = 'hs-chat-panel'
-/** Also the gutter the page gives up while chat is open (Assistant UI Host). */
-export const CHAT_WIDTH = '400px'
+/** The element HubSpot renders its chat into (Assistant UI's Help panel). */
+export const EMBED_ID = 'hs-chat-panel'
 
 const conversations = () => (window as any).HubSpotConversations?.widget
 
@@ -30,79 +28,15 @@ function whenReady(fn: () => void) {
   else ((window as any).hsConversationsOnReady ||= []).push(fn)
 }
 
-const useStyles = M.makeStyles((t) => ({
-  paper: {
-    width: CHAT_WIDTH,
-    maxWidth: '100vw',
-  },
-  header: {
-    alignItems: 'center',
-    borderBottom: `1px solid ${t.palette.divider}`,
-    display: 'flex',
-    padding: t.spacing(0.5, 0.5, 0.5, 2),
-  },
-  title: {
-    flexGrow: 1,
-  },
-  panel: {
-    flexGrow: 1,
-    position: 'relative',
-    // HubSpot injects its iframe at 300x150; fill the panel instead.
-    '& iframe': {
-      border: 0,
-      height: '100%',
-      left: 0,
-      position: 'absolute',
-      top: 0,
-      width: '100%',
-    },
-  },
-}))
-
-interface ChatPanelProps {
-  open: boolean
-  onClose: () => void
-  title: string
-}
-
-function ChatPanel({ open, onClose, title }: ChatPanelProps) {
-  const classes = useStyles()
-  const closeRef = React.useRef<HTMLButtonElement>(null)
-
+/** Renders HubSpot chat into `#EMBED_ID` while mounted; the element must exist first. */
+export function useEmbed() {
   React.useEffect(() => {
-    if (!open) return
     whenReady(() => conversations().load())
-    // A persistent drawer does not trap focus; move it in and give it back.
-    const opener = document.activeElement as HTMLElement | null
-    closeRef.current?.focus()
-    return () => {
-      whenReady(() => conversations().remove())
-      opener?.focus()
-    }
-  }, [open])
-
-  return (
-    <M.Drawer
-      anchor="right"
-      variant="persistent"
-      open={open}
-      classes={{ paper: classes.paper }}
-    >
-      <div className={classes.header}>
-        <M.Typography variant="subtitle1" className={classes.title}>
-          {title}
-        </M.Typography>
-        <M.IconButton ref={closeRef} onClick={onClose} aria-label="Close chat">
-          <M.Icon>close</M.Icon>
-        </M.IconButton>
-      </div>
-      <div id={PANEL_ID} className={classes.panel} />
-    </M.Drawer>
-  )
+    return () => whenReady(() => conversations().remove())
+  }, [])
 }
 
 interface Chat {
-  label: string
   open: boolean
   show: () => void
   hide: () => void
@@ -118,11 +52,11 @@ function HubSpotTracker() {
   const path = `${location.pathname}${location.search}`
 
   React.useEffect(() => {
-    // Chat renders only inside ChatPanel, never as the floating launcher that
-    // covers catalog controls (pagination). Must be set before the loader runs.
+    // Chat renders only inside the Help panel, never as the floating launcher
+    // that covers catalog controls (pagination). Must be set before the loader runs.
     ;(window as any).hsConversationsSettings = {
       loadImmediately: false,
-      inlineEmbedSelector: `#${PANEL_ID}`,
+      inlineEmbedSelector: `#${EMBED_ID}`,
     }
     const script = document.createElement('script')
     script.type = 'text/javascript'
@@ -157,7 +91,6 @@ function HubSpotProvider({ children }: { children?: React.ReactNode }) {
   const [open, setOpen] = React.useState(false)
   const chat = React.useMemo(
     () => ({
-      label: cfg.mode === 'OPEN' ? 'Talk to Sales' : 'Chat with support',
       open,
       show: () => setOpen(true),
       hide: () => setOpen(false),
@@ -168,7 +101,6 @@ function HubSpotProvider({ children }: { children?: React.ReactNode }) {
     <ChatCtx.Provider value={chat}>
       <HubSpotTracker />
       {children}
-      <ChatPanel open={open} onClose={chat.hide} title={chat.label} />
     </ChatCtx.Provider>
   )
 }
