@@ -375,4 +375,31 @@ describe('containers/Bucket/Workflows/model', () => {
       }).namePattern,
     ).toMatch("won't work")
   })
+
+  it('flags a new promote row that duplicates a stored one, so nothing is lost', () => {
+    const config = { version: '1', successors: { 's3://prod/': { title: 'Prod' } } }
+    const promote = [
+      ...model.promoteFromConfig(config),
+      { bucket: 'prod', title: 'Again', copyData: true },
+    ]
+    expect(model.validatePromote(promote)).toEqual({
+      'promote.1': 'This bucket is already listed',
+    })
+  })
+
+  it('never writes two rows to one key', () => {
+    const config = {
+      version: '1',
+      successors: { 's3://prod/': { title: 'P', extra: 1 } },
+    }
+    const [stored] = model.promoteFromConfig(config)
+    const next = model.applyPromote(config, [
+      stored,
+      { bucket: 'other', title: 'O', copyData: true },
+    ])
+    expect(Object.keys(next.successors)).toEqual(['s3://prod/', 's3://other'])
+    // An edited stored row keeps its extras when nothing else uses the old entry
+    const edited = model.applyPromote(config, [{ ...stored, bucket: 'prod' }])
+    expect(edited.successors).toEqual({ 's3://prod/': { title: 'P', extra: 1 } })
+  })
 })

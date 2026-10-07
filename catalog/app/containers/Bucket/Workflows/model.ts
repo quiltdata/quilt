@@ -308,19 +308,28 @@ export function validatePromote(promote: Promote[]): Record<string, string> {
     const b = cleanBucket(p.bucket)
     if (!b) return
     const key = promoteKey(p)
+    // Look-alike rows already stored are left as they are; a new or edited row may not
+    // duplicate any other row's location, or one of the two would be lost on save
+    const clash =
+      !isUnchangedStored(p) &&
+      promote.some(
+        (o, j) =>
+          j !== i && cleanBucket(o.bucket) === b && (j < i || isUnchangedStored(o)),
+      )
     if (!BUCKET_RE.test(b.split('/')[0]))
       errors[`promote.${i}`] = 'Not a valid bucket name'
-    else if (seen.has(key)) errors[`promote.${i}`] = 'This bucket is already listed'
+    else if (seen.has(key) || clash)
+      errors[`promote.${i}`] = 'This bucket is already listed'
     seen.add(key)
   })
   return errors
 }
 
 // Stored rows keep their key as written, so a save never renames or merges them.
+const isUnchangedStored = (p: Promote) => !!p.stored && p.bucket === p.stored.bucket
+
 const promoteKey = (p: Promote) =>
-  p.stored && p.bucket === p.stored.bucket
-    ? p.stored.url
-    : `s3://${cleanBucket(p.bucket)}`
+  isUnchangedStored(p) ? p.stored!.url : `s3://${cleanBucket(p.bucket)}`
 
 const withoutManaged = (entry: any) => {
   if (!entry || typeof entry !== 'object') return {}
@@ -336,14 +345,17 @@ export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
   )
   const rows = promote.filter((p) => cleanBucket(p.bucket))
   if (!rows.length) return rest
+  const claimed = new Set(rows.map(promoteKey))
   return {
     ...rest,
     successors: Object.fromEntries(
       rows.map((p) => {
         const key = promoteKey(p)
+        const fallback = existing.get(cleanBucket(p.bucket))
         const prev =
           (old && key in old ? { url: key, v: old[key] } : null) ??
-          existing.get(cleanBucket(p.bucket))
+          // An edited row keeps its old entry's extras, unless another row still uses it
+          (fallback && !claimed.has(fallback.url) ? fallback : undefined)
         return [
           prev?.url ?? key,
           {
