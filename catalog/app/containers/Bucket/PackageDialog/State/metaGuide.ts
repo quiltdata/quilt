@@ -3,6 +3,13 @@ import type { ErrorObject } from 'ajv'
 import type { JsonSchema } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
 
+/** JSON pointer (RFC 6901) for a top-level key: `a/b` → `/a~1b`. */
+export const pointer = (key: string) => `/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`
+
+/** The top-level key an instance path points into; empty for the root. */
+export const topKey = (instancePath: string) =>
+  (instancePath.split('/')[1] ?? '').replace(/~1/g, '/').replace(/~0/g, '~')
+
 /** `/a/b/0` → `a.b[0]`, the way users name fields; empty for the root. */
 function fieldName(instancePath: string): string {
   return instancePath
@@ -118,13 +125,13 @@ export function invalidKeys(errors: (Error | ErrorObject)[]): Set<string> {
   const keys = new Set<string>()
   for (const e of errors) {
     if (!('keyword' in e) || e.keyword === 'format') continue
-    const top = e.instancePath.split('/')[1]
-    if (top) keys.add(top.replace(/~1/g, '/').replace(/~0/g, '~'))
+    const top = topKey(e.instancePath)
+    if (top) keys.add(top)
   }
   return keys
 }
 
-const isFilled = (v: unknown) => v !== undefined && v !== null && v !== ''
+export const isFilled = (v: unknown) => v !== undefined && v !== null && v !== ''
 
 /**
  * Top-level fields the workflow schema requires, and whether `value` has them;

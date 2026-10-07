@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 import type { JsonSchema } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
 
-import { fieldMessage } from '../State/metaGuide'
+import { fieldMessage, pointer } from '../State/metaGuide'
 import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
@@ -26,8 +26,6 @@ function widgetFor(prop: JsonSchema = {}): Widget {
 const isEmpty = (v: unknown) => v === undefined || v === null || v === ''
 
 const display = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))
-
-const pointer = (key: string) => `/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`
 
 /** Errors that belong to `key`, including "required" reported on the root. */
 function errorsFor(key: string, errors: (Error | ErrorObject)[]) {

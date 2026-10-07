@@ -48,6 +48,14 @@ describe('containers/Bucket/PackageDialog/State/metaSuggest', () => {
       expect(parseSuggestions('{"project": {"value": "onc"}}', withRef)).toEqual({})
     })
 
+    it('keeps suggestions when the metadata already has a root-level error', () => {
+      const closed = { ...schema, additionalProperties: false }
+      const value = { extra: 'already here' }
+      expect(
+        parseSuggestions('{"project": {"value": "ONC-104"}}', closed, value),
+      ).toEqual({ project: { value: 'ONC-104', reason: undefined } })
+    })
+
     it('skips empty values', () => {
       expect(parseSuggestions('{"project": {"value": ""}}', schema)).toEqual({})
     })

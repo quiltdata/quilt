@@ -8,7 +8,10 @@ import * as LLM from 'components/Assistant/Model/LLM'
 import WORKFLOW_PACKAGES from 'containers/Bucket/Workflows/gql/WorkflowPackages.generated'
 import { runtime } from 'utils/Effect'
 import { type JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
+import Log from 'utils/Logging'
 import type * as Types from 'utils/types'
+
+import { pointer } from './metaGuide'
 
 export type Suggestions = Record<string, { value: Types.Json; reason?: string }>
 
@@ -113,6 +116,14 @@ export function parseSuggestions(
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const properties: Record<string, JsonSchema> = schema.properties || {}
   const validate = makeSchemaValidator(schema)
+  // Root-level errors the metadata already has are not the suggestion's fault.
+  const sig = (e: Error | { keyword?: string; schemaPath?: string; message?: string }) =>
+    'schemaPath' in e ? `${e.schemaPath}|${e.message}` : e.message
+  const before = new Set(
+    validate(value)
+      .filter((e) => !('instancePath' in e) || !e.instancePath)
+      .map(sig),
+  )
   const out: Suggestions = {}
   for (const [key, entry] of Object.entries(raw as Record<string, any>)) {
     if (!Object.hasOwn(properties, key)) continue
@@ -120,14 +131,12 @@ export function parseSuggestions(
     const v = entry.value
     if (v === null || v === undefined || v === '') continue
     // the whole schema, so $refs and cross-field rules apply; only this key's errors count
-    const ptr = `/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`
-    const errors = validate({ ...value, [key]: v }).filter(
-      (e) =>
-        !('instancePath' in e) ||
-        e.instancePath === ptr ||
-        e.instancePath.startsWith(`${ptr}/`) ||
-        (e.keyword !== 'required' && !e.instancePath),
-    )
+    const ptr = pointer(key)
+    const errors = validate({ ...value, [key]: v }).filter((e) => {
+      if (!('instancePath' in e)) return true
+      if (e.instancePath === ptr || e.instancePath.startsWith(`${ptr}/`)) return true
+      return !e.instancePath && e.keyword !== 'required' && !before.has(sig(e))
+    })
     if (errors.length) continue
     out[key] = {
       value: v,
@@ -211,13 +220,16 @@ export function useMetaSuggestions({
     setState({ _tag: 'loading' })
     const t0 = Date.now()
     try {
-      const r = await client
-        .query(WORKFLOW_PACKAGES, {
-          buckets: [bucket],
-          filter: (workflow ? { workflow: { terms: [workflow] } } : {}) as any,
-        })
-        .toPromise()
-      const set = r.data?.searchPackages
+      // Without a workflow there is no way to tell which packages are similar.
+      const r = workflow
+        ? await client
+            .query(WORKFLOW_PACKAGES, {
+              buckets: [bucket],
+              filter: { workflow: { terms: [workflow] } } as any,
+            })
+            .toPromise()
+        : null
+      const set = r?.data?.searchPackages
       const hits =
         set?.__typename === 'PackagesSearchResultSet' &&
         set.firstPage.__typename === 'PackagesSearchResultSetPage'
@@ -242,8 +254,13 @@ export function useMetaSuggestions({
           break
         } catch (e) {
           lastError = e
-          // another model will not fix a signed-out or forbidden caller
-          if (/\b(401|403)\b|unauthori[sz]ed|forbidden/i.test(String(e))) break
+          // only a model this stack cannot reach is worth trying the next one for
+          if (
+            !/AccessDenied|not (authorized|available|found)|ResourceNotFound|ValidationException.*model|\b404\b/i.test(
+              String(e),
+            )
+          )
+            break
         }
       }
       if (generation.current !== mine) return
@@ -256,11 +273,8 @@ export function useMetaSuggestions({
       })
     } catch (e) {
       if (generation.current !== mine) return
-      setState({
-        _tag: 'error',
-        message:
-          e instanceof Error ? e.message : 'Suggestions are not available right now',
-      })
+      Log.error('Metadata suggestions failed:', e)
+      setState({ _tag: 'error', message: 'The model did not answer.' })
     }
   }, [bucket, client, files, llms, name, schema, value, workflow])
 

@@ -253,7 +253,11 @@ function PackageCreationForm({
   const classes = useStyles()
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-  const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
+  const { height: measured = 0 } = useResizeObserver({ ref: editorElement })
+  // A hidden metadata pane measures 0; keep the last real height so tabs don't resize the dialog.
+  const lastHeight = React.useRef(0)
+  if (measured > 0) lastHeight.current = measured
+  const metaHeight = measured || lastHeight.current
   const dialogContentClasses = Layout.useContentStyles({ metaHeight })
 
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
@@ -261,30 +265,28 @@ function PackageCreationForm({
   // Guided metadata gets the wide pane; files share it behind a tab.
   const [pane, setPane] = React.useState<'metadata' | 'files'>('metadata')
 
-  const fileCount = React.useMemo(() => {
+  const fileKeys = React.useMemo(() => {
     const { added, deleted, existing } = files.value
-    return new Set([
-      ...Object.keys(added),
-      ...Object.keys(existing).filter((k) => !deleted[k]),
-    ]).size
+    return Array.from(
+      new Set([
+        ...Object.keys(added),
+        ...Object.keys(existing).filter((k) => !deleted[k]),
+      ]),
+    )
   }, [files.value])
+  const fileCount = fileKeys.length
 
   const openMeta = React.useCallback(() => setPane('metadata'), [])
 
   const suggest = React.useMemo(() => {
-    const { added, deleted, existing } = files.value
-    const keys = [
-      ...Object.keys(added),
-      ...Object.keys(existing).filter((k) => !deleted[k]),
-    ]
     const slug = workflow.value?.slug
     return {
       bucket: dst.bucket,
-      files: Array.from(new Set(keys)),
+      files: fileKeys,
       name: name.value,
       workflow: typeof slug === 'string' ? slug : undefined,
     }
-  }, [dst.bucket, files.value, name.value, workflow.value])
+  }, [dst.bucket, fileKeys, name.value, workflow.value])
 
   const handleSubmit = React.useCallback(
     (event) => {

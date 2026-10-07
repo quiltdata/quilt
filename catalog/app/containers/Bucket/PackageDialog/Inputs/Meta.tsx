@@ -21,8 +21,14 @@ import { JsonRecord } from 'utils/types'
 import type { FormStatus } from '../State/form'
 import type { SchemaStatus } from '../State/schema'
 import type { MetaState } from '../State/meta'
-import { humanizeError, invalidKeys, requiredFields } from '../State/metaGuide'
-import { useMetaSuggestions } from '../State/metaSuggest'
+import {
+  humanizeError,
+  invalidKeys,
+  isFilled,
+  requiredFields,
+  topKey,
+} from '../State/metaGuide'
+import { parseSuggestions, useMetaSuggestions } from '../State/metaSuggest'
 import type { SuggestState } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
@@ -494,7 +500,7 @@ function SuggestBar({ disabled, onRequest, onUseAll, state }: SuggestBarProps) {
           <M.Icon className={classes.icon} fontSize="small" aria-hidden>
             error_outline
           </M.Icon>
-          <span className={classes.text}>Couldn't get suggestions: {state.message}</span>
+          <span className={classes.text}>Couldn't get suggestions. {state.message}</span>
           <div className={classes.actions}>
             <M.Button disabled={disabled} onClick={onRequest} size="small">
               Try again
@@ -510,7 +516,9 @@ function SuggestBar({ disabled, onRequest, onUseAll, state }: SuggestBarProps) {
           <span className={classes.text}>
             {n
               ? `${plural(n, 'suggestion')} from ${plural(state.examples, 'similar package')}. Review each before using it.`
-              : `No suggestions: ${plural(state.examples, 'similar package')} gave no clear values.`}
+              : state.examples
+                ? `No suggestions: ${plural(state.examples, 'similar package')} gave no clear values.`
+                : 'No suggestions: there are no earlier packages with this workflow to learn from yet.'}
           </span>
           <div className={classes.actions}>
             <M.Button disabled={disabled} onClick={onRequest} size="small">
@@ -602,12 +610,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
               (e) =>
                 !formView ||
                 !('keyword' in e) ||
-                !Object.hasOwn(
-                  schema?.properties || {},
-                  (e.instancePath.split('/')[1] ?? '')
-                    .replace(/~1/g, '/')
-                    .replace(/~0/g, '~'),
-                ),
+                !Object.hasOwn(schema?.properties || {}, topKey(e.instancePath)),
             )
             .map((e) => new Error(humanizeError(e)))
         : errors,
@@ -801,13 +804,19 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           disabled={disabled}
           onRequest={suggestions.request}
           onUseAll={() => {
-            if (!suggested) return
+            if (!suggested || !schema) return
+            // re-checked against the metadata as it is now, not as it was when asked
+            const valid = parseSuggestions(
+              JSON.stringify(suggested),
+              schema,
+              value as JsonRecord | undefined,
+            )
             const fill = Object.fromEntries(
-              Object.entries(suggested)
-                .filter(([k]) => value?.[k] === undefined || value?.[k] === '')
+              Object.entries(valid)
+                .filter(([k]) => !isFilled(value?.[k]))
                 .map(([k, sg]) => [k, sg.value]),
             )
-            onChangeFullscreen({ ...value, ...fill } as JsonRecord)
+            onChange({ ...value, ...fill } as JsonRecord)
           }}
           state={suggestions.state}
         />
