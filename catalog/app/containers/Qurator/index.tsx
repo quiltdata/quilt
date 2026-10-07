@@ -1,12 +1,13 @@
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
+import * as SessionSave from 'components/Assistant/Model/SessionSave'
 import Chat from 'components/Assistant/UI/Chat/Chat'
 import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import * as Intercom from 'components/Intercom'
-import Logo from 'components/Logo'
+import { useFeature } from 'utils/features'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const isStandalone = () =>
@@ -65,7 +66,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 // Chrome offers install through this event; iOS Safari only through the Share sheet.
-function InstallHint() {
+function useInstallHint(): React.ReactNode {
   const [prompt, setPrompt] = React.useState<BeforeInstallPromptEvent | null>(null)
   React.useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -122,11 +123,8 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
-    gap: `${t.spacing(1)}px`,
-    padding: t.spacing(1, 2),
-  },
-  grow: {
-    flexGrow: 1,
+    justifyContent: 'flex-end',
+    padding: t.spacing(0.5, 2),
   },
   chat: {
     display: 'flex',
@@ -134,6 +132,27 @@ const useStyles = M.makeStyles((t) => ({
     minHeight: 0,
   },
 }))
+
+interface QuratorChatProps {
+  api: NonNullable<ReturnType<typeof Assistant.Model.useAssistantAPI>>
+  onClose: () => void
+}
+
+function QuratorChat({ api, onClose }: QuratorChatProps) {
+  const save = SessionSave.useSessionSave(api)
+  // Saving is Qurator mode's addition; the page itself stays unflagged.
+  const saving = useFeature('qurator-mode')
+  return (
+    // The whole API, not a prop list: a Chat prop added on another branch
+    // (e.g. `sessions`) would otherwise reach Chat undefined and crash it.
+    <Chat
+      {...api}
+      composer="compact"
+      save={saving ? save : undefined}
+      onClose={onClose}
+    />
+  )
+}
 
 export default function Qurator() {
   const classes = useStyles()
@@ -144,24 +163,18 @@ export default function Qurator() {
   Intercom.usePauseVisibilityWhen(true)
   const toCatalog = React.useCallback(() => history.push(urls.home()), [history, urls])
   const frame = useKeyboardFrame()
+  const installHint = useInstallHint()
 
   return (
     <div className={classes.root} style={frame}>
-      <div className={classes.bar}>
-        <Logo variant="icon" height="28px" width="28px" />
-        <div className={classes.grow} />
-        {api && <InstallHint />}
-        <M.Button size="small" component={Link} to={urls.home()}>
-          Open catalog
-        </M.Button>
-      </div>
+      {/* Chat's own header carries the mark, the menu and ✕ (back to the
+          catalog), so this bar exists only to offer the install. */}
+      {api && installHint && <div className={classes.bar}>{installHint}</div>}
       {api ? (
         // Registered presence keeps the global drawer from opening a second copy.
         <InlinePresence.Provide value>
           <div className={classes.chat}>
-            {/* The whole API, not a prop list: a Chat prop added on another branch
-                (e.g. `sessions`) would otherwise reach Chat undefined and crash it. */}
-            <Chat {...api} composer="compact" onClose={toCatalog} />
+            <QuratorChat api={api} onClose={toCatalog} />
           </div>
         </InlinePresence.Provide>
       ) : (
