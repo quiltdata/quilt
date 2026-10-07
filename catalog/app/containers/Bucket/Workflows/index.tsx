@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import Placeholder from 'components/Placeholder'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -10,10 +11,11 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Workflows from 'utils/workflows'
 
-import { displayError } from '../errors'
+import { WorkflowsConfigInvalid, displayError } from '../errors'
 import * as requests from '../requests'
 
 import Detail from './Detail'
+import Editor from './Editor'
 import * as Layout from './Layout'
 import List from './List'
 
@@ -21,17 +23,23 @@ const useStyles = M.makeStyles((t) => ({
   chip: {
     marginLeft: t.spacing(2),
   },
+  action: {
+    float: 'right',
+  },
 }))
 
 interface WorkflowsInnerProps {
   config: Workflows.WorkflowsConfig
   bucket: string
   slug?: string
+  reload: () => void
 }
 
-function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
+function WorkflowsInner({ config, bucket, slug, reload }: WorkflowsInnerProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const history = RR.useHistory()
+  const [editing, setEditing] = React.useState<'new' | 'edit' | null>(null)
 
   const workflows = React.useMemo(
     () => config.workflows.filter((w) => typeof w.slug === 'string'),
@@ -46,14 +54,28 @@ function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
   const root = urls.bucketWorkflowList(bucket)
 
   const heading = () => {
-    if (!slug) return 'Workflows'
+    if (!slug)
+      return (
+        <>
+          Flows
+          <M.Button
+            className={classes.action}
+            color="primary"
+            onClick={() => setEditing('new')}
+            startIcon={<M.Icon>add</M.Icon>}
+            variant="contained"
+          >
+            New flow
+          </M.Button>
+        </>
+      )
     return (
       <>
         <M.IconButton edge="start" to={root} component={RR.Link} size="small">
           <M.Icon>arrow_back</M.Icon>
         </M.IconButton>{' '}
         <M.Box component="span" ml={1}>
-          {slug}
+          {workflow?.name || slug}
           {workflow?.isDefault && (
             <M.Chip
               className={classes.chip}
@@ -66,26 +88,57 @@ function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
             <M.Chip className={classes.chip} label="Disabled" size="small" />
           )}
         </M.Box>
+        {workflow && (
+          <M.Button
+            className={classes.action}
+            color="primary"
+            onClick={() => setEditing('edit')}
+            startIcon={<M.Icon>edit</M.Icon>}
+            variant="outlined"
+          >
+            Edit flow
+          </M.Button>
+        )}
       </>
     )
   }
 
   const body = () => {
     if (!workflows.length)
-      return <Layout.Message>No workflows configured for this bucket.</Layout.Message>
+      return (
+        <Layout.Message>
+          No flows in this bucket yet. A flow sets the rules packages must pass here, and
+          later the actions that run when they do.
+        </Layout.Message>
+      )
 
     if (!slug) return <List bucket={bucket} workflows={workflows} />
 
     if (!workflow)
-      return <Layout.Message>Workflow "{slug}" not found in this bucket.</Layout.Message>
+      return <Layout.Message>Flow "{slug}" not found in this bucket.</Layout.Message>
 
     return <Detail bucket={bucket} workflow={workflow} />
+  }
+
+  const handleSaved = (id: string | null) => {
+    setEditing(null)
+    reload()
+    history.push(id ? urls.bucketWorkflowDetail(bucket, id) : root)
   }
 
   return (
     <Layout.Container>
       <Layout.Heading>{heading()}</Layout.Heading>
       {body()}
+      {editing && (
+        <Editor
+          bucket={bucket}
+          config={config}
+          workflow={editing === 'edit' ? workflow : undefined}
+          onClose={() => setEditing(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </Layout.Container>
   )
 }
@@ -98,7 +151,7 @@ export default function WorkflowsRoot() {
   const data = useData(requests.workflowsConfig, { s3, bucket })
 
   const title = React.useMemo(() => {
-    const segments = ['Workflows', bucket]
+    const segments = ['Flows', bucket]
     if (slug) segments.unshift(slug)
     return segments
   }, [bucket, slug])
@@ -108,9 +161,34 @@ export default function WorkflowsRoot() {
       <MetaTitle>{title}</MetaTitle>
       {data.case({
         Ok: (config: Workflows.WorkflowsConfig) => (
-          <WorkflowsInner config={config} bucket={bucket} slug={slug} />
+          <WorkflowsInner
+            config={config}
+            bucket={bucket}
+            slug={slug}
+            reload={data.fetch}
+          />
         ),
-        Err: displayError(),
+        Err: displayError([
+          [
+            (e) => e instanceof WorkflowsConfigInvalid,
+            (e: WorkflowsConfigInvalid) => (
+              <Layout.Container>
+                <Layout.Heading>Flows</Layout.Heading>
+                <Layout.Message>
+                  This bucket&apos;s flow settings can&apos;t be read, so flows can&apos;t
+                  be shown or edited here, and pushes with a flow fail until they&apos;re
+                  fixed. A bucket admin can repair the{' '}
+                  <WorkflowsConfigLink>stored settings</WorkflowsConfigLink>.
+                </Layout.Message>
+                <M.Box mt={1}>
+                  <M.Typography variant="body2" color="textSecondary">
+                    {e.message}
+                  </M.Typography>
+                </M.Box>
+              </Layout.Container>
+            ),
+          ],
+        ]),
         _: () => <Placeholder color="text.secondary" />,
       })}
     </>

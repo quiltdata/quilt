@@ -2,12 +2,16 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 
 import * as checks from './checks'
+import Field from './Field'
+import * as model from './model'
 
 type SchemaResult = checks.SchemaResult
 
@@ -91,22 +95,24 @@ function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
 
   return (
     <>
-      <M.TextField
+      <Field
         fullWidth
         label="Package name"
         margin="dense"
+        variant="outlined"
         onChange={(e) => setName(e.target.value)}
         placeholder="namespace/name"
         value={name}
       />
-      <M.TextField
+      <Field
         fullWidth
         label="Commit message"
         margin="dense"
+        variant="outlined"
         onChange={(e) => setMessage(e.target.value)}
         value={message}
       />
-      <M.TextField
+      <Field
         fullWidth
         label="Metadata (JSON)"
         margin="dense"
@@ -131,10 +137,130 @@ function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
           </M.List>
         ) : (
           <M.Typography variant="body2">
-            Passes the name, message and metadata rules of this workflow.
+            Passes this flow&apos;s name, message and metadata rules.
           </M.Typography>
         )}
       </M.Box>
+    </>
+  )
+}
+
+function SchemaLink({
+  schema,
+  children,
+}: React.PropsWithChildren<{ schema?: Workflows.SchemaRef }>) {
+  const { urls } = NamedRoutes.use()
+  if (!schema) return <>{children}</>
+  const l = schema.location
+  return (
+    <StyledLink to={urls.bucketFile(l.bucket, l.key, { version: l.version })}>
+      {children}
+    </StyledLink>
+  )
+}
+
+const TYPE_WORDS: Record<model.FieldType, string> = {
+  text: 'text',
+  number: 'a number',
+  integer: 'a whole number',
+  boolean: 'yes or no',
+  date: 'a date',
+  choice: 'one of',
+}
+
+function RulesSummary({
+  workflow,
+  metadataSchema,
+}: {
+  workflow: Workflows.Workflow
+  metadataSchema: SchemaResult
+}) {
+  const fields =
+    metadataSchema &&
+    typeof metadataSchema === 'object' &&
+    !(metadataSchema instanceof Error)
+      ? model.schemaToFields(metadataSchema)
+      : undefined
+  const rules: React.ReactNode[] = []
+  if (workflow.packageNamePattern) {
+    rules.push(
+      <>
+        Package names match <code>{workflow.handlePattern}</code>
+      </>,
+    )
+  }
+  if (workflow.packageNamePatternError) {
+    rules.push('Package names must match a pattern only the push can check')
+  }
+  if (workflow.packageNamePatternInvalid) {
+    rules.push(
+      "Package names must match a pattern pushes can't read, so every push fails",
+    )
+  }
+  if (workflow.isMessageRequired) rules.push('A commit message is required')
+  if (workflow.schema) {
+    if (fields === undefined) rules.push("Metadata must match this flow's schema")
+    else if (fields === null) {
+      rules.push(
+        <>
+          Metadata must match{' '}
+          <SchemaLink schema={workflow.schemas.metadata}>
+            a schema with rules the builder can&apos;t show
+          </SchemaLink>
+        </>,
+      )
+    } else {
+      rules.push(
+        <SchemaLink schema={workflow.schemas.metadata}>
+          Metadata rules (schema file)
+        </SchemaLink>,
+      )
+      fields.forEach((f) =>
+        rules.push(
+          <>
+            <strong>{f.name}</strong> is {TYPE_WORDS[f.type]}
+            {f.type === 'choice' ? ` ${f.options.join(', ')}` : ''}
+            {f.required ? '' : ' (optional)'}
+          </>,
+        ),
+      )
+    }
+  }
+  if (workflow.entriesSchema) {
+    rules.push(
+      <>
+        Package files must match{' '}
+        <SchemaLink schema={workflow.schemas.entries}>
+          this flow&apos;s file rules
+        </SchemaLink>
+      </>,
+    )
+  }
+  return (
+    <>
+      <M.Box mt={3} mb={1}>
+        <M.Typography variant="h5">Rules</M.Typography>
+        <M.Typography variant="body2" color="textSecondary">
+          What a package must have to be pushed with this flow.
+        </M.Typography>
+      </M.Box>
+      {rules.length ? (
+        <M.List dense>
+          {rules.map((r, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <M.ListItem key={i} disableGutters>
+              <M.ListItemIcon>
+                <M.Icon fontSize="small">rule</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary={r} />
+            </M.ListItem>
+          ))}
+        </M.List>
+      ) : (
+        <M.Typography variant="body2">
+          No rules: any package can use this flow.
+        </M.Typography>
+      )}
     </>
   )
 }
@@ -150,12 +276,18 @@ export default function Health({ workflow }: HealthProps) {
 
   return (
     <>
+      <RulesSummary workflow={workflow} metadataSchema={metadataSchema} />
       <M.Box mt={3} mb={1}>
         <M.Typography variant="h5">Health</M.Typography>
         <M.Typography variant="body2" color="textSecondary">
           Checked with your permissions. Pushes run under the stack&apos;s own role.
         </M.Typography>
       </M.Box>
+      {workflow.packageNamePatternInvalid && (
+        <M.Typography variant="body2" color="error" gutterBottom>
+          {`Package name pattern is broken (${workflow.packageNamePatternInvalid}), so every push with this flow fails. Edit the flow to fix it.`}
+        </M.Typography>
+      )}
       {workflow.packageNamePatternError && (
         <M.Typography variant="body2" color="error" gutterBottom>
           {`Package name pattern can't be checked in the browser (${workflow.packageNamePatternError}). Pushes still enforce it.`}

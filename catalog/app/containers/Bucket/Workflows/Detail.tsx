@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 import * as Column from 'components/Layout/Column'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 import * as Workflows from 'utils/workflows'
@@ -132,7 +131,7 @@ function Packages({ bucket, workflow }: PackagesProps) {
     data: (d) => {
       switch (d.searchPackages.__typename) {
         case 'EmptySearchResultSet':
-          return <M.Typography>No packages found for this workflow</M.Typography>
+          return <M.Typography>No packages found for this flow</M.Typography>
         case 'PackagesSearchResultSet':
           const { firstPage, total } = d.searchPackages
           const hits =
@@ -167,26 +166,6 @@ function Packages({ bucket, workflow }: PackagesProps) {
   })
 }
 
-interface SchemaLinkProps {
-  label: React.ReactNode
-  schema?: Workflows.SchemaRef
-}
-
-function SchemaLink({ label, schema }: SchemaLinkProps) {
-  const { urls } = NamedRoutes.use()
-
-  if (!schema) return null
-
-  const l = schema.location
-  const to = urls.bucketFile(l.bucket, l.key, { version: l.version })
-
-  return (
-    <M.Typography variant="body2">
-      {label}: <StyledLink to={to}>{schema.name}</StyledLink>
-    </M.Typography>
-  )
-}
-
 interface WorkflowDetailProps {
   bucket: string
   workflow: Workflows.Workflow
@@ -195,22 +174,21 @@ interface WorkflowDetailProps {
 export default function WorkflowDetail({ bucket, workflow }: WorkflowDetailProps) {
   return (
     <>
-      <M.Typography variant="body1" gutterBottom>
-        {workflow.name}
-      </M.Typography>
-
-      <M.Typography variant="body2" color="textSecondary" gutterBottom>
-        {workflow.description}
-      </M.Typography>
-
-      {(!!workflow.schemas.metadata || !!workflow.schemas.entries) && (
-        <M.Box pt={2}>
-          <SchemaLink label="Metadata Schema" schema={workflow.schemas.metadata} />
-          <SchemaLink label="Entries Schema" schema={workflow.schemas.entries} />
-        </M.Box>
+      {workflow.description && (
+        <M.Typography variant="body1" color="textSecondary" gutterBottom>
+          {workflow.description}
+        </M.Typography>
       )}
 
       <Health workflow={workflow} />
+
+      <M.Box mt={3} mb={1}>
+        <M.Typography variant="h5">Actions</M.Typography>
+        <M.Typography variant="body2" color="textSecondary">
+          Coming soon: run steps when a package passes this flow, such as promoting it to
+          another bucket.
+        </M.Typography>
+      </M.Box>
 
       <M.Box mt={3} mb={2}>
         <M.Typography variant="h5">Recent Packages</M.Typography>

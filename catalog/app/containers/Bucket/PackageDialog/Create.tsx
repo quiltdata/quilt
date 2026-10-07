@@ -317,6 +317,7 @@ function PackageCreationForm({
           <Layout.Container>
             <Layout.LeftColumn className={cx({ [classes.guidedLeft]: meta.guided })}>
               <Inputs.Workflow
+                bucket={dst.bucket}
                 formStatus={formStatus}
                 schema={metadataSchema}
                 state={workflow}

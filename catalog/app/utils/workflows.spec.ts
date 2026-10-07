@@ -261,12 +261,12 @@ describe('utils/workflows', () => {
       workflows:
         a:
           name: A
-          handle_pattern: "^(?P<lab>[a-z]+)/"
+          handle_pattern: "^(?P<lab>[a-z]+)/(?P=lab)$"
     `
     it('keeps the config usable and records why the pattern is skipped', () => {
       const w = workflows.parse(data, 'foo').workflows[1]
       expect(w.packageNamePattern).toBe(null)
-      expect(w.packageNamePatternError).toMatch('Invalid')
+      expect(w.packageNamePatternError).toMatch('(?P=')
     })
   })
   describe('Python-only anchors', () => {
@@ -276,7 +276,7 @@ describe('utils/workflows', () => {
         'foo',
       ).workflows[1]
       expect(w.packageNamePattern).toBe(null)
-      expect(w.packageNamePatternError).toMatch('Python-only')
+      expect(w.packageNamePatternError).toMatch('\\Z')
     })
   })
 
@@ -310,6 +310,95 @@ describe('utils/workflows', () => {
       expect(workflows.parse(data, 'foo').workflows[1].undefinedSchemas).toEqual([
         'missing',
       ])
+    })
+  })
+  describe('config that is not valid YAML', () => {
+    it('is reported, not read as an empty bucket', () => {
+      expect(() =>
+        workflows.parse('version: "1"\nworkflows:\n  a: {name: A\n', 'foo'),
+      ).toThrow(errors.WorkflowsConfigInvalid)
+    })
+  })
+  describe('Python pattern translation', () => {
+    const pattern = (p: string) =>
+      workflows.parse(
+        `version: "1"\nworkflows:\n  a:\n    name: A\n    handle_pattern: '${p}'\n`,
+        'foo',
+      ).workflows[1]
+
+    it('keeps identity escapes working alongside Unicode classes', () => {
+      const w = pattern('^lab\\-\\w+/')
+      expect(w.packageNamePatternError).toBeUndefined()
+      expect(w.packageNamePattern?.test('lab-é/x')).toBe(true)
+      expect(w.handlePattern).toBe('^lab\\-\\w+/')
+    })
+
+    it('treats a leading ] in a negated class as a literal', () => {
+      const w = pattern('^[^]]\\w/')
+      expect(w.packageNamePattern?.test('aé/')).toBe(true)
+      expect(w.packageNamePattern?.test(']é/')).toBe(false)
+    })
+  })
+  describe('analyzePattern', () => {
+    const tag = (p: string) => workflows.analyzePattern(p)._tag
+    const ok = (p: string, yes: string, no: string) => {
+      const a = workflows.analyzePattern(p)
+      if (a._tag !== 'ok') throw new Error(`${p}: ${a._tag}`)
+      expect(a.regex.test(yes)).toBe(true)
+      expect(a.regex.test(no)).toBe(false)
+    }
+
+    it('translates Python syntax that has an exact JS equivalent', () => {
+      ok('^(?P<lab>[a-z]+)/', 'abc/x', '1/x')
+      ok('^lab\\–x', 'lab–x', 'labux')
+      ok('(?#team prefix)^lab/', 'lab/x', 'x/lab')
+      ok('^lab\\😀', 'lab😀', 'lab')
+    })
+
+    it('leaves valid Python it cannot reproduce to the push', () => {
+      expect(tag('(?>a)b')).toBe('uncheckable')
+      expect(tag('a*+b')).toBe('uncheckable')
+      expect(tag('(?x) ^lab/ # (team prefix')).toBe('uncheckable')
+      expect(tag('\\A\\d+\\Z')).toBe('uncheckable')
+    })
+
+    it('matches Python on repeats and braces', () => {
+      for (const p of ['*.csv', 'a**', '^*', 'a|*', 'a?*', 'a{3}{2}', 'a{3,2}']) {
+        expect([p, tag(p)]).toEqual([p, 'invalid'])
+      }
+      ok('^{lab}/', '{lab}/x', 'lab/x')
+      ok('^a{,2}$', 'aa', 'aaa')
+      ok('^x{$', 'x{', 'x')
+      ok('^a{}$', 'a{}', 'a')
+      ok('^a??b', 'b', 'c')
+    })
+
+    it('rejects JS-style named groups and unknown groups, like Python', () => {
+      expect(tag('^(?<team>lab)/')).toBe('invalid')
+      expect(tag('(?Q)')).toBe('invalid')
+      expect(tag('(?<=ab|c)x')).toBe('uncheckable')
+    })
+
+    it('rejects escapes Python refuses', () => {
+      for (const p of [
+        '^[\\A-z]',
+        '^[\\Z]',
+        '^[\\B]',
+        '^lab\\x4',
+        '^lab\\u00',
+        '^\\U0001',
+      ]) {
+        expect([p, tag(p)]).toEqual([p, 'invalid'])
+      }
+      ok('^lab\\x41', 'labA', 'lab')
+      ok('^lab\\u00e9$', 'labé', 'labe')
+    })
+
+    it('rejects what Python would reject', () => {
+      expect(tag('^\\p{L}+/')).toBe('invalid')
+      expect(tag('(')).toBe('invalid')
+      expect(tag('a)')).toBe('invalid')
+      expect(tag('[ab')).toBe('invalid')
     })
   })
 })
