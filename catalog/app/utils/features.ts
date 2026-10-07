@@ -43,6 +43,11 @@ export const FEATURES = {
     description:
       'Browse data products defined in an enterprise catalog (AWS DataZone, Databricks Unity, Snowflake). Off, no data-product route or nav entry exists. Reads fixture data until catalog adapters land.',
   },
+  'product-badges': {
+    label: 'Milestone badges',
+    description:
+      'Award stack milestones (package counts, data volume, team size, anniversaries) with Teams and Slack sharing: a Milestones page, a card on Admin > Status, and a dismissible ribbon for every signed-in user. Off, none of these appear.',
+  },
 } satisfies Record<string, Feature>
 
 export type FeatureId = keyof typeof FEATURES
