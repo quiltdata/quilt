@@ -278,6 +278,8 @@ interface Slot<T> {
   /** What the package last got; `checkpointDue` asks for the latest. */
   checkpointed: T | null
   checkpointDue: boolean
+  /** What the registry last confirmed holding, unlike `sent`, which a retry clears. */
+  acked: T | null
   idle: ReturnType<typeof setTimeout> | null
   cap: ReturnType<typeof setTimeout> | null
   inFlight: boolean
@@ -355,7 +357,7 @@ export function createSaveQueue<T>({
       return
     }
     s.inFlight = true
-    const changed = events !== s.sent
+    const changed = events !== s.acked
     s.sent = events
     s.checkpointDue = false
     const updating = s.id !== null
@@ -380,6 +382,7 @@ export function createSaveQueue<T>({
           case 'Saved':
             s.id = r.id
             s.version = r.version
+            s.acked = events
             s.retried = false
             if (r.id !== s.shown) {
               onCreated({ head: s.head, basis: s.shown, id: r.id })
@@ -489,6 +492,7 @@ export function createSaveQueue<T>({
       timer: null,
       checkpointed,
       checkpointDue: false,
+      acked: events,
       idle: null,
       cap: null,
       inFlight: false,

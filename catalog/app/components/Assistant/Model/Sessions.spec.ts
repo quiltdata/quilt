@@ -420,6 +420,31 @@ describe('components/Assistant/Model/Sessions', () => {
       })
 
       it.each(['Conflict', 'NotFound'] as const)(
+        'gives up a retried checkpoint of unchanged events answered %s, never forking',
+        async (tag) => {
+          const outcomes: Sessions.SaveOutcome[] = [
+            saved('s', 1),
+            { _tag: 'Failed' },
+            { _tag: tag },
+          ]
+          const { queue, send, created } = setup(async () => outcomes.shift()!)
+          queue.change('h', 'a')
+          await vi.advanceTimersByTimeAsync(1000)
+          // The registry kept this checkpoint, but its reply was lost.
+          queue.checkpoint()
+          await vi.advanceTimersByTimeAsync(600_000)
+          expect(send).toHaveBeenCalledTimes(3)
+          expect(send.mock.calls[2][0]).toEqual({
+            id: 's',
+            baseVersion: 1,
+            events: 'a',
+            checkpoint: true,
+          })
+          expect(created).toEqual([{ head: 'h', basis: null, id: 's' }])
+        },
+      )
+
+      it.each(['Conflict', 'NotFound'] as const)(
         'gives up a checkpoint of unchanged events answered %s, never forking',
         async (tag) => {
           const outcomes: Sessions.SaveOutcome[] = [saved('s', 1), { _tag: tag }]
