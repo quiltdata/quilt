@@ -1,6 +1,5 @@
 import type { JsonSchema } from 'utils/JSONSchema'
 import { translatePattern } from 'utils/workflows'
-import * as s3paths from 'utils/s3paths'
 import type * as Types from 'utils/types'
 
 import { DRAFT_07 } from './checks'
@@ -219,7 +218,7 @@ export function schemaLocation(
   const reusable =
     current && !referencedBy(config, current, draft.id) && own?.entries_schema !== current
   let key = reusable ? current : draft.id
-  if (key !== current) {
+  if (!reusable) {
     for (let n = 2; config.schemas?.[key] || referencedBy(config, key); n++) {
       key = `${draft.id}-${n}`
     }
@@ -292,25 +291,32 @@ export function removeFlow(config: RawConfig, id: string): RawConfig {
 
 export function promoteFromConfig(config: RawConfig | undefined): Promote[] {
   return Object.entries(config?.successors ?? {}).map(([url, s]: [string, any]) => ({
-    bucket: s3paths.parseS3Url(url).bucket || url,
+    // The whole location, so a successor with a path survives a save unchanged
+    bucket: url.replace(/^s3:\/\//, ''),
     title: s?.title ?? '',
     copyData: s?.copy_data !== false,
   }))
 }
 
+// "s3://prod/" and "prod" name the same target; a path after the bucket is kept.
 export const cleanBucket = (input: string) =>
   input
     .trim()
     .replace(/^s3:\/\//, '')
-    .replace(/\/+$/, '')
+    .replace(/^([^/]+)\/$/, '$1')
 
 const BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/
 
 export function validatePromote(promote: Promote[]): Record<string, string> {
   const errors: Record<string, string> = {}
+  const seen = new Set<string>()
   promote.forEach((p, i) => {
     const b = cleanBucket(p.bucket)
-    if (b && !BUCKET_RE.test(b)) errors[`promote.${i}`] = 'Not a valid bucket name'
+    if (!b) return
+    if (!BUCKET_RE.test(b.split('/')[0]))
+      errors[`promote.${i}`] = 'Not a valid bucket name'
+    else if (seen.has(b)) errors[`promote.${i}`] = 'This bucket is already listed'
+    seen.add(b)
   })
   return errors
 }

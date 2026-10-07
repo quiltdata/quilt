@@ -287,4 +287,49 @@ describe('containers/Bucket/Workflows/model', () => {
     })
     expect(model.removeFlow(config, 'b').schemas).toEqual(config.schemas)
   })
+
+  it('moves off a schema key shared with other rules even when it equals the flow id', () => {
+    const shared = {
+      version: '1',
+      workflows: {
+        qc: { name: 'QC', metadata_schema: 'qc' },
+        other: { name: 'O', metadata_schema: 'qc' },
+      },
+      schemas: { qc: { url: 's3://b/.quilt/workflows/qc.json' } },
+    }
+    expect(model.schemaLocation(shared, 'b', draft({ id: 'qc' }), 'x').key).toBe('qc-2')
+    const ownEntries = {
+      version: '1',
+      workflows: { qc: { name: 'QC', metadata_schema: 'qc', entries_schema: 'qc' } },
+      schemas: { qc: { url: 's3://b/.quilt/workflows/qc.json' } },
+    }
+    expect(model.schemaLocation(ownEntries, 'b', draft({ id: 'qc' }), 'x').key).toBe(
+      'qc-2',
+    )
+  })
+
+  it('accepts Python anchors next to \\d without blocking the save', () => {
+    expect(
+      model.validateDraft(draft({ namePattern: '\\A\\d+$' }), {
+        isNew: true,
+        existingIds: [],
+      }).namePattern,
+    ).toBeUndefined()
+  })
+
+  it('flags a promote bucket listed twice and keeps successor paths', () => {
+    expect(
+      model.validatePromote([
+        { bucket: 's3://prod/', title: 'Prod', copyData: true },
+        { bucket: 'prod', title: 'Prod (no copy)', copyData: false },
+      ]),
+    ).toEqual({ 'promote.1': 'This bucket is already listed' })
+    const config = {
+      version: '1',
+      successors: { 's3://prod/sub/': { title: 'Sub', extra: 1 } },
+    }
+    expect(
+      model.applyPromote(config, model.promoteFromConfig(config)).successors,
+    ).toEqual(config.successors)
+  })
 })

@@ -11,7 +11,7 @@ import * as YAML from 'utils/yaml'
 import * as requests from '../requests'
 import MANIFEST_QUERY from '../PackageDialog/gql/Manifest.generated'
 
-import { Field } from './Health'
+import Field from './Field'
 import * as model from './model'
 
 const CONFIG_KEY = quiltConfigs.workflows
@@ -329,9 +329,8 @@ export default function Editor({
   const startFrom = useStartFromPackage(bucket)
   const s3 = AWS.S3.use()
   const isNew = !workflow
-  const existingIds = React.useMemo(
-    () => config.workflows.flatMap((w) => (typeof w.slug === 'string' ? [w.slug] : [])),
-    [config.workflows],
+  const [existingIds, setExistingIds] = React.useState<string[]>(() =>
+    config.workflows.flatMap((w) => (typeof w.slug === 'string' ? [w.slug] : [])),
   )
 
   const [draft, setDraft] = React.useState<model.FlowDraft>(() => ({
@@ -350,13 +349,13 @@ export default function Editor({
   const [pkgName, setPkgName] = React.useState('')
   const [hasComments, setHasComments] = React.useState(false)
   const [canRemove, setCanRemove] = React.useState(false)
-  // Bumped when fields are replaced wholesale, so rows don't keep stale inputs
   // Stable keys, so removing a row never shows another row's inputs
   const idRef = React.useRef(0)
   const nextId = () => (idRef.current += 1)
   const [rowIds, setRowIds] = React.useState<number[]>([])
   const [promoteIds, setPromoteIds] = React.useState<number[]>([])
   const [originalPattern, setOriginalPattern] = React.useState<string>()
+  const [schemaError, setSchemaError] = React.useState<string>()
 
   React.useEffect(() => {
     let cancelled = false
@@ -369,7 +368,14 @@ export default function Editor({
         const schemaUrl = schemaKey ? loaded.raw?.schemas?.[schemaKey]?.url : undefined
         let fields: model.Field[] | null = schemaKey && !schemaUrl ? null : []
         if (schemaUrl) {
-          fields = model.schemaToFields(await requests.metadataSchema({ s3, schemaUrl }))
+          try {
+            fields = model.schemaToFields(
+              await requests.metadataSchema({ s3, schemaUrl }),
+            )
+          } catch (e) {
+            fields = null
+            setSchemaError(explain(e))
+          }
         }
         if (cancelled) return
         setDraft((d) =>
@@ -390,6 +396,7 @@ export default function Editor({
         setPromote(targets)
         setPromoteIds(targets.map(nextId))
         setHasComments(loaded.hasComments)
+        setExistingIds(Object.keys(loaded.raw?.workflows ?? {}))
         setOriginalPattern(prev?.handle_pattern)
         setCanRemove(model.canRemove(loaded.raw))
         setReady(true)
@@ -542,8 +549,9 @@ export default function Editor({
               {draft.fields === null ? (
                 <>
                   <div className={classes.hint}>
-                    This flow&apos;s metadata schema uses features the builder can&apos;t
-                    show, so it stays as it is.
+                    {schemaError
+                      ? `This flow's metadata schema can't be read (${schemaError}), so it stays as it is until you replace it.`
+                      : "This flow's metadata schema uses features the builder can't show, so it stays as it is."}
                   </div>
                   <M.Button onClick={() => setFields([])} size="small" variant="outlined">
                     Replace it with builder fields
@@ -556,8 +564,6 @@ export default function Editor({
                   </div>
                   {draft.fields.map((f, i) => (
                     <FieldRow
-                      // Index keys: rows have no identity until named
-                      // eslint-disable-next-line react/no-array-index-key
                       key={rowIds[i]}
                       error={shownErrors[`fields.${i}`]}
                       field={f}
@@ -611,7 +617,6 @@ export default function Editor({
                 bucket.
               </div>
               {promote.map((p, i) => (
-                // eslint-disable-next-line react/no-array-index-key
                 <div className={classes.promoteRow} key={promoteIds[i]}>
                   <Field
                     error={!!shownErrors[`promote.${i}`]}
