@@ -57,6 +57,21 @@ const storeBlock = (b: Content.MessageContentBlock | Content.ToolResultContentBl
       ? { _tag: 'Json' as const, json: b.json }
       : { _tag: 'Text' as const, text: b.text }
 
+// Tool inputs can carry credentials; keys matched as `SessionPackage` matches them.
+const SECRET = /token|secret|password|passwd|authorization|api[-_]?key|credential/i
+
+const redact = (v: unknown): unknown =>
+  Array.isArray(v)
+    ? v.map(redact)
+    : v && typeof v === 'object'
+      ? Object.fromEntries(
+          Object.entries(v).map(([k, x]) => [
+            k,
+            SECRET.test(k) ? '[redacted]' : redact(x),
+          ]),
+        )
+      : v
+
 // Postgres JSONB refuses NUL and lone surrogates, which a file preview or a query
 // row can carry; one such character would make every save of the session fail.
 const SURROGATES = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDFFF]/g
@@ -99,7 +114,7 @@ function encodeRaw(events: readonly Conversation.Event[]): Envelope {
             timestamp: e.timestamp.toISOString(),
             toolUseId: e.toolUseId,
             name: e.name,
-            input: e.input,
+            input: redact(e.input) as Record<string, unknown>,
             result: {
               status: e.result.status,
               content: e.result.content.map(storeBlock),

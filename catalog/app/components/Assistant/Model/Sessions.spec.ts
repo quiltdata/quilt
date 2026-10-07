@@ -76,6 +76,21 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(json.json).toEqual({ k: ['�'] })
     })
 
+    it('redacts credential-like tool inputs', () => {
+      const use = Conversation.Event.ToolUse({
+        id: '1',
+        timestamp: at,
+        toolUseId: 'tu',
+        name: 'mcp',
+        input: { q: 'x', auth: { api_key: 'sk-1' } },
+        result: { status: 'success', content: [] },
+      })
+      expect((Sessions.encode([use]).events[0] as any).input).toEqual({
+        q: 'x',
+        auth: { api_key: '[redacted]' },
+      })
+    })
+
     it('drops discarded events', () => {
       const kept = message('1', 'user', text('keep'))
       const gone = { ...message('2', 'user', text('gone')), discarded: true }
