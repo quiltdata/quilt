@@ -83,7 +83,11 @@ function propertyToField(name: string, p: any, required: boolean): Field | null 
   const base = { name, required, options: [] as string[] }
   if (p.type === 'string' && keys.every((k) => k === 'type' || k === 'enum')) {
     if (!p.enum) return { ...base, type: 'text' }
-    if (Array.isArray(p.enum) && p.enum.every((o: unknown) => typeof o === 'string')) {
+    if (
+      Array.isArray(p.enum) &&
+      p.enum.length &&
+      p.enum.every((o: unknown) => typeof o === 'string')
+    ) {
       return { ...base, type: 'choice', options: p.enum }
     }
     return null
@@ -224,7 +228,7 @@ export function applyFlow(
     ...rest,
     name: draft.name.trim(),
     ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
-    ...(draft.namePattern ? { handle_pattern: draft.namePattern } : {}),
+    ...(draft.namePattern.trim() ? { handle_pattern: draft.namePattern.trim() } : {}),
     ...(draft.messageRequired ? { is_message_required: true } : {}),
   }
   if (draft.fields === null) {

@@ -342,4 +342,18 @@ describe('containers/Bucket/Workflows/model', () => {
       model.applyPromote(config, model.promoteFromConfig(config)).successors,
     ).toEqual(config.successors)
   })
+
+  it('trims the name pattern', () => {
+    const next = model.applyFlow(undefined, draft({ namePattern: ' ^lab/ ' }), null)
+    expect(next.workflows.lab.handle_pattern).toBe('^lab/')
+  })
+
+  it('keeps an empty-enum schema out of the builder', () => {
+    expect(
+      model.schemaToFields({
+        type: 'object',
+        properties: { a: { type: 'string', enum: [] } },
+      }),
+    ).toBe(null)
+  })
 })

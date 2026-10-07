@@ -386,6 +386,21 @@ describe('utils/workflows', () => {
       expect(tag('(?<=ab|c)x')).toBe('uncheckable')
     })
 
+    it('rejects escapes Python refuses', () => {
+      for (const p of [
+        '^[\\A-z]',
+        '^[\\Z]',
+        '^[\\B]',
+        '^lab\\x4',
+        '^lab\\u00',
+        '^\\U0001',
+      ]) {
+        expect([p, tag(p)]).toEqual([p, 'invalid'])
+      }
+      ok('^lab\\x41', 'labA', 'lab')
+      ok('^lab\\u00e9$', 'labé', 'labe')
+    })
+
     it('rejects what Python would reject', () => {
       expect(tag('^\\p{L}+/')).toBe('invalid')
       expect(tag('(')).toBe('invalid')

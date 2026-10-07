@@ -210,6 +210,11 @@ function RulesSummary({
         </>,
       )
     } else {
+      rules.push(
+        <SchemaLink schema={workflow.schemas.metadata}>
+          Metadata rules (schema file)
+        </SchemaLink>,
+      )
       fields.forEach((f) =>
         rules.push(
           <>

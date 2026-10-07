@@ -30,6 +30,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface SelectWorkflowProps {
+  bucket: string
   disabled?: boolean
   error?: React.ReactNode
   items: workflows.Workflow[]
@@ -38,6 +39,7 @@ interface SelectWorkflowProps {
 }
 
 function SelectWorkflow({
+  bucket,
   disabled,
   error,
   items,
@@ -82,7 +84,7 @@ function SelectWorkflow({
       </M.Select>
       <M.FormHelperText>
         {!!error && <span className={classes.error}>{error}</span>}
-        <FlowsLink>Manage this bucket&apos;s flows</FlowsLink> or{' '}
+        <FlowsLink bucket={bucket}>Manage this bucket&apos;s flows</FlowsLink> or{' '}
         <M.Link href={`${docs}/workflows`} target="_blank">
           learn about flows
         </M.Link>
@@ -92,6 +94,7 @@ function SelectWorkflow({
 }
 
 interface InputWorkflowProps {
+  bucket: string
   formStatus: FormStatus
   schema: SchemaStatus
   state: WorkflowState
@@ -105,6 +108,7 @@ interface InputWorkflowProps {
  * and metadata schemas for the package.
  */
 export default function InputWorkflow({
+  bucket,
   formStatus,
   schema,
   state: { status, value, onChange },
@@ -119,6 +123,7 @@ export default function InputWorkflow({
   if (config._tag === 'loading') return <WorkflowsInputSkeleton />
   return (
     <SelectWorkflow
+      bucket={bucket}
       disabled={schema._tag === 'loading' || formStatus._tag === 'submitting'}
       error={error}
       items={config.config.workflows}
