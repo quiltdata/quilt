@@ -2914,6 +2914,72 @@ export default {
             ],
           },
           {
+            name: 'packagePatch',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackageConstructResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'params',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'src',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'packagePatchAsync',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackagePatchAsyncResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'params',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'src',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'packagePromote',
             type: {
               kind: 'NON_NULL',
@@ -4086,6 +4152,64 @@ export default {
       {
         kind: 'SCALAR',
         name: 'PackageOrdering',
+      },
+      {
+        kind: 'UNION',
+        name: 'PackagePatchAsyncResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackagePatchQueued',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackagePatchQueued',
+        fields: [
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'parent',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'UNION',

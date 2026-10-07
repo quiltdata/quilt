@@ -1073,6 +1073,32 @@ union PackageConstructResult =
 
 union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 
+input PackagePatchEntry {
+  logicalKey: String!
+  # s3:// URI of one object, or of a prefix ending in "/". A prefix sets every
+  # object under it at logicalKey + the key's remainder; logicalKey must then end in "/".
+  physicalKey: String!
+  # full entry metadata (same shape as PackageConstructEntry.meta)
+  meta: JsonRecord
+}
+
+input PackagePatchSource {
+  # Top hash to patch. Omitted: the latest revision at the time the patch runs
+  # (a package that doesn't exist yet starts empty).
+  parent: String
+  set: [PackagePatchEntry!]
+  # logical keys to remove; a key ending in "/" removes that directory
+  delete: [String!]
+}
+
+type PackagePatchQueued {
+  bucket: String!
+  name: String!
+  parent: String
+}
+
+union PackagePatchAsyncResult = PackagePatchQueued | InvalidInput | OperationError
+
 union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
   | OperationError
@@ -1224,6 +1250,8 @@ type Mutation {
     src: PackagePromoteSource!
     destPrefix: String
   ): PackagePromoteResult!
+  packagePatch(params: PackagePushParams!, src: PackagePatchSource!): PackageConstructResult!
+  packagePatchAsync(params: PackagePushParams!, src: PackagePatchSource!): PackagePatchAsyncResult!
   packageRevisionDelete(
     bucket: String!
     name: String!
