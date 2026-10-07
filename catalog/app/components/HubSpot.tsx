@@ -17,12 +17,53 @@ function hsq(...cmd: HsqCommand[]) {
   cmd.forEach((c) => q.push(c))
 }
 
+/** The element HubSpot renders its chat into (Assistant UI's Help panel). */
+export const EMBED_ID = 'hs-chat-panel'
+
+const conversations = () => (window as any).HubSpotConversations?.widget
+
+// The widget API exists only after the loader runs; queue until then.
+function whenReady(fn: () => void) {
+  if (conversations()) fn()
+  else ((window as any).hsConversationsOnReady ||= []).push(fn)
+}
+
+/** Renders HubSpot chat into `#EMBED_ID` while mounted; the element must exist first. */
+export function useEmbed() {
+  React.useEffect(() => {
+    whenReady(() => {
+      const w = conversations()
+      // `load()` is a no-op while a widget is loaded, which it still is when a
+      // close raced an unfinished load: its iframe then sits in the old element.
+      if (w.status?.().loaded) w.remove()
+      w.load()
+    })
+    return () => whenReady(() => conversations().remove())
+  }, [])
+}
+
+interface Chat {
+  open: boolean
+  show: () => void
+  hide: () => void
+}
+
+const ChatCtx = React.createContext<Chat | null>(null)
+
+export const useChat = () => React.useContext(ChatCtx)
+
 function HubSpotTracker() {
   const location = useLocation()
   const email: string | undefined = redux.useSelector(Auth.selectors.email)
   const path = `${location.pathname}${location.search}`
 
   React.useEffect(() => {
+    // Chat renders only inside the Help panel, never as the floating launcher
+    // that covers catalog controls (pagination). Must be set before the loader runs.
+    ;(window as any).hsConversationsSettings = {
+      loadImmediately: false,
+      inlineEmbedSelector: `#${EMBED_ID}`,
+    }
     const script = document.createElement('script')
     script.type = 'text/javascript'
     script.id = 'hs-script-loader'
@@ -52,12 +93,25 @@ function HubSpotTracker() {
   return null
 }
 
-export default function HubSpot({ children }: { children?: React.ReactNode }) {
-  if (!cfg.hubspotId) return <>{children}</>
+function HubSpotProvider({ children }: { children?: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false)
+  const chat = React.useMemo(
+    () => ({
+      open,
+      show: () => setOpen(true),
+      hide: () => setOpen(false),
+    }),
+    [open],
+  )
   return (
-    <>
+    <ChatCtx.Provider value={chat}>
       <HubSpotTracker />
       {children}
-    </>
+    </ChatCtx.Provider>
   )
+}
+
+export default function HubSpot({ children }: { children?: React.ReactNode }) {
+  if (!cfg.hubspotId) return <>{children}</>
+  return <HubSpotProvider>{children}</HubSpotProvider>
 }

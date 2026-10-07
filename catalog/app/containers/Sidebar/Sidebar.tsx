@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as Assistant from 'components/Assistant'
+import * as HubSpot from 'components/HubSpot'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
@@ -795,6 +796,7 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
   const subscription = Subscription.useState()
   const bookmarks = Bookmarks.use()
   const assistant = Assistant.Model.useAssistantAPI()
+  const chat = HubSpot.useChat()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
   const [collapsedPref, toggleCollapsed] = useCollapsed()
@@ -1042,6 +1044,18 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                 label="Admin"
                 to={urls.admin()}
                 selected={adminActive}
+                collapsed={collapsed}
+              />
+            )}
+            {chat && (
+              <NavRow
+                icon={<OutlinedIcon>support_agent</OutlinedIcon>}
+                label="Help"
+                onClick={() => {
+                  // The compact sidebar is a modal drawer stacked above the Help panel.
+                  onClose?.()
+                  chat.show()
+                }}
                 collapsed={collapsed}
               />
             )}
