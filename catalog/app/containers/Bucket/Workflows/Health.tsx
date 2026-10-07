@@ -4,20 +4,14 @@ import * as M from '@material-ui/core'
 import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import useId from 'utils/useId'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 
 import * as checks from './checks'
+import Field from './Field'
 import * as model from './model'
-
-// MUI only links a TextField's label to its input when it has an id.
-export function Field(props: M.TextFieldProps) {
-  const id = useId()
-  return <M.TextField id={id} {...props} />
-}
 
 type SchemaResult = checks.SchemaResult
 
