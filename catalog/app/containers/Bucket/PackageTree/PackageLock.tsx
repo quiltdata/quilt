@@ -20,9 +20,14 @@ export interface Lock {
 }
 
 // Its own query, so a registry without locks fails only this one and the package reads as unlocked.
-export function useLock(bucket: string, name: string) {
-  const { data } = GQL.useQuery(LOCK_QUERY, { bucket, name })
-  return { lock: data?.package?.lock ?? null, latestHash: data?.package?.latest?.hash }
+export function useLock(bucket: string, name: string, pause = false) {
+  const { data, run } = GQL.useQuery(LOCK_QUERY, { bucket, name }, { pause })
+  const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
+  return {
+    lock: data?.package?.lock ?? null,
+    latestHash: data?.package?.latest?.hash,
+    refresh,
+  }
 }
 
 interface NoticeProps {
@@ -71,7 +76,7 @@ function errorMessage(r: Result): string | null {
       return r.errors.map((e) => e.message).join('; ')
     case 'OperationError':
       return r.name === 'LatestMoved'
-        ? 'A new revision was pushed since this page loaded. Reload the page and try again.'
+        ? 'A new revision was pushed since this dialog opened. Lock again to lock the new latest revision.'
         : r.message
     default:
       return assertNever(r)
@@ -82,9 +87,19 @@ type DialogProps = {
   bucket: string
   name: string
   onClose: () => void
-} & ({ action: 'lock'; hash: string } | { action: 'unlock'; hash?: never })
+} & (
+  | { action: 'lock'; hash: string; onLatestMoved?: () => void }
+  | { action: 'unlock'; hash?: never; onLatestMoved?: never }
+)
 
-export function Dialog({ bucket, name, action, hash, onClose }: DialogProps) {
+export function Dialog({
+  bucket,
+  name,
+  action,
+  hash,
+  onClose,
+  onLatestMoved,
+}: DialogProps) {
   const lock = GQL.useMutation(LOCK)
   const unlock = GQL.useMutation(UNLOCK)
   const [reason, setReason] = React.useState('')
@@ -102,12 +117,13 @@ export function Dialog({ bucket, name, action, hash, onClose }: DialogProps) {
           : (await unlock({ bucket, name })).packageUnlock
       const msg = errorMessage(r)
       if (!msg) return onClose()
+      if (r.__typename === 'OperationError' && r.name === 'LatestMoved') onLatestMoved?.()
       setError(msg)
     } catch (e: any) {
       setError(`Unexpected error: ${e.message ?? e}`)
     }
     setLoading(false)
-  }, [bucket, name, action, hash, reason, lock, unlock, onClose])
+  }, [bucket, name, action, hash, reason, lock, unlock, onClose, onLatestMoved])
 
   const verb = action === 'lock' ? 'Lock' : 'Unlock'
   return (

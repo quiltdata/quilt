@@ -3,6 +3,7 @@ import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
 import { isQuickPreviewAvailable } from 'components/Preview/quick'
+import * as PackageLock from 'containers/Bucket/PackageTree/PackageLock'
 import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
@@ -48,6 +49,18 @@ function useRedirect() {
   )
 }
 
+function useAddsToLockedPackage(add?: string) {
+  const pkg = React.useMemo(() => {
+    try {
+      return add ? PackageUri.parse(add) : null
+    } catch {
+      return null
+    }
+  }, [add])
+  const { lock } = PackageLock.useLock(pkg?.bucket ?? '', pkg?.name ?? '', !pkg)
+  return !!lock
+}
+
 export interface EditorState {
   editing: EditorInputType | null
   error: Error | null
@@ -66,12 +79,14 @@ export interface EditorState {
 export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   const types = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
-  const { edit } = parseSearch(location.search, true)
+  const { add, edit } = parseSearch(location.search, true)
+  const locked = useAddsToLockedPackage(add)
   const [error, setError] = React.useState<Error | null>(null)
   const [value, setValue] = React.useState<string | undefined>()
-  const [editing, setEditing] = React.useState<EditorInputType | null>(
+  const [editingState, setEditing] = React.useState<EditorInputType | null>(
     edit ? types[0] : null,
   )
+  const editing = locked ? null : editingState
   const [preview, setPreview] = React.useState<boolean>(false)
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)

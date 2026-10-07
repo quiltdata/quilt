@@ -92,7 +92,13 @@ function ThumbnailsWrapper({
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
+export default function BucketSummary({
+  files,
+  mkUrl: mkUrlProp,
+  packageHandle,
+  path,
+  locked = false,
+}) {
   const { urls } = NamedRoutes.use()
   const { prefs } = BucketPreferences.use()
   const mkUrl = React.useCallback(
@@ -119,6 +125,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
             (!readme || !summarize) &&
             !path &&
             !!packageHandle &&
+            !locked &&
             !!actions.revisePackage && (
               <Summarize.ConfigureAppearance
                 hasReadme={!!readme}

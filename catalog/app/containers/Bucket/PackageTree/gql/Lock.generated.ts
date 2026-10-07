@@ -28,6 +28,7 @@ export interface containers_Bucket_PackageTree_gql_LockQuery {
     readonly latest: {
       readonly __typename: 'PackageRevision'
       readonly hash: string
+      readonly modified: Date
     } | null
   } | null
 }
@@ -108,6 +109,7 @@ export const containers_Bucket_PackageTree_gql_LockDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                     ],
                   },
                 },

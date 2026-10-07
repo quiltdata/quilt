@@ -12,6 +12,7 @@ import * as s3paths from 'utils/s3paths'
 import * as Request from 'utils/useRequest'
 import * as workflows from 'utils/workflows'
 
+import * as PackageLock from '../../PackageTree/PackageLock'
 import PACKAGE_EXISTS_QUERY from '../gql/PackageExists.generated'
 
 import type { FormStatus } from './form'
@@ -83,8 +84,20 @@ export function useNameExistence(
     dst as Required<PackageDst>,
     { pause },
   )
+  const { lock } = PackageLock.useLock(
+    dst.bucket,
+    dst.name ?? '',
+    !dst.bucket || !dst.name,
+  )
   return React.useMemo(() => {
     if (!dst.bucket || !dst.name) return { _tag: 'idle' }
+    // Files upload before the push, so a locked destination is refused here, not by it.
+    if (lock) {
+      return {
+        _tag: 'error',
+        error: new Error('This package is locked; an admin must unlock it first'),
+      }
+    }
     if (dst.bucket === src?.bucket && dst.name === src.name) {
       return { _tag: 'new-revision' }
     }
@@ -109,7 +122,7 @@ export function useNameExistence(
       fetching: () => ({ _tag: 'loading' }),
       error: (error) => ({ _tag: 'error', error }),
     })
-  }, [disableRestore, dst, packageExistsQuery, src])
+  }, [disableRestore, dst, lock, packageExistsQuery, src])
 }
 
 function useNameValidator(dst: PackageDst): NameValidationStatus {

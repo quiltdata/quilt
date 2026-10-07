@@ -10,6 +10,7 @@ query ($bucket: String!, $name: String!) {
     }
     latest: revision(hashOrTag: "latest") {
       hash
+      modified
     }
   }
 }

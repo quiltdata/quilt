@@ -87,6 +87,18 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   invalidateRootField(cache, 'packages')
 }
 
+// "Already locked" means the cached lock is stale too, so the page can show the real one.
+export function handlePackageLock(
+  result: any,
+  { bucket, name }: GraphCache.Variables,
+  cache: Pick<GraphCache.Cache, 'invalidate'>,
+) {
+  const alreadyLocked =
+    result.__typename === 'OperationError' && result.name === 'PackageLocked'
+  if (result.__typename !== 'PackageLock' && !alreadyLocked) return
+  cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
+}
+
 function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
   if (!policy.roles) return
   const roleIds = R.pluck('id', policy.roles as { id: string }[])
@@ -423,9 +435,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.invalidate({ __typename: 'Package', bucket, name })
               invalidateRootField(cache, 'packages')
             },
-            packageLock: (result, { bucket, name }, cache) => {
-              if ((result.packageLock as any).__typename !== 'PackageLock') return
-              cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
+            packageLock: (result, args, cache) => {
+              handlePackageLock(result.packageLock, args, cache)
             },
             packageUnlock: (result, { bucket, name }, cache) => {
               if ((result.packageUnlock as any).__typename !== 'Ok') return

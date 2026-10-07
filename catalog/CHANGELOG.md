@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Added] Admins can lock a package at its latest revision; a locked package shows who locked it and why, and hides its revise, edit and delete actions until an admin unlocks it ([#5399](https://github.com/quiltdata/quilt/pull/5399))
+- [Added] Admins can lock a package at its latest revision; a locked package shows who locked it and why, and hides its revise, edit and delete actions and refuses new revisions from the package dialog until an admin unlocks it ([#5399](https://github.com/quiltdata/quilt/pull/5399))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
