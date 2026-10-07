@@ -144,11 +144,29 @@ describe('components/Assistant/UI/Chat/Menu', () => {
 
   const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
 
-  function renderMenu(devToolsOpen: boolean, onToggleDevTools = vi.fn()) {
+  const sessionsStub = (
+    over: Partial<Model.Assistant.API['sessions']> = {},
+  ): Model.Assistant.API['sessions'] => ({
+    available: true,
+    enabled: false,
+    setEnabled: vi.fn(),
+    list: [],
+    currentId: null,
+    open: vi.fn(),
+    remove: vi.fn(),
+    ...over,
+  })
+
+  function renderMenu(
+    devToolsOpen: boolean,
+    onToggleDevTools = vi.fn(),
+    sessions = sessionsStub(),
+  ) {
     render(
       <Menu
         state={idle}
         dispatch={vi.fn()}
+        sessions={sessions}
         devToolsOpen={devToolsOpen}
         onToggleDevTools={onToggleDevTools}
       />,
@@ -170,6 +188,74 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     fireEvent.click(screen.getByText('Hide Developer Tools'))
     expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('turns kept sessions on from the menu', () => {
+    const sessions = sessionsStub()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Keep sessions in this browser (preview)'))
+    expect(sessions.setEnabled).toHaveBeenCalledWith(true)
+  })
+
+  const kept = () =>
+    sessionsStub({
+      enabled: true,
+      list: [
+        {
+          id: 's1',
+          title: 'Find my packages',
+          updatedAt: new Date().toISOString(),
+          envelope: { v: 1, events: [] },
+        },
+      ],
+    })
+
+  it('asks before turning off deletes kept sessions', () => {
+    const sessions = kept()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Keep sessions in this browser (preview)'))
+    expect(sessions.setEnabled).not.toHaveBeenCalled()
+    expect(
+      screen.getByText('This deletes the 1 session kept in this browser.'),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByText('Delete and turn off'))
+    expect(sessions.setEnabled).toHaveBeenCalledWith(false)
+  })
+
+  it('keeps sessions when turning off is cancelled', () => {
+    const sessions = kept()
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Keep sessions in this browser (preview)'))
+    fireEvent.click(screen.getByText('Cancel'))
+    expect(sessions.setEnabled).not.toHaveBeenCalled()
+  })
+
+  it('opens and deletes a recent session', () => {
+    const sessions = sessionsStub({
+      enabled: true,
+      list: [
+        {
+          id: 's1',
+          title: 'Find my packages',
+          updatedAt: new Date().toISOString(),
+          envelope: { v: 1, events: [] },
+        },
+      ],
+    })
+    renderMenu(false, vi.fn(), sessions)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByLabelText('Delete session: Find my packages'))
+    expect(sessions.remove).toHaveBeenCalledWith('s1')
+    expect(sessions.open).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: /Find my packages/ }), {
+      key: 'Delete',
+    })
+    expect(sessions.remove).toHaveBeenCalledTimes(2)
+    fireEvent.click(screen.getByText('Find my packages'))
+    expect(sessions.open).toHaveBeenCalledWith('s1')
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {
