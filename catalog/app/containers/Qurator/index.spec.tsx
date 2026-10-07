@@ -13,6 +13,7 @@ function fakeViewport(height: number, offsetTop = 0) {
   const vv = {
     height,
     offsetTop,
+    scale: 1,
     addEventListener: (e: string, f: () => void) => {
       listeners[e] = f
     },
@@ -45,6 +46,17 @@ describe('containers/Qurator useKeyboardFrame', () => {
     act(() => {
       vv.height = window.innerHeight
       vv.offsetTop = 0
+      fire('resize')
+    })
+    expect(result.current).toBeUndefined()
+  })
+
+  it('ignores a pinch-zoom', () => {
+    const { vv, fire } = fakeViewport(window.innerHeight)
+    const { result } = renderHook(() => useKeyboardFrame())
+    act(() => {
+      vv.scale = 2
+      vv.height = window.innerHeight / 2
       fire('resize')
     })
     expect(result.current).toBeUndefined()
