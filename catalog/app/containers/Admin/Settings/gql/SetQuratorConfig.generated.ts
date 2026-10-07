@@ -10,6 +10,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 /**
  * Replaces the whole Qurator configuration. Every field is explicit, so a write
  * states the full intent: omitting one does not preserve it. Null clears a field.
+ * The two session fields are the exception: omitting one keeps its stored value.
  */
 export interface QuratorConfigInput {
   readonly allowlist: Array<string> | null | undefined
@@ -17,9 +18,13 @@ export interface QuratorConfigInput {
   readonly gatewayAccountId: string | null | undefined
   readonly gatewayEndpointUrl: string | null | undefined
   readonly maxToolCallsPerTurn: number | null | undefined
-  /** Each id must be in `allowlist`; each name is 1 to 64 characters. */
+  /** Each id must be in `allowlist`; each name, once trimmed, is 1 to 64 printable characters. */
   readonly names: Array<QuratorModelNameInput> | null | undefined
   readonly requestTimeoutSeconds: number | null | undefined
+  /** 1 to 500. */
+  readonly sessionMaxPerUser: number | null | undefined
+  /** 0 to 3650. 0 hides every session without deleting it; `quratorSessionsPurgeAll` deletes. */
+  readonly sessionRetentionDays: number | null | undefined
 }
 
 export interface QuratorModelNameInput {
@@ -53,6 +58,8 @@ export interface containers_Admin_Settings_gql_SetQuratorConfigMutation {
             readonly default: string | null
             readonly requestTimeoutSeconds: number | null
             readonly maxToolCallsPerTurn: number | null
+            readonly sessionRetentionDays: number | null
+            readonly sessionMaxPerUser: number | null
             readonly names: ReadonlyArray<{
               readonly __typename: 'QuratorModelName'
               readonly id: string
@@ -144,6 +151,14 @@ export const containers_Admin_Settings_gql_SetQuratorConfigDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'maxToolCallsPerTurn' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'sessionRetentionDays' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'sessionMaxPerUser' },
                                   },
                                   {
                                     kind: 'Field',

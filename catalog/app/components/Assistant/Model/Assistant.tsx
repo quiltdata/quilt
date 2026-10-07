@@ -3,9 +3,12 @@ import invariant from 'invariant'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 
 import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
+import * as GQL from 'utils/GraphQL'
+import type { JsonRecord } from 'utils/types'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
@@ -19,8 +22,14 @@ import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import * as ModelChoice from './ModelChoice'
+import * as Sessions from './Sessions'
 import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
+import SESSION_QUERY from './gql/QuratorSession.generated'
+import DELETE_SESSION_MUTATION from './gql/QuratorSessionDelete.generated'
+import SAVE_SESSION_MUTATION from './gql/QuratorSessionSave.generated'
+import SESSIONS_QUERY from './gql/QuratorSessions.generated'
+import SET_SESSIONS_ENABLED_MUTATION from './gql/QuratorSessionsSetEnabled.generated'
 
 export const DISABLED = Symbol('DISABLED')
 
@@ -281,6 +290,298 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
   return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
+const TOO_LARGE = 'This session is too long to keep — start a new one'
+const UNSAVABLE = "This session can't be kept — start a new one"
+
+// A hung request must not leave the chat locked while a session opens or is deleted.
+const TIMED_OUT = Symbol('timed out')
+const capped = <T,>(p: Promise<T>): Promise<T | typeof TIMED_OUT> => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), 10_000)
+  })
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer))
+}
+const UNREADABLE = "That session couldn't be opened"
+const UNDELETABLE = "That session couldn't be deleted"
+const DELETED_LATE = 'This session was deleted, so it is no longer kept — start a new one'
+const UNSWITCHABLE = "Keep sessions couldn't be changed"
+
+/**
+ * No save on page exit: `sendBeacon` and `fetch(keepalive)` cap the body at
+ * 64 KiB and a session can be 1 MiB, so a reload loses the last debounce.
+ */
+export function useSessions(
+  state: Conversation.State,
+  dispatch: (action: Conversation.Action) => unknown,
+  model: string,
+  visible: boolean,
+) {
+  const client = urql.useClient()
+  const query = GQL.useQuery(SESSIONS_QUERY)
+  const saveSession = GQL.useMutation(SAVE_SESSION_MUTATION)
+  const deleteSession = GQL.useMutation(DELETE_SESSION_MUTATION)
+  const setSessionsEnabled = GQL.useMutation(SET_SESSIONS_ENABLED_MUTATION)
+
+  const available = !!query.data?.config.quratorModels?.sessionsEnabled
+  // The user's own switch takes effect at once, not when the registry answers.
+  const [choice, setChoice] = React.useState<boolean | null>(null)
+  const enabled = available && (choice ?? !!query.data?.me?.quratorSessionsEnabled)
+  const sessions = query.data?.me?.quratorSessions
+  // One emptied by discarding everything holds nothing to reopen.
+  const list = React.useMemo(
+    () => (enabled && sessions?.filter((s) => s.eventCount > 0)) || [],
+    [enabled, sessions],
+  )
+  const head = state.events[0]?.id
+  const currentId = Eff.Option.getOrNull(state.sessionId)
+
+  const [notice, setNotice] = React.useState<{ head?: string; text: string } | null>(null)
+  // A notice belongs to the conversation it was raised on, empty ones included.
+  React.useEffect(() => setNotice((n) => (n?.head === head ? n : null)), [head])
+
+  const { run } = query
+  const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
+  const passThru = usePassThru({ saveSession, dispatch, refresh, model })
+  const currentIdNow = usePassThru(currentId)
+  const opening = React.useRef<{
+    id: string
+    version: number
+    events: Conversation.Event[]
+  }>()
+
+  const queue = useConst(() =>
+    Sessions.createSaveQueue<Conversation.Event[]>({
+      send: async ({ id, baseVersion, events, checkpoint }) => {
+        const files = checkpoint
+          ? Sessions.checkpointOf(events, passThru.current.model, new Date())
+          : null
+        // Answered as the registry would answer it, without the round trip.
+        if (checkpoint && !files) return { _tag: 'CheckpointTooLarge' }
+        const { quratorSessionSave } = await passThru.current.saveSession({
+          input: {
+            id,
+            baseVersion,
+            title: Sessions.titleOf(events),
+            events: Sessions.encode(events) as unknown as JsonRecord,
+            checkpoint: files,
+          },
+        })
+        return Sessions.outcomeOf(quratorSessionSave)
+      },
+      onCreated: ({ head: h, basis, id }) => {
+        passThru.current.dispatch(
+          Conversation.Action.Saved({
+            sessionId: Eff.Option.fromNullable(basis),
+            head: h,
+            id,
+          }),
+        )
+        passThru.current.refresh()
+      },
+      isEmpty: (events) => events.every((e) => e.discarded),
+      onStopped: (h, reason) => {
+        if (reason === 'Disabled') passThru.current.refresh()
+        else setNotice({ head: h, text: reason === 'TooLarge' ? TOO_LARGE : UNSAVABLE })
+      },
+    }),
+  )
+
+  React.useEffect(() => {
+    // The queue switches only once the actor shows the opened events: a Restore
+    // it ignored outside Idle must not move the queue to another session alone.
+    const o = opening.current
+    if (head && o?.events === state.events) {
+      opening.current = undefined
+      queue.adopt(head, o.id, o.version, o.events)
+    }
+    if (!enabled) {
+      queue.pause()
+      return
+    }
+    queue.resume()
+    // Every change, discards included: a saved conversation whose messages are
+    // all discarded is saved empty, so they do not reopen.
+    if (head) queue.change(head, state.events)
+  }, [enabled, head, currentId, state.events, queue])
+
+  // New session, closing the panel and unmounting each checkpoint the conversation;
+  // the queue itself checkpoints one left for another.
+  React.useEffect(() => {
+    if (!head) queue.checkpoint()
+  }, [head, queue])
+  React.useEffect(() => {
+    if (!visible) queue.checkpoint()
+  }, [visible, queue])
+  // Closing the tab runs no cleanup and allows no large request, so hiding it
+  // is the last trigger that can still send.
+  React.useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') queue.checkpoint()
+    }
+    document.addEventListener('visibilitychange', onHidden)
+    return () => document.removeEventListener('visibilitychange', onHidden)
+  }, [queue])
+  React.useEffect(
+    () => () => {
+      queue.checkpoint()
+      queue.pause()
+    },
+    [queue],
+  )
+
+  const latestOpen = React.useRef(0)
+  const headNow = usePassThru(head)
+  // Asking is blocked meanwhile: Restore and Clear apply only while Idle.
+  const [switching, setSwitching] = React.useState(0)
+  const whileSwitching = React.useCallback(
+    <A extends unknown[]>(f: (...args: A) => Promise<void>) =>
+      async (...args: A) => {
+        setSwitching((n) => n + 1)
+        try {
+          await f(...args)
+        } finally {
+          setSwitching((n) => n - 1)
+        }
+      },
+    [],
+  )
+
+  const open = React.useMemo(
+    () =>
+      whileSwitching(async (id: string) => {
+        if (id === currentId) return
+        const ticket = ++latestOpen.current
+        // The session being opened may be the one just left, with its last save pending.
+        // Not past a save still pending: it may be this session's, newer than a read now.
+        const giveUp = () => {
+          latestOpen.current += 1
+          setNotice({ head: headNow.current, text: UNREADABLE })
+        }
+        if ((await capped(queue.flush())) === TIMED_OUT) return giveUp()
+        const r = await capped(
+          client
+            .query(SESSION_QUERY, { id }, { requestPolicy: 'network-only' })
+            .toPromise(),
+        )
+        if (r === TIMED_OUT) return giveUp()
+        // A later open or a new conversation since the click wins over this one.
+        if (ticket !== latestOpen.current || headNow.current !== head) return
+        const session = r.data?.me?.quratorSession
+        const events = session && Sessions.decode(session.events)
+        if (!session || !events?.length) {
+          setNotice({ head, text: UNREADABLE })
+          refresh()
+          return
+        }
+        opening.current = { id: session.id, version: session.version, events }
+        dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
+      }),
+    [whileSwitching, client, currentId, head, headNow, queue, dispatch, refresh],
+  )
+
+  const remove = React.useMemo(
+    () =>
+      whileSwitching(async (id: string) => {
+        // Held before anything else, so no save of it, nor a fork of one,
+        // meets the delete and recreates it.
+        queue.hold(id)
+        await capped(queue.flush())
+        const request = deleteSession({ id }).catch(() => null)
+        // Already gone (expired, or deleted elsewhere) is as good as deleted.
+        const isDeleted = (a: Awaited<typeof request>) => {
+          const r = a?.quratorSessionDelete
+          return (
+            r?.__typename === 'Ok' ||
+            (r?.__typename === 'InvalidInput' && r.errors[0]?.name === 'NotFound')
+          )
+        }
+        const answer = await capped(request)
+        if (answer === TIMED_OUT) {
+          // The chat unlocks, but the session stays held until the delete
+          // answers: a save meeting a late delete would recreate it.
+          setNotice({ head: headNow.current, text: UNDELETABLE })
+          request.then((a) => {
+            const late = isDeleted(a)
+            queue.release(id, late)
+            refresh()
+            if (late && id === currentIdNow.current)
+              setNotice({ head: headNow.current, text: DELETED_LATE })
+          })
+          return
+        }
+        const deleted = isDeleted(answer)
+        queue.release(id, deleted)
+        refresh()
+        if (!deleted) setNotice({ head: headNow.current, text: UNDELETABLE })
+        // Read now: the user may have opened another conversation meanwhile.
+        else if (id === currentIdNow.current) dispatch(Conversation.Action.Clear())
+      }),
+    [whileSwitching, currentIdNow, headNow, queue, dispatch, deleteSession, refresh],
+  )
+
+  const latestToggle = React.useRef(0)
+  const setEnabled = React.useCallback(
+    async (on: boolean) => {
+      const ticket = ++latestToggle.current
+      setChoice(on)
+      const r = await setSessionsEnabled({ enabled: on }).catch(() => null)
+      if (r?.quratorSessionsSetEnabled.__typename !== 'Ok') {
+        setNotice({ head: headNow.current, text: UNSWITCHABLE })
+        if (ticket === latestToggle.current) setChoice(null)
+      }
+      // The registry's answer stands from here, including a change from another tab.
+      const read = await client
+        .query(SESSIONS_QUERY, {}, { requestPolicy: 'network-only' })
+        .toPromise()
+      if (ticket === latestToggle.current && read.data) setChoice(null)
+    },
+    [client, headNow, setSessionsEnabled],
+  )
+
+  return React.useMemo(
+    () => ({
+      available,
+      enabled,
+      setEnabled,
+      list,
+      currentId,
+      open,
+      remove,
+      refresh,
+      switching: switching > 0,
+      notice: notice && notice.head === head ? notice.text : null,
+    }),
+    [
+      available,
+      enabled,
+      setEnabled,
+      list,
+      currentId,
+      open,
+      remove,
+      refresh,
+      switching,
+      notice,
+      head,
+    ],
+  )
+}
+
+/** The panel's visibility, and the sessions it checkpoints on closing. */
+export function usePanel(
+  state: Conversation.State,
+  dispatch: (action: Conversation.Action) => unknown,
+  model: string,
+) {
+  // XXX: move this to actor state?
+  const [visible, setVisible] = React.useState(false)
+  const show = React.useCallback(() => setVisible(true), [])
+  const hide = React.useCallback(() => setVisible(false), [])
+  const sessions = useSessions(state, dispatch, model, visible)
+  return { visible, show, hide, sessions }
+}
+
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
@@ -320,17 +621,15 @@ function useConstructAssistantAPI() {
 
   GlobalContext.use(llm)
 
-  // XXX: move this to actor state?
-  const [visible, setVisible] = React.useState(false)
-  const show = React.useCallback(() => setVisible(true), [])
-  const hide = React.useCallback(() => setVisible(false), [])
+  const { visible, show, hide, sessions } = usePanel(state, dispatch, model.current)
 
   const assist = React.useCallback(
     (msg?: string) => {
-      if (msg) dispatch(Conversation.Action.Ask({ content: msg }))
+      // Not while a session opens or is deleted: those apply only while Idle.
+      if (msg && !sessions.switching) dispatch(Conversation.Action.Ask({ content: msg }))
       show()
     },
-    [show, dispatch],
+    [show, dispatch, sessions.switching],
   )
 
   return {
@@ -341,6 +640,7 @@ function useConstructAssistantAPI() {
     state,
     dispatch,
     busy,
+    sessions,
     connectors,
     instructions,
     model,

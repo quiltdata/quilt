@@ -520,6 +520,12 @@ export interface Me {
   readonly email: Scalars['String']['output']
   readonly isAdmin: Scalars['Boolean']['output']
   readonly name: Scalars['String']['output']
+  /** Null for an id that is not one of this user's visible sessions. */
+  readonly quratorSession: Maybe<QuratorSession>
+  /** Most recently saved first. Empty while sessions are off for the stack or this user. */
+  readonly quratorSessions: ReadonlyArray<QuratorSession>
+  /** This user's own choice; the stack's is `QuratorModelConfig.sessionsEnabled`. */
+  readonly quratorSessionsEnabled: Scalars['Boolean']['output']
   readonly role: MyRole
   readonly roles: ReadonlyArray<MyRole>
 }
@@ -532,6 +538,14 @@ export interface MeapiKeysArgs {
   fingerprint: InputMaybe<Scalars['String']['input']>
   name: InputMaybe<Scalars['String']['input']>
   status: InputMaybe<APIKeyStatus>
+}
+
+export interface MequratorSessionArgs {
+  id: Scalars['ID']['input']
+}
+
+export interface MequratorSessionsArgs {
+  first?: InputMaybe<Scalars['Int']['input']>
 }
 
 export interface MutateUserAdminMutations {
@@ -595,6 +609,17 @@ export interface Mutation {
   readonly policyDelete: PolicyDeleteResult
   readonly policyUpdateManaged: PolicyResult
   readonly policyUpdateUnmanaged: PolicyResult
+  /** Also deletes your own hidden sessions (expired, or while sessions are off). */
+  readonly quratorSessionDelete: OperationResult
+  readonly quratorSessionSave: QuratorSessionSaveResult
+  /**
+   * Deletes every user's sessions and queues their packages' deletion, which runs
+   * in the background after `Ok`. Refused as `OperationError` `SessionsOn` unless
+   * the session retention is 0.
+   */
+  readonly quratorSessionsPurgeAll: OperationResult
+  /** Off hides this user's sessions and stops saving them; retention still expires them. */
+  readonly quratorSessionsSetEnabled: OperationResult
   readonly restoreObject: RestoreObjectResult
   readonly roleCreateManaged: RoleCreateResult
   readonly roleCreateUnmanaged: RoleCreateResult
@@ -695,6 +720,18 @@ export interface MutationpolicyUpdateManagedArgs {
 export interface MutationpolicyUpdateUnmanagedArgs {
   id: Scalars['ID']['input']
   input: UnmanagedPolicyInput
+}
+
+export interface MutationquratorSessionDeleteArgs {
+  id: Scalars['ID']['input']
+}
+
+export interface MutationquratorSessionSaveArgs {
+  input: QuratorSessionSaveInput
+}
+
+export interface MutationquratorSessionsSetEnabledArgs {
+  enabled: Scalars['Boolean']['input']
 }
 
 export interface MutationrestoreObjectArgs {
@@ -1235,6 +1272,7 @@ export interface QuratorConfig {
 /**
  * Replaces the whole Qurator configuration. Every field is explicit, so a write
  * states the full intent: omitting one does not preserve it. Null clears a field.
+ * The two session fields are the exception: omitting one keeps its stored value.
  */
 export interface QuratorConfigInput {
   readonly allowlist: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
@@ -1242,9 +1280,13 @@ export interface QuratorConfigInput {
   readonly gatewayAccountId: InputMaybe<Scalars['String']['input']>
   readonly gatewayEndpointUrl: InputMaybe<Scalars['String']['input']>
   readonly maxToolCallsPerTurn: InputMaybe<Scalars['Int']['input']>
-  /** Each id must be in `allowlist`; each name is 1 to 64 characters. */
+  /** Each id must be in `allowlist`; each name, once trimmed, is 1 to 64 printable characters. */
   readonly names: InputMaybe<ReadonlyArray<QuratorModelNameInput>>
   readonly requestTimeoutSeconds: InputMaybe<Scalars['Int']['input']>
+  /** 1 to 500. */
+  readonly sessionMaxPerUser: InputMaybe<Scalars['Int']['input']>
+  /** 0 to 3650. 0 hides every session without deleting it; `quratorSessionsPurgeAll` deletes. */
+  readonly sessionRetentionDays: InputMaybe<Scalars['Int']['input']>
 }
 
 /**
@@ -1274,6 +1316,12 @@ export interface QuratorModelConfig {
   /** Admin-chosen names the model picker shows in place of a model's id. */
   readonly names: Maybe<ReadonlyArray<QuratorModelName>>
   readonly requestTimeoutSeconds: Maybe<Scalars['Int']['output']>
+  /** Sessions kept per user, oldest dropped first. Null means 50. */
+  readonly sessionMaxPerUser: Maybe<Scalars['Int']['output']>
+  /** Days a session is kept after its last save. Null means 90; 0 turns sessions off. */
+  readonly sessionRetentionDays: Maybe<Scalars['Int']['output']>
+  /** Whether this stack keeps sessions at all: false while retention is 0. */
+  readonly sessionsEnabled: Scalars['Boolean']['output']
 }
 
 export enum QuratorModelListingUnavailable {
@@ -1293,6 +1341,58 @@ export interface QuratorModelNameInput {
   readonly id: Scalars['String']['input']
   readonly name: Scalars['String']['input']
 }
+
+/** A saved Qurator conversation, visible only to the user who saved it. */
+export interface QuratorSession {
+  readonly __typename: 'QuratorSession'
+  readonly createdAt: Scalars['Datetime']['output']
+  readonly eventCount: Scalars['Int']['output']
+  /** The `{v: 1, events: [...]}` envelope as saved. */
+  readonly events: Scalars['JsonRecord']['output']
+  readonly id: Scalars['ID']['output']
+  /** The latest checkpoint pushed as a Quilt package; null until the first. */
+  readonly package: Maybe<QuratorSessionPackage>
+  readonly title: Scalars['String']['output']
+  readonly updatedAt: Scalars['Datetime']['output']
+  readonly version: Scalars['Int']['output']
+}
+
+/** The files of a `quilt.qurator.session/1` package, as the client renders them. */
+export interface QuratorSessionCheckpointInput {
+  readonly readme: Scalars['String']['input']
+  readonly session: Scalars['JsonRecord']['input']
+  readonly transcript: Scalars['String']['input']
+}
+
+/** A session's package in the stack's private sessions bucket, which no user role can read. */
+export interface QuratorSessionPackage {
+  readonly __typename: 'QuratorSessionPackage'
+  readonly bucket: Scalars['String']['output']
+  /** `<user id>/<session id>` */
+  readonly name: Scalars['String']['output']
+  readonly revisedAt: Scalars['Datetime']['output']
+  readonly topHash: Scalars['String']['output']
+}
+
+/**
+ * Omit `id` to create a session. With `id`, `baseVersion` must be the version the
+ * caller last read, or the save is refused as `Conflict`.
+ */
+export interface QuratorSessionSaveInput {
+  readonly baseVersion: InputMaybe<Scalars['Int']['input']>
+  /** Also push a package revision once the save commits; a failed push does not fail the save. */
+  readonly checkpoint: InputMaybe<QuratorSessionCheckpointInput>
+  readonly events: Scalars['JsonRecord']['input']
+  readonly id: InputMaybe<Scalars['ID']['input']>
+  readonly title: Scalars['String']['input']
+}
+
+/**
+ * `InvalidInput` names one of `NotFound`, `Conflict` (context `currentVersion`),
+ * `BadEnvelope` or `TooLarge` (`input.events` over 1 MiB, or `input.checkpoint`
+ * over 2 MiB); `OperationError` is `Disabled`.
+ */
+export type QuratorSessionSaveResult = InvalidInput | OperationError | QuratorSession
 
 export type RestoreObjectResult = InvalidInput | OperationError | RestoreObjectSuccess
 

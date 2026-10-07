@@ -1,0 +1,5 @@
+mutation ($enabled: Boolean!) {
+  quratorSessionsSetEnabled(enabled: $enabled) {
+    __typename
+  }
+}

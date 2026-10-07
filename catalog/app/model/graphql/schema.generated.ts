@@ -2261,6 +2261,66 @@ export default {
             args: [],
           },
           {
+            name: 'quratorSession',
+            type: {
+              kind: 'OBJECT',
+              name: 'QuratorSession',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'quratorSessions',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'QuratorSession',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'first',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'quratorSessionsEnabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'role',
             type: {
               kind: 'NON_NULL',
@@ -3133,6 +3193,89 @@ export default {
                   ofType: {
                     kind: 'SCALAR',
                     name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'quratorSessionDelete',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'OperationResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'quratorSessionSave',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'QuratorSessionSaveResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'quratorSessionsPurgeAll',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'OperationResult',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'quratorSessionsSetEnabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'OperationResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'enabled',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
                   },
                 },
               },
@@ -5767,6 +5910,36 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'sessionMaxPerUser',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'sessionRetentionDays',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'sessionsEnabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -5800,6 +5973,179 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'QuratorSession',
+        fields: [
+          {
+            name: 'createdAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'eventCount',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'events',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'JsonRecord',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'package',
+            type: {
+              kind: 'OBJECT',
+              name: 'QuratorSessionPackage',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'updatedAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'version',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'QuratorSessionPackage',
+        fields: [
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'revisedAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'topHash',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'QuratorSessionSaveResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'QuratorSession',
+          },
+        ],
       },
       {
         kind: 'UNION',

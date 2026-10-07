@@ -3,14 +3,17 @@ import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { useConfirm } from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
 import * as Buckets from 'utils/Buckets'
 import { runtime } from 'utils/Effect'
+import * as Format from 'utils/format'
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
+import { isPackaged } from '../../Model/Sessions'
 
 import DevTools from './DevTools'
 import Input from './Input'
@@ -446,9 +449,87 @@ function AwaitingConnectorState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
+function SavedAgo({ date }: { date: Date }) {
+  return <span title={date.toLocaleString()}>{Format.relativify(date)}</span>
+}
+
+const useMenuStyles = M.makeStyles({
+  session: {
+    maxWidth: 360,
+  },
+})
+
+type Sessions = Model.Assistant.API['sessions']
+
+// Keeps the upload and package-construct code out of the Assistant bundle.
+const Save = React.lazy(() => import('containers/QuratorMode/Save'))
+
+function SessionTime({ session }: { session: Sessions['list'][number] }) {
+  return (
+    <>
+      {isPackaged(session) && 'Saved as package · '}
+      <SavedAgo date={session.updatedAt} />
+    </>
+  )
+}
+
+const useSaveStyles = M.makeStyles((t) => ({
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `${t.spacing(2)}px`,
+  },
+}))
+
+function SaveToBucket({ onClose }: { onClose: () => void }) {
+  const classes = useSaveStyles()
+  const api = Model.useAssistantAPI()
+  if (!api) return null
+  return (
+    <M.Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <M.DialogContent className={classes.content}>
+        <React.Suspense fallback={<M.CircularProgress size={20} />}>
+          <Save api={api} />
+        </React.Suspense>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose}>Close</M.Button>
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
+interface LastSessionProps {
+  sessions: Sessions
+  state: Model.Assistant.API['state']
+}
+
+/** Offered, never opened by itself: two tabs would otherwise write one session. */
+export function LastSession({ sessions, state }: LastSessionProps) {
+  const last = sessions.list.find((s) => s.id !== sessions.currentId)
+  if (
+    !last ||
+    state._tag !== 'Idle' ||
+    sessions.switching ||
+    state.events.some((e) => !e.discarded)
+  )
+    return null
+  return (
+    <MessageContainer
+      color="faint"
+      actions={
+        <MessageAction onClick={() => sessions.open(last.id)}>continue</MessageAction>
+      }
+    >
+      Last session: {last.title} (<SessionTime session={last} />)
+    </MessageContainer>
+  )
+}
+
 interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
+  sessions: Sessions
   onToggleDevTools: () => void
   devToolsOpen: boolean
   className?: string
@@ -457,6 +538,7 @@ interface MenuProps {
 export function Menu({
   state,
   dispatch,
+  sessions,
   devToolsOpen,
   onToggleDevTools,
   className,
@@ -465,10 +547,14 @@ export function Menu({
 
   const isIdle = state._tag === 'Idle'
 
+  const { refresh } = sessions
   const toggleMenu = React.useCallback(
-    (e: React.BaseSyntheticEvent) =>
-      setMenuOpen((prev) => (prev ? null : e.currentTarget)),
-    [setMenuOpen],
+    (e: React.BaseSyntheticEvent) => {
+      // Also catches an admin turning sessions on or off since the page loaded.
+      if (!menuOpen) refresh()
+      setMenuOpen(menuOpen ? null : e.currentTarget)
+    },
+    [menuOpen, refresh],
   )
   const closeMenu = React.useCallback(() => setMenuOpen(null), [setMenuOpen])
 
@@ -482,8 +568,41 @@ export function Menu({
     closeMenu()
   }, [closeMenu, onToggleDevTools])
 
+  const classes = useMenuStyles()
+  const [deleting, setDeleting] = React.useState<Sessions['list'][number] | null>(null)
+  const confirmDelete = useConfirm({
+    title: 'Delete this session?',
+    submitTitle: 'Delete',
+    onSubmit: React.useCallback(
+      (confirmed: boolean) => {
+        if (confirmed && deleting) sessions.remove(deleting.id)
+        setDeleting(null)
+      },
+      [sessions, deleting],
+    ),
+  })
+  const askDelete = React.useCallback(
+    (session: Sessions['list'][number]) => {
+      setDeleting(session)
+      closeMenu()
+      confirmDelete.open()
+    },
+    [closeMenu, confirmDelete],
+  )
+
+  const [saving, setSaving] = React.useState(false)
+  const openSave = React.useCallback(() => {
+    setSaving(true)
+    closeMenu()
+  }, [closeMenu])
+  const closeSave = React.useCallback(() => setSaving(false), [])
+
   return (
     <>
+      {saving && <SaveToBucket onClose={closeSave} />}
+      {confirmDelete.render(
+        <M.Typography>"{deleting?.title}" will be deleted for good.</M.Typography>,
+      )}
       <M.IconButton
         aria-label="Qurator menu"
         aria-haspopup="true"
@@ -502,12 +621,62 @@ export function Menu({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
+        <M.MenuItem onClick={startNewSession} disabled={!isIdle || sessions.switching}>
           New session
+        </M.MenuItem>
+        <M.MenuItem onClick={openSave} disabled={!state.events.some((e) => !e.discarded)}>
+          Save to a bucket…
         </M.MenuItem>
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
+        {sessions.available && <M.Divider />}
+        {sessions.available && (
+          <M.MenuItem
+            onClick={() => sessions.setEnabled(!sessions.enabled)}
+            disabled={sessions.switching}
+          >
+            <M.ListItemIcon>
+              <M.Icon fontSize="small">
+                {sessions.enabled ? 'check_box' : 'check_box_outline_blank'}
+              </M.Icon>
+            </M.ListItemIcon>
+            Keep sessions
+          </M.MenuItem>
+        )}
+        {sessions.list.length > 0 && <M.ListSubheader>Recent sessions</M.ListSubheader>}
+        {sessions.list.map((s) => (
+          <M.MenuItem
+            key={s.id}
+            className={classes.session}
+            selected={s.id === sessions.currentId}
+            disabled={!isIdle || sessions.switching}
+            onClick={() => {
+              sessions.open(s.id)
+              closeMenu()
+            }}
+            aria-keyshortcuts="Delete"
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Delete') askDelete(s)
+            }}
+          >
+            <M.ListItemText
+              primary={s.title}
+              secondary={<SessionTime session={s} />}
+              primaryTypographyProps={{ noWrap: true }}
+            />
+            <M.IconButton
+              size="small"
+              aria-label={`Delete session: ${s.title}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                askDelete(s)
+              }}
+            >
+              <M.Icon fontSize="small">delete_outline</M.Icon>
+            </M.IconButton>
+          </M.MenuItem>
+        ))}
       </M.Menu>
     </>
   )
@@ -656,6 +825,7 @@ interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
+  sessions: Sessions
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
@@ -667,6 +837,7 @@ export default function Chat({
   state,
   dispatch,
   devTools,
+  sessions,
   connectors,
   instructions,
   model,
@@ -677,7 +848,7 @@ export default function Chat({
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const blocked = Model.Connectors.useIsBlocked(connectors)
-  const inputDisabled = state._tag !== 'Idle' || blocked
+  const inputDisabled = state._tag !== 'Idle' || blocked || sessions.switching
   // `connectors.byId` is built once at service allocation and never
   // re-keyed, so this loop's length is stable per-mount and the
   // per-connector `Actor.useState` calls satisfy rules-of-hooks.
@@ -746,6 +917,7 @@ export default function Chat({
         <Menu
           state={state}
           dispatch={dispatch}
+          sessions={sessions}
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
           className={cx(classes.headerButton, classes.trailing)}
@@ -776,6 +948,7 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
+          <LastSession sessions={sessions} state={state} />
           {state.events
             .filter((e) => !e.discarded)
             .map(
@@ -820,6 +993,9 @@ export default function Chat({
               <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),
           })}
+          {sessions.notice && (
+            <M.Chip size="small" variant="outlined" label={sessions.notice} />
+          )}
           <div ref={scrollRef} />
         </div>
       </div>

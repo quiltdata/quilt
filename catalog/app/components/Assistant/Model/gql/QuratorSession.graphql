@@ -1,0 +1,10 @@
+query ($id: ID!) {
+  me {
+    name
+    quratorSession(id: $id) {
+      id
+      version
+      events
+    }
+  }
+}

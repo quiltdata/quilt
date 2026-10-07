@@ -2,10 +2,12 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as ModelChoice from 'components/Assistant/Model/ModelChoice'
+import { useConfirm } from 'components/Dialog'
 import * as GQL from 'utils/GraphQL'
 
 import QURATOR_AVAILABLE_MODELS_QUERY from './gql/QuratorAvailableModels.generated'
 import QURATOR_CONFIG_QUERY from './gql/QuratorConfig.generated'
+import PURGE_SESSIONS_MUTATION from './gql/QuratorSessionsPurgeAll.generated'
 import SET_QURATOR_CONFIG_MUTATION from './gql/SetQuratorConfig.generated'
 
 const useStyles = M.makeStyles((t) => ({
@@ -109,6 +111,19 @@ export function namesFor(ids: readonly string[], names: Names) {
 const toNames = (list: readonly { id: string; name: string }[] | null | undefined) =>
   Object.fromEntries((list ?? []).map((n) => [n.id, n.name]))
 
+/** A blank box is null, which the registry reads as its default; NaN is not a whole number. */
+export const parseLimit = (text: string) =>
+  !text.trim() ? null : /^\d+$/.test(text.trim()) ? Number(text) : NaN
+
+const showLimit = (n: number | null) => (n == null ? '' : String(n))
+
+// The registry's limits.
+const RETENTION_DAYS = [0, 3650] as const
+const MAX_PER_USER = [1, 500] as const
+
+const outside = (n: number | null, [lo, hi]: readonly [number, number]) =>
+  n !== null && !(n >= lo && n <= hi)
+
 type Unavailable = GQL.DataForDoc<
   typeof QURATOR_AVAILABLE_MODELS_QUERY
 >['admin']['quratorAvailableModels']['unavailable']
@@ -182,6 +197,12 @@ function Editor({ config, available, unavailable }: EditorProps) {
   }, [offered]) // eslint-disable-line react-hooks/exhaustive-deps
   const [chosenDefault, setChosenDefault] = React.useState(saved.models.default ?? '')
   const [names, setNames] = React.useState<Names>(() => toNames(saved.models.names))
+  const [retention, setRetention] = React.useState(
+    showLimit(saved.models.sessionRetentionDays),
+  )
+  const [maxPerUser, setMaxPerUser] = React.useState(
+    showLimit(saved.models.sessionMaxPerUser),
+  )
   const [pending, setPending] = React.useState(false)
   const [errors, setErrors] = React.useState<string[]>([])
 
@@ -199,7 +220,11 @@ function Editor({ config, available, unavailable }: EditorProps) {
     !sameSet(ids, savedIds) ||
     effectiveDefault !== (saved.models.default ?? '') ||
     namesOut.length !== Object.keys(savedNames).length ||
-    namesOut.some((n) => savedNames[n.id] !== n.name)
+    namesOut.some((n) => savedNames[n.id] !== n.name) ||
+    parseLimit(retention) !== saved.models.sessionRetentionDays ||
+    parseLimit(maxPerUser) !== saved.models.sessionMaxPerUser
+  const badRetention = outside(parseLimit(retention), RETENTION_DAYS)
+  const badMaxPerUser = outside(parseLimit(maxPerUser), MAX_PER_USER)
 
   const toggle = React.useCallback(
     (id: string) =>
@@ -234,6 +259,10 @@ function Editor({ config, available, unavailable }: EditorProps) {
           requestTimeoutSeconds: saved.models.requestTimeoutSeconds,
           maxToolCallsPerTurn: saved.models.maxToolCallsPerTurn,
           names: namesOut.length ? namesOut : null,
+          // Always sent: omitted, the registry keeps the stored value, so a
+          // cleared box would never get back to the default.
+          sessionRetentionDays: parseLimit(retention),
+          sessionMaxPerUser: parseLimit(maxPerUser),
         },
       })
       const r = result.setQuratorConfig
@@ -245,6 +274,8 @@ function Editor({ config, available, unavailable }: EditorProps) {
           setText(next.extra.join('\n'))
           setChosenDefault(r.models.default ?? '')
           setNames(toNames(r.models.names))
+          setRetention(showLimit(r.models.sessionRetentionDays))
+          setMaxPerUser(showLimit(r.models.sessionMaxPerUser))
           break
         case 'InvalidInput':
           setErrors(r.errors.map((e) => e.message))
@@ -258,7 +289,37 @@ function Editor({ config, available, unavailable }: EditorProps) {
     } finally {
       setPending(false)
     }
-  }, [setConfig, ids, effectiveDefault, namesOut, saved, offered])
+  }, [setConfig, ids, effectiveDefault, namesOut, saved, offered, retention, maxPerUser])
+
+  const purgeSessions = GQL.useMutation(PURGE_SESSIONS_MUTATION)
+  const [purged, setPurged] = React.useState<string | null>(null)
+  const [purging, setPurging] = React.useState(false)
+  const confirmPurge = useConfirm({
+    title: 'Delete all saved Qurator sessions?',
+    submitTitle: 'Delete all',
+    onSubmit: React.useCallback(
+      async (confirmed: boolean) => {
+        if (!confirmed) return
+        setPurged(null)
+        setPurging(true)
+        try {
+          const { quratorSessionsPurgeAll: r } = await purgeSessions()
+          setPurged(
+            r.__typename === 'Ok'
+              ? 'All saved sessions were deleted. Their packages are removed in the background.'
+              : r.__typename === 'OperationError'
+                ? r.message
+                : r.errors.map((e) => e.message).join(' '),
+          )
+        } catch (e) {
+          setPurged(e instanceof Error ? e.message : String(e))
+        } finally {
+          setPurging(false)
+        }
+      },
+      [purgeSessions],
+    ),
+  })
 
   return (
     <div className={classes.root}>
@@ -345,6 +406,66 @@ function Editor({ config, available, unavailable }: EditorProps) {
           ))}
         </M.FormControl>
       )}
+      <M.FormControl component="fieldset" disabled={pending}>
+        <M.FormLabel component="legend">Saved sessions</M.FormLabel>
+        <div className={classes.controls}>
+          <M.TextField
+            size="small"
+            variant="outlined"
+            // Not type="number": a browser hands an invalid entry over as "", the default.
+            inputProps={{ inputMode: 'numeric' }}
+            id="qurator-session-retention"
+            label="Keep for (days)"
+            placeholder="90"
+            value={retention}
+            disabled={pending}
+            onChange={(e) => setRetention(e.target.value)}
+            error={badRetention}
+            helperText={
+              badRetention
+                ? 'A whole number from 0 to 3650'
+                : '0 stops saving and hides saved sessions'
+            }
+          />
+          <M.TextField
+            size="small"
+            variant="outlined"
+            inputProps={{ inputMode: 'numeric' }}
+            id="qurator-session-max"
+            label="Most per user"
+            placeholder="50"
+            value={maxPerUser}
+            disabled={pending}
+            onChange={(e) => setMaxPerUser(e.target.value)}
+            error={badMaxPerUser}
+            helperText={
+              badMaxPerUser
+                ? 'A whole number from 1 to 500'
+                : 'Older ones are deleted first'
+            }
+          />
+          <M.Button
+            className={classes.save}
+            size="small"
+            variant="outlined"
+            disabled={pending || purging}
+            onClick={confirmPurge.open}
+          >
+            Delete all saved sessions
+          </M.Button>
+        </div>
+        {purged && (
+          <M.Typography className={classes.note} role="status">
+            {purged}
+          </M.Typography>
+        )}
+      </M.FormControl>
+      {confirmPurge.render(
+        <M.Typography>
+          Every user's saved Qurator sessions are deleted for good. Unless retention is 0,
+          a conversation still open in a browser is saved again as it continues.
+        </M.Typography>,
+      )}
       <div className={classes.controls}>
         <M.TextField
           className={classes.default}
@@ -373,7 +494,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
         <M.Button
           className={classes.save}
           color="primary"
-          disabled={!dirty || pending}
+          disabled={!dirty || pending || badRetention || badMaxPerUser}
           onClick={save}
           size="small"
           variant="outlined"

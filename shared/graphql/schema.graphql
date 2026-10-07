@@ -143,6 +143,12 @@ type QuratorModelConfig {
   maxToolCallsPerTurn: Int
   "Admin-chosen names the model picker shows in place of a model's id."
   names: [QuratorModelName!]
+  "Days a session is kept after its last save. Null means 90; 0 turns sessions off."
+  sessionRetentionDays: Int
+  "Sessions kept per user, oldest dropped first. Null means 50."
+  sessionMaxPerUser: Int
+  "Whether this stack keeps sessions at all: false while retention is 0."
+  sessionsEnabled: Boolean!
 }
 
 type QuratorModelName {
@@ -741,7 +747,63 @@ type Me {
   roles: [MyRole!]!
   apiKeys(name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
   apiKey(id: ID!): APIKey
+  "Most recently saved first. Empty while sessions are off for the stack or this user."
+  quratorSessions(first: Int = 20): [QuratorSession!]!
+  "Null for an id that is not one of this user's visible sessions."
+  quratorSession(id: ID!): QuratorSession
+  "This user's own choice; the stack's is `QuratorModelConfig.sessionsEnabled`."
+  quratorSessionsEnabled: Boolean!
 }
+
+"A saved Qurator conversation, visible only to the user who saved it."
+type QuratorSession {
+  id: ID!
+  title: String!
+  createdAt: Datetime!
+  updatedAt: Datetime!
+  eventCount: Int!
+  version: Int!
+  "The `{v: 1, events: [...]}` envelope as saved."
+  events: JsonRecord!
+  "The latest checkpoint pushed as a Quilt package; null until the first."
+  package: QuratorSessionPackage
+}
+
+"A session's package in the stack's private sessions bucket, which no user role can read."
+type QuratorSessionPackage {
+  bucket: String!
+  "`<user id>/<session id>`"
+  name: String!
+  topHash: String!
+  revisedAt: Datetime!
+}
+
+"""
+Omit `id` to create a session. With `id`, `baseVersion` must be the version the
+caller last read, or the save is refused as `Conflict`.
+"""
+input QuratorSessionSaveInput {
+  id: ID
+  title: String!
+  events: JsonRecord!
+  baseVersion: Int
+  "Also push a package revision once the save commits; a failed push does not fail the save."
+  checkpoint: QuratorSessionCheckpointInput
+}
+
+"The files of a `quilt.qurator.session/1` package, as the client renders them."
+input QuratorSessionCheckpointInput {
+  readme: String!
+  transcript: String!
+  session: JsonRecord!
+}
+
+"""
+`InvalidInput` names one of `NotFound`, `Conflict` (context `currentVersion`),
+`BadEnvelope` or `TooLarge` (`input.events` over 1 MiB, or `input.checkpoint`
+over 2 MiB); `OperationError` is `Disabled`.
+"""
+union QuratorSessionSaveResult = QuratorSession | InvalidInput | OperationError
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
 
@@ -1135,6 +1197,7 @@ union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 """
 Replaces the whole Qurator configuration. Every field is explicit, so a write
 states the full intent: omitting one does not preserve it. Null clears a field.
+The two session fields are the exception: omitting one keeps its stored value.
 """
 input QuratorConfigInput {
   allowlist: [String!]
@@ -1143,8 +1206,12 @@ input QuratorConfigInput {
   gatewayAccountId: String
   requestTimeoutSeconds: Int
   maxToolCallsPerTurn: Int
-  "Each id must be in `allowlist`; each name is 1 to 64 characters."
+  "Each id must be in `allowlist`; each name, once trimmed, is 1 to 64 printable characters."
   names: [QuratorModelNameInput!]
+  "0 to 3650. 0 hides every session without deleting it; `quratorSessionsPurgeAll` deletes."
+  sessionRetentionDays: Int
+  "1 to 500."
+  sessionMaxPerUser: Int
 }
 
 input QuratorModelNameInput {
@@ -1214,6 +1281,18 @@ type Mutation {
 
   apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
   apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!
+
+  quratorSessionSave(input: QuratorSessionSaveInput!): QuratorSessionSaveResult! @authenticated
+  "Also deletes your own hidden sessions (expired, or while sessions are off)."
+  quratorSessionDelete(id: ID!): OperationResult! @authenticated
+  "Off hides this user's sessions and stops saving them; retention still expires them."
+  quratorSessionsSetEnabled(enabled: Boolean!): OperationResult! @authenticated
+  """
+  Deletes every user's sessions and queues their packages' deletion, which runs
+  in the background after `Ok`. Refused as `OperationError` `SessionsOn` unless
+  the session retention is 0.
+  """
+  quratorSessionsPurgeAll: OperationResult! @admin
 
   packageConstruct(
     params: PackagePushParams!
