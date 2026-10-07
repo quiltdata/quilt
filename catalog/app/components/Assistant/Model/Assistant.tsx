@@ -358,6 +358,12 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
   return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
+/** Agent uses tools, writes ask first; Ask offers read tools only. */
+export type Mode = 'agent' | 'ask'
+
+const ASK_MODE_PROMPT =
+  '<mode>Ask mode: the user wants answers only. You have read-only tools; do not offer to create, change or delete anything. If the user asks for a change, say they can switch to Agent mode in the + menu.</mode>'
+
 function useConstructAssistantAPI() {
   // First, so the registry read is in flight while the settings read suspends.
   const mcpRead = useMcpServersRead()
@@ -405,6 +411,17 @@ function useConstructAssistantAPI() {
 
   GlobalContext.use(llm)
 
+  const [mode, setMode] = React.useState<Mode>('agent')
+  Context.usePushContext(
+    React.useMemo(
+      () =>
+        mode === 'ask'
+          ? { markers: { [Context.ASK_MODE]: true }, messages: [ASK_MODE_PROMPT] }
+          : {},
+      [mode],
+    ),
+  )
+
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
   const show = React.useCallback(() => setVisible(true), [])
@@ -429,6 +446,8 @@ function useConstructAssistantAPI() {
     connectors,
     instructions,
     model,
+    mode,
+    setMode,
     devTools: { recording, modelIdOverride },
   }
 }

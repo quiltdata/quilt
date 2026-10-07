@@ -20,7 +20,12 @@ import { darkTheme } from '../Chat/Input'
 import Instructions from '../Chat/Instructions'
 import { toolTitle } from '../Chat/Chat'
 
-type API = Model.Assistant.API
+/** The slice of the assistant the composer reads; hosts pass the whole API. */
+export type ComposerAPI = Pick<
+  Model.Assistant.API,
+  'model' | 'connectors' | 'instructions' | 'mode' | 'setMode'
+>
+type API = ComposerAPI
 
 const PLATFORM = 'platform'
 
@@ -97,6 +102,41 @@ const useStyles = M.makeStyles((t) => ({
     ['@media (pointer: coarse)']: { height: 44, width: 44 },
   },
   sendOff: {},
+  collapse: {
+    color: M.fade(t.palette.primary.contrastText, 0.7),
+    marginLeft: 'auto',
+    '& + $send': { marginLeft: 0 },
+    ['@media (pointer: coarse)']: { height: 44, width: 44 },
+  },
+  // Minimized (phone): one 44px bar, the Touch Floor's height, so the chat keeps the screen.
+  mini: {
+    ...t.typography.body2,
+    alignItems: 'center',
+    background: t.palette.primary.main,
+    borderRadius: 22,
+    color: M.fade(t.palette.primary.contrastText, 0.85),
+    display: 'flex',
+    gap: `${t.spacing(1)}px`,
+    height: 44,
+    padding: t.spacing(0, 1.5),
+    width: '100%',
+    '&.Mui-focusVisible': {
+      outline: `2px solid ${t.palette.secondary.main}`,
+      outlineOffset: 2,
+    },
+  },
+  miniMark: { color: t.palette.secondary.main, fontSize: 18 },
+  miniText: {
+    flexGrow: 1,
+    overflow: 'hidden',
+    textAlign: 'left',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  miniModel: {
+    ...t.typography.caption,
+    color: M.fade(t.palette.primary.contrastText, 0.6),
+  },
   hint: {
     ...t.typography.caption,
     color: t.palette.text.hint,
@@ -148,7 +188,6 @@ const useMenuStyles = M.makeStyles((t) => ({
   },
   searchIcon: { color: t.palette.text.secondary, fontSize: 18 },
   list: {
-    listStyle: 'none',
     margin: 0,
     overflowY: 'auto',
     padding: t.spacing(0.75),
@@ -167,7 +206,11 @@ const useMenuStyles = M.makeStyles((t) => ({
   },
   active: { background: M.fade(t.palette.primary.main, 0.07) },
   icon: { color: t.palette.text.secondary, flexShrink: 0, fontSize: 18 },
-  name: { flexShrink: 0, fontWeight: t.typography.fontWeightMedium, whiteSpace: 'nowrap' },
+  name: {
+    flexShrink: 0,
+    fontWeight: t.typography.fontWeightMedium,
+    whiteSpace: 'nowrap',
+  },
   detail: {
     color: t.palette.text.secondary,
     minWidth: 0,
@@ -213,7 +256,13 @@ const useMenuStyles = M.makeStyles((t) => ({
     padding: t.spacing(0, 0.75),
     whiteSpace: 'nowrap',
   },
-  dot: { borderRadius: '50%', display: 'inline-block', flexShrink: 0, height: 8, width: 8 },
+  dot: {
+    borderRadius: '50%',
+    display: 'inline-block',
+    flexShrink: 0,
+    height: 8,
+    width: 8,
+  },
   on: { background: t.palette.success.main },
   pending: { background: t.palette.warning.main },
   failed: { background: t.palette.error.main },
@@ -249,7 +298,12 @@ function useConnectorViews(connectors: API['connectors']): ConnectorView[] {
   const all = Object.values(connectors.byId)
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const states = all.map((c) => Actor.useState(c.state))
-  return all.map((c, i) => ({ id: c.id, title: c.config.title, state: states[i], runtime: c }))
+  return all.map((c, i) => ({
+    id: c.id,
+    title: c.config.title,
+    state: states[i],
+    runtime: c,
+  }))
 }
 
 const toolsOf = (s: Connectors.ConnectorState) =>
@@ -321,6 +375,21 @@ export default function Composer({
   const plusRef = React.useRef<HTMLButtonElement>(null)
   const [open, setOpen] = React.useState<Page | null>(null)
   const inputId = useId()
+  const t = M.useTheme()
+  const phone = M.useMediaQuery(t.breakpoints.down('xs'))
+  const [minimized, setMinimized] = React.useState(false)
+  const minimize = () => {
+    // Blurring first lets the on-screen keyboard close with the composer.
+    textRef.current?.blur()
+    setMinimized(true)
+  }
+  const restore = () => setMinimized(false)
+  React.useEffect(() => {
+    if (!minimized) textRef.current?.focus()
+  }, [minimized])
+  React.useEffect(() => {
+    if (!phone) setMinimized(false)
+  }, [phone])
 
   React.useEffect(() => {
     if (!draft) return
@@ -349,10 +418,27 @@ export default function Composer({
 
   const model = api.model
   const modelName = model.allowlist
-    ? ModelChoice.nameIn(model.names, model.current) ??
+    ? (ModelChoice.nameIn(model.names, model.current) ??
       ModelChoice.tier(model.current) ??
-      ModelChoice.displayName(model.current)
+      ModelChoice.displayName(model.current))
     : null
+
+  if (phone && minimized) {
+    return (
+      <div className={classes.root} data-composer>
+        <M.ButtonBase
+          className={classes.mini}
+          onClick={restore}
+          aria-label={value ? 'Show the composer, with your draft' : 'Show the composer'}
+        >
+          <M.Icon className={classes.miniMark}>auto_awesome</M.Icon>
+          <span className={classes.miniText}>{value || 'Ask Qurator'}</span>
+          {modelName && <span className={classes.miniModel}>{modelName}</span>}
+          <M.Icon fontSize="small">expand_less</M.Icon>
+        </M.ButtonBase>
+      </div>
+    )
+  }
 
   return (
     <div className={classes.root} data-composer>
@@ -410,6 +496,16 @@ export default function Composer({
                 </M.Button>
               </M.Tooltip>
             )}
+            {phone && (
+              <M.IconButton
+                className={classes.collapse}
+                aria-label="Minimize the composer"
+                onClick={minimize}
+                size="small"
+              >
+                <M.Icon fontSize="small">expand_more</M.Icon>
+              </M.IconButton>
+            )}
             <M.IconButton
               className={cx(classes.send, (disabled || !value.trim()) && classes.sendOff)}
               aria-label="Send"
@@ -465,7 +561,15 @@ interface PlusMenuProps {
   disabled?: boolean
 }
 
-function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusMenuProps) {
+function PlusMenu({
+  api,
+  save,
+  anchor,
+  page,
+  setPage,
+  onClose,
+  disabled,
+}: PlusMenuProps) {
   const classes = useMenuStyles()
   const t = M.useTheme()
   const phone = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -484,7 +588,8 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
   }, [page])
 
   const model = api.model
-  const nameOf = (id: string) => ModelChoice.label(id, ModelChoice.nameIn(model.names, id))
+  const nameOf = (id: string) =>
+    ModelChoice.label(id, ModelChoice.nameIn(model.names, id))
   const servers = views.filter((v) => v.id !== PLATFORM)
   const toolCount = views.reduce((n, v) => n + toolsOf(v.state).length, 0)
   const failed = servers.filter((v) => v.state._tag === 'Failed').length
@@ -495,7 +600,12 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
     onClose()
   }
 
-  const back: Row = { key: 'back', icon: 'arrow_back', name: 'Back', onSelect: () => setPage('main') }
+  const back: Row = {
+    key: 'back',
+    icon: 'arrow_back',
+    name: 'Back',
+    onSelect: () => setPage('main'),
+  }
 
   const pages: Record<Page, Row[]> = {
     main: [
@@ -530,26 +640,21 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
             } as Row,
           ]
         : []),
-      ...(next
-        ? [
-            {
-              key: 'agent',
-              icon: 'bolt',
-              name: 'Agent',
-              detail: 'Uses tools; changes ask first',
-              disabled: true,
-              end: <span className={classes.soon}>Soon</span>,
-            },
-            {
-              key: 'ask',
-              icon: 'help_outline',
-              name: 'Ask',
-              detail: 'Answers without changing data',
-              disabled: true,
-              end: <span className={classes.soon}>Soon</span>,
-            },
-          ]
-        : []),
+      ...(['agent', 'ask'] as const).map((m) => ({
+        key: m,
+        icon: m === 'agent' ? 'bolt' : 'help_outline',
+        name: m === 'agent' ? 'Agent' : 'Ask',
+        keywords: 'mode',
+        detail:
+          m === 'agent'
+            ? 'Uses tools; changes ask first'
+            : 'Answers without changing data',
+        role: 'menuitemradio' as const,
+        checked: api.mode === m,
+        disabled,
+        end: api.mode === m ? <M.Icon fontSize="small">check</M.Icon> : undefined,
+        onSelect: pick(() => api.setMode(m)),
+      })),
       { key: 'd1', name: '', divider: true },
       ...(model.allowlist
         ? [
@@ -569,7 +674,9 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
         key: 'tools',
         icon: 'build',
         name: 'Tools',
-        keywords: views.flatMap((v) => toolsOf(v.state).map(([n]) => toolTitle(n))).join(' '),
+        keywords: views
+          .flatMap((v) => toolsOf(v.state).map(([n]) => toolTitle(n)))
+          .join(' '),
         detail: `${toolCount} tool${toolCount === 1 ? '' : 's'}`,
         opens: 'tools',
         end: <M.Icon fontSize="small">chevron_right</M.Icon>,
@@ -580,8 +687,9 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
         name: 'MCP',
         keywords: `servers ${servers.map((v) => v.title).join(' ')}`,
         detail: servers.length
-          ? [on && `${on} on`, failed && `${failed} failed`].filter(Boolean).join(' · ') ||
-            'Connecting…'
+          ? [on && `${on} on`, failed && `${failed} failed`]
+              .filter(Boolean)
+              .join(' · ') || 'Connecting…'
           : 'No extra servers',
         opens: 'mcp',
         end: (
@@ -597,7 +705,9 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
         name: 'Instructions',
         keywords: 'personal global prompt',
         detail:
-          api.instructions.global.active || api.instructions.personal.active ? 'On' : 'Off',
+          api.instructions.global.active || api.instructions.personal.active
+            ? 'On'
+            : 'Off',
         opens: 'instructions',
         end: <M.Icon fontSize="small">chevron_right</M.Icon>,
       },
@@ -646,13 +756,15 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
                     </span>
                   ),
               }))
-            : [{ key: `e-${v.id}`, name: statusText(v.state, 0), disabled: true } as Row]),
+            : [
+                { key: `e-${v.id}`, name: statusText(v.state, 0), disabled: true } as Row,
+              ]),
         ]
       }),
     ],
     mcp: [
       back,
-      ...views.map((v) => ({
+      ...(views.map((v) => ({
         key: v.id,
         name: v.title,
         keywords: v.id,
@@ -673,9 +785,14 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
             </M.Button>
           ) : undefined,
         dot:
-          v.state._tag === 'Ready' ? 'on' : v.state._tag === 'Failed' ? 'failed' : 'pending',
-        onSelect: v.state._tag === 'Failed' ? () => runtime.runFork(v.runtime.retry) : undefined,
-      })) as (Row & { dot?: string })[],
+          v.state._tag === 'Ready'
+            ? 'on'
+            : v.state._tag === 'Failed'
+              ? 'failed'
+              : 'pending',
+        onSelect:
+          v.state._tag === 'Failed' ? () => runtime.runFork(v.runtime.retry) : undefined,
+      })) as (Row & { dot?: string })[]),
       ...(isAdmin
         ? [
             { key: 'd2', name: '', divider: true },
@@ -695,7 +812,9 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
     instructions: [back],
   }
 
-  const rows = page ? pages[page].filter((r) => r.divider || r.heading || matches(r, query)) : []
+  const rows = page
+    ? pages[page].filter((r) => r.divider || r.heading || matches(r, query))
+    : []
   // Dividers and headings only frame a list; drop them when a search narrows it.
   const shown = query ? rows.filter((r) => !r.divider && !r.heading) : rows
   const focusable = shown
@@ -746,7 +865,9 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
             }}
             onKeyDown={onKeyDown}
             placeholder={
-              page === 'main' ? 'Search tools, packages, MCP…' : `Search ${page === 'mcp' ? 'servers' : page}…`
+              page === 'main'
+                ? 'Search tools, packages, MCP…'
+                : `Search ${page === 'mcp' ? 'servers' : page}…`
             }
             aria-label="Search Qurator actions"
             aria-controls={listId}
@@ -768,17 +889,24 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
           <Instructions instructions={api.instructions} />
         </div>
       ) : (
-        <ul className={classes.list} id={listId} role="menu" aria-label="Qurator actions">
+        <div
+          className={classes.list}
+          id={listId}
+          role="menu"
+          aria-label="Qurator actions"
+        >
           {shown.length === focusable.length && !focusable.length && (
-            <li className={classes.empty}>No matches</li>
+            <div className={classes.empty} role="presentation">
+              No matches
+            </div>
           )}
           {shown.map((r, i) =>
             r.divider ? (
-              <li key={r.key} className={classes.divider} role="separator" />
+              <div key={r.key} className={classes.divider} role="separator" />
             ) : r.heading ? (
-              <li key={r.key} className={classes.heading} role="presentation">
+              <div key={r.key} className={classes.heading} role="presentation">
                 {r.name}
-              </li>
+              </div>
             ) : (
               <MenuRow
                 key={r.key}
@@ -790,7 +918,7 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
               />
             ),
           )}
-        </ul>
+        </div>
       )}
     </>
   )
@@ -820,7 +948,12 @@ function PlusMenu({ api, save, anchor, page, setPage, onClose, disabled }: PlusM
       elevation={8}
       PaperProps={{
         className: classes.paper,
-        style: { width: Math.min(560, (anchor?.closest('[data-composer]') as HTMLElement)?.offsetWidth ?? 560) },
+        style: {
+          width: Math.min(
+            560,
+            (anchor?.closest('[data-composer]') as HTMLElement)?.offsetWidth ?? 560,
+          ),
+        },
       }}
       marginThreshold={8}
     >
@@ -851,7 +984,7 @@ interface MenuRowProps {
 function MenuRow({ row, id, active, onActivate, onHover }: MenuRowProps) {
   const classes = useMenuStyles()
   return (
-    <li
+    <div
       id={id}
       className={cx(classes.row, active && classes.active)}
       role={row.role ?? 'menuitem'}
@@ -863,11 +996,20 @@ function MenuRow({ row, id, active, onActivate, onHover }: MenuRowProps) {
       onMouseMove={onHover}
     >
       {row.dot ? (
-        <span className={cx(classes.dot, classes[row.dot as 'on' | 'pending' | 'failed'])} />
+        <span
+          className={cx(classes.dot, classes[row.dot as 'on' | 'pending' | 'failed'])}
+        />
       ) : (
         row.icon && <M.Icon className={classes.icon}>{row.icon}</M.Icon>
       )}
-      <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', flex: '0 1 auto' }}>
+      <span
+        style={{
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '0 1 auto',
+        }}
+      >
         <span style={{ display: 'flex', gap: 8, minWidth: 0, alignItems: 'baseline' }}>
           <span className={classes.name}>{row.name}</span>
           {row.detail && (
@@ -881,7 +1023,7 @@ function MenuRow({ row, id, active, onActivate, onHover }: MenuRowProps) {
         )}
       </span>
       {row.end && <span className={classes.end}>{row.end}</span>}
-    </li>
+    </div>
   )
 }
 
@@ -898,7 +1040,7 @@ function SaveTarget({ save, onBack, onDone }: SaveTargetProps) {
   const { urls } = NamedRoutes.use()
   return (
     <div onKeyDown={(e) => e.key === 'Escape' && (e.stopPropagation(), onBack())}>
-      <ul className={classes.list} role="menu">
+      <div className={classes.list} role="menu">
         <MenuRow
           row={{ key: 'back', icon: 'arrow_back', name: 'Save target' }}
           id="save-back"
@@ -906,7 +1048,7 @@ function SaveTarget({ save, onBack, onDone }: SaveTargetProps) {
           onActivate={onBack}
           onHover={() => {}}
         />
-      </ul>
+      </div>
       <div className={classes.form}>
         <M.TextField
           select
@@ -970,7 +1112,11 @@ function SaveTarget({ save, onBack, onDone }: SaveTargetProps) {
             Saved{' '}
             <M.Link
               component={Link}
-              to={urls.bucketPackageTree(save.status.bucket, save.status.name, save.status.hash)}
+              to={urls.bucketPackageTree(
+                save.status.bucket,
+                save.status.name,
+                save.status.hash,
+              )}
               onClick={onDone}
             >
               {save.status.name}@{save.status.hash.slice(0, 8)}

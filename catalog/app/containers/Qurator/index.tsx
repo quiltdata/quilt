@@ -126,16 +126,9 @@ export default function Qurator() {
         // Registered presence keeps the global drawer from opening a second copy.
         <InlinePresence.Provide value>
           <div className={classes.chat}>
-            <Chat
-              state={api.state}
-              dispatch={api.dispatch}
-              devTools={api.devTools}
-              connectors={api.connectors}
-              instructions={api.instructions}
-              model={api.model}
-              busy={api.busy}
-              onClose={toCatalog}
-            />
+            {/* The whole API, not a prop list: a Chat prop added on another branch
+                (e.g. `sessions`) would otherwise reach Chat undefined and crash it. */}
+            <Chat {...api} composer="compact" onClose={toCatalog} />
           </div>
         </InlinePresence.Provide>
       ) : (
