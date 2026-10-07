@@ -1,5 +1,5 @@
 import type { JsonSchema } from 'utils/JSONSchema'
-import { translatePattern } from 'utils/workflows'
+import { analyzePattern } from 'utils/workflows'
 import type * as Types from 'utils/types'
 
 import { DRAFT_07 } from './checks'
@@ -143,9 +143,6 @@ export function fieldsFromMeta(meta: Types.Json): Field[] {
   })
 }
 
-// Escapes JS accepts and Python's `re` rejects, which would fail every push
-const JS_ONLY = /(^|[^\\])(\\\\)*\\[pPk]/
-
 export function validateDraft(
   draft: FlowDraft,
   {
@@ -161,25 +158,11 @@ export function validateDraft(
   }
   // quilt3 checks patterns in Python, which accepts syntax JS rejects; an unchanged
   // pattern is left for the push to enforce.
+  // Only an invalid pattern blocks; one the browser can't reproduce is left to the push.
   if (draft.namePattern && draft.namePattern !== originalPattern) {
-    if (JS_ONLY.test(draft.namePattern)) {
-      errors.namePattern = 'This uses syntax pushes reject (\\p, \\P or \\k)'
-    } else {
-      // Python spellings with a JS equivalent, so their syntax can still be checked here
-      const asJs = draft.namePattern
-        .replace(/\(\?P</g, '(?<')
-        .replace(/\(\?P=(\w+)\)/g, '\\k<$1>')
-        .replace(/^\(\?[aiLmsux]+\)/, '')
-      const t = translatePattern(asJs)
-      // `\A`, `\Z`, `\b` have no JS equivalent; the push checks those
-      if (!('error' in t)) {
-        try {
-          new RegExp(t.source, t.unicode ? 'u' : '')
-        } catch (e) {
-          errors.namePattern = 'This pattern is not valid'
-        }
-      }
-    }
+    const a = analyzePattern(draft.namePattern)
+    if (a._tag === 'invalid')
+      errors.namePattern = `This pattern won't work for pushes: ${a.reason}`
   }
   const names = new Set<string>()
   draft.fields?.forEach((f, i) => {
@@ -329,6 +312,10 @@ const withoutManaged = (entry: any) => {
 
 export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
   const { successors: old, ...rest } = config
+  // Keyed by cleaned location, so `s3://prod/` and `prod` find the same entry
+  const existing = new Map(
+    Object.entries(old ?? {}).map(([url, v]) => [cleanBucket(url), { url, v }]),
+  )
   const rows = promote
     .map((p) => ({ ...p, bucket: cleanBucket(p.bucket) }))
     .filter((p) => p.bucket)
@@ -336,15 +323,18 @@ export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
   return {
     ...rest,
     successors: Object.fromEntries(
-      rows.map((p) => [
-        `s3://${p.bucket}`,
-        {
-          // Keep keys this editor doesn't manage
-          ...withoutManaged(old?.[`s3://${p.bucket}`]),
-          title: p.title.trim() || p.bucket,
-          ...(p.copyData ? {} : { copy_data: false }),
-        },
-      ]),
+      rows.map((p) => {
+        const prev = existing.get(p.bucket)
+        return [
+          prev?.url ?? `s3://${p.bucket}`,
+          {
+            // Keep keys this editor doesn't manage
+            ...withoutManaged(prev?.v),
+            title: p.title.trim() || p.bucket,
+            ...(p.copyData ? {} : { copy_data: false }),
+          },
+        ]
+      }),
     ),
   }
 }

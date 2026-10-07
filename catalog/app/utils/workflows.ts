@@ -155,86 +155,147 @@ const parseSchemaRef = (
       }
     : undefined
 
-// Python `re` classes are Unicode-aware on str; JS ones are ASCII-only unless spelled out.
-const PY_CLASSES: Record<string, [string, string]> = {
-  // [outside a class, inside a class]
-  w: ['[\\p{L}\\p{N}_]', '\\p{L}\\p{N}_'],
-  W: ['[^\\p{L}\\p{N}_]', ''],
-  d: ['\\p{Nd}', '\\p{Nd}'],
-  D: ['\\P{Nd}', '\\P{Nd}'],
+export type PatternAnalysis =
+  | { _tag: 'ok'; regex: RegExp }
+  // Valid for Python, but the browser can't reproduce it exactly; the push enforces it
+  | { _tag: 'uncheckable'; reason: string }
+  // Python's `re` would reject it, so every push through the flow would fail
+  | { _tag: 'invalid'; reason: string }
+
+const PY_KNOWN_LETTER_ESCAPES = new Set('abBAZdDsSwWfnrtvxuUN'.split(''))
+
+// Python `\w` and `\d` are Unicode-aware on str patterns; JS needs them spelled out.
+const CLASS_OUT: Record<string, string> = {
+  w: '[\\p{L}\\p{N}_]',
+  W: '[^\\p{L}\\p{N}_]',
+  d: '\\p{Nd}',
+  D: '\\P{Nd}',
+  s: '\\s',
+  S: '\\S',
+}
+const CLASS_IN: Record<string, string | null> = {
+  w: '\\p{L}\\p{N}_',
+  W: null,
+  d: '\\p{Nd}',
+  D: '\\P{Nd}',
+  s: '\\s',
+  S: '\\S',
+}
+const SIMPLE: Record<string, string> = {
+  n: '\\n',
+  r: '\\r',
+  t: '\\t',
+  f: '\\f',
+  v: '\\v',
+  a: '\\x07',
 }
 
-// `u`-mode JS only accepts these after a backslash, besides letters and digits.
-const U_SAFE_ESCAPES = new Set('^$\\.*+?()[]{}|/'.split(''))
+const hex = (cp: number) =>
+  cp < 0x100 ? `\\x${cp.toString(16).padStart(2, '0')}` : `\\u{${cp.toString(16)}}`
 
-const hexEscape = (ch: string) => {
-  const code = ch.codePointAt(0)!
-  return code < 256
-    ? `\\x${code.toString(16).padStart(2, '0')}`
-    : `\\u{${code.toString(16)}}`
-}
-
-// Rewrites a Python pattern into an equivalent JS source, or explains why it can't.
-// `unicode` is set when Python's Unicode-aware classes needed the `u` flag.
-export function translatePattern(
-  src: string,
-): { source: string; unicode: boolean } | { error: string } {
+// Reads a `handle_pattern` the way quilt3's `re` does. Only constructs with an exact
+// JS (`u` flag) equivalent are translated; anything else is left to the push.
+export function analyzePattern(src: string): PatternAnalysis {
+  if (/\(\?[aiLmsu-]*x/.test(src))
+    return { _tag: 'uncheckable', reason: 'verbose mode (?x)' }
+  const cs = Array.from(src)
   let out = ''
-  let unicode = false
+  let depth = 0
   let inClass = false
-  let classStart = -1
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i]
+  let classFirst = -1
+  let uncheckable: string | null = null
+  const skip = (why: string) => {
+    if (!uncheckable) uncheckable = why
+  }
+  for (let i = 0; i < cs.length; i++) {
+    const c = cs[i]
     if (c === '\\') {
-      const n = src[++i] ?? ''
-      if ('AZbB'.includes(n)) return { error: `Python-only \\${n} semantics` }
-      const cls = PY_CLASSES[n]
-      if (cls) {
-        if (inClass && !cls[1]) return { error: `\\${n} inside [...]` }
-        out += inClass ? cls[1] : cls[0]
-        unicode = true
-      } else if (/[A-Za-z0-9]/.test(n) || U_SAFE_ESCAPES.has(n)) {
-        out += c + n
-      } else {
-        // An identity escape like `\-`, which `u` mode rejects outside a class
-        out += hexEscape(n)
+      const n = cs[++i]
+      if (n === undefined)
+        return { _tag: 'invalid', reason: 'Ends with a lone backslash' }
+      if (/[A-Za-z]/.test(n) && !PY_KNOWN_LETTER_ESCAPES.has(n)) {
+        return { _tag: 'invalid', reason: `\\${n} isn't a valid escape for pushes` }
       }
+      if (inClass && n === 'b') out += '\\x08'
+      else if (n in SIMPLE) out += SIMPLE[n]
+      else if (n in CLASS_OUT) {
+        const t = inClass ? CLASS_IN[n] : CLASS_OUT[n]
+        if (t === null) skip(`\\${n} inside [...]`)
+        else out += t
+      } else if (n === 'x' && /^[0-9a-fA-F]{2}$/.test(cs.slice(i + 1, i + 3).join(''))) {
+        out += `\\x${cs.slice(i + 1, i + 3).join('')}`
+        i += 2
+      } else if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(cs.slice(i + 1, i + 5).join(''))) {
+        out += `\\u${cs.slice(i + 1, i + 5).join('')}`
+        i += 4
+      } else if (/[A-Za-z0-9]/.test(n)) skip(`\\${n}`)
+      // Any other escaped character is that character
+      else out += hex(n.codePointAt(0)!)
       continue
     }
-    if (c === '[' && !inClass) {
+    if (inClass) {
+      if (c === ']' && i !== classFirst) {
+        inClass = false
+        out += ']'
+      } else out += c === ']' || c === '[' ? `\\${c}` : c
+      continue
+    }
+    if (c === '[') {
       inClass = true
-      classStart = i
-    } else if (c === ']' && inClass) {
-      // A `]` first in the class (after `[` or `[^`) is a literal in Python
-      const first = src[classStart + 1] === '^' ? classStart + 2 : classStart + 1
-      if (i === first) {
-        // JS would end the class here
-        out += '\\]'
+      classFirst = cs[i + 1] === '^' ? i + 2 : i + 1
+      out += c
+      if (cs[i + 1] === '^') out += cs[++i]
+      continue
+    }
+    if (c === '(') {
+      depth++
+      if (cs[i + 1] !== '?') {
+        out += c
         continue
       }
-      inClass = false
+      const rest = cs.slice(i + 2).join('')
+      if (/^[:=!]/.test(rest) || /^<[=!]/.test(rest)) out += '(?'
+      else if (rest.startsWith('#')) {
+        const end = cs.indexOf(')', i)
+        if (end < 0) return { _tag: 'invalid', reason: 'Missing )' }
+        depth--
+        i = end
+        continue
+      } else if (rest.startsWith('P<')) {
+        out += '(?<'
+        i += 2
+      } else {
+        skip(`(?${rest.slice(0, 2)}`)
+        out += '(?'
+      }
+      i += 1
+      continue
     }
-    out += c
+    if (c === ')') {
+      if (!depth) return { _tag: 'invalid', reason: 'Unbalanced )' }
+      depth--
+    }
+    if ('*+?}'.includes(c) && cs[i + 1] === '+') skip('possessive quantifier')
+    out += c === ']' ? '\\]' : c
   }
-  return { source: out, unicode }
+  if (inClass) return { _tag: 'invalid', reason: 'Missing ]' }
+  if (depth) return { _tag: 'invalid', reason: 'Missing )' }
+  if (uncheckable) return { _tag: 'uncheckable', reason: uncheckable }
+  try {
+    return { _tag: 'ok', regex: new RegExp(out, 'u') }
+  } catch (e) {
+    return { _tag: 'uncheckable', reason: 'syntax the browser reads differently' }
+  }
 }
 
-// quilt3 compiles `handle_pattern` with Python `re`, so a valid pattern may use syntax the
-// browser can't reproduce, e.g. `(?P<name>...)`. The push still enforces it; the catalog skips it.
 function compilePattern(
   src?: string,
 ): Pick<Workflow, 'packageNamePattern' | 'packageNamePatternError'> {
   if (!src) return { packageNamePattern: null }
-  const t = translatePattern(src)
-  if ('error' in t) return { packageNamePattern: null, packageNamePatternError: t.error }
-  try {
-    return { packageNamePattern: new RegExp(t.source, t.unicode ? 'u' : '') }
-  } catch (e) {
-    return {
-      packageNamePattern: null,
-      packageNamePatternError: e instanceof Error ? e.message : String(e),
-    }
-  }
+  const a = analyzePattern(src)
+  return a._tag === 'ok'
+    ? { packageNamePattern: a.regex }
+    : { packageNamePattern: null, packageNamePatternError: a.reason }
 }
 
 function parseWorkflow(
