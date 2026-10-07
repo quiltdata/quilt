@@ -27,71 +27,75 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const errorDisplay = R.cond([
-  [
-    R.is(ERRORS.WorkflowsConfigInvalid),
-    (e: ERRORS.WorkflowsConfigInvalid) => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          This bucket&apos;s flows can&apos;t be read
-        </M.Typography>
-        <M.Typography gutterBottom>
-          Error: <code>{e.message}</code>
-        </M.Typography>
-        <M.Typography>
-          See the <FlowsLink>Flows page</FlowsLink> for details. A bucket admin can repair
-          the <WorkflowsConfigLink>stored configuration</WorkflowsConfigLink> (see{' '}
-          <StyledLink href={`${docs}/workflows`} target="_blank">
-            the documentation
-          </StyledLink>
-          ).
-        </M.Typography>
-      </>
-    ),
-  ],
-  [
-    R.is(ERRORS.ManifestTooLarge),
-    (e: ERRORS.ManifestTooLarge) => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          Package manifest too large
-        </M.Typography>
-        <M.Typography gutterBottom>
-          This package is not editable via the web UI&mdash;it cannot handle package
-          manifests with more than {e.max} entries.
-        </M.Typography>
-        <M.Typography>Please use Quilt CLI to edit this package.</M.Typography>
-      </>
-    ),
-  ],
-  [
-    R.is(ERRORS.FailedResolvingFiles),
-    (e: ERRORS.FailedResolvingFiles) => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          Failed resolving files
-        </M.Typography>
-        <M.Typography gutterBottom>{e.message}</M.Typography>
-      </>
-    ),
-  ],
-  [
-    R.T,
-    () => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          Unexpected error
-        </M.Typography>
-        <M.Typography gutterBottom>
-          Something went wrong. Please contact Quilt support.
-        </M.Typography>
-        <M.Typography>You can also use Quilt CLI to edit this package.</M.Typography>
-      </>
-    ),
-  ],
-])
+const errorDisplay = (bucket?: string) =>
+  R.cond([
+    [
+      R.is(ERRORS.WorkflowsConfigInvalid),
+      (e: ERRORS.WorkflowsConfigInvalid) => (
+        <>
+          <M.Typography variant="h6" gutterBottom>
+            This bucket&apos;s flows can&apos;t be read
+          </M.Typography>
+          <M.Typography gutterBottom>
+            Error: <code>{e.message}</code>
+          </M.Typography>
+          <M.Typography>
+            See the <FlowsLink bucket={bucket}>Flows page</FlowsLink> for details. A
+            bucket admin can repair the{' '}
+            <WorkflowsConfigLink>stored configuration</WorkflowsConfigLink> (see{' '}
+            <StyledLink href={`${docs}/workflows`} target="_blank">
+              the documentation
+            </StyledLink>
+            ).
+          </M.Typography>
+        </>
+      ),
+    ],
+    [
+      R.is(ERRORS.ManifestTooLarge),
+      (e: ERRORS.ManifestTooLarge) => (
+        <>
+          <M.Typography variant="h6" gutterBottom>
+            Package manifest too large
+          </M.Typography>
+          <M.Typography gutterBottom>
+            This package is not editable via the web UI&mdash;it cannot handle package
+            manifests with more than {e.max} entries.
+          </M.Typography>
+          <M.Typography>Please use Quilt CLI to edit this package.</M.Typography>
+        </>
+      ),
+    ],
+    [
+      R.is(ERRORS.FailedResolvingFiles),
+      (e: ERRORS.FailedResolvingFiles) => (
+        <>
+          <M.Typography variant="h6" gutterBottom>
+            Failed resolving files
+          </M.Typography>
+          <M.Typography gutterBottom>{e.message}</M.Typography>
+        </>
+      ),
+    ],
+    [
+      R.T,
+      () => (
+        <>
+          <M.Typography variant="h6" gutterBottom>
+            Unexpected error
+          </M.Typography>
+          <M.Typography gutterBottom>
+            Something went wrong. Please contact Quilt support.
+          </M.Typography>
+          <M.Typography>You can also use Quilt CLI to edit this package.</M.Typography>
+        </>
+      ),
+    ],
+  ])
 
 interface DialogErrorProps {
+  // The bucket being pushed to, when it isn't the page's
+  bucket?: string
   cancelText?: React.ReactNode
   error: any
   onCancel: () => void
@@ -101,6 +105,7 @@ interface DialogErrorProps {
 }
 
 export default function DialogError({
+  bucket,
   cancelText,
   error,
   onCancel,
@@ -114,7 +119,7 @@ export default function DialogError({
       <M.DialogTitle>{title}</M.DialogTitle>
       <M.DialogContent className={classes.content}>
         {skeletonElement}
-        <div className={classes.overlay}>{errorDisplay(error)}</div>
+        <div className={classes.overlay}>{errorDisplay(bucket)(error)}</div>
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onCancel}>{cancelText || 'Cancel'}</M.Button>

@@ -232,6 +232,17 @@ export function analyzePattern(src: string): PatternAnalysis {
         return invalid(`\\${n} isn't a valid escape for pushes`)
       }
       prev = 'atom'
+      if (inClass && 'AZB'.includes(n))
+        return invalid(`\\${n} isn't allowed inside [...]`)
+      if (n === 'x' && !/^[0-9a-fA-F]{2}$/.test(cs.slice(i + 1, i + 3).join(''))) {
+        return invalid('\\x needs two hex digits')
+      }
+      if (n === 'u' && !/^[0-9a-fA-F]{4}$/.test(cs.slice(i + 1, i + 5).join(''))) {
+        return invalid('\\u needs four hex digits')
+      }
+      if (n === 'U' && !/^[0-9a-fA-F]{8}$/.test(cs.slice(i + 1, i + 9).join(''))) {
+        return invalid('\\U needs eight hex digits')
+      }
       if (inClass && n === 'b') out += '\\x08'
       else if ('AZbB'.includes(n)) {
         skip(`\\${n}`)

@@ -3,14 +3,13 @@ import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import Placeholder from 'components/Placeholder'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Workflows from 'utils/workflows'
-
-import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 
 import { WorkflowsConfigInvalid, displayError } from '../errors'
 import * as requests from '../requests'

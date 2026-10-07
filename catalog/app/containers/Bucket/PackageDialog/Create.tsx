@@ -258,6 +258,7 @@ function PackageCreationForm({
           <Layout.Container>
             <Layout.LeftColumn>
               <Inputs.Workflow
+                bucket={dst.bucket}
                 formStatus={formStatus}
                 schema={metadataSchema}
                 state={workflow}

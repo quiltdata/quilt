@@ -45,6 +45,7 @@ describe('containers/Bucket/PackageDialog/Inputs', () => {
     } as workflows.Workflow
     const { getByRole } = render(
       <Workflow
+        bucket="b"
         formStatus={{ _tag: 'ready' }}
         schema={{ _tag: 'ready' } as React.ComponentProps<typeof Workflow>['schema']}
         state={{ value: wf, status: { _tag: 'ok' }, onChange: noop }}

@@ -37,11 +37,24 @@ interface Loaded {
   hasComments: boolean
 }
 
-// Comments, anchors and aliases are lost when the file is rewritten. Quoted strings are
-// skipped, so a `#` in a quoted value isn't mistaken for a comment.
+// Comments, anchors and aliases are lost when the file is rewritten.
 function hasHandWrittenParts(text: string) {
-  const unquoted = text.replace(/"(?:[^"\\]|\\.)*"|'(?:[^']|'')*'/g, '""')
-  return /(^|\s)#/m.test(unquoted) || /(^|[\s[{,])[&*][\w-]+/m.test(unquoted)
+  return text.split('\n').some((line) => {
+    let quote: string | null = null
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i]
+      if (quote) {
+        if (c === quote && !(quote === '"' && line[i - 1] === '\\')) quote = null
+      } else if ((c === '"' || c === "'") && (i === 0 || /[\s:,[{-]/.test(line[i - 1]))) {
+        quote = c
+      } else if (c === '#' && (i === 0 || /\s/.test(line[i - 1]))) {
+        return true
+      } else if ((c === '&' || c === '*') && (i === 0 || /[\s[{,]/.test(line[i - 1]))) {
+        if (/[\w-]/.test(line[i + 1] ?? '')) return true
+      }
+    }
+    return false
+  })
 }
 
 async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
@@ -62,7 +75,8 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
     throw e
   }
   const text = r.Body?.toString('utf-8') ?? ''
-  const raw = YAML.parseStrict<Record<string, any>>(text)
+  // CORE schema: values like `2024-01-01` stay strings, so a save never rewrites them
+  const raw = YAML.parseStrict<Record<string, any>>(text, { schema: 'core' })
   // Saving over a config we couldn't read would drop every other flow.
   if (raw instanceof Error) {
     throw new Error(
@@ -85,6 +99,9 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
 }
 
 function explain(e: any): string {
+  if (e?.code === 'NetworkingError' || e?.message === 'Network Failure') {
+    return "The bucket's CORS settings may not allow this save (If-Match header). Ask an admin to allow all headers for PUT."
+  }
   if (e?.code === 'AccessDenied' || e?.code === 'Forbidden') {
     return "You don't have permission to change flows in this bucket."
   }
