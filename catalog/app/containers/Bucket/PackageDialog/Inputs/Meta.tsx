@@ -26,6 +26,7 @@ import { useMetaSuggestions } from '../State/metaSuggest'
 import type { SuggestState } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
+import MetaSummary from './MetaSummary'
 import { MetaInputSkeleton } from '../Skeleton'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
@@ -877,45 +878,63 @@ interface InputMetaProps {
  * Provides a JSON editor for package metadata with field-level error display
  * and can import from spreadsheet files (XLSX, CSV).
  */
-const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function InputMeta(
-  {
-    formStatus,
-    schema,
-    state: { guided, status, touched, value, warnings, onChange },
-    suggest,
+export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
+  function MetaPane(
+    {
+      formStatus,
+      schema,
+      state: { guided, status, touched, value, warnings, onChange },
+      suggest,
+    },
+    ref,
+  ) {
+    const classes = useInputMetaStyles()
+    // Guided status is live, so it fails on a blank form; errors there wait for
+    // an edit or a submit, while the required-fields list says what is missing.
+    // Inherited metadata shows its errors at once: they are why Create is off.
+    const blank = !value || !Object.keys(value).length
+    const showErrors = !guided || touched || !blank || formStatus._tag === 'error'
+    const errors = React.useMemo(() => {
+      if (schema._tag === 'error') return [schema.error]
+      if (status._tag === 'error' && showErrors) return status.errors
+      return []
+    }, [schema, showErrors, status])
+    if (schema._tag === 'loading') {
+      return <MetaInputSkeleton ref={ref} className={classes.root} />
+    }
+    return (
+      <MetaInput
+        blocked={status._tag === 'error'}
+        disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
+        className={classes.root}
+        errors={errors}
+        guided={guided}
+        onChange={onChange}
+        ref={ref}
+        schema={schema._tag === 'ready' ? schema.schema : undefined}
+        insist={touched || formStatus._tag === 'error'}
+        suggest={suggest}
+        value={value}
+        warnings={showErrors ? warnings : []}
+      />
+    )
   },
-  ref,
-) {
-  const classes = useInputMetaStyles()
-  // Guided status is live, so it fails on a blank form; errors there wait for
-  // an edit or a submit, while the required-fields list says what is missing.
-  // Inherited metadata shows its errors at once: they are why Create is off.
-  const blank = !value || !Object.keys(value).length
-  const showErrors = !guided || touched || !blank || formStatus._tag === 'error'
-  const errors = React.useMemo(() => {
-    if (schema._tag === 'error') return [schema.error]
-    if (status._tag === 'error' && showErrors) return status.errors
-    return []
-  }, [schema, showErrors, status])
-  if (schema._tag === 'loading') {
-    return <MetaInputSkeleton ref={ref} className={classes.root} />
-  }
-  return (
-    <MetaInput
-      blocked={status._tag === 'error'}
-      disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
-      className={classes.root}
-      errors={errors}
-      guided={guided}
-      onChange={onChange}
-      ref={ref}
-      schema={schema._tag === 'ready' ? schema.schema : undefined}
-      insist={touched || formStatus._tag === 'error'}
-      suggest={suggest}
-      value={value}
-      warnings={showErrors ? warnings : []}
-    />
-  )
-})
+)
+
+/**
+ * Set by a dialog that shows guided metadata in its own pane: the inline slot
+ * then shows a summary that opens that pane instead of a second editor.
+ */
+export const MetaPaneOpener = React.createContext<(() => void) | null>(null)
+
+const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(
+  function InputMeta(props, ref) {
+    const openPane = React.useContext(MetaPaneOpener)
+    if (props.state.guided && openPane) {
+      return <MetaSummary onOpen={openPane} schema={props.schema} state={props.state} />
+    }
+    return <MetaPane {...props} ref={ref} />
+  },
+)
 
 export default InputMeta

@@ -186,12 +186,11 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       flexBasis: '36%',
       maxWidth: `calc(36% - ${t.spacing(1.5)}px)`,
-    },
-  },
-  guidedRight: {
-    [t.breakpoints.up('sm')]: {
-      flexBasis: '64%',
-      maxWidth: `calc(64% - ${t.spacing(1.5)}px)`,
+      // the right column, whose own markup stays untouched
+      '& + *': {
+        flexBasis: '64%',
+        maxWidth: `calc(64% - ${t.spacing(1.5)}px)`,
+      },
     },
   },
   paneTabs: {
@@ -270,6 +269,8 @@ function PackageCreationForm({
     ]).size
   }, [files.value])
 
+  const openMeta = React.useCallback(() => setPane('metadata'), [])
+
   const suggest = React.useMemo(() => {
     const { added, deleted, existing } = files.value
     const keys = [
@@ -294,7 +295,7 @@ function PackageCreationForm({
   )
 
   return (
-    <>
+    <Inputs.MetaPaneOpener.Provider value={meta.guided ? openMeta : null}>
       {formStatus._tag === 'emptyFiles' && (
         <M.Dialog open fullWidth maxWidth="sm">
           <ConfirmReadme close={onAddReadme} />
@@ -322,22 +323,15 @@ function PackageCreationForm({
               />
               <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
               <Inputs.Message formStatus={formStatus} state={message} />
-              {meta.guided ? (
-                <Inputs.MetaSummary
-                  onOpen={() => setPane('metadata')}
-                  schema={metadataSchema}
-                  state={meta}
-                />
-              ) : (
-                <Inputs.Meta
-                  formStatus={formStatus}
-                  schema={metadataSchema}
-                  state={meta}
-                  ref={setEditorElement}
-                />
-              )}
+              <Inputs.Meta
+                formStatus={formStatus}
+                schema={metadataSchema}
+                state={meta}
+                ref={setEditorElement}
+                suggest={suggest}
+              />
             </Layout.LeftColumn>
-            <Layout.RightColumn className={cx({ [classes.guidedRight]: meta.guided })}>
+            <Layout.RightColumn>
               {meta.guided && (
                 <M.Tabs
                   className={classes.paneTabs}
@@ -359,7 +353,7 @@ function PackageCreationForm({
                     [classes.paneHidden]: pane !== 'metadata',
                   })}
                 >
-                  <Inputs.Meta
+                  <Inputs.MetaPane
                     formStatus={formStatus}
                     schema={metadataSchema}
                     state={meta}
@@ -409,7 +403,7 @@ function PackageCreationForm({
           {ui.submit || 'Create'}
         </M.Button>
       </M.DialogActions>
-    </>
+    </Inputs.MetaPaneOpener.Provider>
   )
 }
 
