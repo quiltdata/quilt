@@ -43,7 +43,7 @@ const json = (body: unknown, status = 200) =>
 
 /** The registry: start answers with an authorize URL, finish with `finish`. */
 const registry = (finish: () => Response = () => json({ ok: true })) =>
-  vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) =>
+  vi.fn<typeof fetch>(async (url) =>
     String(url).endsWith('/start')
       ? json({ authorizeUrl: 'https://provider.test/authorize?x=1' })
       : finish(),
