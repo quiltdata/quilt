@@ -39,6 +39,23 @@ const aggregateContext = (contexts: Partial<ContextShape>[]) =>
 
 export const merge = (...contexts: Partial<ContextShape>[]) => aggregateContext(contexts)
 
+/** Set by Ask mode: the model is offered read tools only. */
+export const ASK_MODE = 'askMode'
+
+/**
+ * Applied both where the prompt is built and where a returned tool call is
+ * looked up, so a write the model names anyway resolves to no tool and fails.
+ */
+export const forMode = (ctx: ContextShape): ContextShape =>
+  ctx.markers[ASK_MODE]
+    ? {
+        ...ctx,
+        tools: Object.fromEntries(
+          Object.entries(ctx.tools).filter(([, t]) => t.effect === 'read'),
+        ),
+      }
+    : ctx
+
 export const useAggregatedContext = ContextAggregator.makeCombinator(aggregateContext)
 
 export const usePushContext = (context: Partial<ContextShape>) =>
