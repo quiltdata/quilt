@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
 import * as AWS from 'utils/AWS'
-import useId from 'utils/useId'
 import * as s3paths from 'utils/s3paths'
 import * as Workflows from 'utils/workflows'
 import * as YAML from 'utils/yaml'
@@ -12,13 +11,8 @@ import * as YAML from 'utils/yaml'
 import * as requests from '../requests'
 import MANIFEST_QUERY from '../PackageDialog/gql/Manifest.generated'
 
+import { Field } from './Health'
 import * as model from './model'
-
-// MUI only links a TextField's label to its input when it has an id.
-function Field(props: M.TextFieldProps) {
-  const id = useId()
-  return <M.TextField id={id} {...props} />
-}
 
 const CONFIG_KEY = quiltConfigs.workflows
 
@@ -35,19 +29,40 @@ type S3 = ReturnType<typeof AWS.S3.use>
 
 interface Loaded {
   raw: Record<string, any> | undefined
+  // Both, because an unversioned bucket has no VersionId
   version: string | undefined
+  etag: string | undefined
+  hasComments: boolean
 }
 
 async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
+  let r
   try {
-    const r = await s3.getObject({ Bucket: bucket, Key: CONFIG_KEY }).promise()
-    return {
-      raw: YAML.parse(r.Body?.toString('utf-8')) || undefined,
-      version: r.VersionId,
-    }
+    r = await s3.getObject({ Bucket: bucket, Key: CONFIG_KEY }).promise()
   } catch (e: any) {
-    if (e?.code === 'NoSuchKey') return { raw: undefined, version: undefined }
+    if (e?.code === 'NoSuchKey') {
+      return { raw: undefined, version: undefined, etag: undefined, hasComments: false }
+    }
     throw e
+  }
+  const text = r.Body?.toString('utf-8') ?? ''
+  const raw = YAML.parseStrict<Record<string, any>>(text)
+  // Saving over a config we couldn't read would drop every other flow.
+  if (raw instanceof Error) {
+    throw new Error(
+      `This bucket's flow settings can't be read, so they can't be edited here: ${raw.message}`,
+    )
+  }
+  if (raw !== undefined && (typeof raw !== 'object' || Array.isArray(raw))) {
+    throw new Error(
+      "This bucket's flow settings aren't in the expected format, so they can't be edited here.",
+    )
+  }
+  return {
+    raw: raw || undefined,
+    version: r.VersionId,
+    etag: r.ETag,
+    hasComments: /(^|\s)#/m.test(text),
   }
 }
 
@@ -67,53 +82,61 @@ function useFlowStore(bucket: string) {
     return loadedRef.current
   }, [s3, bucket])
 
-  const writeConfig = React.useCallback(
-    async (next: Record<string, any> | null) => {
+  // Re-reads and compares before anything is written, and parses what will be written,
+  // so a failed save changes nothing.
+  const prepare = React.useCallback(
+    async (next: Record<string, any>) => {
       const current = await readConfig(s3, bucket)
-      if (current.version !== loadedRef.current?.version) {
+      const loaded = loadedRef.current
+      if (current.version !== loaded?.version || current.etag !== loaded?.etag) {
         throw new Error(
           'Flows in this bucket changed while you were editing. Reopen and try again.',
         )
       }
-      if (next === null) {
-        await s3.deleteObject({ Bucket: bucket, Key: CONFIG_KEY }).promise()
-        return
-      }
       const body = YAML.stringify(next)
-      // The catalog must still be able to read what we write.
       Workflows.parse(body, bucket)
-      await s3.putObject({ Bucket: bucket, Key: CONFIG_KEY, Body: body }).promise()
+      return body
     },
+    [s3, bucket],
+  )
+
+  const putConfig = React.useCallback(
+    (body: string) =>
+      s3.putObject({ Bucket: bucket, Key: CONFIG_KEY, Body: body }).promise(),
     [s3, bucket],
   )
 
   const save = React.useCallback(
     async (draft: model.FlowDraft, promote: model.Promote[]) => {
       const raw = loadedRef.current?.raw
-      let schema: { key: string; url: string } | null = null
-      if (draft.fields?.length) {
-        schema = model.schemaLocation(raw ?? {}, bucket, draft)
-        const { key } = s3paths.parseS3Url(schema.url)
+      const schema = draft.fields?.length
+        ? model.schemaLocation(raw ?? {}, bucket, draft)
+        : null
+      const body = await prepare(
+        model.applyPromote(model.applyFlow(raw, draft, schema), promote),
+      )
+      if (schema && draft.fields) {
         await s3
           .putObject({
             Bucket: bucket,
-            Key: key,
+            Key: s3paths.parseS3Url(schema.url).key,
             Body: JSON.stringify(model.fieldsToSchema(draft.fields), null, 2),
             ContentType: 'application/json',
           })
           .promise()
       }
-      await writeConfig(model.applyPromote(model.applyFlow(raw, draft, schema), promote))
+      await putConfig(body)
     },
-    [s3, bucket, writeConfig],
+    [s3, bucket, prepare, putConfig],
   )
 
   const remove = React.useCallback(
     async (id: string) => {
       const raw = loadedRef.current?.raw
-      await writeConfig(raw ? model.removeFlow(raw, id) : null)
+      if (!raw) return
+      await putConfig(await prepare(model.removeFlow(raw, id)))
     },
-    [writeConfig],
+    [prepare, putConfig],
   )
 
   return { load, save, remove }
@@ -298,6 +321,11 @@ export default function Editor({
   const [error, setError] = React.useState<string>()
   const [submitted, setSubmitted] = React.useState(false)
   const [pkgName, setPkgName] = React.useState('')
+  const [hasComments, setHasComments] = React.useState(false)
+  const [canRemove, setCanRemove] = React.useState(false)
+  // Bumped when fields are replaced wholesale, so rows don't keep stale inputs
+  const [generation, setGeneration] = React.useState(0)
+  const [originalPattern, setOriginalPattern] = React.useState<string>()
 
   React.useEffect(() => {
     let cancelled = false
@@ -318,6 +346,9 @@ export default function Editor({
           fields,
         }))
         setPromote(model.promoteFromConfig(loaded.raw))
+        setHasComments(loaded.hasComments)
+        setOriginalPattern(prev?.handle_pattern)
+        setCanRemove(model.canRemove(loaded.raw))
         setReady(true)
       } catch (e) {
         if (!cancelled) setError(explain(e))
@@ -334,7 +365,10 @@ export default function Editor({
     () => (isNew ? { ...draft, id: model.slugify(draft.name) } : draft),
     [draft, isNew],
   )
-  const errors = model.validateDraft(toSave, { isNew, existingIds })
+  const errors = {
+    ...model.validateDraft(toSave, { isNew, existingIds, originalPattern }),
+    ...model.validatePromote(promote),
+  }
   const shownErrors = submitted ? errors : {}
 
   const setFields = (fields: model.Field[]) => setDraft((d) => ({ ...d, fields }))
@@ -360,12 +394,14 @@ export default function Editor({
       return
     }
     setBusy(true)
+    setError(undefined)
     try {
       await store.remove(draft.id)
       onSaved(null)
     } catch (e) {
       setError(explain(e))
       setBusy(false)
+      setConfirmDelete(false)
     }
   }
 
@@ -373,6 +409,7 @@ export default function Editor({
     setError(undefined)
     try {
       setFields(await startFrom(pkgName))
+      setGeneration((g) => g + 1)
     } catch (e) {
       setError(explain(e))
     }
@@ -386,6 +423,14 @@ export default function Editor({
           <M.Box mb={2}>
             <M.Typography color="error" role="alert">
               {error}
+            </M.Typography>
+          </M.Box>
+        )}
+        {ready && hasComments && (
+          <M.Box mb={2}>
+            <M.Typography variant="body2" color="textSecondary">
+              Saving rewrites this bucket&apos;s flow settings file, so notes written in
+              it by hand are removed.
             </M.Typography>
           </M.Box>
         )}
@@ -469,7 +514,7 @@ export default function Editor({
                     <FieldRow
                       // Index keys: rows have no identity until named
                       // eslint-disable-next-line react/no-array-index-key
-                      key={i}
+                      key={`${generation}-${i}`}
                       error={shownErrors[`fields.${i}`]}
                       field={f}
                       onChange={(nf) =>
@@ -519,6 +564,8 @@ export default function Editor({
                 // eslint-disable-next-line react/no-array-index-key
                 <div className={classes.promoteRow} key={i}>
                   <Field
+                    error={!!shownErrors[`promote.${i}`]}
+                    helperText={shownErrors[`promote.${i}`]}
                     label="Bucket"
                     onChange={(e) =>
                       setPromote(
@@ -583,7 +630,7 @@ export default function Editor({
         )}
       </M.DialogContent>
       <M.DialogActions>
-        {!isNew && ready && (
+        {!isNew && ready && canRemove && (
           <M.Button
             disabled={busy}
             onClick={handleDelete}

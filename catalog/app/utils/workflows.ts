@@ -329,7 +329,14 @@ export function parse(
   bucket: string,
   { strict = false }: { strict?: boolean } = {},
 ): WorkflowsConfig {
-  const rawData = YAML.parse(workflowsYaml)
+  // quilt3 rejects a push when this file doesn't parse, so the catalog must not read it
+  // as "no flows" (that would also offer to create flows over it).
+  const rawData = YAML.parseStrict(workflowsYaml)
+  if (rawData instanceof Error) {
+    throw new bucketErrors.WorkflowsConfigInvalid({
+      errors: [new Error(`The file isn't valid YAML: ${rawData.message.split('\n')[0]}`)],
+    })
+  }
   if (!rawData) return strict ? nullConfig : emptyConfig(bucket)
 
   const data = prepareData(rawData)
