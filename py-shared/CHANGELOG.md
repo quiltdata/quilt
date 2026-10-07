@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] `PackageConstructParams.patch` (`PackagePatchBase`) for building a package revision from a parent revision ([#PR](https://github.com/quiltdata/quilt/pull/PR))
 - [Fixed] `QueryMaker` escapes every value it puts into SQL as a string literal or quoted identifier, and raises `ValueError` for a revision pointer that is not an integer ([#5422](https://github.com/quiltdata/quilt/pull/5422))
 - [Changed] `QueryRunner` retries `ICEBERG_COMMIT_ERROR` with bounded backoff, and Athena's failure reason now appears in the raised exception ([#5325](https://github.com/quiltdata/quilt/pull/5325))
 - [Removed] Drop the `typing-extensions` dependency from the `pydantic` extra ([#5149](https://github.com/quiltdata/quilt/pull/5149))
