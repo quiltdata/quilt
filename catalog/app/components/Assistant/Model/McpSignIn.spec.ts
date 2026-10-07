@@ -43,8 +43,8 @@ const json = (body: unknown, status = 200) =>
 
 /** The registry: start answers with an authorize URL, finish with `finish`. */
 const registry = (finish: () => Response = () => json({ ok: true })) =>
-  vi.fn(async (url: string) =>
-    url.endsWith('/start')
+  vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) =>
+    String(url).endsWith('/start')
       ? json({ authorizeUrl: 'https://provider.test/authorize?x=1' })
       : finish(),
   )
@@ -102,7 +102,10 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     await flush()
     post(callback())
     await result
-    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ code: CODE, state: STATE })
+    expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toEqual({
+      code: CODE,
+      state: STATE,
+    })
   })
 
   it('ignores a message from the wrong origin, the wrong window or another slug', async () => {
