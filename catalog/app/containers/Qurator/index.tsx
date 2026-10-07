@@ -137,22 +137,20 @@ const useStyles = M.makeStyles((t) => ({
 interface QuratorChatProps {
   api: NonNullable<ReturnType<typeof Assistant.Model.useAssistantAPI>>
   onClose: () => void
+  save?: ReturnType<typeof SessionSave.useSessionSave>
 }
 
-function QuratorChat({ api, onClose }: QuratorChatProps) {
-  const save = SessionSave.useSessionSave(api)
-  // Saving is Qurator mode's addition; the page itself stays unflagged.
-  const saving = useFeature('qurator-mode')
+function QuratorChat({ api, onClose, save }: QuratorChatProps) {
   return (
     // The whole API, not a prop list: a Chat prop added on another branch
     // (e.g. `sessions`) would otherwise reach Chat undefined and crash it.
-    <Chat
-      {...api}
-      composer="compact"
-      save={saving ? save : undefined}
-      onClose={onClose}
-    />
+    <Chat {...api} composer="compact" save={save} onClose={onClose} />
   )
+}
+
+// Its own component so the save hook (bucket list, name check) mounts only with the flag on.
+function QuratorChatWithSave(props: QuratorChatProps) {
+  return <QuratorChat {...props} save={SessionSave.useSessionSave(props.api)} />
 }
 
 export default function Qurator() {
@@ -165,6 +163,8 @@ export default function Qurator() {
   const toCatalog = React.useCallback(() => history.push(urls.home()), [history, urls])
   const frame = useKeyboardFrame()
   const installHint = useInstallHint()
+  // Saving is Qurator mode's addition; the page itself stays unflagged.
+  const saving = useFeature('qurator-mode')
 
   return (
     <div className={classes.root} style={frame}>
@@ -175,7 +175,11 @@ export default function Qurator() {
         // Registered presence keeps the global drawer from opening a second copy.
         <InlinePresence.Provide value>
           <div className={classes.chat}>
-            <QuratorChat api={api} onClose={toCatalog} />
+            {saving ? (
+              <QuratorChatWithSave api={api} onClose={toCatalog} />
+            ) : (
+              <QuratorChat api={api} onClose={toCatalog} />
+            )}
           </div>
         </InlinePresence.Provide>
       ) : (
