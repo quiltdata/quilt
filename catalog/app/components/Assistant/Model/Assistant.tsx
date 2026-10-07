@@ -406,8 +406,11 @@ export function useSessions(
     if (head) queue.change(head, state.events)
   }, [enabled, head, currentId, state.events, queue])
 
-  // New session, closing the panel and unmounting each checkpoint the conversation.
-  React.useEffect(() => () => queue.checkpoint(), [head, queue])
+  // New session, closing the panel and unmounting each checkpoint the conversation;
+  // the queue itself checkpoints one left for another.
+  React.useEffect(() => {
+    if (!head) queue.checkpoint()
+  }, [head, queue])
   React.useEffect(() => {
     if (!visible) queue.checkpoint()
   }, [visible, queue])

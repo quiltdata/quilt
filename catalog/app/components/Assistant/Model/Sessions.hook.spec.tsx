@@ -146,6 +146,22 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     })
   })
 
+  it('checkpoints the conversation left by New session', async () => {
+    const hook = renderHook(
+      ({ state }: { state: Conversation.State }) => useSessions(state, vi.fn(), 'm'),
+      { initialProps: { state: idle([ask('1', 'find my packages')]) } },
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    hook.rerender({ state: idle([]) })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(stub.saves).toHaveLength(2)
+    expect(stub.saves[1].checkpoint).toMatchObject({ readme: expect.any(String) })
+  })
+
   it('saves without a checkpoint past 2 MiB', async () => {
     const state = idle([ask('1', 'x'.repeat(1100 * 1024))])
     const hook = renderHook(
