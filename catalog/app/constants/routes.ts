@@ -55,6 +55,9 @@ export const activationError = route('/activation_error')
 // Connect OAuth
 export const connectAuthorize = route('/connect/authorize')
 
+// Qurator full-page chat; the start URL of the installable app
+export const qurator = route('/qurator')
+
 // Profile
 export const profile = route('/profile')
 
