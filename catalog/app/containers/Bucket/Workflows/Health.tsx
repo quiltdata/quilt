@@ -2,6 +2,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import useId from 'utils/useId'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
@@ -149,6 +151,20 @@ function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
   )
 }
 
+function SchemaLink({
+  schema,
+  children,
+}: React.PropsWithChildren<{ schema?: Workflows.SchemaRef }>) {
+  const { urls } = NamedRoutes.use()
+  if (!schema) return <>{children}</>
+  const l = schema.location
+  return (
+    <StyledLink to={urls.bucketFile(l.bucket, l.key, { version: l.version })}>
+      {children}
+    </StyledLink>
+  )
+}
+
 const TYPE_WORDS: Record<model.FieldType, string> = {
   text: 'text',
   number: 'a number',
@@ -180,11 +196,21 @@ function RulesSummary({
       </>,
     )
   }
+  if (workflow.packageNamePatternError) {
+    rules.push('Package names must match a pattern only the push can check')
+  }
   if (workflow.isMessageRequired) rules.push('A commit message is required')
   if (workflow.schema) {
     if (fields === undefined) rules.push("Metadata must match this flow's schema")
     else if (fields === null) {
-      rules.push("Metadata must match a schema with rules the builder can't show")
+      rules.push(
+        <>
+          Metadata must match{' '}
+          <SchemaLink schema={workflow.schemas.metadata}>
+            a schema with rules the builder can&apos;t show
+          </SchemaLink>
+        </>,
+      )
     } else {
       fields.forEach((f) =>
         rules.push(
@@ -196,6 +222,16 @@ function RulesSummary({
         ),
       )
     }
+  }
+  if (workflow.entriesSchema) {
+    rules.push(
+      <>
+        Package files must match{' '}
+        <SchemaLink schema={workflow.schemas.entries}>
+          this flow&apos;s file rules
+        </SchemaLink>
+      </>,
+    )
   }
   return (
     <>

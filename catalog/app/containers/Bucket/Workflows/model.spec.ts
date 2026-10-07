@@ -190,4 +190,48 @@ describe('containers/Bucket/Workflows/model', () => {
       'namePattern',
     ])
   })
+
+  it('turns copying back on for a promote target', () => {
+    const config = {
+      version: '1',
+      successors: { 's3://gold': { title: 'G', copy_data: false } },
+    }
+    expect(
+      model.applyPromote(config, [{ bucket: 'gold', title: 'G', copyData: true }])
+        .successors,
+    ).toEqual({ 's3://gold': { title: 'G' } })
+  })
+
+  it('keeps schemas whose rules the builder would drop out of the builder', () => {
+    const obj = (extra: object) => ({ type: 'object', ...extra })
+    // required names a field with no property
+    expect(
+      model.schemaToFields(
+        obj({ properties: { a: { type: 'string' } }, required: ['b'] }),
+      ),
+    ).toBe(null)
+    // a date format the builder doesn't write
+    expect(
+      model.schemaToFields(
+        obj({
+          properties: { d: { type: 'string', format: 'date', dateformat: 'dd/MM/yyyy' } },
+        }),
+      ),
+    ).toBe(null)
+    // no fields at all
+    expect(model.schemaToFields(obj({}))).toBe(null)
+  })
+
+  it('treats a file another flow uses under a different key as shared', () => {
+    const url = 's3://b/.quilt/workflows/a.json'
+    const config = {
+      version: '1',
+      workflows: {
+        a: { name: 'A', metadata_schema: 'a' },
+        b: { name: 'B', metadata_schema: 'alias' },
+      },
+      schemas: { a: { url }, alias: { url } },
+    }
+    expect(model.schemaLocation(config, 'b', draft({ id: 'a' })).url).not.toBe(url)
+  })
 })

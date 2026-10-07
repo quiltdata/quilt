@@ -88,10 +88,12 @@ function propertyToField(name: string, p: any, required: boolean): Field | null 
     }
     return null
   }
+  // Only the date shape the builder writes, so saving can't change it.
   if (
     p.type === 'string' &&
     p.format === 'date' &&
-    keys.every((k) => ['type', 'format', 'dateformat'].includes(k))
+    p.dateformat === 'yyyy-MM-dd' &&
+    keys.length === 3
   ) {
     return { ...base, type: 'date' }
   }
@@ -111,8 +113,12 @@ export function schemaToFields(schema: unknown): Field[] | null {
   if (s.type !== 'object') return null
   const required: unknown = s.required ?? []
   if (!Array.isArray(required)) return null
+  const properties = s.properties ?? {}
+  // Each is a rule the builder can't show, which a save would otherwise drop.
+  if (!Object.keys(properties).length) return null
+  if (!required.every((r) => typeof r === 'string' && r in properties)) return null
   const fields: Field[] = []
-  for (const [name, p] of Object.entries(s.properties ?? {})) {
+  for (const [name, p] of Object.entries(properties)) {
     const f = propertyToField(name, p, required.includes(name))
     if (!f) return null
     fields.push(f)
@@ -180,19 +186,33 @@ const referencedBy = (config: RawConfig, key: string, exceptId?: string) =>
       id !== exceptId && (w?.metadata_schema === key || w?.entries_schema === key),
   )
 
+// Two schema keys can name one file, so sharing is decided by URL, not key.
+const urlInUse = (config: RawConfig, url: string, exceptId?: string) =>
+  Object.entries(config.workflows ?? {}).some(
+    ([id, w]: [string, any]) =>
+      id !== exceptId &&
+      [w?.metadata_schema, w?.entries_schema].some(
+        (k) => k && config.schemas?.[k]?.url === url,
+      ),
+  )
+
 // Returns the schema location to write. The flow keeps its own schema file only when no
 // other flow uses it; otherwise it gets a fresh key, so other flows' rules never change.
 export function schemaLocation(config: RawConfig, bucket: string, draft: FlowDraft) {
   const current = config.workflows?.[draft.id]?.metadata_schema
   const currentUrl = current && config.schemas?.[current]?.url
-  if (currentUrl && !referencedBy(config, current, draft.id)) {
+  if (currentUrl && !urlInUse(config, currentUrl, draft.id)) {
     const loc = s3paths.parseS3Url(currentUrl)
     if (loc.bucket === bucket && currentUrl === schemaUrl(bucket, current)) {
       return { key: current as string, url: currentUrl as string }
     }
   }
   let key = draft.id
-  for (let n = 2; config.schemas?.[key] || referencedBy(config, key); n++) {
+  const taken = (k: string) =>
+    !!config.schemas?.[k] ||
+    referencedBy(config, k) ||
+    Object.values(config.schemas ?? {}).some((x: any) => x?.url === schemaUrl(bucket, k))
+  for (let n = 2; taken(key); n++) {
     key = `${draft.id}-${n}`
   }
   return { key, url: schemaUrl(bucket, key) }
@@ -279,6 +299,12 @@ export function validatePromote(promote: Promote[]): Record<string, string> {
   return errors
 }
 
+const withoutManaged = (entry: any) => {
+  if (!entry || typeof entry !== 'object') return {}
+  const { title: _t, copy_data: _c, ...rest } = entry
+  return rest
+}
+
 export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
   const { successors: old, ...rest } = config
   const rows = promote
@@ -292,7 +318,7 @@ export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
         `s3://${p.bucket}`,
         {
           // Keep keys this editor doesn't manage
-          ...old?.[`s3://${p.bucket}`],
+          ...withoutManaged(old?.[`s3://${p.bucket}`]),
           title: p.title.trim() || p.bucket,
           ...(p.copyData ? {} : { copy_data: false }),
         },
