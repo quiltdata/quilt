@@ -1,12 +1,13 @@
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
+import * as SessionSave from 'components/Assistant/Model/SessionSave'
 import Chat from 'components/Assistant/UI/Chat/Chat'
 import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import * as Intercom from 'components/Intercom'
-import Logo from 'components/Logo'
+import { useFeature } from 'utils/features'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const isStandalone = () =>
@@ -35,12 +36,38 @@ function useInstallable(enabled: boolean) {
   }, [enabled])
 }
 
+// iOS doesn't shrink `100dvh` for the on-screen keyboard: it pans the page
+// instead, which pushes the header off and leaves the composer under the
+// keyboard. Size the page to the visible viewport while the keyboard is up.
+export function useKeyboardFrame(): React.CSSProperties | undefined {
+  const [frame, setFrame] = React.useState<React.CSSProperties>()
+  React.useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () =>
+      setFrame(
+        // A pinch-zoom shrinks the visual viewport too; only the keyboard should.
+        vv.scale === 1 && vv.height < window.innerHeight - 1
+          ? { height: vv.height, transform: `translateY(${vv.offsetTop}px)` }
+          : undefined,
+      )
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    update()
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+  return frame
+}
+
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
 }
 
 // Chrome offers install through this event; iOS Safari only through the Share sheet.
-function InstallHint() {
+function useInstallHint(): React.ReactNode {
   const [prompt, setPrompt] = React.useState<BeforeInstallPromptEvent | null>(null)
   React.useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -83,18 +110,22 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     height: '100dvh',
     fallbacks: { height: '100vh' },
-    paddingBottom: 'env(safe-area-inset-bottom)',
+    inset: 0,
+    paddingLeft: 'env(safe-area-inset-left)',
+    paddingRight: 'env(safe-area-inset-right)',
     paddingTop: 'env(safe-area-inset-top)',
+    position: 'fixed',
+    // On phones the composer pads the bottom inset itself.
+    [t.breakpoints.up('sm')]: {
+      paddingBottom: 'env(safe-area-inset-bottom)',
+    },
   },
   bar: {
     alignItems: 'center',
     borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
-    gap: `${t.spacing(1)}px`,
-    padding: t.spacing(1, 2),
-  },
-  grow: {
-    flexGrow: 1,
+    justifyContent: 'flex-end',
+    padding: t.spacing(0.5, 2),
   },
   chat: {
     display: 'flex',
@@ -102,6 +133,25 @@ const useStyles = M.makeStyles((t) => ({
     minHeight: 0,
   },
 }))
+
+interface QuratorChatProps {
+  api: NonNullable<ReturnType<typeof Assistant.Model.useAssistantAPI>>
+  onClose: () => void
+  save?: ReturnType<typeof SessionSave.useSessionSave>
+}
+
+function QuratorChat({ api, onClose, save }: QuratorChatProps) {
+  return (
+    // The whole API, not a prop list: a Chat prop added on another branch
+    // (e.g. `sessions`) would otherwise reach Chat undefined and crash it.
+    <Chat {...api} composer="compact" save={save} onClose={onClose} />
+  )
+}
+
+// Its own component so the save hook (bucket list, name check) mounts only with the flag on.
+function QuratorChatWithSave(props: QuratorChatProps) {
+  return <QuratorChat {...props} save={SessionSave.useSessionSave(props.api)} />
+}
 
 export default function Qurator() {
   const classes = useStyles()
@@ -111,29 +161,31 @@ export default function Qurator() {
   useInstallable(!!api)
   Intercom.usePauseVisibilityWhen(true)
   const toCatalog = React.useCallback(() => history.push(urls.home()), [history, urls])
+  const frame = useKeyboardFrame()
+  const installHint = useInstallHint()
+  // Saving is Qurator mode's addition; the page itself stays unflagged.
+  const saving = useFeature('qurator-mode')
 
   return (
-    <div className={classes.root}>
-      <div className={classes.bar}>
-        <Logo variant="icon" height="28px" width="28px" />
-        <div className={classes.grow} />
-        {api && <InstallHint />}
-        <M.Button size="small" component={Link} to={urls.home()}>
-          Open catalog
-        </M.Button>
-      </div>
+    <div className={classes.root} style={frame}>
+      {/* Chat's own header carries the mark, the menu and ✕ (back to the
+          catalog), so this bar exists only to offer the install. */}
+      {api && installHint && <div className={classes.bar}>{installHint}</div>}
       {api ? (
         // Registered presence keeps the global drawer from opening a second copy.
         <InlinePresence.Provide value>
           <div className={classes.chat}>
-            {/* The whole API, not a prop list: a Chat prop added on another branch
-                (e.g. `sessions`) would otherwise reach Chat undefined and crash it. */}
-            <Chat {...api} composer="compact" onClose={toCatalog} />
+            {saving ? (
+              <QuratorChatWithSave api={api} onClose={toCatalog} />
+            ) : (
+              <QuratorChat api={api} onClose={toCatalog} />
+            )}
           </div>
         </InlinePresence.Provide>
       ) : (
         <M.Box p={4} textAlign="center">
           <M.Typography>Qurator isn&apos;t enabled on this stack.</M.Typography>
+          <M.Button onClick={toCatalog}>Open catalog</M.Button>
         </M.Box>
       )}
     </div>
