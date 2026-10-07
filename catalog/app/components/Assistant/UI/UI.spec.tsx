@@ -209,6 +209,15 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
   })
 
+  it('returns focus to the Help rail button when Help collapses', () => {
+    useAssistantAPI.mockReturnValue(makeAPI())
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { rerender, getByLabelText } = render(<WithAssistantUI />)
+    chat = { ...chat, open: false }
+    rerender(<WithAssistantUI />)
+    expect(document.activeElement).toBe(getByLabelText('Help'))
+  })
+
   it('closes Help when Qurator opens', () => {
     const api = makeAPI()
     useAssistantAPI.mockReturnValue(api)

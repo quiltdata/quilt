@@ -54,6 +54,10 @@ const useStyles = M.makeStyles((t) => ({
       outlineOffset: -2,
     },
   },
+  blocked: {
+    color: t.palette.text.secondary,
+    padding: t.spacing(3),
+  },
   embed: {
     background: t.palette.background.paper,
     flexGrow: 1,
@@ -70,6 +74,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const BLOCKED_AFTER_MS = 15_000
+
 interface HelpProps {
   onClose: () => void
 }
@@ -77,7 +83,17 @@ interface HelpProps {
 export default function Help({ onClose }: HelpProps) {
   const classes = useStyles()
   const closeRef = React.useRef<HTMLButtonElement>(null)
+  const embedRef = React.useRef<HTMLDivElement>(null)
+  const [blocked, setBlocked] = React.useState(false)
   HubSpot.useEmbed()
+  // Ad-blockers commonly stop HubSpot's loader, leaving an empty panel forever.
+  React.useEffect(() => {
+    const timer = setTimeout(
+      () => setBlocked(!embedRef.current?.querySelector('iframe')),
+      BLOCKED_AFTER_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [])
   // The chat itself is a cross-origin iframe that may take seconds to arrive;
   // land focus on the panel's own control so keyboard users are not left behind.
   React.useEffect(() => {
@@ -103,7 +119,13 @@ export default function Help({ onClose }: HelpProps) {
           <M.Icon>close</M.Icon>
         </M.IconButton>
       </div>
-      <div id={HubSpot.EMBED_ID} className={classes.embed} />
+      {blocked && (
+        <M.Typography variant="body2" className={classes.blocked}>
+          Chat didn't load, possibly blocked by a browser extension. Email{' '}
+          <a href="mailto:support@quilt.bio">support@quilt.bio</a> instead.
+        </M.Typography>
+      )}
+      <div ref={embedRef} id={HubSpot.EMBED_ID} className={classes.embed} />
     </div>
   )
 }

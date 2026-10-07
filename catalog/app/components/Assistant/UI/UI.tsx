@@ -275,7 +275,11 @@ const noop = () => {}
 function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
   const classes = usePanelStyles()
   const instant = useInstant()
-  const railRef = React.useRef<HTMLButtonElement>(null)
+  const quratorRef = React.useRef<HTMLButtonElement>(null)
+  const helpRef = React.useRef<HTMLButtonElement>(null)
+  // Collapsing hands focus back to the rail button of the face that was open.
+  const lastMode = React.useRef(mode)
+  if (mode) lastMode.current = mode
   const open = mode != null
   const hide = (mode === 'help' ? help?.hide : api?.hide) ?? noop
   useEscapeToCollapse(open && !compact, hide)
@@ -284,7 +288,7 @@ function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
   // instead of leaving. Below it, a rail plus a 40rem panel both lose, so the
   // old overlay stands.
   const expanded = compact || open
-  useFocusRail(!compact, open, railRef)
+  useFocusRail(!compact, open, lastMode.current === 'help' ? helpRef : quratorRef)
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer
@@ -330,7 +334,7 @@ function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
             {api && (
               <M.Tooltip title="Ask Qurator" placement="left">
                 <M.IconButton
-                  ref={railRef}
+                  ref={quratorRef}
                   onClick={api.show}
                   aria-label="Ask Qurator"
                   aria-expanded={false}
@@ -343,7 +347,7 @@ function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
             {help && (
               <M.Tooltip title="Help" placement="left">
                 <M.IconButton
-                  ref={api ? undefined : railRef}
+                  ref={helpRef}
                   onClick={help.show}
                   aria-label="Help"
                   aria-expanded={false}
