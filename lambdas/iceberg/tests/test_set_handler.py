@@ -518,6 +518,17 @@ def test_a_pointer_named_by_a_numeral_that_is_not_a_timestamp_is_a_tag(handle, s
     assert holdings(con)["package_tag"] == {(REGISTRY, h(1))}
 
 
+def test_a_url_encoded_pointer_key_is_written_under_its_decoded_package_name(handle, s3, con):
+    put_pointer(s3, "u/c++ café", "latest", h(1))
+
+    response = handle(record("p", pointer_key("u/c%2B%2B+caf%C3%A9", "latest")))
+
+    assert response == failures()
+    assert con.execute(f'SELECT pkg_name, top_hash FROM "{STACK_DB}"."package_tag"').fetchall() == [
+        ("u/c++ café", h(1))
+    ]
+
+
 @pytest.mark.parametrize(
     "bad",
     [
