@@ -24,6 +24,12 @@ import useIsEnabled from './enabled'
 
 export const DISABLED = Symbol('DISABLED')
 
+/** Agent uses tools, writes ask first; Ask offers read tools only. */
+export type Mode = 'agent' | 'ask'
+
+const ASK_MODE_PROMPT =
+  '<mode>Ask mode: the user wants answers only. You have read-only tools; do not offer to create, change or delete anything. If the user asks for a change, say they can switch to Agent mode in the + menu.</mode>'
+
 function usePassThru<T>(val: T) {
   const ref = React.useRef(val)
   ref.current = val
@@ -281,15 +287,19 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
   return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
-/** Agent uses tools, writes ask first; Ask offers read tools only. */
-export type Mode = 'agent' | 'ask'
-
-const ASK_MODE_PROMPT =
-  '<mode>Ask mode: the user wants answers only. You have read-only tools; do not offer to create, change or delete anything. If the user asks for a change, say they can switch to Agent mode in the + menu.</mode>'
-
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
+  const [mode, setMode] = React.useState<Mode>('agent')
+  Context.usePushContext(
+    React.useMemo(
+      () =>
+        mode === 'ask'
+          ? { markers: { [Context.ASK_MODE]: true }, messages: [ASK_MODE_PROMPT] }
+          : {},
+      [mode],
+    ),
+  )
   const instructions = useDualInstructionsContext()
 
   const platformConfig = usePlatformConnectorConfig()
@@ -325,17 +335,6 @@ function useConstructAssistantAPI() {
   )
 
   GlobalContext.use(llm)
-
-  const [mode, setMode] = React.useState<Mode>('agent')
-  Context.usePushContext(
-    React.useMemo(
-      () =>
-        mode === 'ask'
-          ? { markers: { [Context.ASK_MODE]: true }, messages: [ASK_MODE_PROMPT] }
-          : {},
-      [mode],
-    ),
-  )
 
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
