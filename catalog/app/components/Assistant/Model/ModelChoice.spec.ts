@@ -19,6 +19,7 @@ import {
   resolve,
   tier,
   useGoverned,
+  lightest,
 } from './ModelChoice'
 
 function readGoverned() {
@@ -165,5 +166,29 @@ describe('components/Assistant/Model/ModelChoice labels', () => {
   it('finds no name for an id that matches a prototype key', () => {
     expect(nameIn({}, 'constructor')).toBeUndefined()
     expect(nameIn({ constructor: 'Named' }, 'constructor')).toBe('Named')
+  })
+})
+
+describe('lightest', () => {
+  const haiku = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+  const sonnet = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
+
+  it('prefers an allowed Light model, then the turn model', () => {
+    const governed = { allowlist: [sonnet, haiku], default: sonnet }
+    expect(lightest(governed, 'x', sonnet)).toEqual([haiku, sonnet])
+  })
+
+  it('uses only the turn model when no Light model is allowed', () => {
+    expect(lightest({ allowlist: [sonnet], default: sonnet }, haiku, sonnet)).toEqual([
+      sonnet,
+    ])
+  })
+
+  it('tries the guess then the fallback when ungoverned', () => {
+    expect(lightest(null, haiku, sonnet)).toEqual([haiku, sonnet])
+  })
+
+  it('uses only the fallback when the governed read failed', () => {
+    expect(lightest(null, haiku, sonnet, true)).toEqual([sonnet])
   })
 })

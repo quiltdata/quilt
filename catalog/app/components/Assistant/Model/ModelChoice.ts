@@ -65,6 +65,25 @@ export function resolve(
   return allowlist.includes(fallback) ? fallback : allowlist[0]
 }
 
+/**
+ * Models to try, in order, for a small background ask such as metadata
+ * suggestions: the lightest the admin allows, then the model a turn would use.
+ * Ungoverned stacks have no list to read, so `light` is a guess, and `fallback`
+ * follows in case the stack's Bedrock access lacks it.
+ */
+export function lightest(
+  governed: Governed | null,
+  light: string,
+  fallback: string,
+  readFailed = false,
+): string[] {
+  if (readFailed) return [fallback]
+  if (!governed) return light === fallback ? [fallback] : [light, fallback]
+  const pick = governed.allowlist.find((id) => tier(id) === 'Light')
+  const turn = resolve(governed, '', fallback)
+  return pick && pick !== turn ? [pick, turn] : [turn]
+}
+
 /** Whether a stored override should be dropped rather than kept for later. */
 export function isStale(governed: Governed | null, override: string): boolean {
   return !!governed && !!override && !governed.allowlist.includes(override)

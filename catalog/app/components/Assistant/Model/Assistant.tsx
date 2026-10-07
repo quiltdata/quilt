@@ -18,6 +18,7 @@ import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
+import * as LLM from './LLM'
 import * as ModelChoice from './ModelChoice'
 import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
@@ -29,6 +30,8 @@ function usePassThru<T>(val: T) {
   ref.current = val
   return ref
 }
+
+const LIGHT_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
 
 export const DEFAULT_MODEL_ID =
   cfg.quratorDefaultModel || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
@@ -381,4 +384,26 @@ export function useAssistantAPI() {
 
 export function useAssistant() {
   return useAssistantAPI()?.assist
+}
+
+/**
+ * An LLM for small, one-shot asks outside a conversation, bound to each model
+ * `ModelChoice.lightest` offers. `null` while Qurator is off or the governed
+ * list is still loading.
+ */
+export function useLightLLMs(): Eff.Layer.Layer<LLM.LLM>[] | null {
+  const enabled = useIsEnabled()
+  const getToken = useSessionToken()
+  const { governed, settled, failed } = ModelChoice.useGoverned()
+  return React.useMemo(() => {
+    if (!enabled || !settled) return null
+    return ModelChoice.lightest(governed, LIGHT_MODEL_ID, DEFAULT_MODEL_ID, failed).map(
+      (id) =>
+        Relay.LLMRelay({
+          url: getInferenceUrl(),
+          modelId: Eff.Effect.succeed(id),
+          getToken,
+        }),
+    )
+  }, [enabled, settled, governed, failed, getToken])
 }

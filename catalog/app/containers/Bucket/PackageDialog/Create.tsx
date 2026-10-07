@@ -228,6 +228,21 @@ function PackageCreationForm({
 
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
 
+  const suggest = React.useMemo(() => {
+    const { added, deleted, existing } = files.value
+    const keys = [
+      ...Object.keys(added),
+      ...Object.keys(existing).filter((k) => !deleted[k]),
+    ]
+    const slug = workflow.value?.slug
+    return {
+      bucket: dst.bucket,
+      files: Array.from(new Set(keys)),
+      name: name.value,
+      workflow: typeof slug === 'string' ? slug : undefined,
+    }
+  }, [dst.bucket, files.value, name.value, workflow.value])
+
   const handleSubmit = React.useCallback(
     (event) => {
       event.preventDefault()
@@ -270,6 +285,7 @@ function PackageCreationForm({
                 schema={metadataSchema}
                 state={meta}
                 ref={setEditorElement}
+                suggest={suggest}
               />
             </Layout.LeftColumn>
             <Layout.RightColumn>

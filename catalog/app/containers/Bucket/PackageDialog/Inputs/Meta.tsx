@@ -22,6 +22,10 @@ import type { FormStatus } from '../State/form'
 import type { SchemaStatus } from '../State/schema'
 import type { MetaState } from '../State/meta'
 import { humanizeError, invalidKeys, requiredFields } from '../State/metaGuide'
+import { useMetaSuggestions } from '../State/metaSuggest'
+import type { SuggestState } from '../State/metaSuggest'
+
+import MetaForm from './MetaForm'
 import { MetaInputSkeleton } from '../Skeleton'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
@@ -157,6 +161,15 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
   next: {
     marginLeft: t.spacing(1),
+  },
+  viewToggle: {
+    marginLeft: t.spacing(2),
+    '& .MuiToggleButton-sizeSmall': {
+      padding: t.spacing(0.25, 1.25),
+    },
+  },
+  hidden: {
+    display: 'none',
   },
   key: {
     flexBasis: 100,
@@ -377,6 +390,116 @@ function RequiredFields({ blocked, errors, schema, value }: RequiredFieldsProps)
   )
 }
 
+const useSuggestBarStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.body2,
+    alignItems: 'center',
+    border: `1px dashed ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    color: t.palette.text.secondary,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+    marginBottom: t.spacing(2),
+    padding: t.spacing(1, 1.5),
+  },
+  text: {
+    flexGrow: 1,
+    minWidth: 180,
+  },
+}))
+
+interface SuggestBarProps {
+  disabled: boolean
+  onRequest: () => void
+  onUseAll: () => void
+  state: SuggestState
+}
+
+function SuggestBar({ disabled, onRequest, onUseAll, state }: SuggestBarProps) {
+  const classes = useSuggestBarStyles()
+  if (state._tag === 'unavailable') return null
+  const icon = (
+    <M.Icon fontSize="small" color="secondary">
+      auto_awesome
+    </M.Icon>
+  )
+  switch (state._tag) {
+    case 'idle':
+      return (
+        <div className={classes.root}>
+          {icon}
+          <span className={classes.text}>
+            Suggest values from similar packages you can read and the files being added.
+          </span>
+          <M.Button
+            size="small"
+            color="primary"
+            variant="outlined"
+            onClick={onRequest}
+            disabled={disabled}
+          >
+            Suggest values
+          </M.Button>
+        </div>
+      )
+    case 'loading':
+      return (
+        <div className={classes.root} role="status">
+          <M.CircularProgress size={16} />
+          <span className={classes.text}>Looking at similar packages…</span>
+        </div>
+      )
+    case 'error':
+      return (
+        <div className={classes.root} role="status">
+          {icon}
+          <span className={classes.text}>
+            Suggestions are unavailable: {state.message}
+          </span>
+          <M.Button size="small" onClick={onRequest}>
+            Retry
+          </M.Button>
+        </div>
+      )
+    case 'ready': {
+      const n = Object.keys(state.suggestions).length
+      return (
+        <div className={classes.root} role="status">
+          {icon}
+          <span className={classes.text}>
+            {n
+              ? `${n} AI suggestion${n === 1 ? '' : 's'} from ${state.examples} similar package${state.examples === 1 ? '' : 's'} (${(state.ms / 1000).toFixed(1)} s). Check before using.`
+              : `No confident suggestions from ${state.examples} similar packages.`}
+          </span>
+          {!!n && (
+            <M.Button
+              size="small"
+              color="primary"
+              variant="contained"
+              disableElevation
+              onClick={onUseAll}
+              disabled={disabled}
+            >
+              Use all
+            </M.Button>
+          )}
+          <M.Button size="small" onClick={onRequest} disabled={disabled}>
+            Again
+          </M.Button>
+        </div>
+      )
+    }
+  }
+}
+
+export interface SuggestContext {
+  bucket: string
+  files: string[]
+  name?: string
+  workflow?: string
+}
+
 interface MetaInputProps {
   className?: string
   errors: ValidationErrors
@@ -387,13 +510,42 @@ interface MetaInputProps {
   guided: boolean
   blocked: boolean
   warnings: ErrorObject[]
+  suggest?: SuggestContext
+  /** Missing-field errors are due: the user edited metadata or tried to submit. */
+  insist: boolean
 }
 
 const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function MetaInput(
-  { blocked, className, disabled, errors, guided, value, onChange, schema, warnings },
+  {
+    blocked,
+    className,
+    disabled,
+    errors,
+    guided,
+    insist,
+    value,
+    onChange,
+    schema,
+    suggest,
+    warnings,
+  },
   ref,
 ) {
   const classes = useMetaInputStyles()
+  const hasForm =
+    guided && !!schema?.properties && !!Object.keys(schema.properties).length
+  const [view, setView] = React.useState<'form' | 'table'>('form')
+  const formView = hasForm && view === 'form'
+  const suggestions = useMetaSuggestions({
+    bucket: suggest?.bucket || '',
+    files: suggest?.files || [],
+    name: suggest?.name,
+    schema: hasForm && suggest ? schema : undefined,
+    value,
+    workflow: suggest?.workflow,
+  })
+  const suggested =
+    suggestions.state._tag === 'ready' ? suggestions.state.suggestions : undefined
   // Guided: the required-fields panel already lists missing root fields, so
   // those errors would only repeat it.
   const humanErrors = React.useMemo(
@@ -403,9 +555,16 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             .filter(
               (e) => !('keyword' in e && e.keyword === 'required' && !e.instancePath),
             )
+            // the form shows its own fields' errors under each field
+            .filter(
+              (e) =>
+                !formView ||
+                !('keyword' in e) ||
+                !(e.instancePath.split('/')[1] in (schema?.properties || {})),
+            )
             .map((e) => new Error(humanizeError(e)))
         : errors,
-    [errors, guided],
+    [errors, formView, guided, schema],
   )
   const problems = (
     <>
@@ -521,6 +680,23 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         >
           Metadata
         </M.Typography>
+        {hasForm && (
+          <Lab.ToggleButtonGroup
+            className={classes.viewToggle}
+            exclusive
+            onChange={(_e, v) => v && setView(v)}
+            size="small"
+            value={view}
+            aria-label="Metadata view"
+          >
+            <Lab.ToggleButton value="form" aria-label="Form view">
+              Form
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value="table" aria-label="Table view">
+              Table
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
+        )}
         {guided && (
           <M.Button
             className={classes.jsonTrigger}
@@ -564,10 +740,26 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         value={value}
       />
 
-      {guided && (
+      {formView && (
+        <SuggestBar
+          disabled={disabled}
+          onRequest={suggestions.request}
+          onUseAll={() => {
+            if (!suggested) return
+            const fill = Object.fromEntries(
+              Object.entries(suggested)
+                .filter(([k]) => value?.[k] === undefined || value?.[k] === '')
+                .map(([k, sg]) => [k, sg.value]),
+            )
+            onChangeFullscreen({ ...value, ...fill } as JsonRecord)
+          }}
+          state={suggestions.state}
+        />
+      )}
+      {guided && !formView && (
         <RequiredFields blocked={blocked} errors={errors} schema={schema} value={value} />
       )}
-      {guided && problems}
+      {guided && !formView && problems}
 
       <div
         {...getRootProps({
@@ -579,7 +771,26 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         <div className={classes.metaContent} ref={ref}>
           {isDragging && <div className={classes.outlined} />}
 
-          <div className={classes.json}>
+          {formView && schema && (
+            <>
+              <MetaForm
+                disabled={disabled}
+                // asterisks and the count already say a field is missing
+                errors={
+                  insist
+                    ? errors
+                    : errors.filter((e) => !('keyword' in e && e.keyword === 'required'))
+                }
+                onChange={onChangeFullscreen}
+                onShowTable={() => setView('table')}
+                schema={schema}
+                suggestions={suggested}
+                value={value}
+              />
+              {problems}
+            </>
+          )}
+          <div className={cx(classes.json, { [classes.hidden]: formView })}>
             <JsonEditor
               disabled={disabled}
               errors={errors}
@@ -635,6 +846,8 @@ interface InputMetaProps {
   formStatus: FormStatus
   schema: SchemaStatus
   state: MetaState
+  /** What metadata suggestions may draw on; none offered without it. */
+  suggest?: SuggestContext
 }
 
 /**
@@ -644,7 +857,12 @@ interface InputMetaProps {
  * and can import from spreadsheet files (XLSX, CSV).
  */
 const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function InputMeta(
-  { formStatus, schema, state: { guided, status, touched, value, warnings, onChange } },
+  {
+    formStatus,
+    schema,
+    state: { guided, status, touched, value, warnings, onChange },
+    suggest,
+  },
   ref,
 ) {
   const classes = useInputMetaStyles()
@@ -671,6 +889,8 @@ const InputMeta = React.forwardRef<HTMLDivElement, InputMetaProps>(function Inpu
       onChange={onChange}
       ref={ref}
       schema={schema._tag === 'ready' ? schema.schema : undefined}
+      insist={touched || formStatus._tag === 'error'}
+      suggest={suggest}
       value={value}
       warnings={showErrors ? warnings : []}
     />
