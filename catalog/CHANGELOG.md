@@ -21,7 +21,6 @@ complete sentence without it.
 
 ## Changes
 
-- [Added] Qurator mode and the full-page Qurator get a compact composer with a + menu (save the session as a package, Agent or Ask mode, model, tools, MCP servers, instructions) that minimizes to one line on phones ([#5457](https://github.com/quiltdata/quilt/pull/5457))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
@@ -38,6 +37,7 @@ complete sentence without it.
 - [Changed] Admin > Settings > Qurator models lists the models in this account's Bedrock as a checklist, with a box for any other model IDs, instead of a bare text box ([#5393](https://github.com/quiltdata/quilt/pull/5393))
 - [Added] Admins can approve the models Qurator may run under Admin > Settings > Qurator models, and users then pick among those in the Qurator menu instead of typing a model ID ([#5389](https://github.com/quiltdata/quilt/pull/5389))
 - [Added] Qurator opens as a full-page chat at `/qurator` that can be installed to a phone's home screen, with an offline page when there is no connection ([#5436](https://github.com/quiltdata/quilt/pull/5436))
+- [Added] Qurator mode and the full-page Qurator get a compact composer with a + menu (save the session as a package, Agent or Ask mode, model, tools, MCP servers, instructions) that minimizes to one line on phones ([#5457](https://github.com/quiltdata/quilt/pull/5457))
 - [Fixed] Signed-in users get the admin-configured catalog settings (front door, theme, Qurator, feature flags) right after sign-in, without reloading the page ([#5371](https://github.com/quiltdata/quilt/pull/5371))
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
 - [Fixed] Opening a folder or file your role cannot read shows Access Denied below the breadcrumbs instead of replacing the page with an error ([#5382](https://github.com/quiltdata/quilt/pull/5382))
