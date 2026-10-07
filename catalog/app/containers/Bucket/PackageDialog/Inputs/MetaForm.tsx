@@ -397,3 +397,172 @@ export default function MetaForm({
     </>
   )
 }
+
+const useFreeStyles = M.makeStyles((t) => ({
+  row: {
+    alignItems: 'flex-start',
+    display: 'grid',
+    gap: t.spacing(1.5),
+    gridTemplateColumns: 'minmax(120px, 2fr) minmax(160px, 3fr) auto',
+    '& + &': {
+      marginTop: t.spacing(1.5),
+    },
+  },
+  remove: {
+    marginTop: t.spacing(0.5),
+  },
+  add: {
+    marginTop: t.spacing(1.5),
+  },
+  empty: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginBottom: t.spacing(1),
+  },
+}))
+
+interface FreeFieldsProps {
+  description: string
+  disabled: boolean
+  /** Keys the schema form already shows. */
+  exclude?: readonly string[]
+  onChange: (value: Types.JsonRecord) => void
+  title: string
+  value?: Types.JsonRecord
+}
+
+/**
+ * Metadata keys without a schema field, as name/value rows. Values that were
+ * not strings round-trip as JSON; anything typed into a new row is a string.
+ */
+export function FreeFields({
+  description,
+  disabled,
+  exclude = [],
+  onChange,
+  title,
+  value,
+}: FreeFieldsProps) {
+  const classes = useStyles()
+  const free = useFreeStyles()
+  const entries = Object.entries(value || {}).filter(([k]) => !exclude.includes(k))
+  const [draft, setDraft] = React.useState<{ key: string; value: string } | null>(null)
+
+  const rename = (from: string, to: string) => {
+    if (!to || to === from || Object.hasOwn(value || {}, to)) return
+    onChange(
+      Object.fromEntries(
+        Object.entries(value || {}).map(([k, v]) => (k === from ? [to, v] : [k, v])),
+      ),
+    )
+  }
+  const setValue = (key: string, raw: string) => {
+    const prev = value?.[key]
+    let next: Types.Json = raw
+    if (typeof prev !== 'string' && prev !== undefined) {
+      try {
+        next = JSON.parse(raw)
+      } catch {
+        next = raw
+      }
+    }
+    onChange({ ...value, [key]: next })
+  }
+  const remove = (key: string) => {
+    const next = { ...value }
+    delete next[key]
+    onChange(next)
+  }
+  const commitDraft = () => {
+    if (!draft?.key || Object.hasOwn(value || {}, draft.key)) return
+    onChange({ ...value, [draft.key]: draft.value })
+    setDraft(null)
+  }
+
+  return (
+    <M.Paper variant="outlined" className={classes.section}>
+      <div className={classes.sectionHeader}>
+        <span className={classes.sectionTitle}>{title}</span>
+      </div>
+      {!entries.length && !draft && <div className={free.empty}>{description}</div>}
+      {entries.map(([k, v]) => (
+        <div className={free.row} key={k}>
+          <M.TextField
+            defaultValue={k}
+            disabled={disabled}
+            inputProps={{ 'aria-label': `Name of field ${k}` }}
+            label="Name"
+            onBlur={(e) => rename(k, e.target.value.trim())}
+            size="small"
+            variant="outlined"
+          />
+          <M.TextField
+            disabled={disabled}
+            inputProps={{ 'aria-label': `Value of ${k}` }}
+            label="Value"
+            multiline={typeof v === 'object' && v !== null}
+            onChange={(e) => setValue(k, e.target.value)}
+            size="small"
+            value={display(v ?? '')}
+            variant="outlined"
+          />
+          <M.IconButton
+            aria-label={`Remove ${k}`}
+            className={free.remove}
+            disabled={disabled}
+            onClick={() => remove(k)}
+            size="small"
+          >
+            <M.Icon fontSize="small">close</M.Icon>
+          </M.IconButton>
+        </div>
+      ))}
+      {draft && (
+        <div className={free.row}>
+          <M.TextField
+            autoFocus
+            error={!!draft.key && Object.hasOwn(value || {}, draft.key)}
+            helperText={
+              draft.key && Object.hasOwn(value || {}, draft.key)
+                ? 'Already used'
+                : undefined
+            }
+            label="Name"
+            onBlur={commitDraft}
+            onChange={(e) => setDraft({ ...draft, key: e.target.value.trim() })}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
+            size="small"
+            value={draft.key}
+            variant="outlined"
+          />
+          <M.TextField
+            label="Value"
+            onBlur={commitDraft}
+            onChange={(e) => setDraft({ ...draft, value: e.target.value })}
+            size="small"
+            value={draft.value}
+            variant="outlined"
+          />
+          <M.IconButton
+            aria-label="Discard new field"
+            className={free.remove}
+            onClick={() => setDraft(null)}
+            size="small"
+          >
+            <M.Icon fontSize="small">close</M.Icon>
+          </M.IconButton>
+        </div>
+      )}
+      <M.Button
+        className={free.add}
+        color="primary"
+        disabled={disabled || !!draft}
+        onClick={() => setDraft({ key: '', value: '' })}
+        size="small"
+        startIcon={<M.Icon fontSize="small">add</M.Icon>}
+      >
+        Add field
+      </M.Button>
+    </M.Paper>
+  )
+}

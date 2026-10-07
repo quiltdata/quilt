@@ -25,7 +25,7 @@ import { humanizeError, invalidKeys, requiredFields } from '../State/metaGuide'
 import { useMetaSuggestions } from '../State/metaSuggest'
 import type { SuggestState } from '../State/metaSuggest'
 
-import MetaForm from './MetaForm'
+import MetaForm, { FreeFields } from './MetaForm'
 import { MetaInputSkeleton } from '../Skeleton'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
@@ -533,7 +533,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   const hasForm =
     guided && !!schema?.properties && !!Object.keys(schema.properties).length
   const [view, setView] = React.useState<'form' | 'table'>('form')
-  const formView = hasForm && view === 'form'
+  const formView = guided && view === 'form'
   const suggestions = useMetaSuggestions({
     bucket: suggest?.bucket || '',
     files: suggest?.files || [],
@@ -683,7 +683,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         >
           Metadata
         </M.Typography>
-        {hasForm && (
+        {guided && (
           <Lab.ToggleButtonGroup
             className={classes.viewToggle}
             exclusive
@@ -743,7 +743,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         value={value}
       />
 
-      {formView && (
+      {formView && hasForm && (
         <SuggestBar
           disabled={disabled}
           onRequest={suggestions.request}
@@ -774,20 +774,36 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         <div className={classes.metaContent} ref={ref}>
           {isDragging && <div className={classes.outlined} />}
 
-          {formView && schema && (
+          {formView && (
             <>
-              <MetaForm
-                disabled={disabled}
-                // asterisks and the count already say a field is missing
-                errors={
-                  insist
-                    ? errors
-                    : errors.filter((e) => !('keyword' in e && e.keyword === 'required'))
+              {hasForm && schema && (
+                <MetaForm
+                  disabled={disabled}
+                  // asterisks and the count already say a field is missing
+                  errors={
+                    insist
+                      ? errors
+                      : errors.filter(
+                          (e) => !('keyword' in e && e.keyword === 'required'),
+                        )
+                  }
+                  onChange={onChange}
+                  onShowTable={() => setView('table')}
+                  schema={schema}
+                  suggestions={suggested}
+                  value={value}
+                />
+              )}
+              <FreeFields
+                description={
+                  hasForm
+                    ? 'Fields this workflow does not define. Add any that help describe the package.'
+                    : 'Name/value pairs stored with this package and searchable in the catalog. Use Table view for nested values.'
                 }
+                disabled={disabled}
+                exclude={hasForm ? Object.keys(schema?.properties || {}) : []}
                 onChange={onChange}
-                onShowTable={() => setView('table')}
-                schema={schema}
-                suggestions={suggested}
+                title={hasForm ? 'Other fields' : 'Metadata fields'}
                 value={value}
               />
               {problems}

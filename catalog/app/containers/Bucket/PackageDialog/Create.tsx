@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
@@ -181,6 +182,36 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
+  guidedLeft: {
+    [t.breakpoints.up('sm')]: {
+      flexBasis: '36%',
+      maxWidth: `calc(36% - ${t.spacing(1.5)}px)`,
+    },
+  },
+  guidedRight: {
+    [t.breakpoints.up('sm')]: {
+      flexBasis: '64%',
+      maxWidth: `calc(64% - ${t.spacing(1.5)}px)`,
+    },
+  },
+  paneTabs: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    flexShrink: 0,
+    minHeight: 40,
+    '& .MuiTab-root': {
+      minHeight: 40,
+      minWidth: 120,
+    },
+  },
+  pane: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minHeight: 0,
+  },
+  paneHidden: {
+    display: 'none',
+  },
 }))
 
 interface PackageCreationFormProps {
@@ -228,6 +259,17 @@ function PackageCreationForm({
 
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
 
+  // Guided metadata gets the wide pane; files share it behind a tab.
+  const [pane, setPane] = React.useState<'metadata' | 'files'>('metadata')
+
+  const fileCount = React.useMemo(() => {
+    const { added, deleted, existing } = files.value
+    return new Set([
+      ...Object.keys(added),
+      ...Object.keys(existing).filter((k) => !deleted[k]),
+    ]).size
+  }, [files.value])
+
   const suggest = React.useMemo(() => {
     const { added, deleted, existing } = files.value
     const keys = [
@@ -271,7 +313,7 @@ function PackageCreationForm({
       <M.DialogContent classes={dialogContentClasses}>
         <form className={classes.form} onSubmit={handleSubmit}>
           <Layout.Container>
-            <Layout.LeftColumn>
+            <Layout.LeftColumn className={cx({ [classes.guidedLeft]: meta.guided })}>
               <Inputs.Workflow
                 formStatus={formStatus}
                 schema={metadataSchema}
@@ -280,23 +322,66 @@ function PackageCreationForm({
               />
               <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
               <Inputs.Message formStatus={formStatus} state={message} />
-              <Inputs.Meta
-                formStatus={formStatus}
-                schema={metadataSchema}
-                state={meta}
-                ref={setEditorElement}
-                suggest={suggest}
-              />
+              {meta.guided ? (
+                <Inputs.MetaSummary
+                  onOpen={() => setPane('metadata')}
+                  schema={metadataSchema}
+                  state={meta}
+                />
+              ) : (
+                <Inputs.Meta
+                  formStatus={formStatus}
+                  schema={metadataSchema}
+                  state={meta}
+                  ref={setEditorElement}
+                />
+              )}
             </Layout.LeftColumn>
-            <Layout.RightColumn>
-              <Inputs.Files
-                formStatus={formStatus}
-                schema={entriesSchema}
-                state={files}
-                progress={progress}
-                delayHashing={delayHashing}
-                bucket={src?.bucket || dst.bucket}
-              />
+            <Layout.RightColumn className={cx({ [classes.guidedRight]: meta.guided })}>
+              {meta.guided && (
+                <M.Tabs
+                  className={classes.paneTabs}
+                  indicatorColor="primary"
+                  onChange={(_e, v) => setPane(v)}
+                  textColor="primary"
+                  value={pane}
+                >
+                  <M.Tab label="Metadata" value="metadata" />
+                  <M.Tab
+                    label={`Files${fileCount ? ` (${fileCount})` : ''}`}
+                    value="files"
+                  />
+                </M.Tabs>
+              )}
+              {meta.guided && (
+                <div
+                  className={cx(classes.pane, {
+                    [classes.paneHidden]: pane !== 'metadata',
+                  })}
+                >
+                  <Inputs.Meta
+                    formStatus={formStatus}
+                    schema={metadataSchema}
+                    state={meta}
+                    ref={setEditorElement}
+                    suggest={suggest}
+                  />
+                </div>
+              )}
+              <div
+                className={cx(classes.pane, {
+                  [classes.paneHidden]: meta.guided && pane !== 'files',
+                })}
+              >
+                <Inputs.Files
+                  formStatus={formStatus}
+                  schema={entriesSchema}
+                  state={files}
+                  progress={progress}
+                  delayHashing={delayHashing}
+                  bucket={src?.bucket || dst.bucket}
+                />
+              </div>
             </Layout.RightColumn>
           </Layout.Container>
 
