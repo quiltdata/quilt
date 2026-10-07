@@ -42,7 +42,10 @@ const errorDisplay = (bucket?: string) =>
           <M.Typography>
             See the <FlowsLink bucket={bucket}>Flows page</FlowsLink> for details. A
             bucket admin can repair the{' '}
-            <WorkflowsConfigLink>stored configuration</WorkflowsConfigLink> (see{' '}
+            <WorkflowsConfigLink bucket={bucket}>
+              stored configuration
+            </WorkflowsConfigLink>{' '}
+            (see{' '}
             <StyledLink href={`${docs}/workflows`} target="_blank">
               the documentation
             </StyledLink>

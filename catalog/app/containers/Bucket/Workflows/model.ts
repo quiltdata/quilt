@@ -167,7 +167,8 @@ export function validateDraft(
   }
   // Only a pattern pushes would reject blocks; an unchanged one is left to the push.
   if (draft.namePattern && draft.namePattern !== originalPattern) {
-    const a = analyzePattern(draft.namePattern)
+    // The trimmed pattern is what gets saved
+    const a = analyzePattern(draft.namePattern.trim())
     if (a._tag === 'invalid')
       errors.namePattern = `This pattern won't work for pushes: ${a.reason}`
   }

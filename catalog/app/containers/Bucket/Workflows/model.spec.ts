@@ -366,4 +366,13 @@ describe('containers/Bucket/Workflows/model', () => {
     expect(model.validatePromote(promote)).toEqual({})
     expect(model.applyPromote(config, promote).successors).toEqual(config.successors)
   })
+
+  it('validates the pattern as it will be saved', () => {
+    expect(
+      model.validateDraft(draft({ namePattern: 'foo\\ ' }), {
+        isNew: true,
+        existingIds: [],
+      }).namePattern,
+    ).toMatch("won't work")
+  })
 })
