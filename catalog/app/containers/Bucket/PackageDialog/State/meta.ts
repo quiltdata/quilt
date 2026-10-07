@@ -5,6 +5,7 @@ import { useFeature } from 'utils/features'
 import * as Types from 'utils/types'
 
 import type { FormStatus } from './form'
+import { isAdvisoryError as isAdvisory } from './metaGuide'
 import { SchemaStatus, mkMetaValidator } from './schema'
 import { ManifestStatus } from './manifest'
 
@@ -30,11 +31,6 @@ export interface MetaState {
   /** Guided only: problems shown but not blocking, see `isAdvisory`. */
   warnings: ErrorObject[]
 }
-
-// quilt3 and quilt-rs treat `format` as an annotation, so the registry accepts
-// such values; blocking on them would refuse pushes that succeed.
-const isAdvisory = (e: Error | ErrorObject): e is ErrorObject =>
-  'keyword' in e && e.keyword === 'format'
 
 function getMetaFallback(manifest: ManifestStatus) {
   if (manifest._tag !== 'ready') return undefined
@@ -74,21 +70,30 @@ export function useMeta(
     [guided, validate, value],
   )
   const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
+  // Blocking is decided with formats ignored, so a format failure inside anyOf
+  // or oneOf cannot surface as a type or anyOf error that blocks the push.
+  const validateBlocking = React.useMemo(() => {
+    if (schema._tag !== 'ready') return validate
+    return mkMetaValidator(schema.schema, { formats: false })
+  }, [schema, validate])
+  const blockingErrors = React.useMemo(
+    () => (guided ? (validateBlocking(value || {}) ?? []) : []),
+    [guided, validateBlocking, value],
+  )
 
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {
       if (form._tag === 'error' && form.fields?.userMeta && editedAt !== form) {
         return Err(form.fields.userMeta)
       }
-      const blocking = guidedErrors.filter((e) => !isAdvisory(e))
-      return blocking.length ? Err(blocking) : Ok
+      return blockingErrors.length ? Err(blockingErrors) : Ok
     }
     if (form._tag !== 'error') return Ok
     if (form.fields?.userMeta) return Err(form.fields.userMeta)
 
     const errors = validate(meta || {})
     return errors ? Err(errors) : Ok
-  }, [editedAt, form, guided, guidedErrors, meta, validate])
+  }, [blockingErrors, editedAt, form, guided, meta, validate])
 
   const touched = meta !== undefined
   return React.useMemo(

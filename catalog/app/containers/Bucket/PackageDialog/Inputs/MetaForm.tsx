@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 import type { JsonSchema } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
 
-import { fieldMessage, pointer } from '../State/metaGuide'
+import { fieldMessage, isFilled, pointer } from '../State/metaGuide'
 import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
@@ -23,7 +23,7 @@ function widgetFor(prop: JsonSchema = {}): Widget {
   return 'complex'
 }
 
-const isEmpty = (v: unknown) => v === undefined || v === null || v === ''
+const isEmpty = (v: unknown) => !isFilled(v)
 
 const display = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))
 
@@ -106,6 +106,7 @@ interface FieldProps {
   prop: JsonSchema
   required: boolean
   suggestion?: { value: Types.Json; reason?: string }
+  onUseSuggestion: (key: string, value: Types.Json) => void
   value: Types.Json | undefined
 }
 
@@ -118,6 +119,7 @@ function Field({
   prop,
   required,
   suggestion,
+  onUseSuggestion,
   value,
 }: FieldProps) {
   const classes = useFieldStyles()
@@ -127,7 +129,17 @@ function Field({
     typed === 'date' && !isEmpty(value) && !DATE.test(String(value)) ? 'string' : typed
   const label = prop.title || name
   const error = errors[0]
-  const helper = error ? fieldMessage(error) : prop.description
+  const enumIndex =
+    widget === 'enum' && !isEmpty(value)
+      ? prop.enum.findIndex((v: Types.Json) => display(v) === display(value))
+      : -1
+  // A schema default is applied on save; show it so what is pushed is what is seen.
+  const hasDefault = isEmpty(value) && prop.default !== undefined
+  const more = errors.length > 1 ? ` (+${errors.length - 1} more)` : ''
+  let helper = error ? `${fieldMessage(error)}${more}` : prop.description
+  if (!error && hasDefault) {
+    helper = `Default: ${display(prop.default)}${prop.description ? ` · ${prop.description}` : ''}`
+  }
   const id = `meta-field-${name}`
 
   const set = React.useCallback(
@@ -136,7 +148,7 @@ function Field({
       if (widget === 'enum') return onChange(name, prop.enum[Number(raw)])
       if (widget === 'integer' || widget === 'number') {
         const n = Number(raw)
-        return onChange(name, Number.isNaN(n) ? raw : n)
+        return onChange(name, raw.trim() === '' || Number.isNaN(n) ? raw : n)
       }
       onChange(name, raw)
     },
@@ -152,7 +164,7 @@ function Field({
             className={classes.switch}
             control={
               <M.Switch
-                checked={value === true}
+                checked={value === undefined ? prop.default === true : value === true}
                 color="primary"
                 id={id}
                 onChange={(e) => onChange(name, e.target.checked)}
@@ -174,7 +186,16 @@ function Field({
               Edit in table view
             </M.Link>
           </M.FormHelperText>
-          {error && <M.FormHelperText>{fieldMessage(error)}</M.FormHelperText>}
+          {errors.map((e, i) => {
+            const at =
+              'instancePath' in e ? e.instancePath.slice(pointer(name).length) : ''
+            return (
+              <M.FormHelperText key={i}>
+                {at ? `${at.slice(1).replace(/\//g, '.')}: ` : ''}
+                {fieldMessage(e)}
+              </M.FormHelperText>
+            )
+          })}
         </M.FormControl>
       )
       break
@@ -192,22 +213,21 @@ function Field({
           required={required}
           select={widget === 'enum'}
           size="small"
-          type={
-            // eslint-disable-next-line no-nested-ternary
-            widget === 'date'
-              ? 'date'
-              : widget === 'integer' || widget === 'number'
-                ? 'number'
-                : 'text'
+          // numbers use a text input: a number input reports "" for a partial "-" or "1e"
+          inputProps={
+            widget === 'integer' || widget === 'number'
+              ? { inputMode: widget === 'integer' ? 'numeric' : 'decimal' }
+              : undefined
           }
+          type={widget === 'date' ? 'date' : 'text'}
           value={
             // eslint-disable-next-line no-nested-ternary
             isEmpty(value)
               ? ''
               : widget === 'enum'
-                ? String(
-                    prop.enum.findIndex((v: Types.Json) => display(v) === display(value)),
-                  )
+                ? enumIndex === -1
+                  ? 'current'
+                  : String(enumIndex)
                 : display(value)
           }
           variant="outlined"
@@ -216,6 +236,13 @@ function Field({
             <M.MenuItem key="" value="">
               <em>Not set</em>
             </M.MenuItem>,
+            ...(enumIndex === -1 && !isEmpty(value)
+              ? [
+                  <M.MenuItem key="__current" value="current" disabled>
+                    {display(value)} (not an allowed value)
+                  </M.MenuItem>,
+                ]
+              : []),
             ...prop.enum.map((v: Types.Json, i: number) => (
               <M.MenuItem key={display(v)} value={String(i)}>
                 {display(v)}
@@ -235,12 +262,22 @@ function Field({
         <button
           type="button"
           className={classes.suggestion}
-          onClick={() => onChange(name, suggestion.value)}
+          onClick={() => {
+            onUseSuggestion(name, suggestion.value)
+            // the button goes away once used; keep focus on the field it filled
+            window.setTimeout(() => document.getElementById(id)?.focus())
+          }}
           title={
             suggestion.reason ? `AI suggestion: ${suggestion.reason}` : 'AI suggestion'
           }
           aria-label={`Use suggested ${label}: ${display(suggestion.value)}`}
+          aria-describedby={suggestion.reason ? `${id}-reason` : undefined}
         >
+          {suggestion.reason && (
+            <span id={`${id}-reason`} hidden>
+              {suggestion.reason}
+            </span>
+          )}
           <M.Icon className={classes.suggestionIcon} aria-hidden>
             auto_awesome
           </M.Icon>
@@ -318,6 +355,7 @@ interface MetaFormProps {
   errors: (Error | ErrorObject)[]
   onChange: (value: Types.JsonRecord) => void
   onShowTable: () => void
+  onUseSuggestion: (key: string, value: Types.Json) => void
   schema: JsonSchema
   suggestions?: Suggestions
   value?: Types.JsonRecord
@@ -333,6 +371,7 @@ export default function MetaForm({
   errors,
   onChange,
   onShowTable,
+  onUseSuggestion,
   schema,
   suggestions,
   value,
@@ -371,6 +410,7 @@ export default function MetaForm({
       name={key}
       onChange={setField}
       onShowTable={onShowTable}
+      onUseSuggestion={onUseSuggestion}
       prop={properties[key] || {}}
       required={isRequired}
       suggestion={suggestions?.[key]}
@@ -471,6 +511,87 @@ interface FreeFieldsProps {
  * Metadata keys without a schema field, as name/value rows. Values that were
  * not strings round-trip as JSON; anything typed into a new row is a string.
  */
+interface FreeRowProps {
+  disabled: boolean
+  name: string
+  onRemove: () => void
+  onRename: (to: string) => string | null
+  onValue: (v: Types.Json) => void
+  value: Types.Json
+}
+
+/**
+ * One name/value row. The name and the text of a non-string value are drafts
+ * kept locally, so an invalid rename or half-typed JSON never reaches metadata.
+ */
+function FreeRow({ disabled, name, onRemove, onRename, onValue, value }: FreeRowProps) {
+  const free = useFreeStyles()
+  const typed = typeof value !== 'string'
+  const [nameDraft, setNameDraft] = React.useState(name)
+  const [nameError, setNameError] = React.useState<string | null>(null)
+  const [text, setText] = React.useState(() => display(value ?? ''))
+  const [textError, setTextError] = React.useState<string | null>(null)
+  React.useEffect(() => setNameDraft(name), [name])
+  React.useEffect(() => {
+    setText(display(value ?? ''))
+    setTextError(null)
+  }, [value])
+
+  const commitName = () => {
+    const to = nameDraft.trim()
+    if (to === name) return setNameError(null)
+    setNameError(onRename(to))
+  }
+  const changeText = (raw: string) => {
+    setText(raw)
+    if (!typed) return onValue(raw)
+    try {
+      onValue(JSON.parse(raw))
+      setTextError(null)
+    } catch {
+      setTextError('Not valid JSON yet; the last valid value is kept')
+    }
+  }
+  return (
+    <div className={free.row}>
+      <M.TextField
+        disabled={disabled}
+        error={!!nameError}
+        helperText={nameError || undefined}
+        inputProps={{ 'aria-label': `Name of field ${name}` }}
+        label="Name"
+        onBlur={commitName}
+        onChange={(e) => setNameDraft(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitName())}
+        size="small"
+        value={nameDraft}
+        variant="outlined"
+      />
+      <M.TextField
+        disabled={disabled}
+        error={!!textError}
+        helperText={textError || (typed ? 'JSON value' : undefined)}
+        inputProps={{ 'aria-label': `Value of ${name}` }}
+        label="Value"
+        multiline={typed && typeof value === 'object' && value !== null}
+        onChange={(e) => changeText(e.target.value)}
+        size="small"
+        value={text}
+        variant="outlined"
+      />
+      <M.IconButton
+        aria-label={`Remove ${name}`}
+        className={free.remove}
+        disabled={disabled}
+        onClick={onRemove}
+        size="small"
+      >
+        <M.Icon fontSize="small">close</M.Icon>
+      </M.IconButton>
+    </div>
+  )
+}
+
 export function FreeFields({
   description,
   disabled,
@@ -483,37 +604,33 @@ export function FreeFields({
   const free = useFreeStyles()
   const entries = Object.entries(value || {}).filter(([k]) => !exclude.includes(k))
   const [draft, setDraft] = React.useState<{ key: string; value: string } | null>(null)
+  const draftRef = React.useRef<HTMLDivElement>(null)
 
-  const rename = (from: string, to: string) => {
-    if (!to || to === from || Object.hasOwn(value || {}, to)) return
+  const taken = (k: string) => Object.hasOwn(value || {}, k) || exclude.includes(k)
+  const rename = (from: string, to: string): string | null => {
+    if (!to) return 'Enter a name'
+    if (taken(to)) return 'Already used'
     onChange(
       Object.fromEntries(
         Object.entries(value || {}).map(([k, v]) => (k === from ? [to, v] : [k, v])),
       ),
     )
-  }
-  const setValue = (key: string, raw: string) => {
-    const prev = value?.[key]
-    let next: Types.Json = raw
-    if (typeof prev !== 'string' && prev !== undefined) {
-      try {
-        next = JSON.parse(raw)
-      } catch {
-        next = raw
-      }
-    }
-    onChange({ ...value, [key]: next })
+    return null
   }
   const remove = (key: string) => {
     const next = { ...value }
     delete next[key]
     onChange(next)
   }
-  const commitDraft = () => {
-    if (!draft?.key || Object.hasOwn(value || {}, draft.key)) return
+  // Commit only when focus leaves the whole draft row, so Tab from Name to Value keeps it.
+  const commitDraft = (e?: React.FocusEvent) => {
+    if (e && draftRef.current?.contains(e.relatedTarget as Node)) return
+    if (!draft?.key) return
+    if (taken(draft.key)) return
     onChange({ ...value, [draft.key]: draft.value })
     setDraft(null)
   }
+  const draftError = !!draft?.key && taken(draft.key)
 
   return (
     <M.Paper variant="outlined" className={classes.section}>
@@ -522,49 +639,23 @@ export function FreeFields({
       </div>
       {!entries.length && !draft && <div className={free.empty}>{description}</div>}
       {entries.map(([k, v]) => (
-        <div className={free.row} key={k}>
-          <M.TextField
-            defaultValue={k}
-            disabled={disabled}
-            inputProps={{ 'aria-label': `Name of field ${k}` }}
-            label="Name"
-            onBlur={(e) => rename(k, e.target.value.trim())}
-            size="small"
-            variant="outlined"
-          />
-          <M.TextField
-            disabled={disabled}
-            inputProps={{ 'aria-label': `Value of ${k}` }}
-            label="Value"
-            multiline={typeof v === 'object' && v !== null}
-            onChange={(e) => setValue(k, e.target.value)}
-            size="small"
-            value={display(v ?? '')}
-            variant="outlined"
-          />
-          <M.IconButton
-            aria-label={`Remove ${k}`}
-            className={free.remove}
-            disabled={disabled}
-            onClick={() => remove(k)}
-            size="small"
-          >
-            <M.Icon fontSize="small">close</M.Icon>
-          </M.IconButton>
-        </div>
+        <FreeRow
+          disabled={disabled}
+          key={k}
+          name={k}
+          onRemove={() => remove(k)}
+          onRename={(to) => rename(k, to)}
+          onValue={(next) => onChange({ ...value, [k]: next })}
+          value={v}
+        />
       ))}
       {draft && (
-        <div className={free.row}>
+        <div className={free.row} ref={draftRef} onBlur={commitDraft}>
           <M.TextField
             autoFocus
-            error={!!draft.key && Object.hasOwn(value || {}, draft.key)}
-            helperText={
-              draft.key && Object.hasOwn(value || {}, draft.key)
-                ? 'Already used'
-                : undefined
-            }
+            error={draftError}
+            helperText={draftError ? 'Already used' : undefined}
             label="Name"
-            onBlur={commitDraft}
             onChange={(e) => setDraft({ ...draft, key: e.target.value.trim() })}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
             size="small"
@@ -573,8 +664,8 @@ export function FreeFields({
           />
           <M.TextField
             label="Value"
-            onBlur={commitDraft}
             onChange={(e) => setDraft({ ...draft, value: e.target.value })}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
             size="small"
             value={draft.value}
             variant="outlined"

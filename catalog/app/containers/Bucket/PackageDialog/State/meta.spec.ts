@@ -14,7 +14,7 @@ vi.mock('utils/features', () => ({ useFeature: () => useFeature() }))
 const mkMetaValidator = vi.fn()
 vi.mock('./schema', async () => ({
   ...(await vi.importActual('./schema')),
-  mkMetaValidator: () => mkMetaValidator(),
+  mkMetaValidator: (...args: unknown[]) => mkMetaValidator(...args),
 }))
 
 const SchemaReady = Schema.Ready()
@@ -221,7 +221,13 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
           params: { missingProperty: 'project' },
           message: "must have required property 'project'",
         }
-        mkMetaValidator.mockReturnValueOnce(() => [formatError])
+        // the full validator reports the format error; the format-blind one does not
+        const byFormats =
+          (withFormats: unknown[]) => (_s: unknown, opts?: { formats?: boolean }) =>
+            opts?.formats === false
+              ? () => withFormats.filter((e: any) => e.keyword !== 'format')
+              : () => withFormats
+        mkMetaValidator.mockImplementation(byFormats([formatError]))
 
         const { result } = renderHook(() =>
           useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
@@ -230,7 +236,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.status).toEqual(Ok)
         expect(result.current.warnings).toEqual([formatError])
 
-        mkMetaValidator.mockReturnValueOnce(() => [formatError, requiredError])
+        mkMetaValidator.mockImplementation(byFormats([formatError, requiredError]))
         const { result: mixed } = renderHook(() =>
           useMeta(Form.Idle, SchemaReady, Manifest.Ready()),
         )

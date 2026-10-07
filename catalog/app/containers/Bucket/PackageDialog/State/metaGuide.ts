@@ -6,16 +6,22 @@ import type * as Types from 'utils/types'
 /** JSON pointer (RFC 6901) for a top-level key: `a/b` → `/a~1b`. */
 export const pointer = (key: string) => `/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`
 
+const unescape = (segment: string) => segment.replace(/~1/g, '/').replace(/~0/g, '~')
+
 /** The top-level key an instance path points into; empty for the root. */
-export const topKey = (instancePath: string) =>
-  (instancePath.split('/')[1] ?? '').replace(/~1/g, '/').replace(/~0/g, '~')
+export const topKey = (instancePath: string) => unescape(instancePath.split('/')[1] ?? '')
+
+// quilt3 and quilt-rs treat `format` as an annotation, so the registry accepts
+// such values; blocking on them would refuse pushes that succeed.
+export const isAdvisoryError = (e: Error | ErrorObject): e is ErrorObject =>
+  'keyword' in e && e.keyword === 'format'
 
 /** `/a/b/0` → `a.b[0]`, the way users name fields; empty for the root. */
 function fieldName(instancePath: string): string {
   return instancePath
     .split('/')
     .slice(1)
-    .map((p) => p.replace(/~1/g, '/').replace(/~0/g, '~'))
+    .map(unescape)
     .reduce((acc, p) => (/^\d+$/.test(p) ? `${acc}[${p}]` : acc ? `${acc}.${p}` : p), '')
 }
 

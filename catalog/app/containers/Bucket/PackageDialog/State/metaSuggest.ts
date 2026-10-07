@@ -203,10 +203,11 @@ export function useMetaSuggestions({
   // Suggestions were checked against one bucket/workflow/schema; a reply for
   // an older request or context must not land on the current form.
   const generation = React.useRef(0)
+  const filesKey = files.join('\n')
   React.useEffect(() => {
     generation.current += 1
     setState({ _tag: 'idle' })
-  }, [bucket, workflow, schema])
+  }, [bucket, workflow, schema, name, filesKey])
   React.useEffect(
     () => () => {
       generation.current += 1

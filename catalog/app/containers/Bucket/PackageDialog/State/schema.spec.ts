@@ -107,3 +107,22 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
     })
   })
 })
+
+describe('mkMetaValidator formats option', () => {
+  const anyOfDate = {
+    type: 'object',
+    properties: {
+      when: { anyOf: [{ type: 'string', format: 'date' }, { type: 'number' }] },
+    },
+  }
+
+  it('reports a format failure inside anyOf when formats are on', () => {
+    expect(mkMetaValidator(anyOfDate)({ when: 'last tuesday' })).toBeTruthy()
+  })
+
+  it('does not block on it when formats are off', () => {
+    expect(
+      mkMetaValidator(anyOfDate, { formats: false })({ when: 'last tuesday' }),
+    ).toBeUndefined()
+  })
+})

@@ -79,6 +79,7 @@ export function lightest(
 ): string[] {
   if (readFailed) return [fallback]
   if (!governed) return light === fallback ? [fallback] : [light, fallback]
+  if (!governed.allowlist.length) return []
   const pick = governed.allowlist.find((id) => tier(id) === 'Light')
   const turn = resolve(governed, '', fallback)
   return pick && pick !== turn ? [pick, turn] : [turn]

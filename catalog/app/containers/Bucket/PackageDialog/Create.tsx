@@ -186,11 +186,12 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       flexBasis: '36%',
       maxWidth: `calc(36% - ${t.spacing(1.5)}px)`,
-      // the right column, whose own markup stays untouched
-      '& + *': {
-        flexBasis: '64%',
-        maxWidth: `calc(64% - ${t.spacing(1.5)}px)`,
-      },
+    },
+  },
+  guidedRight: {
+    [t.breakpoints.up('sm')]: {
+      flexBasis: '64%',
+      maxWidth: `calc(64% - ${t.spacing(1.5)}px)`,
     },
   },
   paneTabs: {
@@ -278,6 +279,17 @@ function PackageCreationForm({
 
   const openMeta = React.useCallback(() => setPane('metadata'), [])
 
+  const filesInput = (
+    <Inputs.Files
+      formStatus={formStatus}
+      schema={entriesSchema}
+      state={files}
+      progress={progress}
+      delayHashing={delayHashing}
+      bucket={src?.bucket || dst.bucket}
+    />
+  )
+
   const suggest = React.useMemo(() => {
     const slug = workflow.value?.slug
     return {
@@ -333,7 +345,7 @@ function PackageCreationForm({
                 suggest={suggest}
               />
             </Layout.LeftColumn>
-            <Layout.RightColumn>
+            <Layout.RightColumn className={cx({ [classes.guidedRight]: meta.guided })}>
               {meta.guided && (
                 <M.Tabs
                   className={classes.paneTabs}
@@ -364,20 +376,15 @@ function PackageCreationForm({
                   />
                 </div>
               )}
-              <div
-                className={cx(classes.pane, {
-                  [classes.paneHidden]: meta.guided && pane !== 'files',
-                })}
-              >
-                <Inputs.Files
-                  formStatus={formStatus}
-                  schema={entriesSchema}
-                  state={files}
-                  progress={progress}
-                  delayHashing={delayHashing}
-                  bucket={src?.bucket || dst.bucket}
-                />
-              </div>
+              {meta.guided ? (
+                <div
+                  className={cx(classes.pane, { [classes.paneHidden]: pane !== 'files' })}
+                >
+                  {filesInput}
+                </div>
+              ) : (
+                filesInput
+              )}
             </Layout.RightColumn>
           </Layout.Container>
 

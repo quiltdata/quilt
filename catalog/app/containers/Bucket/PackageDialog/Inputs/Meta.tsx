@@ -13,7 +13,7 @@ import JsonValidationErrors from 'components/JsonValidationErrors'
 import MetadataEditor from 'components/MetadataEditor'
 import * as Notifications from 'containers/Notifications'
 import useDragging from 'utils/dragging'
-import type { JsonSchema } from 'utils/JSONSchema'
+import { type JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import { JsonRecord } from 'utils/types'
@@ -24,11 +24,12 @@ import type { MetaState } from '../State/meta'
 import {
   humanizeError,
   invalidKeys,
+  isAdvisoryError,
   isFilled,
   requiredFields,
   topKey,
 } from '../State/metaGuide'
-import { parseSuggestions, useMetaSuggestions } from '../State/metaSuggest'
+import { useMetaSuggestions } from '../State/metaSuggest'
 import type { SuggestState } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
@@ -651,6 +652,33 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     [onChange],
   )
 
+  // Form edits, like inline grid edits, reset the full-screen editor so it never saves a stale copy.
+  const onChangeForm = onChangeInline
+
+  // Suggestions are applied only if the metadata they produce, together, is no worse than now.
+  const validateFull = React.useMemo(
+    () => (schema ? makeSchemaValidator(schema) : null),
+    [schema],
+  )
+  const applySuggestions = React.useCallback(
+    (picks: Record<string, JsonValue>) => {
+      if (!validateFull || !Object.keys(picks).length) return
+      const sig = (e: Error | ErrorObject) =>
+        'schemaPath' in e ? `${e.instancePath}|${e.schemaPath}` : e.message
+      const known = new Set(validateFull(value || {}).map(sig))
+      const introduces = (candidate: JsonRecord) =>
+        validateFull(candidate).some((e) => !known.has(sig(e)) && !isAdvisoryError(e))
+      let next = { ...value } as JsonRecord
+      // Greedy: keep each pick that does not add a new error to what is kept so far.
+      for (const [k, v] of Object.entries(picks)) {
+        const candidate = { ...next, [k]: v } as JsonRecord
+        if (!introduces(candidate)) next = candidate
+      }
+      if (next !== value) onChangeForm(next)
+    },
+    [onChangeForm, validateFull, value],
+  )
+
   const { push: notify } = Notifications.use()
   const [locked, setLocked] = React.useState(false)
 
@@ -804,19 +832,14 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           disabled={disabled}
           onRequest={suggestions.request}
           onUseAll={() => {
-            if (!suggested || !schema) return
-            // re-checked against the metadata as it is now, not as it was when asked
-            const valid = parseSuggestions(
-              JSON.stringify(suggested),
-              schema,
-              value as JsonRecord | undefined,
+            if (!suggested) return
+            applySuggestions(
+              Object.fromEntries(
+                Object.entries(suggested)
+                  .filter(([k]) => !isFilled(value?.[k]))
+                  .map(([k, sg]) => [k, sg.value]),
+              ),
             )
-            const fill = Object.fromEntries(
-              Object.entries(valid)
-                .filter(([k]) => !isFilled(value?.[k]))
-                .map(([k, sg]) => [k, sg.value]),
-            )
-            onChange({ ...value, ...fill } as JsonRecord)
           }}
           state={suggestions.state}
         />
@@ -849,8 +872,9 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                           (e) => !('keyword' in e && e.keyword === 'required'),
                         )
                   }
-                  onChange={onChange}
+                  onChange={onChangeForm}
                   onShowTable={() => setView('table')}
+                  onUseSuggestion={(k, v) => applySuggestions({ [k]: v })}
                   schema={schema}
                   suggestions={suggested}
                   value={value}
@@ -864,7 +888,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 }
                 disabled={disabled}
                 exclude={hasForm ? Object.keys(schema?.properties || {}) : []}
-                onChange={onChange}
+                onChange={onChangeForm}
                 title={hasForm ? 'Other fields' : 'Metadata fields'}
                 value={value}
               />

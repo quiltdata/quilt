@@ -16,6 +16,7 @@ const schema = {
 }
 
 describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
+  const onUse = vi.fn()
   afterEach(cleanup)
 
   it('stores the enum value itself, not its label', () => {
@@ -26,6 +27,7 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
         errors={[]}
         onChange={onChange}
         onShowTable={() => {}}
+        onUseSuggestion={onUse}
         schema={schema}
         value={{}}
       />,
@@ -43,6 +45,7 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
         errors={[]}
         onChange={onChange}
         onShowTable={() => {}}
+        onUseSuggestion={onUse}
         schema={schema}
         suggestions={{ note: { value: 'from similar packages' } }}
         value={{}}
@@ -50,7 +53,8 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     )
     expect(onChange).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: /Use suggested Note/ }))
-    expect(onChange).toHaveBeenLastCalledWith({ note: 'from similar packages' })
+    expect(onUse).toHaveBeenLastCalledWith('note', 'from similar packages')
+    expect(onChange).not.toHaveBeenCalled()
   })
 
   describe('FreeFields', () => {
@@ -87,6 +91,44 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
       fireEvent.change(name, { target: { value: 'count' } })
       fireEvent.blur(name)
       expect(onChange).toHaveBeenLastCalledWith({ count: 1, b: 'x' })
+    })
+  })
+
+  describe('FreeFields drafts', () => {
+    it('keeps a JSON value typed while it is half-edited', () => {
+      const onChange = vi.fn()
+      render(
+        <FreeFields
+          description="d"
+          disabled={false}
+          onChange={onChange}
+          title="t"
+          value={{ a: { x: 1 } }}
+        />,
+      )
+      const input = screen.getByRole('textbox', { name: 'Value of a' })
+      fireEvent.change(input, { target: { value: '{"x": 2' } })
+      expect(onChange).not.toHaveBeenCalled()
+      fireEvent.change(input, { target: { value: '{"x": 2}' } })
+      expect(onChange).toHaveBeenLastCalledWith({ a: { x: 2 } })
+    })
+
+    it('refuses a rename to an existing name and says so', () => {
+      const onChange = vi.fn()
+      render(
+        <FreeFields
+          description="d"
+          disabled={false}
+          onChange={onChange}
+          title="t"
+          value={{ a: 1, b: 2 }}
+        />,
+      )
+      const name = screen.getByRole('textbox', { name: 'Name of field a' })
+      fireEvent.change(name, { target: { value: 'b' } })
+      fireEvent.blur(name)
+      expect(onChange).not.toHaveBeenCalled()
+      expect(screen.getByText('Already used')).toBeTruthy()
     })
   })
 })

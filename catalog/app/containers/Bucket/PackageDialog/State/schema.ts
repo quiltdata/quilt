@@ -25,8 +25,13 @@ export const Loading = { _tag: 'loading' as const }
 export const Err = (error: Error) => ({ _tag: 'error' as const, error })
 export const Ready = (schema?: JsonSchema) => ({ _tag: 'ready' as const, schema })
 
-export function mkMetaValidator(schema?: JsonSchema) {
-  const schemaValidator = makeSchemaValidator(schema)
+/** `{ formats: false }` ignores `format`, which only quilt's catalog enforces. */
+export function mkMetaValidator(schema?: JsonSchema, { formats = true } = {}) {
+  const schemaValidator = makeSchemaValidator(
+    schema,
+    undefined,
+    formats ? undefined : { validateFormats: false },
+  )
   return function validateMeta(value: Types.Json): (ErrorObject | Error)[] | undefined {
     const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
