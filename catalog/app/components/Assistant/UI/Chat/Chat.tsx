@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
+import { Link, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as dateFns from 'date-fns'
 
@@ -9,6 +10,7 @@ import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
 import * as Buckets from 'utils/Buckets'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
@@ -631,6 +633,8 @@ export function Menu({
   className,
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
+  const { paths, urls } = NamedRoutes.use()
+  const fullPage = !!useRouteMatch({ path: paths.qurator, exact: true })
 
   const isIdle = state._tag === 'Idle'
 
@@ -701,6 +705,12 @@ export function Menu({
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>
+        {!fullPage && (
+          // The conversation lives in the app-wide provider, so it carries over.
+          <M.MenuItem component={Link} to={urls.qurator()} onClick={closeMenu}>
+            Open full page
+          </M.MenuItem>
+        )}
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
