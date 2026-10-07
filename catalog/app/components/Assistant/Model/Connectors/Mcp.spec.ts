@@ -442,6 +442,36 @@ describe('Connectors/Mcp', () => {
       expect(tools).toEqual([])
       expect(calls).toHaveLength(1)
     })
+
+    it('bearerPassthru carries both MCP hints onto the descriptor', async () => {
+      const { fetchSpy } = captureCalls(
+        (req) =>
+          new Response(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: req?.id,
+              result: {
+                tools: [
+                  {
+                    name: 'put',
+                    inputSchema: {},
+                    annotations: { readOnlyHint: false, destructiveHint: false },
+                  },
+                ],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      )
+      const backend = Mcp.bearerPassthru({
+        url: 'https://example.invalid/mcp',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const [tool] = await Eff.Effect.runPromise(
+        withFetch(backend.listTools(), fetchSpy) as Eff.Effect.Effect<any[], unknown>,
+      )
+      expect(tool).toMatchObject({ readOnly: false, destructive: false })
+    })
   })
 
   describe('parseSseToJson', () => {
