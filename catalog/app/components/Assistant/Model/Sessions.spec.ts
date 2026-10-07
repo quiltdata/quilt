@@ -394,6 +394,16 @@ describe('components/Assistant/Model/Sessions', () => {
         expect(checkpoints(send).map((r) => r.baseVersion)).toEqual([1, 2])
       })
 
+      it('resends nothing when a checkpoint alone is refused as too large', async () => {
+        const outcomes = [saved('s', 1), { _tag: 'CheckpointTooLarge' as const }]
+        const { queue, send } = setup(async () => outcomes.shift()!)
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(600_000)
+        expect(send).toHaveBeenCalledTimes(2)
+      })
+
       it('saves the draft alone when the registry refuses the checkpoint as too large', async () => {
         const outcomes = [
           saved('s', 1),
@@ -403,14 +413,15 @@ describe('components/Assistant/Model/Sessions', () => {
         const { queue, send, stopped } = setup(async () => outcomes.shift()!)
         queue.change('h', 'a')
         await vi.advanceTimersByTimeAsync(1000)
+        queue.change('h', 'ab')
         queue.checkpoint()
         await vi.advanceTimersByTimeAsync(0)
         queue.checkpoint()
         await vi.advanceTimersByTimeAsync(0)
         expect(send.mock.calls.map(([r]) => r)).toEqual([
           { id: null, baseVersion: null, events: 'a' },
-          { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
-          { id: 's', baseVersion: 1, events: 'a' },
+          { id: 's', baseVersion: 1, events: 'ab', checkpoint: true },
+          { id: 's', baseVersion: 1, events: 'ab' },
         ])
         expect(stopped).toEqual([])
       })

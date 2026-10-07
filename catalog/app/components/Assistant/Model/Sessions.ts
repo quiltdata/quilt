@@ -340,6 +340,7 @@ export function createSaveQueue<T>({
       return
     }
     s.inFlight = true
+    const changed = events !== s.sent
     s.sent = events
     s.checkpointDue = false
     const updating = s.id !== null
@@ -355,9 +356,9 @@ export function createSaveQueue<T>({
         if (checkpoint && r._tag === 'Saved' && r.packaged) s.checkpointed = events
         switch (r._tag) {
           case 'CheckpointTooLarge':
-            // The draft is saved again without it, and not checkpointed until it changes.
+            // Not checkpointed again until it changes; a draft it carried is resent alone.
             s.checkpointed = events
-            s.sent = null
+            if (changed) s.sent = null
             break
           case 'Saved':
             s.id = r.id

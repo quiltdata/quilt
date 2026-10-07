@@ -168,24 +168,21 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
       ({ visible }: { visible: boolean }) => useSessions(state, vi.fn(), 'm', visible),
       { initialProps: { visible: true } },
     )
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000)
-    })
     hook.rerender({ visible: false })
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
     })
-    expect(stub.saves).toHaveLength(2)
-    expect(stub.saves[1]).toMatchObject({ id: 'NEW', checkpoint: null })
+    expect(stub.saves).toHaveLength(1)
+    expect(stub.saves[0]).toMatchObject({ id: null, checkpoint: null })
     expect(hook.result.current.notice).toBe(null)
 
     // Not tried again until the conversation changes.
     hook.rerender({ visible: true })
     hook.rerender({ visible: false })
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(60_000)
     })
-    expect(stub.saves).toHaveLength(2)
+    expect(stub.saves).toHaveLength(1)
   })
 
   it('gives up on a session read that hangs, and unlocks the chat', async () => {
