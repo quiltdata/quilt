@@ -348,7 +348,6 @@ export function useSessions(
     id: string
     version: number
     events: Conversation.Event[]
-    packaged: boolean
   }>()
 
   const queue = useConst(() =>
@@ -394,7 +393,7 @@ export function useSessions(
     const o = opening.current
     if (head && o?.events === state.events) {
       opening.current = undefined
-      queue.adopt(head, o.id, o.version, o.events, o.packaged)
+      queue.adopt(head, o.id, o.version, o.events)
     }
     if (!enabled) {
       queue.pause()
@@ -466,13 +465,7 @@ export function useSessions(
           refresh()
           return
         }
-        opening.current = {
-          id: session.id,
-          version: session.version,
-          events,
-          // A tab closed before its checkpoint leaves the package behind the draft.
-          packaged: Sessions.isPackaged(session),
-        }
+        opening.current = { id: session.id, version: session.version, events }
         dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
       }),
     [whileSwitching, client, currentId, head, headNow, queue, dispatch, refresh],

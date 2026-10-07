@@ -354,14 +354,13 @@ describe('components/Assistant/Model/Sessions', () => {
         ])
       })
 
-      it('cuts one for an opened session whose package lags its draft', async () => {
+      it('cuts none for an opened session left unchanged, so a reading tab never writes', async () => {
         const { queue, send } = setup(async () => saved('s', 2))
-        queue.adopt('h', 's', 1, 'a', false)
+        queue.adopt('h', 's', 1, 'a')
         queue.checkpoint()
         queue.adopt('k', 't', 1, 'b')
-        queue.checkpoint()
         await vi.advanceTimersByTimeAsync(0)
-        expect(checkpoints(send).map((r) => r.events)).toEqual(['a'])
+        expect(send).not.toHaveBeenCalled()
       })
 
       it('carries a checkpoint that failed on the retry', async () => {
@@ -435,12 +434,28 @@ describe('components/Assistant/Model/Sessions', () => {
         const { queue, send } = setup(async (r) =>
           saved(r.id ?? 'new', (r.baseVersion ?? 0) + 1, false),
         )
-        queue.adopt('h', 's', 1, 'a', false)
+        queue.adopt('h', 's', 1, 'a')
         queue.change('h', 'ab')
         await vi.advanceTimersByTimeAsync(1000)
-        queue.adopt('h2', 's', 2, 'ab', false)
+        queue.adopt('h2', 's', 2, 'ab')
         await vi.advanceTimersByTimeAsync(600_000)
         expect(send.mock.calls.map(([r]) => r.baseVersion)).toEqual([1])
+      })
+
+      it('does not fork a session being reopened mid-fork', async () => {
+        let answer: (o: Sessions.SaveOutcome) => void = () => {}
+        const { queue, send, created } = setup(() => new Promise((r) => (answer = r)))
+        queue.adopt('h', 's', 1, 'a')
+        queue.change('h', 'ab')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.hold('s')
+        answer({ _tag: 'Conflict' })
+        await vi.advanceTimersByTimeAsync(0)
+        queue.adopt('h2', 's', 2, 'ab')
+        queue.release('s', false)
+        await vi.advanceTimersByTimeAsync(600_000)
+        expect(send).toHaveBeenCalledTimes(1)
+        expect(created).toEqual([])
       })
 
       it('never resends a failed create to checkpoint it', async () => {

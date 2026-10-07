@@ -225,7 +225,7 @@ type SaveResult =
 const OUTCOMES = ['Conflict', 'NotFound', 'TooLarge', 'BadEnvelope', 'Disabled'] as const
 
 /** A package revised before the session's last save lags it, as when a push failed. */
-export const isPackaged = (s: { updatedAt: Date; package: { revisedAt: Date } | null }) =>
+const isPackaged = (s: { updatedAt: Date; package: { revisedAt: Date } | null }) =>
   !!s.package && s.package.revisedAt >= s.updatedAt
 
 export function outcomeOf(r: SaveResult): SaveOutcome {
@@ -451,7 +451,7 @@ export function createSaveQueue<T>({
     // Leaving a conversation checkpoints it. The session being reopened is
     // retired instead: a save now would move it past the version just read.
     slots.forEach((s) => {
-      if (id === null || s.id !== id) return checkpointNow(s)
+      if (id === null || (s.id !== id && s.shown !== id)) return checkpointNow(s)
       stopCheckpointTimers(s)
       if (s.timer) clearTimeout(s.timer)
       s.timer = null
@@ -491,11 +491,11 @@ export function createSaveQueue<T>({
       if (!s.cap) s.cap = setTimeout(() => checkpointNow(s), capMs)
     },
     /**
-     * `events` were just opened as session `id` at `version`; `packaged`
-     * when its package already holds them.
+     * `events` were just opened as session `id` at `version`. Not checkpointed
+     * until they change: another tab may be writing the session.
      */
-    adopt(head: string, id: string, version: number, events: T, packaged = true) {
-      fresh(head, id, version, events, packaged ? events : null)
+    adopt(head: string, id: string, version: number, events: T) {
+      fresh(head, id, version, events, events)
     },
     flush,
     /** Checkpoint every conversation with changes the package lacks: the panel closed. */
