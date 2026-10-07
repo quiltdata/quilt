@@ -612,7 +612,11 @@ export interface Mutation {
   /** Also deletes your own hidden sessions (expired, or while sessions are off). */
   readonly quratorSessionDelete: OperationResult
   readonly quratorSessionSave: QuratorSessionSaveResult
-  /** Deletes every user's sessions. */
+  /**
+   * Deletes every user's sessions and queues their packages' deletion, which runs
+   * in the background after `Ok`. Refused as `OperationError` `SessionsOn` unless
+   * the session retention is 0.
+   */
   readonly quratorSessionsPurgeAll: OperationResult
   /** Off hides this user's sessions and stops saving them; retention still expires them. */
   readonly quratorSessionsSetEnabled: OperationResult

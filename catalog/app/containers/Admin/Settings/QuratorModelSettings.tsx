@@ -306,7 +306,7 @@ function Editor({ config, available, unavailable }: EditorProps) {
           const { quratorSessionsPurgeAll: r } = await purgeSessions()
           setPurged(
             r.__typename === 'Ok'
-              ? 'All saved sessions were deleted.'
+              ? 'All saved sessions were deleted. Their packages are removed in the background.'
               : r.__typename === 'OperationError'
                 ? r.message
                 : r.errors.map((e) => e.message).join(' '),

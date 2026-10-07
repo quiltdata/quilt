@@ -183,7 +183,11 @@ describe('containers/Admin/Settings/QuratorModelSettings', () => {
     expect(state.mutate).not.toHaveBeenCalled()
     fireEvent.click(getByText('Delete all saved sessions'))
     fireEvent.click(getByText('Delete all'))
-    expect(await findByText('All saved sessions were deleted.')).toBeTruthy()
+    expect(
+      await findByText(
+        'All saved sessions were deleted. Their packages are removed in the background.',
+      ),
+    ).toBeTruthy()
     expect(state.mutate).toHaveBeenCalledTimes(1)
   })
 

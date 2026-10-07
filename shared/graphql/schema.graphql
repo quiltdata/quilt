@@ -1287,7 +1287,11 @@ type Mutation {
   quratorSessionDelete(id: ID!): OperationResult! @authenticated
   "Off hides this user's sessions and stops saving them; retention still expires them."
   quratorSessionsSetEnabled(enabled: Boolean!): OperationResult! @authenticated
-  "Deletes every user's sessions."
+  """
+  Deletes every user's sessions and queues their packages' deletion, which runs
+  in the background after `Ok`. Refused as `OperationError` `SessionsOn` unless
+  the session retention is 0.
+  """
   quratorSessionsPurgeAll: OperationResult! @admin
 
   packageConstruct(
