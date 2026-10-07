@@ -107,6 +107,16 @@ const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder)
 const UriResolver = protect(
   RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
 )
+const QuratorMode = requireAuth()(
+  RT.mkLazy(() => import('containers/QuratorMode'), Placeholder),
+)
+
+// Read ahead of `requireAuth` and under its own Suspense, as `DataProductsRoute`.
+function QuratorModeGate() {
+  const { urls } = NamedRoutes.use()
+  if (!useFeature('qurator-mode')) return <Redirect to={urls.home()} />
+  return <QuratorMode />
+}
 
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
@@ -178,6 +188,12 @@ export default function App() {
 
       <Route path={paths.code} exact>
         <AuthCode />
+      </Route>
+
+      <Route path={paths.quratorMode} exact>
+        <React.Suspense fallback={<Placeholder />}>
+          <QuratorModeGate />
+        </React.Suspense>
       </Route>
 
       <Route path={paths.activationError} exact>
