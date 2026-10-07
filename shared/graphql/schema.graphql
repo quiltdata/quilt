@@ -718,6 +718,66 @@ type APIKeyAdminQueries {
   get(id: ID!): APIKey
 }
 
+enum McpServerAuth {
+  NONE
+  HEADER
+}
+
+type McpServer {
+  slug: ID!
+  title: String!
+  hint: String
+  trusted: Boolean!
+}
+
+type McpServerAdmin {
+  slug: ID!
+  title: String!
+  url: String!
+  hint: String
+  enabled: Boolean!
+  trusted: Boolean!
+  auth: McpServerAuth!
+  authHeader: String
+  authPrefix: String
+  hasSecret: Boolean!
+  forwardIdentity: Boolean!
+  updatedAt: Datetime!
+  updatedBy: String
+}
+
+input McpServerInput {
+  title: String!
+  url: String!
+  hint: String
+  enabled: Boolean! = false
+  trusted: Boolean! = false
+  auth: McpServerAuth! = NONE
+  authHeader: String
+  authPrefix: String
+  "Write-only. Omit to keep the stored secret; a URL whose origin changed clears it."
+  secret: String
+  forwardIdentity: Boolean! = false
+}
+
+type McpToolSummary {
+  name: String!
+  description: String
+  readOnly: Boolean
+  destructive: Boolean
+  openWorld: Boolean
+}
+
+type McpServerProbe {
+  ok: Boolean!
+  failure: String
+  tools: [McpToolSummary!]!
+}
+
+union McpServerSetResult = McpServerAdmin | InvalidInput | OperationError
+
+union McpServerRemoveResult = Ok | InvalidInput | OperationError
+
 type AdminQueries {
   quratorConfig: QuratorConfig!
   quratorAvailableModels: QuratorAvailableModels!
@@ -727,6 +787,9 @@ type AdminQueries {
   tabulatorOpenQuery: Boolean!
   packager: PackagerAdminQueries!
   apiKeys: APIKeyAdminQueries!
+  mcpServers: [McpServerAdmin!]!
+  # The stack's QuratorMcpServers switch, so the admin card can say why it is off.
+  mcpServersAvailable: Boolean!
 }
 
 """
@@ -804,6 +867,9 @@ type Query {
 
   bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
   objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
+
+  # Enabled servers; [] for anonymous callers and when the stack switch is off.
+  mcpServers: [McpServer!]!
 
   admin: AdminQueries! @admin
 
@@ -1238,6 +1304,9 @@ type AdminMutations {
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
   apiKeys: APIKeyAdminMutations!
+  mcpServerSet(slug: ID!, input: McpServerInput!): McpServerSetResult!
+  mcpServerRemove(slug: ID!): McpServerRemoveResult!
+  mcpServerProbe(slug: ID!): McpServerProbe!
 }
 
 type Mutation {
