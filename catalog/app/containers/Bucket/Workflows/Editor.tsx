@@ -32,6 +32,7 @@ interface Loaded {
   // Both, because an unversioned bucket has no VersionId
   version: string | undefined
   etag: string | undefined
+  text: string
   exists: boolean
   hasComments: boolean
 }
@@ -53,6 +54,7 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
         raw: undefined,
         version: undefined,
         etag: undefined,
+        text: '',
         exists: false,
         hasComments: false,
       }
@@ -76,6 +78,7 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
     raw: raw || undefined,
     version: r.VersionId,
     etag: r.ETag,
+    text,
     exists: true,
     hasComments: hasHandWrittenParts(text),
   }
@@ -101,9 +104,24 @@ function useFlowStore(bucket: string) {
   // so a failed save changes nothing.
   const prepare = React.useCallback(
     async (next: Record<string, any>) => {
-      const current = await readConfig(s3, bucket)
       const loaded = loadedRef.current
-      if (current.version !== loaded?.version || current.etag !== loaded?.etag) {
+      const head = await s3
+        .headObject({ Bucket: bucket, Key: CONFIG_KEY })
+        .promise()
+        .catch((e: any) => {
+          if (e?.code === 'NotFound' || e?.code === 'NoSuchKey') return null
+          throw e
+        })
+      let changed = !head !== !loaded?.exists
+      if (head && !changed) {
+        if (head.ETag || head.VersionId || loaded?.etag || loaded?.version) {
+          changed = head.ETag !== loaded?.etag || head.VersionId !== loaded?.version
+        } else {
+          // Neither is visible to the browser, so compare the file itself
+          changed = (await readConfig(s3, bucket)).text !== loaded?.text
+        }
+      }
+      if (changed) {
         throw new Error(
           'Flows in this bucket changed while you were editing. Reopen and try again.',
         )
@@ -167,7 +185,7 @@ function useFlowStore(bucket: string) {
   const remove = React.useCallback(
     async (id: string) => {
       const raw = loadedRef.current?.raw
-      if (!raw) return
+      if (!raw) throw new Error('This flow was removed. Close and reload.')
       await putConfig(await prepare(model.removeFlow(raw, id)))
     },
     [prepare, putConfig],

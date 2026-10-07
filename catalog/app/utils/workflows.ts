@@ -71,6 +71,8 @@ export interface Workflow {
   name?: string
   packageNamePattern: RegExp | null
   packageNamePatternError?: string
+  // Python's `re` rejects the pattern, so every push through this flow fails
+  packageNamePatternInvalid?: string
   // `handle_pattern` as written, for display; the compiled pattern may be a translation
   handlePattern?: string
   undefinedSchemas?: string[]
@@ -203,21 +205,38 @@ export function analyzePattern(src: string): PatternAnalysis {
   let depth = 0
   let inClass = false
   let classFirst = -1
+  // What a quantifier here would repeat; Python rejects repeating nothing or a repeat
+  let prev: 'none' | 'atom' | 'quant' | 'mod' = 'none'
   let uncheckable: string | null = null
   const skip = (why: string) => {
     if (!uncheckable) uncheckable = why
+  }
+  const invalid = (reason: string): PatternAnalysis => ({ _tag: 'invalid', reason })
+  const quantify = (q: string, js: string): PatternAnalysis | null => {
+    if (prev === 'none') return invalid(`Nothing for ${q} to repeat`)
+    if (prev === 'quant' && (q === '?' || q === '+')) {
+      if (q === '+') skip('possessive quantifier')
+      prev = 'mod'
+    } else if (prev !== 'atom') {
+      return invalid(`${q} repeats a repeat`)
+    } else prev = 'quant'
+    out += js
+    return null
   }
   for (let i = 0; i < cs.length; i++) {
     const c = cs[i]
     if (c === '\\') {
       const n = cs[++i]
-      if (n === undefined)
-        return { _tag: 'invalid', reason: 'Ends with a lone backslash' }
+      if (n === undefined) return invalid('Ends with a lone backslash')
       if (/[A-Za-z]/.test(n) && !PY_KNOWN_LETTER_ESCAPES.has(n)) {
-        return { _tag: 'invalid', reason: `\\${n} isn't a valid escape for pushes` }
+        return invalid(`\\${n} isn't a valid escape for pushes`)
       }
+      prev = 'atom'
       if (inClass && n === 'b') out += '\\x08'
-      else if (n in SIMPLE) out += SIMPLE[n]
+      else if ('AZbB'.includes(n)) {
+        skip(`\\${n}`)
+        prev = 'none'
+      } else if (n in SIMPLE) out += SIMPLE[n]
       else if (n in CLASS_OUT) {
         const t = inClass ? CLASS_IN[n] : CLASS_OUT[n]
         if (t === null) skip(`\\${n} inside [...]`)
@@ -236,6 +255,7 @@ export function analyzePattern(src: string): PatternAnalysis {
     if (inClass) {
       if (c === ']' && i !== classFirst) {
         inClass = false
+        prev = 'atom'
         out += ']'
       } else out += c === ']' || c === '[' ? `\\${c}` : c
       continue
@@ -248,38 +268,75 @@ export function analyzePattern(src: string): PatternAnalysis {
       continue
     }
     if (c === '(') {
+      const rest = cs.slice(i + 2).join('')
+      if (cs[i + 1] === '?' && rest.startsWith('#')) {
+        const end = cs.indexOf(')', i)
+        if (end < 0) return invalid('Missing )')
+        i = end
+        continue
+      }
       depth++
+      prev = 'none'
       if (cs[i + 1] !== '?') {
         out += c
         continue
       }
-      const rest = cs.slice(i + 2).join('')
-      if (/^[:=!]/.test(rest) || /^<[=!]/.test(rest)) out += '(?'
-      else if (rest.startsWith('#')) {
-        const end = cs.indexOf(')', i)
-        if (end < 0) return { _tag: 'invalid', reason: 'Missing )' }
-        depth--
-        i = end
-        continue
+      if (/^[:=!]/.test(rest)) {
+        out += `(?${rest[0]}`
+        i += 2
       } else if (rest.startsWith('P<')) {
         out += '(?<'
-        i += 2
-      } else {
+        i += 3
+      } else if (/^<[=!]/.test(rest)) {
+        // Python only allows fixed-width look-behind; JS allows any
+        skip('look-behind')
+        out += `(?${rest.slice(0, 2)}`
+        i += 3
+      } else if (/^(P=|>|\(|[aiLmsux-]+[:)])/.test(rest)) {
         skip(`(?${rest.slice(0, 2)}`)
         out += '(?'
-      }
-      i += 1
+        i += 1
+      } else if (rest.startsWith('<')) {
+        return invalid('Named groups are written (?P<name>...) for pushes')
+      } else return invalid(`Unknown group (?${rest.slice(0, 1)}`)
       continue
     }
     if (c === ')') {
-      if (!depth) return { _tag: 'invalid', reason: 'Unbalanced )' }
+      if (!depth) return invalid('Unbalanced )')
       depth--
+      prev = 'atom'
+      out += c
+      continue
     }
-    if ('*+?}'.includes(c) && cs[i + 1] === '+') skip('possessive quantifier')
-    out += c === ']' ? '\\]' : c
+    if (c === '|' || c === '^' || c === '$') {
+      prev = 'none'
+      out += c
+      continue
+    }
+    if (c === '*' || c === '+' || c === '?') {
+      const r = quantify(c, c)
+      if (r) return r
+      continue
+    }
+    if (c === '{') {
+      // Python reads `{` as a repeat only in `{m}`, `{m,}`, `{,n}`, `{m,n}`, `{,}`
+      const m = /^\{(\d*)(,(\d*))?\}/.exec(cs.slice(i, i + 40).join(''))
+      if (m && m[0] !== '{}') {
+        const lo = m[1]
+        const hi = m[2] ? m[3] : m[1]
+        if (lo && hi && Number(lo) > Number(hi))
+          return invalid('Repeat minimum is above maximum')
+        const r = quantify(m[0], `{${lo || '0'}${m[2] ? `,${hi}` : ''}}`)
+        if (r) return r
+        i += m[0].length - 1
+        continue
+      }
+    }
+    prev = 'atom'
+    out += c === ']' || c === '{' || c === '}' ? `\\${c}` : c
   }
-  if (inClass) return { _tag: 'invalid', reason: 'Missing ]' }
-  if (depth) return { _tag: 'invalid', reason: 'Missing )' }
+  if (inClass) return invalid('Missing ]')
+  if (depth) return invalid('Missing )')
   if (uncheckable) return { _tag: 'uncheckable', reason: uncheckable }
   try {
     return { _tag: 'ok', regex: new RegExp(out, 'u') }
@@ -290,11 +347,15 @@ export function analyzePattern(src: string): PatternAnalysis {
 
 function compilePattern(
   src?: string,
-): Pick<Workflow, 'packageNamePattern' | 'packageNamePatternError'> {
+): Pick<
+  Workflow,
+  'packageNamePattern' | 'packageNamePatternError' | 'packageNamePatternInvalid'
+> {
   if (!src) return { packageNamePattern: null }
   const a = analyzePattern(src)
-  return a._tag === 'ok'
-    ? { packageNamePattern: a.regex }
+  if (a._tag === 'ok') return { packageNamePattern: a.regex }
+  return a._tag === 'invalid'
+    ? { packageNamePattern: null, packageNamePatternInvalid: a.reason }
     : { packageNamePattern: null, packageNamePatternError: a.reason }
 }
 

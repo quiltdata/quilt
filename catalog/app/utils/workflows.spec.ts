@@ -369,6 +369,23 @@ describe('utils/workflows', () => {
       expect(tag('\\A\\d+\\Z')).toBe('uncheckable')
     })
 
+    it('matches Python on repeats and braces', () => {
+      for (const p of ['*.csv', 'a**', '^*', 'a|*', 'a?*', 'a{3}{2}', 'a{3,2}']) {
+        expect([p, tag(p)]).toEqual([p, 'invalid'])
+      }
+      ok('^{lab}/', '{lab}/x', 'lab/x')
+      ok('^a{,2}$', 'aa', 'aaa')
+      ok('^x{$', 'x{', 'x')
+      ok('^a{}$', 'a{}', 'a')
+      ok('^a??b', 'b', 'c')
+    })
+
+    it('rejects JS-style named groups and unknown groups, like Python', () => {
+      expect(tag('^(?<team>lab)/')).toBe('invalid')
+      expect(tag('(?Q)')).toBe('invalid')
+      expect(tag('(?<=ab|c)x')).toBe('uncheckable')
+    })
+
     it('rejects what Python would reject', () => {
       expect(tag('^\\p{L}+/')).toBe('invalid')
       expect(tag('(')).toBe('invalid')
