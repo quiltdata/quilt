@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from 'utils/renderHook'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import useCollapsed, { COLLAPSED_STORAGE_KEY } from './useCollapsed'

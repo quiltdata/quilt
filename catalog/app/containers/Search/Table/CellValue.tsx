@@ -127,7 +127,9 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
   switch (filter) {
     case 'workflow':
       return hit.workflow ? (
-        <Match on={hit.matchLocations.workflow}>{hit.workflow.id}</Match>
+        <Match on={hit.matchLocations.workflow}>
+          {hit.workflow.id as React.ReactNode}
+        </Match>
       ) : (
         <NoValue />
       )

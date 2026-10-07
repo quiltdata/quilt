@@ -288,7 +288,7 @@ function PackageCreationForm({
   }, [dst.bucket, files.value, name.value, workflow.value])
 
   const handleSubmit = React.useCallback(
-    (event) => {
+    (event: any) => {
       event.preventDefault()
       create()
     },

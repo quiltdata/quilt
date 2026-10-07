@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react-hooks'
+import { renderHook, act } from 'utils/renderHook'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import * as Form from './form'

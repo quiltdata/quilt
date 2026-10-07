@@ -51,6 +51,7 @@ complete sentence without it.
 - [Fixed] Signed-in users get the admin-configured catalog settings (front door, theme, Qurator, feature flags) right after sign-in, without reloading the page ([#5371](https://github.com/quiltdata/quilt/pull/5371))
 - [Fixed] After a release, the catalog loads the new version on the next visit, and an open page reloads itself once instead of showing "Something went wrong" ([#5445](https://github.com/quiltdata/quilt/pull/5445))
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
+- [Changed] The catalog runs on React 18 instead of React 17, with Material UI v4 unchanged ([#5444](https://github.com/quiltdata/quilt/pull/5444))
 - [Fixed] Opening a folder or file your role cannot read shows Access Denied below the breadcrumbs instead of replacing the page with an error ([#5382](https://github.com/quiltdata/quilt/pull/5382))
 - [Fixed] Bucket directory listings keep their page in the URL, so Back from a file, a reload or a shared link returns to the same page instead of the first ([#5378](https://github.com/quiltdata/quilt/pull/5378))
 - [Fixed] Screen readers announce the labels of the Qurator chat input, the package dialog's name, message and workflow fields, and the Athena workgroup, data catalog and database selects ([#5377](https://github.com/quiltdata/quilt/pull/5377))

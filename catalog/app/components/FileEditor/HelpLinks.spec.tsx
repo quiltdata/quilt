@@ -53,10 +53,16 @@ describe('components/FileEditor/HelpLinks', () => {
     })
 
     it('should throw outside bucket', () => {
-      vi.spyOn(console, 'error').mockImplementationOnce(noop)
-      useParams.mockImplementationOnce(() => ({}))
-      const tree = () => render(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
-      expect(tree).toThrowError('`bucket` must be defined')
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(noop)
+      // Not ...Once: React 18 retries a failed render once
+      useParams.mockImplementation(() => ({}))
+      try {
+        const tree = () => render(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
+        expect(tree).toThrowError('`bucket` must be defined')
+      } finally {
+        useParams.mockReset()
+        consoleError.mockRestore()
+      }
     })
   })
 })

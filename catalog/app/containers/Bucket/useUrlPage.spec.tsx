@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import { createMemoryHistory } from 'history'
-import { act, renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from 'utils/renderHook'
 import { describe, it, expect } from 'vitest'
 
 import useUrlPage from './useUrlPage'

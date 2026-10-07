@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from 'utils/renderHook'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 
 import { useBulkDelete } from './useBulkDelete'

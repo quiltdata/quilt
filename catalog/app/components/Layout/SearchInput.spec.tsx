@@ -14,7 +14,9 @@ function Bar() {
 // Stands in for the search screen's empty-results refine affordances.
 function Page({ onReady }: { onReady: (h: ReturnType<typeof useSearchInput>) => void }) {
   const searchInput = useSearchInput()
-  React.useEffect(() => onReady(searchInput), [onReady, searchInput])
+  React.useEffect(() => {
+    onReady(searchInput)
+  }, [onReady, searchInput])
   return null
 }
 

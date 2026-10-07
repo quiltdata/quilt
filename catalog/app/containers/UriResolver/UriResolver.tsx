@@ -40,14 +40,14 @@ function Form({ initialValue, error }: FormProps) {
   const [value, setValue] = React.useState(initialValue)
 
   const handleChange = React.useCallback(
-    (e) => {
+    (e: any) => {
       setValue(e.target.value)
     },
     [setValue],
   )
 
   const handleSubmit = React.useCallback(
-    (e) => {
+    (e: any) => {
       e.preventDefault()
       if (value !== initialValue) history.push(urls.uriResolver(value))
     },

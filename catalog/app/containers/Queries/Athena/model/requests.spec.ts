@@ -1,5 +1,5 @@
 import type A from 'aws-sdk/clients/athena'
-import { act, renderHook, cleanup } from '@testing-library/react-hooks'
+import { act, cleanup, renderHook, waitFor } from 'utils/renderHook'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 
 import Log from 'utils/Logging'
@@ -83,24 +83,27 @@ const listQueryExecutions = vi.fn()
 const listWorkGroups = vi.fn()
 const startQueryExecution = vi.fn()
 
-vi.mock('utils/AWS', () => ({
-  Athena: {
-    use: () => ({
-      batchGetNamedQuery,
-      batchGetQueryExecution,
-      getDataCatalog,
-      getQueryExecution,
-      getQueryResults,
-      getWorkGroup,
-      listDataCatalogs,
-      listDatabases,
-      listNamedQueries,
-      listQueryExecutions,
-      listWorkGroups,
-      startQueryExecution,
-    }),
-  },
-}))
+// One client for every render, like the real `AWS.Athena.use()`: a fresh
+// object would re-run every fetch effect on each re-render.
+vi.mock('utils/AWS', () => {
+  // Built on first use: the vi.fn()s below aren't initialized when this hoists.
+  let athena: object | undefined
+  const mk = () => ({
+    batchGetNamedQuery,
+    batchGetQueryExecution,
+    getDataCatalog,
+    getQueryExecution,
+    getQueryResults,
+    getWorkGroup,
+    listDataCatalogs,
+    listDatabases,
+    listNamedQueries,
+    listQueryExecutions,
+    listWorkGroups,
+    startQueryExecution,
+  })
+  return { Athena: { use: () => (athena ??= mk()) } }
+})
 
 describe('containers/Queries/Athena/model/requests', () => {
   afterEach(() => {
@@ -125,9 +128,7 @@ describe('containers/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
         })),
       )
-      const { result, waitFor, unmount } = renderHook(() =>
-        requests.useCatalogNames('any'),
-      )
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
 
       try {
         await waitFor(() =>
@@ -144,9 +145,7 @@ describe('containers/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [],
         })),
       )
-      const { result, waitFor, unmount } = renderHook(() =>
-        requests.useCatalogNames('any'),
-      )
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
 
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
@@ -159,9 +158,7 @@ describe('containers/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
         })),
       )
-      const { result, waitFor, unmount } = renderHook(() =>
-        requests.useCatalogNames('any'),
-      )
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
 
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
@@ -174,9 +171,7 @@ describe('containers/Queries/Athena/model/requests', () => {
           Invalid: [],
         })),
       )
-      const { result, waitFor, unmount } = renderHook(() =>
-        requests.useCatalogNames('any'),
-      )
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
 
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
@@ -191,9 +186,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       getDataCatalog.mockImplementation(
         reqThrowWith(new AWSError('AccessDeniedException')),
       )
-      const { result, waitFor, unmount } = renderHook(() =>
-        requests.useCatalogNames('any'),
-      )
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
 
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
@@ -206,29 +199,23 @@ describe('containers/Queries/Athena/model/requests', () => {
         })),
       )
       getDataCatalog.mockImplementation(reqThrow)
-      const { result, waitFor, unmount } = renderHook(() =>
-        requests.useCatalogNames('any'),
-      )
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
 
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
       unmount()
     })
 
     it('handle fail in requesting list', async () => {
-      await act(async () => {
-        listDataCatalogs.mockImplementation(reqThrow)
-        const { result, unmount, waitFor } = renderHook(() =>
-          requests.useCatalogNames('any'),
-        )
+      listDataCatalogs.mockImplementation(reqThrow)
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
 
-        try {
-          await waitFor(() => result.current.data instanceof Error)
-          expect(Log.error).toBeCalledWith(expect.any(Error))
-          expect(result.current.data).toBeInstanceOf(Error)
-        } finally {
-          unmount()
-        }
-      })
+      try {
+        await waitFor(() => result.current.data instanceof Error)
+        expect(Log.error).toBeCalledWith(expect.any(Error))
+        expect(result.current.data).toBeInstanceOf(Error)
+      } finally {
+        unmount()
+      }
     })
 
     function useWrapper(props: Parameters<typeof requests.useCatalogNames>) {
@@ -236,23 +223,17 @@ describe('containers/Queries/Athena/model/requests', () => {
     }
 
     it('wait until workgroup is ready', async () => {
-      const { result, rerender, waitForValueToChange, unmount } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogNames>) => useWrapper(x),
         { initialProps: [null] },
       )
 
-      await act(async () => {
-        rerender([Model.Loading])
-        await waitForValueToChange(() => result.current, { timeout: 5000 })
-      })
-      expect(result.current.data).toBe(Model.Loading)
+      rerender([Model.Loading])
+      await waitFor(() => expect(result.current.data).toBe(Model.Loading))
 
       const error = new Error('foo')
-      await act(async () => {
-        rerender([error])
-        await waitForValueToChange(() => result.current, { timeout: 5000 })
-      })
-      expect(result.current.data).toBe(error)
+      rerender([error])
+      await waitFor(() => expect(result.current.data).toBe(error))
       unmount()
     })
 
@@ -282,15 +263,11 @@ describe('containers/Queries/Athena/model/requests', () => {
             : Promise.reject(new AWSError('AccessDeniedException')),
       }))
 
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
-          requests.useCatalogNames('any'),
-        )
-        await waitFor(() =>
-          expect(result.current.data).toMatchObject({ list: ['allowed'] }),
-        )
-        unmount()
-      })
+      const { result, unmount } = renderHook(() => requests.useCatalogNames('any'))
+      await waitFor(() =>
+        expect(result.current.data).toMatchObject({ list: ['allowed'] }),
+      )
+      unmount()
     })
   })
 
@@ -302,7 +279,7 @@ describe('containers/Queries/Athena/model/requests', () => {
     }
 
     it('wait for catalog names list', async () => {
-      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
         { initialProps: [undefined, null] },
       )
@@ -311,93 +288,66 @@ describe('containers/Queries/Athena/model/requests', () => {
         expect(result.current.value).toBe(undefined)
 
         const error = new Error('Fail')
-        await act(async () => {
-          rerender([error, null])
-          await waitForNextUpdate()
-        })
-        expect(result.current.value).toBe(error)
+        rerender([error, null])
+        await waitFor(() => expect(result.current.value).toBe(error))
 
-        await act(async () => {
-          rerender([{ list: ['foo', 'bar'] }, null])
-          await waitForNextUpdate()
-        })
-        expect(result.current.value).toBe('foo')
+        rerender([{ list: ['foo', 'bar'] }, null])
+        await waitFor(() => expect(result.current.value).toBe('foo'))
       } finally {
         unmount()
       }
     })
 
     it('switch catalog when execution query loaded', async () => {
-      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, undefined])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, { catalog: 'bar' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('bar')
+      rerender([{ list: ['foo', 'bar'] }, undefined])
+      await waitFor(() => expect(result.current.value).toBe('foo'))
+      rerender([{ list: ['foo', 'bar'] }, { catalog: 'bar' }])
+      await waitFor(() => expect(result.current.value).toBe('bar'))
       unmount()
     })
 
     it('select execution catalog when catalog list loaded after execution', async () => {
-      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([Model.Loading, { catalog: 'bar' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(Model.Loading)
+      rerender([Model.Loading, { catalog: 'bar' }])
+      await waitFor(() => expect(result.current.value).toBe(Model.Loading))
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, { catalog: 'bar' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('bar')
+      rerender([{ list: ['foo', 'bar'] }, { catalog: 'bar' }])
+      await waitFor(() => expect(result.current.value).toBe('bar'))
 
       unmount()
     })
 
     it('keep selection when execution has catalog that doesnt exist', async () => {
-      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, undefined])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
+      rerender([{ list: ['foo', 'bar'] }, undefined])
+      await waitFor(() => expect(result.current.value).toBe('foo'))
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, { catalog: 'baz' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
+      rerender([{ list: ['foo', 'bar'] }, { catalog: 'baz' }])
+      await waitFor(() => expect(result.current.value).toBe('foo'))
 
       unmount()
     })
 
     it('select null when catalog doesnt exist', async () => {
-      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([{ list: [] }, undefined])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(null)
+      rerender([{ list: [] }, undefined])
+      await waitFor(() => expect(result.current.value).toBe(null))
 
       act(() => {
         result.current.setValue('baz')
@@ -409,16 +359,13 @@ describe('containers/Queries/Athena/model/requests', () => {
 
     it('select initial catalog from local storage', async () => {
       getStorageKey.mockImplementationOnce(() => 'catalog-bar')
-      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'catalog-bar'] }, null])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('catalog-bar')
+      rerender([{ list: ['foo', 'catalog-bar'] }, null])
+      await waitFor(() => expect(result.current.value).toBe('catalog-bar'))
 
       unmount()
     })
@@ -426,25 +373,19 @@ describe('containers/Queries/Athena/model/requests', () => {
 
   describe('useDatabases', () => {
     it('wait for catalogName', async () => {
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (...c: Parameters<typeof requests.useDatabases>) => requests.useDatabases(...c),
         {
           initialProps: undefined,
         },
       )
 
-      await act(async () => {
-        rerender(Model.Loading)
-        await waitForNextUpdate()
-      })
-      expect(result.current.data).toBe(Model.Loading)
+      rerender(Model.Loading)
+      await waitFor(() => expect(result.current.data).toBe(Model.Loading))
 
       const error = new Error('foo')
-      await act(async () => {
-        rerender(error)
-        await waitForNextUpdate()
-      })
-      expect(result.current.data).toBe(error)
+      rerender(error)
+      await waitFor(() => expect(result.current.data).toBe(error))
     })
 
     it('return databases', async () => {
@@ -453,10 +394,15 @@ describe('containers/Queries/Athena/model/requests', () => {
           DatabaseList: [{ Name: 'bar' }, { Name: 'baz' }],
         })),
       )
-      const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
+      const all: Model.DataController<any>[] = []
+      const { result } = renderHook(() => {
+        const r = requests.useDatabases('foo')
+        all.push(r)
+        return r
+      })
 
-      expect((result.all[0] as Model.DataController<any>).data).toBe(undefined)
-      expect((result.all[1] as Model.DataController<any>).data).toBe(Model.Loading)
+      expect(all[0].data).toBe(undefined)
+      expect(all[1].data).toBe(Model.Loading)
       await waitFor(() =>
         expect(result.current.data).toMatchObject({ list: ['bar', 'baz'] }),
       )
@@ -468,7 +414,7 @@ describe('containers/Queries/Athena/model/requests', () => {
           () => ({ DatabaseList: [{}, {}] }) as unknown as A.ListDatabasesOutput,
         ),
       )
-      const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
+      const { result } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() =>
         expect(result.current.data).toMatchObject({ list: ['Unknown', 'Unknown'] }),
       )
@@ -478,7 +424,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       listDatabases.mockImplementation(
         reqThen<A.ListDatabasesInput, A.ListDatabasesOutput>(() => ({})),
       )
-      const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
+      const { result } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
     })
 
@@ -493,7 +439,7 @@ describe('containers/Queries/Athena/model/requests', () => {
           ({ NextToken }) => pages[NextToken ?? ''],
         ),
       )
-      const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
+      const { result } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() =>
         expect(result.current.data).toMatchObject({ list: ['alpha', 'beta', 'gamma'] }),
       )
@@ -506,7 +452,7 @@ describe('containers/Queries/Athena/model/requests', () => {
     }
 
     it('wait for databases', async () => {
-      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, null] },
       )
@@ -514,103 +460,73 @@ describe('containers/Queries/Athena/model/requests', () => {
       try {
         expect(result.current.value).toBe(undefined)
 
-        await act(async () => {
-          rerender([Model.Loading, null])
-          await waitForNextUpdate()
-        })
-        expect(result.current.value).toBe(Model.Loading)
+        rerender([Model.Loading, null])
+        await waitFor(() => expect(result.current.value).toBe(Model.Loading))
 
         const error = new Error('Fail')
-        await act(async () => {
-          rerender([error, null])
-          await waitForNextUpdate()
-        })
-        expect(result.current.value).toBe(error)
+        rerender([error, null])
+        await waitFor(() => expect(result.current.value).toBe(error))
 
-        await act(async () => {
-          rerender([{ list: ['foo', 'bar'] }, null])
-          await waitForNextUpdate()
-        })
-        expect(result.current.value).toBe('foo')
+        rerender([{ list: ['foo', 'bar'] }, null])
+        await waitFor(() => expect(result.current.value).toBe('foo'))
       } finally {
         unmount()
       }
     })
 
     it('switch database when execution query loaded', async () => {
-      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, undefined])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
+      rerender([{ list: ['foo', 'bar'] }, undefined])
+      await waitFor(() => expect(result.current.value).toBe('foo'))
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('bar')
+      rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
+      await waitFor(() => expect(result.current.value).toBe('bar'))
 
       unmount()
     })
 
     it('select execution db when databases loaded after execution', async () => {
-      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([Model.Loading, { db: 'bar' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(Model.Loading)
+      rerender([Model.Loading, { db: 'bar' }])
+      await waitFor(() => expect(result.current.value).toBe(Model.Loading))
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('bar')
+      rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
+      await waitFor(() => expect(result.current.value).toBe('bar'))
 
       unmount()
     })
 
     it('keep selection when execution has db that doesn’t exist', async () => {
-      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, undefined])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
+      rerender([{ list: ['foo', 'bar'] }, undefined])
+      await waitFor(() => expect(result.current.value).toBe('foo'))
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, { db: 'baz' }])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
+      rerender([{ list: ['foo', 'bar'] }, { db: 'baz' }])
+      await waitFor(() => expect(result.current.value).toBe('foo'))
 
       unmount()
     })
 
     it('select null when db doesn’t exist', async () => {
-      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([{ list: [] }, undefined])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(null)
+      rerender([{ list: [] }, undefined])
+      await waitFor(() => expect(result.current.value).toBe(null))
 
       act(() => {
         result.current.setValue('baz')
@@ -622,16 +538,13 @@ describe('containers/Queries/Athena/model/requests', () => {
 
     it('select initial db from local storage', async () => {
       getStorageKey.mockImplementationOnce(() => 'bar')
-      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
 
-      await act(async () => {
-        rerender([{ list: ['foo', 'bar'] }, null])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('bar')
+      rerender([{ list: ['foo', 'bar'] }, null])
+      await waitFor(() => expect(result.current.value).toBe('bar'))
 
       unmount()
     })
@@ -645,148 +558,130 @@ describe('containers/Queries/Athena/model/requests', () => {
     )
 
     it('return workgroups', async () => {
-      await act(async () => {
-        getWorkGroup.mockImplementation(
-          reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
-            WorkGroup: {
-              Configuration: {
-                ResultConfiguration: {
-                  OutputLocation: 'any',
-                },
+      getWorkGroup.mockImplementation(
+        reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
+          WorkGroup: {
+            Configuration: {
+              ResultConfiguration: {
+                OutputLocation: 'any',
               },
-              State: 'ENABLED',
-              Name,
             },
-          })),
-        )
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() =>
-          expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] }),
-        )
-        unmount()
-      })
+            State: 'ENABLED',
+            Name,
+          },
+        })),
+      )
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() =>
+        expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] }),
+      )
+      unmount()
     })
 
     it('return only valid workgroups', async () => {
-      await act(async () => {
-        getWorkGroup.mockImplementation(
-          reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
-            WorkGroup: {
-              Configuration: {
-                ResultConfiguration: {
-                  OutputLocation: 'any',
-                },
+      getWorkGroup.mockImplementation(
+        reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
+          WorkGroup: {
+            Configuration: {
+              ResultConfiguration: {
+                OutputLocation: 'any',
               },
-              State: Name === 'foo' ? 'DISABLED' : 'ENABLED',
-              Name,
             },
-          })),
-        )
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => expect(result.current.data).toMatchObject({ list: ['bar'] }))
-        unmount()
-      })
+            State: Name === 'foo' ? 'DISABLED' : 'ENABLED',
+            Name,
+          },
+        })),
+      )
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: ['bar'] }))
+      unmount()
     })
 
     it('handle invalid workgroup', async () => {
-      await act(async () => {
-        getWorkGroup.mockImplementation(
-          // @ts-expect-error
-          reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(() => ({
-            Invalid: 'foo',
-          })),
-        )
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(result.current.data).toMatchObject({ list: [] })
-        unmount()
-      })
+      getWorkGroup.mockImplementation(
+        // @ts-expect-error
+        reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(() => ({
+          Invalid: 'foo',
+        })),
+      )
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() => typeof result.current.data === 'object')
+      expect(result.current.data).toMatchObject({ list: [] })
+      unmount()
     })
 
     it('handle fail in workgroup', async () => {
-      await act(async () => {
-        getWorkGroup.mockImplementation(reqThrow)
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+      getWorkGroup.mockImplementation(reqThrow)
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
 
-        try {
-          await waitFor(() => typeof result.current.data === 'object')
-          expect(Log.error).toBeCalledWith(
-            'Fetching "bar" workgroup failed:',
-            expect.any(Error),
-          )
-          expect(Log.error).toBeCalledWith(
-            'Fetching "foo" workgroup failed:',
-            expect.any(Error),
-          )
-          expect(result.current.data).toMatchObject({ list: [] })
-        } finally {
-          unmount()
-        }
-      })
+      try {
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(Log.error).toBeCalledWith(
+          'Fetching "bar" workgroup failed:',
+          expect.any(Error),
+        )
+        expect(Log.error).toBeCalledWith(
+          'Fetching "foo" workgroup failed:',
+          expect.any(Error),
+        )
+        expect(result.current.data).toMatchObject({ list: [] })
+      } finally {
+        unmount()
+      }
     })
 
     it('handle access denied for workgroup list', async () => {
-      await act(async () => {
-        getWorkGroup.mockImplementation(
-          reqThrowWith(new AWSError('AccessDeniedException')),
-        )
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+      getWorkGroup.mockImplementation(reqThrowWith(new AWSError('AccessDeniedException')))
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
 
-        try {
-          await waitFor(() => typeof result.current.data === 'object')
-          expect(Log.info).toBeCalledWith(
-            'Fetching "bar" workgroup failed: AccessDeniedException',
-          )
-          expect(Log.info).toBeCalledWith(
-            'Fetching "foo" workgroup failed: AccessDeniedException',
-          )
-          expect(result.current.data).toMatchObject({ list: [] })
-        } finally {
-          unmount()
-        }
-      })
+      try {
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(Log.info).toBeCalledWith(
+          'Fetching "bar" workgroup failed: AccessDeniedException',
+        )
+        expect(Log.info).toBeCalledWith(
+          'Fetching "foo" workgroup failed: AccessDeniedException',
+        )
+        expect(result.current.data).toMatchObject({ list: [] })
+      } finally {
+        unmount()
+      }
     })
 
     it('handle invalid list', async () => {
-      await act(async () => {
-        listWorkGroups.mockImplementation(
-          // @ts-expect-error
-          reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => ({
-            Invalid: [{ Name: 'foo' }, { Name: 'bar' }],
-          })),
-        )
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(result.current.data).toMatchObject({ list: [] })
-        unmount()
-      })
+      listWorkGroups.mockImplementation(
+        // @ts-expect-error
+        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => ({
+          Invalid: [{ Name: 'foo' }, { Name: 'bar' }],
+        })),
+      )
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() => typeof result.current.data === 'object')
+      expect(result.current.data).toMatchObject({ list: [] })
+      unmount()
     })
 
     it('handle no data in list', async () => {
-      await act(async () => {
-        listWorkGroups.mockImplementation(
-          // @ts-expect-error
-          reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => null),
-        )
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => result.current.data instanceof Error)
-        expect(Log.error).toBeCalledWith(
-          new TypeError(`Cannot read properties of null (reading 'WorkGroups')`),
-        )
-        expect(result.current.data).toBeInstanceOf(TypeError)
-        unmount()
-      })
+      listWorkGroups.mockImplementation(
+        // @ts-expect-error
+        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => null),
+      )
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() => result.current.data instanceof Error)
+      expect(Log.error).toBeCalledWith(
+        new TypeError(`Cannot read properties of null (reading 'WorkGroups')`),
+      )
+      expect(result.current.data).toBeInstanceOf(TypeError)
+      unmount()
     })
 
     it('handle fail in list', async () => {
-      await act(async () => {
-        listWorkGroups.mockImplementation(reqThrow)
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => result.current.data instanceof Error)
-        expect(Log.error).toBeCalledWith(expect.any(Error))
-        expect(result.current.data).toBeInstanceOf(Error)
-        unmount()
-      })
+      listWorkGroups.mockImplementation(reqThrow)
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() => result.current.data instanceof Error)
+      expect(Log.error).toBeCalledWith(expect.any(Error))
+      expect(result.current.data).toBeInstanceOf(Error)
+      unmount()
     })
 
     it('drains access-denied pages until an accessible workgroup appears', async () => {
@@ -816,14 +711,12 @@ describe('containers/Queries/Athena/model/requests', () => {
             : Promise.reject(new AWSError('AccessDeniedException')),
       }))
 
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() =>
-          expect(result.current.data).toMatchObject({ list: ['allowed'] }),
-        )
-        expect(listWorkGroups).toHaveBeenCalledTimes(3)
-        unmount()
-      })
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() =>
+        expect(result.current.data).toMatchObject({ list: ['allowed'] }),
+      )
+      expect(listWorkGroups).toHaveBeenCalledTimes(3)
+      unmount()
     })
 
     it('returns an empty list once every page is denied and pagination is exhausted', async () => {
@@ -838,11 +731,9 @@ describe('containers/Queries/Athena/model/requests', () => {
       )
       getWorkGroup.mockImplementation(reqThrowWith(new AWSError('AccessDeniedException')))
 
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
-        unmount()
-      })
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+      unmount()
     })
 
     it('retries a transient probe failure and resolves the workgroup', async () => {
@@ -889,13 +780,11 @@ describe('containers/Queries/Athena/model/requests', () => {
       )
       getWorkGroup.mockImplementation(reqThrowWith(new AWSError('AccessDeniedException')))
 
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-        await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
-        // One call per by-design denial, no retries.
-        expect(getWorkGroup).toHaveBeenCalledTimes(3)
-        unmount()
-      })
+      const { result, unmount } = renderHook(() => requests.useWorkgroups())
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+      // One call per by-design denial, no retries.
+      expect(getWorkGroup).toHaveBeenCalledTimes(3)
+      unmount()
     })
 
     it('bounds probe concurrency to the pool size', async () => {
@@ -961,24 +850,20 @@ describe('containers/Queries/Athena/model/requests', () => {
           ],
         }),
       )
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
-          requests.useExecutions('any'),
-        )
+      const { result, unmount } = renderHook(() => requests.useExecutions('any'))
 
-        try {
-          await waitFor(() => typeof result.current.data === 'object')
-          expect(result.current.data).toMatchObject({
-            list: [
-              { id: '$foo' },
-              { id: '$bar' },
-              { id: '$baz', error: new Error('fail') },
-            ],
-          })
-        } finally {
-          unmount()
-        }
-      })
+      try {
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(result.current.data).toMatchObject({
+          list: [
+            { id: '$foo' },
+            { id: '$bar' },
+            { id: '$baz', error: new Error('fail') },
+          ],
+        })
+      } finally {
+        unmount()
+      }
     })
   })
 
@@ -989,16 +874,14 @@ describe('containers/Queries/Athena/model/requests', () => {
           QueryExecution: { QueryExecutionId: '$foo', Status: { State: 'SUCCEEDED' } },
         }),
       )
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
-          requests.useWaitForQueryExecution('any'),
-        )
-        await waitFor(() => typeof result.current === 'object')
-        expect(result.current).toMatchObject({
-          id: '$foo',
-        })
-        unmount()
+      const { result, unmount } = renderHook(() =>
+        requests.useWaitForQueryExecution('any'),
+      )
+      await waitFor(() => typeof result.current === 'object')
+      expect(result.current).toMatchObject({
+        id: '$foo',
       })
+      unmount()
     })
   })
 
@@ -1027,17 +910,15 @@ describe('containers/Queries/Athena/model/requests', () => {
           ],
         }),
       )
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() => requests.useQueries('any'))
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(result.current.data).toMatchObject({
-          list: [
-            { name: 'Bar', key: '$bar', body: 'SELECT * FROM *' },
-            { name: 'Foo', key: '$foo', body: 'SELECT * FROM *' },
-          ],
-        })
-        unmount()
+      const { result, unmount } = renderHook(() => requests.useQueries('any'))
+      await waitFor(() => typeof result.current.data === 'object')
+      expect(result.current.data).toMatchObject({
+        list: [
+          { name: 'Bar', key: '$bar', body: 'SELECT * FROM *' },
+          { name: 'Foo', key: '$foo', body: 'SELECT * FROM *' },
+        ],
       })
+      unmount()
     })
   })
 
@@ -1053,17 +934,13 @@ describe('containers/Queries/Athena/model/requests', () => {
           },
         }),
       )
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
-          requests.useResults({ id: 'any' }),
-        )
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(result.current.data).toMatchObject({
-          rows: [],
-          columns: [],
-        })
-        unmount()
+      const { result, unmount } = renderHook(() => requests.useResults({ id: 'any' }))
+      await waitFor(() => typeof result.current.data === 'object')
+      expect(result.current.data).toMatchObject({
+        rows: [],
+        columns: [],
       })
+      unmount()
     })
 
     it('return results', async () => {
@@ -1087,20 +964,16 @@ describe('containers/Queries/Athena/model/requests', () => {
           },
         }),
       )
-      await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
-          requests.useResults({ id: 'any' }),
-        )
-        await waitFor(() => typeof result.current.data === 'object')
-        expect(result.current.data).toMatchObject({
-          rows: [['bar', 'baz']],
-          columns: [
-            { name: 'foo', type: 'some' },
-            { name: 'bar', type: 'another' },
-          ],
-        })
-        unmount()
+      const { result, unmount } = renderHook(() => requests.useResults({ id: 'any' }))
+      await waitFor(() => typeof result.current.data === 'object')
+      expect(result.current.data).toMatchObject({
+        rows: [['bar', 'baz']],
+        columns: [
+          { name: 'foo', type: 'some' },
+          { name: 'bar', type: 'another' },
+        ],
       })
+      unmount()
     })
   })
 
@@ -1111,66 +984,57 @@ describe('containers/Queries/Athena/model/requests', () => {
           QueryExecutionId: 'foo',
         })),
       )
-      await act(async () => {
-        const { result, unmount, waitForNextUpdate } = renderHook(() =>
-          requests.useQueryRun({
-            workgroup: 'a',
-            catalogName: 'b',
-            database: 'c',
-            queryBody: 'd',
-          }),
-        )
-        await waitForNextUpdate()
-        const run = await result.current[1](false)
-        expect(run).toMatchObject({
-          id: 'foo',
-        })
-        unmount()
+      const { result, unmount } = renderHook(() =>
+        requests.useQueryRun({
+          workgroup: 'a',
+          catalogName: 'b',
+          database: 'c',
+          queryBody: 'd',
+        }),
+      )
+      const run = await act(() => result.current[1](false))
+      expect(run).toMatchObject({
+        id: 'foo',
       })
+      unmount()
     })
 
     it('return error if no execution id', async () => {
       startQueryExecution.mockImplementation(
         reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
       )
-      await act(async () => {
-        const { result, unmount, waitForNextUpdate } = renderHook(() =>
-          requests.useQueryRun({
-            workgroup: 'a',
-            catalogName: 'b',
-            database: 'c',
-            queryBody: 'd',
-          }),
-        )
-        await waitForNextUpdate()
-        const run = await result.current[1](false)
-        expect(run).toBeInstanceOf(Error)
-        expect(Log.error).toBeCalledWith(new Error('No execution id'))
-        if (Model.isError(run)) {
-          expect(run.message).toBe('No execution id')
-        } else {
-          throw new Error('queryRun is not an error')
-        }
-        unmount()
-      })
+      const { result, unmount } = renderHook(() =>
+        requests.useQueryRun({
+          workgroup: 'a',
+          catalogName: 'b',
+          database: 'c',
+          queryBody: 'd',
+        }),
+      )
+      const run = await act(() => result.current[1](false))
+      expect(run).toBeInstanceOf(Error)
+      expect(Log.error).toBeCalledWith(new Error('No execution id'))
+      if (Model.isError(run)) {
+        expect(run.message).toBe('No execution id')
+      } else {
+        throw new Error('queryRun is not an error')
+      }
+      unmount()
     })
 
     it('handle fail in request', async () => {
       startQueryExecution.mockImplementation(reqThrow)
-      await act(async () => {
-        const { result, unmount, waitForNextUpdate } = renderHook(() =>
-          requests.useQueryRun({
-            workgroup: 'a',
-            catalogName: 'b',
-            database: 'c',
-            queryBody: 'd',
-          }),
-        )
-        await waitForNextUpdate()
-        const run = await result.current[1](false)
-        expect(run).toBeInstanceOf(Error)
-        unmount()
-      })
+      const { result, unmount } = renderHook(() =>
+        requests.useQueryRun({
+          workgroup: 'a',
+          catalogName: 'b',
+          database: 'c',
+          queryBody: 'd',
+        }),
+      )
+      const run = await act(() => result.current[1](false))
+      expect(run).toBeInstanceOf(Error)
+      unmount()
     })
 
     it('return "not ready" if database is not ready', async () => {
@@ -1198,7 +1062,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       startQueryExecution.mockImplementation(
         reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
       )
-      const { result, unmount, waitFor } = renderHook(() =>
+      const { result, unmount } = renderHook(() =>
         requests.useQueryRun({
           workgroup: 'a',
           catalogName: 'b',
@@ -1228,17 +1092,13 @@ describe('containers/Queries/Athena/model/requests', () => {
     }
 
     it('select requested workgroup if it exists', async () => {
-      await act(async () => {
-        const workgroups = {
-          data: { list: ['foo', 'bar'] },
-          loadMore: noop,
-        }
-        const { result, waitFor } = renderHook(() =>
-          useWrapper([workgroups, 'bar', undefined]),
-        )
-        await waitFor(() => typeof result.current.data === 'string')
-        expect(result.current.data).toBe('bar')
-      })
+      const workgroups = {
+        data: { list: ['foo', 'bar'] },
+        loadMore: noop,
+      }
+      const { result } = renderHook(() => useWrapper([workgroups, 'bar', undefined]))
+      await waitFor(() => typeof result.current.data === 'string')
+      expect(result.current.data).toBe('bar')
     })
 
     it('select initial workgroup from storage if valid', async () => {
@@ -1249,14 +1109,12 @@ describe('containers/Queries/Athena/model/requests', () => {
         loadMore: noop,
       }
 
-      const { result, waitFor, unmount } = renderHook(() =>
+      const { result, unmount } = renderHook(() =>
         useWrapper([workgroups, undefined, undefined]),
       )
 
-      await act(async () => {
-        await waitFor(() => typeof result.current.data === 'string')
-        expect(result.current.data).toBe('bar')
-      })
+      await waitFor(() => typeof result.current.data === 'string')
+      expect(result.current.data).toBe('bar')
       getStorageKey.mockImplementation(storageMock!)
       unmount()
     })
@@ -1268,51 +1126,41 @@ describe('containers/Queries/Athena/model/requests', () => {
       }
       const preferences = { defaultWorkgroup: 'bar' }
 
-      const { result, waitFor, unmount } = renderHook(() =>
+      const { result, unmount } = renderHook(() =>
         useWrapper([workgroups, undefined, preferences]),
       )
 
-      await act(async () => {
-        await waitFor(() => typeof result.current.data === 'string')
-        expect(result.current.data).toBe('bar')
-      })
+      await waitFor(() => typeof result.current.data === 'string')
+      expect(result.current.data).toBe('bar')
       unmount()
     })
 
     it('select the first available workgroup if no requested or default', async () => {
-      await act(async () => {
-        const workgroups = {
-          data: { list: ['foo', 'bar', 'baz'] },
-          loadMore: noop,
-        }
+      const workgroups = {
+        data: { list: ['foo', 'bar', 'baz'] },
+        loadMore: noop,
+      }
 
-        const { result, waitFor } = renderHook(() =>
-          useWrapper([workgroups, undefined, undefined]),
-        )
+      const { result } = renderHook(() => useWrapper([workgroups, undefined, undefined]))
 
-        await waitFor(() => typeof result.current.data === 'string')
-        expect(result.current.data).toBe('foo')
-      })
+      await waitFor(() => typeof result.current.data === 'string')
+      expect(result.current.data).toBe('foo')
     })
 
     it('return error if no workgroups are available', async () => {
-      await act(async () => {
-        const workgroups = {
-          data: { list: [] },
-          loadMore: noop,
-        }
+      const workgroups = {
+        data: { list: [] },
+        loadMore: noop,
+      }
 
-        const { result, waitFor } = renderHook(() =>
-          useWrapper([workgroups, undefined, undefined]),
-        )
+      const { result } = renderHook(() => useWrapper([workgroups, undefined, undefined]))
 
-        await waitFor(() => result.current.data instanceof Error)
-        if (Model.isError(result.current.data)) {
-          expect(result.current.data.message).toBe('Workgroup not found')
-        } else {
-          throw new Error('Not an error')
-        }
-      })
+      await waitFor(() => result.current.data instanceof Error)
+      if (Model.isError(result.current.data)) {
+        expect(result.current.data.message).toBe('Workgroup not found')
+      } else {
+        throw new Error('Not an error')
+      }
     })
 
     it('wait for workgroups', async () => {
@@ -1321,17 +1169,14 @@ describe('containers/Queries/Athena/model/requests', () => {
         loadMore: noop,
       }
 
-      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useWorkgroup>) => useWrapper(x),
         { initialProps: [workgroups, undefined, undefined] },
       )
       expect(result.current.data).toBeUndefined()
 
-      await act(async () => {
-        rerender()
-        await waitForNextUpdate()
-      })
-      expect(result.current.data).toBeUndefined()
+      rerender()
+      await waitFor(() => expect(result.current.data).toBeUndefined())
       unmount()
     })
 
@@ -1343,7 +1188,7 @@ describe('containers/Queries/Athena/model/requests', () => {
         loadMore: noop,
       }
 
-      const { result, waitFor, unmount } = renderHook(() =>
+      const { result, unmount } = renderHook(() =>
         useWrapper([workgroups, undefined, undefined]),
       )
 
@@ -1431,7 +1276,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       const execution = {
         query: 'SELECT * FROM bar',
       }
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (props: Parameters<typeof requests.useQuery>) => useWrapper(props),
         {
           initialProps: [queries, execution],
@@ -1443,18 +1288,12 @@ describe('containers/Queries/Athena/model/requests', () => {
       } else {
         throw new Error('No data')
       }
-      await act(async () => {
-        rerender([
-          {
-            list: [
-              { key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' },
-              ...queries.list,
-            ],
-          },
-          execution,
-        ])
-        await waitForNextUpdate()
-      })
+      rerender([
+        {
+          list: [{ key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' }, ...queries.list],
+        },
+        execution,
+      ])
       if (Model.hasData(result.current.value)) {
         expect(result.current.value.body).toBe('SELECT * FROM bar')
       } else {
@@ -1470,7 +1309,7 @@ describe('containers/Queries/Athena/model/requests', () => {
         ],
       }
       const execution = null
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (props: Parameters<typeof requests.useQuery>) => useWrapper(props),
         {
           initialProps: [queries, execution],
@@ -1482,18 +1321,12 @@ describe('containers/Queries/Athena/model/requests', () => {
       } else {
         throw new Error('No data')
       }
-      await act(async () => {
-        rerender([
-          {
-            list: [
-              { key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' },
-              ...queries.list,
-            ],
-          },
-          execution,
-        ])
-        await waitForNextUpdate()
-      })
+      rerender([
+        {
+          list: [{ key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' }, ...queries.list],
+        },
+        execution,
+      ])
       if (Model.hasData(result.current.value)) {
         expect(result.current.value.body).toBe('SELECT * FROM foo')
       } else {
@@ -1510,7 +1343,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       }
 
       // Initially execution is ready (null), so first query gets selected
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (props: Parameters<typeof requests.useQuery>) => useWrapper(props),
         {
           initialProps: [queries, null],
@@ -1519,11 +1352,8 @@ describe('containers/Queries/Athena/model/requests', () => {
       expect(result.current.value).toBe(queries.list[0])
 
       // Now execution becomes Loading - query should preserve current selection
-      await act(async () => {
-        rerender([queries, Model.Loading as Model.Value<requests.QueryExecution>])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe(queries.list[0])
+      rerender([queries, Model.Loading as Model.Value<requests.QueryExecution>])
+      await waitFor(() => expect(result.current.value).toBe(queries.list[0]))
     })
   })
 
@@ -1579,7 +1409,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       const execution = undefined
       const setQuery = noop
 
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (x: Parameters<typeof requests.useQueryBody>) => useWrapper(x),
         {
           initialProps: [query, setQuery, execution],
@@ -1596,11 +1426,8 @@ describe('containers/Queries/Athena/model/requests', () => {
 
       // We rerenderd hook but internal useEffect didn't rewrite the value
       // to `undefined` as it was supposed to do on the first render
-      await act(async () => {
-        rerender([query, setQuery, execution])
-        await waitForNextUpdate()
-      })
-      expect(result.current.value).toBe('foo')
+      rerender([query, setQuery, execution])
+      await waitFor(() => expect(result.current.value).toBe('foo'))
     })
 
     it('updates query body and resets query when handleValue is called', async () => {
@@ -1623,7 +1450,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       const initialExecution = null
       const setQuery = noop
 
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
         {
           initialProps: [initialQuery, setQuery, initialExecution],
@@ -1634,14 +1461,11 @@ describe('containers/Queries/Athena/model/requests', () => {
 
       // Query was loaded with some value
       // Execution is ready but it's still null
-      await act(async () => {
-        rerender([
-          { key: 'up', name: 'Updated', body: 'SELECT * FROM updated' },
-          setQuery,
-          initialExecution,
-        ])
-        await waitForNextUpdate()
-      })
+      rerender([
+        { key: 'up', name: 'Updated', body: 'SELECT * FROM updated' },
+        setQuery,
+        initialExecution,
+      ])
 
       if (Model.hasData(result.current.value)) {
         expect(result.current.value).toBe('SELECT * FROM updated')
@@ -1655,7 +1479,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       const initialExecution = null
       const setQuery = noop
 
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
         {
           initialProps: [
@@ -1668,10 +1492,7 @@ describe('containers/Queries/Athena/model/requests', () => {
 
       expect(result.current.value).toBe(Model.Loading)
 
-      await act(async () => {
-        rerender([null, setQuery, initialExecution])
-        await waitForNextUpdate()
-      })
+      rerender([null, setQuery, initialExecution])
 
       if (Model.hasValue(result.current.value)) {
         expect(result.current.value).toBeNull()
@@ -1688,7 +1509,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       const initialExecution = { id: 'any', query: 'SELECT * FROM updated' }
       const setQuery = noop
 
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
         {
           initialProps: [
@@ -1701,10 +1522,7 @@ describe('containers/Queries/Athena/model/requests', () => {
 
       expect(result.current.value).toBe('SELECT * FROM updated')
 
-      await act(async () => {
-        rerender([initialQuery, setQuery, null])
-        await waitForNextUpdate()
-      })
+      rerender([initialQuery, setQuery, null])
 
       if (Model.hasValue(result.current.value)) {
         expect(result.current.value).toBe('SELECT * FROM updated')
@@ -1717,7 +1535,7 @@ describe('containers/Queries/Athena/model/requests', () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
       const setQuery = vi.fn()
 
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
         {
           initialProps: [
@@ -1738,14 +1556,11 @@ describe('containers/Queries/Athena/model/requests', () => {
       expect(setQuery).toHaveBeenCalledWith(null) // query gets deselected
 
       // Now execution starts loading (user submitted the query)
-      await act(async () => {
-        rerender([
-          null, // query is still deselected
-          setQuery,
-          Model.Loading as Model.Value<requests.QueryExecution>, // execution loading
-        ])
-        await waitForNextUpdate()
-      })
+      rerender([
+        null, // query is still deselected
+        setQuery,
+        Model.Loading as Model.Value<requests.QueryExecution>, // execution loading
+      ])
       // queryBody should preserve user input, not become Loading
       expect(result.current.value).toBe('SELECT * FROM bar WHERE id = 1')
     })

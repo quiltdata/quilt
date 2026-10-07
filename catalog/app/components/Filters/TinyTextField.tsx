@@ -26,7 +26,7 @@ export default function TinyTextField({
     <M.InputBase
       className={cx(classes.root, className)}
       endAdornment={
-        value && (
+        !!value && (
           <M.InputAdornment position="end">
             <M.IconButton size="small" onClick={() => onChange('')}>
               <M.Icon fontSize="inherit">clear</M.Icon>

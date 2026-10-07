@@ -9,7 +9,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
-import wait from 'utils/wait'
 
 type SupportedPrimitiveValue = string | number | boolean | null | undefined
 
@@ -255,7 +254,7 @@ function CollapsedEntry({
             return (
               <span key={key}>
                 <span className={classes.brace}>&quot;</span>
-                <span className={classes.value}>{item.original}</span>
+                <span className={classes.value}>{item.original as React.ReactNode}</span>
                 <span className={classes.brace}>&quot;</span>
               </span>
             )
@@ -321,32 +320,23 @@ function CompoundEntry({
         )}
       </div>
       {expanded && (
-        <React.Suspense
-          fallback={
-            <>
-              <WaitingJsonRender />
-              {braces[1]}
-            </>
-          }
-        >
-          <div className={cx(classes.compoundInner)}>
-            {entries.map(([k, v]) => (
-              <JsonDisplayInner
-                classes={classes}
-                key={k}
-                name={k}
-                value={v}
-                topLevel={false}
-                defaultExpanded={defaultExpanded - 1}
-                showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
-                showValuesWhenCollapsed={showValuesWhenCollapsed}
-                noS3Links={noS3Links}
-              />
-            ))}
-            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-            <div onClick={toggle}>{braces[1]}</div>
-          </div>
-        </React.Suspense>
+        <div className={cx(classes.compoundInner)}>
+          {entries.map(([k, v]) => (
+            <JsonDisplayInner
+              classes={classes}
+              key={k}
+              name={k}
+              value={v}
+              topLevel={false}
+              defaultExpanded={defaultExpanded - 1}
+              showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
+              showValuesWhenCollapsed={showValuesWhenCollapsed}
+              noS3Links={noS3Links}
+            />
+          ))}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+          <div onClick={toggle}>{braces[1]}</div>
+        </div>
       )}
     </div>
   )
@@ -366,13 +356,16 @@ interface JsonDisplayInnerProps<Value> {
 function JsonDisplayInner({ value, ...rest }: JsonDisplayInnerProps<unknown>) {
   const normalizedValue = useMemoEq(value, normalizeValue)
   const Component = isCompound(value) ? CompoundEntry : PrimitiveEntry
-  // XXX: do we need to re-instantiate on props change?
-  const Lazy = React.useMemo(
-    () => React.lazy(() => wait(0).then(() => ({ default: Component }))),
-    [Component],
-  )
+  // Render a tick after mount so a large tree paints level by level instead of
+  // blocking. Not Suspense: React 18 holds each nested fallback for >=500ms.
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => {
+    const timer = setTimeout(() => setReady(true))
+    return () => clearTimeout(timer)
+  }, [])
+  if (!ready) return <WaitingJsonRender />
   // @ts-expect-error
-  return <Lazy {...rest} value={normalizedValue} />
+  return <Component {...rest} value={normalizedValue} />
 }
 
 interface JsonDisplayProps extends M.BoxProps {
@@ -417,20 +410,18 @@ export default function JsonDisplay({
 
   return (
     <M.Box className={cx(className, classes.root)} {...props} ref={ref}>
-      <React.Suspense fallback={<WaitingJsonRender />}>
-        <JsonDisplayInner
-          {...{
-            name,
-            value,
-            topLevel,
-            defaultExpanded: defaultExpandedComputed,
-            classes,
-            showValuesWhenCollapsed,
-            showKeysWhenCollapsed: computedKeys,
-            noS3Links,
-          }}
-        />
-      </React.Suspense>
+      <JsonDisplayInner
+        {...{
+          name,
+          value,
+          topLevel,
+          defaultExpanded: defaultExpandedComputed,
+          classes,
+          showValuesWhenCollapsed,
+          showKeysWhenCollapsed: computedKeys,
+          noS3Links,
+        }}
+      />
     </M.Box>
   )
 }

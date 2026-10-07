@@ -227,7 +227,7 @@ export default function ChatInput({
   const [value, setValue] = React.useState('')
 
   const handleSubmit = React.useCallback(
-    (event) => {
+    (event: any) => {
       event.preventDefault()
       if (!value || disabled) return
       onSubmit(value)

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook } from 'utils/renderHook'
 import { describe, expect, it, vi } from 'vitest'
 
 import { search } from 'constants/routes'

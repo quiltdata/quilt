@@ -62,7 +62,7 @@ export function Thumbnails({ images, mkUrl }: ThumbnailsProps) {
 
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
   const scroll = React.useCallback(
-    (prev) => {
+    (prev: any) => {
       if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
     },
     [scrollRef],
@@ -90,7 +90,6 @@ export function Thumbnails({ images, mkUrl }: ThumbnailsProps) {
             }
             className={classes.link}
           >
-            {/* @ts-expect-error */}
             <Summarize.HandleResolver handle={i}>
               {AsyncResult.case({
                 _: () => null,

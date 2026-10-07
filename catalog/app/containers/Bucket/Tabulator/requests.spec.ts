@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook } from 'utils/renderHook'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 
 import * as Sentry from '@sentry/react'

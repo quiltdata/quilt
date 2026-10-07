@@ -86,7 +86,7 @@ function AvailableSystemMetaColumn({ column }: AvailableSystemMetaColumnProps) {
   }, [column, deactivatePackagesFilter, hide])
 
   const handleChange = React.useCallback(
-    (_e, checked) => (checked ? showColumn() : hideColumn()),
+    (_e: any, checked: any) => (checked ? showColumn() : hideColumn()),
     [showColumn, hideColumn],
   )
   const handleClick = React.useCallback(() => {
@@ -177,7 +177,7 @@ function AvailableUserMetaColumn({ column, ...props }: AvailableUserMetaColumnPr
   }, [column, hide, deactivatePackagesMetaFilter])
 
   const handleChange = React.useCallback(
-    (_e, checked) => (checked ? showColumn() : hideColumn()),
+    (_e: any, checked: any) => (checked ? showColumn() : hideColumn()),
     [showColumn, hideColumn],
   )
   const handleClick = React.useCallback(() => {
@@ -1338,7 +1338,7 @@ function useMinimumColumnsNumberToFit(
 ) {
   const [number, setNumber] = React.useState(initialColumnsNumber)
   const onScrollInternal = React.useCallback(
-    (event) => {
+    (event: any) => {
       if (!event.target) return
       const { clientWidth, scrollLeft } = event.target
       const fit = Math.ceil((clientWidth + scrollLeft) / columnWidth)

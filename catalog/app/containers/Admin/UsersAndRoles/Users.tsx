@@ -257,7 +257,7 @@ export function EditEmail({ close, user: { email: oldEmail, name } }: EditEmailP
   const setEmail = GQL.useMutation(USER_SET_EMAIL_MUTATION)
 
   const onSubmit = React.useCallback(
-    async ({ email }) => {
+    async ({ email }: any) => {
       if (email === oldEmail) {
         close()
         return

@@ -183,7 +183,8 @@ export default function Column({
     columns,
     data: data.items,
     defaultColumn: {
-      Cell,
+      // Cell reads the extra props useTable passes through (updateMyData etc.)
+      Cell: Cell as unknown as RTable.Renderer<RTable.CellProps<RowData>>,
     },
     updateMyData,
   })

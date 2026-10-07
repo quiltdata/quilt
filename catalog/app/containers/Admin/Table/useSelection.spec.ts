@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from 'utils/renderHook'
 import { describe, expect, it } from 'vitest'
 
 import { useSelection } from './Table'

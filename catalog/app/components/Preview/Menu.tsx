@@ -13,7 +13,7 @@ export default function Menu({ className, handle }: MenuProps) {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
   const downloadUrl = AWS.Signer.useDownloadUrl(handle)
   const handleClose = React.useCallback(() => setAnchorEl(null), [])
-  const handleOpen = React.useCallback((e) => setAnchorEl(e.currentTarget), [])
+  const handleOpen = React.useCallback((e: any) => setAnchorEl(e.currentTarget), [])
   return (
     <div className={className}>
       <M.IconButton onClick={handleOpen} size="small">

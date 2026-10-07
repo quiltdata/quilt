@@ -278,7 +278,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
   const updateDialog = useCreateDialog(packageHandle)
 
   const mkUrl = React.useCallback(
-    (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
+    (handle: any) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
     [urls, bucket, name, hashOrTag],
   )
 
@@ -361,7 +361,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const handleSelection = React.useCallback(
-    (ids) => slt.merge(ids, bucket, path),
+    (ids: any) => slt.merge(ids, bucket, path),
     [bucket, path, slt],
   )
   const packageUri = React.useMemo(
@@ -801,7 +801,7 @@ function FileDisplay({
   const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
-    (m) => {
+    (m: any) => {
       history.push(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
     },
     [bucket, history, name, path, hashOrTag, urls],
@@ -1139,7 +1139,7 @@ function PackageTree({
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const guardNavigation = React.useCallback(
-    (location) =>
+    (location: any) =>
       isStillBrowsingPackage(urls, location.pathname, {
         bucket,
         name,

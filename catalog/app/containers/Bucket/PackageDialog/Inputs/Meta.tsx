@@ -613,7 +613,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   const [jsonFullscreenEditorKey, setJsonFullscreenEditorKey] = React.useState(1)
 
   const onDrop = React.useCallback(
-    ([file]) => {
+    ([file]: any) => {
       if (file.size > MAX_META_FILE_SIZE) {
         notify(
           <>

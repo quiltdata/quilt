@@ -88,7 +88,7 @@ export default function List({
     [filter, extents],
   )
   const handleChange = React.useCallback(
-    (extent, checked) => {
+    (extent: any, checked: any) => {
       const newValue = checked ? [...value, extent] : value.filter((v) => v !== extent)
       onChange(newValue)
     },

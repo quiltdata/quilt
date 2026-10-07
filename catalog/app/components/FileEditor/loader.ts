@@ -129,7 +129,7 @@ export function useWriteData({
 }: Model.S3.S3ObjectLocation): (value: string) => Promise<Model.S3File> {
   const s3 = AWS.S3.use()
   return React.useCallback(
-    async (value) => {
+    async (value: any) => {
       const valid = await validToWriteFile(s3, bucket, key, version)
       if (!valid) throw new Error('Revision is outdated')
       const { VersionId } = await s3

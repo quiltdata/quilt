@@ -59,7 +59,7 @@ export default function SearchSettings() {
   const [loading, setLoading] = React.useState(false)
 
   const handleChange = React.useCallback(
-    async (v) => {
+    async (v: any) => {
       if (error) setError(null)
 
       setValue(v)

@@ -61,7 +61,7 @@ export default function Ngl({ blob, className, ext, meta }: NglProps) {
   const viewport = React.useRef<HTMLDivElement | null>(null)
 
   const handleWheel = React.useCallback(
-    (event) => {
+    (event: any) => {
       if (viewport.current?.contains(event.target)) {
         event.preventDefault()
       }

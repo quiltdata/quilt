@@ -73,7 +73,7 @@ export default function RevisionSelect({
     [value, revisions],
   )
   const renderValue = React.useCallback(
-    (hash) => {
+    (hash: any) => {
       if (hash) {
         const found = revisions.find((r) => r.hash === hash)
         return found ? <FormattedDate modified={found.modified} /> : hash

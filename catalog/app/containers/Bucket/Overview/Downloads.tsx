@@ -213,7 +213,7 @@ function DownloadsRange({ value, onChange, bucket, data }: DownloadsRangeProps) 
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
-    (e) => {
+    (e: any) => {
       setAnchor(e.target)
     },
     [setAnchor],
@@ -224,7 +224,7 @@ function DownloadsRange({ value, onChange, bucket, data }: DownloadsRangeProps) 
   }, [setAnchor])
 
   const choose = React.useCallback(
-    (e) => {
+    (e: any) => {
       onChange(e.target.value)
       close()
     },

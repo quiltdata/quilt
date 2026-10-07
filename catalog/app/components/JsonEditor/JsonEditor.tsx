@@ -235,7 +235,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   const handleToolbar = React.useCallback(
-    (transform) => {
+    (transform: any) => {
       onChange(transformer(transform))
     },
     [onChange, transformer],
