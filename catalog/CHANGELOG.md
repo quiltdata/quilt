@@ -40,6 +40,7 @@ complete sentence without it.
 - [Fixed] Bucket directory listings keep their page in the URL, so Back from a file, a reload or a shared link returns to the same page instead of the first ([#5378](https://github.com/quiltdata/quilt/pull/5378))
 - [Fixed] Screen readers announce the labels of the Qurator chat input, the package dialog's name, message and workflow fields, and the Athena workgroup, data catalog and database selects ([#5377](https://github.com/quiltdata/quilt/pull/5377))
 - [Fixed] Preview: a file the preview service cannot read, such as a CSV named `.parquet`, shows the service's reason instead of a generic error ([#5376](https://github.com/quiltdata/quilt/pull/5376))
+- [Added] Qurator asks before running a tool that changes data, such as creating a package or writing an S3 object, and names each tool and failure reason in plain words ([#5431](https://github.com/quiltdata/quilt/pull/5431))
 - [Fixed] Opening Qurator no longer logs an aborted request to the platform MCP server in the browser console ([#5375](https://github.com/quiltdata/quilt/pull/5375))
 - [Fixed] Tabular previews: an h5ad file too large to preview shows its metadata and says it is too large, instead of reporting that the table could not be rendered ([#5374](https://github.com/quiltdata/quilt/pull/5374))
 - [Fixed] Documentation links that led to a docs 404 now open the right page: the `/install` redirect, the Python code-sample help links, and the Athena help icon ([#5373](https://github.com/quiltdata/quilt/pull/5373))

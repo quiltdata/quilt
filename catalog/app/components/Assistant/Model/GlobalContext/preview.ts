@@ -165,6 +165,7 @@ export function useCatalogPreview() {
         }),
       ),
     [s3Client, s3Signer],
+    'read',
   )
 }
 

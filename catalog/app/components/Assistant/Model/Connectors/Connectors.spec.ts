@@ -1098,3 +1098,21 @@ describe('Connectors', () => {
       ))
   })
 })
+
+describe('effectOf', () => {
+  const d = (readOnly?: boolean, destructive?: boolean) => ({
+    name: 't',
+    inputSchema: {},
+    readOnly,
+    destructive,
+  })
+
+  it('follows MCP hint defaults', () => {
+    expect(Connectors.effectOf(d(true, true))).toBe('read')
+    expect(Connectors.effectOf(d(true))).toBe('read')
+    expect(Connectors.effectOf(d(false, false))).toBe('write')
+    expect(Connectors.effectOf(d(undefined, false))).toBe('write')
+    expect(Connectors.effectOf(d(false))).toBe('destructive')
+    expect(Connectors.effectOf(d())).toBe('destructive')
+  })
+})
