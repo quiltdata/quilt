@@ -69,6 +69,19 @@ describe('components/HubSpot', () => {
     expect(widget.load).toHaveBeenCalledTimes(2)
   })
 
+  it('re-renders into a fresh panel when a close raced an unfinished load', () => {
+    const widget = { load: vi.fn(), remove: vi.fn(), status: () => ({ loaded: true }) }
+    ;(window as any).HubSpotConversations = { widget }
+    render(
+      <HubSpot>
+        <Probe />
+      </HubSpot>,
+    )
+    fireEvent.click(screen.getByText('show'))
+    expect(widget.remove).toHaveBeenCalledTimes(1)
+    expect(widget.load).toHaveBeenCalledTimes(1)
+  })
+
   it('removes a chat closed before HubSpot was ready', () => {
     const widget = { load: vi.fn(), remove: vi.fn() }
     render(

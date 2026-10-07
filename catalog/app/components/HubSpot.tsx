@@ -31,7 +31,13 @@ function whenReady(fn: () => void) {
 /** Renders HubSpot chat into `#EMBED_ID` while mounted; the element must exist first. */
 export function useEmbed() {
   React.useEffect(() => {
-    whenReady(() => conversations().load())
+    whenReady(() => {
+      const w = conversations()
+      // `load()` is a no-op while a widget is loaded, which it still is when a
+      // close raced an unfinished load: its iframe then sits in the old element.
+      if (w.status?.().loaded) w.remove()
+      w.load()
+    })
     return () => whenReady(() => conversations().remove())
   }, [])
 }

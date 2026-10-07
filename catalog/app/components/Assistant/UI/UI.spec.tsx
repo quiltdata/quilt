@@ -218,6 +218,18 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(document.activeElement).toBe(getByLabelText('Help'))
   })
 
+  it('leaves Help open when Qurator is shown inline on the page', () => {
+    inlined = true
+    const api = makeAPI()
+    useAssistantAPI.mockReturnValue(api)
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { rerender } = render(<WithAssistantUI />)
+    api.visible = true
+    rerender(<WithAssistantUI />)
+    expect(chat.hide).not.toHaveBeenCalled()
+    expect(api.hide).not.toHaveBeenCalled()
+  })
+
   it('closes Help when Qurator opens', () => {
     const api = makeAPI()
     useAssistantAPI.mockReturnValue(api)

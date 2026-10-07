@@ -38,6 +38,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   title: {
     fontSize: t.typography.body1.fontSize,
+    margin: 0,
     fontWeight: t.typography.fontWeightMedium,
     lineHeight: 1.3,
   },
@@ -86,13 +87,19 @@ export default function Help({ onClose }: HelpProps) {
   const embedRef = React.useRef<HTMLDivElement>(null)
   const [blocked, setBlocked] = React.useState(false)
   HubSpot.useEmbed()
-  // Ad-blockers commonly stop HubSpot's loader, leaving an empty panel forever.
+  // A blocked loader (ad-blockers) or no chatflow for the page leaves the panel
+  // empty forever; a slow load clears the notice when the iframe arrives.
   React.useEffect(() => {
-    const timer = setTimeout(
-      () => setBlocked(!embedRef.current?.querySelector('iframe')),
-      BLOCKED_AFTER_MS,
-    )
-    return () => clearTimeout(timer)
+    const el = embedRef.current
+    if (!el) return
+    const hasChat = () => !!el.querySelector('iframe')
+    const timer = setTimeout(() => setBlocked(!hasChat()), BLOCKED_AFTER_MS)
+    const observer = new MutationObserver(() => hasChat() && setBlocked(false))
+    observer.observe(el, { childList: true, subtree: true })
+    return () => {
+      clearTimeout(timer)
+      observer.disconnect()
+    }
   }, [])
   // The chat itself is a cross-origin iframe that may take seconds to arrive;
   // land focus on the panel's own control so keyboard users are not left behind.
@@ -106,7 +113,7 @@ export default function Help({ onClose }: HelpProps) {
           <M.Icon className={classes.glyph}>support_agent</M.Icon>
         </span>
         <div>
-          <div className={classes.title}>Help</div>
+          <h2 className={classes.title}>Help</h2>
           <div className={classes.subtitle}>Chat with Quilt support and sales</div>
         </div>
         <M.IconButton
@@ -119,12 +126,14 @@ export default function Help({ onClose }: HelpProps) {
           <M.Icon>close</M.Icon>
         </M.IconButton>
       </div>
-      {blocked && (
-        <M.Typography variant="body2" className={classes.blocked}>
-          Chat didn't load, possibly blocked by a browser extension. Email{' '}
-          <a href="mailto:support@quilt.bio">support@quilt.bio</a> instead.
-        </M.Typography>
-      )}
+      <div role="status">
+        {blocked && (
+          <M.Typography variant="body2" className={classes.blocked}>
+            Chat isn't available right now. Email{' '}
+            <a href="mailto:support@quilt.bio">support@quilt.bio</a> instead.
+          </M.Typography>
+        )}
+      </div>
       <div ref={embedRef} id={HubSpot.EMBED_ID} className={classes.embed} />
     </div>
   )

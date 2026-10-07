@@ -375,15 +375,17 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   const help = HubSpot.useChat()
   const helpOpen = !!help?.open
   const visible = !!api?.visible
-  React.useEffect(() => {
-    if (helpOpen && visible) api?.hide()
-  }, [helpOpen]) // eslint-disable-line react-hooks/exhaustive-deps
-  React.useEffect(() => {
-    if (visible) help?.hide()
-  }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
   // An inlined chat replaces the panel outright -- a docked rail would take a
   // gutter for a second copy of the same conversation.
   const qurator = !!api && !inlined
+  // Layout effects, so the face being closed never paints for a frame. Only the
+  // docked Qurator competes for the panel: an inline chat leaves Help alone.
+  React.useLayoutEffect(() => {
+    if (helpOpen && visible && qurator) api?.hide()
+  }, [helpOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  React.useLayoutEffect(() => {
+    if (visible && qurator) help?.hide()
+  }, [visible, qurator]) // eslint-disable-line react-hooks/exhaustive-deps
   const present = qurator || !!help
   const mode = helpOpen ? 'help' : qurator && visible ? 'qurator' : null
   const [width, resize] = usePanelWidth()
