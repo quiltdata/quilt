@@ -20,6 +20,10 @@ const useStyles = M.makeStyles((t) => ({
     '&:hover': {
       borderColor: t.palette.text.secondary,
     },
+    // stacked layout puts the metadata tab right below; the card only repeats it
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
     '&.Mui-focusVisible': {
       outline: `2px solid ${t.palette.primary.main}`,
       outlineOffset: 2,

@@ -61,6 +61,49 @@ export function humanizeError(e: Error | ErrorObject): string {
   }
 }
 
+/**
+ * The same error as `humanizeError`, worded for a message shown under its own
+ * labelled input, so it does not repeat the field's name.
+ */
+export function fieldMessage(e: Error | ErrorObject): string {
+  if (!('keyword' in e)) return e.message
+  const p = e.params as Record<string, any>
+  switch (e.keyword) {
+    case 'required':
+      return 'Required'
+    case 'enum':
+      return `Choose one of: ${p.allowedValues.map((v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))).join(', ')}`
+    case 'const':
+      return `Must be ${JSON.stringify(p.allowedValue)}`
+    case 'type':
+      if (p.type === 'integer') return 'Must be a whole number'
+      if (p.type === 'number') return 'Must be a number'
+      return `Must be ${/^[aeiou]/.test(p.type) ? 'an' : 'a'} ${p.type}`
+    case 'format':
+      return p.format === 'date'
+        ? 'Use the format YYYY-MM-DD'
+        : `Must be a valid ${p.format}`
+    case 'pattern':
+      return 'Does not match the expected format'
+    case 'minimum':
+      return `Must be at least ${p.limit}`
+    case 'maximum':
+      return `Must be at most ${p.limit}`
+    case 'exclusiveMinimum':
+      return `Must be more than ${p.limit}`
+    case 'exclusiveMaximum':
+      return `Must be less than ${p.limit}`
+    case 'minLength':
+      return `Must be at least ${p.limit} characters`
+    case 'maxLength':
+      return `Must be at most ${p.limit} characters`
+    default:
+      return e.message
+        ? e.message.charAt(0).toUpperCase() + e.message.slice(1)
+        : 'Invalid value'
+  }
+}
+
 export interface RequiredField {
   key: string
   title?: string

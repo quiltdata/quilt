@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 import type { JsonSchema } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
 
-import { humanizeError } from '../State/metaGuide'
+import { fieldMessage } from '../State/metaGuide'
 import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
@@ -58,38 +58,44 @@ const useFieldStyles = M.makeStyles((t) => ({
   suggestion: {
     ...t.typography.body2,
     alignItems: 'center',
-    background: t.palette.background.default,
+    background: t.palette.background.paper,
     border: `1px dashed ${t.palette.divider}`,
     borderRadius: t.shape.borderRadius,
+    color: t.palette.text.primary,
     cursor: 'pointer',
     display: 'flex',
-    gap: t.spacing(0.75),
-    marginTop: t.spacing(0.75),
-    padding: t.spacing(0.25, 0.25, 0.25, 1),
+    gap: t.spacing(1),
+    marginTop: t.spacing(0.5),
+    minHeight: 36,
+    padding: t.spacing(0, 0.5, 0, 1.5),
     textAlign: 'left',
+    transition: 'border-color 150ms ease-out, background-color 150ms ease-out',
     width: '100%',
     '&:hover': {
+      background: t.palette.action.hover,
       borderColor: t.palette.text.secondary,
     },
     '&:focus-visible': {
       outline: `2px solid ${t.palette.primary.main}`,
-      outlineOffset: 1,
+      outlineOffset: 2,
     },
+  },
+  suggestionIcon: {
+    color: t.palette.text.secondary,
+    fontSize: 16,
   },
   suggestionValue: {
     flexGrow: 1,
-    fontWeight: t.typography.fontWeightMedium,
     minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   suggestionUse: {
+    ...t.typography.button,
     color: t.palette.primary.main,
-    fontWeight: t.typography.fontWeightMedium,
-    padding: t.spacing(0.25, 1),
-    textTransform: 'uppercase',
     fontSize: 12,
+    padding: t.spacing(0.5, 1),
   },
 }))
 
@@ -123,7 +129,7 @@ function Field({
     typed === 'date' && !isEmpty(value) && !DATE.test(String(value)) ? 'string' : typed
   const label = prop.title || name
   const error = errors[0]
-  const helper = error ? humanizeError(error) : prop.description
+  const helper = error ? fieldMessage(error) : prop.description
   const id = `meta-field-${name}`
 
   const set = React.useCallback(
@@ -170,7 +176,7 @@ function Field({
               Edit in table view
             </M.Link>
           </M.FormHelperText>
-          {error && <M.FormHelperText>{humanizeError(error)}</M.FormHelperText>}
+          {error && <M.FormHelperText>{fieldMessage(error)}</M.FormHelperText>}
         </M.FormControl>
       )
       break
@@ -237,7 +243,7 @@ function Field({
           }
           aria-label={`Use suggested ${label}: ${display(suggestion.value)}`}
         >
-          <M.Icon fontSize="small" color="secondary">
+          <M.Icon className={classes.suggestionIcon} aria-hidden>
             auto_awesome
           </M.Icon>
           <span className={classes.suggestionValue}>{display(suggestion.value)}</span>
@@ -251,17 +257,25 @@ function Field({
 const useStyles = M.makeStyles((t) => ({
   section: {
     marginBottom: t.spacing(2),
-    padding: t.spacing(2),
+    padding: t.spacing(2, 2, 2.5),
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(1.5, 1.5, 2),
+    },
   },
   sectionHeader: {
-    alignItems: 'center',
+    alignItems: 'baseline',
     display: 'flex',
     gap: t.spacing(1),
     marginBottom: t.spacing(2),
+    minHeight: 30,
   },
   sectionTitle: {
-    ...t.typography.subtitle1,
-    fontWeight: t.typography.fontWeightMedium,
+    ...t.typography.subtitle2,
+    fontSize: 15,
+  },
+  sectionMeta: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
   },
   count: {
     ...t.typography.body2,
@@ -273,17 +287,30 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.success.dark,
   },
   progress: {
+    background: t.palette.action.hover,
     borderRadius: 2,
     height: 4,
-    marginBottom: t.spacing(2),
+    marginBottom: t.spacing(2.5),
     marginTop: t.spacing(-1),
   },
+  progressBar: {
+    background: t.palette.primary.main,
+    borderRadius: 2,
+  },
+  progressDone: {
+    background: t.palette.success.main,
+  },
   grid: {
+    alignItems: 'start',
     display: 'grid',
     gap: t.spacing(2.5, 2),
     gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    [t.breakpoints.down('xs')]: {
+      gridTemplateColumns: '1fr',
+    },
   },
   optionalToggle: {
+    alignSelf: 'center',
     marginLeft: 'auto',
   },
 }))
@@ -369,7 +396,13 @@ export default function MetaForm({
             </span>
           </div>
           <M.LinearProgress
+            aria-label={`${filled} of ${required.length} required fields complete`}
             className={classes.progress}
+            classes={{
+              bar: cx(classes.progressBar, {
+                [classes.progressDone]: filled === required.length,
+              }),
+            }}
             variant="determinate"
             value={(filled / required.length) * 100}
           />
@@ -380,13 +413,14 @@ export default function MetaForm({
         <M.Paper variant="outlined" className={classes.section}>
           <div className={classes.sectionHeader}>
             <span className={classes.sectionTitle}>Optional</span>
+            <span className={classes.sectionMeta}>{optional.length}</span>
             <M.Button
               className={classes.optionalToggle}
               size="small"
               onClick={() => setShowOptional((x) => !x)}
               aria-expanded={showOptional}
             >
-              {showOptional ? 'Hide' : `Show ${optional.length}`}
+              {showOptional ? 'Hide' : 'Show'}
             </M.Button>
           </div>
           <M.Collapse in={showOptional}>
@@ -404,6 +438,10 @@ const useFreeStyles = M.makeStyles((t) => ({
     display: 'grid',
     gap: t.spacing(1.5),
     gridTemplateColumns: 'minmax(120px, 2fr) minmax(160px, 3fr) auto',
+    [t.breakpoints.down('xs')]: {
+      gap: t.spacing(1),
+      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto',
+    },
     '& + &': {
       marginTop: t.spacing(1.5),
     },

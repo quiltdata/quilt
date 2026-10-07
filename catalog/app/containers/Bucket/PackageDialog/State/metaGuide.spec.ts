@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { makeSchemaValidator } from 'utils/JSONSchema'
 
-import { humanizeError, invalidKeys, requiredFields } from './metaGuide'
+import { fieldMessage, humanizeError, invalidKeys, requiredFields } from './metaGuide'
 
 const schema = {
   type: 'object',
@@ -50,6 +50,19 @@ describe('containers/Bucket/PackageDialog/State/metaGuide', () => {
 
     it('passes plain errors through', () => {
       expect(humanizeError(new Error('Schema is not ready'))).toBe('Schema is not ready')
+    })
+  })
+
+  describe('fieldMessage', () => {
+    const msgs = (value: unknown) =>
+      (makeSchemaValidator(schema)(value) as ErrorObject[]).map(fieldMessage)
+
+    it('words errors for the field they sit under', () => {
+      expect(msgs({ assay: 'rna' })).toEqual(['Required'])
+      expect(msgs({ project: 'p', assay: 'x' })).toEqual(['Choose one of: rna, dna'])
+      expect(msgs({ project: 'p', assay: 'rna', lab: { pi: 1 } })).toEqual([
+        'Must be a string',
+      ])
     })
   })
 

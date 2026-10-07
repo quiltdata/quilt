@@ -160,13 +160,39 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   jsonTrigger: {
     marginLeft: 'auto',
   },
-  next: {
-    marginLeft: t.spacing(1),
+  toolbar: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(1),
+    margin: t.spacing(2, 0),
+  },
+  toolbarActions: {
+    display: 'flex',
+    gap: t.spacing(0.5),
+    marginLeft: 'auto',
   },
   viewToggle: {
-    marginLeft: t.spacing(2),
     '& .MuiToggleButton-sizeSmall': {
-      padding: t.spacing(0.25, 1.25),
+      ...t.typography.button,
+      color: t.palette.text.secondary,
+      fontSize: 13,
+      padding: t.spacing(0.5, 1.5),
+      textTransform: 'none',
+    },
+    '& .MuiToggleButton-label': {
+      gap: t.spacing(0.75),
+    },
+    '& .MuiToggleButton-label .MuiIcon-root': {
+      fontSize: 18,
+    },
+    '& .MuiToggleButton-root.Mui-selected': {
+      background: t.palette.action.selected,
+      color: t.palette.text.primary,
+    },
+    '& .MuiToggleButton-root.Mui-focusVisible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
     },
   },
 
@@ -393,18 +419,28 @@ const useSuggestBarStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
     alignItems: 'center',
-    border: `1px dashed ${t.palette.divider}`,
+    background: t.palette.background.default,
+    border: `1px solid ${t.palette.divider}`,
     borderRadius: t.shape.borderRadius,
     color: t.palette.text.secondary,
     display: 'flex',
     flexWrap: 'wrap',
-    gap: t.spacing(1),
+    gap: t.spacing(1, 1.5),
     marginBottom: t.spacing(2),
-    padding: t.spacing(1, 1.5),
+    minHeight: 52,
+    padding: t.spacing(1, 1, 1, 1.5),
+  },
+  icon: {
+    color: t.palette.text.secondary,
   },
   text: {
-    flexGrow: 1,
-    minWidth: 180,
+    flex: '1 1 220px',
+    minWidth: 0,
+  },
+  actions: {
+    display: 'flex',
+    gap: t.spacing(0.5),
+    marginLeft: 'auto',
   },
 }))
 
@@ -419,46 +455,51 @@ function SuggestBar({ disabled, onRequest, onUseAll, state }: SuggestBarProps) {
   const classes = useSuggestBarStyles()
   if (state._tag === 'unavailable') return null
   const icon = (
-    <M.Icon fontSize="small" color="secondary">
+    <M.Icon className={classes.icon} fontSize="small" aria-hidden>
       auto_awesome
     </M.Icon>
   )
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
   switch (state._tag) {
     case 'idle':
       return (
         <div className={classes.root}>
           {icon}
           <span className={classes.text}>
-            Suggest values from similar packages you can read and the files being added.
+            Fill fields from similar packages you can read and the files being added.
           </span>
-          <M.Button
-            size="small"
-            color="primary"
-            variant="outlined"
-            onClick={onRequest}
-            disabled={disabled}
-          >
-            Suggest values
-          </M.Button>
+          <div className={classes.actions}>
+            <M.Button
+              color="primary"
+              disabled={disabled}
+              onClick={onRequest}
+              size="small"
+              variant="outlined"
+            >
+              Suggest values
+            </M.Button>
+          </div>
         </div>
       )
     case 'loading':
       return (
         <div className={classes.root} role="status">
-          <M.CircularProgress size={16} />
-          <span className={classes.text}>Looking at similar packages…</span>
+          <M.CircularProgress size={18} />
+          <span className={classes.text}>Reading similar packages…</span>
         </div>
       )
     case 'error':
       return (
-        <div className={classes.root} role="status">
-          {icon}
-          <span className={classes.text}>
-            Suggestions are unavailable: {state.message}
-          </span>
-          <M.Button size="small" onClick={onRequest}>
-            Retry
-          </M.Button>
+        <div className={classes.root} role="alert">
+          <M.Icon className={classes.icon} fontSize="small" aria-hidden>
+            error_outline
+          </M.Icon>
+          <span className={classes.text}>Couldn't get suggestions: {state.message}</span>
+          <div className={classes.actions}>
+            <M.Button disabled={disabled} onClick={onRequest} size="small">
+              Try again
+            </M.Button>
+          </div>
         </div>
       )
     case 'ready': {
@@ -468,24 +509,26 @@ function SuggestBar({ disabled, onRequest, onUseAll, state }: SuggestBarProps) {
           {icon}
           <span className={classes.text}>
             {n
-              ? `${n} AI suggestion${n === 1 ? '' : 's'} from ${state.examples} similar package${state.examples === 1 ? '' : 's'} (${(state.ms / 1000).toFixed(1)} s). Check before using.`
-              : `No confident suggestions from ${state.examples} similar packages.`}
+              ? `${plural(n, 'suggestion')} from ${plural(state.examples, 'similar package')}. Review each before using it.`
+              : `No suggestions: ${plural(state.examples, 'similar package')} gave no clear values.`}
           </span>
-          {!!n && (
-            <M.Button
-              size="small"
-              color="primary"
-              variant="contained"
-              disableElevation
-              onClick={onUseAll}
-              disabled={disabled}
-            >
-              Use all
+          <div className={classes.actions}>
+            <M.Button disabled={disabled} onClick={onRequest} size="small">
+              Refresh
             </M.Button>
-          )}
-          <M.Button size="small" onClick={onRequest} disabled={disabled}>
-            Again
-          </M.Button>
+            {!!n && (
+              <M.Button
+                color="primary"
+                disableElevation
+                disabled={disabled}
+                onClick={onUseAll}
+                size="small"
+                variant="contained"
+              >
+                Use all
+              </M.Button>
+            )}
+          </div>
         </div>
       )
     }
@@ -677,63 +720,72 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
 
   return (
     <div className={className}>
-      <div className={classes.header}>
-        <M.Typography
-          // eslint-disable-next-line no-nested-ternary
-          color={disabled ? 'textSecondary' : errors.length ? 'error' : undefined}
-        >
-          Metadata
-        </M.Typography>
-        {guided && (
+      {guided ? (
+        // The pane's tab already names the section, so the toolbar holds only controls.
+        <div className={classes.toolbar}>
           <Lab.ToggleButtonGroup
+            aria-label="Metadata view"
             className={classes.viewToggle}
             exclusive
             onChange={(_e, v) => v && setView(v)}
             size="small"
             value={view}
-            aria-label="Metadata view"
           >
             <Lab.ToggleButton value="form" aria-label="Form view">
+              <M.Icon fontSize="small">view_agenda</M.Icon>
               Form
             </Lab.ToggleButton>
             <Lab.ToggleButton value="table" aria-label="Table view">
+              <M.Icon fontSize="small">table_rows</M.Icon>
               Table
             </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
-        )}
-        {guided && (
+          <div className={classes.toolbarActions}>
+            <M.Button
+              disabled={disabled}
+              onClick={openFile}
+              size="small"
+              startIcon={<M.Icon fontSize="small">upload_file</M.Icon>}
+              title="Fill metadata from an XLSX, CSV or JSON file"
+            >
+              Import file
+            </M.Button>
+            <M.Button
+              disabled={disabled}
+              onClick={openEditor}
+              size="small"
+              startIcon={<M.Icon fontSize="small">open_in_full</M.Icon>}
+              title="Edit metadata in a full-screen editor"
+            >
+              Expand
+            </M.Button>
+          </div>
+        </div>
+      ) : (
+        <div className={classes.header}>
+          <M.Typography
+            // eslint-disable-next-line no-nested-ternary
+            color={disabled ? 'textSecondary' : errors.length ? 'error' : undefined}
+          >
+            Metadata
+          </M.Typography>
           <M.Button
             className={classes.jsonTrigger}
             disabled={disabled}
-            onClick={openFile}
+            onClick={openEditor}
             size="small"
-            title="Fill metadata from an XLSX, CSV or JSON file"
+            title="Expand JSON editor"
             variant="outlined"
             endIcon={
               <M.Icon fontSize="inherit" color="primary">
-                upload_file
+                fullscreen
               </M.Icon>
             }
           >
-            Import file
+            Expand
           </M.Button>
-        )}
-        <M.Button
-          className={guided ? classes.next : classes.jsonTrigger}
-          disabled={disabled}
-          onClick={openEditor}
-          size="small"
-          title="Expand JSON editor"
-          variant="outlined"
-          endIcon={
-            <M.Icon fontSize="inherit" color="primary">
-              fullscreen
-            </M.Icon>
-          }
-        >
-          Expand
-        </M.Button>
-      </div>
+        </div>
+      )}
 
       <Dialog
         schema={schema}
