@@ -32,6 +32,7 @@ interface Loaded {
   // Both, because an unversioned bucket has no VersionId
   version: string | undefined
   etag: string | undefined
+  exists: boolean
   hasComments: boolean
 }
 
@@ -41,7 +42,13 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
     r = await s3.getObject({ Bucket: bucket, Key: CONFIG_KEY }).promise()
   } catch (e: any) {
     if (e?.code === 'NoSuchKey') {
-      return { raw: undefined, version: undefined, etag: undefined, hasComments: false }
+      return {
+        raw: undefined,
+        version: undefined,
+        etag: undefined,
+        exists: false,
+        hasComments: false,
+      }
     }
     throw e
   }
@@ -62,6 +69,7 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
     raw: raw || undefined,
     version: r.VersionId,
     etag: r.ETag,
+    exists: true,
     hasComments: /(^|\s)#/m.test(text),
   }
 }
@@ -104,10 +112,12 @@ function useFlowStore(bucket: string) {
   // doesn't model If-Match on PutObject, so the header is added before signing.
   const putConfig = React.useCallback(
     async (body: string) => {
-      const etag = loadedRef.current?.etag
+      const loaded = loadedRef.current
       const req = s3.putObject({ Bucket: bucket, Key: CONFIG_KEY, Body: body })
       req.on('build', () => {
-        req.httpRequest.headers[etag ? 'If-Match' : 'If-None-Match'] = etag ?? '*'
+        // Without an ETag (not exposed by the bucket's CORS) only the re-read check applies
+        if (loaded?.etag) req.httpRequest.headers['If-Match'] = loaded.etag
+        else if (loaded && !loaded.exists) req.httpRequest.headers['If-None-Match'] = '*'
       })
       try {
         await req.promise()
