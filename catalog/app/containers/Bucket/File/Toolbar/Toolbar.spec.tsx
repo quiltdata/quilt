@@ -79,6 +79,7 @@ const editorState = {
   saving: false,
   types: [],
   value: 'test content',
+  writable: true,
 }
 
 const handle = FileToolbar.CreateHandle('test-bucket', 'test/file.txt')

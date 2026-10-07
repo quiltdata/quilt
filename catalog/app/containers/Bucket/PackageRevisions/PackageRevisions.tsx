@@ -16,6 +16,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageLock from 'utils/PackageLock'
 import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
@@ -27,7 +28,6 @@ import usePrevious from 'utils/usePrevious'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
-import { useLock } from '../PackageTree/PackageLock'
 import RevisionDeleteDialog from '../PackageTree/RevisionDeleteDialog'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -448,7 +448,7 @@ interface PackageRevisionsProps {
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
   const classes = usePackageRevisionsStyles()
-  const { prefs } = BucketPreferences.use()
+  const prefs = PackageLock.usePrefs(PackageLock.useLock(bucket, name).status)
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -461,15 +461,11 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const scrollRef = React.useRef<HTMLSpanElement>(null)
 
-  const { lock } = useLock(bucket, name)
-
   // Needed outside the toolbar's own match, to gate the per-row checkboxes.
-  const canDelete =
-    !lock &&
-    BucketPreferences.Result.match(
-      { Ok: ({ ui: { actions } }) => actions.deleteRevision, _: () => false },
-      prefs,
-    )
+  const canDelete = BucketPreferences.Result.match(
+    { Ok: ({ ui: { actions } }) => actions.deleteRevision, _: () => false },
+    prefs,
+  )
 
   const bulk = useBulkDelete(bucket, name)
 
@@ -562,7 +558,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
                     </M.Button>
                   </>
                 )}
-                {actions.revisePackage && !lock && (
+                {actions.revisePackage && (
                   <M.Button
                     variant="contained"
                     color="primary"

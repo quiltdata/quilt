@@ -2,21 +2,14 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { describe, it, expect, vi } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
-import { renderHook } from '@testing-library/react-hooks'
 
 import * as style from 'constants/style'
 
 import * as PackageLock from './PackageLock'
-import LOCK_QUERY from './gql/Lock.generated'
 
-const { lock, unlock, useQuery } = vi.hoisted(() => ({
-  lock: vi.fn(),
-  unlock: vi.fn(),
-  useQuery: vi.fn(),
-}))
+const { lock, unlock } = vi.hoisted(() => ({ lock: vi.fn(), unlock: vi.fn() }))
 
 vi.mock('utils/GraphQL', () => ({
-  useQuery,
   useMutation: (doc: any) =>
     doc.definitions[0].selectionSet.selections[0].name.value === 'packageLock'
       ? lock
@@ -29,26 +22,6 @@ const mount = (el: React.ReactElement) =>
   render(<M.MuiThemeProvider theme={style.appTheme}>{el}</M.MuiThemeProvider>)
 
 describe('containers/Bucket/PackageTree/PackageLock', () => {
-  it('reads a registry without locks as unlocked with nothing to lock', () => {
-    useQuery.mockReturnValueOnce({ data: undefined, error: new Error('no lock field') })
-    const { result } = renderHook(() => PackageLock.useLock('b', 'team/ds'))
-    expect(result.current).toMatchObject({ lock: null, latestHash: undefined })
-  })
-
-  it('refreshes the latest hash from the network', () => {
-    const run = vi.fn()
-    useQuery.mockReturnValueOnce({ data: undefined, run })
-    const { result } = renderHook(() => PackageLock.useLock('b', 'team/ds'))
-    result.current.refresh()
-    expect(run).toHaveBeenCalledWith({ requestPolicy: 'network-only' })
-  })
-
-  it('keys the latest revision the way the revision query does', () => {
-    // Without `modified` the PackageRevision cache key differs, so a push never updates it.
-    const latest = JSON.stringify(LOCK_QUERY)
-    expect(latest).toMatch(/"latest".*"hash".*"modified"/)
-  })
-
   it('locks the given hash with a trimmed reason and closes', async () => {
     lock.mockResolvedValueOnce({ packageLock: { __typename: 'PackageLock' } })
     const onClose = vi.fn()

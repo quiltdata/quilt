@@ -8,7 +8,6 @@ import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { shortenRevision } from 'utils/packageHandle'
 
-import LOCK_QUERY from './gql/Lock.generated'
 import LOCK from './gql/PackageLock.generated'
 import UNLOCK from './gql/PackageUnlock.generated'
 
@@ -17,17 +16,6 @@ export interface Lock {
   lockedAt: Date
   lockedBy: string
   reason: string | null
-}
-
-// Its own query, so a registry without locks fails only this one and the package reads as unlocked.
-export function useLock(bucket: string, name: string, pause = false) {
-  const { data, run } = GQL.useQuery(LOCK_QUERY, { bucket, name }, { pause })
-  const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
-  return {
-    lock: data?.package?.lock ?? null,
-    latestHash: data?.package?.latest?.hash,
-    refresh,
-  }
 }
 
 interface NoticeProps {

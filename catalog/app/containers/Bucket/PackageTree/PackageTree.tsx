@@ -30,6 +30,7 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import Log from 'utils/Logging'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageLockState from 'utils/PackageLock'
 import RouteRedirect from 'utils/RouteRedirect'
 import * as XML from 'utils/XML'
 import assertNever from 'utils/assertNever'
@@ -209,7 +210,10 @@ function parseFilesQueryString(qs: string) {
   return PD.FromPhysicalKeys(value)
 }
 
-function useCreateDialog(packageHandle: PackageHandle, locked: boolean) {
+export function useCreateDialog(
+  packageHandle: PackageHandle,
+  lock: PackageLockState.Status,
+) {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
@@ -233,8 +237,9 @@ function useCreateDialog(packageHandle: PackageHandle, locked: boolean) {
 
   const { open, close } = createDialog
 
-  const shouldClose = !match || locked
-  const shouldOpen = !!match && !locked
+  // While the lock loads it neither opens nor closes, so it never opens only to close.
+  const shouldClose = !match || lock === 'locked'
+  const shouldOpen = !!match && lock === 'unlocked'
 
   React.useEffect(() => {
     if (shouldClose) {
@@ -264,7 +269,7 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
-  lock: PackageLock.Lock | null
+  lock: PackageLockState.Status
   onLock?: () => void
 }
 
@@ -287,7 +292,7 @@ function DirDisplay({
 
   const { bucket, name, hash } = packageHandle
 
-  const updateDialog = useCreateDialog(packageHandle, !!lock)
+  const updateDialog = useCreateDialog(packageHandle, lock)
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
@@ -500,7 +505,7 @@ function DirDisplay({
                             packageHandle={packageHandle}
                           />
                         )}
-                        {actions.revisePackage && !lock && (
+                        {actions.revisePackage && (
                           <M.Button
                             className={classes.button}
                             variant="contained"
@@ -538,9 +543,9 @@ function DirDisplay({
                         )}
                         <RevisionMenu
                           className={classes.button}
-                          onDelete={lock ? undefined : confirmDelete}
-                          onDeletePackage={lock ? undefined : confirmDeletePackage}
-                          onCreateFile={lock ? undefined : prompt.open}
+                          onDelete={confirmDelete}
+                          onDeletePackage={confirmDeletePackage}
+                          onCreateFile={prompt.open}
                           onLock={onLock}
                         />
                       </>
@@ -587,7 +592,6 @@ function DirDisplay({
                           files={summaryHandles}
                           mkUrl={mkUrl}
                           packageHandle={packageHandle}
-                          locked={!!lock}
                         />
                       </M.Box>
                     </>
@@ -684,7 +688,6 @@ interface FileDisplayQueryProps {
   path: string
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
-  locked: boolean
 }
 
 function FileDisplayQuery({
@@ -801,7 +804,6 @@ function FileDisplay({
   path,
   crumbs,
   file,
-  locked,
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
   const history = RRDom.useHistory()
@@ -928,7 +930,6 @@ function FileDisplay({
                     Ok: ({ ui: { actions } }) =>
                       FileEditor.isSupportedFileType(path) &&
                       hashOrTag === 'latest' &&
-                      !locked &&
                       actions.revisePackage && (
                         <Buttons.Iconized
                           className={classes.button}
@@ -1069,7 +1070,7 @@ interface PackageRevisionProps {
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
   revision?: RevisionData
-  lock: PackageLock.Lock | null
+  lock: PackageLockState.Status
   onLock?: () => void
 }
 
@@ -1105,7 +1106,6 @@ function PackageRevision({
             {...packageHandle}
             {...{ hashOrTag, path }}
             {...{ crumbs, mode }}
-            locked={!!lock}
           />
         )}
       </ResolverProvider>
@@ -1138,7 +1138,12 @@ function PackageTree({
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
 
-  const { lock, latestHash, refresh: refreshLock } = PackageLock.useLock(bucket, name)
+  const {
+    status: lockStatus,
+    lock,
+    latestHash,
+    refresh: refreshLock,
+  } = PackageLockState.useLock(bucket, name)
   const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
   const [lockDialog, setLockDialog] = React.useState<'lock' | 'unlock' | null>(null)
   const closeLockDialog = React.useCallback(() => setLockDialog(null), [])
@@ -1242,15 +1247,17 @@ function PackageTree({
         />
       )}
       {packageHandle ? (
-        <PackageRevision
-          packageHandle={packageHandle}
-          hashOrTag={hashOrTag}
-          path={path}
-          crumbs={crumbs}
-          mode={mode}
-          lock={lock}
-          onLock={openLock}
-        />
+        <PackageLockState.PrefsProvider status={lockStatus}>
+          <PackageRevision
+            packageHandle={packageHandle}
+            hashOrTag={hashOrTag}
+            path={path}
+            crumbs={crumbs}
+            mode={mode}
+            lock={lockStatus}
+            onLock={openLock}
+          />
+        </PackageLockState.PrefsProvider>
       ) : (
         <>
           <TopBar crumbs={crumbs} />

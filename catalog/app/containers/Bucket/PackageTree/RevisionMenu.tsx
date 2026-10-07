@@ -4,12 +4,11 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 
 import Menu from '../Menu'
 
-// An omitted handler hides its item.
 interface RevisionMenuProps {
   className: string
-  onCreateFile?: () => void
-  onDelete?: () => void
-  onDeletePackage?: () => void
+  onCreateFile: () => void
+  onDelete: () => void
+  onDeletePackage: () => void
   onLock?: () => void
 }
 
@@ -28,33 +27,24 @@ export default function RevisionMenu({
         {
           Ok: ({ ui: { actions } }) => {
             const menu = []
-            if (onCreateFile && actions.writeFile && actions.revisePackage) {
+            if (actions.writeFile && actions.revisePackage) {
               menu.push({
                 onClick: onCreateFile,
                 title: 'Create file',
               })
             }
             if (actions.deleteRevision) {
-              if (onDelete) {
-                menu.push({
-                  onClick: onDelete,
-                  title: 'Delete revision',
-                })
-              }
-              // Same gate: anyone who may delete each revision may delete them all.
-              if (onDeletePackage) {
-                menu.push({
-                  onClick: onDeletePackage,
-                  title: 'Delete package',
-                })
-              }
-            }
-            if (onLock) {
               menu.push({
-                onClick: onLock,
-                title: 'Lock package',
+                onClick: onDelete,
+                title: 'Delete revision',
+              })
+              // Same gate: anyone who may delete each revision may delete them all.
+              menu.push({
+                onClick: onDeletePackage,
+                title: 'Delete package',
               })
             }
+            if (onLock) menu.push({ onClick: onLock, title: 'Lock package' })
             return menu
           },
           _: () => [],

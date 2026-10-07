@@ -93,7 +93,7 @@ export default function OrganizeOptions({ viewModes, features }: OrganizeOptions
         </MenuItem>
       </M.List>
 
-      {editTypes.length && (
+      {editTypes.length > 0 && (
         <M.List dense className={classes.subList}>
           {editTypes.map((t) => (
             <MenuItem

@@ -139,6 +139,14 @@ export function Provider({ bucket, children }: ProviderProps) {
   return <CatalogProvider bucket={bucket}>{children}</CatalogProvider>
 }
 
+type OverrideProps = React.PropsWithChildren<{ prefs: Result }>
+
+export function Override({ prefs, children }: OverrideProps) {
+  const state = React.useContext(Ctx)
+  const value = React.useMemo(() => ({ ...state, prefs }), [state, prefs])
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
 export const useBucketPreferences = () => React.useContext(Ctx)
 
 export const use = useBucketPreferences
