@@ -37,7 +37,7 @@ complete sentence without it.
 - [Added] Qurator mode, a preview feature, opens the chat as the main page with what the session touched beside it and saves the session as a package ([#5440](https://github.com/quiltdata/quilt/pull/5440))
 - [Changed] Admin > Settings > Qurator models lists the models in this account's Bedrock as a checklist, with a box for any other model IDs, instead of a bare text box ([#5393](https://github.com/quiltdata/quilt/pull/5393))
 - [Added] Admins can approve the models Qurator may run under Admin > Settings > Qurator models, and users then pick among those in the Qurator menu instead of typing a model ID ([#5389](https://github.com/quiltdata/quilt/pull/5389))
-- [Fixed] Qurator's full page keeps its header and composer in view while the phone keyboard is open, and clears a landscape phone's notch ([#PENDING](https://github.com/quiltdata/quilt/pull/PENDING))
+- [Fixed] Qurator's full page keeps its header and composer in view while the phone keyboard is open, and clears a landscape phone's notch ([#5458](https://github.com/quiltdata/quilt/pull/5458))
 - [Added] Qurator opens as a full-page chat at `/qurator` that can be installed to a phone's home screen, with an offline page when there is no connection ([#5436](https://github.com/quiltdata/quilt/pull/5436))
 - [Fixed] Signed-in users get the admin-configured catalog settings (front door, theme, Qurator, feature flags) right after sign-in, without reloading the page ([#5371](https://github.com/quiltdata/quilt/pull/5371))
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
