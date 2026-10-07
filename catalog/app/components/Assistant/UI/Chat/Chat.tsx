@@ -1001,41 +1001,10 @@ export default function Chat({
       </M.Slide>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
-          {composer === 'compact' && !state.events.some((e) => !e.discarded) ? (
-            <div className={classes.starters}>
-              <M.Typography variant="body2" color="textSecondary" align="center">
-                Ask about your packages, buckets and data. Qurator works with your
-                permissions, and asks before it changes anything.
-              </M.Typography>
-              <div className={classes.starterGrid}>
-                {STARTERS.filter(
-                  (s) =>
-                    (s.icon !== 'hub' ||
-                      Object.values(connectors.byId).some((c) =>
-                        /deepwiki/i.test(`${c.id} ${c.config.title}`),
-                      )) &&
-                    (s.icon !== 'edit_note' || mode !== 'ask'),
-                ).map((s) => (
-                  <M.ButtonBase
-                    key={s.text}
-                    className={classes.starter}
-                    onClick={() => setDraft({ text: s.text, at: Date.now() })}
-                  >
-                    <M.Icon className={classes.starterIcon}>{s.icon}</M.Icon>
-                    <span>
-                      {s.text}
-                      {s.hint && <span className={classes.starterHint}>{s.hint}</span>}
-                    </span>
-                  </M.ButtonBase>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <MessageContainer>
-              Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
-              data — I can search, query and summarize them for you.
-            </MessageContainer>
-          )}
+          <MessageContainer>
+            Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
+            data — I can search, query and summarize them for you.
+          </MessageContainer>
           {state.events
             .filter((e) => !e.discarded)
             .map(
@@ -1080,6 +1049,30 @@ export default function Chat({
               <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),
           })}
+          {composer === 'compact' && !state.events.some((e) => !e.discarded) && (
+            <div className={classes.starterGrid}>
+              {STARTERS.filter(
+                (s) =>
+                  (s.icon !== 'hub' ||
+                    Object.values(connectors.byId).some((c) =>
+                      /deepwiki/i.test(`${c.id} ${c.config.title}`),
+                    )) &&
+                  (s.icon !== 'edit_note' || mode !== 'ask'),
+              ).map((s) => (
+                <M.ButtonBase
+                  key={s.text}
+                  className={classes.starter}
+                  onClick={() => setDraft({ text: s.text, at: Date.now() })}
+                >
+                  <M.Icon className={classes.starterIcon}>{s.icon}</M.Icon>
+                  <span>
+                    {s.text}
+                    {s.hint && <span className={classes.starterHint}>{s.hint}</span>}
+                  </span>
+                </M.ButtonBase>
+              ))}
+            </div>
+          )}
           <div ref={scrollRef} />
         </div>
       </div>
