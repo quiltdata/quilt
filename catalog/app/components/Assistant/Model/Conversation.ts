@@ -28,6 +28,11 @@ export interface ToolCall {
   readonly approval?: Exclude<Tool.Effect, 'read'>
   /** The tool when approval was asked; Approve refuses to run if it differs. */
   readonly tool?: Tool.Descriptor<any>
+  /**
+   * Ours, not the model's: Run and Don't run name it, so an answer can only
+   * settle the card it was clicked on, even if the model reuses a tool-use id.
+   */
+  readonly key?: string
 }
 
 const sameTool = (a: Tool.Descriptor<any>, b: Tool.Descriptor<any> | undefined) =>
@@ -136,8 +141,8 @@ export type Action = Eff.Data.TaggedEnum<{
     readonly id: string
     readonly result: Tool.ResultOption
   }
-  Approve: { readonly id: string }
-  Deny: { readonly id: string }
+  Approve: { readonly id: string; readonly key: string }
+  Deny: { readonly id: string; readonly key: string }
   Abort: {}
   Clear: {}
   Discard: { readonly id: string }
@@ -345,6 +350,16 @@ export const ConversationActor = Eff.Effect.succeed(
               return State.Idle({ events, timestamp, error: Eff.Option.none() })
             }
 
+            // Results are matched to calls by id, so a repeated id would let one
+            // call's result settle another (e.g. a read clearing a write's card).
+            const ids = toolUses.map((tu) => tu.toolUseId)
+            if (new Set(ids).size !== ids.length) {
+              return yield* idle(events, {
+                message: 'Qurator stopped: the model repeated a tool-call id.',
+                details: 'No tools were run. Ask again to continue.',
+              })
+            }
+
             const tools = yield* currentTools
             const calls: Record<string, ToolCall> = {}
             for (const tu of toolUses) {
@@ -357,6 +372,7 @@ export const ConversationActor = Eff.Effect.succeed(
                   input: tu.input,
                   approval: effect,
                   tool: tools[tu.name],
+                  key: yield* genId,
                 }
                 continue
               }
@@ -384,10 +400,10 @@ export const ConversationActor = Eff.Effect.succeed(
       ToolUse: {
         ToolResult: (state, { id, result }, dispatch) =>
           completeCall(state, id, result, dispatch),
-        Approve: (state, { id }, dispatch) =>
+        Approve: (state, { id, key }, dispatch) =>
           Eff.Effect.gen(function* () {
             const call = state.calls[id]
-            if (!call?.approval) return state
+            if (!call?.approval || call.key !== key) return state
             const tools = yield* currentTools
             const current = Eff.Record.has(tools, call.name)
               ? tools[call.name]
@@ -411,10 +427,10 @@ export const ConversationActor = Eff.Effect.succeed(
               },
             }
           }),
-        Deny: (state, { id }, dispatch) =>
+        Deny: (state, { id, key }, dispatch) =>
           Eff.Effect.gen(function* () {
             const call = state.calls[id]
-            if (!call?.approval) return state
+            if (!call?.approval || call.key !== key) return state
             const result = Tool.fail(
               Content.ToolResultContentBlock.Text({
                 text: 'Declined by the user; do not retry unless asked.',

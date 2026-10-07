@@ -201,6 +201,7 @@ describe('components/Assistant/UI/Chat/ToolUseState', () => {
             name: 'platform__object_delete',
             input: { bucket: 'b', key: 'k.txt' },
             approval: 'destructive',
+            key: 'k1',
           },
         }}
       />,
@@ -210,9 +211,13 @@ describe('components/Assistant/UI/Chat/ToolUseState', () => {
     expect(screen.getByText('key: k.txt')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Run'))
-    expect(dispatch).toHaveBeenCalledWith(Model.Conversation.Action.Approve({ id: 'w' }))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Approve({ id: 'w', key: 'k1' }),
+    )
     fireEvent.click(screen.getByText("Don't run"))
-    expect(dispatch).toHaveBeenCalledWith(Model.Conversation.Action.Deny({ id: 'w' }))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Deny({ id: 'w', key: 'k1' }),
+    )
     fireEvent.click(screen.getByText('abort'))
     expect(dispatch).toHaveBeenCalledWith(Model.Conversation.Action.Abort())
   })

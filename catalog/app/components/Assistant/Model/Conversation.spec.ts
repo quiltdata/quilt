@@ -381,7 +381,10 @@ describe('write approval', () => {
    * One LLM round asking for `toolUses`, then a settling round with none.
    * `runs` counts executions per tool name.
    */
-  const setup = (toolUses: { id: string; name: string; effect: Tool.Effect }[]) =>
+  const setup = (
+    toolUses: { id: string; name: string; effect: Tool.Effect }[],
+    awaitPending = true,
+  ) =>
     Eff.Effect.gen(function* () {
       const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
       const runs = yield* Eff.Ref.make<Record<string, number>>({})
@@ -438,11 +441,15 @@ describe('write approval', () => {
         Eff.Effect.succeed(layer),
       )
       yield* actor.dispatch(Conversation.Action.Ask({ content: 'go' }))
-      const pending = yield* awaitState(
-        actor,
-        (s) => s._tag === 'ToolUse' && Object.values(s.calls).some((c) => c.approval),
-      )
-      return { actor, runs, pending, tools }
+      const pending = awaitPending
+        ? yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && Object.values(s.calls).some((c) => c.approval),
+          )
+        : yield* Eff.SubscriptionRef.get(actor.state)
+      const keyOf = (id: string) =>
+        (pending._tag === 'ToolUse' && pending.calls[id]?.key) || ''
+      return { actor, runs, pending, tools, keyOf }
     })
 
   const run = (test: Eff.Effect.Effect<void, never, Eff.Scope.Scope>) =>
@@ -457,27 +464,62 @@ describe('write approval', () => {
   it('holds a write until approved, then runs it once', () =>
     run(
       Eff.Effect.gen(function* () {
-        const { actor, runs, pending } = yield* setup([
+        const { actor, runs, pending, keyOf } = yield* setup([
           { id: 'w', name: 'put', effect: 'write' },
         ])
         expect(pending._tag === 'ToolUse' && pending.calls.w.approval).toBe('write')
         expect(yield* Eff.Ref.get(runs)).toEqual({})
 
-        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
-        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
         yield* awaitState(actor, settled)
         expect(yield* Eff.Ref.get(runs)).toEqual({ put: 1 })
+      }),
+    ))
+
+  it('a repeated tool-use id runs nothing', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup(
+          [
+            { id: 'x', name: 'list', effect: 'read' },
+            { id: 'x', name: 'put', effect: 'write' },
+          ],
+          false,
+        )
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        if (final._tag !== 'Idle') throw new Error('not idle')
+        expect(Eff.Option.getOrThrow(final.error).message).toMatch(
+          /repeated a tool-call id/,
+        )
+      }),
+    ))
+
+  it('an answer for another card (wrong key) does nothing', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, keyOf } = yield* setup([
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: 'stale' }))
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: 'stale' }))
+        const still = yield* awaitState(actor, (s) => s._tag === 'ToolUse')
+        expect(still._tag === 'ToolUse' && still.calls.w.approval).toBe('write')
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: keyOf('w') }))
+        yield* awaitState(actor, settled)
       }),
     ))
 
   it('a denied write never runs and the model is told why', () =>
     run(
       Eff.Effect.gen(function* () {
-        const { actor, runs } = yield* setup([
+        const { actor, runs, keyOf } = yield* setup([
           { id: 'w', name: 'create', effect: 'destructive' },
         ])
-        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w' }))
-        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: keyOf('w') }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
         const final = yield* awaitState(actor, settled)
         expect(yield* Eff.Ref.get(runs)).toEqual({})
         const event = final.events.find((e) => e._tag === 'ToolUse')
@@ -497,11 +539,11 @@ describe('write approval', () => {
   ])('a tool %s while pending is not run on approval', (_, mutate, reason) =>
     run(
       Eff.Effect.gen(function* () {
-        const { actor, runs, tools } = yield* setup([
+        const { actor, runs, tools, keyOf } = yield* setup([
           { id: 'w', name: 'put', effect: 'write' },
         ])
         mutate(tools)
-        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w' }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
         const final = yield* awaitState(actor, settled)
         expect(yield* Eff.Ref.get(runs)).toEqual({})
         const event = final.events.find((e) => e._tag === 'ToolUse')
@@ -534,7 +576,7 @@ describe('write approval', () => {
   it('reads in the same batch run without waiting', () =>
     run(
       Eff.Effect.gen(function* () {
-        const { actor, runs } = yield* setup([
+        const { actor, runs, keyOf } = yield* setup([
           { id: 'r', name: 'list', effect: 'read' },
           { id: 'w', name: 'put', effect: 'write' },
         ])
@@ -543,7 +585,7 @@ describe('write approval', () => {
           (s) => s._tag === 'ToolUse' && !('r' in s.calls) && 'w' in s.calls,
         )
         expect(yield* Eff.Ref.get(runs)).toEqual({ list: 1 })
-        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w' }))
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: keyOf('w') }))
         yield* awaitState(actor, settled)
       }),
     ))

@@ -453,12 +453,12 @@ function ApprovalCard({
 }: ApprovalCardProps) {
   const classes = useApprovalStyles()
   const approve = React.useCallback(
-    () => dispatch(Model.Conversation.Action.Approve({ id })),
-    [dispatch, id],
+    () => dispatch(Model.Conversation.Action.Approve({ id, key: call.key ?? '' })),
+    [dispatch, id, call.key],
   )
   const deny = React.useCallback(
-    () => dispatch(Model.Conversation.Action.Deny({ id })),
-    [dispatch, id],
+    () => dispatch(Model.Conversation.Action.Deny({ id, key: call.key ?? '' })),
+    [dispatch, id, call.key],
   )
   const destructive = approval === 'destructive'
   const args = Object.entries(call.input).filter(([, v]) => isScalar(v))
