@@ -156,9 +156,7 @@ export function validateDraft(
   if (isNew && existingIds.includes(draft.id)) {
     errors.name = 'A flow with this name already exists'
   }
-  // quilt3 checks patterns in Python, which accepts syntax JS rejects; an unchanged
-  // pattern is left for the push to enforce.
-  // Only an invalid pattern blocks; one the browser can't reproduce is left to the push.
+  // Only a pattern pushes would reject blocks; an unchanged one is left to the push.
   if (draft.namePattern && draft.namePattern !== originalPattern) {
     const a = analyzePattern(draft.namePattern)
     if (a._tag === 'invalid')

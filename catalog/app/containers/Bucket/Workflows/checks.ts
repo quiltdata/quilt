@@ -87,6 +87,11 @@ export function dryRun(
   }
   if (!PACKAGE_NAME_FORMAT.test(name)) {
     issues.push({ path: 'name', message: `Invalid package name: ${name}.` })
+  } else if (workflow.packageNamePatternInvalid) {
+    issues.push({
+      path: 'name',
+      message: `This flow's name pattern is broken (${workflow.packageNamePatternInvalid}), so every push with it fails.`,
+    })
   } else if (workflow.packageNamePatternError) {
     issues.push({
       path: 'name',

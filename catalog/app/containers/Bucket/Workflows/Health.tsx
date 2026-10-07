@@ -192,6 +192,11 @@ function RulesSummary({
   if (workflow.packageNamePatternError) {
     rules.push('Package names must match a pattern only the push can check')
   }
+  if (workflow.packageNamePatternInvalid) {
+    rules.push(
+      "Package names must match a pattern pushes can't read, so every push fails",
+    )
+  }
   if (workflow.isMessageRequired) rules.push('A commit message is required')
   if (workflow.schema) {
     if (fields === undefined) rules.push("Metadata must match this flow's schema")
@@ -273,6 +278,11 @@ export default function Health({ workflow }: HealthProps) {
           Checked with your permissions. Pushes run under the stack&apos;s own role.
         </M.Typography>
       </M.Box>
+      {workflow.packageNamePatternInvalid && (
+        <M.Typography variant="body2" color="error" gutterBottom>
+          {`Package name pattern is broken (${workflow.packageNamePatternInvalid}), so every push with this flow fails. Edit the flow to fix it.`}
+        </M.Typography>
+      )}
       {workflow.packageNamePatternError && (
         <M.Typography variant="body2" color="error" gutterBottom>
           {`Package name pattern can't be checked in the browser (${workflow.packageNamePatternError}). Pushes still enforce it.`}
