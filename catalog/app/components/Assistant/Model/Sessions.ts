@@ -331,7 +331,8 @@ export function createSaveQueue<T>({
       s.timer ||
       s.stopped ||
       !events ||
-      (events === s.sent && !checkpoint) ||
+      // A checkpoint alone never resends a create: one that failed may have been kept.
+      (events === s.sent && !(checkpoint && s.id !== null)) ||
       (s.id === null && isEmpty(events))
     ) {
       s.waiters.splice(0).forEach((resolve) => resolve())

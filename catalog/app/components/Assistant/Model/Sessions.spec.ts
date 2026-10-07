@@ -431,6 +431,16 @@ describe('components/Assistant/Model/Sessions', () => {
         ])
       })
 
+      it('never resends a failed create to checkpoint it', async () => {
+        const { queue, send } = setup(async () => ({ _tag: 'Failed' }))
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        await vi.advanceTimersByTimeAsync(600_000)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(send).toHaveBeenCalledTimes(1)
+      })
+
       it('sends none while paused', async () => {
         const { queue, send } = setup(async () => saved('s', 1))
         queue.change('h', 'a')
