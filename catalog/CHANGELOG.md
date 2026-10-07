@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Qurator mode and the full-page Qurator get a compact composer with a + menu (save the session as a package, Agent or Ask mode, model, tools, MCP servers, instructions) that minimizes to one line on phones ([#PR](https://github.com/quiltdata/quilt/pull/PR))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))

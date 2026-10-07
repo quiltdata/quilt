@@ -162,6 +162,7 @@ const useMenuStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
   },
+  body: { display: 'flex', flexDirection: 'column', minHeight: 0, outline: 'none' },
   grab: {
     background: t.palette.divider,
     borderRadius: 2,
@@ -417,11 +418,11 @@ export default function Composer({
   }, [])
 
   const model = api.model
-  const modelName = model.allowlist
-    ? (ModelChoice.nameIn(model.names, model.current) ??
-      ModelChoice.tier(model.current) ??
-      ModelChoice.displayName(model.current))
-    : null
+  // Named even when it can't be switched: which model answers is never hidden.
+  const modelName =
+    ModelChoice.nameIn(model.names, model.current) ??
+    ModelChoice.tier(model.current) ??
+    ModelChoice.displayName(model.current)
 
   if (phone && minimized) {
     return (
@@ -488,7 +489,7 @@ export default function Composer({
                   className={classes.chip}
                   aria-label={`Model: ${ModelChoice.label(model.current, ModelChoice.nameIn(model.names, model.current))}`}
                   aria-haspopup="menu"
-                  disabled={disabled}
+                  disabled={disabled || !model.allowlist}
                   onClick={() => setOpen('model')}
                   endIcon={<M.Icon fontSize="small">expand_more</M.Icon>}
                 >
@@ -585,6 +586,8 @@ function PlusMenu({
   React.useEffect(() => {
     setQuery('')
     setActive(0)
+    // A click moves focus to the row; keys are read from the menu, but typing goes to search.
+    if (page) requestAnimationFrame(() => searchRef.current?.focus())
   }, [page])
 
   const model = api.model
@@ -656,20 +659,23 @@ function PlusMenu({
         onSelect: pick(() => api.setMode(m)),
       })),
       { key: 'd1', name: '', divider: true },
-      ...(model.allowlist
-        ? [
-            {
-              key: 'model',
-              icon: 'view_in_ar',
-              name: 'Model',
-              keywords: model.allowlist.map(nameOf).join(' '),
-              detail: nameOf(model.current),
-              opens: 'model' as Page,
-              disabled,
-              end: <M.Icon fontSize="small">chevron_right</M.Icon>,
-            },
-          ]
-        : []),
+      {
+        key: 'model',
+        icon: 'view_in_ar',
+        name: 'Model',
+        keywords: (model.allowlist ?? []).map(nameOf).join(' '),
+        detail: nameOf(model.current),
+        sub: model.allowlist
+          ? undefined
+          : model.readFailed
+            ? "The approved model list couldn't be read, so this stack's default answers."
+            : 'Set by this stack. An admin can approve more in Admin → Settings.',
+        opens: model.allowlist ? ('model' as Page) : undefined,
+        disabled: disabled || !model.allowlist,
+        end: model.allowlist ? (
+          <M.Icon fontSize="small">chevron_right</M.Icon>
+        ) : undefined,
+      },
       {
         key: 'tools',
         icon: 'build',
@@ -749,10 +755,16 @@ function PlusMenu({
                 name: toolTitle(n),
                 keywords: `${v.title} ${d.description ?? ''}`,
                 sub: d.description?.split('\n')[0],
+                // Ask mode never offers these to the model (Context.forMode).
+                disabled: d.effect !== 'read' && api.mode === 'ask',
                 end:
                   d.effect === 'read' ? undefined : (
                     <span className={classes.tag}>
-                      {d.effect === 'destructive' ? 'deletes · asks first' : 'asks first'}
+                      {api.mode === 'ask'
+                        ? 'off in Ask'
+                        : d.effect === 'destructive'
+                          ? 'deletes · asks first'
+                          : 'asks first'}
                     </span>
                   ),
               }))
@@ -844,13 +856,28 @@ function PlusMenu({
       setPage(r.opens)
     } else if ((e.key === 'ArrowLeft' && !query) || e.key === 'Escape') {
       e.preventDefault()
+      e.nativeEvent.stopPropagation()
       if (page !== 'main') setPage('main')
       else onClose()
     }
   }
 
+  // Focus can leave the menu body (a control that disables itself while saving),
+  // so Escape is also caught on the document; handlers inside stop it first.
+  React.useEffect(() => {
+    if (!page) return
+    const onDocKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (page !== 'main') setPage('main')
+      else onClose()
+    }
+    document.addEventListener('keydown', onDocKey)
+    return () => document.removeEventListener('keydown', onDocKey)
+  }, [page, setPage, onClose])
+
   const body = page && (
-    <>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div className={classes.body} onKeyDown={onKeyDown}>
       {phone && <div className={classes.grab} />}
       {page !== 'save' && page !== 'instructions' && (
         <div className={classes.search}>
@@ -863,7 +890,6 @@ function PlusMenu({
               setQuery(e.target.value)
               setActive(0)
             }}
-            onKeyDown={onKeyDown}
             placeholder={
               page === 'main'
                 ? 'Search tools, packages, MCP…'
@@ -878,7 +904,14 @@ function PlusMenu({
       {page === 'save' && save ? (
         <SaveTarget save={save} onBack={() => setPage('main')} onDone={onClose} />
       ) : page === 'instructions' ? (
-        <div onKeyDown={(e) => e.key === 'Escape' && setPage('main')}>
+        <div
+          onKeyDown={(e) => {
+            if (e.key !== 'Escape') return
+            e.stopPropagation()
+            e.nativeEvent.stopPropagation()
+            setPage('main')
+          }}
+        >
           <MenuRow
             row={back}
             id={`${listId}-back`}
@@ -920,7 +953,7 @@ function PlusMenu({
           )}
         </div>
       )}
-    </>
+    </div>
   )
 
   if (phone) {
@@ -931,6 +964,8 @@ function PlusMenu({
         onClose={onClose}
         onOpen={() => setPage('main')}
         disableSwipeToOpen
+        // Escape belongs to the menu: back one level from a submenu, close from the top.
+        ModalProps={{ disableEscapeKeyDown: true }}
         PaperProps={{ className: classes.sheet }}
       >
         {body}
@@ -943,6 +978,8 @@ function PlusMenu({
       open={!!page && !!anchor}
       anchorEl={anchor?.closest('[data-composer]') ?? anchor}
       onClose={onClose}
+      // Escape belongs to the menu: back one level from a submenu, close from the top.
+      disableEscapeKeyDown
       anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
       transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       elevation={8}
@@ -1039,7 +1076,14 @@ function SaveTarget({ save, onBack, onDone }: SaveTargetProps) {
   const classes = useMenuStyles()
   const { urls } = NamedRoutes.use()
   return (
-    <div onKeyDown={(e) => e.key === 'Escape' && (e.stopPropagation(), onBack())}>
+    <div
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape') return
+        e.stopPropagation()
+        e.nativeEvent.stopPropagation()
+        onBack()
+      }}
+    >
       <div className={classes.list} role="menu">
         <MenuRow
           row={{ key: 'back', icon: 'arrow_back', name: 'Save target' }}
