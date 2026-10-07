@@ -7,6 +7,8 @@ export type Incremental<T> =
 import * as Types from '../../../../model/graphql/types.generated'
 
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+export type McpServerAuth = 'HEADER' | 'NONE' | 'OAUTH'
+
 export type components_Assistant_Model_gql_McpServersQueryVariables = Exact<{
   [key: string]: never
 }>
@@ -19,6 +21,8 @@ export interface components_Assistant_Model_gql_McpServersQuery {
     readonly title: string
     readonly hint: string | null
     readonly trusted: boolean
+    readonly auth: Types.McpServerAuth
+    readonly signedIn: boolean
   }>
 }
 
@@ -42,6 +46,8 @@ export const components_Assistant_Model_gql_McpServersDocument = {
                 { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'hint' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'trusted' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'auth' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'signedIn' } },
               ],
             },
           },

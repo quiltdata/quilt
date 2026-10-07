@@ -721,6 +721,7 @@ type APIKeyAdminQueries {
 enum McpServerAuth {
   NONE
   HEADER
+  OAUTH
 }
 
 type McpServer {
@@ -728,6 +729,9 @@ type McpServer {
   title: String!
   hint: String
   trusted: Boolean!
+  "Whether the calling user has a stored sign-in for this server. False for NONE/HEADER servers."
+  signedIn: Boolean!
+  auth: McpServerAuth!
 }
 
 type McpServerAdmin {
@@ -744,6 +748,12 @@ type McpServerAdmin {
   forwardIdentity: Boolean!
   updatedAt: Datetime!
   updatedBy: String
+  oauthClientId: String
+  hasOauthClientSecret: Boolean!
+  "The callback URL to register with the provider."
+  oauthRedirectUri: String!
+  "How many users have a stored sign-in."
+  signedInUsers: Int!
 }
 
 input McpServerInput {
@@ -758,6 +768,9 @@ input McpServerInput {
   "Write-only. Omit to keep the stored secret; a URL whose origin changed clears it."
   secret: String
   forwardIdentity: Boolean! = false
+  oauthClientId: String
+  "Write-only. Omit to keep the stored one."
+  oauthClientSecret: String
 }
 
 type McpToolSummary {
@@ -777,6 +790,8 @@ type McpServerProbe {
 union McpServerSetResult = McpServerAdmin | InvalidInput | OperationError
 
 union McpServerRemoveResult = Ok | InvalidInput | OperationError
+
+union McpServerDisconnectResult = Ok | InvalidInput | OperationError
 
 type AdminQueries {
   quratorConfig: QuratorConfig!
@@ -1276,6 +1291,7 @@ type AdminMutations {
   mcpServerSet(slug: ID!, input: McpServerInput!): McpServerSetResult!
   mcpServerRemove(slug: ID!): McpServerRemoveResult!
   mcpServerProbe(slug: ID!): McpServerProbe!
+  mcpServerSignOutAll(slug: ID!): McpServerDisconnectResult!
 }
 
 type Mutation {
@@ -1299,6 +1315,8 @@ type Mutation {
     hash: String!
   ): PackageRevisionDeleteResult!
   packageDelete(bucket: String!, name: String!): PackageDeleteResult!
+
+  mcpServerDisconnect(slug: ID!): McpServerDisconnectResult!
 
   admin: AdminMutations! @admin
 

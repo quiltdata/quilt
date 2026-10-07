@@ -7,7 +7,7 @@ export type Incremental<T> =
 import * as Types from '../../../../model/graphql/types.generated'
 
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-export type McpServerAuth = 'HEADER' | 'NONE'
+export type McpServerAuth = 'HEADER' | 'NONE' | 'OAUTH'
 
 export interface McpServerInput {
   readonly auth: McpServerAuth
@@ -16,6 +16,9 @@ export interface McpServerInput {
   readonly enabled: boolean
   readonly forwardIdentity: boolean
   readonly hint: string | null | undefined
+  readonly oauthClientId: string | null | undefined
+  /** Write-only. Omit to keep the stored one. */
+  readonly oauthClientSecret: string | null | undefined
   /** Write-only. Omit to keep the stored secret; a URL whose origin changed clears it. */
   readonly secret: string | null | undefined
   readonly title: string
@@ -56,6 +59,10 @@ export interface containers_Admin_Settings_gql_McpServerSetMutation {
           readonly hasSecret: boolean
           readonly forwardIdentity: boolean
           readonly updatedAt: Date
+          readonly oauthClientId: string | null
+          readonly hasOauthClientSecret: boolean
+          readonly oauthRedirectUri: string
+          readonly signedInUsers: number
         }
       | {
           readonly __typename: 'OperationError'
@@ -148,6 +155,22 @@ export const containers_Admin_Settings_gql_McpServerSetDocument = {
                               name: { kind: 'Name', value: 'forwardIdentity' },
                             },
                             { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'oauthClientId' },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'hasOauthClientSecret' },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'oauthRedirectUri' },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'signedInUsers' },
+                            },
                           ],
                         },
                       },

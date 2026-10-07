@@ -7,7 +7,7 @@ export type Incremental<T> =
 import * as Types from '../../../../model/graphql/types.generated'
 
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-export type McpServerAuth = 'HEADER' | 'NONE'
+export type McpServerAuth = 'HEADER' | 'NONE' | 'OAUTH'
 
 export type containers_Admin_Settings_gql_McpServersQueryVariables = Exact<{
   [key: string]: never
@@ -32,6 +32,10 @@ export interface containers_Admin_Settings_gql_McpServersQuery {
       readonly hasSecret: boolean
       readonly forwardIdentity: boolean
       readonly updatedAt: Date
+      readonly oauthClientId: string | null
+      readonly hasOauthClientSecret: boolean
+      readonly oauthRedirectUri: string
+      readonly signedInUsers: number
     }>
   }
 }
@@ -70,6 +74,16 @@ export const containers_Admin_Settings_gql_McpServersDocument = {
                       { kind: 'Field', name: { kind: 'Name', value: 'hasSecret' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'forwardIdentity' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'oauthClientId' } },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'hasOauthClientSecret' },
+                      },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'oauthRedirectUri' },
+                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'signedInUsers' } },
                     ],
                   },
                 },

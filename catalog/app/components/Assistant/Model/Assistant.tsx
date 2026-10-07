@@ -17,6 +17,7 @@ import defer from 'utils/defer'
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
 import * as Mcp from './Connectors/Mcp'
+import { useMcpSignIn } from './McpSignIn'
 import MCP_SERVERS_QUERY from './gql/McpServers.generated'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
@@ -376,6 +377,11 @@ function useConstructAssistantAPI() {
   const connectors = useConnectors(connectorConfigs)
 
   const getToken = useSessionToken()
+  const mcpSignIn = useMcpSignIn(
+    'servers' in mcpRead ? mcpRead.servers : NO_SERVERS,
+    connectors,
+    getToken,
+  )
   const passThru = usePassThru({
     context: Context.useLayer(),
     connectors,
@@ -427,6 +433,7 @@ function useConstructAssistantAPI() {
     dispatch,
     busy,
     connectors,
+    mcpSignIn,
     instructions,
     model,
     devTools: { recording, modelIdOverride },

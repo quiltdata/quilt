@@ -46,6 +46,10 @@ const server = (overrides: Record<string, unknown> = {}) => ({
   hasSecret: true,
   forwardIdentity: false,
   updatedAt: new Date(),
+  oauthClientId: null,
+  hasOauthClientSecret: false,
+  oauthRedirectUri: 'https://registry.test/api/mcp/oauth/callback',
+  signedInUsers: 0,
   ...overrides,
 })
 
@@ -112,6 +116,52 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       const [reported, ...rest] = captureException.mock.calls[0]
       expect(reported).not.toBe(err)
       expect(JSON.stringify([reported.message, rest])).not.toContain('s3cret')
+    })
+
+    it('an OAUTH server shows its redirect URI and keeps a stored client secret', async () => {
+      servers = [
+        server({
+          auth: 'OAUTH',
+          authHeader: null,
+          hasSecret: false,
+          oauthClientId: 'cid',
+          hasOauthClientSecret: true,
+          signedInUsers: 3,
+        }),
+      ]
+      mutate.mockResolvedValue(setResult({ __typename: 'McpServerAdmin' }))
+      const { getByText, getByLabelText } = mount()
+      getByText('https://registry.test/api/mcp/oauth/callback')
+      getByText(/3 users have so far/)
+      fireEvent.click(getByText('Edit'))
+      expect(getByLabelText('OAuth client secret').getAttribute('placeholder')).toBe(
+        'stored',
+      )
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      const { input } = mutate.mock.calls[0][0]
+      expect(input).toMatchObject({ auth: 'OAUTH', oauthClientId: 'cid', secret: null })
+      expect(input.oauthClientSecret).toBeNull()
+      expect(mutate.mock.calls[0][1]).toEqual({ silent: true })
+    })
+
+    it('signing everyone out asks first', async () => {
+      servers = [server({ auth: 'OAUTH', signedInUsers: 2 })]
+      mutate.mockResolvedValue({ admin: { mcpServerSignOutAll: { __typename: 'Ok' } } })
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false)
+      const { getByText } = mount()
+      await act(async () => {
+        fireEvent.click(getByText('Sign everyone out'))
+      })
+      expect(mutate).not.toHaveBeenCalled()
+      confirm.mockReturnValueOnce(true)
+      await act(async () => {
+        fireEvent.click(getByText('Sign everyone out'))
+      })
+      expect(mutate.mock.calls[0][0]).toEqual({ slug: 'gpu' })
+      expect(push).toHaveBeenCalledWith('Signed everyone out of GPU cluster.')
+      confirm.mockRestore()
     })
 
     it('a conflicting save reloads the stored state and says why', async () => {

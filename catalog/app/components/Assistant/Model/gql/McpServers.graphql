@@ -4,5 +4,7 @@ query {
     title
     hint
     trusted
+    auth
+    signedIn
   }
 }

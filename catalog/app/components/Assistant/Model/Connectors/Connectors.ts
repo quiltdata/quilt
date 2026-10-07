@@ -67,6 +67,8 @@ export interface BackendError {
    * threshold nor resets it.
    */
   readonly inertToHealth?: boolean
+  /** Only the user signing in to the server can clear it, so reconnecting stops. */
+  readonly needsSignIn?: boolean
   /**
    * Optional wire-level error tag (e.g., MCP's `McpTransportError`).
    * Surfaced in DevTools detail / hover; not used for control flow.
@@ -237,6 +239,9 @@ export const stateIsBlocked = (s: ConnectorState): boolean =>
  * doesn't gate but isn't healthy either).
  */
 export const stateIsUnready = (s: ConnectorState): boolean => s._tag !== 'Ready'
+
+export const stateNeedsSignIn = (s: ConnectorState): boolean =>
+  s._tag === 'Failed' && s.error.needsSignIn === true
 
 // ---------------------------------------------------------------------------
 // Runtime + service
@@ -628,6 +633,7 @@ const runReconnectWithProbe = (
         config.heartbeatTimeout ?? HEARTBEAT_TIMEOUT,
       )
       if (Eff.Either.isLeft(probe)) {
+        if (probe.left.needsSignIn) return yield* Eff.Effect.fail(probe.left)
         cadence = escalate(cadence)
         continue
       }
@@ -887,7 +893,9 @@ const renderConnectorOverview = (
     return XML.tag(
       'connector',
       { ...baseAttrs, state: 'unavailable' },
-      'Currently unavailable. Tools from this connector cannot be called.',
+      state.error.needsSignIn
+        ? 'The user has not signed in to this server. Its tools cannot be called until they connect it from the Qurator menu.'
+        : 'Currently unavailable. Tools from this connector cannot be called.',
     ).toString()
   }
   return null

@@ -503,6 +503,36 @@ describe('Connectors', () => {
         }),
       ))
 
+    it('a sign-in lost while Ready fails at the first probe instead of retrying', () =>
+      runWithTest(
+        Eff.Effect.gen(function* () {
+          const needsSignIn: Connectors.BackendError = {
+            _tag: 'Auth',
+            message: 'sign in',
+            needsSignIn: true,
+          }
+          let bootstraps = 0
+          const runtime = yield* Connectors.buildConnectorRuntime(
+            baseConfig(
+              stubBackend({
+                initialize: () => Eff.Effect.sync(() => void (bootstraps += 1)),
+                ping: () => Eff.Effect.fail(needsSignIn),
+              }),
+              { optional: true },
+            ),
+          )
+          yield* awaitState(runtime, (s) => s._tag === 'Ready')
+          const reachFailed = yield* Eff.Effect.fork(
+            awaitState(runtime, (s) => s._tag === 'Failed'),
+          )
+          // Two heartbeats cross the threshold; the first probe at +5s ends it.
+          yield* TestClock.adjust(Eff.Duration.seconds(65))
+          const failed = yield* Eff.Fiber.join(reachFailed)
+          expect(Connectors.stateNeedsSignIn(failed)).toBe(true)
+          expect(bootstraps).toBe(1)
+        }),
+      ))
+
     it('probe cadence escalates 5s → 10s → 20s → 30s on consecutive failures', () =>
       runWithTest(
         Eff.Effect.gen(function* () {
@@ -890,6 +920,34 @@ describe('Connectors', () => {
           const overview = (yield* svc.contextContribution).messages?.[0] ?? ''
           expect(overview).toContain('id="gpu"')
           expect(overview).toContain('state="unavailable"')
+        }),
+      )
+    })
+
+    it('an optional connector needing sign-in never gates chat and offers no tools', () => {
+      const needsSignIn: Connectors.BackendError = {
+        _tag: 'Auth',
+        message: 'sign in',
+        needsSignIn: true,
+      }
+      const platform = baseConfig(stubBackend())
+      const slack = baseConfig(
+        stubBackend({ initialize: () => Eff.Effect.fail(needsSignIn) }),
+        { id: 'slack', title: 'Slack', optional: true },
+      )
+      return runWithLayer(
+        [platform, slack],
+        Eff.Effect.gen(function* () {
+          const svc = yield* Connectors.Connectors
+          yield* awaitState(svc.byId.platform, (s) => s._tag === 'Ready')
+          const s = yield* awaitState(svc.byId.slack, (x) => x._tag === 'Failed')
+          expect(Connectors.stateNeedsSignIn(s)).toBe(true)
+          expect(yield* svc.isBlocked).toBe(false)
+          const ctx = yield* svc.contextContribution
+          expect(Object.keys(ctx.tools ?? {}).some((k) => k.startsWith('slack__'))).toBe(
+            false,
+          )
+          expect(ctx.messages?.[0]).toContain('has not signed in')
         }),
       )
     })

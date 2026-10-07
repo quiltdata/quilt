@@ -306,6 +306,7 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
             dispatch={api.dispatch}
             devTools={api.devTools}
             connectors={api.connectors}
+            mcpSignIn={api.mcpSignIn}
             instructions={api.instructions}
             model={api.model}
             busy={api.busy}

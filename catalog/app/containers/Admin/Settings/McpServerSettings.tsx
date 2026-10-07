@@ -6,6 +6,7 @@ import { toolNameFitsBedrock } from 'components/Assistant/Model/Connectors'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
+import copyToClipboard from 'utils/clipboard'
 // Value import, not `import type`: `McpServerAuth` is a generated enum and the
 // mutation sends one of its members.
 import * as Types from 'model/graphql/types.generated'
@@ -14,6 +15,7 @@ import MCP_SERVERS_QUERY from './gql/McpServers.generated'
 import MCP_SERVER_PROBE_MUTATION from './gql/McpServerProbe.generated'
 import MCP_SERVER_REMOVE_MUTATION from './gql/McpServerRemove.generated'
 import MCP_SERVER_SET_MUTATION from './gql/McpServerSet.generated'
+import MCP_SERVER_SIGN_OUT_ALL_MUTATION from './gql/McpServerSignOutAll.generated'
 
 type Server = GQL.DataForDoc<typeof MCP_SERVERS_QUERY>['admin']['mcpServers'][number]
 
@@ -37,6 +39,8 @@ const toInput = (
   authPrefix: server.authPrefix,
   forwardIdentity: server.forwardIdentity,
   secret: null,
+  oauthClientId: server.oauthClientId,
+  oauthClientSecret: null,
   ...overrides,
 })
 
@@ -258,6 +262,8 @@ interface ServerFormValues {
   authHeader: string
   authPrefix: string
   secret: string
+  oauthClientId: string
+  oauthClientSecret: string
 }
 
 const EMPTY_FORM: ServerFormValues = {
@@ -269,6 +275,8 @@ const EMPTY_FORM: ServerFormValues = {
   authHeader: '',
   authPrefix: '',
   secret: '',
+  oauthClientId: '',
+  oauthClientSecret: '',
 }
 
 interface ServerFormProps {
@@ -294,6 +302,8 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
           authHeader: existing.authHeader ?? '',
           authPrefix: existing.authPrefix ?? '',
           secret: '',
+          oauthClientId: existing.oauthClientId ?? '',
+          oauthClientSecret: '',
         }
       : EMPTY_FORM,
   )
@@ -315,6 +325,7 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
     setErrors({})
     setFormError(null)
     const header = values.auth === Types.McpServerAuth.HEADER
+    const oauth = values.auth === Types.McpServerAuth.OAUTH
     const fields = {
       title: values.title,
       url: values.url,
@@ -324,6 +335,10 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
       authPrefix: header ? values.authPrefix || null : null,
       // Blank keeps the stored secret.
       secret: header && values.secret ? values.secret : null,
+      oauthClientId: oauth ? values.oauthClientId.trim() || null : null,
+      // Blank keeps the stored client secret.
+      oauthClientSecret:
+        oauth && values.oauthClientSecret ? values.oauthClientSecret : null,
     }
     try {
       const res = await set(
@@ -444,7 +459,45 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
       >
         <option value={Types.McpServerAuth.NONE}>None</option>
         <option value={Types.McpServerAuth.HEADER}>Secret in a request header</option>
+        <option value={Types.McpServerAuth.OAUTH}>Each user signs in (OAuth)</option>
       </M.TextField>
+
+      {values.auth === Types.McpServerAuth.OAUTH && (
+        <div className={classes.formRow}>
+          <M.TextField
+            label="Client ID"
+            value={values.oauthClientId}
+            onChange={field('oauthClientId')}
+            disabled={pending}
+            error={!!errors.oauthClientId}
+            helperText={
+              errors.oauthClientId ??
+              'Optional. Leave blank if the provider registers clients itself.'
+            }
+            size="small"
+            inputProps={{ 'aria-label': 'OAuth client ID' }}
+          />
+          <M.TextField
+            label="Client secret"
+            type="password"
+            autoComplete="new-password"
+            placeholder={existing?.hasOauthClientSecret ? 'stored' : ''}
+            value={values.oauthClientSecret}
+            onChange={field('oauthClientSecret')}
+            disabled={pending}
+            error={!!errors.oauthClientSecret}
+            helperText={
+              errors.oauthClientSecret ??
+              (existing?.hasOauthClientSecret
+                ? 'Stored. Leave blank to keep it.'
+                : 'Optional and write-only: it cannot be read back.')
+            }
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ 'aria-label': 'OAuth client secret' }}
+          />
+        </div>
+      )}
 
       {values.auth === Types.McpServerAuth.HEADER && (
         <div className={classes.formRow}>
@@ -527,6 +580,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
   const { push: notify } = Notifications.use()
   const set = GQL.useMutation(MCP_SERVER_SET_MUTATION)
   const remove = GQL.useMutation(MCP_SERVER_REMOVE_MUTATION)
+  const signOutAll = GQL.useMutation(MCP_SERVER_SIGN_OUT_ALL_MUTATION)
 
   const [editing, setEditing] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
@@ -580,6 +634,42 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
     }
   }, [busy, notify, onChanged, remove, server])
 
+  const doSignOutAll = React.useCallback(async () => {
+    if (busy) return
+    // eslint-disable-next-line no-restricted-globals, no-alert
+    if (!window.confirm(`Sign every user out of ${server.title}?`)) return
+    setBusy(true)
+    try {
+      const result = (await signOutAll({ slug: server.slug }, SILENT)).admin
+        .mcpServerSignOutAll
+      notify(
+        result.__typename === 'Ok'
+          ? `Signed everyone out of ${server.title}.`
+          : `Couldn't sign everyone out of ${server.title}: ${
+              result.__typename === 'InvalidInput'
+                ? result.errors.map((e) => e.message).join('; ')
+                : result.message
+            }`,
+      )
+      onChanged()
+    } catch (e) {
+      report('MCP server sign-out failed', e)
+      notify(
+        `Couldn't sign everyone out of ${server.title}: ${e instanceof Error ? e.message : e}`,
+      )
+    } finally {
+      setBusy(false)
+    }
+  }, [busy, notify, onChanged, server, signOutAll])
+
+  const copyRedirectUri = React.useCallback(() => {
+    notify(
+      copyToClipboard(server.oauthRedirectUri)
+        ? 'Redirect URI copied.'
+        : "Couldn't copy; select the URI and copy it by hand.",
+    )
+  }, [notify, server.oauthRedirectUri])
+
   if (editing) {
     return (
       <ServerForm
@@ -614,10 +704,31 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
         )}
         <M.Typography variant="caption" color="textSecondary" component="p">
           Tools appear to the assistant as <code>{server.slug}__*</code>.{' '}
-          {server.auth === Types.McpServerAuth.HEADER
-            ? `The registry sends ${server.hasSecret ? 'a stored' : 'no'} secret in ${server.authHeader}.`
-            : 'No credential is sent.'}
+          {server.auth === Types.McpServerAuth.HEADER &&
+            `The registry sends ${server.hasSecret ? 'a stored' : 'no'} secret in ${server.authHeader}.`}
+          {server.auth === Types.McpServerAuth.OAUTH &&
+            `Each user signs in with their own account; ${server.signedInUsers} ${
+              server.signedInUsers === 1 ? 'user has' : 'users have'
+            } so far.`}
+          {server.auth === Types.McpServerAuth.NONE && 'No credential is sent.'}
         </M.Typography>
+        {server.auth === Types.McpServerAuth.OAUTH && (
+          <div className={classes.heading}>
+            <M.Typography variant="caption" color="textSecondary">
+              Redirect URI to register with the provider:
+            </M.Typography>
+            <M.Typography className={classes.endpoint} component="code">
+              {server.oauthRedirectUri}
+            </M.Typography>
+            <M.Button
+              size="small"
+              onClick={copyRedirectUri}
+              aria-label={`Copy the redirect URI for ${server.title}`}
+            >
+              Copy
+            </M.Button>
+          </div>
+        )}
         {probe && <ProbeBlock result={probe} slug={server.slug} />}
       </div>
 
@@ -653,6 +764,15 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
         <M.Button size="small" onClick={() => setEditing(true)} disabled={busy}>
           Edit
         </M.Button>
+        {server.auth === Types.McpServerAuth.OAUTH && (
+          <M.Button
+            size="small"
+            onClick={doSignOutAll}
+            disabled={busy || server.signedInUsers === 0}
+          >
+            Sign everyone out
+          </M.Button>
+        )}
         <M.Button size="small" onClick={doRemove} disabled={busy}>
           Remove
         </M.Button>

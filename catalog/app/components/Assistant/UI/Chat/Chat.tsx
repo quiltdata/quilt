@@ -451,6 +451,7 @@ interface MenuProps {
   dispatch: Model.Assistant.API['dispatch']
   onToggleDevTools: () => void
   devToolsOpen: boolean
+  mcpSignIn?: Model.Assistant.API['mcpSignIn']
   className?: string
 }
 
@@ -459,9 +460,11 @@ export function Menu({
   dispatch,
   devToolsOpen,
   onToggleDevTools,
+  mcpSignIn,
   className,
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
+  const menuButton = React.useRef<HTMLButtonElement>(null)
 
   const isIdle = state._tag === 'Idle'
 
@@ -485,6 +488,7 @@ export function Menu({
   return (
     <>
       <M.IconButton
+        ref={menuButton}
         aria-label="Qurator menu"
         aria-haspopup="true"
         aria-expanded={!!menuOpen}
@@ -508,6 +512,19 @@ export function Menu({
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
+        {mcpSignIn?.servers.map((s) => (
+          <M.MenuItem
+            key={s.slug}
+            disabled={!!mcpSignIn.pending}
+            onClick={() => {
+              closeMenu()
+              const act = s.signedIn ? mcpSignIn.disconnect : mcpSignIn.connect
+              act(s.slug, menuButton.current)
+            }}
+          >
+            {s.signedIn ? `Disconnect ${s.title}` : `Connect ${s.title}`}
+          </M.MenuItem>
+        ))}
       </M.Menu>
     </>
   )
@@ -527,9 +544,14 @@ const useConnectorHelperStyles = M.makeStyles((t) => ({
 interface ConnectorHelperLineProps {
   connector: Model.Connectors.ConnectorRuntime
   state: Model.Connectors.ConnectorState
+  onConnect?: (slug: string, returnFocus?: HTMLElement | null) => void
 }
 
-export function ConnectorHelperLine({ connector, state }: ConnectorHelperLineProps) {
+export function ConnectorHelperLine({
+  connector,
+  state,
+  onConnect,
+}: ConnectorHelperLineProps) {
   const classes = useConnectorHelperStyles()
   const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
   const onAck = React.useCallback(
@@ -554,8 +576,24 @@ export function ConnectorHelperLine({ connector, state }: ConnectorHelperLinePro
     Disconnected: () => <>{title}: reconnecting…</>,
     // An optional connector is not gated on a dismissal, so offering
     // "continue without" would promise an effect it does not have.
-    Failed: ({ acked }) =>
-      acked || connector.config.optional ? (
+    Failed: ({ acked, error }) =>
+      error.needsSignIn ? (
+        <>
+          {title}: not connected
+          {onConnect && (
+            <>
+              {' '}
+              {sep}{' '}
+              <MessageAction
+                className={classes.action}
+                onClick={() => onConnect(connector.id)}
+              >
+                connect
+              </MessageAction>
+            </>
+          )}
+        </>
+      ) : acked || connector.config.optional ? (
         <>
           {title}: unavailable {sep} {reconnect}
         </>
@@ -579,6 +617,14 @@ const helperSeverityFor = (
 }
 
 const useStyles = M.makeStyles((t) => ({
+  srOnly: {
+    clip: 'rect(0 0 0 0)',
+    height: 1,
+    overflow: 'hidden',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    width: 1,
+  },
   chat: {
     display: 'flex',
     flexDirection: 'column',
@@ -662,6 +708,7 @@ interface ChatProps {
   dispatch: Model.Assistant.API['dispatch']
   devTools: Model.Assistant.API['devTools']
   connectors: Model.Assistant.API['connectors']
+  mcpSignIn?: Model.Assistant.API['mcpSignIn']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
   busy?: boolean
@@ -673,6 +720,7 @@ export default function Chat({
   dispatch,
   devTools,
   connectors,
+  mcpSignIn,
   instructions,
   model,
   busy,
@@ -695,7 +743,11 @@ export default function Chat({
     Model.Connectors.stateIsUnready(connectorStates[i])
       ? [
           <span key={c.id} className={classes.connectorLine}>
-            <ConnectorHelperLine connector={c} state={connectorStates[i]} />
+            <ConnectorHelperLine
+              connector={c}
+              state={connectorStates[i]}
+              onConnect={mcpSignIn?.pending ? undefined : mcpSignIn?.connect}
+            />
           </span>,
         ]
       : [],
@@ -756,6 +808,7 @@ export default function Chat({
           dispatch={dispatch}
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
+          mcpSignIn={mcpSignIn}
           className={cx(classes.headerButton, classes.trailing)}
         />
         <M.IconButton
@@ -832,6 +885,9 @@ export default function Chat({
         </div>
       </div>
       <Instructions instructions={instructions} />
+      <span className={classes.srOnly} role="status" aria-live="polite">
+        {mcpSignIn?.status}
+      </span>
       <Input
         disabled={inputDisabled}
         model={model}

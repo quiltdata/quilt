@@ -89,6 +89,32 @@ describe('components/Assistant/UI/Chat/ConnectorHelperLine', () => {
 
 // The bug this guards: `Markdown` was rendered without `processLink`, so a
 // foreign host in an assistant answer was followed verbatim onto another stack.
+describe('components/Assistant/UI/Chat/ConnectorHelperLine sign-in', () => {
+  afterEach(cleanup)
+
+  it('offers connect when the server needs the user to sign in', () => {
+    const onConnect = vi.fn()
+    const connector = {
+      id: 'slack',
+      config: { title: 'Slack', optional: true },
+    } as unknown as Model.Connectors.ConnectorRuntime
+    render(
+      <ConnectorHelperLine
+        connector={connector}
+        state={Model.Connectors.ConnectorState.Failed({
+          error: { _tag: 'Auth', message: 'sign in', needsSignIn: true },
+          acked: false,
+        })}
+        onConnect={onConnect}
+      />,
+    )
+    expect(screen.getByText(/Slack: not connected/)).toBeTruthy()
+    expect(screen.queryByText('reconnect')).toBeNull()
+    fireEvent.click(screen.getByText('connect'))
+    expect(onConnect).toHaveBeenCalledWith('slack')
+  })
+})
+
 describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
   const ORIGIN = window.location.origin
 
@@ -170,6 +196,35 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     fireEvent.click(screen.getByText('Hide Developer Tools'))
     expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('lists Connect or Disconnect for each server users sign in to', () => {
+    const connect = vi.fn()
+    const disconnect = vi.fn()
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={false}
+        onToggleDevTools={vi.fn()}
+        mcpSignIn={{
+          servers: [
+            { slug: 'slack', title: 'Slack', signedIn: false },
+            { slug: 'fathom', title: 'Fathom', signedIn: true },
+          ],
+          pending: null,
+          status: '',
+          connect,
+          disconnect,
+        }}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Connect Slack'))
+    expect(connect.mock.calls[0][0]).toBe('slack')
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Disconnect Fathom'))
+    expect(disconnect.mock.calls[0][0]).toBe('fathom')
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {
