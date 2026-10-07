@@ -159,7 +159,13 @@ export function checkpointOf(
     transcript: SessionPackage.toTranscript(events, info),
     session: JSON.parse(SessionPackage.toSessionJson(events, info)),
   }) as Model.GQLTypes.QuratorSessionCheckpointInput
-  const bytes = new TextEncoder().encode(JSON.stringify(checkpoint)).length
+  // Counted as the registry counts it: the three files, `session.json` indented.
+  const utf8 = new TextEncoder()
+  const bytes = [
+    checkpoint.readme,
+    checkpoint.transcript,
+    JSON.stringify(checkpoint.session, null, 2),
+  ].reduce((n, f) => n + utf8.encode(f).length, 0)
   return bytes > CHECKPOINT_MAX_BYTES ? null : checkpoint
 }
 
@@ -186,23 +192,44 @@ export function titleOf(events: readonly Conversation.Event[]): string {
 export type Stop = 'TooLarge' | 'BadEnvelope' | 'Disabled'
 
 export type SaveOutcome =
-  | { readonly _tag: 'Saved'; readonly id: string; readonly version: number }
-  | { readonly _tag: 'Conflict' | 'NotFound' | 'Failed' | Stop }
+  | {
+      readonly _tag: 'Saved'
+      readonly id: string
+      readonly version: number
+      /** The package holds this save. */
+      readonly packaged: boolean
+    }
+  | { readonly _tag: 'Conflict' | 'NotFound' | 'Failed' | 'CheckpointTooLarge' | Stop }
 
 type SaveResult =
   | {
       readonly __typename: 'QuratorSession'
       readonly id: string
       readonly version: number
+      readonly updatedAt: Date
+      readonly package: { readonly revisedAt: Date } | null
     }
-  | { readonly __typename: 'InvalidInput'; readonly errors: readonly { name: string }[] }
+  | {
+      readonly __typename: 'InvalidInput'
+      readonly errors: readonly { name: string; path?: string | null }[]
+    }
   | { readonly __typename: 'OperationError'; readonly name: string }
 
 const OUTCOMES = ['Conflict', 'NotFound', 'TooLarge', 'BadEnvelope', 'Disabled'] as const
 
+/** A package revised before the session's last save lags it, as when a push failed. */
+export const isPackaged = (s: { updatedAt: Date; package: { revisedAt: Date } | null }) =>
+  !!s.package && s.package.revisedAt >= s.updatedAt
+
 export function outcomeOf(r: SaveResult): SaveOutcome {
   if (r.__typename === 'QuratorSession')
-    return { _tag: 'Saved', id: r.id, version: r.version }
+    return { _tag: 'Saved', id: r.id, version: r.version, packaged: isPackaged(r) }
+  if (
+    r.__typename === 'InvalidInput' &&
+    r.errors[0]?.name === 'TooLarge' &&
+    r.errors[0]?.path === 'input.checkpoint'
+  )
+    return { _tag: 'CheckpointTooLarge' }
   const name = r.__typename === 'InvalidInput' ? r.errors[0]?.name : r.name
   const known = OUTCOMES.find((o) => o === name)
   return { _tag: known ?? 'Failed' }
@@ -317,8 +344,13 @@ export function createSaveQueue<T>({
       .catch((): SaveOutcome => ({ _tag: 'Failed' }))
       .then((r) => {
         s.inFlight = false
-        if (checkpoint && r._tag === 'Saved') s.checkpointed = events
+        if (checkpoint && r._tag === 'Saved' && r.packaged) s.checkpointed = events
         switch (r._tag) {
+          case 'CheckpointTooLarge':
+            // The draft is saved again without it, and not checkpointed until it changes.
+            s.checkpointed = events
+            s.sent = null
+            break
           case 'Saved':
             s.id = r.id
             s.version = r.version

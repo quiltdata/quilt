@@ -4,12 +4,14 @@ mutation ($input: QuratorSessionSaveInput!) {
     ... on QuratorSession {
       id
       version
+      updatedAt
       package {
         revisedAt
       }
     }
     ... on InvalidInput {
       errors {
+        path
         name
         context
       }

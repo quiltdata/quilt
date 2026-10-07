@@ -465,7 +465,7 @@ export function useSessions(
           version: session.version,
           events,
           // A tab closed before its checkpoint leaves the package behind the draft.
-          packaged: !!session.package && session.package.revisedAt >= session.updatedAt,
+          packaged: Sessions.isPackaged(session),
         }
         dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
       }),

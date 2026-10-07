@@ -1346,24 +1346,25 @@ export interface QuratorSession {
   /** The `{v: 1, events: [...]}` envelope as saved. */
   readonly events: Scalars['JsonRecord']['output']
   readonly id: Scalars['ID']['output']
-  /** Null until the first checkpoint is saved as a package revision. */
+  /** The latest checkpoint pushed as a Quilt package; null until the first. */
   readonly package: Maybe<QuratorSessionPackage>
   readonly title: Scalars['String']['output']
   readonly updatedAt: Scalars['Datetime']['output']
   readonly version: Scalars['Int']['output']
 }
 
-/** The session rendered as package files, saved as a new revision of its package. */
+/** The files of a `quilt.qurator.session/1` package, as the client renders them. */
 export interface QuratorSessionCheckpointInput {
   readonly readme: Scalars['String']['input']
   readonly session: Scalars['JsonRecord']['input']
   readonly transcript: Scalars['String']['input']
 }
 
-/** The package revision a session was last checkpointed to. */
+/** A session's package in the stack's private sessions bucket, which no user role can read. */
 export interface QuratorSessionPackage {
   readonly __typename: 'QuratorSessionPackage'
   readonly bucket: Scalars['String']['output']
+  /** `<user id>/<session id>` */
   readonly name: Scalars['String']['output']
   readonly revisedAt: Scalars['Datetime']['output']
   readonly topHash: Scalars['String']['output']
@@ -1375,7 +1376,7 @@ export interface QuratorSessionPackage {
  */
 export interface QuratorSessionSaveInput {
   readonly baseVersion: InputMaybe<Scalars['Int']['input']>
-  /** At most 2 MiB, or the save is refused as `TooLarge`. */
+  /** Also push a package revision once the save commits; a failed push does not fail the save. */
   readonly checkpoint: InputMaybe<QuratorSessionCheckpointInput>
   readonly events: Scalars['JsonRecord']['input']
   readonly id: InputMaybe<Scalars['ID']['input']>
@@ -1384,7 +1385,8 @@ export interface QuratorSessionSaveInput {
 
 /**
  * `InvalidInput` names one of `NotFound`, `Conflict` (context `currentVersion`),
- * `BadEnvelope` or `TooLarge` (over 1 MiB); `OperationError` is `Disabled`.
+ * `BadEnvelope` or `TooLarge` (`input.events` over 1 MiB, or `input.checkpoint`
+ * over 2 MiB); `OperationError` is `Disabled`.
  */
 export type QuratorSessionSaveResult = InvalidInput | OperationError | QuratorSession
 

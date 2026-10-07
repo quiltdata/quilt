@@ -124,6 +124,26 @@ describe('components/Assistant/Model/Sessions', () => {
       expect(
         Sessions.outcomeOf({ __typename: 'OperationError', name: 'Disabled' })._tag,
       ).toBe('Disabled')
+      expect(
+        Sessions.outcomeOf({
+          __typename: 'InvalidInput',
+          errors: [{ name: 'TooLarge', path: 'input.checkpoint' }],
+        })._tag,
+      ).toBe('CheckpointTooLarge')
+    })
+
+    it('counts a save as packaged only once the package is revised past it', () => {
+      const session = (revisedAt: Date | null) =>
+        Sessions.outcomeOf({
+          __typename: 'QuratorSession',
+          id: 's',
+          version: 2,
+          updatedAt: at,
+          package: revisedAt && { revisedAt },
+        })
+      expect(session(new Date(at.getTime() + 1))).toMatchObject({ packaged: true })
+      expect(session(new Date(at.getTime() - 1))).toMatchObject({ packaged: false })
+      expect(session(null)).toMatchObject({ packaged: false })
     })
   })
 
@@ -146,10 +166,15 @@ describe('components/Assistant/Model/Sessions', () => {
       return { queue, send: sendSpy, created, stopped }
     }
 
-    const saved = (id: string, version: number): Sessions.SaveOutcome => ({
+    const saved = (
+      id: string,
+      version: number,
+      packaged = true,
+    ): Sessions.SaveOutcome => ({
       _tag: 'Saved',
       id,
       version,
+      packaged,
     })
 
     it('debounces, keeps one save in flight, and chains the version it returned', async () => {
@@ -354,6 +379,41 @@ describe('components/Assistant/Model/Sessions', () => {
           { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
           { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
         ])
+      })
+
+      it('tries again at the next trigger when the push did not land', async () => {
+        const outcomes = [saved('s', 1), saved('s', 2, false), saved('s', 3)]
+        const { queue, send } = setup(async () => outcomes.shift()!)
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(checkpoints(send).map((r) => r.baseVersion)).toEqual([1, 2])
+      })
+
+      it('saves the draft alone when the registry refuses the checkpoint as too large', async () => {
+        const outcomes = [
+          saved('s', 1),
+          { _tag: 'CheckpointTooLarge' as const },
+          saved('s', 2),
+        ]
+        const { queue, send, stopped } = setup(async () => outcomes.shift()!)
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(send.mock.calls.map(([r]) => r)).toEqual([
+          { id: null, baseVersion: null, events: 'a' },
+          { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
+          { id: 's', baseVersion: 1, events: 'a' },
+        ])
+        expect(stopped).toEqual([])
       })
 
       it('sends none while paused', async () => {
