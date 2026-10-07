@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faraday · Session runner</title>
+<style>
+:root{color-scheme:light;--ink:#182c2a;--muted:#647370;--line:#dce3df;--paper:#f5f7f3;--accent:#d8ecad;--dark:#213d35}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,-apple-system,sans-serif}
+header{padding:23px 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:15px;background:#fff}
+.mark{width:36px;height:36px;border-radius:10px;background:var(--dark);color:var(--accent);display:grid;place-items:center;font:24px Georgia,serif}
+h1{font-size:21px;letter-spacing:-.5px;margin:0}header p{margin:0;color:var(--muted);font-size:12px}.tag{margin-left:auto;border:1px solid var(--line);padding:4px 10px;border-radius:20px;font-size:12px;color:var(--muted)}
+.layout{max-width:1540px;margin:auto;display:grid;grid-template-columns:320px minmax(0,1fr);min-height:calc(100vh - 84px)}
+aside{padding:26px 24px;border-right:1px solid var(--line)}main{padding:28px 32px;min-width:0}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;color:var(--muted);margin:0 0 15px}
+label{display:block;font-size:12px;font-weight:650;margin-bottom:7px}input,textarea,select{font:inherit;color:var(--ink);width:100%;border:1px solid #bac9c1;border-radius:8px;background:white;padding:10px 12px;min-width:0}textarea{resize:vertical;line-height:1.5}input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid #60944c;outline-offset:2px}
+.field{margin-bottom:18px}button{font:600 13px system-ui;cursor:pointer;border:1px solid #b9c8be;background:white;color:var(--ink);border-radius:8px;padding:10px 15px}button:hover{background:#edf2e7}button:disabled{opacity:.5;cursor:wait}.primary{background:var(--dark);color:white;border-color:var(--dark)}.primary:hover{background:#36594c}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}.small{font-size:12px;color:var(--muted)}.divider{border:0;border-top:1px solid var(--line);margin:24px 0}
+details summary{cursor:pointer;font-weight:600;font-size:13px}details[open] summary{margin-bottom:12px}code,.mono{font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}.config{margin-top:24px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.config span{display:block;margin-top:6px}
+.title-row{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:16px}h2{font-size:24px;letter-spacing:-.5px;margin:0;overflow-wrap:anywhere}.pill{font-size:11px;background:#e6ecdf;border-radius:20px;padding:5px 12px;white-space:nowrap}.pill.running{background:#fff0c9}.pill.failed{background:#fae0da}.hash{margin-top:5px;color:var(--muted);font-size:11px;word-break:break-all}
+#notice{padding:12px 15px;border:1px solid var(--line);border-radius:9px;background:#fff;margin-bottom:20px;font-size:13px}#notice.error{background:#fff1ec;border-color:#e7b6a7;color:#852e21}#notice.busy{background:#fff8df;border-color:#e6d598}
+.composer{border:1px solid var(--line);border-radius:12px;padding:18px;background:#fff;margin-bottom:24px}.composer textarea{background:#f8faf6;border-color:var(--line)}.composer-bottom{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:16px}.composer-bottom p{margin:0;font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:22px;overflow-x:auto}.tabs button{border:0;border-radius:0;background:none;padding:10px 0 13px;color:var(--muted);white-space:nowrap}.tabs button[aria-selected=true]{color:var(--ink);box-shadow:inset 0 -2px var(--ink)}
+.empty{padding:38px 22px;text-align:center;border:1px dashed #bdcbbd;border-radius:12px;color:var(--muted)}.empty b{display:block;font-size:17px;color:var(--ink);margin-bottom:7px}.message{border:1px solid var(--line);border-radius:11px;background:#fff;padding:18px 20px;margin-bottom:14px}.message.user{background:#edf3e5;border-color:#d7e4c9}.role{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:10px}
+pre{font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.message .text{white-space:pre-wrap;overflow-wrap:anywhere}.tool{margin-top:12px;padding:10px 12px;background:#f5f7f3;border-radius:6px}.tool summary{font:12px ui-monospace,SFMono-Regular,monospace}.tool pre{margin-top:10px;font-size:12px}.files-grid{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px}.file-list{display:flex;flex-direction:column;gap:7px}.file-list button{text-align:left;overflow-wrap:anywhere;font-size:12px}.file-list button.active{background:var(--accent);border-color:#acbf8d}.preview{background:#fff;padding:20px;border:1px solid var(--line);border-radius:10px;min-width:0}.preview h3{font-size:13px;margin:0 0 18px;overflow-wrap:anywhere}.run-card{padding:17px 20px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:12px}.run-top{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.run-card p{margin:10px 0}.run-card .small{overflow-wrap:anywhere}#instructions{background:white;border:1px solid var(--line);border-radius:10px;padding:20px}.hidden,[hidden]{display:none!important}
+@media(max-width:850px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 18px}header{padding:18px}.files-grid{grid-template-columns:1fr}.config{margin-top:14px}.composer-bottom{align-items:flex-start}.tabs{gap:18px}h2{font-size:20px}}
+</style>
+</head>
+<body>
+<header><div class="mark" aria-hidden="true">ƒ</div><div><h1>Faraday</h1><p>Package-backed sessions</p></div><span class="tag">Local runner</span></header>
+<div class="layout">
+<aside>
+  <p class="eyebrow">Session workspace</p>
+  <div class="field"><label for="registry">Package bucket</label><input id="registry" value="s3://protology" spellcheck="false"></div>
+  <div class="field"><label for="package">Session package</label><input id="package" value="faraday/demo" spellcheck="false"></div>
+  <div class="actions"><button id="load">Load session</button><button id="refresh">Find sessions</button></div>
+  <div id="session-picker" class="field hidden" style="margin-top:18px"><label for="sessions">Saved Faraday sessions</label><select id="sessions"><option value="">Choose a session…</option></select></div>
+  <hr class="divider">
+  <details id="create-panel"><summary>Create a session</summary>
+    <p class="small">Uses the bucket and package name above. Instructions become the session's AGENTS.md.</p>
+    <div class="field"><label for="agents">System prompt</label><textarea id="agents" rows="8"># Faraday
+
+You review scientific data packages. Cite source files and distinguish evidence from inference. Read session inputs with session_read. Save reports under outputs/ with session_write. Do not modify source packages.</textarea></div>
+    <button id="create" class="primary">Create package</button>
+  </details>
+  <div class="config"><b>Execution settings</b><span id="model">Connecting to local harness…</span><span id="backend"></span><p>AWS and MCP credentials stay in the Python process. Configure them in your shell before starting the harness.</p></div>
+</aside>
+<main>
+  <div class="title-row"><div><p class="eyebrow">Runner / viewer</p><h2 id="heading">Open a session to begin</h2><div id="hash" class="hash mono"></div></div><span id="status" class="pill">No session</span></div>
+  <div id="notice" role="status" aria-live="polite">Load a package or create a new session. Nothing runs automatically.</div>
+  <section class="composer" aria-label="Run a task">
+    <label for="task">What should Faraday do?</label><textarea id="task" rows="3" placeholder="Read the session inputs and write a report on missing metadata."></textarea>
+    <div class="composer-bottom"><p id="run-hint">Each run saves a new package version.</p><button id="run" class="primary" disabled>Run task ↗</button></div>
+  </section>
+  <div class="tabs" role="tablist" aria-label="Session views">
+    <button role="tab" id="tab-conversation" aria-controls="conversation" aria-selected="true" data-tab="conversation">Conversation</button>
+    <button role="tab" id="tab-files" aria-controls="files" aria-selected="false" data-tab="files">Files</button>
+    <button role="tab" id="tab-instructions" aria-controls="instructions" aria-selected="false" data-tab="instructions">AGENTS.md</button>
+    <button role="tab" id="tab-runs" aria-controls="runs" aria-selected="false" data-tab="runs">Run history</button>
+  </div>
+  <section id="conversation" role="tabpanel" aria-labelledby="tab-conversation"><div class="empty"><b>A session is a Quilt package.</b>Its instructions, conversation, and outputs travel together.</div></section>
+  <section id="files" role="tabpanel" aria-labelledby="tab-files" hidden><div class="files-grid"><div id="file-list" class="file-list"></div><div class="preview"><h3 id="file-title">Select a file</h3><pre id="file-content">UTF-8 previews up to 512 KiB. Files are read from the loaded package version.</pre></div></div></section>
+  <section id="instructions" role="tabpanel" aria-labelledby="tab-instructions" hidden><pre id="system-prompt">Load a session to view its system prompt.</pre></section>
+  <section id="runs" role="tabpanel" aria-labelledby="tab-runs" hidden></section>
+</main>
+</div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let current = null, busy = false, online = false;
+function node(tag, text, className) { const el = document.createElement(tag); if(text !== undefined) el.textContent = text; if(className) el.className = className; return el; }
+function selection() { return {registry: $('registry').value.trim().replace(/\/$/, ''), package: $('package').value.trim()}; }
+function matches() { const s = selection(); return current && s.registry === current.session.registry && s.package === current.session.package; }
+function updateButtons() { for(const id of ['load','refresh','create']) $(id).disabled = busy || !online; $('run').disabled = busy || !online || !matches() || !$('task').value.trim(); $('registry').disabled = busy; $('package').disabled = busy; $('sessions').disabled = busy; }
+function notice(text, kind='') { $('notice').textContent=text; $('notice').className=kind; }
+function setStatus(text) { $('status').textContent=text.replaceAll('_',' '); $('status').className='pill' + (text==='running'?' running':['failed','incomplete','limit_reached'].includes(text)?' failed':''); }
+async function api(path, body) { const response = await fetch(path, body === undefined ? {} : {method:'POST', headers:{'Content-Type':'application/json','X-Faraday-Runner':'1'}, body:JSON.stringify(body)}); const data=await response.json(); if(!response.ok) throw new Error(data.error || `Request failed (${response.status})`); return data; }
+async function action(message, work) { if(busy) return; busy=true; updateButtons(); notice(message,'busy'); const start=Date.now(); const timer=setInterval(()=>notice(`${message} ${Math.floor((Date.now()-start)/1000)}s elapsed.`,'busy'),1000); try { await work(); } catch(error) { notice(error.message,'error'); } finally { clearInterval(timer); busy=false; if(current) setStatus(current.state.status); updateButtons(); } }
+function showTab(name) { for(const tab of document.querySelectorAll('[data-tab]')) { const active=tab.dataset.tab===name; tab.setAttribute('aria-selected',String(active)); $(tab.dataset.tab).hidden=!active; } }
+for(const tab of document.querySelectorAll('[data-tab]')) tab.addEventListener('click',()=>showTab(tab.dataset.tab));
+function detail(parent, title, value) { const el=node('details',undefined,'tool'); el.append(node('summary',title),node('pre',typeof value==='string'?value:JSON.stringify(value,null,2))); parent.append(el); }
+function render(snapshot) {
+  current=snapshot; $('heading').textContent=snapshot.session.package; $('hash').textContent=`${snapshot.session.registry} · ${snapshot.session.top_hash}`; setStatus(snapshot.state.status); $('system-prompt').textContent=snapshot.agents;
+  const transcript=$('conversation'); transcript.replaceChildren();
+  for(const message of snapshot.messages) { const card=node('article',undefined,`message ${message.role==='user'?'user':'assistant'}`); card.append(node('div',message.role==='user'?'User / tool results':'Faraday','role'));
+    for(const block of message.content || []) {
+      if(block.text!==undefined) { if(block.text.startsWith('Session package context (data):')) detail(card,'Package context',block.text); else card.append(node('div',block.text,'text')); }
+      else if(block.toolUse) detail(card,`Tool call · ${block.toolUse.name}`,block.toolUse.input);
+      else if(block.toolResult) detail(card,`Tool result · ${block.toolResult.status || 'success'}`,block.toolResult);
+      else detail(card,'Content block',block);
+    } transcript.append(card);
+  }
+  if(!snapshot.messages.length) transcript.append(node('div','Session ready. Run the first task above.','empty'));
+  $('file-list').replaceChildren(); $('file-title').textContent='Select a file'; $('file-content').textContent='Read a file from this package version.';
+  for(const file of snapshot.files) { const button=node('button',file); button.addEventListener('click',()=>action(`Reading ${file}…`,async()=>{ const data=await api('/api/file',{session:{registry:current.session.registry,package:current.session.package},top_hash:current.session.top_hash,path:file}); $('file-title').textContent=file; $('file-content').textContent=data.text; for(const other of $('file-list').children) other.classList.toggle('active',other===button); notice(`Loaded ${file}.`); })); $('file-list').append(button); }
+  $('runs').replaceChildren(); for(const run of [...snapshot.state.runs].reverse()) { const card=node('article',undefined,'run-card'); const top=node('div',undefined,'run-top'); top.append(node('strong',run.status.replaceAll('_',' ')),node('span',new Date(run.started_at).toLocaleString(),'small')); card.append(top,node('p',run.task),node('div',`${run.turns} model calls · ${run.usage.totalTokens || 0} tokens · ${run.model}`,'small'),node('div',`Run ${run.id}`,'small mono')); if(run.error_type) card.append(node('p',run.error_type,'small')); if(run.output) card.append(node('div',run.output,'small mono')); $('runs').append(card); }
+  if(!snapshot.state.runs.length) $('runs').append(node('div','No runs yet.','empty')); updateButtons();
+}
+async function loadSelected() { const data=await api('/api/session',{session:selection()}); render(data); return data; }
+$('load').addEventListener('click',()=>action('Loading session…',async()=>{await loadSelected();notice('Session loaded. Instructions and history are ready.');}));
+$('refresh').addEventListener('click',()=>action('Finding sessions…',async()=>{const data=await api('/api/sessions',{session:selection()});$('sessions').replaceChildren(node('option',data.packages.length?'Choose a session…':'No Faraday sessions yet'));$('sessions').firstChild.value='';for(const name of data.packages){const option=node('option',name);option.value=name;$('sessions').append(option);}$('session-picker').classList.remove('hidden');notice(`Found ${data.packages.length} sessions in ${selection().registry}.`);}));
+$('sessions').addEventListener('change',()=>{if(!$('sessions').value)return;$('package').value=$('sessions').value;updateButtons();$('load').click();});
+$('create').addEventListener('click',()=>action('Creating session package…',async()=>{await api('/api/invoke',{action:'init',session:selection(),agents:$('agents').value});await loadSelected();$('create-panel').open=false;notice('Session created. Its AGENTS.md is now the system prompt.');}));
+$('run').addEventListener('click',()=>action('Faraday is running. Keep this page open…',async()=>{setStatus('running');const result=await api('/api/invoke',{session:selection(),task:$('task').value});$('task').value='';await loadSelected();showTab('conversation');notice(`Run ${result.status.replaceAll('_',' ')} · ${result.turns} model calls · ${result.usage.totalTokens || 0} tokens.${result.error_type?' '+result.error_type:''}`,result.status==='completed'?'':'error');}));
+for(const id of ['registry','package','task']) $(id).addEventListener('input',()=>{updateButtons();if(current&&!matches())notice('The selection changed. Load this session before running a task.');});
+window.addEventListener('beforeunload',event=>{if(busy){event.preventDefault();event.returnValue='';}});
+async function boot() { updateButtons(); if(location.protocol==='file:'){notice('Start the local harness: uv run python tests/serve.py — then open http://127.0.0.1:8787','error');$('model').textContent='Local harness required';return;} try{const config=await api('/api/config');$('registry').value=config.registry; $('model').textContent=`Model · ${config.model}`;$('backend').textContent=`${config.region || 'Default AWS region'} · ${config.mcp?'Platform MCP connected on use':'Session tools only'}`;online=true;updateButtons();}catch(error){notice(`Cannot reach the harness: ${error.message}`,'error');} }
+boot();
+</script>
+</body>
+</html>
