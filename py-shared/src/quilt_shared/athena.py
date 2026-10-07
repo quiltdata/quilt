@@ -186,8 +186,9 @@ class QueryRunner:
             deadline: A `time.monotonic()` value to give up at. A start or poll that is throttled, or fails on the
                 server's side (a 5xx) or the network's, is retried until then; any other error raises. Past it, or
                 when this raises, every query it has seen start and not seen finish is stopped, best effort, and every
-                statement not run to completion comes back as None. The stops run after the deadline, so leave room
-                for them. Without a deadline, every error raises.
+                statement not run to completion comes back as None. It is checked between passes, so the pass under
+                way, each call's own timeouts and the stops can run past it: leave room for them. Without a deadline,
+                every error raises.
 
         Returns:
             list[QueryExecutionTypeDef]: List of query execution results in the same order as input queries.
