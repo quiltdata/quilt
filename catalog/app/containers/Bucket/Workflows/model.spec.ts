@@ -167,7 +167,7 @@ describe('containers/Bucket/Workflows/model', () => {
     expect(v('^(?P<lab>[a-z]+)/(?P=lab)$')).toBeUndefined()
     expect(v('(?i)^lab/')).toBeUndefined()
     expect(v('^lab/\\Z')).toBeUndefined()
-    expect(v('^(?P<x')).toMatch('not valid')
+    expect(v('^(?P<x')).toMatch("won't work")
     // unchanged patterns are left to the push
     expect(v('^(?P<x', '^(?P<x')).toBeUndefined()
   })
@@ -252,8 +252,8 @@ describe('containers/Bucket/Workflows/model', () => {
         .namePattern
     expect(v('^(?P<ns>lab)/')).toBeUndefined()
     expect(v('^lab\\-\\w+/')).toBeUndefined()
-    expect(v('^\\p{L}+/')).toMatch('pushes reject')
-    expect(v('(')).toMatch('not valid')
+    expect(v('^\\p{L}+/')).toMatch("won't work")
+    expect(v('(')).toMatch("won't work")
   })
 
   it('trims field names', () => {
@@ -327,6 +327,16 @@ describe('containers/Bucket/Workflows/model', () => {
     const config = {
       version: '1',
       successors: { 's3://prod/sub/': { title: 'Sub', extra: 1 } },
+    }
+    expect(
+      model.applyPromote(config, model.promoteFromConfig(config)).successors,
+    ).toEqual(config.successors)
+  })
+
+  it('keeps a successor key with a trailing slash and its extra keys', () => {
+    const config = {
+      version: '1',
+      successors: { 's3://prod/': { title: 'P', extra: 1 } },
     }
     expect(
       model.applyPromote(config, model.promoteFromConfig(config)).successors,

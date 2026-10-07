@@ -14,13 +14,8 @@ export const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
 // Schema `pattern`s run with Python `re` on push: translate them like name patterns, and
 // let ones the browser can't reproduce pass here (push still enforces them).
 const pythonRegExp = (source: string) => {
-  const t = Workflows.translatePattern(source)
-  if ('error' in t) return { test: () => true }
-  try {
-    return new RegExp(t.source, t.unicode ? 'u' : '')
-  } catch {
-    return { test: () => true }
-  }
+  const a = Workflows.analyzePattern(source)
+  return a._tag === 'ok' ? a.regex : { test: () => true }
 }
 pythonRegExp.code = 'pythonRegExp'
 

@@ -36,6 +36,13 @@ interface Loaded {
   hasComments: boolean
 }
 
+// Comments, anchors and aliases are lost when the file is rewritten. Quoted strings are
+// skipped, so a `#` in a quoted value isn't mistaken for a comment.
+function hasHandWrittenParts(text: string) {
+  const unquoted = text.replace(/"(?:[^"\\]|\\.)*"|'(?:[^']|'')*'/g, '""')
+  return /(^|\s)#/m.test(unquoted) || /(^|[\s[{,])[&*][\w-]+/m.test(unquoted)
+}
+
 async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
   let r
   try {
@@ -70,7 +77,7 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
     version: r.VersionId,
     etag: r.ETag,
     exists: true,
-    hasComments: /(^|\s)#/m.test(text),
+    hasComments: hasHandWrittenParts(text),
   }
 }
 
@@ -266,6 +273,7 @@ function useStartFromPackage(bucket: string) {
           skipEntries: true,
         })
         .toPromise()
+      if (r.error) throw new Error(`Couldn't read that package: ${r.error.message}`)
       const meta = r.data?.package?.revision?.userMeta
       if (!r.data?.package?.revision)
         throw new Error(`No package "${name}" in this bucket`)

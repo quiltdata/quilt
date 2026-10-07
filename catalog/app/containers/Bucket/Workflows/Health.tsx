@@ -137,7 +137,7 @@ function TryIt({ workflow, metadataSchema, entriesSchema }: TryItProps) {
           </M.List>
         ) : (
           <M.Typography variant="body2">
-            Passes this flow's name, message and metadata rules.
+            Passes this flow&apos;s name, message and metadata rules.
           </M.Typography>
         )}
       </M.Box>

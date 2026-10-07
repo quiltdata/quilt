@@ -9,7 +9,6 @@ import { useBucketStrict } from 'containers/Bucket/Routes'
 import { NotFoundInTabs } from 'containers/NotFound'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import * as routes from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
@@ -36,9 +35,10 @@ const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder
 function LegacyWorkflowsRedirect() {
   const { bucket, slug } = useParams<{ bucket: string; slug?: string }>()
   const { search, hash } = useLocation()
+  const { urls } = NamedRoutes.use<RouteMap>()
   const pathname = slug
-    ? routes.bucketWorkflowDetail.url(bucket, slug)
-    : routes.bucketWorkflowList.url(bucket)
+    ? urls.bucketWorkflowDetail(bucket, slug)
+    : urls.bucketWorkflowList(bucket)
   return <Redirect to={{ pathname, search, hash }} />
 }
 
@@ -144,7 +144,7 @@ export default function Bucket() {
           <Route path={paths.bucketWorkflowDetail} exact>
             <Workflows />
           </Route>
-          <Route path={routes.legacyBucketWorkflows.path} exact>
+          <Route path={paths.legacyBucketWorkflows} exact>
             <LegacyWorkflowsRedirect />
           </Route>
           <Route>

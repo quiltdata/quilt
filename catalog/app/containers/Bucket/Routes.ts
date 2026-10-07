@@ -19,6 +19,7 @@ export interface RouteMap {
   bucketPackageTree: routes.BucketPackageTreeArgs
   bucketWorkflowDetail: routes.BucketWorkflowDetailArgs
   bucketWorkflowList: routes.BucketWorkflowListArgs
+  legacyBucketWorkflows: Parameters<typeof routes.legacyBucketWorkflows.url>
 }
 
 export function useBucketSafe() {

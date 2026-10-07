@@ -261,12 +261,12 @@ describe('utils/workflows', () => {
       workflows:
         a:
           name: A
-          handle_pattern: "^(?P<lab>[a-z]+)/"
+          handle_pattern: "^(?P<lab>[a-z]+)/(?P=lab)$"
     `
     it('keeps the config usable and records why the pattern is skipped', () => {
       const w = workflows.parse(data, 'foo').workflows[1]
       expect(w.packageNamePattern).toBe(null)
-      expect(w.packageNamePatternError).toMatch('Invalid')
+      expect(w.packageNamePatternError).toMatch('(?P=')
     })
   })
   describe('Python-only anchors', () => {
@@ -276,7 +276,7 @@ describe('utils/workflows', () => {
         'foo',
       ).workflows[1]
       expect(w.packageNamePattern).toBe(null)
-      expect(w.packageNamePatternError).toMatch('Python-only')
+      expect(w.packageNamePatternError).toMatch('\\Z')
     })
   })
 
@@ -344,6 +344,36 @@ describe('utils/workflows', () => {
       const w = pattern('^[^]]\\w/')
       expect(w.packageNamePattern?.test('aé/')).toBe(true)
       expect(w.packageNamePattern?.test(']é/')).toBe(false)
+    })
+  })
+  describe('analyzePattern', () => {
+    const tag = (p: string) => workflows.analyzePattern(p)._tag
+    const ok = (p: string, yes: string, no: string) => {
+      const a = workflows.analyzePattern(p)
+      if (a._tag !== 'ok') throw new Error(`${p}: ${a._tag}`)
+      expect(a.regex.test(yes)).toBe(true)
+      expect(a.regex.test(no)).toBe(false)
+    }
+
+    it('translates Python syntax that has an exact JS equivalent', () => {
+      ok('^(?P<lab>[a-z]+)/', 'abc/x', '1/x')
+      ok('^lab\\–x', 'lab–x', 'labux')
+      ok('(?#team prefix)^lab/', 'lab/x', 'x/lab')
+      ok('^lab\\😀', 'lab😀', 'lab')
+    })
+
+    it('leaves valid Python it cannot reproduce to the push', () => {
+      expect(tag('(?>a)b')).toBe('uncheckable')
+      expect(tag('a*+b')).toBe('uncheckable')
+      expect(tag('(?x) ^lab/ # (team prefix')).toBe('uncheckable')
+      expect(tag('\\A\\d+\\Z')).toBe('uncheckable')
+    })
+
+    it('rejects what Python would reject', () => {
+      expect(tag('^\\p{L}+/')).toBe('invalid')
+      expect(tag('(')).toBe('invalid')
+      expect(tag('a)')).toBe('invalid')
+      expect(tag('[ab')).toBe('invalid')
     })
   })
 })
