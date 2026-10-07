@@ -46,6 +46,22 @@ The Developer Tools menu (upper right of the Qurator chat window) provides:
   (or clear) the resulting JSON log. Useful for tuning or debugging prompts
   and capturing structured results.
 
+### Approving Actions
+
+Qurator runs tools that only read (search, browse, preview) on its
+own. Before it runs a tool that changes data, such as creating or updating a
+package, writing an S3 object, or changing a Tabulator table, it shows what it
+wants to do and waits:
+
+- **Run** — the tool runs under your own permissions.
+- **Don't run** — nothing is written; Qurator is told you declined.
+
+Tools their server marks destructive carry a warning. Approval is
+asked for each call, and only you can give it: content Qurator reads cannot.
+
+Athena queries run without asking because they can only read: the Platform
+MCP Server refuses statements that create, change or delete tables or data.
+
 ### Connector Status
 
 Qurator's chat input shows the live connection status of each tool backend
