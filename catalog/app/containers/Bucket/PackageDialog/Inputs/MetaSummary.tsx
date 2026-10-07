@@ -64,7 +64,11 @@ export default function MetaSummary({ onOpen, schema, state }: MetaSummaryProps)
     invalidKeys(state.status._tag === 'error' ? state.status.errors : []),
   )
   const filled = required.filter((f) => f.filled && !f.invalid).length
-  const fields = Object.keys(state.value || {}).length
+  const props: Record<string, any> = s?.properties || {}
+  const defaulted = Object.keys(props).filter(
+    (k) => !Object.hasOwn(state.value || {}, k) && props[k]?.default !== undefined,
+  ).length
+  const fields = Object.keys(state.value || {}).length + defaulted
   const ok = state.status._tag === 'ok'
   // with nothing required, an empty form is not "done", just empty
   const complete = ok && (required.length ? filled === required.length : fields > 0)

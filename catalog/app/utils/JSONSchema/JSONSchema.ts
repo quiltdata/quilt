@@ -274,10 +274,13 @@ function scanSchemaAndPrefillValues(
 
   if (!optSchema?.properties) return value
 
-  // null, primitives and arrays have no properties to prefill (null array items included)
+  // null has no properties to prefill and would throw below; with keepSet the same holds
+  // for other primitives and arrays, which without keepSet keep their old handling
+  if (value === null) return value
   if (
+    keepSet &&
     value !== undefined &&
-    (value === null || typeof value !== 'object' || Array.isArray(value))
+    (typeof value !== 'object' || Array.isArray(value))
   )
     return value
 
@@ -285,7 +288,7 @@ function scanSchemaAndPrefillValues(
     const valueItem = value === undefined ? undefined : value[key]
 
     // don't touch user's primitive value; with keepSet, false, 0 and null count as set too
-    const isSet = keepSet ? valueItem !== undefined && valueItem !== '' : !!valueItem
+    const isSet = keepSet ? valueItem !== undefined : !!valueItem
     if (isSet && !R.is(Object, valueItem)) return memo
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
@@ -317,7 +320,7 @@ function scanSchemaAndPrefillValues(
 
     const preDefinedValue = getValue(schemaItem)
     if (keepSet) {
-      const unset = valueItem === undefined || valueItem === ''
+      const unset = valueItem === undefined
       return unset && preDefinedValue !== undefined
         ? R.assoc(key, preDefinedValue, memo)
         : memo

@@ -34,7 +34,8 @@ export const getMetaValue = (
   optSchema?: JsonSchema,
   { keepSet = false }: { keepSet?: boolean } = {},
 ) =>
-  value
+  // keepSet (guided) validates `value || {}`, so submit must apply defaults to {} too
+  value || keepSet
     ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema, { keepSet }),
         R.toPairs,

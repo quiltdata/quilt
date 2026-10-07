@@ -24,10 +24,10 @@ import type { SchemaStatus } from '../State/schema'
 import { pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
 import {
+  hasValue,
   humanizeError,
   invalidKeys,
   isAdvisoryError,
-  isFilled,
   requiredFields,
   topKey,
 } from '../State/metaGuide'
@@ -669,6 +669,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   // Form edits, like inline grid edits, reset the full-screen editor so it never saves a stale copy.
   const onChangeForm = onChangeInline
 
+  const { push: notify } = Notifications.use()
+
   // Suggestions are applied only if the metadata they produce, together, is no worse than now.
   const validateFull = React.useMemo(() => {
     if (!schema) return null
@@ -696,11 +698,21 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         }
       }
       if (kept) onChangeForm(next)
+      const total = Object.keys(picks).length
+      if (!kept) {
+        notify(
+          total === 1
+            ? 'That suggestion no longer fits the other metadata, so it was not used.'
+            : 'None of the suggestions fit the current metadata, so none were used.',
+        )
+      } else if (kept < total) {
+        notify(
+          `Used ${kept} of ${total} suggestions; the rest no longer fit the other fields.`,
+        )
+      }
     },
-    [onChangeForm, validateFull, value],
+    [notify, onChangeForm, validateFull, value],
   )
-
-  const { push: notify } = Notifications.use()
 
   // Table view would drop drafts the form holds, so it waits for them
   const showView = (v: 'form' | 'table') => {
@@ -866,7 +878,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             applySuggestions(
               Object.fromEntries(
                 Object.entries(suggested)
-                  .filter(([k]) => !isFilled(value?.[k]))
+                  .filter(([k]) => !hasValue(value?.[k], schema?.properties?.[k]))
                   .map(([k, sg]) => [k, sg.value]),
               ),
             )
@@ -899,7 +911,12 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                     insist
                       ? errors
                       : errors.filter(
-                          (e) => !('keyword' in e && e.keyword === 'required'),
+                          (e) =>
+                            !(
+                              'keyword' in e &&
+                              e.keyword === 'required' &&
+                              !e.instancePath
+                            ),
                         )
                   }
                   onChange={onChangeForm}

@@ -50,6 +50,8 @@ function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
 /** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
 export const NEW_FIELD = '\u0000new field'
 
+let fieldIds = 0
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 
 const useFieldStyles = M.makeStyles((t) => ({
@@ -169,7 +171,8 @@ function Field({
   if (!error && hasDefault) {
     helper = `Default: ${display(prop.default)}${prop.description ? ` · ${prop.description}` : ''}`
   }
-  const id = `meta-field-${name.replace(/[^\w-]/g, '_')}`
+  // a counter, not the key: "a.b" and "a_b" would collide once sanitized
+  const [id] = React.useState(() => `meta-field-${(fieldIds += 1)}`)
 
   const numeric = widget === 'integer' || widget === 'number'
   const [numText, setNumText] = React.useState(() =>

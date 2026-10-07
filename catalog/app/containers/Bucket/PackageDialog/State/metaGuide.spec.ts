@@ -3,7 +3,13 @@ import { describe, it, expect } from 'vitest'
 
 import { makeSchemaValidator } from 'utils/JSONSchema'
 
-import { fieldMessage, humanizeError, invalidKeys, requiredFields } from './metaGuide'
+import {
+  fieldMessage,
+  hasValue,
+  humanizeError,
+  invalidKeys,
+  requiredFields,
+} from './metaGuide'
 
 const schema = {
   type: 'object',
@@ -63,6 +69,16 @@ describe('containers/Bucket/PackageDialog/State/metaGuide', () => {
       expect(msgs({ project: 'p', assay: 'rna', lab: { pi: 1 } })).toEqual([
         'Must be a string',
       ])
+    })
+  })
+
+  describe('hasValue', () => {
+    it('counts "" for strings and null only where the schema allows it', () => {
+      expect(hasValue('', { type: 'string' })).toBe(true)
+      expect(hasValue('', { type: 'number' })).toBe(false)
+      expect(hasValue(null, { type: ['string', 'null'] })).toBe(true)
+      expect(hasValue(null, { type: 'string' })).toBe(false)
+      expect(hasValue(undefined, { type: 'string' })).toBe(false)
     })
   })
 

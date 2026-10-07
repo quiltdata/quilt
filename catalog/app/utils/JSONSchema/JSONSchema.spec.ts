@@ -346,6 +346,27 @@ describe('utils/JSONSchema', () => {
       })
     })
 
+    it('with keepSet, keeps an explicit empty string', () => {
+      const schema = {
+        type: 'object',
+        properties: { assay: { enum: ['', 'RNA'], default: 'RNA' } },
+      }
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({ assay: '' })).toEqual({
+        assay: '',
+      })
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({})).toEqual({
+        assay: 'RNA',
+      })
+    })
+
+    it('without keepSet, still replaces a falsy primitive under an object property', () => {
+      const schema = {
+        type: 'object',
+        properties: { obj: { properties: { a: { default: 1 } } } },
+      }
+      expect(makeSchemaDefaultsSetter(schema)({ obj: 0 })).toEqual({ obj: { a: 1 } })
+    })
+
     it('leaves null array items alone', () => {
       const schema = {
         type: 'object',
