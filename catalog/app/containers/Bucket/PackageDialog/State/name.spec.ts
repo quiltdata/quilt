@@ -10,9 +10,9 @@ interface QueryState {
 }
 
 let queryState: QueryState = {}
-let lock: unknown = null
+let lock = 'unlocked'
 
-vi.mock('../../PackageTree/PackageLock', () => ({ useLock: () => ({ lock }) }))
+vi.mock('utils/PackageLock', () => ({ useLockStatus: () => lock }))
 
 vi.mock('constants/config', () => ({
   default: {
@@ -61,13 +61,21 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
 
     it('refuses a locked destination before anything uploads', () => {
       queryState = { data: { package: { __typename: 'Package', name: 'some/package' } } }
-      lock = { hash: 'h' }
+      lock = 'locked'
       const status = run()
-      lock = null
+      lock = 'unlocked'
       expect(status).toMatchObject({
         _tag: 'error',
         error: { message: 'This package is locked; an admin must unlock it first' },
       })
+    })
+
+    it('stays loading while the lock is unknown', () => {
+      queryState = { data: { package: null } }
+      lock = 'loading'
+      const status = run()
+      lock = 'unlocked'
+      expect(status._tag).toBe('loading')
     })
 
     it('withholds absence when the check itself failed', () => {

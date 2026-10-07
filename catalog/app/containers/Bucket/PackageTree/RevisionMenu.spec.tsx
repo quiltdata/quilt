@@ -24,8 +24,18 @@ vi.mock('utils/BucketPreferences', async () => {
   return { ...actual, use: () => ({ prefs }) }
 })
 
+const f = () => {}
+
 const titles = (props: Partial<React.ComponentProps<typeof RevisionMenu>>) => {
-  const menu = render(<RevisionMenu className="" {...props} />)
+  const menu = render(
+    <RevisionMenu
+      className=""
+      onCreateFile={f}
+      onDelete={f}
+      onDeletePackage={f}
+      {...props}
+    />,
+  )
   const button = menu.container.querySelector('button')
   if (!button) return []
   fireEvent.click(button)
@@ -33,15 +43,16 @@ const titles = (props: Partial<React.ComponentProps<typeof RevisionMenu>>) => {
 }
 
 describe('containers/Bucket/PackageTree/RevisionMenu', () => {
-  it('offers each action whose handler is given', () => {
-    const f = () => {}
-    expect(
-      titles({ onCreateFile: f, onDelete: f, onDeletePackage: f, onLock: f }),
-    ).toEqual(['Create file', 'Delete revision', 'Delete package', 'Lock package'])
+  it('offers lock alongside the actions the preferences allow', () => {
+    expect(titles({ onLock: f })).toEqual([
+      'Create file',
+      'Delete revision',
+      'Delete package',
+      'Lock package',
+    ])
   })
 
-  it('hides actions whose handler is omitted, as on a locked package', () => {
-    expect(titles({ onLock: () => {} })).toEqual(['Lock package'])
-    expect(titles({})).toEqual([])
+  it('hides lock without its handler', () => {
+    expect(titles({})).toEqual(['Create file', 'Delete revision', 'Delete package'])
   })
 })

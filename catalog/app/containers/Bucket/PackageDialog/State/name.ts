@@ -7,12 +7,12 @@ import { useDebounce } from 'use-debounce'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import * as GQL from 'utils/GraphQL'
+import * as PackageLock from 'utils/PackageLock'
 import { NameTemplates, execTemplate } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import * as Request from 'utils/useRequest'
 import * as workflows from 'utils/workflows'
 
-import * as PackageLock from '../../PackageTree/PackageLock'
 import PACKAGE_EXISTS_QUERY from '../gql/PackageExists.generated'
 
 import type { FormStatus } from './form'
@@ -84,7 +84,7 @@ export function useNameExistence(
     dst as Required<PackageDst>,
     { pause },
   )
-  const { lock } = PackageLock.useLock(
+  const lock = PackageLock.useLockStatus(
     dst.bucket,
     dst.name ?? '',
     !dst.bucket || !dst.name,
@@ -92,7 +92,8 @@ export function useNameExistence(
   return React.useMemo(() => {
     if (!dst.bucket || !dst.name) return { _tag: 'idle' }
     // Files upload before the push, so a locked destination is refused here, not by it.
-    if (lock) {
+    if (lock === 'loading') return { _tag: 'loading' }
+    if (lock === 'locked') {
       return {
         _tag: 'error',
         error: new Error('This package is locked; an admin must unlock it first'),

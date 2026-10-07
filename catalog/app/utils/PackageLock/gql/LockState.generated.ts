@@ -4,42 +4,31 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
 export type Incremental<T> =
   | T
   | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never }
-import * as Types from '../../../../model/graphql/types.generated'
+import * as Types from '../../../model/graphql/types.generated'
 
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-export type containers_Bucket_PackageTree_gql_LockQueryVariables = Exact<{
+export type utils_PackageLock_gql_LockStateQueryVariables = Exact<{
   bucket: string
   name: string
 }>
 
-export interface containers_Bucket_PackageTree_gql_LockQuery {
+export interface utils_PackageLock_gql_LockStateQuery {
   readonly __typename: 'Query'
   readonly package: {
     readonly __typename: 'Package'
     readonly bucket: string
     readonly name: string
-    readonly lock: {
-      readonly __typename: 'PackageLock'
-      readonly hash: string
-      readonly lockedAt: Date
-      readonly lockedBy: string
-      readonly reason: string | null
-    } | null
-    readonly latest: {
-      readonly __typename: 'PackageRevision'
-      readonly hash: string
-      readonly modified: Date
-    } | null
+    readonly lock: { readonly __typename: 'PackageLock'; readonly hash: string } | null
   } | null
 }
 
-export const containers_Bucket_PackageTree_gql_LockDocument = {
+export const utils_PackageLock_gql_LockStateDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Bucket_PackageTree_gql_Lock' },
+      name: { kind: 'Name', value: 'utils_PackageLock_gql_LockState' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -88,28 +77,6 @@ export const containers_Bucket_PackageTree_gql_LockDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'lockedAt' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'lockedBy' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'reason' } },
-                    ],
-                  },
-                },
-                {
-                  kind: 'Field',
-                  alias: { kind: 'Name', value: 'latest' },
-                  name: { kind: 'Name', value: 'revision' },
-                  arguments: [
-                    {
-                      kind: 'Argument',
-                      name: { kind: 'Name', value: 'hashOrTag' },
-                      value: { kind: 'StringValue', value: 'latest', block: false },
-                    },
-                  ],
-                  selectionSet: {
-                    kind: 'SelectionSet',
-                    selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                     ],
                   },
                 },
@@ -121,8 +88,8 @@ export const containers_Bucket_PackageTree_gql_LockDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Bucket_PackageTree_gql_LockQuery,
-  containers_Bucket_PackageTree_gql_LockQueryVariables
+  utils_PackageLock_gql_LockStateQuery,
+  utils_PackageLock_gql_LockStateQueryVariables
 >
 
-export { containers_Bucket_PackageTree_gql_LockDocument as default }
+export { utils_PackageLock_gql_LockStateDocument as default }

@@ -566,7 +566,8 @@ function File() {
                       {BucketPreferences.Result.match(
                         {
                           Ok: ({ ui: { actions } }) =>
-                            actions.writeFile && (
+                            actions.writeFile &&
+                            editorState.writable && (
                               <FileEditor.AddFileButton onClick={editorState.onEdit} />
                             ),
                           _: () => null,
