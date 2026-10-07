@@ -491,10 +491,27 @@ describe('write approval', () => {
         expect(yield* Eff.Ref.get(runs)).toEqual({})
         if (final._tag !== 'Idle') throw new Error('not idle')
         expect(Eff.Option.getOrThrow(final.error).message).toMatch(
-          /repeated a tool-call id/,
+          /unusable tool-call id/,
         )
       }),
     ))
+
+  it.each(['__proto__', 'constructor'])('a tool-use id of %s runs nothing', (id) =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup(
+          [{ id, name: 'put', effect: 'write' }],
+          false,
+        )
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        if (final._tag !== 'Idle') throw new Error('not idle')
+        expect(Eff.Option.getOrThrow(final.error).message).toMatch(
+          /unusable tool-call id/,
+        )
+      }),
+    ),
+  )
 
   it('an answer for another card (wrong key) does nothing', () =>
     run(

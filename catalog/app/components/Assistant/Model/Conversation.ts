@@ -351,11 +351,12 @@ export const ConversationActor = Eff.Effect.succeed(
             }
 
             // Results are matched to calls by id, so a repeated id would let one
-            // call's result settle another (e.g. a read clearing a write's card).
+            // call's result settle another (e.g. a read clearing a write's card),
+            // and an id like `__proto__` is not an own key of the calls record.
             const ids = toolUses.map((tu) => tu.toolUseId)
-            if (new Set(ids).size !== ids.length) {
+            if (new Set(ids).size !== ids.length || ids.some((id) => id in {})) {
               return yield* idle(events, {
-                message: 'Qurator stopped: the model repeated a tool-call id.',
+                message: 'Qurator stopped: the model sent an unusable tool-call id.',
                 details: 'No tools were run. Ask again to continue.',
               })
             }
