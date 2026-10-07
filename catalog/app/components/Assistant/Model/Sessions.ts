@@ -527,7 +527,7 @@ export function createSaveQueue<T>({
           s.timer = null
           stopCheckpointTimers(s)
           s.stopped = true
-        } else if (s.latest !== s.sent) later(s, delayMs)
+        } else if (s.latest !== s.sent || s.checkpointDue) later(s, delayMs)
       }
     },
   }

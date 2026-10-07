@@ -416,6 +416,21 @@ describe('components/Assistant/Model/Sessions', () => {
         expect(stopped).toEqual([])
       })
 
+      it('sends one asked for while held once a delete fails', async () => {
+        const { queue, send } = setup(async () => saved('s', 1))
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.hold('s')
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(checkpoints(send)).toEqual([])
+        queue.release('s', false)
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(checkpoints(send)).toEqual([
+          { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
+        ])
+      })
+
       it('sends none while paused', async () => {
         const { queue, send } = setup(async () => saved('s', 1))
         queue.change('h', 'a')
