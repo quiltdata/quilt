@@ -46,7 +46,8 @@ export function useKeyboardFrame(): React.CSSProperties | undefined {
     if (!vv) return
     const update = () =>
       setFrame(
-        vv.height < window.innerHeight - 1
+        // A pinch-zoom shrinks the visual viewport too; only the keyboard should.
+        vv.scale === 1 && vv.height < window.innerHeight - 1
           ? { height: vv.height, transform: `translateY(${vv.offsetTop}px)` }
           : undefined,
       )
