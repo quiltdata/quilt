@@ -122,6 +122,7 @@ function MilestonesRoute() {
 }
 
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
+const Qurator = requireAuth()(RT.mkLazy(() => import('containers/Qurator'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -206,6 +207,10 @@ export default function App() {
 
       <Route path={paths.connectAuthorize} exact>
         <ConnectAuthorize />
+      </Route>
+
+      <Route path={paths.qurator} exact>
+        <Qurator />
       </Route>
 
       <Route path={paths.profile} exact>
