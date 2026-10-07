@@ -21,6 +21,7 @@ export type BucketConfigSelectionFragment = {
   readonly skipMetaDataIndexing: boolean | null
   readonly lastIndexed: Date | null
   readonly browsable: boolean
+  readonly objectTagsConfig: string | null
 }
 
 export const BucketConfigSelectionFragmentDoc = {
@@ -47,6 +48,7 @@ export const BucketConfigSelectionFragmentDoc = {
           { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },
           { kind: 'Field', name: { kind: 'Name', value: 'lastIndexed' } },
           { kind: 'Field', name: { kind: 'Name', value: 'browsable' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'objectTagsConfig' } },
         ],
       },
     },

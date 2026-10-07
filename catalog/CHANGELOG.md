@@ -24,6 +24,7 @@ complete sentence without it.
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Added] Buckets with a `.quilt/s3_tags.yml` can write chosen package metadata fields as S3 object tags when a package is created or revised in the catalog, with a preview in the package dialog ([#5430](https://github.com/quiltdata/quilt/pull/5430))
+- [Added] Admins choose which package metadata fields become S3 object tags for each bucket under Admin → Buckets, and the package dialog uses that mapping instead of `.quilt/s3_tags.yml` ([#5448](https://github.com/quiltdata/quilt/pull/5448))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
 - [Fixed] Qurator waits up to a minute for a free slot when other asks keep the stack busy, saying so while it waits, instead of failing with an HTTP 429 error, and reports an unavailable AI gateway at once instead of retrying it ([#5405](https://github.com/quiltdata/quilt/pull/5405))
 - [Fixed] Files, folders and package entries whose path contains a `%` open instead of crashing the page, including from a Quilt+ URI ([#5403](https://github.com/quiltdata/quilt/pull/5403))
