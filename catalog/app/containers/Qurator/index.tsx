@@ -35,6 +35,31 @@ function useInstallable(enabled: boolean) {
   }, [enabled])
 }
 
+// iOS doesn't shrink `100dvh` for the on-screen keyboard: it pans the page
+// instead, which pushes the header off and leaves the composer under the
+// keyboard. Size the page to the visible viewport while the keyboard is up.
+export function useKeyboardFrame(): React.CSSProperties | undefined {
+  const [frame, setFrame] = React.useState<React.CSSProperties>()
+  React.useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () =>
+      setFrame(
+        vv.height < window.innerHeight - 1
+          ? { height: vv.height, transform: `translateY(${vv.offsetTop}px)` }
+          : undefined,
+      )
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    update()
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+  return frame
+}
+
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
 }
@@ -83,8 +108,15 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     height: '100dvh',
     fallbacks: { height: '100vh' },
-    paddingBottom: 'env(safe-area-inset-bottom)',
+    inset: 0,
+    paddingLeft: 'env(safe-area-inset-left)',
+    paddingRight: 'env(safe-area-inset-right)',
     paddingTop: 'env(safe-area-inset-top)',
+    position: 'fixed',
+    // On phones the composer pads the bottom inset itself.
+    [t.breakpoints.up('sm')]: {
+      paddingBottom: 'env(safe-area-inset-bottom)',
+    },
   },
   bar: {
     alignItems: 'center',
@@ -111,9 +143,10 @@ export default function Qurator() {
   useInstallable(!!api)
   Intercom.usePauseVisibilityWhen(true)
   const toCatalog = React.useCallback(() => history.push(urls.home()), [history, urls])
+  const frame = useKeyboardFrame()
 
   return (
-    <div className={classes.root}>
+    <div className={classes.root} style={frame}>
       <div className={classes.bar}>
         <Logo variant="icon" height="28px" width="28px" />
         <div className={classes.grow} />
