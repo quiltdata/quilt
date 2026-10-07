@@ -22,10 +22,19 @@ export const EMBED_ID = 'hs-chat-panel'
 
 const conversations = () => (window as any).HubSpotConversations?.widget
 
-// The widget API exists only after the loader runs; queue until then.
+// The widget API exists only after the loader runs. Until then only the latest
+// load/remove matters, and a blocked loader never drains the queue, so keep one.
+let pending: (() => void) | null = null
 function whenReady(fn: () => void) {
-  if (conversations()) fn()
-  else ((window as any).hsConversationsOnReady ||= []).push(fn)
+  if (conversations()) return fn()
+  const queued = pending != null
+  pending = fn
+  if (queued) return
+  ;((window as any).hsConversationsOnReady ||= []).push(() => {
+    const run = pending
+    pending = null
+    run?.()
+  })
 }
 
 /** Renders HubSpot chat into `#EMBED_ID` while mounted; the element must exist first. */

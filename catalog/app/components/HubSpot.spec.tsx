@@ -91,9 +91,13 @@ describe('components/HubSpot', () => {
     )
     fireEvent.click(screen.getByText('show'))
     fireEvent.click(screen.getByText('hide'))
+    fireEvent.click(screen.getByText('show'))
+    fireEvent.click(screen.getByText('hide'))
+    // A blocked loader must not accumulate callbacks: one slot, latest op wins.
+    expect((window as any).hsConversationsOnReady).toHaveLength(1)
     ;(window as any).HubSpotConversations = { widget }
     ready()
-    expect(widget.load).toHaveBeenCalledTimes(1)
+    expect(widget.load).not.toHaveBeenCalled()
     expect(widget.remove).toHaveBeenCalledTimes(1)
   })
 

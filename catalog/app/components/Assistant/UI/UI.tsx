@@ -255,11 +255,11 @@ function Resizer({ className, width, onResize }: ResizerProps) {
   )
 }
 
-type Help = NonNullable<ReturnType<typeof HubSpot.useChat>>
+type HelpChat = NonNullable<ReturnType<typeof HubSpot.useChat>>
 
 interface PanelProps {
   api: ReturnType<typeof Model.useAssistantAPI> | null
-  help: Help | null
+  help: HelpChat | null
   // Which face the panel shows; `null` is the collapsed rail.
   mode: 'qurator' | 'help' | null
   compact: boolean
@@ -280,6 +280,9 @@ function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
   // Collapsing hands focus back to the rail button of the face that was open.
   const lastMode = React.useRef(mode)
   if (mode) lastMode.current = mode
+  // The compact overlay stays expanded while it slides shut: keep the face that
+  // was open, or closing Help would flash Qurator (and focus its input).
+  const face = mode ?? (compact ? lastMode.current : null)
   const open = mode != null
   const hide = (mode === 'help' ? help?.hide : api?.hide) ?? noop
   useEscapeToCollapse(open && !compact, hide)
@@ -314,7 +317,7 @@ function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
         {open && !compact && (
           <Resizer className={classes.resizer} width={width} onResize={onResize} />
         )}
-        {expanded && mode === 'help' && help ? (
+        {expanded && face === 'help' && help ? (
           <Help onClose={help.hide} />
         ) : expanded && api ? (
           <MemoChat
@@ -375,8 +378,8 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   const help = HubSpot.useChat()
   const helpOpen = !!help?.open
   const visible = !!api?.visible
-  // An inlined chat replaces the panel outright -- a docked rail would take a
-  // gutter for a second copy of the same conversation.
+  // An inlined chat replaces docked Qurator -- a docked rail would take a gutter
+  // for a second copy of the same conversation. Help still docks beside it.
   const qurator = !!api && !inlined
   // Layout effects, so the face being closed never paints for a frame. Only the
   // docked Qurator competes for the panel: an inline chat leaves Help alone.

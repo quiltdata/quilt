@@ -241,6 +241,17 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(chat.hide).toHaveBeenCalled()
   })
 
+  it('keeps Help, not Qurator, in the compact overlay while it slides shut', () => {
+    narrowViewport()
+    useAssistantAPI.mockReturnValue(makeAPI())
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { rerender, queryByTestId } = render(<WithAssistantUI />)
+    expect(queryByTestId('help')).toBeTruthy()
+    chat = { ...chat, open: false }
+    rerender(<WithAssistantUI />)
+    expect(chatProps).toBeNull()
+  })
+
   it('stays an overlay below 960px and reserves no gutter', () => {
     narrowViewport()
     const api = makeAPI()
