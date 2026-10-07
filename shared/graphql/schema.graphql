@@ -248,6 +248,8 @@ type BucketConfig {
   relevanceScore: Int!
   lastIndexed: Datetime
   browsable: Boolean!
+  "YAML mapping of package metadata onto S3 object tags; null when the bucket maps none"
+  objectTagsConfig: String
   snsNotificationArn: String @admin
   scannerParallelShardsDepth: Int @admin
   skipMetaDataIndexing: Boolean @admin
@@ -850,6 +852,8 @@ input BucketUpdateInput {
   indexContentBytes: Int
   browsable: Boolean
   prefixes: [String!]
+  "Omit to keep the current mapping; null or empty to remove it"
+  objectTagsConfig: String
 }
 
 type BucketAddSuccess {
@@ -874,6 +878,10 @@ type BucketFileExtensionsToIndexInvalid {
 
 type BucketIndexContentBytesInvalid {
   _: Boolean
+}
+
+type BucketObjectTagsConfigInvalid {
+  message: String!
 }
 
 type SnsInvalid {
@@ -921,6 +929,7 @@ union BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | BucketObjectTagsConfigInvalid
   | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound

@@ -15,6 +15,7 @@ class BucketUpdate(BaseModel):
         "BucketUpdateBucketUpdateBucketFileExtensionsToIndexInvalid",
         "BucketUpdateBucketUpdateBucketIndexContentBytesInvalid",
         "BucketUpdateBucketUpdateBucketNotFound",
+        "BucketUpdateBucketUpdateBucketObjectTagsConfigInvalid",
         "BucketUpdateBucketUpdateInsufficientPermissions",
         "BucketUpdateBucketUpdateNotificationConfigurationError",
         "BucketUpdateBucketUpdateNotificationTopicNotFound",
@@ -41,6 +42,10 @@ class BucketUpdateBucketUpdateBucketIndexContentBytesInvalid(BaseModel):
 
 class BucketUpdateBucketUpdateBucketNotFound(BaseModel):
     typename__: Literal["BucketNotFound"] = Field(alias="__typename")
+
+
+class BucketUpdateBucketUpdateBucketObjectTagsConfigInvalid(BaseModel):
+    typename__: Literal["BucketObjectTagsConfigInvalid"] = Field(alias="__typename")
 
 
 class BucketUpdateBucketUpdateInsufficientPermissions(BaseModel):

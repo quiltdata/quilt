@@ -9,7 +9,6 @@ import * as S3Tags from 'utils/s3Tags'
 import * as s3paths from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
-import * as YAML from 'utils/yaml'
 
 import { FileNotFound, VersionNotFound } from '../errors'
 
@@ -203,27 +202,6 @@ export const metadataSchema = async ({ s3, schemaUrl }: MetadataSchemaArgs) => {
 
   const response = await fetchFile({ s3, handle })
   return JSON.parse(response.body?.toString('utf-8') || '{}')
-}
-
-interface S3TagsConfigArgs {
-  s3: S3
-  bucket: string
-}
-
-/** `null` when the bucket doesn't project metadata onto S3 tags */
-export const s3TagsConfig = async ({
-  s3,
-  bucket,
-}: S3TagsConfigArgs): Promise<S3Tags.S3TagsConfig | null> => {
-  try {
-    const response = await fetchFile({ s3, handle: { bucket, key: quiltConfigs.s3Tags } })
-    const parsed = YAML.parseStrict(response.body?.toString('utf-8'))
-    if (parsed instanceof Error) throw parsed
-    return S3Tags.parseConfig(parsed)
-  } catch (e) {
-    if (e instanceof FileNotFound || e instanceof VersionNotFound) return null
-    throw e
-  }
 }
 
 interface ApplyS3TagsArgs {
