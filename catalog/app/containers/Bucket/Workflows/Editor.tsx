@@ -100,9 +100,26 @@ function useFlowStore(bucket: string) {
     [s3, bucket],
   )
 
+  // Conditional on the version we read, so two saves can't overwrite each other. The SDK
+  // doesn't model If-Match on PutObject, so the header is added before signing.
   const putConfig = React.useCallback(
-    (body: string) =>
-      s3.putObject({ Bucket: bucket, Key: CONFIG_KEY, Body: body }).promise(),
+    async (body: string) => {
+      const etag = loadedRef.current?.etag
+      const req = s3.putObject({ Bucket: bucket, Key: CONFIG_KEY, Body: body })
+      req.on('build', () => {
+        req.httpRequest.headers[etag ? 'If-Match' : 'If-None-Match'] = etag ?? '*'
+      })
+      try {
+        await req.promise()
+      } catch (e: any) {
+        if (e?.statusCode === 412 || e?.code === 'PreconditionFailed') {
+          throw new Error(
+            'Flows in this bucket changed while you were editing. Reopen and try again.',
+          )
+        }
+        throw e
+      }
+    },
     [s3, bucket],
   )
 

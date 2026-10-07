@@ -7,7 +7,7 @@ import * as Workflows from 'utils/workflows'
 
 // quilt3 accepts only these, so a schema the catalog can validate may still be rejected on
 // push: see `SUPPORTED_META_SCHEMAS` and `_schema_load_object_hook` in quilt3/workflows.
-const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
+export const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
 
 // quilt3's jsonschema ignores unknown keywords and formats and doesn't fill defaults, so ajv
 // must not be stricter (or more lenient) than the push.

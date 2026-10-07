@@ -1,11 +1,12 @@
 import type { JsonSchema } from 'utils/JSONSchema'
+import { translatePattern } from 'utils/workflows'
 import * as s3paths from 'utils/s3paths'
 import type * as Types from 'utils/types'
 
+import { DRAFT_07 } from './checks'
+
 // The app writes `.quilt/workflows/config.yml` and schema files for the user, so nobody
 // edits YAML or JSON by hand. Anything here must stay valid for quilt3's config schema.
-
-const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
 
 export type FieldType = 'text' | 'number' | 'integer' | 'boolean' | 'date' | 'choice'
 
@@ -66,11 +67,11 @@ function fieldSchema(f: Field): JsonSchema {
 }
 
 export function fieldsToSchema(fields: Field[]): JsonSchema {
-  const required = fields.filter((f) => f.required).map((f) => f.name)
+  const required = fields.filter((f) => f.required).map((f) => f.name.trim())
   return {
     $schema: DRAFT_07,
     type: 'object',
-    properties: Object.fromEntries(fields.map((f) => [f.name, fieldSchema(f)])),
+    properties: Object.fromEntries(fields.map((f) => [f.name.trim(), fieldSchema(f)])),
     ...(required.length ? { required } : {}),
   }
 }
@@ -143,6 +144,9 @@ export function fieldsFromMeta(meta: Types.Json): Field[] {
   })
 }
 
+// Escapes JS accepts and Python's `re` rejects, which would fail every push
+const JS_ONLY = /(^|[^\\])(\\\\)*\\[pPk]/
+
 export function validateDraft(
   draft: FlowDraft,
   {
@@ -159,20 +163,34 @@ export function validateDraft(
   // quilt3 checks patterns in Python, which accepts syntax JS rejects; an unchanged
   // pattern is left for the push to enforce.
   if (draft.namePattern && draft.namePattern !== originalPattern) {
-    try {
-      new RegExp(draft.namePattern)
-    } catch (e) {
-      errors.namePattern = 'This pattern is not valid'
+    if (JS_ONLY.test(draft.namePattern)) {
+      errors.namePattern = 'This uses syntax pushes reject (\\p, \\P or \\k)'
+    } else {
+      // Python spellings with a JS equivalent, so their syntax can still be checked here
+      const asJs = draft.namePattern
+        .replace(/\(\?P</g, '(?<')
+        .replace(/\(\?P=(\w+)\)/g, '\\k<$1>')
+        .replace(/^\(\?[aiLmsux]+\)/, '')
+      const t = translatePattern(asJs)
+      // `\A`, `\Z`, `\b` have no JS equivalent; the push checks those
+      if (!('error' in t)) {
+        try {
+          new RegExp(t.source, t.unicode ? 'u' : '')
+        } catch (e) {
+          errors.namePattern = 'This pattern is not valid'
+        }
+      }
     }
   }
   const names = new Set<string>()
   draft.fields?.forEach((f, i) => {
-    if (!f.name.trim()) errors[`fields.${i}`] = 'Name this field'
-    else if (names.has(f.name)) errors[`fields.${i}`] = 'Field names must be unique'
+    const name = f.name.trim()
+    if (!name) errors[`fields.${i}`] = 'Name this field'
+    else if (names.has(name)) errors[`fields.${i}`] = 'Field names must be unique'
     else if (f.type === 'choice' && !f.options.length) {
       errors[`fields.${i}`] = 'Add at least one choice'
     }
-    names.add(f.name)
+    names.add(name)
   })
   return errors
 }
@@ -196,8 +214,11 @@ export function schemaLocation(
   draft: FlowDraft,
   suffix: string = Date.now().toString(36),
 ) {
-  const current = config.workflows?.[draft.id]?.metadata_schema
-  let key = current && !referencedBy(config, current, draft.id) ? current : draft.id
+  const own = config.workflows?.[draft.id]
+  const current = own?.metadata_schema
+  const reusable =
+    current && !referencedBy(config, current, draft.id) && own?.entries_schema !== current
+  let key = reusable ? current : draft.id
   if (key !== current) {
     for (let n = 2; config.schemas?.[key] || referencedBy(config, key); n++) {
       key = `${draft.id}-${n}`
@@ -256,8 +277,15 @@ export const canRemove = (config: RawConfig | undefined) =>
 
 export function removeFlow(config: RawConfig, id: string): RawConfig {
   if (!canRemove(config)) throw new Error("A bucket's last flow can't be deleted")
-  const { [id]: _removed, ...workflows } = config.workflows ?? {}
+  const { [id]: removed, ...workflows } = config.workflows ?? {}
   const next: RawConfig = { ...config, workflows }
+  for (const key of [removed?.metadata_schema, removed?.entries_schema]) {
+    if (key && next.schemas?.[key] && !referencedBy(next, key)) {
+      const { [key]: _gone, ...schemas } = next.schemas
+      if (Object.keys(schemas).length) next.schemas = schemas
+      else delete next.schemas
+    }
+  }
   if (next.default_workflow === id) delete next.default_workflow
   return next
 }

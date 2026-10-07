@@ -157,18 +157,19 @@ describe('containers/Bucket/Workflows/model', () => {
     expect(model.applyPromote(next, [])).toEqual({ version: '1' })
   })
 
-  it('leaves an unchanged Python-only pattern to the push', () => {
-    const d = draft({ namePattern: '^(?P<lab>[a-z]+)/' })
-    expect(
-      model.validateDraft(d, {
+  it('accepts Python patterns but still catches broken ones', () => {
+    const v = (namePattern: string, originalPattern?: string) =>
+      model.validateDraft(draft({ namePattern }), {
         isNew: false,
         existingIds: [],
-        originalPattern: d.namePattern,
-      }),
-    ).toEqual({})
-    expect(
-      Object.keys(model.validateDraft(d, { isNew: false, existingIds: [] })),
-    ).toEqual(['namePattern'])
+        originalPattern,
+      }).namePattern
+    expect(v('^(?P<lab>[a-z]+)/(?P=lab)$')).toBeUndefined()
+    expect(v('(?i)^lab/')).toBeUndefined()
+    expect(v('^lab/\\Z')).toBeUndefined()
+    expect(v('^(?P<x')).toMatch('not valid')
+    // unchanged patterns are left to the push
+    expect(v('^(?P<x', '^(?P<x')).toBeUndefined()
   })
 
   it('validates drafts before saving', () => {
@@ -234,5 +235,56 @@ describe('containers/Bucket/Workflows/model', () => {
     }
     const loc = model.schemaLocation(config, 'b', draft({ id: 'a' }), 'x2')
     expect(loc).toEqual({ key: 'a', url: 's3://b/.quilt/workflows/a-x2.json' })
+  })
+
+  it('does not reuse a key the same flow uses for its entries', () => {
+    const config = {
+      version: '1',
+      workflows: { a: { name: 'A', metadata_schema: 's1', entries_schema: 's1' } },
+      schemas: { s1: { url: 's3://b/.quilt/workflows/s1.json' } },
+    }
+    expect(model.schemaLocation(config, 'b', draft({ id: 'a' }), 'x').key).not.toBe('s1')
+  })
+
+  it('checks patterns the way the catalog and the push read them', () => {
+    const v = (namePattern: string) =>
+      model.validateDraft(draft({ namePattern }), { isNew: true, existingIds: [] })
+        .namePattern
+    expect(v('^(?P<ns>lab)/')).toBeUndefined()
+    expect(v('^lab\\-\\w+/')).toBeUndefined()
+    expect(v('^\\p{L}+/')).toMatch('pushes reject')
+    expect(v('(')).toMatch('not valid')
+  })
+
+  it('trims field names', () => {
+    const fs: model.Field[] = [
+      { name: 'id ', type: 'text', required: true, options: [] },
+      { name: 'id', type: 'text', required: true, options: [] },
+    ]
+    expect(
+      model.validateDraft(draft({ fields: fs }), { isNew: true, existingIds: [] }),
+    ).toEqual({
+      'fields.1': 'Field names must be unique',
+    })
+    expect(model.fieldsToSchema([fs[0]])).toMatchObject({
+      properties: { id: {} },
+      required: ['id'],
+    })
+  })
+
+  it('drops the deleted flow’s schema entries nothing else uses', () => {
+    const config = {
+      version: '1',
+      workflows: {
+        a: { name: 'A', metadata_schema: 'a' },
+        b: { name: 'B', metadata_schema: 'shared' },
+        c: { name: 'C', metadata_schema: 'shared' },
+      },
+      schemas: { a: { url: 's3://b/a.json' }, shared: { url: 's3://b/s.json' } },
+    }
+    expect(model.removeFlow(config, 'a').schemas).toEqual({
+      shared: { url: 's3://b/s.json' },
+    })
+    expect(model.removeFlow(config, 'b').schemas).toEqual(config.schemas)
   })
 })

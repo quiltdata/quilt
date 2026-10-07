@@ -71,6 +71,8 @@ export interface Workflow {
   name?: string
   packageNamePattern: RegExp | null
   packageNamePatternError?: string
+  // `handle_pattern` as written, for display; the compiled pattern may be a translation
+  handlePattern?: string
   undefinedSchemas?: string[]
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
@@ -162,10 +164,25 @@ const PY_CLASSES: Record<string, [string, string]> = {
   D: ['\\P{Nd}', '\\P{Nd}'],
 }
 
-// Rewrites a Python pattern into an equivalent JS `u` source, or explains why it can't.
-function translatePattern(src: string): { source: string } | { error: string } {
+// `u`-mode JS only accepts these after a backslash, besides letters and digits.
+const U_SAFE_ESCAPES = new Set('^$\\.*+?()[]{}|/'.split(''))
+
+const hexEscape = (ch: string) => {
+  const code = ch.codePointAt(0)!
+  return code < 256
+    ? `\\x${code.toString(16).padStart(2, '0')}`
+    : `\\u{${code.toString(16)}}`
+}
+
+// Rewrites a Python pattern into an equivalent JS source, or explains why it can't.
+// `unicode` is set when Python's Unicode-aware classes needed the `u` flag.
+export function translatePattern(
+  src: string,
+): { source: string; unicode: boolean } | { error: string } {
   let out = ''
+  let unicode = false
   let inClass = false
+  let classStart = -1
   for (let i = 0; i < src.length; i++) {
     const c = src[i]
     if (c === '\\') {
@@ -175,16 +192,31 @@ function translatePattern(src: string): { source: string } | { error: string } {
       if (cls) {
         if (inClass && !cls[1]) return { error: `\\${n} inside [...]` }
         out += inClass ? cls[1] : cls[0]
-      } else {
+        unicode = true
+      } else if (/[A-Za-z0-9]/.test(n) || U_SAFE_ESCAPES.has(n)) {
         out += c + n
+      } else {
+        // An identity escape like `\-`, which `u` mode rejects outside a class
+        out += hexEscape(n)
       }
-    } else {
-      if (c === '[' && !inClass) inClass = true
-      else if (c === ']' && inClass && src[i - 1] !== '[') inClass = false
-      out += c
+      continue
     }
+    if (c === '[' && !inClass) {
+      inClass = true
+      classStart = i
+    } else if (c === ']' && inClass) {
+      // A `]` first in the class (after `[` or `[^`) is a literal in Python
+      const first = src[classStart + 1] === '^' ? classStart + 2 : classStart + 1
+      if (i === first) {
+        // JS would end the class here
+        out += '\\]'
+        continue
+      }
+      inClass = false
+    }
+    out += c
   }
-  return { source: out }
+  return { source: out, unicode }
 }
 
 // quilt3 compiles `handle_pattern` with Python `re`, so a valid pattern may use syntax the
@@ -196,8 +228,7 @@ function compilePattern(
   const t = translatePattern(src)
   if ('error' in t) return { packageNamePattern: null, packageNamePatternError: t.error }
   try {
-    // `u` rejects identity escapes like `\\-`, so only use it when the classes need it.
-    return { packageNamePattern: new RegExp(t.source, t.source === src ? '' : 'u') }
+    return { packageNamePattern: new RegExp(t.source, t.unicode ? 'u' : '') }
   } catch (e) {
     return {
       packageNamePattern: null,
@@ -223,6 +254,7 @@ function parseWorkflow(
       workflow.catalog?.package_handle,
     ),
     ...compilePattern(workflow.handle_pattern),
+    handlePattern: workflow.handle_pattern,
     // quilt3 rejects every push through such a workflow ("There is no ... in schemas").
     undefinedSchemas: Array.from(
       new Set(
