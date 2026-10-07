@@ -248,6 +248,8 @@ type BucketConfig {
   relevanceScore: Int!
   lastIndexed: Datetime
   browsable: Boolean!
+  "YAML mapping of package metadata onto S3 object tags; null when the bucket maps none"
+  objectTagsConfig: String
   snsNotificationArn: String @admin
   scannerParallelShardsDepth: Int @admin
   skipMetaDataIndexing: Boolean @admin
@@ -257,8 +259,6 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   tabulatorTables: [TabulatorTable!]!
-  "YAML mapping of package metadata onto S3 object tags; null when the bucket maps none"
-  objectTagsConfig: String
 }
 
 # Role-scoped view of a bucket, surfaced via `buckets` / `bucket` queries.
