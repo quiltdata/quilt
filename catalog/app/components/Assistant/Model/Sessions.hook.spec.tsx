@@ -58,7 +58,7 @@ vi.mock('urql', async (importActual) => ({
 import * as Content from './Content'
 import * as Conversation from './Conversation'
 import * as Sessions from './Sessions'
-import { useSessions } from './Assistant'
+import { usePanel, useSessions } from './Assistant'
 
 const at = new Date('2026-10-06T12:00:00.000Z')
 const ask = (id: string, t: string) =>
@@ -98,7 +98,7 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
       if (a._tag === 'Restore') rerender({ state: idle(a.events, a.sessionId) })
     })
     const hook = renderHook<Props, ReturnType<typeof useSessions>>(
-      ({ state }) => useSessions(state, dispatch, 'm'),
+      ({ state }) => useSessions(state, dispatch, 'm', true),
       { initialProps: { state: idle([]) } },
     )
     rerender = hook.rerender
@@ -148,13 +148,46 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
 
   it('checkpoints the conversation left by New session', async () => {
     const hook = renderHook(
-      ({ state }: { state: Conversation.State }) => useSessions(state, vi.fn(), 'm'),
+      ({ state }: { state: Conversation.State }) =>
+        useSessions(state, vi.fn(), 'm', true),
       { initialProps: { state: idle([ask('1', 'find my packages')]) } },
     )
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000)
     })
     hook.rerender({ state: idle([]) })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(stub.saves).toHaveLength(2)
+    expect(stub.saves[1].checkpoint).toMatchObject({ readme: expect.any(String) })
+  })
+
+  it('checkpoints the conversation when the tab is hidden', async () => {
+    const state = idle([ask('1', 'find my packages')])
+    renderHook(() => useSessions(state, vi.fn(), 'm', true))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    hidden.mockRestore()
+    expect(stub.saves).toHaveLength(2)
+    expect(stub.saves[1].checkpoint).toMatchObject({ readme: expect.any(String) })
+  })
+
+  it('checkpoints when the panel the hook drives is hidden', async () => {
+    const state = idle([ask('1', 'find my packages')])
+    const hook = renderHook(() => usePanel(state, vi.fn(), 'm'))
+    act(() => hook.result.current.show())
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(stub.saves).toHaveLength(1)
+    act(() => hook.result.current.hide())
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
     })
@@ -190,7 +223,8 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     stub.opened = { id: 'S', version: 7, events: Sessions.encode([ask('9', 'x')]) }
     const dispatch = vi.fn()
     const hook = renderHook(
-      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch, 'm'),
+      ({ state }: { state: Conversation.State }) =>
+        useSessions(state, dispatch, 'm', true),
       { initialProps: { state: idle([]) } },
     )
     let opening: Promise<void> = Promise.resolve()
@@ -212,7 +246,8 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     stub.opened = { id: 'S', version: 7, events: Sessions.encode([ask('9', 'x')]) }
     const dispatch = vi.fn()
     const hook = renderHook(
-      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch, 'm'),
+      ({ state }: { state: Conversation.State }) =>
+        useSessions(state, dispatch, 'm', true),
       { initialProps: { state: idle([ask('1', 'unsaved')]) } },
     )
     await act(async () => {
@@ -244,7 +279,7 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
       if (a._tag === 'Restore') rerender({ state: idle(a.events, a.sessionId) })
     })
     const hook = renderHook<Props, ReturnType<typeof useSessions>>(
-      ({ state }) => useSessions(state, dispatch, 'm'),
+      ({ state }) => useSessions(state, dispatch, 'm', true),
       { initialProps: { state: idle([]) } },
     )
     rerender = hook.rerender

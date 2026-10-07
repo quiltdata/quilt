@@ -315,7 +315,7 @@ export function useSessions(
   state: Conversation.State,
   dispatch: (action: Conversation.Action) => unknown,
   model: string,
-  visible = true,
+  visible: boolean,
 ) {
   const client = urql.useClient()
   const query = GQL.useQuery(SESSIONS_QUERY)
@@ -413,6 +413,15 @@ export function useSessions(
   React.useEffect(() => {
     if (!visible) queue.checkpoint()
   }, [visible, queue])
+  // Closing the tab runs no cleanup and allows no large request, so hiding it
+  // is the last trigger that can still send.
+  React.useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') queue.checkpoint()
+    }
+    document.addEventListener('visibilitychange', onHidden)
+    return () => document.removeEventListener('visibilitychange', onHidden)
+  }, [queue])
   React.useEffect(
     () => () => {
       queue.checkpoint()
@@ -559,6 +568,20 @@ export function useSessions(
   )
 }
 
+/** The panel's visibility, and the sessions it checkpoints on closing. */
+export function usePanel(
+  state: Conversation.State,
+  dispatch: (action: Conversation.Action) => unknown,
+  model: string,
+) {
+  // XXX: move this to actor state?
+  const [visible, setVisible] = React.useState(false)
+  const show = React.useCallback(() => setVisible(true), [])
+  const hide = React.useCallback(() => setVisible(false), [])
+  const sessions = useSessions(state, dispatch, model, visible)
+  return { visible, show, hide, sessions }
+}
+
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
@@ -598,12 +621,7 @@ function useConstructAssistantAPI() {
 
   GlobalContext.use(llm)
 
-  // XXX: move this to actor state?
-  const [visible, setVisible] = React.useState(false)
-  const show = React.useCallback(() => setVisible(true), [])
-  const hide = React.useCallback(() => setVisible(false), [])
-
-  const sessions = useSessions(state, dispatch, model.current, visible)
+  const { visible, show, hide, sessions } = usePanel(state, dispatch, model.current)
 
   const assist = React.useCallback(
     (msg?: string) => {

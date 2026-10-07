@@ -209,19 +209,38 @@ describe('components/Assistant/UI/Chat/LastSession', () => {
     expect(screen.getByTitle(updatedAt.toLocaleString())).toBeTruthy()
   })
 
-  it('says when the session is saved as a package', () => {
-    const revisedAt = new Date('2026-10-06T12:00:00Z')
+  it('says when the session is saved as a package, timed by its last save', () => {
+    const updatedAt = new Date('2026-10-06T12:00:00Z')
+    const revisedAt = new Date('2026-10-06T12:00:01Z')
     const sessions = sessionsStub({
       list: [
         {
           ...kept().list[0],
+          updatedAt,
           package: { __typename: 'QuratorSessionPackage', revisedAt },
         },
       ],
     })
     render(<LastSession sessions={sessions} state={state([])} />)
     expect(screen.getByText(/Saved as package/)).toBeTruthy()
-    expect(screen.getByTitle(revisedAt.toLocaleString())).toBeTruthy()
+    expect(screen.getByTitle(updatedAt.toLocaleString())).toBeTruthy()
+  })
+
+  it('does not say so while the package trails the last save', () => {
+    const updatedAt = new Date('2026-10-06T12:00:01Z')
+    const revisedAt = new Date('2026-10-06T12:00:00Z')
+    const sessions = sessionsStub({
+      list: [
+        {
+          ...kept().list[0],
+          updatedAt,
+          package: { __typename: 'QuratorSessionPackage', revisedAt },
+        },
+      ],
+    })
+    render(<LastSession sessions={sessions} state={state([])} />)
+    expect(screen.queryByText(/Saved as package/)).toBeNull()
+    expect(screen.getByTitle(updatedAt.toLocaleString())).toBeTruthy()
   })
 
   it('never offers the session already on screen', () => {
@@ -314,23 +333,25 @@ describe('components/Assistant/UI/Chat/Menu', () => {
   })
 
   it('says which recent sessions are saved as packages', () => {
-    const revisedAt = new Date('2026-10-06T12:00:00Z')
+    const updatedAt = new Date('2026-10-06T12:00:00Z')
+    const revisedAt = new Date('2026-10-06T12:00:01Z')
     const sessions = kept()
     renderMenu(false, vi.fn(), {
       ...sessions,
       list: [
         {
           ...sessions.list[0],
+          updatedAt,
           package: { __typename: 'QuratorSessionPackage', revisedAt },
         },
       ],
     })
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText(/Saved as package/)).toBeTruthy()
-    expect(screen.getByTitle(revisedAt.toLocaleString())).toBeTruthy()
+    expect(screen.getByTitle(updatedAt.toLocaleString())).toBeTruthy()
   })
 
-  it('opens Save to a bucket for the conversation on screen', () => {
+  it('opens Save to a bucket for the conversation on screen', async () => {
     const chatting = {
       _tag: 'Idle',
       events: [{ id: '1' }],
@@ -338,7 +359,7 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     renderMenu(false, vi.fn(), sessionsStub(), chatting)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     fireEvent.click(screen.getByText('Save to a bucket…'))
-    expect(screen.getByText('SAVE FORM')).toBeTruthy()
+    expect(await screen.findByText('SAVE FORM')).toBeTruthy()
   })
 
   it('offers no Save to a bucket for an empty chat', () => {

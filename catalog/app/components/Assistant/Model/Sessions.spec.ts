@@ -395,11 +395,17 @@ describe('components/Assistant/Model/Sessions', () => {
         ])
       })
 
-      it('tries again at the next trigger when the push did not land', async () => {
-        const outcomes = [saved('s', 1), saved('s', 2, false), saved('s', 3)]
+      it('tries a push that did not land once more on the same events, then waits for a change', async () => {
+        const outcomes = [
+          saved('s', 1),
+          saved('s', 2, false),
+          saved('s', 3, false),
+          saved('s', 4),
+        ]
         const { queue, send } = setup(async () => outcomes.shift()!)
         queue.change('h', 'a')
         await vi.advanceTimersByTimeAsync(1000)
+        queue.change('h', 'ab')
         queue.checkpoint()
         await vi.advanceTimersByTimeAsync(0)
         queue.checkpoint()
@@ -407,7 +413,31 @@ describe('components/Assistant/Model/Sessions', () => {
         queue.checkpoint()
         await vi.advanceTimersByTimeAsync(0)
         expect(checkpoints(send).map((r) => r.baseVersion)).toEqual([1, 2])
+        queue.change('h', 'abc')
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(checkpoints(send).map((r) => r.baseVersion)).toEqual([1, 2, 3])
       })
+
+      it.each(['Conflict', 'NotFound'] as const)(
+        'gives up a checkpoint of unchanged events answered %s, never forking',
+        async (tag) => {
+          const outcomes: Sessions.SaveOutcome[] = [saved('s', 1), { _tag: tag }]
+          const { queue, send, created } = setup(async () => outcomes.shift()!)
+          queue.change('h', 'a')
+          await vi.advanceTimersByTimeAsync(1000)
+          // Saved or deleted from another tab since; this one only checkpoints.
+          queue.checkpoint()
+          await vi.advanceTimersByTimeAsync(600_000)
+          queue.checkpoint()
+          await vi.advanceTimersByTimeAsync(0)
+          expect(send.mock.calls.map(([r]) => r)).toEqual([
+            { id: null, baseVersion: null, events: 'a' },
+            { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
+          ])
+          expect(created).toEqual([{ head: 'h', basis: null, id: 's' }])
+        },
+      )
 
       it('resends nothing when a checkpoint alone is refused as too large', async () => {
         const outcomes = [saved('s', 1), { _tag: 'CheckpointTooLarge' as const }]

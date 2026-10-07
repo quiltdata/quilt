@@ -240,7 +240,7 @@ type SaveResult =
 const OUTCOMES = ['Conflict', 'NotFound', 'TooLarge', 'BadEnvelope', 'Disabled'] as const
 
 /** A package revised before the session's last save lags it, as when a push failed. */
-const isPackaged = (s: { updatedAt: Date; package: { revisedAt: Date } | null }) =>
+export const isPackaged = (s: { updatedAt: Date; package: { revisedAt: Date } | null }) =>
   !!s.package && s.package.revisedAt >= s.updatedAt
 
 export function outcomeOf(r: SaveResult): SaveOutcome {
@@ -368,7 +368,9 @@ export function createSaveQueue<T>({
       .catch((): SaveOutcome => ({ _tag: 'Failed' }))
       .then((r) => {
         s.inFlight = false
-        if (checkpoint && r._tag === 'Saved' && r.packaged) s.checkpointed = events
+        // A push that did not land on unchanged events is not retried until they change.
+        if (checkpoint && r._tag === 'Saved' && (r.packaged || !changed))
+          s.checkpointed = events
         switch (r._tag) {
           case 'CheckpointTooLarge':
             // Not checkpointed again until it changes; a draft it carried is resent alone.
@@ -386,8 +388,12 @@ export function createSaveQueue<T>({
             break
           case 'Conflict':
           case 'NotFound':
-            // Only an update forks; a create answered so would loop.
-            if (!updating) break
+            // Only a changed update forks: a create answered so would loop, and a
+            // checkpoint alone would copy a chat saved or deleted elsewhere.
+            if (!updating || !changed) {
+              if (!changed) s.checkpointed = events
+              break
+            }
             s.id = null
             s.version = null
             s.sent = null

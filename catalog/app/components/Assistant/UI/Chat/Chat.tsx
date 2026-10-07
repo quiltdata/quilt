@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 import { useConfirm } from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
-import Save from 'containers/QuratorMode/Save'
 import * as Actor from 'utils/Actor'
 import * as Buckets from 'utils/Buckets'
 import { runtime } from 'utils/Effect'
@@ -14,6 +13,7 @@ import * as Format from 'utils/format'
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
+import { isPackaged } from '../../Model/Sessions'
 
 import DevTools from './DevTools'
 import Input from './Input'
@@ -461,13 +461,15 @@ const useMenuStyles = M.makeStyles({
 
 type Sessions = Model.Assistant.API['sessions']
 
+// Keeps the upload and package-construct code out of the Assistant bundle.
+const Save = React.lazy(() => import('containers/QuratorMode/Save'))
+
 function SessionTime({ session }: { session: Sessions['list'][number] }) {
-  return session.package ? (
+  return (
     <>
-      Saved as package · <SavedAgo date={session.package.revisedAt} />
+      {isPackaged(session) && 'Saved as package · '}
+      <SavedAgo date={session.updatedAt} />
     </>
-  ) : (
-    <SavedAgo date={session.updatedAt} />
   )
 }
 
@@ -486,7 +488,9 @@ function SaveToBucket({ onClose }: { onClose: () => void }) {
   return (
     <M.Dialog open onClose={onClose} fullWidth maxWidth="sm">
       <M.DialogContent className={classes.content}>
-        <Save api={api} />
+        <React.Suspense fallback={<M.CircularProgress size={20} />}>
+          <Save api={api} />
+        </React.Suspense>
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onClose}>Close</M.Button>
