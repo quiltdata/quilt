@@ -45,6 +45,24 @@ export function useGoverned({ pause = false }: { pause?: boolean } = {}): {
 }
 
 /**
+ * The admin's tool-call limit per question; `null` (unlimited) while unread,
+ * unset or unreadable. A failed read leaves the turn unlimited, as before the
+ * limit existed: the setting caps cost, it is not a safety control.
+ */
+export function useToolCallLimit(): number | null {
+  const query = GQL.useQuery(QURATOR_MODELS_QUERY)
+  return React.useMemo(
+    () =>
+      GQL.fold(query, {
+        data: ({ config: { quratorModels: m } }) => m?.maxToolCallsPerTurn ?? null,
+        fetching: () => null,
+        error: () => null,
+      }),
+    [query],
+  )
+}
+
+/**
  * The model a turn runs on. Ungoverned, a browser override wins over the
  * stack's default, as it always has. Governed, an override counts only while
  * it is still allowed; otherwise the admin's default stands in for it.
