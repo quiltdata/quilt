@@ -13,12 +13,13 @@ import JsonValidationErrors from 'components/JsonValidationErrors'
 import MetadataEditor from 'components/MetadataEditor'
 import * as Notifications from 'containers/Notifications'
 import useDragging from 'utils/dragging'
-import { type JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
+import type { JsonSchema } from 'utils/JSONSchema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import { JsonRecord } from 'utils/types'
 
 import type { FormStatus } from '../State/form'
+import { mkMetaValidator } from '../State/schema'
 import type { SchemaStatus } from '../State/schema'
 import type { MetaState } from '../State/meta'
 import {
@@ -668,10 +669,11 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   const onChangeForm = onChangeInline
 
   // Suggestions are applied only if the metadata they produce, together, is no worse than now.
-  const validateFull = React.useMemo(
-    () => (schema ? makeSchemaValidator(schema) : null),
-    [schema],
-  )
+  const validateFull = React.useMemo(() => {
+    if (!schema) return null
+    const v = mkMetaValidator(schema, { formats: false, keepSet: true })
+    return (x: JsonRecord) => v(x) ?? []
+  }, [schema])
   const applySuggestions = React.useCallback(
     (picks: Record<string, JsonValue>) => {
       if (!validateFull || !Object.keys(picks).length) return

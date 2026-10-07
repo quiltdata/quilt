@@ -268,6 +268,7 @@ function scanSchemaAndPrefillValues(
   getValue: (s?: JsonSchema) => any,
   value: Record<string, any>,
   optSchema?: JsonSchema,
+  keepSet = false,
 ): Record<string, any> {
   if (!optSchema) return value
 
@@ -283,10 +284,9 @@ function scanSchemaAndPrefillValues(
   return Object.keys(optSchema.properties).reduce((memo, key) => {
     const valueItem = value === undefined ? undefined : value[key]
 
-    // don't touch a primitive the user set, including false, 0 and null;
-    // only a missing key or an empty string gets the default
-    if (valueItem !== undefined && valueItem !== '' && !R.is(Object, valueItem))
-      return memo
+    // don't touch user's primitive value; with keepSet, false, 0 and null count as set too
+    const isSet = keepSet ? valueItem !== undefined && valueItem !== '' : !!valueItem
+    if (isSet && !R.is(Object, valueItem)) return memo
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
@@ -295,7 +295,12 @@ function scanSchemaAndPrefillValues(
     // https://github.com/ajv-validator/ajv/issues/42#issuecomment-170250113
 
     if (schemaItem.properties) {
-      const properties = scanSchemaAndPrefillValues(getValue, valueItem, schemaItem)
+      const properties = scanSchemaAndPrefillValues(
+        getValue,
+        valueItem,
+        schemaItem,
+        keepSet,
+      )
       if (properties) {
         return R.assoc(key, properties, memo)
       }
@@ -303,7 +308,7 @@ function scanSchemaAndPrefillValues(
 
     if (schemaItem.items && Array.isArray(valueItem)) {
       const items = valueItem
-        .map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items))
+        .map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items, keepSet))
         .filter((x) => x !== undefined)
       if (items.length) {
         return R.assoc(key, items, memo)
@@ -333,8 +338,13 @@ export function getDefaultValue(optSchema?: JsonSchema): any {
   return undefined
 }
 
-export function makeSchemaDefaultsSetter(optSchema?: JsonSchema) {
-  return (obj: any) => scanSchemaAndPrefillValues(getDefaultValue, obj, optSchema)
+/** `keepSet` treats false, 0 and null as values the user chose, not gaps to default. */
+export function makeSchemaDefaultsSetter(
+  optSchema?: JsonSchema,
+  { keepSet = false } = {},
+) {
+  return (obj: any) =>
+    scanSchemaAndPrefillValues(getDefaultValue, obj, optSchema, keepSet)
 }
 
 export function getSchemaItemKeysOr<T extends string[]>(

@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import type { MetaState } from '../State/meta'
-import { requiredFields } from '../State/metaGuide'
+import { invalidKeys, requiredFields } from '../State/metaGuide'
 import type { SchemaStatus } from '../State/schema'
 
 const useStyles = M.makeStyles((t) => ({
@@ -58,8 +58,12 @@ interface MetaSummaryProps {
 export default function MetaSummary({ onOpen, schema, state }: MetaSummaryProps) {
   const classes = useStyles()
   const s = schema._tag === 'ready' ? schema.schema : undefined
-  const required = requiredFields(s, state.value)
-  const filled = required.filter((f) => f.filled).length
+  const required = requiredFields(
+    s,
+    state.value,
+    invalidKeys(state.status._tag === 'error' ? state.status.errors : []),
+  )
+  const filled = required.filter((f) => f.filled && !f.invalid).length
   const fields = Object.keys(state.value || {}).length
   const ok = state.status._tag === 'ok'
   // with nothing required, an empty form is not "done", just empty

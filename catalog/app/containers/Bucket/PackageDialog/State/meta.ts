@@ -62,8 +62,8 @@ export function useMeta(
   const validate = React.useMemo(() => {
     if (schema._tag === 'error') return () => [schema.error]
     if (schema._tag !== 'ready') return () => [new Error('Schema is not ready')]
-    return mkMetaValidator(schema.schema)
-  }, [schema])
+    return mkMetaValidator(schema.schema, { keepSet: guided })
+  }, [guided, schema])
 
   // `value`, not `meta`: a revision keeps the manifest's metadata until edited,
   // and that is what gets pushed. Failing here also stops the submit before
@@ -77,7 +77,7 @@ export function useMeta(
   // or oneOf cannot surface as a type or anyOf error that blocks the push.
   const validateBlocking = React.useMemo(() => {
     if (schema._tag !== 'ready') return validate
-    return mkMetaValidator(schema.schema, { formats: false })
+    return mkMetaValidator(schema.schema, { formats: false, keepSet: true })
   }, [schema, validate])
   const blockingErrors = React.useMemo(
     () => (guided ? (validateBlocking(value || {}) ?? []) : []),

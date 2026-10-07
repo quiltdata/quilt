@@ -156,7 +156,11 @@ export function requiredFields(
       key,
       title: schema?.properties?.[key]?.title,
       description: schema?.properties?.[key]?.description,
-      filled: isFilled(value?.[key] ?? schema?.properties?.[key]?.default),
+      filled: isFilled(
+        value && Object.hasOwn(value, key)
+          ? value[key]
+          : schema?.properties?.[key]?.default,
+      ),
       invalid: isFilled(value?.[key]) && invalid.has(key),
     }))
 }

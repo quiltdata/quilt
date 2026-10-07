@@ -26,7 +26,10 @@ export const Err = (error: Error) => ({ _tag: 'error' as const, error })
 export const Ready = (schema?: JsonSchema) => ({ _tag: 'ready' as const, schema })
 
 /** `{ formats: false }` ignores `format`, which only quilt's catalog enforces. */
-export function mkMetaValidator(schema?: JsonSchema, { formats = true } = {}) {
+export function mkMetaValidator(
+  schema?: JsonSchema,
+  { formats = true, keepSet = false } = {},
+) {
   const schemaValidator = makeSchemaValidator(
     schema,
     undefined,
@@ -38,7 +41,7 @@ export function mkMetaValidator(schema?: JsonSchema, { formats = true } = {}) {
       return [new Error('Metadata must be a valid JSON object')]
     }
 
-    const setDefaults = makeSchemaDefaultsSetter(schema)
+    const setDefaults = makeSchemaDefaultsSetter(schema, { keepSet })
     const errors = schemaValidator(setDefaults(value))
     if (errors.length) return errors
   }

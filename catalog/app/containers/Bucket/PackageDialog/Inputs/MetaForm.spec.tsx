@@ -158,6 +158,9 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     fireEvent.change(input, { target: { value: '1.5' } })
     expect(onChange).toHaveBeenLastCalledWith({ ratio: 1.5 })
     expect(setPending).toHaveBeenLastCalledWith('ratio', false)
+    fireEvent.change(input, { target: { value: '1e+5' } })
+    expect(onChange).toHaveBeenLastCalledWith({ ratio: 100000 })
+    expect(setPending).toHaveBeenLastCalledWith('ratio', false)
   })
 
   describe('round 4 drafts', () => {

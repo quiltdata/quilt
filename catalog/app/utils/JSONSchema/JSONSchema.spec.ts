@@ -320,7 +320,7 @@ describe('utils/JSONSchema', () => {
       })
     })
 
-    it('keeps explicit false, 0 and null instead of applying defaults', () => {
+    it('with keepSet, keeps explicit false, 0 and null instead of applying defaults', () => {
       const schema = {
         type: 'object',
         properties: {
@@ -332,10 +332,17 @@ describe('utils/JSONSchema', () => {
           },
         },
       }
-      expect(makeSchemaDefaultsSetter(schema)({ on: false, n: 0, lab: null })).toEqual({
-        on: false,
-        n: 0,
-        lab: null,
+      expect(
+        makeSchemaDefaultsSetter(schema, { keepSet: true })({
+          on: false,
+          n: 0,
+          lab: null,
+        }),
+      ).toEqual({ on: false, n: 0, lab: null })
+      // without keepSet, falsy primitives still get the default, as before
+      expect(makeSchemaDefaultsSetter(schema)({ on: false, n: 0 })).toMatchObject({
+        on: true,
+        n: 5,
       })
     })
 

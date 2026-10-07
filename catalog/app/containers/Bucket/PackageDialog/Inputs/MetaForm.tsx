@@ -144,7 +144,7 @@ function Field({
         )
       : -1
   // A schema default is applied on save; show it so what is pushed is what is seen.
-  const hasDefault = isEmpty(value) && prop.default !== undefined
+  const hasDefault = value === undefined && prop.default !== undefined
   const more = errors.length > 1 ? ` (+${errors.length - 1} more)` : ''
   let helper = error ? `${fieldMessage(error)}${more}` : prop.description
   if (!error && hasDefault) {
@@ -180,7 +180,7 @@ function Field({
         const complete =
           raw.trim() !== '' &&
           !Number.isNaN(n) &&
-          /^-?\d*\.?\d+(e-?\d+)?$/i.test(raw.trim())
+          /^[-+]?(\d+(\.\d+)?|\.\d+)(e[-+]?\d+)?$/i.test(raw.trim())
         setPending?.(name, !complete)
         if (complete) onChange(name, n)
         return
@@ -448,7 +448,9 @@ export default function MetaForm({
   )
 
   const filled = required.filter(
-    (k) => !isEmpty(value?.[k] ?? properties[k]?.default) && !errorsFor(k, errors).length,
+    (k) =>
+      !isEmpty(value && Object.hasOwn(value, k) ? value[k] : properties[k]?.default) &&
+      !errorsFor(k, errors).length,
   ).length
 
   const field = (key: string, isRequired: boolean) => (
@@ -609,6 +611,8 @@ function FreeRow({
   const commitName = () => {
     const to = nameDraft.trim()
     if (to === name) return setNameError(null)
+    // a rename remounts the row, which would drop the unfinished value
+    if (textError) return setNameError('Finish the value first')
     setNameError(onRename(to))
   }
   const changeText = (raw: string) => {

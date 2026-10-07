@@ -29,10 +29,14 @@ export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: strin
   return null
 }
 
-export const getMetaValue = (value: unknown, optSchema?: JsonSchema) =>
+export const getMetaValue = (
+  value: unknown,
+  optSchema?: JsonSchema,
+  { keepSet = false }: { keepSet?: boolean } = {},
+) =>
   value
     ? pipeThru(value || {})(
-        makeSchemaDefaultsSetter(optSchema),
+        makeSchemaDefaultsSetter(optSchema, { keepSet }),
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
         R.fromPairs,

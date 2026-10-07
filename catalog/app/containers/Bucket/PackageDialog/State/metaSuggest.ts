@@ -257,7 +257,7 @@ export function useMetaSuggestions({
           lastError = e
           // only a model this stack cannot reach is worth trying the next one for
           if (
-            !/AccessDenied|not (authorized|available|found)|ResourceNotFound|ValidationException.*model|\b404\b/i.test(
+            !/AccessDenied|not (authorized|available|found)|ResourceNotFound|ValidationException.*model|Throttl|Busy|timed? ?out|\b(404|429|503)\b/i.test(
               String(e),
             )
           )

@@ -115,7 +115,8 @@ export function useParams({
       bucket: dst.bucket,
       message: message.value,
       name: name.value,
-      userMeta: getMetaValue(meta.value, metadataSchema.schema) ?? null,
+      userMeta:
+        getMetaValue(meta.value, metadataSchema.schema, { keepSet: meta.guided }) ?? null,
       workflow: workflowSelectionToWorkflow(workflow.value),
     })
   }, [dst, src, workflow, name, message, metadataSchema, meta, manifest])
