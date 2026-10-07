@@ -150,7 +150,7 @@ describe('containers/Bucket/Workflows/model', () => {
       's3://gold': { title: 'Gold', copy_data: false },
       's3://silver': { title: 'silver' },
     })
-    expect(model.promoteFromConfig(next)).toEqual([
+    expect(model.promoteFromConfig(next).map(({ stored: _s, ...p }) => p)).toEqual([
       { bucket: 'gold', title: 'Gold', copyData: false },
       { bucket: 'silver', title: 'silver', copyData: true },
     ])
@@ -355,5 +355,15 @@ describe('containers/Bucket/Workflows/model', () => {
         properties: { a: { type: 'string', enum: [] } },
       }),
     ).toBe(null)
+  })
+
+  it('leaves stored successor keys alone, even ones that look alike', () => {
+    const config = {
+      version: '1',
+      successors: { 's3://prod': { title: 'A' }, 's3://prod/': { title: 'B', extra: 1 } },
+    }
+    const promote = model.promoteFromConfig(config)
+    expect(model.validatePromote(promote)).toEqual({})
+    expect(model.applyPromote(config, promote).successors).toEqual(config.successors)
   })
 })

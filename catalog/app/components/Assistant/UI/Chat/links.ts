@@ -8,7 +8,7 @@
 // `/b/<x>` is what keeps an unrelated site's `/b/` path — a store aisle, a blog
 // editor — from being redirected at this stack's data.
 const BUCKET_PATH =
-  /^\/b\/([^/]+)(?:\/(?:tree|packages|search|queries|workflows)(?:\/|$)|\/?$)/
+  /^\/b\/([^/]+)(?:\/(?:tree|packages|search|queries|workflows|flows)(?:\/|$)|\/?$)/
 
 // An S3 object key may itself begin with `b/`, so a presigned or direct S3 URL
 // can look like a catalog bucket route. Dropping its host voids the signature

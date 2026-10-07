@@ -386,6 +386,16 @@ describe('utils/workflows', () => {
       expect(tag('(?<=ab|c)x')).toBe('uncheckable')
     })
 
+    it('reads class ranges like Python', () => {
+      for (const p of ['^[z-a]', '^[\\w-~]+$', '^[a-\\w]', '^[\\d-z]']) {
+        expect([p, tag(p)]).toEqual([p, 'invalid'])
+      }
+      ok('^[\\w-]+$', 'a-b', 'a|b')
+      ok('^[-\\w]+$', 'a-b', 'a|b')
+      ok('^[_-~]+$', 'a|b', 'a-b')
+      ok('^[a\\-z]+$', 'a-z', 'b')
+    })
+
     it('rejects escapes Python refuses', () => {
       for (const p of [
         '^[\\A-z]',

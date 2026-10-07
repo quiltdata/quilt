@@ -356,6 +356,7 @@ function RenderDialog({
     case 'error':
       return (
         <DialogError
+          bucket={formState.dst.bucket}
           error={dialogStatus.error}
           skeletonElement={<FormSkeleton animate={false} />}
           title={ui.title || 'Create package'}

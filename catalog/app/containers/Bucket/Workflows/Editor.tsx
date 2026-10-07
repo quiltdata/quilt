@@ -99,9 +99,6 @@ async function readConfig(s3: S3, bucket: string): Promise<Loaded> {
 }
 
 function explain(e: any): string {
-  if (e?.code === 'NetworkingError' || e?.message === 'Network Failure') {
-    return "The bucket's CORS settings may not allow this save (If-Match header). Ask an admin to allow all headers for PUT."
-  }
   if (e?.code === 'AccessDenied' || e?.code === 'Forbidden') {
     return "You don't have permission to change flows in this bucket."
   }
@@ -167,6 +164,12 @@ function useFlowStore(bucket: string) {
         if (e?.statusCode === 412 || e?.code === 'PreconditionFailed') {
           throw new Error(
             'Flows in this bucket changed while you were editing. Reopen and try again.',
+          )
+        }
+        // Only this request sends If-Match, which a strict bucket CORS rule can block
+        if (e?.code === 'NetworkingError' && (loaded?.etag || !loaded?.exists)) {
+          throw new Error(
+            "Couldn't save: the bucket's CORS settings may not allow this request. Ask an admin to allow all headers for PUT on this bucket.",
           )
         }
         throw e

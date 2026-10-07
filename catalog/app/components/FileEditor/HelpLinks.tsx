@@ -24,8 +24,12 @@ export function FlowsLink({
   return <StyledLink to={urls.bucketWorkflowList(bucket)}>{children}</StyledLink>
 }
 
-export function WorkflowsConfigLink({ children }: WrapperProps) {
-  const { bucket } = RRDom.useParams<{ bucket: string }>()
+export function WorkflowsConfigLink({
+  children,
+  bucket: target,
+}: WrapperProps & { bucket?: string }) {
+  const params = RRDom.useParams<{ bucket: string }>()
+  const bucket = target || params.bucket
   invariant(bucket, '`bucket` must be defined')
 
   const toConfig = useEditBucketFile({ bucket, key: quiltConfigs.workflows })

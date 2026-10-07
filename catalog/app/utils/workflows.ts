@@ -195,6 +195,46 @@ const SIMPLE: Record<string, string> = {
 const hex = (cp: number) =>
   cp < 0x100 ? `\\x${cp.toString(16).padStart(2, '0')}` : `\\u{${cp.toString(16)}}`
 
+const CLASS_ESCAPE = -1
+
+const SIMPLE_CP: Record<string, number> = { n: 10, r: 13, t: 9, f: 12, v: 11, a: 7, b: 8 }
+
+// Code point an escape inside a class stands for, or CLASS_ESCAPE for a class like \w.
+function escapedCodePoint(cs: string[], i: number): number {
+  const n = cs[i]
+  if (n in CLASS_OUT) return CLASS_ESCAPE
+  if (n in SIMPLE_CP) return SIMPLE_CP[n]
+  if (n === 'x') return parseInt(cs.slice(i + 1, i + 3).join(''), 16)
+  if (n === 'u') return parseInt(cs.slice(i + 1, i + 5).join(''), 16)
+  if (n === 'U') return parseInt(cs.slice(i + 1, i + 9).join(''), 16)
+  return n.codePointAt(0)!
+}
+
+// The upper end of a class range starting at cs[i].
+function rangeEnd(
+  cs: string[],
+  i: number,
+): { cp?: number; js?: string; next: number; error?: string } {
+  if (cs[i] !== '\\')
+    return { cp: cs[i].codePointAt(0)!, js: hex(cs[i].codePointAt(0)!), next: i + 1 }
+  const n = cs[i + 1]
+  if (n === undefined) return { next: i + 1, error: 'Ends with a lone backslash' }
+  if (n in CLASS_OUT)
+    return { next: i + 2, error: "A range can't end at \\w, \\d or \\s" }
+  const len = n === 'x' ? 2 : n === 'u' ? 4 : n === 'U' ? 8 : 0
+  if (
+    len &&
+    !new RegExp(`^[0-9a-fA-F]{${len}}$`).test(cs.slice(i + 2, i + 2 + len).join(''))
+  ) {
+    return { next: i + 2, error: `\\${n} needs ${len} hex digits` }
+  }
+  if (/[A-Za-z]/.test(n) && !len && !(n in SIMPLE_CP)) {
+    return { next: i + 2, error: `\\${n} isn't valid in a range` }
+  }
+  const cp = escapedCodePoint(cs, i + 1)
+  return { cp, js: hex(cp), next: i + 2 + len }
+}
+
 // Reads a `handle_pattern` the way quilt3's `re` does. Only constructs with an exact
 // JS (`u` flag) equivalent are translated; anything else is left to the push.
 export function analyzePattern(src: string): PatternAnalysis {
@@ -205,6 +245,8 @@ export function analyzePattern(src: string): PatternAnalysis {
   let depth = 0
   let inClass = false
   let classFirst = -1
+  // Code point of the last single class member, or CLASS_ESCAPE for \w, \d, \s
+  let classItem: number | null = null
   // What a quantifier here would repeat; Python rejects repeating nothing or a repeat
   let prev: 'none' | 'atom' | 'quant' | 'mod' = 'none'
   let uncheckable: string | null = null
@@ -232,6 +274,7 @@ export function analyzePattern(src: string): PatternAnalysis {
         return invalid(`\\${n} isn't a valid escape for pushes`)
       }
       prev = 'atom'
+      if (inClass) classItem = n in CLASS_OUT ? CLASS_ESCAPE : escapedCodePoint(cs, i)
       if (inClass && 'AZB'.includes(n))
         return invalid(`\\${n} isn't allowed inside [...]`)
       if (n === 'x' && !/^[0-9a-fA-F]{2}$/.test(cs.slice(i + 1, i + 3).join(''))) {
@@ -249,6 +292,14 @@ export function analyzePattern(src: string): PatternAnalysis {
         prev = 'none'
       } else if (n in SIMPLE) out += SIMPLE[n]
       else if (n in CLASS_OUT) {
+        if (
+          inClass &&
+          cs[i + 1] === '-' &&
+          cs[i + 2] !== undefined &&
+          cs[i + 2] !== ']'
+        ) {
+          return invalid("A range can't start at \\w, \\d or \\s")
+        }
         const t = inClass ? CLASS_IN[n] : CLASS_OUT[n]
         if (t === null) skip(`\\${n} inside [...]`)
         else out += t
@@ -268,10 +319,31 @@ export function analyzePattern(src: string): PatternAnalysis {
         inClass = false
         prev = 'atom'
         out += ']'
-      } else out += c === ']' || c === '[' ? `\\${c}` : c
+        continue
+      }
+      // A range: Python rejects one whose ends are reversed or a class like \w
+      if (
+        c === '-' &&
+        classItem !== null &&
+        cs[i + 1] !== undefined &&
+        cs[i + 1] !== ']'
+      ) {
+        const end = rangeEnd(cs, i + 1)
+        if (end.error) return invalid(end.error)
+        if (classItem === CLASS_ESCAPE)
+          return invalid("A range can't start at \\w, \\d or \\s")
+        if (end.cp! < classItem) return invalid('A character range runs backwards')
+        out += `-${end.js}`
+        i = end.next - 1
+        classItem = null
+        continue
+      }
+      classItem = c.codePointAt(0)!
+      out += c === ']' || c === '[' || c === '-' ? `\\${c}` : c
       continue
     }
     if (c === '[') {
+      classItem = null
       inClass = true
       classFirst = cs[i + 1] === '^' ? i + 2 : i + 1
       out += c

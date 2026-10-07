@@ -20,6 +20,8 @@ export interface Promote {
   bucket: string
   title: string
   copyData: boolean
+  // The key it was stored under, kept as written while the bucket text is unchanged
+  stored?: { url: string; bucket: string }
 }
 
 export interface FlowDraft {
@@ -86,7 +88,10 @@ function propertyToField(name: string, p: any, required: boolean): Field | null 
     if (
       Array.isArray(p.enum) &&
       p.enum.length &&
-      p.enum.every((o: unknown) => typeof o === 'string')
+      // Choices are edited as comma-separated text
+      p.enum.every(
+        (o: unknown) => typeof o === 'string' && o.trim() === o && o && !o.includes(','),
+      )
     ) {
       return { ...base, type: 'choice', options: p.enum }
     }
@@ -275,12 +280,15 @@ export function removeFlow(config: RawConfig, id: string): RawConfig {
 }
 
 export function promoteFromConfig(config: RawConfig | undefined): Promote[] {
-  return Object.entries(config?.successors ?? {}).map(([url, s]: [string, any]) => ({
-    // The whole location, so a successor with a path survives a save unchanged
-    bucket: url.replace(/^s3:\/\//, ''),
-    title: s?.title ?? '',
-    copyData: s?.copy_data !== false,
-  }))
+  return Object.entries(config?.successors ?? {}).map(([url, s]: [string, any]) => {
+    const bucket = url.replace(/^s3:\/\//, '')
+    return {
+      bucket,
+      title: s?.title ?? '',
+      copyData: s?.copy_data !== false,
+      stored: { url, bucket },
+    }
+  })
 }
 
 // "s3://prod/" and "prod" name the same target; a path after the bucket is kept.
@@ -298,13 +306,20 @@ export function validatePromote(promote: Promote[]): Record<string, string> {
   promote.forEach((p, i) => {
     const b = cleanBucket(p.bucket)
     if (!b) return
+    const key = promoteKey(p)
     if (!BUCKET_RE.test(b.split('/')[0]))
       errors[`promote.${i}`] = 'Not a valid bucket name'
-    else if (seen.has(b)) errors[`promote.${i}`] = 'This bucket is already listed'
-    seen.add(b)
+    else if (seen.has(key)) errors[`promote.${i}`] = 'This bucket is already listed'
+    seen.add(key)
   })
   return errors
 }
+
+// Stored rows keep their key as written, so a save never renames or merges them.
+const promoteKey = (p: Promote) =>
+  p.stored && p.bucket === p.stored.bucket
+    ? p.stored.url
+    : `s3://${cleanBucket(p.bucket)}`
 
 const withoutManaged = (entry: any) => {
   if (!entry || typeof entry !== 'object') return {}
@@ -318,21 +333,22 @@ export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
   const existing = new Map(
     Object.entries(old ?? {}).map(([url, v]) => [cleanBucket(url), { url, v }]),
   )
-  const rows = promote
-    .map((p) => ({ ...p, bucket: cleanBucket(p.bucket) }))
-    .filter((p) => p.bucket)
+  const rows = promote.filter((p) => cleanBucket(p.bucket))
   if (!rows.length) return rest
   return {
     ...rest,
     successors: Object.fromEntries(
       rows.map((p) => {
-        const prev = existing.get(p.bucket)
+        const key = promoteKey(p)
+        const prev =
+          (old && key in old ? { url: key, v: old[key] } : null) ??
+          existing.get(cleanBucket(p.bucket))
         return [
-          prev?.url ?? `s3://${p.bucket}`,
+          prev?.url ?? key,
           {
             // Keep keys this editor doesn't manage
             ...withoutManaged(prev?.v),
-            title: p.title.trim() || p.bucket,
+            title: p.title.trim() || cleanBucket(p.bucket),
             ...(p.copyData ? {} : { copy_data: false }),
           },
         ]
