@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] Qurator mode and the full-page Qurator get a compact composer with a + menu (save the session as a package, Agent or Ask mode, model, tools, MCP servers, instructions) that minimizes to one line on phones ([#PR](https://github.com/quiltdata/quilt/pull/PR))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))

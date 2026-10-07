@@ -39,7 +39,9 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     padding: t.spacing(2),
     width: 320,
-    [t.breakpoints.down('sm')]: {
+    // A phone gives the chat the whole screen; the + menu carries Save, and ✕ goes back.
+    [t.breakpoints.down('xs')]: { display: 'none' },
+    [t.breakpoints.only('sm')]: {
       borderTop: `1px solid ${t.palette.divider}`,
       maxHeight: '40%',
       width: 'auto',
