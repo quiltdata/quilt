@@ -448,8 +448,15 @@ export function createSaveQueue<T>({
     events: T | null,
     checkpointed: T | null,
   ) => {
-    // Leaving a conversation checkpoints it.
-    slots.forEach(checkpointNow)
+    // Leaving a conversation checkpoints it. The session being reopened is
+    // retired instead: a save now would move it past the version just read.
+    slots.forEach((s) => {
+      if (id === null || s.id !== id) return checkpointNow(s)
+      stopCheckpointTimers(s)
+      if (s.timer) clearTimeout(s.timer)
+      s.timer = null
+      s.stopped = true
+    })
     slot = {
       head,
       shown: id,

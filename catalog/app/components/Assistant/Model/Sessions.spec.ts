@@ -431,6 +431,18 @@ describe('components/Assistant/Model/Sessions', () => {
         ])
       })
 
+      it('saves nothing to a session from its old slot when it is reopened', async () => {
+        const { queue, send } = setup(async (r) =>
+          saved(r.id ?? 'new', (r.baseVersion ?? 0) + 1, false),
+        )
+        queue.adopt('h', 's', 1, 'a', false)
+        queue.change('h', 'ab')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.adopt('h2', 's', 2, 'ab', false)
+        await vi.advanceTimersByTimeAsync(600_000)
+        expect(send.mock.calls.map(([r]) => r.baseVersion)).toEqual([1])
+      })
+
       it('never resends a failed create to checkpoint it', async () => {
         const { queue, send } = setup(async () => ({ _tag: 'Failed' }))
         queue.change('h', 'a')
