@@ -66,9 +66,12 @@ export interface Workflow {
   description?: string
   isDefault: boolean
   isDisabled: boolean
+  isMessageRequired?: boolean
   entriesSchema?: string
   name?: string
   packageNamePattern: RegExp | null
+  packageNamePatternError?: string
+  undefinedSchemas?: string[]
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
@@ -150,6 +153,59 @@ const parseSchemaRef = (
       }
     : undefined
 
+// Python `re` classes are Unicode-aware on str; JS ones are ASCII-only unless spelled out.
+const PY_CLASSES: Record<string, [string, string]> = {
+  // [outside a class, inside a class]
+  w: ['[\\p{L}\\p{N}_]', '\\p{L}\\p{N}_'],
+  W: ['[^\\p{L}\\p{N}_]', ''],
+  d: ['\\p{Nd}', '\\p{Nd}'],
+  D: ['\\P{Nd}', '\\P{Nd}'],
+}
+
+// Rewrites a Python pattern into an equivalent JS `u` source, or explains why it can't.
+function translatePattern(src: string): { source: string } | { error: string } {
+  let out = ''
+  let inClass = false
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i]
+    if (c === '\\') {
+      const n = src[++i] ?? ''
+      if ('AZbB'.includes(n)) return { error: `Python-only \\${n} semantics` }
+      const cls = PY_CLASSES[n]
+      if (cls) {
+        if (inClass && !cls[1]) return { error: `\\${n} inside [...]` }
+        out += inClass ? cls[1] : cls[0]
+      } else {
+        out += c + n
+      }
+    } else {
+      if (c === '[' && !inClass) inClass = true
+      else if (c === ']' && inClass && src[i - 1] !== '[') inClass = false
+      out += c
+    }
+  }
+  return { source: out }
+}
+
+// quilt3 compiles `handle_pattern` with Python `re`, so a valid pattern may use syntax the
+// browser can't reproduce, e.g. `(?P<name>...)`. The push still enforces it; the catalog skips it.
+function compilePattern(
+  src?: string,
+): Pick<Workflow, 'packageNamePattern' | 'packageNamePatternError'> {
+  if (!src) return { packageNamePattern: null }
+  const t = translatePattern(src)
+  if ('error' in t) return { packageNamePattern: null, packageNamePatternError: t.error }
+  try {
+    // `u` rejects identity escapes like `\\-`, so only use it when the classes need it.
+    return { packageNamePattern: new RegExp(t.source, t.source === src ? '' : 'u') }
+  } catch (e) {
+    return {
+      packageNamePattern: null,
+      packageNamePatternError: e instanceof Error ? e.message : String(e),
+    }
+  }
+}
+
 function parseWorkflow(
   workflowSlug: string,
   workflow: WorkflowYaml,
@@ -159,15 +215,22 @@ function parseWorkflow(
     description: workflow.description,
     isDefault: workflowSlug === data.default_workflow,
     isDisabled: false,
+    isMessageRequired: !!workflow.is_message_required,
     entriesSchema: data.schemas?.[workflow.entries_schema || '']?.url,
     name: workflow.name,
     packageName: parsePackageNameTemplates(
       data.catalog?.package_handle,
       workflow.catalog?.package_handle,
     ),
-    packageNamePattern: workflow.handle_pattern
-      ? new RegExp(workflow.handle_pattern)
-      : null,
+    ...compilePattern(workflow.handle_pattern),
+    // quilt3 rejects every push through such a workflow ("There is no ... in schemas").
+    undefinedSchemas: Array.from(
+      new Set(
+        [workflow.metadata_schema, workflow.entries_schema].filter(
+          (id): id is string => !!id && !data.schemas?.[id],
+        ),
+      ),
+    ),
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
     schemas: {
@@ -239,7 +302,14 @@ function validateConfig(data: unknown): asserts data is WorkflowsYaml {
   if (versionErrors)
     throw new bucketErrors.WorkflowsConfigInvalid({ errors: versionErrors })
 
-  const errors = workflowsConfigValidator(data)
+  const errors = workflowsConfigValidator(data).filter(
+    (e) =>
+      !(
+        'keyword' in e &&
+        e.keyword === 'format' &&
+        e.instancePath.endsWith('/handle_pattern')
+      ),
+  )
   if (errors.length) throw new bucketErrors.WorkflowsConfigInvalid({ errors })
 }
 

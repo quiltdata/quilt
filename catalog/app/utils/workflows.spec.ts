@@ -255,4 +255,61 @@ describe('utils/workflows', () => {
       })
     })
   })
+  describe('handle_pattern the browser cannot compile', () => {
+    const data = dedent`
+      version: "1"
+      workflows:
+        a:
+          name: A
+          handle_pattern: "^(?P<lab>[a-z]+)/"
+    `
+    it('keeps the config usable and records why the pattern is skipped', () => {
+      const w = workflows.parse(data, 'foo').workflows[1]
+      expect(w.packageNamePattern).toBe(null)
+      expect(w.packageNamePatternError).toMatch('Invalid')
+    })
+  })
+  describe('Python-only anchors', () => {
+    it('are skipped rather than read as literal letters', () => {
+      const w = workflows.parse(
+        'version: "1"\nworkflows:\n  a:\n    name: A\n    handle_pattern: "^[a-z]+/[a-z]+\\\\Z"\n',
+        'foo',
+      ).workflows[1]
+      expect(w.packageNamePattern).toBe(null)
+      expect(w.packageNamePatternError).toMatch('Python-only')
+    })
+  })
+
+  describe('handle_pattern with Python character classes', () => {
+    const pattern = (p: string) =>
+      workflows.parse(
+        `version: "1"\nworkflows:\n  a:\n    name: A\n    handle_pattern: '${p}'\n`,
+        'foo',
+      ).workflows[1]
+
+    it('matches Unicode names the way push does', () => {
+      const w = pattern('^\\w+/[\\w-]+\\d$')
+      expect(w.packageNamePattern?.test('lab/é-x1')).toBe(true)
+      expect(w.packageNamePattern?.test('lab/x!1')).toBe(false)
+    })
+
+    it('skips word boundaries, which JS keeps ASCII-only', () => {
+      expect(pattern('^lab/\\b').packageNamePatternError).toMatch('\\b')
+    })
+  })
+
+  describe('workflow naming a schema the config does not define', () => {
+    const data = dedent`
+      version: "1"
+      workflows:
+        a:
+          name: A
+          metadata_schema: missing
+    `
+    it('reports it, since push rejects that workflow', () => {
+      expect(workflows.parse(data, 'foo').workflows[1].undefinedSchemas).toEqual([
+        'missing',
+      ])
+    })
+  })
 })
