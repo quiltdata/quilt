@@ -4,6 +4,9 @@ mutation ($input: QuratorSessionSaveInput!) {
     ... on QuratorSession {
       id
       version
+      package {
+        revisedAt
+      }
     }
     ... on InvalidInput {
       errors {

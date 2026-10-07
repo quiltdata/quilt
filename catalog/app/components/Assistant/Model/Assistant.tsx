@@ -314,6 +314,8 @@ const UNSWITCHABLE = "Keep sessions couldn't be changed"
 export function useSessions(
   state: Conversation.State,
   dispatch: (action: Conversation.Action) => unknown,
+  model: string,
+  visible = true,
 ) {
   const client = urql.useClient()
   const query = GQL.useQuery(SESSIONS_QUERY)
@@ -340,23 +342,27 @@ export function useSessions(
 
   const { run } = query
   const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
-  const passThru = usePassThru({ saveSession, dispatch, refresh })
+  const passThru = usePassThru({ saveSession, dispatch, refresh, model })
   const currentIdNow = usePassThru(currentId)
   const opening = React.useRef<{
     id: string
     version: number
     events: Conversation.Event[]
+    packaged: boolean
   }>()
 
   const queue = useConst(() =>
     Sessions.createSaveQueue<Conversation.Event[]>({
-      send: async ({ id, baseVersion, events }) => {
+      send: async ({ id, baseVersion, events, checkpoint }) => {
         const { quratorSessionSave } = await passThru.current.saveSession({
           input: {
             id,
             baseVersion,
             title: Sessions.titleOf(events),
             events: Sessions.encode(events) as unknown as JsonRecord,
+            checkpoint: checkpoint
+              ? Sessions.checkpointOf(events, passThru.current.model, new Date())
+              : null,
           },
         })
         return Sessions.outcomeOf(quratorSessionSave)
@@ -385,7 +391,7 @@ export function useSessions(
     const o = opening.current
     if (head && o?.events === state.events) {
       opening.current = undefined
-      queue.adopt(head, o.id, o.version, o.events)
+      queue.adopt(head, o.id, o.version, o.events, o.packaged)
     }
     if (!enabled) {
       queue.pause()
@@ -397,7 +403,18 @@ export function useSessions(
     if (head) queue.change(head, state.events)
   }, [enabled, head, currentId, state.events, queue])
 
-  React.useEffect(() => () => queue.pause(), [queue])
+  // New session, closing the panel and unmounting each checkpoint the conversation.
+  React.useEffect(() => () => queue.checkpoint(), [head, queue])
+  React.useEffect(() => {
+    if (!visible) queue.checkpoint()
+  }, [visible, queue])
+  React.useEffect(
+    () => () => {
+      queue.checkpoint()
+      queue.pause()
+    },
+    [queue],
+  )
 
   const latestOpen = React.useRef(0)
   const headNow = usePassThru(head)
@@ -443,7 +460,13 @@ export function useSessions(
           refresh()
           return
         }
-        opening.current = { id: session.id, version: session.version, events }
+        opening.current = {
+          id: session.id,
+          version: session.version,
+          events,
+          // A tab closed before its checkpoint leaves the package behind the draft.
+          packaged: !!session.package && session.package.revisedAt >= session.updatedAt,
+        }
         dispatch(Conversation.Action.Restore({ sessionId: session.id, events }))
       }),
     [whileSwitching, client, currentId, head, headNow, queue, dispatch, refresh],
@@ -576,12 +599,12 @@ function useConstructAssistantAPI() {
 
   GlobalContext.use(llm)
 
-  const sessions = useSessions(state, dispatch)
-
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
   const show = React.useCallback(() => setVisible(true), [])
   const hide = React.useCallback(() => setVisible(false), [])
+
+  const sessions = useSessions(state, dispatch, model.current, visible)
 
   const assist = React.useCallback(
     (msg?: string) => {

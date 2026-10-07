@@ -263,8 +263,123 @@ describe('components/Assistant/Model/Sessions', () => {
       queue.adopt('b', 'B', 7, 'z')
       await vi.advanceTimersByTimeAsync(0)
       expect(send.mock.calls.map(([r]) => r)).toEqual([
-        { id: 'A', baseVersion: 4, events: 'xy' },
+        { id: 'A', baseVersion: 4, events: 'xy', checkpoint: true },
       ])
+    })
+
+    describe('checkpoints', () => {
+      const checkpoints = (send: ReturnType<typeof setup>['send']) =>
+        send.mock.calls.map(([r]) => r).filter((r) => r.checkpoint)
+
+      it('leaves ordinary saves draft-only', async () => {
+        const { queue, send } = setup(async () => saved('s', 1))
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.change('h', 'ab')
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(send).toHaveBeenCalledTimes(2)
+        expect(checkpoints(send)).toEqual([])
+      })
+
+      it('cuts one 60 s after the last change, and no more while nothing changes', async () => {
+        const { queue, send } = setup(async () => saved('s', 1))
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(30_000)
+        queue.change('h', 'ab')
+        await vi.advanceTimersByTimeAsync(59_000)
+        expect(checkpoints(send)).toEqual([])
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(checkpoints(send)).toEqual([
+          { id: 's', baseVersion: 1, events: 'ab', checkpoint: true },
+        ])
+        await vi.advanceTimersByTimeAsync(600_000)
+        expect(send).toHaveBeenCalledTimes(3)
+      })
+
+      it('cuts one every 5 min while changes keep coming', async () => {
+        const { queue, send } = setup(async () => saved('s', 1))
+        for (let i = 1; i <= 10; i++) {
+          queue.change('h', 'a'.repeat(i))
+          await vi.advanceTimersByTimeAsync(30_000)
+        }
+        expect(checkpoints(send).map((r) => r.events)).toEqual(['a'.repeat(10)])
+      })
+
+      it('cuts one for the conversation left by switching or starting another', async () => {
+        const { queue, send } = setup(async (r) => saved(r.id ?? 'new', 1))
+        queue.change('a', 'x')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.change('b', 'y')
+        await vi.advanceTimersByTimeAsync(0)
+        expect(checkpoints(send)).toEqual([
+          { id: 'new', baseVersion: 1, events: 'x', checkpoint: true },
+        ])
+      })
+
+      it('cuts one on demand, once per change', async () => {
+        const { queue, send } = setup(async () => saved('s', 1))
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(checkpoints(send)).toEqual([
+          { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
+        ])
+      })
+
+      it('cuts one for an opened session whose package lags its draft', async () => {
+        const { queue, send } = setup(async () => saved('s', 2))
+        queue.adopt('h', 's', 1, 'a', false)
+        queue.checkpoint()
+        queue.adopt('k', 't', 1, 'b')
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(checkpoints(send).map((r) => r.events)).toEqual(['a'])
+      })
+
+      it('carries a checkpoint that failed on the retry', async () => {
+        const outcomes: Sessions.SaveOutcome[] = [
+          saved('s', 1),
+          { _tag: 'Failed' },
+          saved('s', 2),
+        ]
+        const { queue, send } = setup(async () => outcomes.shift()!)
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(5000)
+        expect(checkpoints(send)).toEqual([
+          { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
+          { id: 's', baseVersion: 1, events: 'a', checkpoint: true },
+        ])
+      })
+
+      it('sends none while paused', async () => {
+        const { queue, send } = setup(async () => saved('s', 1))
+        queue.change('h', 'a')
+        await vi.advanceTimersByTimeAsync(1000)
+        queue.pause()
+        queue.checkpoint()
+        await vi.advanceTimersByTimeAsync(600_000)
+        expect(send).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    describe('checkpointOf', () => {
+      it('renders the package files', () => {
+        const c = Sessions.checkpointOf([message('1', 'user', text('hi'))], 'm', at)
+        expect(c?.readme).toContain('# hi')
+        expect(c?.session).toMatchObject({ model: 'm', sessionId: '1' })
+      })
+
+      it('is dropped past 2 MiB', () => {
+        const big = 'x'.repeat(1024 * 1024)
+        expect(Sessions.checkpointOf([message('1', 'user', text(big))], 'm', at)).toBe(
+          null,
+        )
+      })
     })
 
     it('saves nothing of a session while or after it is deleted', async () => {
@@ -402,8 +517,12 @@ describe('components/Assistant/Model/Sessions', () => {
       queue.change('h', 'a')
       await vi.advanceTimersByTimeAsync(1000)
       await vi.advanceTimersByTimeAsync(5000)
-      await vi.advanceTimersByTimeAsync(60000)
+      await vi.advanceTimersByTimeAsync(50000)
       expect(send).toHaveBeenCalledTimes(2)
+      // The idle checkpoint is a send of its own, and a failed one is not retried.
+      await vi.advanceTimersByTimeAsync(600_000)
+      expect(send).toHaveBeenCalledTimes(3)
+      expect(send.mock.calls[2][0].checkpoint).toBe(true)
     })
 
     it('reports Disabled without retrying, and saves on the next change', async () => {

@@ -1346,9 +1346,27 @@ export interface QuratorSession {
   /** The `{v: 1, events: [...]}` envelope as saved. */
   readonly events: Scalars['JsonRecord']['output']
   readonly id: Scalars['ID']['output']
+  /** Null until the first checkpoint is saved as a package revision. */
+  readonly package: Maybe<QuratorSessionPackage>
   readonly title: Scalars['String']['output']
   readonly updatedAt: Scalars['Datetime']['output']
   readonly version: Scalars['Int']['output']
+}
+
+/** The session rendered as package files, saved as a new revision of its package. */
+export interface QuratorSessionCheckpointInput {
+  readonly readme: Scalars['String']['input']
+  readonly session: Scalars['JsonRecord']['input']
+  readonly transcript: Scalars['String']['input']
+}
+
+/** The package revision a session was last checkpointed to. */
+export interface QuratorSessionPackage {
+  readonly __typename: 'QuratorSessionPackage'
+  readonly bucket: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
+  readonly revisedAt: Scalars['Datetime']['output']
+  readonly topHash: Scalars['String']['output']
 }
 
 /**
@@ -1357,6 +1375,8 @@ export interface QuratorSession {
  */
 export interface QuratorSessionSaveInput {
   readonly baseVersion: InputMaybe<Scalars['Int']['input']>
+  /** At most 2 MiB, or the save is refused as `TooLarge`. */
+  readonly checkpoint: InputMaybe<QuratorSessionCheckpointInput>
   readonly events: Scalars['JsonRecord']['input']
   readonly id: InputMaybe<Scalars['ID']['input']>
   readonly title: Scalars['String']['input']

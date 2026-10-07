@@ -8,12 +8,21 @@ import * as Types from '../../../../model/graphql/types.generated'
 
 import type { JsonRecord } from 'utils/types'
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+/** The session rendered as package files, saved as a new revision of its package. */
+export interface QuratorSessionCheckpointInput {
+  readonly readme: string
+  readonly session: JsonRecord
+  readonly transcript: string
+}
+
 /**
  * Omit `id` to create a session. With `id`, `baseVersion` must be the version the
  * caller last read, or the save is refused as `Conflict`.
  */
 export interface QuratorSessionSaveInput {
   readonly baseVersion: number | null | undefined
+  /** At most 2 MiB, or the save is refused as `TooLarge`. */
+  readonly checkpoint: QuratorSessionCheckpointInput | null | undefined
   readonly events: JsonRecord
   readonly id: string | number | null | undefined
   readonly title: string
@@ -39,6 +48,10 @@ export interface components_Assistant_Model_gql_QuratorSessionSaveMutation {
         readonly __typename: 'QuratorSession'
         readonly id: string
         readonly version: number
+        readonly package: {
+          readonly __typename: 'QuratorSessionPackage'
+          readonly revisedAt: Date
+        } | null
       }
 }
 
@@ -90,6 +103,16 @@ export const components_Assistant_Model_gql_QuratorSessionSaveDocument = {
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'version' } },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'package' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'revisedAt' } },
+                          ],
+                        },
+                      },
                     ],
                   },
                 },

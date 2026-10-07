@@ -10,6 +10,14 @@ vi.mock('utils/Buckets', () => ({
   useIsInStack: () => (bucket: string) => bucket === 'in-stack-bucket',
 }))
 
+// The dialog's own behaviour is quiltdata/quilt#5440's to test; here, only that it opens.
+vi.mock('containers/QuratorMode/Save', () => ({ default: () => 'SAVE FORM' }))
+
+vi.mock('../../Model', async (importActual) => ({
+  ...(await importActual<typeof import('../../Model')>()),
+  useAssistantAPI: () => ({}),
+}))
+
 import * as Model from '../../Model'
 
 import { ConnectorHelperLine, LastSession, Menu, MessageEvent } from './Chat'
@@ -164,6 +172,7 @@ const kept = () =>
         title: 'Find my packages',
         updatedAt: new Date(),
         eventCount: 2,
+        package: null,
       },
     ],
   })
@@ -186,11 +195,33 @@ describe('components/Assistant/UI/Chat/LastSession', () => {
     const updatedAt = new Date('2026-10-06T12:00:00Z')
     const sessions = sessionsStub({
       list: [
-        { __typename: 'QuratorSession', id: 's1', title: 't', updatedAt, eventCount: 1 },
+        {
+          __typename: 'QuratorSession',
+          id: 's1',
+          title: 't',
+          updatedAt,
+          eventCount: 1,
+          package: null,
+        },
       ],
     })
     render(<LastSession sessions={sessions} state={state([])} />)
     expect(screen.getByTitle(updatedAt.toLocaleString())).toBeTruthy()
+  })
+
+  it('says when the session is saved as a package', () => {
+    const revisedAt = new Date('2026-10-06T12:00:00Z')
+    const sessions = sessionsStub({
+      list: [
+        {
+          ...kept().list[0],
+          package: { __typename: 'QuratorSessionPackage', revisedAt },
+        },
+      ],
+    })
+    render(<LastSession sessions={sessions} state={state([])} />)
+    expect(screen.getByText(/Saved as package/)).toBeTruthy()
+    expect(screen.getByTitle(revisedAt.toLocaleString())).toBeTruthy()
   })
 
   it('never offers the session already on screen', () => {
@@ -208,16 +239,17 @@ describe('components/Assistant/UI/Chat/LastSession', () => {
 describe('components/Assistant/UI/Chat/Menu', () => {
   afterEach(cleanup)
 
-  const idle = { _tag: 'Idle' } as Model.Assistant.API['state']
+  const idle = { _tag: 'Idle', events: [] } as unknown as Model.Assistant.API['state']
 
   function renderMenu(
     devToolsOpen: boolean,
     onToggleDevTools = vi.fn(),
     sessions = sessionsStub(),
+    state = idle,
   ) {
     render(
       <Menu
-        state={idle}
+        state={state}
         dispatch={vi.fn()}
         sessions={sessions}
         devToolsOpen={devToolsOpen}
@@ -279,6 +311,44 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     })
     fireEvent.click(screen.getByText('Delete'))
     expect(sessions.remove).toHaveBeenCalledWith('s1')
+  })
+
+  it('says which recent sessions are saved as packages', () => {
+    const revisedAt = new Date('2026-10-06T12:00:00Z')
+    const sessions = kept()
+    renderMenu(false, vi.fn(), {
+      ...sessions,
+      list: [
+        {
+          ...sessions.list[0],
+          package: { __typename: 'QuratorSessionPackage', revisedAt },
+        },
+      ],
+    })
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText(/Saved as package/)).toBeTruthy()
+    expect(screen.getByTitle(revisedAt.toLocaleString())).toBeTruthy()
+  })
+
+  it('opens Save to a bucket for the conversation on screen', () => {
+    const chatting = {
+      _tag: 'Idle',
+      events: [{ id: '1' }],
+    } as unknown as Model.Assistant.API['state']
+    renderMenu(false, vi.fn(), sessionsStub(), chatting)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Save to a bucket…'))
+    expect(screen.getByText('SAVE FORM')).toBeTruthy()
+  })
+
+  it('offers no Save to a bucket for an empty chat', () => {
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(
+      screen
+        .getByRole('menuitem', { name: 'Save to a bucket…' })
+        .getAttribute('aria-disabled'),
+    ).toBe('true')
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {

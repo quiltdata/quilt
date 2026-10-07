@@ -98,7 +98,7 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
       if (a._tag === 'Restore') rerender({ state: idle(a.events, a.sessionId) })
     })
     const hook = renderHook<Props, ReturnType<typeof useSessions>>(
-      ({ state }) => useSessions(state, dispatch),
+      ({ state }) => useSessions(state, dispatch, 'm'),
       { initialProps: { state: idle([]) } },
     )
     rerender = hook.rerender
@@ -119,12 +119,57 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     expect(stub.saves[0]).toMatchObject({ id: 'S', baseVersion: 7 })
   })
 
+  it('checkpoints the conversation as a package when the panel closes', async () => {
+    const state = idle([ask('1', 'find my packages')])
+    const hook = renderHook(
+      ({ visible }: { visible: boolean }) => useSessions(state, vi.fn(), 'm', visible),
+      { initialProps: { visible: true } },
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(stub.saves).toHaveLength(1)
+    expect(stub.saves[0].checkpoint).toBeNull()
+
+    hook.rerender({ visible: false })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(stub.saves).toHaveLength(2)
+    expect(stub.saves[1]).toMatchObject({
+      id: 'NEW',
+      checkpoint: {
+        readme: expect.stringContaining('# find my packages'),
+        transcript: expect.stringContaining('find my packages'),
+        session: expect.objectContaining({ model: 'm' }),
+      },
+    })
+  })
+
+  it('saves without a checkpoint past 2 MiB', async () => {
+    const state = idle([ask('1', 'x'.repeat(1100 * 1024))])
+    const hook = renderHook(
+      ({ visible }: { visible: boolean }) => useSessions(state, vi.fn(), 'm', visible),
+      { initialProps: { visible: true } },
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    hook.rerender({ visible: false })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(stub.saves).toHaveLength(2)
+    expect(stub.saves[1]).toMatchObject({ id: 'NEW', checkpoint: null })
+    expect(hook.result.current.notice).toBe(null)
+  })
+
   it('gives up on a session read that hangs, and unlocks the chat', async () => {
     stub.readHang = true
     stub.opened = { id: 'S', version: 7, events: Sessions.encode([ask('9', 'x')]) }
     const dispatch = vi.fn()
     const hook = renderHook(
-      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch),
+      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch, 'm'),
       { initialProps: { state: idle([]) } },
     )
     let opening: Promise<void> = Promise.resolve()
@@ -146,7 +191,7 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     stub.opened = { id: 'S', version: 7, events: Sessions.encode([ask('9', 'x')]) }
     const dispatch = vi.fn()
     const hook = renderHook(
-      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch),
+      ({ state }: { state: Conversation.State }) => useSessions(state, dispatch, 'm'),
       { initialProps: { state: idle([ask('1', 'unsaved')]) } },
     )
     await act(async () => {
@@ -178,7 +223,7 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
       if (a._tag === 'Restore') rerender({ state: idle(a.events, a.sessionId) })
     })
     const hook = renderHook<Props, ReturnType<typeof useSessions>>(
-      ({ state }) => useSessions(state, dispatch),
+      ({ state }) => useSessions(state, dispatch, 'm'),
       { initialProps: { state: idle([]) } },
     )
     rerender = hook.rerender

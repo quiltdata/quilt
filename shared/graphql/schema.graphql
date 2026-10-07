@@ -765,6 +765,23 @@ type QuratorSession {
   version: Int!
   "The `{v: 1, events: [...]}` envelope as saved."
   events: JsonRecord!
+  "Null until the first checkpoint is saved as a package revision."
+  package: QuratorSessionPackage
+}
+
+"The package revision a session was last checkpointed to."
+type QuratorSessionPackage {
+  bucket: String!
+  name: String!
+  topHash: String!
+  revisedAt: Datetime!
+}
+
+"The session rendered as package files, saved as a new revision of its package."
+input QuratorSessionCheckpointInput {
+  readme: String!
+  transcript: String!
+  session: JsonRecord!
 }
 
 """
@@ -776,6 +793,8 @@ input QuratorSessionSaveInput {
   title: String!
   events: JsonRecord!
   baseVersion: Int
+  "At most 2 MiB, or the save is refused as `TooLarge`."
+  checkpoint: QuratorSessionCheckpointInput
 }
 
 """

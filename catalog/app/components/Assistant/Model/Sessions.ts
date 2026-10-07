@@ -1,7 +1,10 @@
 import * as Eff from 'effect'
 
+import type * as Model from 'model'
+
 import * as Content from './Content'
 import * as Conversation from './Conversation'
+import * as SessionPackage from './SessionPackage'
 
 const S = Eff.Schema
 
@@ -138,6 +141,28 @@ export function decode(raw: unknown): Conversation.Event[] | null {
   )
 }
 
+export const CHECKPOINT_MAX_BYTES = 2 * 1024 * 1024
+
+/**
+ * The session as package files, or `null` past what the registry takes: the
+ * save then goes without it, and the draft is still kept.
+ */
+export function checkpointOf(
+  events: Conversation.Event[],
+  model: string,
+  savedAt: Date,
+): Model.GQLTypes.QuratorSessionCheckpointInput | null {
+  // The stack's private bucket is no user's: the README counts touched buckets, naming none.
+  const info = { model, savedAt, bucket: '', includeResults: true }
+  const checkpoint = storable({
+    readme: SessionPackage.toReadme(events, info),
+    transcript: SessionPackage.toTranscript(events, info),
+    session: JSON.parse(SessionPackage.toSessionJson(events, info)),
+  }) as Model.GQLTypes.QuratorSessionCheckpointInput
+  const bytes = new TextEncoder().encode(JSON.stringify(checkpoint)).length
+  return bytes > CHECKPOINT_MAX_BYTES ? null : checkpoint
+}
+
 export const TITLE_LENGTH = 80
 
 export function titleOf(events: readonly Conversation.Event[]): string {
@@ -187,6 +212,8 @@ export interface SaveRequest<T> {
   readonly id: string | null
   readonly baseVersion: number | null
   readonly events: T
+  /** Also cut a package revision from `events`. */
+  readonly checkpoint?: true
 }
 
 interface Slot<T> {
@@ -199,6 +226,11 @@ interface Slot<T> {
   latest: T | null
   sent: T | null
   timer: ReturnType<typeof setTimeout> | null
+  /** What the package last got; `checkpointDue` asks for the latest. */
+  checkpointed: T | null
+  checkpointDue: boolean
+  idle: ReturnType<typeof setTimeout> | null
+  cap: ReturnType<typeof setTimeout> | null
   inFlight: boolean
   stopped: boolean
   retried: boolean
@@ -213,6 +245,10 @@ interface QueueOptions<T> {
   /** Never created as a session; an existing one is still saved empty. */
   isEmpty?: (events: T) => boolean
   delayMs?: number
+  /** A checkpoint is cut this long after the last change… */
+  idleMs?: number
+  /** …and at least this often while changes keep coming. */
+  capMs?: number
 }
 
 /**
@@ -226,6 +262,8 @@ export function createSaveQueue<T>({
   onStopped,
   isEmpty = () => false,
   delayMs = 1000,
+  idleMs = 60_000,
+  capMs = 300_000,
 }: QueueOptions<T>) {
   let slot: Slot<T> | null = null
   // The current slot, and earlier ones whose save may still be in flight.
@@ -251,13 +289,15 @@ export function createSaveQueue<T>({
     // `shown` too: a fork of a held session must not recreate it either.
     const isHeld = [s.id, s.shown].some((id) => id !== null && held.has(id))
     const events = s.latest
+    if (events === s.checkpointed) s.checkpointDue = false
+    const checkpoint = s.checkpointDue
     if (
       paused ||
       isHeld ||
       s.timer ||
       s.stopped ||
       !events ||
-      events === s.sent ||
+      (events === s.sent && !checkpoint) ||
       (s.id === null && isEmpty(events))
     ) {
       s.waiters.splice(0).forEach((resolve) => resolve())
@@ -266,11 +306,18 @@ export function createSaveQueue<T>({
     }
     s.inFlight = true
     s.sent = events
+    s.checkpointDue = false
     const updating = s.id !== null
-    send({ id: s.id, baseVersion: s.version, events })
+    send({
+      id: s.id,
+      baseVersion: s.version,
+      events,
+      ...(checkpoint ? { checkpoint: true as const } : {}),
+    })
       .catch((): SaveOutcome => ({ _tag: 'Failed' }))
       .then((r) => {
         s.inFlight = false
+        if (checkpoint && r._tag === 'Saved') s.checkpointed = events
         switch (r._tag) {
           case 'Saved':
             s.id = r.id
@@ -288,6 +335,7 @@ export function createSaveQueue<T>({
             s.id = null
             s.version = null
             s.sent = null
+            s.checkpointDue ||= checkpoint
             break
           case 'TooLarge':
           case 'BadEnvelope':
@@ -305,6 +353,8 @@ export function createSaveQueue<T>({
             if (!s.retried && updating) {
               s.retried = true
               s.sent = null
+              // Only a resend carries a failed checkpoint again: re-asking on any reply would loop.
+              s.checkpointDue ||= checkpoint
               later(s, delayMs * 5)
             }
             break
@@ -314,9 +364,27 @@ export function createSaveQueue<T>({
           if (s.timer) clearTimeout(s.timer)
           s.timer = null
           s.latest = s.sent
+          s.checkpointDue = false
         }
         pump(s)
       })
+  }
+
+  const stopCheckpointTimers = (s: Slot<T>) => {
+    if (s.idle) clearTimeout(s.idle)
+    if (s.cap) clearTimeout(s.cap)
+    s.idle = null
+    s.cap = null
+  }
+
+  /** Sends now, carrying a checkpoint unless the package already has the latest. */
+  const checkpointNow = (s: Slot<T>) => {
+    stopCheckpointTimers(s)
+    if (paused) return
+    if (s.timer) clearTimeout(s.timer)
+    s.timer = null
+    s.checkpointDue = true
+    pump(s)
   }
 
   /** Sends what is pending now; settles once nothing is pending or in flight. */
@@ -338,8 +406,10 @@ export function createSaveQueue<T>({
     id: string | null,
     version: number | null,
     events: T | null,
+    checkpointed: T | null,
   ) => {
-    flush()
+    // Leaving a conversation checkpoints it.
+    slots.forEach(checkpointNow)
     slot = {
       head,
       shown: id,
@@ -348,6 +418,10 @@ export function createSaveQueue<T>({
       latest: events,
       sent: events,
       timer: null,
+      checkpointed,
+      checkpointDue: false,
+      idle: null,
+      cap: null,
       inFlight: false,
       stopped: false,
       retried: false,
@@ -360,16 +434,27 @@ export function createSaveQueue<T>({
   return {
     /** The conversation whose first event is `head` now holds `events`. */
     change(head: string, events: T) {
-      const s = slot?.head === head ? slot : fresh(head, null, null, null)
+      const s = slot?.head === head ? slot : fresh(head, null, null, null, null)
       if (s.stopped || s.latest === events) return
       s.latest = events
-      if (!paused) later(s, delayMs)
+      if (paused) return
+      later(s, delayMs)
+      if (s.idle) clearTimeout(s.idle)
+      s.idle = setTimeout(() => checkpointNow(s), idleMs)
+      if (!s.cap) s.cap = setTimeout(() => checkpointNow(s), capMs)
     },
-    /** `events` were just opened as session `id` at `version`. */
-    adopt(head: string, id: string, version: number, events: T) {
-      fresh(head, id, version, events)
+    /**
+     * `events` were just opened as session `id` at `version`; `packaged`
+     * when its package already holds them.
+     */
+    adopt(head: string, id: string, version: number, events: T, packaged = true) {
+      fresh(head, id, version, events, packaged ? events : null)
     },
     flush,
+    /** Checkpoint every conversation with changes the package lacks: the panel closed. */
+    checkpoint() {
+      slots.forEach(checkpointNow)
+    },
     /**
      * Send nothing, not even a retry or a fork, until `resume`, and drop what
      * is pending: after `resume`, the next change saves the conversation as it
@@ -381,6 +466,8 @@ export function createSaveQueue<T>({
         if (s.timer) clearTimeout(s.timer)
         s.timer = null
         s.latest = s.sent
+        stopCheckpointTimers(s)
+        s.checkpointDue = false
       }
     },
     /** Saving picks up with the next change. */
@@ -399,6 +486,7 @@ export function createSaveQueue<T>({
         if (deleted) {
           if (s.timer) clearTimeout(s.timer)
           s.timer = null
+          stopCheckpointTimers(s)
           s.stopped = true
         } else if (s.latest !== s.sent) later(s, delayMs)
       }

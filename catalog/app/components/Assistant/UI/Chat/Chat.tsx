@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import { useConfirm } from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import Save from 'containers/QuratorMode/Save'
 import * as Actor from 'utils/Actor'
 import * as Buckets from 'utils/Buckets'
 import { runtime } from 'utils/Effect'
@@ -460,6 +461,40 @@ const useMenuStyles = M.makeStyles({
 
 type Sessions = Model.Assistant.API['sessions']
 
+function SessionTime({ session }: { session: Sessions['list'][number] }) {
+  return session.package ? (
+    <>
+      Saved as package · <SavedAgo date={session.package.revisedAt} />
+    </>
+  ) : (
+    <SavedAgo date={session.updatedAt} />
+  )
+}
+
+const useSaveStyles = M.makeStyles((t) => ({
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `${t.spacing(2)}px`,
+  },
+}))
+
+function SaveToBucket({ onClose }: { onClose: () => void }) {
+  const classes = useSaveStyles()
+  const api = Model.useAssistantAPI()
+  if (!api) return null
+  return (
+    <M.Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <M.DialogContent className={classes.content}>
+        <Save api={api} />
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose}>Close</M.Button>
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
 interface LastSessionProps {
   sessions: Sessions
   state: Model.Assistant.API['state']
@@ -482,7 +517,7 @@ export function LastSession({ sessions, state }: LastSessionProps) {
         <MessageAction onClick={() => sessions.open(last.id)}>continue</MessageAction>
       }
     >
-      Last session: {last.title} (<SavedAgo date={last.updatedAt} />)
+      Last session: {last.title} (<SessionTime session={last} />)
     </MessageContainer>
   )
 }
@@ -551,8 +586,16 @@ export function Menu({
     [closeMenu, confirmDelete],
   )
 
+  const [saving, setSaving] = React.useState(false)
+  const openSave = React.useCallback(() => {
+    setSaving(true)
+    closeMenu()
+  }, [closeMenu])
+  const closeSave = React.useCallback(() => setSaving(false), [])
+
   return (
     <>
+      {saving && <SaveToBucket onClose={closeSave} />}
       {confirmDelete.render(
         <M.Typography>"{deleting?.title}" will be deleted for good.</M.Typography>,
       )}
@@ -576,6 +619,9 @@ export function Menu({
       >
         <M.MenuItem onClick={startNewSession} disabled={!isIdle || sessions.switching}>
           New session
+        </M.MenuItem>
+        <M.MenuItem onClick={openSave} disabled={!state.events.some((e) => !e.discarded)}>
+          Save to a bucket…
         </M.MenuItem>
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
@@ -612,7 +658,7 @@ export function Menu({
           >
             <M.ListItemText
               primary={s.title}
-              secondary={<SavedAgo date={s.updatedAt} />}
+              secondary={<SessionTime session={s} />}
               primaryTypographyProps={{ noWrap: true }}
             />
             <M.IconButton

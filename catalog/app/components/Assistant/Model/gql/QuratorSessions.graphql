@@ -7,6 +7,9 @@ query {
       title
       updatedAt
       eventCount
+      package {
+        revisedAt
+      }
     }
   }
   config {

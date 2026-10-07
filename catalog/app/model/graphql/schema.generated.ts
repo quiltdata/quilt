@@ -6027,6 +6027,15 @@ export default {
             args: [],
           },
           {
+            name: 'package',
+            type: {
+              kind: 'OBJECT',
+              name: 'QuratorSessionPackage',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'title',
             type: {
               kind: 'NON_NULL',
@@ -6057,6 +6066,61 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'QuratorSessionPackage',
+        fields: [
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'revisedAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'topHash',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
                 ofType: null,
               },
             },

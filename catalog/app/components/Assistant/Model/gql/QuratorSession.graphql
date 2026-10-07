@@ -5,6 +5,10 @@ query ($id: ID!) {
       id
       version
       events
+      updatedAt
+      package {
+        revisedAt
+      }
     }
   }
 }
