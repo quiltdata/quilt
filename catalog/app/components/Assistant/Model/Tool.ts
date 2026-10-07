@@ -19,6 +19,9 @@ export const fail = (...content: Content.ToolResultContentBlock[]) =>
 
 export type ResultOption = Eff.Option.Option<Result>
 
+/** `platform__package_create` → `package create`. */
+export const title = (name: string) => name.replace(/^.*?__/, '').replace(/_/g, ' ')
+
 export type Executor<I> = (params: I) => Eff.Effect.Effect<ResultOption>
 
 /**

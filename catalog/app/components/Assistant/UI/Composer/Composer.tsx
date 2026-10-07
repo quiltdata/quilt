@@ -15,10 +15,10 @@ import useId from 'utils/useId'
 import type * as Model from '../../Model'
 import * as Connectors from '../../Model/Connectors'
 import * as ModelChoice from '../../Model/ModelChoice'
-import type { SessionSave } from '../../Model/SessionSave'
+import { NAME_TAKEN, type SessionSave } from '../../Model/SessionSave'
+import { title as toolTitle } from '../../Model/Tool'
 import { darkTheme } from '../Chat/Input'
 import Instructions from '../Chat/Instructions'
-import { toolTitle } from '../Chat/Chat'
 
 /** The slice of the assistant the composer reads; hosts pass the whole API. */
 export type ComposerAPI = Pick<
@@ -385,12 +385,17 @@ export default function Composer({
     setMinimized(true)
   }
   const restore = () => setMinimized(false)
+  const wasMinimized = React.useRef(false)
   React.useEffect(() => {
-    if (!minimized) textRef.current?.focus()
+    if (wasMinimized.current && !minimized) textRef.current?.focus()
+    wasMinimized.current = minimized
   }, [minimized])
   React.useEffect(() => {
     if (!phone) setMinimized(false)
   }, [phone])
+  // The mode is the composer's: the docked panel has no + menu to leave Ask from.
+  const { setMode } = api
+  React.useEffect(() => () => setMode('agent'), [setMode])
 
   React.useEffect(() => {
     if (!draft) return
@@ -468,8 +473,8 @@ export default function Composer({
                 setOpen('main')
               }
             }}
-            // A new turn starts with the box empty; autofocus matches the classic input.
-            autoFocus
+            // Not on a phone: the on-screen keyboard would cover the starters before a tap.
+            autoFocus={!phone}
           />
           <div className={classes.bar}>
             <M.IconButton
@@ -1113,9 +1118,9 @@ function SaveTarget({ save, onBack, onDone }: SaveTargetProps) {
           label="Package name"
           value={save.name}
           onChange={(e) => save.setName(e.target.value)}
-          error={save.blocked === 'A package with this name exists'}
+          error={save.blocked === NAME_TAKEN}
           helperText={
-            save.blocked === 'A package with this name exists'
+            save.blocked === NAME_TAKEN
               ? 'A package with this name exists. Pick a new name.'
               : 'Saving again adds a revision.'
           }

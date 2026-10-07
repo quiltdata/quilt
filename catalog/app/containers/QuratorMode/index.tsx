@@ -9,7 +9,7 @@ import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import Layout from 'components/Layout'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import { toolTitle } from 'components/Assistant/UI/Chat/Chat'
+import { title as toolTitle } from 'components/Assistant/Model/Tool'
 import * as SessionSave from 'components/Assistant/Model/SessionSave'
 
 type API = NonNullable<ReturnType<typeof Assistant.Model.useAssistantAPI>> & {
@@ -39,8 +39,6 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     padding: t.spacing(2),
     width: 320,
-    // A phone gives the chat the whole screen; the + menu carries Save, and ✕ goes back.
-    [t.breakpoints.down('xs')]: { display: 'none' },
     [t.breakpoints.only('sm')]: {
       borderTop: `1px solid ${t.palette.divider}`,
       maxHeight: '40%',
@@ -166,9 +164,13 @@ function Workspace({
   const classes = useStyles()
   const history = useHistory()
   const { urls } = NamedRoutes.use()
-  // A link home, not `history.goBack()`: an installed app has no history to go back to.
-  const toCatalog = React.useCallback(() => history.push(urls.home()), [history, urls])
+  // Back to wherever the user switched modes from; a cold open lands on home.
+  const toCatalog = React.useCallback(
+    () => (history.length > 1 ? history.goBack() : history.push(urls.home())),
+    [history, urls],
+  )
   const save = SessionSave.useSessionSave(api)
+  const phone = M.useMediaQuery(M.useTheme().breakpoints.down('xs'))
   return (
     <div className={classes.root}>
       {/* Registered presence drops the docked panel: one conversation, one place. */}
@@ -177,7 +179,7 @@ function Workspace({
           <Chat {...api} composer="compact" save={save} onClose={toCatalog} />
         </div>
       </InlinePresence.Provide>
-      <ContextPane api={{ ...api, save }} onCatalog={toCatalog} />
+      {!phone && <ContextPane api={{ ...api, save }} onCatalog={toCatalog} />}
     </div>
   )
 }
@@ -191,15 +193,5 @@ export default function QuratorMode() {
       </Layout>
     )
   }
-  return (
-    <Layout
-      flush
-      pre={
-        // The bucket list behind the save target suspends on first read.
-        <React.Suspense fallback={<M.LinearProgress />}>
-          <Workspace api={api} />
-        </React.Suspense>
-      }
-    />
-  )
+  return <Layout flush pre={<Workspace api={api} />} />
 }
