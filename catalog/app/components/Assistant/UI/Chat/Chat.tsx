@@ -701,10 +701,8 @@ export function ConnectorHelperLine({ connector, state }: ConnectorHelperLinePro
     Connecting: () => <>{title}: connecting…</>,
     Ready: () => null,
     Disconnected: () => <>{title}: reconnecting…</>,
-    // An optional connector is not gated on a dismissal, so offering
-    // "continue without" would promise an effect it does not have.
     Failed: ({ acked }) =>
-      acked || connector.config.optional ? (
+      acked ? (
         <>
           {title}: unavailable {sep} {reconnect}
         </>
@@ -718,11 +716,8 @@ export function ConnectorHelperLine({ connector, state }: ConnectorHelperLinePro
 
 const helperSeverityFor = (
   states: readonly Model.Connectors.ConnectorState[],
-  required: readonly Model.Connectors.ConnectorState[],
 ): 'warning' | 'error' | undefined => {
-  // Only a required connector can hold the conversation, so only that is an
-  // error the user has to clear; an optional one down still shows as a warning.
-  if (required.some(Model.Connectors.stateRequiresAck)) return 'error'
+  if (states.some(Model.Connectors.stateRequiresAck)) return 'error'
   if (states.some(Model.Connectors.stateIsUnready)) return 'warning'
   return undefined
 }
@@ -932,10 +927,7 @@ export default function Chat({
   }
   const helperText = helperLines.length > 0 ? helperLines : undefined
   const helperSeverity =
-    helperSeverityFor(
-      connectorStates,
-      connectorStates.filter((_s, i) => !allConnectors[i].config.optional),
-    ) ?? (model.readFailed ? 'warning' : undefined)
+    helperSeverityFor(connectorStates) ?? (model.readFailed ? 'warning' : undefined)
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
