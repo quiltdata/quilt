@@ -191,8 +191,7 @@ function RulesSummary({
   if (workflow.packageNamePattern) {
     rules.push(
       <>
-        Package names match{' '}
-        <code>{workflow.packageNamePattern.source.replace(/\\\//g, '/')}</code>
+        Package names match <code>{workflow.handlePattern}</code>
       </>,
     )
   }

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Redirect, Route, Switch, useParams } from 'react-router-dom'
+import { Redirect, Route, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout, { Container } from 'components/Layout'
@@ -35,15 +35,11 @@ const PackageCompare = RT.mkLazy(() => import('./PackageCompare'), SuspensePlace
 const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
 function LegacyWorkflowsRedirect() {
   const { bucket, slug } = useParams<{ bucket: string; slug?: string }>()
-  return (
-    <Redirect
-      to={
-        slug
-          ? routes.bucketWorkflowDetail.url(bucket, slug)
-          : routes.bucketWorkflowList.url(bucket)
-      }
-    />
-  )
+  const { search, hash } = useLocation()
+  const pathname = slug
+    ? routes.bucketWorkflowDetail.url(bucket, slug)
+    : routes.bucketWorkflowList.url(bucket)
+  return <Redirect to={{ pathname, search, hash }} />
 }
 
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)

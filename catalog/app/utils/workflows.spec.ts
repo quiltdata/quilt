@@ -326,4 +326,24 @@ describe('utils/workflows', () => {
       ).toThrow(errors.WorkflowsConfigInvalid)
     })
   })
+  describe('Python pattern translation', () => {
+    const pattern = (p: string) =>
+      workflows.parse(
+        `version: "1"\nworkflows:\n  a:\n    name: A\n    handle_pattern: '${p}'\n`,
+        'foo',
+      ).workflows[1]
+
+    it('keeps identity escapes working alongside Unicode classes', () => {
+      const w = pattern('^lab\\-\\w+/')
+      expect(w.packageNamePatternError).toBeUndefined()
+      expect(w.packageNamePattern?.test('lab-é/x')).toBe(true)
+      expect(w.handlePattern).toBe('^lab\\-\\w+/')
+    })
+
+    it('treats a leading ] in a negated class as a literal', () => {
+      const w = pattern('^[^]]\\w/')
+      expect(w.packageNamePattern?.test('aé/')).toBe(true)
+      expect(w.packageNamePattern?.test(']é/')).toBe(false)
+    })
+  })
 })
