@@ -11,6 +11,7 @@ import * as style from 'constants/style'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import * as Features from 'utils/features'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
 import { useFeature } from 'utils/features'
@@ -819,6 +820,8 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
   const searchActive = !!useRouteMatch(paths.search)
   const queriesActive = !!useRouteMatch(paths.queries)
   const adminActive = !!useRouteMatch(paths.admin)
+  const quratorModeActive = !!useRouteMatch(paths.quratorMode)
+  const quratorMode = Features.isEnabled(settings, 'qurator-mode')
 
   // When already on the search page, "Search" keeps the live query string
   // (q, filters, ordering) instead of resetting to bare /search -- the query
@@ -1021,6 +1024,15 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                 icon={<OutlinedIcon>assistant</OutlinedIcon>}
                 label="Ask Qurator"
                 onClick={assistant.show}
+                collapsed={collapsed}
+              />
+            )}
+            {assistant && quratorMode && (
+              <NavRow
+                icon={<OutlinedIcon>forum</OutlinedIcon>}
+                label="Qurator mode"
+                to={urls.quratorMode()}
+                selected={quratorModeActive}
                 collapsed={collapsed}
               />
             )}

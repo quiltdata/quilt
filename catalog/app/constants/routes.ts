@@ -83,6 +83,9 @@ export const search = route(
 // console, never part of the mount point)
 export const queries = route('/queries')
 
+// Chat-primary peer of the catalog, behind the `qurator-mode` preview feature
+export const quratorMode = route('/qurator-mode')
+
 export type QueriesArgs = Parameters<typeof queries.url>
 
 // The Athena console's search, shared by the three routes that render it, so

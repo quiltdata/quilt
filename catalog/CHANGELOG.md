@@ -41,6 +41,7 @@ complete sentence without it.
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
 - [Added] OME-Zarr images open in an interactive multiscale viewer with per-channel colours, instead of the raw `.zattrs`/`zarr.json` metadata ([#5388](https://github.com/quiltdata/quilt/pull/5388))
 - [Fixed] When the approved-model list cannot be read, Qurator sends the stack's default model instead of a saved one the registry would refuse ([#5392](https://github.com/quiltdata/quilt/pull/5392))
+- [Added] Qurator mode, a preview feature, opens the chat as the main page with what the session touched beside it and saves the session as a package ([#5440](https://github.com/quiltdata/quilt/pull/5440))
 - [Changed] Admin > Settings > Qurator models lists the models in this account's Bedrock as a checklist, with a box for any other model IDs, instead of a bare text box ([#5393](https://github.com/quiltdata/quilt/pull/5393))
 - [Added] The Tabulator table editor accepts `parser.format: h5ad`, so admins can declare tables over single-cell `.h5ad` files: expression as one row per cell, gene and value, or cell and gene annotations ([#5438](https://github.com/quiltdata/quilt/pull/5438))
 - [Added] Admins can approve the models Qurator may run under Admin > Settings > Qurator models, and users then pick among those in the Qurator menu instead of typing a model ID ([#5389](https://github.com/quiltdata/quilt/pull/5389))

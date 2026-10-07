@@ -38,6 +38,11 @@ export const FEATURES = {
     description:
       'Replace the volume list at / with the unified search bar and tiles. Off, / is the volume list, unchanged.',
   },
+  'qurator-mode': {
+    label: 'Qurator mode',
+    description:
+      'Add a "Qurator mode" row to the left rail: the chat takes the main column, with what the session touched beside it and a button to save the session as a package. Off, Qurator is only the side panel.',
+  },
   'elasticsearch-queries': {
     label: 'ElasticSearch query console',
     description:
