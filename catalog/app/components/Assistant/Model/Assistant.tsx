@@ -9,10 +9,12 @@ import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import defer from 'utils/defer'
 
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
+import * as McpServers from './McpServers'
 import * as Mcp from './Connectors/Mcp'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
@@ -293,7 +295,17 @@ function useConstructAssistantAPI() {
   const instructions = useDualInstructionsContext()
 
   const platformConfig = usePlatformConnectorConfig()
-  const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
+  // Read once per mount: the connector service is allocated once, so a list
+  // edited in Admin › Settings takes effect on the next page load.
+  const username: string = redux.useSelector(AuthSelectors.username) || ''
+  const prototypeConfigs = React.useMemo(
+    () => McpServers.toConnectorConfigs(McpServers.read(username)),
+    [username],
+  )
+  const connectorConfigs = React.useMemo(
+    () => [platformConfig, ...prototypeConfigs],
+    [platformConfig, prototypeConfigs],
+  )
   const connectors = useConnectors(connectorConfigs)
 
   const getToken = useSessionToken()
