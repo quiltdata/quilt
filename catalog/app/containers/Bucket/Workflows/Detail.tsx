@@ -132,7 +132,7 @@ function Packages({ bucket, workflow }: PackagesProps) {
     data: (d) => {
       switch (d.searchPackages.__typename) {
         case 'EmptySearchResultSet':
-          return <M.Typography>No packages found for this workflow</M.Typography>
+          return <M.Typography>No packages found for this flow</M.Typography>
         case 'PackagesSearchResultSet':
           const { firstPage, total } = d.searchPackages
           const hits =

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
+import { FlowsLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
 import useId from 'utils/useId'
 import * as workflows from 'utils/workflows'
@@ -53,7 +53,7 @@ function SelectWorkflow({
   return (
     <M.FormControl disabled={disabled || noChoice} fullWidth size="small" error={!!error}>
       <M.InputLabel id={labelId} shrink>
-        Workflow
+        Flow
       </M.InputLabel>
       <M.Select
         labelId={labelId}
@@ -82,10 +82,10 @@ function SelectWorkflow({
       </M.Select>
       <M.FormHelperText>
         {!!error && <span className={classes.error}>{error}</span>}
+        <FlowsLink>Manage this bucket&apos;s flows</FlowsLink> or{' '}
         <M.Link href={`${docs}/workflows`} target="_blank">
-          Learn about data quality workflows
+          learn about flows
         </M.Link>
-        , or edit <WorkflowsConfigLink>your workflows config file</WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
   )

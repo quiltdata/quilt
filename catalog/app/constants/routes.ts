@@ -323,20 +323,25 @@ export const bucketAthenaExecution = route(
 )
 
 export const bucketWorkflowList = route(
-  '/b/:bucket/workflows/',
-  (bucket: string) => `/b/${bucket}/workflows/`,
+  '/b/:bucket/flows/',
+  (bucket: string) => `/b/${bucket}/flows/`,
 )
 
 export type BucketWorkflowListArgs = Parameters<typeof bucketWorkflowList.url>
 
 export const bucketWorkflowDetail = route(
-  '/b/:bucket/workflows/:slug',
-  (bucket: string, workflow: string) => `/b/${bucket}/workflows/${workflow}`,
+  '/b/:bucket/flows/:slug',
+  (bucket: string, workflow: string) => `/b/${bucket}/flows/${workflow}`,
 )
 
 export type BucketWorkflowDetailArgs = Parameters<typeof bucketWorkflowDetail.url>
 
 // Legacy stuff
+// Flows were called Workflows in the UI; keep shared links working.
+export const legacyBucketWorkflows = route(
+  '/b/:bucket/workflows/:slug?',
+  (bucket: string, slug?: string) => `/b/${bucket}/workflows/${slug || ''}`,
+)
 export const legacyPackages = route(
   `/package/:path+`,
   (root: string, loc: Location) => `${root}${loc.pathname}${loc.search}${loc.hash}`,

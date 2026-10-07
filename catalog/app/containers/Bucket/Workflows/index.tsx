@@ -46,7 +46,7 @@ function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
   const root = urls.bucketWorkflowList(bucket)
 
   const heading = () => {
-    if (!slug) return 'Workflows'
+    if (!slug) return 'Flows'
     return (
       <>
         <M.IconButton edge="start" to={root} component={RR.Link} size="small">
@@ -72,12 +72,12 @@ function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
 
   const body = () => {
     if (!workflows.length)
-      return <Layout.Message>No workflows configured for this bucket.</Layout.Message>
+      return <Layout.Message>No flows in this bucket yet.</Layout.Message>
 
     if (!slug) return <List bucket={bucket} workflows={workflows} />
 
     if (!workflow)
-      return <Layout.Message>Workflow "{slug}" not found in this bucket.</Layout.Message>
+      return <Layout.Message>Flow "{slug}" not found in this bucket.</Layout.Message>
 
     return <Detail bucket={bucket} workflow={workflow} />
   }
@@ -98,7 +98,7 @@ export default function WorkflowsRoot() {
   const data = useData(requests.workflowsConfig, { s3, bucket })
 
   const title = React.useMemo(() => {
-    const segments = ['Workflows', bucket]
+    const segments = ['Flows', bucket]
     if (slug) segments.unshift(slug)
     return segments
   }, [bucket, slug])
