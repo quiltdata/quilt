@@ -4,6 +4,7 @@ import os
 import re
 import time
 from collections import defaultdict
+from urllib.parse import unquote_plus
 
 import boto3
 import botocore.config
@@ -64,7 +65,8 @@ def get_first_line(bucket, key) -> bytes | None:
 
 def decode_record(record) -> tuple[str, str]:
     s3_event = json.loads(record["body"])["detail"]["s3"]
-    return s3_event["bucket"]["name"], s3_event["object"]["key"]
+    # S3 event notifications URL-encode the key, with a space as "+".
+    return s3_event["bucket"]["name"], unquote_plus(s3_event["object"]["key"])
 
 
 def process_s3_event(event):
