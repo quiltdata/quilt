@@ -1,16 +1,41 @@
 import json
 import logging
 import os
+import re
+import time
+from collections import defaultdict
 from urllib.parse import unquote_plus
 
 import boto3
+import botocore.config
+import botocore.exceptions
 
 import quilt_shared.const
-from quilt_shared.athena import QueryRunner
+from quilt_shared.athena import AthenaQueryBaseException, QueryRunner
 from quilt_shared.iceberg_queries import QueryMaker
+from quilt_shared.iceberg_stack_queries import (
+    Manifest,
+    Pointer,
+    PointerKey,
+    StackQueryMaker,
+    is_revision,
+    is_top_hash,
+    parse_key,
+)
 
 athena = boto3.client("athena")
 s3 = boto3.client("s3")
+# The set's own clients, bounded so that no hung call keeps a batch from its answer: about 48 s a call at most.
+_SET_CLIENT = botocore.config.Config(
+    connect_timeout=5, read_timeout=10, retries={"mode": "standard", "total_max_attempts": 3}
+)
+set_athena = boto3.client("athena", config=_SET_CLIENT)
+set_s3 = boto3.client("s3", config=_SET_CLIENT)
+# Bounded, so dead-lettering after the deadline cannot run into the invocation's timeout: one attempt, about 4 s at
+# most; a message whose send fails is returned for retry.
+sqs = boto3.client(
+    "sqs", config=botocore.config.Config(connect_timeout=2, read_timeout=2, retries={"total_max_attempts": 1})
+)
 logger = logging.getLogger("quilt-lambda-iceberg")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
@@ -38,15 +63,16 @@ def get_first_line(bucket, key) -> bytes | None:
         return None
 
 
+def decode_record(record) -> tuple[str, str]:
+    s3_event = json.loads(record["body"])["detail"]["s3"]
+    # S3 event notifications URL-encode the key, with a space as "+".
+    return s3_event["bucket"]["name"], unquote_plus(s3_event["object"]["key"])
+
+
 def process_s3_event(event):
     assert len(event["Records"]) == 1, "Expected exactly one SQS message"
     (record,) = event["Records"]
-    event_body = json.loads(record["body"])
-    s3_event = event_body["detail"]["s3"]
-    bucket = s3_event["bucket"]["name"]
-    # S3 event notifications URL-encode the key, with a space as "+".
-    key = unquote_plus(s3_event["object"]["key"])
-    return bucket, key
+    return decode_record(record)
 
 
 def generate_queries(bucket, key, first_line):
@@ -93,3 +119,237 @@ def handler(event, context):
     queries = generate_queries(bucket, key, first_line)
 
     query_runner.run_multiple_queries(queries)
+
+
+# Left after QueryRunner's deadline: one call on `set_athena` can take 3 attempts of 5 s connect and 10 s read, with
+# backoff, about 48 s, and then the queries are stopped, messages dead-lettered and the batch answered.
+DEADLINE_MARGIN_MS = 60_000
+# The time an invocation must have left to start a statement: the margin and about 30 s for the statement to run. At a
+# 300 s timeout, a batch gets about 210 s of statements.
+STATEMENT_BUDGET_MS = 90_000
+# The time an invocation must have left to dead-letter a message: one send's worst case, and a second for DNS.
+SEND_BUDGET_MS = 5_000
+
+
+class _Invalid(Exception):
+    """An event no retry can write."""
+
+
+class _StackFailing(Exception):
+    """A statement failed for want of the set's own database or table, as before the registry's migration ran."""
+
+
+# Athena's reason, at its head behind any category, as quilt_shared's commit-conflict check reads it, so a statement
+# it echoes after is not read as the reason; the name is the missing object's, qualified.
+_MISSING = re.compile(r"(?:[\w.]+:\s*)*(?:line \d+:\d+:\s*)?(?:Table|Database|Schema) '?([^'\s]+)'? does not exist")
+
+
+def _stack_failing(error: Exception, database: str) -> bool:
+    """Whether the statement failed for want of the stack database or a table in it. A bucket's missing source view
+    is not the stack's but that bucket's, and goes to the item-by-item retry."""
+    if not isinstance(error, AthenaQueryBaseException):
+        return False
+    status = error.query_execution.get("Status", {})
+    for reason in (status.get("StateChangeReason", ""), status.get("AthenaError", {}).get("ErrorMessage", "")):
+        if (m := _MISSING.match(reason)) and database in m[1].replace('"', "").split("."):
+            return True
+    return False
+
+
+def _execute(runner: QueryRunner, context, deadline: float, sql: str) -> bool:
+    """Whether the statement ran to completion: not when time ran short, or when the deadline passed or a call to
+    Athena failed, and QueryRunner stopped what it had started rather than leave it running."""
+    if context.get_remaining_time_in_millis() < STATEMENT_BUDGET_MS:
+        logger.warning("Too little of the invocation left to start a statement")
+        return False
+    (execution,) = runner.run_multiple_queries([sql], deadline=deadline)
+    return execution is not None
+
+
+def _run(runner: QueryRunner, context, deadline: float, build, items, failed: dict):
+    """Records in `failed` each item that failed, with why if no retry can write it."""
+    for statement in build([i for i in items if i not in failed]):
+        try:
+            if not _execute(runner, context, deadline, statement.sql):
+                failed.update(dict.fromkeys(statement.items))
+            continue
+        except (AthenaQueryBaseException, botocore.exceptions.ParamValidationError) as e:
+            if _stack_failing(e, runner.database):
+                raise _StackFailing from e
+            logger.exception("Retrying a failed statement's %d items one at a time", len(statement.items))
+        # In turn: run together, they would race one another's commits.
+        for n, item in enumerate(statement.items):
+            try:
+                ran = all(_execute(runner, context, deadline, s.sql) for s in build([item]))
+            except AthenaQueryBaseException as e:
+                if _stack_failing(e, runner.database):
+                    raise _StackFailing from e
+                logger.exception("Failed to write %s", item)
+                failed[item] = None if e.retryable else f"statement: {e}"
+                continue
+            except botocore.exceptions.ParamValidationError as e:
+                # A statement botocore will not send is this item's alone.
+                logger.exception("Failed to write %s", item)
+                failed[item] = f"input: {e}"
+                continue
+            if not ran:
+                failed.update(dict.fromkeys(statement.items[n:]))
+                break
+
+
+def _manifest_has_content(bucket: str, key: str) -> bool:
+    """Whether the manifest is there and not empty, read from its headers alone, whatever its size."""
+    try:
+        return set_s3.head_object(Bucket=bucket, Key=key)["ContentLength"] > 0
+    except botocore.exceptions.ClientError as e:
+        # A HEAD has no body to name its error: a missing key is a bare 404, as is a missing bucket.
+        if e.response.get("Error", {}).get("Code") in {"404", "NoSuchKey", "NotFound"}:
+            return False
+        raise
+
+
+def _pointer_head(bucket: str, key: str) -> bytes | None:
+    """The pointer's first bytes, room for a top hash, or None if there is no pointer."""
+    try:
+        return set_s3.get_object(Bucket=bucket, Key=key, Range="bytes=0-127")["Body"].read()
+    except set_s3.exceptions.NoSuchKey:
+        return None
+    except botocore.exceptions.ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "InvalidRange":  # S3's answer for an empty object
+            return b""
+        raise
+
+
+def _read(bucket: str, key: str) -> tuple[PointerKey | Pointer | Manifest, bool]:
+    """The item an object's current state makes, and whether it is upserted rather than deleted."""
+    if (item := parse_key(bucket, key)) is None:
+        raise _Invalid(f"not a package's pointer or manifest: {key}")
+    if isinstance(item, Manifest):
+        return item, _manifest_has_content(bucket, key)
+    if (head := _pointer_head(bucket, key)) is None:
+        return item, False
+    # A pointer that exists names a manifest, so empty content is no top hash rather than a delete.
+    top_hash = head.split(b"\n", 1)[0].strip().decode(errors="replace")
+    if not is_top_hash(top_hash):
+        raise _Invalid(f"a pointer whose content is not a top hash: {key}")
+    return Pointer(*item, top_hash), True
+
+
+# S3's client errors that clear by themselves.
+_S3_TRANSIENT = frozenset({"RequestTimeout", "RequestTimeTooSkewed", "OperationAborted"})
+
+
+def _refused_for_good(error: Exception) -> bool:
+    """Whether S3 refused a read with a client error no retry clears, as for a bucket the stack no longer reads."""
+    if not isinstance(error, botocore.exceptions.ClientError):
+        return False
+    status = error.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+    code = error.response.get("Error", {}).get("Code")
+    return 400 <= status < 500 and status != 429 and code not in _S3_TRANSIENT  # 429 is throttling
+
+
+def _dead_letter(queue_url: str, context, record, reason: str) -> bool:
+    if context.get_remaining_time_in_millis() < SEND_BUDGET_MS:
+        logger.warning("Too little of the invocation left to dead-letter message %s", record["messageId"])
+        return False
+    try:
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody=record["body"],
+            MessageGroupId=record["attributes"]["MessageGroupId"],
+            MessageDeduplicationId=record["messageId"],
+            # Escaped as JSON escapes it, since SQS refuses an attribute holding a control character, as a key may.
+            MessageAttributes={"reason": {"DataType": "String", "StringValue": json.dumps(reason)[1:-1][:1024]}},
+        )
+        return True
+    except Exception:
+        logger.exception("Failed to dead-letter message %s", record["messageId"])
+        return False
+
+
+def set_handler(event, context):
+    logger.debug("Invoked with event: %s", event)
+    # Only the set's function is given the stack database, so it is not read at import.
+    database = os.environ["QUILT_STACK_DATABASE"]
+    dead_letter_queue = os.environ["QUILT_STACK_DEAD_LETTER_QUEUE_URL"]
+    maker = StackQueryMaker(database=database, user_athena_db=QUILT_USER_ATHENA_DATABASE)
+    # The set's role cannot reach the Iceberg database, so its queries run in the stack database.
+    runner = QueryRunner(logger=logger, athena=set_athena, database=database, workgroup=QUILT_ICEBERG_WORKGROUP)
+    deadline = time.monotonic() + (context.get_remaining_time_in_millis() - DEADLINE_MARGIN_MS) / 1000
+
+    records = event["Records"]
+    retry: set = set()  # message ids returned for retry
+    dead: dict = {}  # message ids to dead-letter, with why
+    # An object is read as it now stands, so a batch's events for one key are one item.
+    keys: dict[tuple[str, str], list[str]] = {}
+    for record in records:
+        try:
+            keys.setdefault(decode_record(record), []).append(record["messageId"])
+        except Exception as e:
+            logger.exception("Failed to decode message %s", record["messageId"])
+            dead[record["messageId"]] = f"input: not an S3 event: {e!r}"
+
+    # One read at a time: a FIFO queue's batch holds at most ten messages.
+    ids, groups, unread = {}, defaultdict(list), 0
+    for key in keys:
+        try:
+            item, upsert = _read(*key)
+        except _Invalid as e:
+            logger.warning("Failed to read s3://%s/%s: %s", *key, e)
+            dead.update(dict.fromkeys(keys[key], f"input: {e}"))
+            continue
+        except Exception as e:
+            logger.exception("Failed to read s3://%s/%s", *key)
+            unread += 1
+            if _refused_for_good(e):
+                dead.update(dict.fromkeys(keys[key], f"read: {e}"))
+            else:
+                retry.update(keys[key])
+            continue
+        ids[item] = keys[key]
+        kind = "manifest" if isinstance(item, Manifest) else "revision" if is_revision(item.pointer) else "tag"
+        groups[kind, upsert].append(item)
+
+    # An item that failed is left out of every later statement: a manifest's row marks its entries complete.
+    failed: dict = {}
+    try:
+        for build, kind, upsert in [
+            (maker.tag_delete, "tag", False),
+            (maker.revision_delete, "revision", False),
+            (maker.manifest_delete, "manifest", False),
+            (maker.entry_delete, "manifest", False),
+            (maker.entry_upsert, "manifest", True),
+            (maker.manifest_upsert, "manifest", True),
+            (maker.tag_upsert, "tag", True),
+            (maker.revision_upsert, "revision", True),
+        ]:
+            _run(runner, context, deadline, build, groups[kind, upsert], failed)
+    except (botocore.exceptions.BotoCoreError, botocore.exceptions.ClientError, _StackFailing):
+        # Athena refusing for good, or the set's tables missing, is the stack failing, not the messages: none is
+        # dead-lettered, a batch of one included, and the queue's receive limit is the backstop.
+        logger.exception("The set's statements cannot run; returning the batch")
+        return {"batchItemFailures": [{"itemIdentifier": record["messageId"]} for record in records]}
+
+    for item, reason in failed.items():
+        for message_id in ids[item]:
+            if reason:
+                dead[message_id] = reason
+            else:
+                retry.add(message_id)
+    # Every item of several failing, in its read or its statements, is the stack failing, not the messages: none is
+    # dead-lettered.
+    if len(ids) + unread > 1 and ids.keys() <= failed.keys():
+        retry.update(dead)
+        dead.clear()
+    # A FIFO queue keeps a message group's order only if nothing after a failed message of the group succeeds.
+    stopped, failures = set(), []
+    for record in records:
+        message_id, group = record["messageId"], record["attributes"]["MessageGroupId"]
+        if (
+            group in stopped
+            or message_id in retry
+            or (message_id in dead and not _dead_letter(dead_letter_queue, context, record, dead[message_id]))
+        ):
+            stopped.add(group)
+            failures.append({"itemIdentifier": message_id})
+    return {"batchItemFailures": failures}

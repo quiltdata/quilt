@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Add `set_handler`, an entry point that writes SQS batches of package events to the stack-wide Iceberg package tables in `QUILT_STACK_DATABASE`, returning the events to retry as batch item failures and sending those no retry can write to `QUILT_STACK_DEAD_LETTER_QUEUE_URL` ([#5407](https://github.com/quiltdata/quilt/pull/5407))
 - [Fixed] Decode the URL-encoded object key in S3 events, so packages whose names carry characters S3 encodes, such as non-ASCII letters, reach the per-bucket Iceberg tables ([#5455](https://github.com/quiltdata/quilt/pull/5455))
 - [Fixed] Update `quilt-shared` to escape package names, tag names and top hashes in the lambda's Athena statements ([#5424](https://github.com/quiltdata/quilt/pull/5424))
 - [Changed] Update `quilt-shared` to retry index writes that fail with `ICEBERG_COMMIT_ERROR` and report Athena's failure reason ([#5423](https://github.com/quiltdata/quilt/pull/5423))
