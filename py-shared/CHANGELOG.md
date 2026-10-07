@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] `QueryRunner.run_multiple_queries` takes an optional `deadline`: until then it retries a start or poll that is throttled or fails on the server's side or the network's, raising any other error, and past it, or on a failure, stops the queries it has seen start and returns `None` for each statement not run. `is_retryable` and `AthenaQueryBaseException.retryable` tell whether a failed query may succeed if run again: always after a commit conflict, otherwise by Athena's verdict, and for a cancellation Athena gives none for ([#5412](https://github.com/quiltdata/quilt/pull/5412))
 - [Added] Add `iceberg_stack_queries`, the DDL and statements for stack-wide Iceberg package tables keyed by `registry` ([#5406](https://github.com/quiltdata/quilt/pull/5406))
 - [Fixed] `QueryMaker` escapes every value it puts into SQL as a string literal or quoted identifier, and raises `ValueError` for a revision pointer that is not an integer ([#5422](https://github.com/quiltdata/quilt/pull/5422))
 - [Changed] `QueryRunner` retries `ICEBERG_COMMIT_ERROR` with bounded backoff, and Athena's failure reason now appears in the raised exception ([#5325](https://github.com/quiltdata/quilt/pull/5325))
