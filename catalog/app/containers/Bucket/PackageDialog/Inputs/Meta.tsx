@@ -564,6 +564,7 @@ interface MetaInputProps {
   suggest?: SuggestContext
   /** Missing-field errors are due: the user edited metadata or tried to submit. */
   insist: boolean
+  pending?: readonly string[]
   setPending?: (key: string, isPending: boolean) => void
 }
 
@@ -575,6 +576,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     errors,
     guided,
     insist,
+    pending = [],
     setPending,
     value,
     onChange,
@@ -774,7 +776,17 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             aria-label="Metadata view"
             className={classes.viewToggle}
             exclusive
-            onChange={(_e, v) => v && setView(v)}
+            // Table view would drop drafts the form holds, so it waits for them
+            onChange={(_e, v) => {
+              if (!v) return
+              if (v === 'table' && pending.length) {
+                notify(
+                  `Finish or undo the edit to ${pending.map((k) => `"${k}"`).join(', ')} first`,
+                )
+                return
+              }
+              setView(v)
+            }}
             size="small"
             value={view}
           >
@@ -986,7 +998,7 @@ export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
     {
       formStatus,
       schema,
-      state: { guided, setPending, status, touched, value, warnings, onChange },
+      state: { guided, pending, setPending, status, touched, value, warnings, onChange },
       suggest,
     },
     ref,
@@ -1016,6 +1028,7 @@ export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
         ref={ref}
         schema={schema._tag === 'ready' ? schema.schema : undefined}
         insist={touched || formStatus._tag === 'error'}
+        pending={pending}
         setPending={setPending}
         suggest={suggest}
         value={value}

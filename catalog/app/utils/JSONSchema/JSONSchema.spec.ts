@@ -339,6 +339,24 @@ describe('utils/JSONSchema', () => {
       })
     })
 
+    it('leaves null array items alone', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          samples: {
+            type: 'array',
+            items: {
+              type: ['object', 'null'],
+              properties: { id: { type: 'number', default: 1 } },
+            },
+          },
+        },
+      }
+      expect(makeSchemaDefaultsSetter(schema)({ samples: [null, {}] })).toEqual({
+        samples: [null, { id: 1 }],
+      })
+    })
+
     it('should return the same value if no schema', () => {
       const obj = { a: 1 }
       expect(makeSchemaDefaultsSetter()(obj)).toBe(obj)

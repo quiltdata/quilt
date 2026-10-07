@@ -273,6 +273,13 @@ function scanSchemaAndPrefillValues(
 
   if (!optSchema?.properties) return value
 
+  // null, primitives and arrays have no properties to prefill (null array items included)
+  if (
+    value !== undefined &&
+    (value === null || typeof value !== 'object' || Array.isArray(value))
+  )
+    return value
+
   return Object.keys(optSchema.properties).reduce((memo, key) => {
     const valueItem = value === undefined ? undefined : value[key]
 

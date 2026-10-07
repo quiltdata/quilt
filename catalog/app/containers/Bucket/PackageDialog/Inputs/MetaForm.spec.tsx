@@ -159,4 +159,72 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     expect(onChange).toHaveBeenLastCalledWith({ ratio: 1.5 })
     expect(setPending).toHaveBeenLastCalledWith('ratio', false)
   })
+
+  describe('round 4 drafts', () => {
+    it('holds the submit while a rename is refused', () => {
+      const setPending = vi.fn()
+      render(
+        <FreeFields
+          description="d"
+          disabled={false}
+          onChange={vi.fn()}
+          setPending={setPending}
+          title="t"
+          value={{ a: 1, b: 2 }}
+        />,
+      )
+      const name = screen.getByRole('textbox', { name: 'Name of field a' })
+      fireEvent.change(name, { target: { value: 'b' } })
+      fireEvent.blur(name)
+      expect(setPending).toHaveBeenLastCalledWith('a', true)
+    })
+
+    it('discards a new field without saving it', () => {
+      const onChange = vi.fn()
+      render(
+        <FreeFields
+          description="d"
+          disabled={false}
+          onChange={onChange}
+          title="t"
+          value={{}}
+        />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: /Add field/ }))
+      const [name, val] = screen.getAllByRole('textbox')
+      fireEvent.change(name, { target: { value: 'lab' } })
+      fireEvent.change(val, { target: { value: 'x' } })
+      const discard = screen.getByRole('button', { name: 'Discard new field' })
+      fireEvent.mouseDown(discard)
+      fireEvent.click(discard)
+      expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it('clears a half-typed number and its pending flag together', () => {
+      const onChange = vi.fn()
+      const setPending = vi.fn()
+      const num = {
+        type: 'object',
+        properties: { ratio: { title: 'Ratio', type: 'number' } },
+      }
+      render(
+        <MetaForm
+          disabled={false}
+          errors={[]}
+          onChange={onChange}
+          onShowTable={() => {}}
+          onUseSuggestion={onUse}
+          schema={num}
+          setPending={setPending}
+          value={{}}
+        />,
+      )
+      const input = screen.getByRole('textbox', { name: /Ratio/ }) as HTMLInputElement
+      fireEvent.change(input, { target: { value: '-' } })
+      expect(setPending).toHaveBeenLastCalledWith('ratio', true)
+      fireEvent.change(input, { target: { value: '' } })
+      expect(setPending).toHaveBeenLastCalledWith('ratio', false)
+      expect(input.value).toBe('')
+    })
+  })
 })

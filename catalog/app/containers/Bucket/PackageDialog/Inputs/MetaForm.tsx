@@ -27,6 +27,12 @@ const isEmpty = (v: unknown) => !isFilled(v)
 
 const display = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))
 
+/** An enum option's label; quoted JSON when plain text would make two options look alike. */
+function enumLabel(v: Types.Json, all: Types.Json[]) {
+  const plain = display(v)
+  return all.filter((o) => display(o) === plain).length > 1 ? JSON.stringify(v) : plain
+}
+
 /** Errors that belong to `key`, including "required" reported on the root. */
 function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
   const at = pointer(key)
@@ -133,7 +139,9 @@ function Field({
   const error = errors[0]
   const enumIndex =
     widget === 'enum' && !isEmpty(value)
-      ? prop.enum.findIndex((v: Types.Json) => display(v) === display(value))
+      ? prop.enum.findIndex(
+          (v: Types.Json) => JSON.stringify(v) === JSON.stringify(value),
+        )
       : -1
   // A schema default is applied on save; show it so what is pushed is what is seen.
   const hasDefault = isEmpty(value) && prop.default !== undefined
@@ -158,6 +166,11 @@ function Field({
 
   const set = React.useCallback(
     (raw: string) => {
+      if (numeric && raw.trim() === '') {
+        setNumText(raw)
+        setPending?.(name, false)
+        return onChange(name, undefined)
+      }
       if (raw === '') return onChange(name, undefined)
       if (widget === 'enum') return onChange(name, prop.enum[Number(raw)])
       if (widget === 'integer' || widget === 'number') {
@@ -174,7 +187,7 @@ function Field({
       }
       onChange(name, raw)
     },
-    [name, onChange, prop.enum, setPending, widget],
+    [name, numeric, onChange, prop.enum, setPending, widget],
   )
 
   let input: React.ReactNode
@@ -277,8 +290,9 @@ function Field({
                 ]
               : []),
             ...prop.enum.map((v: Types.Json, i: number) => (
-              <M.MenuItem key={display(v)} value={String(i)}>
-                {display(v)}
+              // eslint-disable-next-line react/no-array-index-key
+              <M.MenuItem key={i} value={String(i)}>
+                {enumLabel(v, prop.enum)}
               </M.MenuItem>
             )),
           ]}
@@ -603,13 +617,15 @@ function FreeRow({
     try {
       onValue(JSON.parse(raw))
       setTextError(null)
-      setPending?.(name, false)
     } catch {
       setTextError('Not valid JSON yet. Finish it, or undo the change, before saving')
-      setPending?.(name, true)
     }
   }
-  React.useEffect(() => () => setPending?.(name, false), [name, setPending])
+  const unresolved = !!nameError || !!textError
+  React.useEffect(() => {
+    setPending?.(name, unresolved)
+    return () => setPending?.(name, false)
+  }, [name, setPending, unresolved])
   return (
     <div className={free.row}>
       <M.TextField
@@ -690,6 +706,13 @@ export function FreeFields({
     setDraft(null)
   }
   const draftError = !!draft?.key.trim() && taken(draft.key.trim())
+  // a draft that cannot be saved as it stands holds the submit until fixed or discarded
+  const draftStuck =
+    !!draft && (draftError || (!draft.key.trim() && !!draft.value.trim()))
+  React.useEffect(() => {
+    setPending?.('new field', draftStuck)
+    return () => setPending?.('new field', false)
+  }, [draftStuck, setPending])
 
   return (
     <M.Paper variant="outlined" className={classes.section}>
@@ -734,6 +757,8 @@ export function FreeFields({
             aria-label="Discard new field"
             className={free.remove}
             onClick={() => setDraft(null)}
+            // keep focus in the row, so the blur that would save the draft never fires
+            onMouseDown={(e) => e.preventDefault()}
             size="small"
           >
             <M.Icon fontSize="small">close</M.Icon>
