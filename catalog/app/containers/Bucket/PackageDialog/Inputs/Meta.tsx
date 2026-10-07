@@ -168,9 +168,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
       padding: t.spacing(0.25, 1.25),
     },
   },
-  hidden: {
-    display: 'none',
-  },
+
   key: {
     flexBasis: 100,
     flexGrow: 1,
@@ -560,7 +558,12 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
               (e) =>
                 !formView ||
                 !('keyword' in e) ||
-                !(e.instancePath.split('/')[1] in (schema?.properties || {})),
+                !Object.hasOwn(
+                  schema?.properties || {},
+                  (e.instancePath.split('/')[1] ?? '')
+                    .replace(/~1/g, '/')
+                    .replace(/~0/g, '~'),
+                ),
             )
             .map((e) => new Error(humanizeError(e)))
         : errors,
@@ -781,7 +784,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                     ? errors
                     : errors.filter((e) => !('keyword' in e && e.keyword === 'required'))
                 }
-                onChange={onChangeFullscreen}
+                onChange={onChange}
                 onShowTable={() => setView('table')}
                 schema={schema}
                 suggestions={suggested}
@@ -790,16 +793,18 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
               {problems}
             </>
           )}
-          <div className={cx(classes.json, { [classes.hidden]: formView })}>
-            <JsonEditor
-              disabled={disabled}
-              errors={errors}
-              key={jsonInlineEditorKey}
-              onChange={onChangeInline}
-              schema={schema}
-              value={value}
-            />
-          </div>
+          {!formView && (
+            <div className={classes.json}>
+              <JsonEditor
+                disabled={disabled}
+                errors={errors}
+                key={jsonInlineEditorKey}
+                onChange={onChangeInline}
+                schema={schema}
+                value={value}
+              />
+            </div>
+          )}
 
           {!guided && problems}
         </div>

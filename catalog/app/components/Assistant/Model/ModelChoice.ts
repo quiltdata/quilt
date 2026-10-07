@@ -17,12 +17,12 @@ export interface Governed {
  * forever, and is flagged so the turn avoids a stored model the set may refuse.
  * Nothing retries it: the flag holds until a reload or sign-in reads again.
  */
-export function useGoverned(): {
+export function useGoverned({ pause = false }: { pause?: boolean } = {}): {
   governed: Governed | null
   settled: boolean
   failed: boolean
 } {
-  const query = GQL.useQuery(QURATOR_MODELS_QUERY)
+  const query = GQL.useQuery(QURATOR_MODELS_QUERY, {}, { pause })
   return React.useMemo(
     () =>
       GQL.fold(query, {

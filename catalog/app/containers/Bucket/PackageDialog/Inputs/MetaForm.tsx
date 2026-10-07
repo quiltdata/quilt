@@ -27,16 +27,21 @@ const isEmpty = (v: unknown) => v === undefined || v === null || v === ''
 
 const display = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))
 
+const pointer = (key: string) => `/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`
+
 /** Errors that belong to `key`, including "required" reported on the root. */
 function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
+  const at = pointer(key)
   return errors.filter((e) => {
     if (!('keyword' in e)) return false
     if (e.keyword === 'required' && !e.instancePath) {
       return e.params?.missingProperty === key
     }
-    return e.instancePath === `/${key}` || e.instancePath.startsWith(`/${key}/`)
+    return e.instancePath === at || e.instancePath.startsWith(`${at}/`)
   })
 }
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/
 
 const useFieldStyles = M.makeStyles((t) => ({
   root: {
@@ -112,7 +117,10 @@ function Field({
   value,
 }: FieldProps) {
   const classes = useFieldStyles()
-  const widget = widgetFor(prop)
+  const typed = widgetFor(prop)
+  // a date input shows a stored value it cannot parse as empty
+  const widget =
+    typed === 'date' && !isEmpty(value) && !DATE.test(String(value)) ? 'string' : typed
   const label = prop.title || name
   const error = errors[0]
   const helper = error ? humanizeError(error) : prop.description
@@ -121,13 +129,14 @@ function Field({
   const set = React.useCallback(
     (raw: string) => {
       if (raw === '') return onChange(name, undefined)
+      if (widget === 'enum') return onChange(name, prop.enum[Number(raw)])
       if (widget === 'integer' || widget === 'number') {
         const n = Number(raw)
         return onChange(name, Number.isNaN(n) ? raw : n)
       }
       onChange(name, raw)
     },
-    [name, onChange, widget],
+    [name, onChange, prop.enum, widget],
   )
 
   let input: React.ReactNode
@@ -187,15 +196,24 @@ function Field({
                 ? 'number'
                 : 'text'
           }
-          value={isEmpty(value) ? '' : display(value)}
+          value={
+            // eslint-disable-next-line no-nested-ternary
+            isEmpty(value)
+              ? ''
+              : widget === 'enum'
+                ? String(
+                    prop.enum.findIndex((v: Types.Json) => display(v) === display(value)),
+                  )
+                : display(value)
+          }
           variant="outlined"
         >
           {widget === 'enum' && [
             <M.MenuItem key="" value="">
               <em>Not set</em>
             </M.MenuItem>,
-            ...prop.enum.map((v: Types.Json) => (
-              <M.MenuItem key={display(v)} value={display(v)}>
+            ...prop.enum.map((v: Types.Json, i: number) => (
+              <M.MenuItem key={display(v)} value={String(i)}>
                 {display(v)}
               </M.MenuItem>
             )),
