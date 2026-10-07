@@ -186,7 +186,7 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
 }
 
 // The Focus Ring Rule on the dark ground: amber, which the base theme does not set here.
-const darkTheme = createCustomAppTheme({
+export const darkTheme = createCustomAppTheme({
   palette: { type: 'dark' },
   overrides: {
     MuiButtonBase: {
