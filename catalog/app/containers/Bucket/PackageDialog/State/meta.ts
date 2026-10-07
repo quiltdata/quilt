@@ -30,6 +30,9 @@ export interface MetaState {
   touched: boolean
   /** Guided only: problems shown but not blocking, see `isAdvisory`. */
   warnings: ErrorObject[]
+  /** Fields with an edit that is not valid yet; submit stays blocked while any exist. */
+  pending: readonly string[]
+  setPending: (key: string, isPending: boolean) => void
 }
 
 function getMetaFallback(manifest: ManifestStatus) {
@@ -95,17 +98,36 @@ export function useMeta(
     return errors ? Err(errors) : Ok
   }, [blockingErrors, editedAt, form, guided, meta, validate])
 
+  const [pending, setPendingKeys] = React.useState<readonly string[]>([])
+  const setPending = React.useCallback(
+    (key: string, isPending: boolean) =>
+      setPendingKeys((keys) => {
+        const has = keys.includes(key)
+        if (has === isPending) return keys
+        return isPending ? [...keys, key] : keys.filter((k) => k !== key)
+      }),
+    [],
+  )
+  const withPending: MetaStatus = React.useMemo(() => {
+    if (!guided || !pending.length || status._tag === 'error') return status
+    return Err(
+      new Error(`Finish or undo the edit to ${pending.map((k) => `"${k}"`).join(', ')}`),
+    )
+  }, [guided, pending, status])
+
   const touched = meta !== undefined
   return React.useMemo(
     () => ({
       value,
-      status,
+      status: withPending,
       onChange: guided ? onChange : setMeta,
       guided,
       touched,
       warnings,
+      pending,
+      setPending,
     }),
-    [guided, onChange, status, touched, value, warnings],
+    [guided, onChange, pending, setPending, touched, value, warnings, withPending],
   )
 }
 

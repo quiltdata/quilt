@@ -54,6 +54,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     guided: false,
     touched: false,
     warnings: [],
+    pending: [],
+    setPending: vi.fn(),
   }
 
   const useParamsWith = (overrides: Partial<FormInputs> = {}) =>
@@ -91,6 +93,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         guided: false,
         touched: false,
         warnings: [],
+        pending: [],
+        setPending: vi.fn(),
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: emptyMeta }))
@@ -117,6 +121,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         guided: false,
         touched: false,
         warnings: [],
+        pending: [],
+        setPending: vi.fn(),
       }
 
       const { result } = renderHook(() =>
@@ -261,6 +267,8 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         guided: false,
         touched: false,
         warnings: [],
+        pending: [],
+        setPending: vi.fn(),
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: metaError }))

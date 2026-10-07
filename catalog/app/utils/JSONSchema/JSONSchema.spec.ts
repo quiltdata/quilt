@@ -320,6 +320,25 @@ describe('utils/JSONSchema', () => {
       })
     })
 
+    it('keeps explicit false, 0 and null instead of applying defaults', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          on: { type: 'boolean', default: true },
+          n: { type: 'number', default: 5 },
+          lab: {
+            type: ['object', 'null'],
+            properties: { pi: { type: 'string', default: 'x' } },
+          },
+        },
+      }
+      expect(makeSchemaDefaultsSetter(schema)({ on: false, n: 0, lab: null })).toEqual({
+        on: false,
+        n: 0,
+        lab: null,
+      })
+    })
+
     it('should return the same value if no schema', () => {
       const obj = { a: 1 }
       expect(makeSchemaDefaultsSetter()(obj)).toBe(obj)

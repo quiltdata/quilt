@@ -67,7 +67,8 @@ export default function MetaSummary({ onOpen, schema, state }: MetaSummaryProps)
   let sub = fields ? `${fields} field${fields === 1 ? '' : 's'} set` : 'No fields yet'
   if (required.length)
     sub = `${filled} of ${required.length} required · ${sub.toLowerCase()}`
-  if (!ok && (state.touched || required.length === filled)) sub += ' · needs fixes'
+  if (schema._tag === 'ready' && !ok && (state.touched || required.length === filled))
+    sub += ' · needs fixes'
   return (
     <M.ButtonBase
       className={classes.root}

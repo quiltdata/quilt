@@ -276,8 +276,10 @@ function scanSchemaAndPrefillValues(
   return Object.keys(optSchema.properties).reduce((memo, key) => {
     const valueItem = value === undefined ? undefined : value[key]
 
-    // don't touch user's primitive value
-    if (valueItem && !R.is(Object, valueItem)) return memo
+    // don't touch a primitive the user set, including false, 0 and null;
+    // only a missing key or an empty string gets the default
+    if (valueItem !== undefined && valueItem !== '' && !R.is(Object, valueItem))
+      return memo
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 

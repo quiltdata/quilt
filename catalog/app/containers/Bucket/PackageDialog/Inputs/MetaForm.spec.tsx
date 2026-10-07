@@ -131,4 +131,32 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
       expect(screen.getByText('Already used')).toBeTruthy()
     })
   })
+
+  it('keeps a half-typed number as text and reports it pending', () => {
+    const onChange = vi.fn()
+    const setPending = vi.fn()
+    const num = {
+      type: 'object',
+      properties: { ratio: { title: 'Ratio', type: 'number' } },
+    }
+    render(
+      <MetaForm
+        disabled={false}
+        errors={[]}
+        onChange={onChange}
+        onShowTable={() => {}}
+        onUseSuggestion={onUse}
+        schema={num}
+        setPending={setPending}
+        value={{}}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: /Ratio/ })
+    fireEvent.change(input, { target: { value: '1.' } })
+    expect((input as HTMLInputElement).value).toBe('1.')
+    expect(setPending).toHaveBeenLastCalledWith('ratio', true)
+    fireEvent.change(input, { target: { value: '1.5' } })
+    expect(onChange).toHaveBeenLastCalledWith({ ratio: 1.5 })
+    expect(setPending).toHaveBeenLastCalledWith('ratio', false)
+  })
 })

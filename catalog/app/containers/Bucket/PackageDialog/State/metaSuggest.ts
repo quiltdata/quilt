@@ -207,7 +207,7 @@ export function useMetaSuggestions({
   React.useEffect(() => {
     generation.current += 1
     setState({ _tag: 'idle' })
-  }, [bucket, workflow, schema, name, filesKey])
+  }, [bucket, workflow, schema, filesKey])
   React.useEffect(
     () => () => {
       generation.current += 1

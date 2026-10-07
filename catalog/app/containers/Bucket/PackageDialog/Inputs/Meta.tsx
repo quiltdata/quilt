@@ -564,6 +564,7 @@ interface MetaInputProps {
   suggest?: SuggestContext
   /** Missing-field errors are due: the user edited metadata or tried to submit. */
   insist: boolean
+  setPending?: (key: string, isPending: boolean) => void
 }
 
 const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function MetaInput(
@@ -574,6 +575,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     errors,
     guided,
     insist,
+    setPending,
     value,
     onChange,
     schema,
@@ -603,8 +605,16 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     () =>
       guided
         ? errors
+            // only drop a missing-field error the panel or the form already shows
             .filter(
-              (e) => !('keyword' in e && e.keyword === 'required' && !e.instancePath),
+              (e) =>
+                !(
+                  'keyword' in e &&
+                  e.keyword === 'required' &&
+                  !e.instancePath &&
+                  Array.isArray(schema?.required) &&
+                  schema.required.includes(e.params?.missingProperty)
+                ),
             )
             // the form shows its own fields' errors under each field
             .filter(
@@ -664,17 +674,23 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     (picks: Record<string, JsonValue>) => {
       if (!validateFull || !Object.keys(picks).length) return
       const sig = (e: Error | ErrorObject) =>
-        'schemaPath' in e ? `${e.instancePath}|${e.schemaPath}` : e.message
+        'schemaPath' in e
+          ? `${e.instancePath}|${e.schemaPath}|${JSON.stringify(e.params)}`
+          : e.message
       const known = new Set(validateFull(value || {}).map(sig))
       const introduces = (candidate: JsonRecord) =>
         validateFull(candidate).some((e) => !known.has(sig(e)) && !isAdvisoryError(e))
       let next = { ...value } as JsonRecord
+      let kept = 0
       // Greedy: keep each pick that does not add a new error to what is kept so far.
       for (const [k, v] of Object.entries(picks)) {
         const candidate = { ...next, [k]: v } as JsonRecord
-        if (!introduces(candidate)) next = candidate
+        if (!introduces(candidate)) {
+          next = candidate
+          kept += 1
+        }
       }
-      if (next !== value) onChangeForm(next)
+      if (kept) onChangeForm(next)
     },
     [onChangeForm, validateFull, value],
   )
@@ -875,6 +891,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                   onChange={onChangeForm}
                   onShowTable={() => setView('table')}
                   onUseSuggestion={(k, v) => applySuggestions({ [k]: v })}
+                  setPending={setPending}
                   schema={schema}
                   suggestions={suggested}
                   value={value}
@@ -889,6 +906,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 disabled={disabled}
                 exclude={hasForm ? Object.keys(schema?.properties || {}) : []}
                 onChange={onChangeForm}
+                setPending={setPending}
                 title={hasForm ? 'Other fields' : 'Metadata fields'}
                 value={value}
               />
@@ -968,7 +986,7 @@ export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
     {
       formStatus,
       schema,
-      state: { guided, status, touched, value, warnings, onChange },
+      state: { guided, setPending, status, touched, value, warnings, onChange },
       suggest,
     },
     ref,
@@ -998,6 +1016,7 @@ export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
         ref={ref}
         schema={schema._tag === 'ready' ? schema.schema : undefined}
         insist={touched || formStatus._tag === 'error'}
+        setPending={setPending}
         suggest={suggest}
         value={value}
         warnings={showErrors ? warnings : []}

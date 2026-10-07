@@ -107,6 +107,7 @@ interface FieldProps {
   required: boolean
   suggestion?: { value: Types.Json; reason?: string }
   onUseSuggestion: (key: string, value: Types.Json) => void
+  setPending?: (key: string, isPending: boolean) => void
   value: Types.Json | undefined
 }
 
@@ -120,6 +121,7 @@ function Field({
   required,
   suggestion,
   onUseSuggestion,
+  setPending,
   value,
 }: FieldProps) {
   const classes = useFieldStyles()
@@ -140,19 +142,39 @@ function Field({
   if (!error && hasDefault) {
     helper = `Default: ${display(prop.default)}${prop.description ? ` · ${prop.description}` : ''}`
   }
-  const id = `meta-field-${name}`
+  const id = `meta-field-${name.replace(/[^\w-]/g, '_')}`
+
+  const numeric = widget === 'integer' || widget === 'number'
+  const [numText, setNumText] = React.useState(() =>
+    isEmpty(value) ? '' : display(value),
+  )
+  React.useEffect(() => {
+    if (!numeric) return
+    setNumText((t) =>
+      Number(t) === value && t.trim() !== '' ? t : isEmpty(value) ? '' : display(value),
+    )
+  }, [numeric, value])
+  React.useEffect(() => () => setPending?.(name, false), [name, setPending])
 
   const set = React.useCallback(
     (raw: string) => {
       if (raw === '') return onChange(name, undefined)
       if (widget === 'enum') return onChange(name, prop.enum[Number(raw)])
       if (widget === 'integer' || widget === 'number') {
+        // the text is the source of truth while typing; "1." or "0.50" stay as typed
+        setNumText(raw)
         const n = Number(raw)
-        return onChange(name, raw.trim() === '' || Number.isNaN(n) ? raw : n)
+        const complete =
+          raw.trim() !== '' &&
+          !Number.isNaN(n) &&
+          /^-?\d*\.?\d+(e-?\d+)?$/i.test(raw.trim())
+        setPending?.(name, !complete)
+        if (complete) onChange(name, n)
+        return
       }
       onChange(name, raw)
     },
-    [name, onChange, prop.enum, widget],
+    [name, onChange, prop.enum, setPending, widget],
   )
 
   let input: React.ReactNode
@@ -173,6 +195,15 @@ function Field({
             label={required ? `${label} *` : label}
           />
           {helper && <M.FormHelperText>{helper}</M.FormHelperText>}
+          {!required && value !== undefined && !disabled && (
+            <M.Link
+              component="button"
+              type="button"
+              onClick={() => onChange(name, undefined)}
+            >
+              Clear
+            </M.Link>
+          )}
         </M.FormControl>
       )
       break
@@ -222,13 +253,15 @@ function Field({
           type={widget === 'date' ? 'date' : 'text'}
           value={
             // eslint-disable-next-line no-nested-ternary
-            isEmpty(value)
-              ? ''
-              : widget === 'enum'
-                ? enumIndex === -1
-                  ? 'current'
-                  : String(enumIndex)
-                : display(value)
+            numeric
+              ? numText
+              : isEmpty(value)
+                ? ''
+                : widget === 'enum'
+                  ? enumIndex === -1
+                    ? 'current'
+                    : String(enumIndex)
+                  : display(value)
           }
           variant="outlined"
         >
@@ -357,6 +390,7 @@ interface MetaFormProps {
   onShowTable: () => void
   onUseSuggestion: (key: string, value: Types.Json) => void
   schema: JsonSchema
+  setPending?: (key: string, isPending: boolean) => void
   suggestions?: Suggestions
   value?: Types.JsonRecord
 }
@@ -373,6 +407,7 @@ export default function MetaForm({
   onShowTable,
   onUseSuggestion,
   schema,
+  setPending,
   suggestions,
   value,
 }: MetaFormProps) {
@@ -412,6 +447,7 @@ export default function MetaForm({
       onShowTable={onShowTable}
       onUseSuggestion={onUseSuggestion}
       prop={properties[key] || {}}
+      setPending={setPending}
       required={isRequired}
       suggestion={suggestions?.[key]}
       value={value?.[key]}
@@ -498,6 +534,7 @@ const useFreeStyles = M.makeStyles((t) => ({
 }))
 
 interface FreeFieldsProps {
+  setPending?: (key: string, isPending: boolean) => void
   description: string
   disabled: boolean
   /** Keys the schema form already shows. */
@@ -513,6 +550,7 @@ interface FreeFieldsProps {
  */
 interface FreeRowProps {
   disabled: boolean
+  setPending?: (key: string, isPending: boolean) => void
   name: string
   onRemove: () => void
   onRename: (to: string) => string | null
@@ -524,7 +562,15 @@ interface FreeRowProps {
  * One name/value row. The name and the text of a non-string value are drafts
  * kept locally, so an invalid rename or half-typed JSON never reaches metadata.
  */
-function FreeRow({ disabled, name, onRemove, onRename, onValue, value }: FreeRowProps) {
+function FreeRow({
+  disabled,
+  name,
+  onRemove,
+  onRename,
+  onValue,
+  setPending,
+  value,
+}: FreeRowProps) {
   const free = useFreeStyles()
   const typed = typeof value !== 'string'
   const [nameDraft, setNameDraft] = React.useState(name)
@@ -533,9 +579,18 @@ function FreeRow({ disabled, name, onRemove, onRename, onValue, value }: FreeRow
   const [textError, setTextError] = React.useState<string | null>(null)
   React.useEffect(() => setNameDraft(name), [name])
   React.useEffect(() => {
-    setText(display(value ?? ''))
+    setText((t) => {
+      if (!typed) return display(value ?? '')
+      try {
+        // the text already means this value; keep its spacing and caret
+        if (JSON.stringify(JSON.parse(t)) === JSON.stringify(value)) return t
+      } catch {
+        // not parseable: an outside change replaces it
+      }
+      return display(value ?? '')
+    })
     setTextError(null)
-  }, [value])
+  }, [typed, value])
 
   const commitName = () => {
     const to = nameDraft.trim()
@@ -548,10 +603,13 @@ function FreeRow({ disabled, name, onRemove, onRename, onValue, value }: FreeRow
     try {
       onValue(JSON.parse(raw))
       setTextError(null)
+      setPending?.(name, false)
     } catch {
-      setTextError('Not valid JSON yet; the last valid value is kept')
+      setTextError('Not valid JSON yet. Finish it, or undo the change, before saving')
+      setPending?.(name, true)
     }
   }
+  React.useEffect(() => () => setPending?.(name, false), [name, setPending])
   return (
     <div className={free.row}>
       <M.TextField
@@ -597,6 +655,7 @@ export function FreeFields({
   disabled,
   exclude = [],
   onChange,
+  setPending,
   title,
   value,
 }: FreeFieldsProps) {
@@ -625,12 +684,12 @@ export function FreeFields({
   // Commit only when focus leaves the whole draft row, so Tab from Name to Value keeps it.
   const commitDraft = (e?: React.FocusEvent) => {
     if (e && draftRef.current?.contains(e.relatedTarget as Node)) return
-    if (!draft?.key) return
-    if (taken(draft.key)) return
-    onChange({ ...value, [draft.key]: draft.value })
+    const key = draft?.key.trim()
+    if (!draft || !key || taken(key)) return
+    onChange({ ...value, [key]: draft.value })
     setDraft(null)
   }
-  const draftError = !!draft?.key && taken(draft.key)
+  const draftError = !!draft?.key.trim() && taken(draft.key.trim())
 
   return (
     <M.Paper variant="outlined" className={classes.section}>
@@ -646,6 +705,7 @@ export function FreeFields({
           onRemove={() => remove(k)}
           onRename={(to) => rename(k, to)}
           onValue={(next) => onChange({ ...value, [k]: next })}
+          setPending={setPending}
           value={v}
         />
       ))}
@@ -656,7 +716,7 @@ export function FreeFields({
             error={draftError}
             helperText={draftError ? 'Already used' : undefined}
             label="Name"
-            onChange={(e) => setDraft({ ...draft, key: e.target.value.trim() })}
+            onChange={(e) => setDraft({ ...draft, key: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
             size="small"
             value={draft.key}

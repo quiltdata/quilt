@@ -245,6 +245,18 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(mixed.current.warnings).toEqual([formatError])
       })
 
+      it('blocks submit while a field has an unfinished edit', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready({ meta: { a: { x: 1 } } })),
+        )
+        expect(result.current.status).toEqual(Ok)
+        act(() => result.current.setPending('a', true))
+        expect(result.current.status._tag).toBe('error')
+        act(() => result.current.setPending('a', false))
+        expect(result.current.status).toEqual(Ok)
+      })
+
       it('marks the value touched after an edit', () => {
         mkMetaValidator.mockReturnValue(() => undefined)
 
