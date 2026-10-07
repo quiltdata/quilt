@@ -143,17 +143,14 @@ export function decode(raw: unknown): Conversation.Event[] | null {
 
 export const CHECKPOINT_MAX_BYTES = 2 * 1024 * 1024
 
-/**
- * The session as package files, or `null` past what the registry takes: the
- * save then goes without it, and the draft is still kept.
- */
-export function checkpointOf(
+function render(
   events: Conversation.Event[],
   model: string,
   savedAt: Date,
-): Model.GQLTypes.QuratorSessionCheckpointInput | null {
+  includeResults: boolean,
+) {
   // The stack's private bucket is no user's: the README counts touched buckets, naming none.
-  const info = { model, savedAt, bucket: '', includeResults: true }
+  const info = { model, savedAt, bucket: '', includeResults }
   const checkpoint = storable({
     readme: SessionPackage.toReadme(events, info),
     transcript: SessionPackage.toTranscript(events, info),
@@ -168,6 +165,16 @@ export function checkpointOf(
   ].reduce((n, f) => n + utf8.encode(f).length, 0)
   return bytes > CHECKPOINT_MAX_BYTES ? null : checkpoint
 }
+
+/**
+ * The session as package files, without tool results if that is what fits, or
+ * `null` past what the registry takes: the draft is then saved alone.
+ */
+export const checkpointOf = (
+  events: Conversation.Event[],
+  model: string,
+  savedAt: Date,
+) => render(events, model, savedAt, true) ?? render(events, model, savedAt, false)
 
 export const TITLE_LENGTH = 80
 

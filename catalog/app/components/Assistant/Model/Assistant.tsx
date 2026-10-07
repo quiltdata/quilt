@@ -354,15 +354,18 @@ export function useSessions(
   const queue = useConst(() =>
     Sessions.createSaveQueue<Conversation.Event[]>({
       send: async ({ id, baseVersion, events, checkpoint }) => {
+        const files = checkpoint
+          ? Sessions.checkpointOf(events, passThru.current.model, new Date())
+          : null
+        // Answered as the registry would answer it, without the round trip.
+        if (checkpoint && !files) return { _tag: 'CheckpointTooLarge' }
         const { quratorSessionSave } = await passThru.current.saveSession({
           input: {
             id,
             baseVersion,
             title: Sessions.titleOf(events),
             events: Sessions.encode(events) as unknown as JsonRecord,
-            checkpoint: checkpoint
-              ? Sessions.checkpointOf(events, passThru.current.model, new Date())
-              : null,
+            checkpoint: files,
           },
         })
         return Sessions.outcomeOf(quratorSessionSave)

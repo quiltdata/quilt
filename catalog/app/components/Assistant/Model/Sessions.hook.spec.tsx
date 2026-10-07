@@ -162,6 +162,14 @@ describe('components/Assistant/Model/Assistant useSessions', () => {
     expect(stub.saves).toHaveLength(2)
     expect(stub.saves[1]).toMatchObject({ id: 'NEW', checkpoint: null })
     expect(hook.result.current.notice).toBe(null)
+
+    // Not tried again until the conversation changes.
+    hook.rerender({ visible: true })
+    hook.rerender({ visible: false })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(stub.saves).toHaveLength(2)
   })
 
   it('gives up on a session read that hangs, and unlocks the chat', async () => {

@@ -434,6 +434,18 @@ describe('components/Assistant/Model/Sessions', () => {
         expect(c?.session).toMatchObject({ model: 'm', sessionId: '1' })
       })
 
+      it('leaves tool results out when only that fits in 2 MiB', () => {
+        const big = Content.ToolResultContentBlock.Text({ text: 'x'.repeat(2560 * 1024) })
+        const c = Sessions.checkpointOf(
+          [message('1', 'user', text('hi')), toolUse('2', [big])],
+          'm',
+          at,
+        )
+        expect(c?.session).toMatchObject({
+          events: [{}, { result: { content: [{ type: 'omitted' }] } }],
+        })
+      })
+
       it('is dropped past 2 MiB', () => {
         const big = 'x'.repeat(1024 * 1024)
         expect(Sessions.checkpointOf([message('1', 'user', text(big))], 'm', at)).toBe(
