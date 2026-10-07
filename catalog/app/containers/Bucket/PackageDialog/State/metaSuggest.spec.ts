@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('components/Assistant/Model/Assistant', () => ({ useLightLLMs: () => null }))
 vi.mock('constants/config', () => ({ default: {} }))
 
-import { buildPrompt, parseSuggestions, toExample } from './metaSuggest'
+import { buildPrompt, firstJsonObject, parseSuggestions, toExample } from './metaSuggest'
 
 const schema = {
   type: 'object',
@@ -56,8 +56,30 @@ describe('containers/Bucket/PackageDialog/State/metaSuggest', () => {
       ).toEqual({ project: { value: 'ONC-104', reason: undefined } })
     })
 
+    it('keeps a value whose only problem is its format, as submit does', () => {
+      const dated = {
+        type: 'object',
+        properties: { when: { type: 'string', format: 'date' } },
+      }
+      expect(parseSuggestions('{"when": {"value": "last tuesday"}}', dated)).toEqual({
+        when: { value: 'last tuesday', reason: undefined },
+      })
+    })
+
     it('skips empty values', () => {
       expect(parseSuggestions('{"project": {"value": ""}}', schema)).toEqual({})
+    })
+  })
+
+  describe('firstJsonObject', () => {
+    it('takes the first complete object and ignores braces in later prose', () => {
+      expect(firstJsonObject('{"a": {"value": "}"}}\nNote: skipped {date}.')).toEqual({
+        a: { value: '}' },
+      })
+    })
+
+    it('returns undefined when no object parses', () => {
+      expect(firstJsonObject('no json here {oops')).toBeUndefined()
     })
   })
 

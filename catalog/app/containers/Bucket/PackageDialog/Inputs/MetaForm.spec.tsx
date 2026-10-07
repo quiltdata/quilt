@@ -152,9 +152,14 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
       />,
     )
     const input = screen.getByRole('textbox', { name: /Ratio/ })
+    fireEvent.change(input, { target: { value: '-' } })
+    expect((input as HTMLInputElement).value).toBe('-')
+    expect(setPending).toHaveBeenLastCalledWith('ratio', true)
+    // "1." is a finished number; its text stays as typed while the value is 1
     fireEvent.change(input, { target: { value: '1.' } })
     expect((input as HTMLInputElement).value).toBe('1.')
-    expect(setPending).toHaveBeenLastCalledWith('ratio', true)
+    expect(onChange).toHaveBeenLastCalledWith({ ratio: 1 })
+    expect(setPending).toHaveBeenLastCalledWith('ratio', false)
     fireEvent.change(input, { target: { value: '1.5' } })
     expect(onChange).toHaveBeenLastCalledWith({ ratio: 1.5 })
     expect(setPending).toHaveBeenLastCalledWith('ratio', false)
@@ -229,5 +234,31 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
       expect(setPending).toHaveBeenLastCalledWith('ratio', false)
       expect(input.value).toBe('')
     })
+  })
+
+  it('shows a boolean as Yes/No and leaves it unset until chosen', () => {
+    const onChange = vi.fn()
+    const bool = {
+      type: 'object',
+      required: ['approved'],
+      properties: { approved: { title: 'Approved', type: 'boolean' } },
+    }
+    render(
+      <MetaForm
+        disabled={false}
+        errors={[]}
+        onChange={onChange}
+        onShowTable={() => {}}
+        onUseSuggestion={onUse}
+        schema={bool}
+        value={{}}
+      />,
+    )
+    const yes = screen.getByRole('button', { name: 'Yes' })
+    const no = screen.getByRole('button', { name: 'No' })
+    expect(yes.getAttribute('aria-pressed')).toBe('false')
+    expect(no.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(no)
+    expect(onChange).toHaveBeenLastCalledWith({ approved: false })
   })
 })

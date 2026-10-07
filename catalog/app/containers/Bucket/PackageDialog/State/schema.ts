@@ -30,11 +30,12 @@ export function mkMetaValidator(
   schema?: JsonSchema,
   { formats = true, keepSet = false } = {},
 ) {
-  const schemaValidator = makeSchemaValidator(
-    schema,
-    undefined,
-    formats ? undefined : { validateFormats: false },
-  )
+  // keepSet: defaults come only from the walker below, which submit also runs,
+  // so Ajv must not add any to its private copy
+  const schemaValidator = makeSchemaValidator(schema, undefined, {
+    ...(formats ? {} : { validateFormats: false }),
+    ...(keepSet ? { useDefaults: false } : {}),
+  })
   return function validateMeta(value: Types.Json): (ErrorObject | Error)[] | undefined {
     const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {

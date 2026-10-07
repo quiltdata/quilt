@@ -2,11 +2,12 @@ import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import type { JsonSchema } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
 
-import { fieldMessage, isFilled, pointer } from '../State/metaGuide'
+import { fieldMessage, hasValue, isFilled, pointer } from '../State/metaGuide'
 import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
@@ -30,6 +31,7 @@ const display = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))
 /** An enum option's label; quoted JSON when plain text would make two options look alike. */
 function enumLabel(v: Types.Json, all: Types.Json[]) {
   const plain = display(v)
+  if (plain === '') return '""'
   return all.filter((o) => display(o) === plain).length > 1 ? JSON.stringify(v) : plain
 }
 
@@ -45,6 +47,9 @@ function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
   })
 }
 
+/** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
+export const NEW_FIELD = '\u0000new field'
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 
 const useFieldStyles = M.makeStyles((t) => ({
@@ -56,8 +61,22 @@ const useFieldStyles = M.makeStyles((t) => ({
   wide: {
     gridColumn: '1 / -1',
   },
-  switch: {
-    marginLeft: 0,
+  boolLabel: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    marginBottom: t.spacing(0.5),
+  },
+  boolGroup: {
+    '& .MuiToggleButton-root': {
+      ...t.typography.body2,
+      minWidth: 64,
+      padding: t.spacing(0.5, 2),
+      textTransform: 'none',
+    },
+    '& .MuiToggleButton-root.Mui-selected': {
+      background: t.palette.action.selected,
+      color: t.palette.text.primary,
+    },
   },
   suggestion: {
     ...t.typography.body2,
@@ -138,7 +157,7 @@ function Field({
   const label = prop.title || name
   const error = errors[0]
   const enumIndex =
-    widget === 'enum' && !isEmpty(value)
+    widget === 'enum' && value !== undefined
       ? prop.enum.findIndex(
           (v: Types.Json) => JSON.stringify(v) === JSON.stringify(value),
         )
@@ -156,12 +175,15 @@ function Field({
   const [numText, setNumText] = React.useState(() =>
     isEmpty(value) ? '' : display(value),
   )
+  const numTextRef = React.useRef(numText)
+  numTextRef.current = numText
   React.useEffect(() => {
     if (!numeric) return
-    setNumText((t) =>
-      Number(t) === value && t.trim() !== '' ? t : isEmpty(value) ? '' : display(value),
-    )
-  }, [numeric, value])
+    const t = numTextRef.current
+    if (Number(t) === value && t.trim() !== '') return
+    setNumText(isEmpty(value) ? '' : display(value))
+    setPending?.(name, false)
+  }, [name, numeric, setPending, value])
   React.useEffect(() => () => setPending?.(name, false), [name, setPending])
 
   const set = React.useCallback(
@@ -180,7 +202,7 @@ function Field({
         const complete =
           raw.trim() !== '' &&
           !Number.isNaN(n) &&
-          /^[-+]?(\d+(\.\d+)?|\.\d+)(e[-+]?\d+)?$/i.test(raw.trim())
+          /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(raw.trim())
         setPending?.(name, !complete)
         if (complete) onChange(name, n)
         return
@@ -192,34 +214,37 @@ function Field({
 
   let input: React.ReactNode
   switch (widget) {
-    case 'boolean':
+    case 'boolean': {
+      const shown = value === undefined ? prop.default : value
       input = (
-        <M.FormControl error={!!error} disabled={disabled}>
-          <M.FormControlLabel
-            className={classes.switch}
-            control={
-              <M.Switch
-                checked={value === undefined ? prop.default === true : value === true}
-                color="primary"
-                id={id}
-                onChange={(e) => onChange(name, e.target.checked)}
-              />
-            }
-            label={required ? `${label} *` : label}
-          />
+        <M.FormControl error={!!error} disabled={disabled} component="fieldset">
+          <M.FormLabel component="legend" className={classes.boolLabel}>
+            {required ? `${label} *` : label}
+          </M.FormLabel>
+          <Lab.ToggleButtonGroup
+            aria-label={label}
+            className={classes.boolGroup}
+            exclusive
+            // deselecting clears an optional field; a required one keeps its answer
+            onChange={(_e, v) => {
+              if (v === null) return required ? undefined : onChange(name, undefined)
+              onChange(name, v === 'yes')
+            }}
+            size="small"
+            value={shown === true ? 'yes' : shown === false ? 'no' : null}
+          >
+            <Lab.ToggleButton value="yes" id={id} disabled={disabled}>
+              Yes
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value="no" disabled={disabled}>
+              No
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
           {helper && <M.FormHelperText>{helper}</M.FormHelperText>}
-          {!required && value !== undefined && !disabled && (
-            <M.Link
-              component="button"
-              type="button"
-              onClick={() => onChange(name, undefined)}
-            >
-              Clear
-            </M.Link>
-          )}
         </M.FormControl>
       )
       break
+    }
     case 'complex':
       input = (
         <M.FormControl error={!!error}>
@@ -268,12 +293,14 @@ function Field({
             // eslint-disable-next-line no-nested-ternary
             numeric
               ? numText
-              : isEmpty(value)
-                ? ''
-                : widget === 'enum'
-                  ? enumIndex === -1
+              : widget === 'enum'
+                ? value === undefined
+                  ? ''
+                  : enumIndex === -1
                     ? 'current'
                     : String(enumIndex)
+                : isEmpty(value)
+                  ? ''
                   : display(value)
           }
           variant="outlined"
@@ -282,7 +309,7 @@ function Field({
             <M.MenuItem key="" value="">
               <em>Not set</em>
             </M.MenuItem>,
-            ...(enumIndex === -1 && !isEmpty(value)
+            ...(enumIndex === -1 && value !== undefined
               ? [
                   <M.MenuItem key="__current" value="current" disabled>
                     {display(value)} (not an allowed value)
@@ -449,8 +476,10 @@ export default function MetaForm({
 
   const filled = required.filter(
     (k) =>
-      !isEmpty(value && Object.hasOwn(value, k) ? value[k] : properties[k]?.default) &&
-      !errorsFor(k, errors).length,
+      hasValue(
+        value && Object.hasOwn(value, k) ? value[k] : properties[k]?.default,
+        properties[k],
+      ) && !errorsFor(k, errors).length,
   ).length
 
   const field = (key: string, isRequired: boolean) => (
@@ -714,8 +743,8 @@ export function FreeFields({
   const draftStuck =
     !!draft && (draftError || (!draft.key.trim() && !!draft.value.trim()))
   React.useEffect(() => {
-    setPending?.('new field', draftStuck)
-    return () => setPending?.('new field', false)
+    setPending?.(NEW_FIELD, draftStuck)
+    return () => setPending?.(NEW_FIELD, false)
   }, [draftStuck, setPending])
 
   return (

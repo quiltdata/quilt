@@ -21,6 +21,7 @@ import { JsonRecord } from 'utils/types'
 import type { FormStatus } from '../State/form'
 import { mkMetaValidator } from '../State/schema'
 import type { SchemaStatus } from '../State/schema'
+import { pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
 import {
   humanizeError,
@@ -700,6 +701,15 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   )
 
   const { push: notify } = Notifications.use()
+
+  // Table view would drop drafts the form holds, so it waits for them
+  const showView = (v: 'form' | 'table') => {
+    if (v === 'table' && pending.length) {
+      notify(`Finish or undo the edit to ${pendingLabel(pending)} first`)
+      return
+    }
+    setView(v)
+  }
   const [locked, setLocked] = React.useState(false)
 
   // used to force json editor re-initialization
@@ -778,17 +788,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             aria-label="Metadata view"
             className={classes.viewToggle}
             exclusive
-            // Table view would drop drafts the form holds, so it waits for them
-            onChange={(_e, v) => {
-              if (!v) return
-              if (v === 'table' && pending.length) {
-                notify(
-                  `Finish or undo the edit to ${pending.map((k) => `"${k}"`).join(', ')} first`,
-                )
-                return
-              }
-              setView(v)
-            }}
+            onChange={(_e, v) => v && showView(v)}
             size="small"
             value={view}
           >
@@ -903,7 +903,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                         )
                   }
                   onChange={onChangeForm}
-                  onShowTable={() => setView('table')}
+                  onShowTable={() => showView('table')}
                   onUseSuggestion={(k, v) => applySuggestions({ [k]: v })}
                   setPending={setPending}
                   schema={schema}

@@ -316,6 +316,12 @@ function scanSchemaAndPrefillValues(
     }
 
     const preDefinedValue = getValue(schemaItem)
+    if (keepSet) {
+      const unset = valueItem === undefined || valueItem === ''
+      return unset && preDefinedValue !== undefined
+        ? R.assoc(key, preDefinedValue, memo)
+        : memo
+    }
     if (preDefinedValue) return R.assoc(key, preDefinedValue, memo)
 
     return memo

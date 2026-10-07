@@ -7,11 +7,12 @@ import * as Content from 'components/Assistant/Model/Content'
 import * as LLM from 'components/Assistant/Model/LLM'
 import WORKFLOW_PACKAGES from 'containers/Bucket/Workflows/gql/WorkflowPackages.generated'
 import { runtime } from 'utils/Effect'
-import { type JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
+import type { JsonSchema } from 'utils/JSONSchema'
 import Log from 'utils/Logging'
 import type * as Types from 'utils/types'
 
 import { pointer } from './metaGuide'
+import { mkMetaValidator } from './schema'
 
 export type Suggestions = Record<string, { value: Types.Json; reason?: string }>
 
@@ -100,22 +101,47 @@ export function buildPrompt({
  * The model's answer, keeping only values that pass their field's schema: a
  * suggestion the workflow would reject is worse than none.
  */
+/** The first top-level `{...}` in `text` that parses as JSON, ignoring prose around it. */
+export function firstJsonObject(text: string): unknown {
+  for (
+    let start = text.indexOf('{');
+    start !== -1;
+    start = text.indexOf('{', start + 1)
+  ) {
+    let depth = 0
+    let inString = false
+    for (let i = start; i < text.length; i += 1) {
+      const c = text[i]
+      if (inString) {
+        if (c === '\\') i += 1
+        else if (c === '"') inString = false
+      } else if (c === '"') inString = true
+      else if (c === '{') depth += 1
+      else if (c === '}') {
+        depth -= 1
+        if (depth === 0) {
+          try {
+            return JSON.parse(text.slice(start, i + 1))
+          } catch {
+            break
+          }
+        }
+      }
+    }
+  }
+  return undefined
+}
+
 export function parseSuggestions(
   text: string,
   schema: JsonSchema,
   value: Types.JsonRecord = {},
 ): Suggestions {
-  const match = text.match(/\{[\s\S]*\}/)
-  if (!match) return {}
-  let raw: unknown
-  try {
-    raw = JSON.parse(match[0])
-  } catch {
-    return {}
-  }
+  const raw = firstJsonObject(text)
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const properties: Record<string, JsonSchema> = schema.properties || {}
-  const validate = makeSchemaValidator(schema)
+  const check = mkMetaValidator(schema, { formats: false, keepSet: true })
+  const validate = (x: Types.JsonRecord) => check(x) ?? []
   // Root-level errors the metadata already has are not the suggestion's fault.
   const sig = (e: Error | { keyword?: string; schemaPath?: string; message?: string }) =>
     'schemaPath' in e ? `${e.schemaPath}|${e.message}` : e.message

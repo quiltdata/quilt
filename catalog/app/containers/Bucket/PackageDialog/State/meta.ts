@@ -110,9 +110,7 @@ export function useMeta(
   )
   const withPending: MetaStatus = React.useMemo(() => {
     if (!guided || !pending.length || status._tag === 'error') return status
-    return Err(
-      new Error(`Finish or undo the edit to ${pending.map((k) => `"${k}"`).join(', ')}`),
-    )
+    return Err(new Error(`Finish or undo the edit to ${pendingLabel(pending)}`))
   }, [guided, pending, status])
 
   const touched = meta !== undefined
@@ -130,5 +128,9 @@ export function useMeta(
     [guided, onChange, pending, setPending, touched, value, warnings, withPending],
   )
 }
+
+/** How pending keys read to a person; the new-field row has no name yet. */
+export const pendingLabel = (keys: readonly string[]) =>
+  keys.map((k) => (k.startsWith('\u0000') ? 'the new field' : `"${k}"`)).join(', ')
 
 export { useMeta as use }

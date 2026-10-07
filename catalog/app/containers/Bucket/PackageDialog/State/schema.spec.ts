@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
+import { makeSchemaDefaultsSetter } from 'utils/JSONSchema'
 import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -124,5 +125,28 @@ describe('mkMetaValidator formats option', () => {
     expect(
       mkMetaValidator(anyOfDate, { formats: false })({ when: 'last tuesday' }),
     ).toBeUndefined()
+  })
+})
+
+describe('mkMetaValidator keepSet', () => {
+  const required = {
+    type: 'object',
+    required: ['paired'],
+    properties: { paired: { type: 'boolean', default: false } },
+  }
+
+  it('validates the same object submit sends: a false default is materialized', () => {
+    const setDefaults = makeSchemaDefaultsSetter(required, { keepSet: true })
+    expect(setDefaults({})).toEqual({ paired: false })
+    expect(mkMetaValidator(required, { keepSet: true })({})).toBeUndefined()
+  })
+
+  it('does not pass on a default Ajv would add only to its own copy', () => {
+    const viaRef = {
+      type: 'object',
+      required: ['lane'],
+      allOf: [{ properties: { lane: { type: 'number', default: 1 } } }],
+    }
+    expect(mkMetaValidator(viaRef, { keepSet: true })({})).toBeTruthy()
   })
 })

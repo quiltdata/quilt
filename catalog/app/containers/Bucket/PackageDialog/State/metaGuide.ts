@@ -139,6 +139,17 @@ export function invalidKeys(errors: (Error | ErrorObject)[]): Set<string> {
 
 export const isFilled = (v: unknown) => v !== undefined && v !== null && v !== ''
 
+/** Whether `v` is a real value for `prop`: null and "" count only when the schema allows them. */
+export function hasValue(v: unknown, prop: JsonSchema = {}): boolean {
+  if (v === undefined) return false
+  if (v !== null && v !== '') return true
+  if (Array.isArray(prop.enum)) {
+    return prop.enum.some((e: unknown) => JSON.stringify(e) === JSON.stringify(v))
+  }
+  const types: unknown[] = Array.isArray(prop.type) ? prop.type : [prop.type]
+  return v === null && types.includes('null')
+}
+
 /**
  * Top-level fields the workflow schema requires, and whether `value` has them;
  * a schema default counts, since one is applied before validation and push.
@@ -156,11 +167,12 @@ export function requiredFields(
       key,
       title: schema?.properties?.[key]?.title,
       description: schema?.properties?.[key]?.description,
-      filled: isFilled(
+      filled: hasValue(
         value && Object.hasOwn(value, key)
           ? value[key]
           : schema?.properties?.[key]?.default,
+        schema?.properties?.[key],
       ),
-      invalid: isFilled(value?.[key]) && invalid.has(key),
+      invalid: value?.[key] !== undefined && invalid.has(key),
     }))
 }
