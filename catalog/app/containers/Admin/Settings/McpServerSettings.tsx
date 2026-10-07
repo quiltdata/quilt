@@ -315,7 +315,9 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
 
   const field =
     (key: keyof ServerFormValues) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setValues((v) => ({ ...v, [key]: e.target.value }))
+      // Read now: a deferred updater runs after React resets the controlled input.
+      const { value } = e.target
+      setValues((v) => ({ ...v, [key]: value }))
       setErrors(({ [key]: _drop, ...rest }) => rest)
     }
 
@@ -707,9 +709,11 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
           {server.auth === Types.McpServerAuth.HEADER &&
             `The registry sends ${server.hasSecret ? 'a stored' : 'no'} secret in ${server.authHeader}.`}
           {server.auth === Types.McpServerAuth.OAUTH &&
-            `Each user signs in with their own account; ${server.signedInUsers} ${
-              server.signedInUsers === 1 ? 'user has' : 'users have'
-            } so far.`}
+            `Each user signs in with their own account; ${
+              server.signedInUsers === 0
+                ? 'nobody has yet'
+                : `${server.signedInUsers} ${server.signedInUsers === 1 ? 'user has' : 'users have'} so far`
+            }.`}
           {server.auth === Types.McpServerAuth.NONE && 'No credential is sent.'}
         </M.Typography>
         {server.auth === Types.McpServerAuth.OAUTH && (

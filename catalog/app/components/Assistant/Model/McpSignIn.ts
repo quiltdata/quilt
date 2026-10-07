@@ -24,6 +24,8 @@ export interface SignInOptions {
   getToken: () => Promise<string | null>
   win?: Window
   fetch?: typeof fetch
+  /** Aborting closes the popup and drops the flow, finish request included. */
+  signal?: AbortSignal
 }
 
 const POPUP_FEATURES = 'popup,width=520,height=700'
@@ -54,6 +56,7 @@ export function signIn({
   getToken,
   win = window,
   fetch: doFetch = win.fetch.bind(win),
+  signal,
 }: SignInOptions): Promise<SignInResult> {
   const popup = win.open('', 'quilt-mcp-oauth', POPUP_FEATURES)
   if (!popup) return Promise.resolve({ ok: false, reason: 'blocked' })
@@ -69,6 +72,7 @@ export function signIn({
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(signal ? { signal } : {}),
     })
     const json = (await resp.json().catch(() => null)) as Record<string, unknown> | null
     const errorCode = typeof json?.error_code === 'string' ? json.error_code : undefined
@@ -85,9 +89,11 @@ export function signIn({
       done = true
       win.removeEventListener('message', onMessage)
       win.clearInterval(poll)
+      signal?.removeEventListener('abort', onAbort)
       if (!popup.closed) popup.close()
       resolve(result)
     }
+    const onAbort = () => settle({ ok: false, reason: 'closed' })
     const failed = (e: unknown): SignInResult => ({
       ok: false,
       reason: 'failed',
@@ -132,10 +138,12 @@ export function signIn({
         .catch((e) => settle(failed(e)))
     }
     win.addEventListener('message', onMessage)
+    signal?.addEventListener('abort', onAbort)
     const poll = win.setInterval(() => {
       if (popup.closed) settle({ ok: false, reason: 'closed' })
     }, CLOSED_POLL_MS)
 
+    if (signal?.aborted) onAbort()
     post('start')
       .then(({ resp, json, errorCode }) => {
         if (!resp.ok || typeof json?.authorizeUrl !== 'string') {
@@ -146,7 +154,19 @@ export function signIn({
           })
           return
         }
-        if (!done) popup.location.href = json.authorizeUrl
+        // The blank popup shares this origin, so a `javascript:` URL from a
+        // hostile server's metadata would run as the catalog.
+        let url: URL | null = null
+        try {
+          url = new URL(json.authorizeUrl)
+        } catch {
+          url = null
+        }
+        if (!url || url.protocol !== 'https:') {
+          settle({ ok: false, reason: 'failed', error: 'InvalidAuthorizeUrl' })
+          return
+        }
+        if (!done) popup.location.href = url.href
       })
       .catch((e) => settle(failed(e)))
   })
@@ -166,7 +186,16 @@ export interface McpSignInAPI {
   pending: string | null
   /** The last outcome, for a live region. */
   status: string
-  connect: (slug: string, returnFocus?: HTMLElement | null) => void
+  /**
+   * Focus returns to `returnFocus` (default: the focused element), or to
+   * `stableFocus` when that is gone or the connection succeeded and will
+   * replace the control that started it.
+   */
+  connect: (
+    slug: string,
+    returnFocus?: HTMLElement | null,
+    stableFocus?: HTMLElement | null,
+  ) => void
   disconnect: (slug: string, returnFocus?: HTMLElement | null) => void
 }
 
@@ -193,6 +222,9 @@ export function useMcpSignIn(
   const disconnectMutation = GQL.useMutation(MCP_SERVER_DISCONNECT_MUTATION)
   const [pending, setPending] = React.useState<string | null>(null)
   const [status, setStatus] = React.useState('')
+  const flow = React.useRef<AbortController | null>(null)
+  const busy = React.useRef(false)
+  React.useEffect(() => () => flow.current?.abort(), [])
 
   const oauth = React.useMemo(
     () =>
@@ -205,55 +237,91 @@ export function useMcpSignIn(
   const run = React.useCallback(
     async (
       slug: string,
-      returnFocus: HTMLElement | null | undefined,
-      act: (title: string) => Promise<string>,
+      focus: { returnTo?: HTMLElement | null; stable?: HTMLElement | null },
+      act: (
+        title: string,
+        signal: AbortSignal,
+      ) => Promise<{ ok: boolean; message: string }>,
     ) => {
-      if (pending) return
+      if (busy.current) return
+      busy.current = true
       const title = oauth.find((s) => s.slug === slug)?.title ?? slug
-      const focusTarget = returnFocus ?? (document.activeElement as HTMLElement | null)
+      const returnTo = focus.returnTo ?? (document.activeElement as HTMLElement | null)
+      const controller = new AbortController()
+      flow.current = controller
       setPending(slug)
       setStatus('')
+      let ok = false
       try {
-        setStatus(await act(title))
+        const result = await act(title, controller.signal)
+        ok = result.ok
+        if (controller.signal.aborted) return
+        setStatus(result.message)
       } finally {
-        setPending(null)
-        await client
-          .query(MCP_SERVERS_QUERY, {}, { requestPolicy: 'network-only' })
-          .toPromise()
-        const connector = connectors.byId[slug]
-        if (connector) runtime.runFork(connector.retry)
-        if (focusTarget?.isConnected) focusTarget.focus()
+        if (!controller.signal.aborted) {
+          flow.current = null
+          await client
+            .query(MCP_SERVERS_QUERY, {}, { requestPolicy: 'network-only' })
+            .toPromise()
+          busy.current = false
+          setPending(null)
+          const connector = connectors.byId[slug]
+          // A retry during Connecting is a no-op, and that attempt may still end
+          // in NeedsSignIn, so wait for it to settle first.
+          if (connector && ok) {
+            runtime.runFork(
+              connector.state.changes.pipe(
+                Eff.Stream.filter((s) => s._tag !== 'Connecting'),
+                Eff.Stream.take(1),
+                Eff.Stream.runDrain,
+                Eff.Effect.zipRight(connector.retry),
+              ),
+            )
+          }
+          const target =
+            (ok || !returnTo?.isConnected) && focus.stable ? focus.stable : returnTo
+          if (target?.isConnected) target.focus()
+        }
       }
     },
-    [pending, oauth, client, connectors],
+    [oauth, client, connectors],
   )
 
   const connect = React.useCallback(
-    (slug: string, returnFocus?: HTMLElement | null) =>
-      void run(slug, returnFocus, async (title) => {
+    (slug: string, returnTo?: HTMLElement | null, stable?: HTMLElement | null) =>
+      void run(slug, { returnTo, stable }, async (title, signal) => {
         const result = await signIn({
           slug,
           registryUrl: cfg.registryUrl,
           getToken: () => Eff.Effect.runPromise(getToken()),
+          signal,
         })
-        if (result.ok) return `Connected ${title}.`
+        if (result.ok) return { ok: true, message: `Connected ${title}.` }
         const message = FAILURE[result.reason](title)
-        return result.error ? `${message} (${result.error})` : message
+        return {
+          ok: false,
+          message: result.error ? `${message} (${result.error})` : message,
+        }
       }),
     [run, getToken],
   )
 
   const disconnect = React.useCallback(
-    (slug: string, returnFocus?: HTMLElement | null) =>
-      void run(slug, returnFocus, async (title) => {
+    (slug: string, returnTo?: HTMLElement | null) =>
+      void run(slug, { returnTo }, async (title) => {
         try {
           const result = (await disconnectMutation({ slug })).mcpServerDisconnect
-          if (result.__typename === 'Ok') return `Disconnected ${title}.`
-          return result.__typename === 'InvalidInput'
-            ? `Couldn't disconnect ${title}: ${result.errors.map((e) => e.message).join('; ')}`
-            : `Couldn't disconnect ${title}: ${result.message}`
+          if (result.__typename === 'Ok') {
+            return { ok: true, message: `Disconnected ${title}.` }
+          }
+          const why =
+            result.__typename === 'InvalidInput'
+              ? result.errors.map((e) => e.message).join('; ')
+              : result.message
+          return { ok: false, message: `Couldn't disconnect ${title}: ${why}` }
         } catch (e) {
-          return `Couldn't disconnect ${title}: ${e instanceof Error ? e.message : e}`
+          const why = e instanceof Error ? e.message : String(e)
+          return { ok: false, message: `Couldn't disconnect ${title}: ${why}` }
         }
       }),
     [run, disconnectMutation],

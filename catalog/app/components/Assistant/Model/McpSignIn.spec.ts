@@ -1,6 +1,6 @@
 import * as Eff from 'effect'
 import * as React from 'react'
-import { act, render } from '@testing-library/react'
+import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: { registryUrl: 'https://registry.test' } }))
@@ -11,9 +11,12 @@ vi.mock('urql', () => ({
   useClient: () => ({ query: () => ({ toPromise: async () => ({}) }) }),
 }))
 vi.mock('utils/GraphQL', () => ({ useMutation: () => vi.fn() }))
-const runFork = vi.hoisted(() => vi.fn())
-vi.mock('utils/Effect', () => ({ runtime: { runFork } }))
+vi.mock('utils/Effect', async () => {
+  const E = await import('effect')
+  return { runtime: { runFork: (eff: any) => E.Effect.runFork(eff) } }
+})
 
+import * as Connectors from './Connectors'
 import { signIn, useMcpSignIn } from './McpSignIn'
 
 const REGISTRY = 'https://registry.test'
@@ -43,7 +46,7 @@ const json = (body: unknown, status = 200) =>
 
 /** The registry: start answers with an authorize URL, finish with `finish`. */
 const registry = (finish: () => Response = () => json({ ok: true })) =>
-  vi.fn<typeof fetch>(async (url) =>
+  vi.fn<typeof globalThis.fetch>(async (url) =>
     String(url).endsWith('/start')
       ? json({ authorizeUrl: 'https://provider.test/authorize?x=1' })
       : finish(),
@@ -159,6 +162,20 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
+  it('refuses an authorize URL that is not https', async () => {
+    const { win, popup } = fakeWindow()
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      json({ authorizeUrl: 'javascript:alert(1)' }),
+    )
+    await expect(start(win, fetch as any)).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+      error: 'InvalidAuthorizeUrl',
+    })
+    expect(popup.location.href).toBe('')
+    expect(popup.close).toHaveBeenCalled()
+  })
+
   it('reports a blocked popup without calling the registry', async () => {
     const { win } = fakeWindow()
     ;(win.open as any).mockReturnValue(null)
@@ -200,7 +217,16 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       signedIn: false,
     },
   ]
-  const connectors = { byId: { slack: { retry: 'retry-slack' } } } as any
+  let retries = 0
+  const makeConnectors = (initial: Connectors.ConnectorState) => {
+    const state = Eff.Effect.runSync(Eff.SubscriptionRef.make(initial))
+    const retry = Eff.Effect.sync(() => void (retries += 1))
+    return { state, service: { byId: { slack: { state, retry } } } as any }
+  }
+  const failed = Connectors.ConnectorState.Failed({
+    error: { _tag: 'Auth', message: 'sign in', needsSignIn: true },
+    acked: false,
+  })
 
   let originalOpen: typeof window.open
   let originalFetch: typeof window.fetch
@@ -217,7 +243,8 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     window.open = originalOpen
     window.fetch = originalFetch
     captureException.mockReset()
-    runFork.mockReset()
+    retries = 0
+    cleanup()
   })
 
   const reply = () =>
@@ -229,17 +256,104 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       }),
     )
 
-  it('shows SignInFailed, reconnects the connector, and never reports the code', async () => {
+  const getToken = () => Eff.Effect.succeed('tok')
+  function mount(service: Connectors.ConnectorsService) {
+    const result = { current: null as unknown as ReturnType<typeof useMcpSignIn> }
+    function Probe() {
+      result.current = useMcpSignIn(servers, service, getToken)
+      return null
+    }
+    const view = render(React.createElement(Probe))
+    return Object.assign(result, { unmount: view.unmount })
+  }
+
+  it('holds the reconnect until a connection attempt in flight settles', async () => {
+    window.fetch = registry() as any
+    const { state, service } = makeConnectors(Connectors.ConnectorState.Connecting())
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      reply()
+      await flush()
+      await flush()
+    })
+    expect(result.current.status).toBe('Connected Slack.')
+    expect(retries).toBe(0)
+    await act(async () => {
+      Eff.Effect.runSync(Eff.SubscriptionRef.set(state, failed))
+      await flush()
+    })
+    expect(retries).toBe(1)
+  })
+
+  it('closes the popup and drops the flow when the hook unmounts', async () => {
+    const fetch = registry()
+    window.fetch = fetch as any
+    const { service } = makeConnectors(failed)
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+    })
+    result.unmount()
+    reply()
+    await flush()
+    expect(popup.close).toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(retries).toBe(0)
+  })
+
+  it('a sign-in takes a real needs-sign-in connector to Ready', async () => {
+    window.fetch = registry() as any
+    let signedIn = false
+    const backend: Connectors.Backend = {
+      initialize: () =>
+        signedIn
+          ? Eff.Effect.void
+          : Eff.Effect.fail({ _tag: 'Auth', message: 'sign in', needsSignIn: true }),
+      listTools: () => Eff.Effect.succeed([]),
+      listResources: () => Eff.Effect.succeed([]),
+      readResource: () => Eff.Effect.succeed(''),
+      callTool: () => Eff.Effect.die('unused'),
+      ping: () => Eff.Effect.void,
+    }
+    const scope = Eff.Effect.runSync(Eff.Scope.make())
+    const service = await Eff.Effect.runPromise(
+      Connectors.buildService([
+        { id: 'slack', title: 'Slack', optional: true, backend },
+      ]).pipe(Eff.Effect.provideService(Eff.Scope.Scope, scope)),
+    )
+    const state = service.byId.slack.state
+    const settled = (tag: string) =>
+      Eff.Effect.runPromise(
+        state.changes.pipe(
+          Eff.Stream.filter((s) => s._tag === tag),
+          Eff.Stream.take(1),
+          Eff.Stream.runDrain,
+        ),
+      )
+    await settled('Failed')
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      signedIn = true
+      reply()
+      await flush()
+      await flush()
+      await settled('Ready')
+    })
+    expect(result.current.status).toBe('Connected Slack.')
+    await Eff.Effect.runPromise(Eff.Scope.close(scope, Eff.Exit.void))
+  })
+
+  it('shows SignInFailed without a reconnect, and never reports the code', async () => {
     window.fetch = registry(() => json({ error_code: 'SignInFailed' }, 400)) as any
     const log = vi.spyOn(console, 'error').mockImplementation(() => {})
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const getToken = () => Eff.Effect.succeed('tok')
-    const result = { current: null as unknown as ReturnType<typeof useMcpSignIn> }
-    function Probe() {
-      result.current = useMcpSignIn(servers, connectors, getToken)
-      return null
-    }
-    render(React.createElement(Probe))
+    const { service } = makeConnectors(failed)
+    const result = mount(service)
     await act(async () => {
       result.current.connect('slack')
       await flush()
@@ -248,7 +362,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       await flush()
     })
     expect(result.current.status).toBe('Slack sign-in failed, try again.')
-    expect(runFork).toHaveBeenCalledWith('retry-slack')
+    expect(retries).toBe(0)
     const reported = JSON.stringify([
       captureException.mock.calls,
       log.mock.calls,

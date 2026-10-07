@@ -87,8 +87,6 @@ describe('components/Assistant/UI/Chat/ConnectorHelperLine', () => {
   })
 })
 
-// The bug this guards: `Markdown` was rendered without `processLink`, so a
-// foreign host in an assistant answer was followed verbatim onto another stack.
 describe('components/Assistant/UI/Chat/ConnectorHelperLine sign-in', () => {
   afterEach(cleanup)
 
@@ -115,6 +113,8 @@ describe('components/Assistant/UI/Chat/ConnectorHelperLine sign-in', () => {
   })
 })
 
+// The bug this guards: `Markdown` was rendered without `processLink`, so a
+// foreign host in an assistant answer was followed verbatim onto another stack.
 describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
   const ORIGIN = window.location.origin
 

@@ -544,13 +544,15 @@ const useConnectorHelperStyles = M.makeStyles((t) => ({
 interface ConnectorHelperLineProps {
   connector: Model.Connectors.ConnectorRuntime
   state: Model.Connectors.ConnectorState
-  onConnect?: (slug: string, returnFocus?: HTMLElement | null) => void
+  onConnect?: (slug: string) => void
+  connectDisabled?: boolean
 }
 
 export function ConnectorHelperLine({
   connector,
   state,
   onConnect,
+  connectDisabled,
 }: ConnectorHelperLineProps) {
   const classes = useConnectorHelperStyles()
   const onRetry = React.useCallback(() => runtime.runFork(connector.retry), [connector])
@@ -586,6 +588,7 @@ export function ConnectorHelperLine({
               {sep}{' '}
               <MessageAction
                 className={classes.action}
+                disabled={connectDisabled}
                 onClick={() => onConnect(connector.id)}
               >
                 connect
@@ -617,13 +620,11 @@ const helperSeverityFor = (
 }
 
 const useStyles = M.makeStyles((t) => ({
-  srOnly: {
-    clip: 'rect(0 0 0 0)',
-    height: 1,
-    overflow: 'hidden',
-    position: 'absolute',
-    whiteSpace: 'nowrap',
-    width: 1,
+  signInStatus: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    padding: t.spacing(0, 2),
+    '&:empty': { display: 'none' },
   },
   chat: {
     display: 'flex',
@@ -730,6 +731,15 @@ export default function Chat({
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const blocked = Model.Connectors.useIsBlocked(connectors)
+  const signInStatus = React.useRef<HTMLDivElement>(null)
+  const connect = mcpSignIn?.connect
+  const onConnect = React.useMemo(
+    () =>
+      connect &&
+      ((slug: string) =>
+        connect(slug, document.activeElement as HTMLElement, signInStatus.current)),
+    [connect],
+  )
   const inputDisabled = state._tag !== 'Idle' || blocked
   // `connectors.byId` is built once at service allocation and never
   // re-keyed, so this loop's length is stable per-mount and the
@@ -746,7 +756,8 @@ export default function Chat({
             <ConnectorHelperLine
               connector={c}
               state={connectorStates[i]}
-              onConnect={mcpSignIn?.pending ? undefined : mcpSignIn?.connect}
+              onConnect={onConnect}
+              connectDisabled={!!mcpSignIn?.pending}
             />
           </span>,
         ]
@@ -885,9 +896,15 @@ export default function Chat({
         </div>
       </div>
       <Instructions instructions={instructions} />
-      <span className={classes.srOnly} role="status" aria-live="polite">
+      <div
+        ref={signInStatus}
+        className={classes.signInStatus}
+        role="status"
+        aria-live="polite"
+        tabIndex={-1}
+      >
         {mcpSignIn?.status}
-      </span>
+      </div>
       <Input
         disabled={inputDisabled}
         model={model}

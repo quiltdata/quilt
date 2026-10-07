@@ -642,6 +642,7 @@ const runReconnectWithProbe = (
       bootstrapAttempts += 1
       const attempt = yield* bootstrap(config, callTool).pipe(Eff.Effect.either)
       if (Eff.Either.isRight(attempt)) return attempt.right
+      if (attempt.left.needsSignIn) return yield* Eff.Effect.fail(attempt.left)
       lastError = attempt.left
     }
     return yield* Eff.Effect.fail(

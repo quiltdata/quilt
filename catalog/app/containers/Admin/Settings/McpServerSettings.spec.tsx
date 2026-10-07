@@ -146,6 +146,24 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       expect(mutate.mock.calls[0][1]).toEqual({ silent: true })
     })
 
+    it('a typed client secret is sent, and switching to OAUTH sends no header secret', async () => {
+      servers = [server()]
+      mutate.mockResolvedValue(setResult({ __typename: 'McpServerAdmin' }))
+      const { getByText, getByLabelText } = mount()
+      fireEvent.click(getByText('Edit'))
+      fireEvent.change(getByLabelText('Authentication'), { target: { value: 'OAUTH' } })
+      fireEvent.change(getByLabelText('OAuth client secret'), {
+        target: { value: 'cs3cret' },
+      })
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      const { input } = mutate.mock.calls[0][0]
+      expect(input).toMatchObject({ auth: 'OAUTH', oauthClientSecret: 'cs3cret' })
+      expect(input.secret).toBeNull()
+      expect(input.authHeader).toBeNull()
+    })
+
     it('signing everyone out asks first', async () => {
       servers = [server({ auth: 'OAUTH', signedInUsers: 2 })]
       mutate.mockResolvedValue({ admin: { mcpServerSignOutAll: { __typename: 'Ok' } } })
