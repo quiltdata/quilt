@@ -17,12 +17,12 @@ export interface Governed {
  * forever, and is flagged so the turn avoids a stored model the set may refuse.
  * Nothing retries it: the flag holds until a reload or sign-in reads again.
  */
-export function useGoverned(): {
+export function useGoverned({ pause = false }: { pause?: boolean } = {}): {
   governed: Governed | null
   settled: boolean
   failed: boolean
 } {
-  const query = GQL.useQuery(QURATOR_MODELS_QUERY)
+  const query = GQL.useQuery(QURATOR_MODELS_QUERY, {}, { pause })
   return React.useMemo(
     () =>
       GQL.fold(query, {
@@ -63,6 +63,25 @@ export function resolve(
   if (override && allowlist.includes(override)) return override
   if (governed.default && allowlist.includes(governed.default)) return governed.default
   return allowlist.includes(fallback) ? fallback : allowlist[0]
+}
+
+/**
+ * Models to try, in order, for a small background ask such as metadata
+ * suggestions: the lightest the admin allows, then the model a turn would use.
+ * Ungoverned stacks have no list to read, so `light` is a guess, and `fallback`
+ * follows in case the stack's Bedrock access lacks it.
+ */
+export function lightest(
+  governed: Governed | null,
+  light: string,
+  fallback: string,
+  readFailed = false,
+): string[] {
+  if (readFailed) return [fallback]
+  if (!governed) return light === fallback ? [fallback] : [light, fallback]
+  const pick = governed.allowlist.find((id) => tier(id) === 'Light')
+  const turn = resolve(governed, '', fallback)
+  return pick && pick !== turn ? [pick, turn] : [turn]
 }
 
 /** Whether a stored override should be dropped rather than kept for later. */

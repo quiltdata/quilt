@@ -51,6 +51,9 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     value: { title: 'Test Package' },
     status: Meta.Ok,
     onChange,
+    guided: false,
+    touched: false,
+    warnings: [],
   }
 
   const useParamsWith = (overrides: Partial<FormInputs> = {}) =>
@@ -85,6 +88,9 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: {},
         status: Meta.Ok,
         onChange,
+        guided: false,
+        touched: false,
+        warnings: [],
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: emptyMeta }))
@@ -108,6 +114,9 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: { title: 'Custom Title' },
         status: Meta.Ok,
         onChange,
+        guided: false,
+        touched: false,
+        warnings: [],
       }
 
       const { result } = renderHook(() =>
@@ -249,6 +258,9 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: { title: 'Test' },
         status: Meta.Err(new Error('Meta validation error')),
         onChange,
+        guided: false,
+        touched: false,
+        warnings: [],
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: metaError }))

@@ -20,6 +20,7 @@ import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
+import * as LLM from './LLM'
 import * as ModelChoice from './ModelChoice'
 import * as UserInstructions from './UserInstructions'
 import * as Sessions from './Sessions'
@@ -32,6 +33,8 @@ function usePassThru<T>(val: T) {
   ref.current = val
   return ref
 }
+
+const LIGHT_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
 
 export const DEFAULT_MODEL_ID =
   cfg.quratorDefaultModel || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
@@ -496,4 +499,29 @@ export function useAssistantAPI() {
 
 export function useAssistant() {
   return useAssistantAPI()?.assist
+}
+
+/**
+ * An LLM for small, one-shot asks outside a conversation, bound to each model
+ * `ModelChoice.lightest` offers. `null` while Qurator is off, `active` is
+ * false (no request is made for the governed list then), or the list is
+ * still loading.
+ */
+export function useLightLLMs(active: boolean): Eff.Layer.Layer<LLM.LLM>[] | null {
+  const enabled = useIsEnabled()
+  const getToken = useSessionToken()
+  const { governed, settled, failed } = ModelChoice.useGoverned({
+    pause: !enabled || !active,
+  })
+  return React.useMemo(() => {
+    if (!enabled || !active || !settled) return null
+    return ModelChoice.lightest(governed, LIGHT_MODEL_ID, DEFAULT_MODEL_ID, failed).map(
+      (id) =>
+        Relay.LLMRelay({
+          url: getInferenceUrl(),
+          modelId: Eff.Effect.succeed(id),
+          getToken,
+        }),
+    )
+  }, [enabled, active, settled, governed, failed, getToken])
 }
