@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
+import { FlowsLink, WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 
@@ -33,18 +33,18 @@ const errorDisplay = R.cond([
     (e: ERRORS.WorkflowsConfigInvalid) => (
       <>
         <M.Typography variant="h6" gutterBottom>
-          Invalid workflows config
+          This bucket&apos;s flows can&apos;t be read
         </M.Typography>
         <M.Typography gutterBottom>
           Error: <code>{e.message}</code>
         </M.Typography>
         <M.Typography>
-          Please fix the <WorkflowsConfigLink>workflows config</WorkflowsConfigLink>{' '}
-          according to{' '}
+          See the <FlowsLink>Flows page</FlowsLink> for details. A bucket admin can repair
+          the <WorkflowsConfigLink>stored configuration</WorkflowsConfigLink> (see{' '}
           <StyledLink href={`${docs}/workflows`} target="_blank">
             the documentation
           </StyledLink>
-          .
+          ).
         </M.Typography>
       </>
     ),
