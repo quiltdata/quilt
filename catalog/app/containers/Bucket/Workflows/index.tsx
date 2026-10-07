@@ -10,7 +10,9 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Workflows from 'utils/workflows'
 
-import { displayError } from '../errors'
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
+
+import { WorkflowsConfigInvalid, displayError } from '../errors'
 import * as requests from '../requests'
 
 import Detail from './Detail'
@@ -167,7 +169,27 @@ export default function WorkflowsRoot() {
             reload={data.fetch}
           />
         ),
-        Err: displayError(),
+        Err: displayError([
+          [
+            (e) => e instanceof WorkflowsConfigInvalid,
+            (e: WorkflowsConfigInvalid) => (
+              <Layout.Container>
+                <Layout.Heading>Flows</Layout.Heading>
+                <Layout.Message>
+                  This bucket&apos;s flow settings can&apos;t be read, so flows can&apos;t
+                  be shown or edited here, and pushes with a flow fail until they&apos;re
+                  fixed. A bucket admin can repair the{' '}
+                  <WorkflowsConfigLink>stored settings</WorkflowsConfigLink>.
+                </Layout.Message>
+                <M.Box mt={1}>
+                  <M.Typography variant="body2" color="textSecondary">
+                    {e.message}
+                  </M.Typography>
+                </M.Box>
+              </Layout.Container>
+            ),
+          ],
+        ]),
         _: () => <Placeholder color="text.secondary" />,
       })}
     </>

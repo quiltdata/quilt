@@ -12,7 +12,7 @@ import * as checks from './checks'
 import * as model from './model'
 
 // MUI only links a TextField's label to its input when it has an id.
-function Field(props: M.TextFieldProps) {
+export function Field(props: M.TextFieldProps) {
   const id = useId()
   return <M.TextField id={id} {...props} />
 }

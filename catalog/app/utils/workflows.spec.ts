@@ -319,4 +319,11 @@ describe('utils/workflows', () => {
       ])
     })
   })
+  describe('config that is not valid YAML', () => {
+    it('is reported, not read as an empty bucket', () => {
+      expect(() =>
+        workflows.parse('version: "1"\nworkflows:\n  a: {name: A\n', 'foo'),
+      ).toThrow(errors.WorkflowsConfigInvalid)
+    })
+  })
 })

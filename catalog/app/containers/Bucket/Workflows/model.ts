@@ -139,14 +139,20 @@ export function fieldsFromMeta(meta: Types.Json): Field[] {
 
 export function validateDraft(
   draft: FlowDraft,
-  { isNew, existingIds }: { isNew: boolean; existingIds: string[] },
+  {
+    isNew,
+    existingIds,
+    originalPattern,
+  }: { isNew: boolean; existingIds: string[]; originalPattern?: string },
 ): Record<string, string> {
   const errors: Record<string, string> = {}
   if (!draft.name.trim()) errors.name = 'Give the flow a name'
   if (isNew && existingIds.includes(draft.id)) {
     errors.name = 'A flow with this name already exists'
   }
-  if (draft.namePattern) {
+  // quilt3 checks patterns in Python, which accepts syntax JS rejects; an unchanged
+  // pattern is left for the push to enforce.
+  if (draft.namePattern && draft.namePattern !== originalPattern) {
     try {
       new RegExp(draft.namePattern)
     } catch (e) {
@@ -168,24 +174,25 @@ export function validateDraft(
 export const schemaUrl = (bucket: string, id: string) =>
   `s3://${bucket}/.quilt/workflows/${encodeURIComponent(id)}.json`
 
-// Returns the schema location to write, reusing the flow's own schema file when it has one.
+const referencedBy = (config: RawConfig, key: string, exceptId?: string) =>
+  Object.entries(config.workflows ?? {}).some(
+    ([id, w]: [string, any]) =>
+      id !== exceptId && (w?.metadata_schema === key || w?.entries_schema === key),
+  )
+
+// Returns the schema location to write. The flow keeps its own schema file only when no
+// other flow uses it; otherwise it gets a fresh key, so other flows' rules never change.
 export function schemaLocation(config: RawConfig, bucket: string, draft: FlowDraft) {
   const current = config.workflows?.[draft.id]?.metadata_schema
   const currentUrl = current && config.schemas?.[current]?.url
-  const sharedWithOthers = Object.entries(config.workflows ?? {}).some(
-    ([id, w]: [string, any]) => id !== draft.id && w?.metadata_schema === current,
-  )
-  if (currentUrl && !sharedWithOthers) {
+  if (currentUrl && !referencedBy(config, current, draft.id)) {
     const loc = s3paths.parseS3Url(currentUrl)
-    if (loc.bucket === bucket)
+    if (loc.bucket === bucket && currentUrl === schemaUrl(bucket, current)) {
       return { key: current as string, url: currentUrl as string }
+    }
   }
   let key = draft.id
-  for (
-    let n = 2;
-    config.schemas?.[key] && config.schemas[key].url !== schemaUrl(bucket, key);
-    n++
-  ) {
+  for (let n = 2; config.schemas?.[key] || referencedBy(config, key); n++) {
     key = `${draft.id}-${n}`
   }
   return { key, url: schemaUrl(bucket, key) }
@@ -223,13 +230,25 @@ export function applyFlow(
   if (workflow.metadata_schema === schema?.key && schema) {
     next.schemas = { ...base.schemas, [schema.key]: { url: schema.url } }
   }
+  // A schema entry nothing refers to any more is dropped (the file is left in place).
+  if (metadata_schema && workflow.metadata_schema !== metadata_schema) {
+    if (!referencedBy(next, metadata_schema) && next.schemas?.[metadata_schema]) {
+      const { [metadata_schema]: _gone, ...schemas } = next.schemas
+      if (Object.keys(schemas).length) next.schemas = schemas
+      else delete next.schemas
+    }
+  }
   return next
 }
 
-// `null`: no flows left. quilt3 rejects a config with no workflows, so the file goes.
-export function removeFlow(config: RawConfig, id: string): RawConfig | null {
+// quilt3 requires at least one workflow, and deleting the file would also drop promote
+// targets, so the last flow can't be removed from here.
+export const canRemove = (config: RawConfig | undefined) =>
+  Object.keys(config?.workflows ?? {}).length > 1
+
+export function removeFlow(config: RawConfig, id: string): RawConfig {
+  if (!canRemove(config)) throw new Error("A bucket's last flow can't be deleted")
   const { [id]: _removed, ...workflows } = config.workflows ?? {}
-  if (!Object.keys(workflows).length) return null
   const next: RawConfig = { ...config, workflows }
   if (next.default_workflow === id) delete next.default_workflow
   return next
@@ -243,17 +262,38 @@ export function promoteFromConfig(config: RawConfig | undefined): Promote[] {
   }))
 }
 
+export const cleanBucket = (input: string) =>
+  input
+    .trim()
+    .replace(/^s3:\/\//, '')
+    .replace(/\/+$/, '')
+
+const BUCKET_RE = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/
+
+export function validatePromote(promote: Promote[]): Record<string, string> {
+  const errors: Record<string, string> = {}
+  promote.forEach((p, i) => {
+    const b = cleanBucket(p.bucket)
+    if (b && !BUCKET_RE.test(b)) errors[`promote.${i}`] = 'Not a valid bucket name'
+  })
+  return errors
+}
+
 export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
-  const { successors: _old, ...rest } = config
-  const rows = promote.filter((p) => p.bucket.trim())
+  const { successors: old, ...rest } = config
+  const rows = promote
+    .map((p) => ({ ...p, bucket: cleanBucket(p.bucket) }))
+    .filter((p) => p.bucket)
   if (!rows.length) return rest
   return {
     ...rest,
     successors: Object.fromEntries(
       rows.map((p) => [
-        `s3://${p.bucket.trim()}`,
+        `s3://${p.bucket}`,
         {
-          title: p.title.trim() || p.bucket.trim(),
+          // Keep keys this editor doesn't manage
+          ...old?.[`s3://${p.bucket}`],
+          title: p.title.trim() || p.bucket,
           ...(p.copyData ? {} : { copy_data: false }),
         },
       ]),

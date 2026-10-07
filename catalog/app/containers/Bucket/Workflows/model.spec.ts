@@ -127,15 +127,17 @@ describe('containers/Bucket/Workflows/model', () => {
     })
   })
 
-  it('removes the config when the last flow goes', () => {
-    const config = { version: '1', workflows: { a: { name: 'A' }, b: { name: 'B' } } }
-    expect(model.removeFlow(config, 'a')).toEqual({
-      version: '1',
-      workflows: { b: { name: 'B' } },
+  it('cleans and checks promote buckets, keeping keys it does not manage', () => {
+    const config = { version: '1', successors: { 's3://gold': { title: 'G', extra: 1 } } }
+    const next = model.applyPromote(config, [
+      { bucket: ' s3://gold/ ', title: 'Gold', copyData: true },
+    ])
+    expect(next.successors).toEqual({ 's3://gold': { title: 'Gold', extra: 1 } })
+    expect(
+      model.validatePromote([{ bucket: 'Not A Bucket', title: '', copyData: true }]),
+    ).toEqual({
+      'promote.0': 'Not a valid bucket name',
     })
-    expect(model.removeFlow({ version: '1', workflows: { a: { name: 'A' } } }, 'a')).toBe(
-      null,
-    )
   })
 
   it('round-trips promote targets', () => {
@@ -153,6 +155,20 @@ describe('containers/Bucket/Workflows/model', () => {
       { bucket: 'silver', title: 'silver', copyData: true },
     ])
     expect(model.applyPromote(next, [])).toEqual({ version: '1' })
+  })
+
+  it('leaves an unchanged Python-only pattern to the push', () => {
+    const d = draft({ namePattern: '^(?P<lab>[a-z]+)/' })
+    expect(
+      model.validateDraft(d, {
+        isNew: false,
+        existingIds: [],
+        originalPattern: d.namePattern,
+      }),
+    ).toEqual({})
+    expect(
+      Object.keys(model.validateDraft(d, { isNew: false, existingIds: [] })),
+    ).toEqual(['namePattern'])
   })
 
   it('validates drafts before saving', () => {
