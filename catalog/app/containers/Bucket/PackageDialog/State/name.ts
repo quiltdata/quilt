@@ -72,37 +72,40 @@ export interface NameState {
   resetDirty: () => void
 }
 
+const isSrcName = (dst: PackageDst, src?: PackageSrc) =>
+  dst.bucket === src?.bucket && dst.name === src.name
+
 export function useNameExistence(
   dst: PackageDst,
+  debouncedName: string | undefined,
   src?: PackageSrc,
   disableRestore: boolean = false,
 ): NameStatus {
-  const pause =
-    !dst.bucket || !dst.name || (dst.bucket === src?.bucket && dst.name === src.name)
+  const isSrc = isSrcName(dst, src)
+  const pause = !dst.bucket || !dst.name || isSrc
   const packageExistsQuery = GQL.useQuery(
     PACKAGE_EXISTS_QUERY,
     dst as Required<PackageDst>,
     { pause },
   )
-  const [debouncedName] = useDebounce(dst.name, 300)
+  // The source package's lock is already loaded, so it skips the debounce.
+  const lockName = isSrc ? dst.name : debouncedName
   const lock = PackageLock.useLockStatus(
     dst.bucket,
-    debouncedName ?? '',
-    !dst.bucket || !debouncedName,
+    lockName ?? '',
+    !dst.bucket || !lockName,
   )
   return React.useMemo(() => {
     if (!dst.bucket || !dst.name) return { _tag: 'idle' }
     // Files upload before the push, so a locked destination is refused here, not by it.
-    if (lock === 'loading' || debouncedName !== dst.name) return { _tag: 'loading' }
+    if (lock === 'loading' || lockName !== dst.name) return { _tag: 'loading' }
     if (lock === 'locked') {
       return {
         _tag: 'error',
         error: new Error('This package is locked; an admin must unlock it first'),
       }
     }
-    if (dst.bucket === src?.bucket && dst.name === src.name) {
-      return { _tag: 'new-revision' }
-    }
+    if (isSrc) return { _tag: 'new-revision' }
     return GQL.fold(packageExistsQuery, {
       data: ({ package: r }, { error, fetching }) => {
         // urql carries the previous name's response over a variables change, and a fold
@@ -124,12 +127,11 @@ export function useNameExistence(
       fetching: () => ({ _tag: 'loading' }),
       error: (error) => ({ _tag: 'error', error }),
     })
-  }, [debouncedName, disableRestore, dst, lock, packageExistsQuery, src])
+  }, [disableRestore, dst, isSrc, lock, lockName, packageExistsQuery])
 }
 
-function useNameValidator(dst: PackageDst): NameValidationStatus {
+function useNameValidator(debouncedName: string | undefined): NameValidationStatus {
   const apiReq = APIConnector.use()
-  const [debouncedName] = useDebounce(dst.name, 300)
   const req = React.useCallback(async () => {
     const res = await apiReq({
       endpoint: '/package_name_valid',
@@ -171,8 +173,9 @@ function useNameStatus(
   workflow?: workflows.Workflow,
   disableRestore?: boolean,
 ): NameStatus {
-  const existence = useNameExistence(dst, src, disableRestore)
-  const validation = useNameValidator(dst)
+  const [debouncedName] = useDebounce(dst.name, 300)
+  const existence = useNameExistence(dst, debouncedName, src, disableRestore)
+  const validation = useNameValidator(debouncedName)
   return React.useMemo(() => {
     if (form._tag === 'error' && form.fields?.name) {
       return { _tag: 'error', error: form.fields.name }
@@ -180,10 +183,14 @@ function useNameStatus(
     if (form._tag === 'error' || dirty) {
       const namePatternValidation = validateNamePattern(dst, workflow)
       if (namePatternValidation._tag !== 'ok') return namePatternValidation
-      if (validation._tag !== 'ok') return validation
+      // The source's name is known valid; revalidating it would flash on each keystroke.
+      if (!isSrcName(dst, src) && validation._tag !== 'ok') {
+        // Idle is a name still debouncing, whose lock is not known either.
+        return validation._tag === 'idle' ? { _tag: 'loading' } : validation
+      }
     }
     return existence
-  }, [dirty, form, dst, existence, workflow, validation])
+  }, [dirty, form, dst, existence, src, workflow, validation])
 }
 
 function useNameFallback(workflow?: workflows.Workflow) {

@@ -24,11 +24,13 @@ vi.mock('./loader', () => ({
 vi.mock('utils/NamedRoutes', () => ({ use: () => ({ urls: {} }) }))
 
 const add = PackageUri.stringify({ bucket: 'b', name: 'team/ds', path: 'README.md' })
+const defaultSearch = `?add=${encodeURIComponent(add)}&edit=true`
+let search = defaultSearch
 
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
   useHistory: () => ({ push: vi.fn() }),
-  useLocation: () => ({ search: `?add=${encodeURIComponent(add)}&edit=true` }),
+  useLocation: () => ({ search }),
 }))
 
 const handle = { bucket: 'b', key: 'team/ds/README.md' }
@@ -71,5 +73,14 @@ describe('components/FileEditor/State', () => {
     useLockStatus.mockReturnValue('unlocked')
     rerender()
     expect(result.current.editing).toEqual({ brace: 'markdown' })
+  })
+
+  it('is not writable when the add parameter does not parse', () => {
+    useLockStatus.mockReturnValue('unlocked')
+    search = '?add=not-a-package-uri&edit=true'
+    const { result } = renderHook(() => useState(handle))
+    search = defaultSearch
+    expect(result.current.writable).toBe(false)
+    expect(result.current.editing).toBeNull()
   })
 })

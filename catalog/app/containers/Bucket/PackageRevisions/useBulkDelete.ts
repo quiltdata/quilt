@@ -34,12 +34,17 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
     [],
   )
 
+  // Read per deletion: the lock can change while earlier ones are in flight.
+  const writableRef = React.useRef(writable)
+  writableRef.current = writable
+
   const run = React.useCallback(async () => {
-    if (!writable) return
+    if (!writableRef.current) return
     setState(R.mergeLeft({ loading: true, error: undefined }))
     const done = new Set<string>()
     let error: React.ReactNode | undefined
     for (const hash of selected) {
+      if (!writableRef.current) break
       try {
         const r = (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
         if (r.__typename === 'OperationError') {
@@ -57,7 +62,7 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
     // succeeded, so the error carries the only record of the partial result.
     if (error && done.size) error = `${error}. ${done.size} already deleted`
     setState({ error, loading: false, opened: !!error })
-  }, [bucket, name, selected, deleteRevision, writable])
+  }, [bucket, name, selected, deleteRevision])
 
   const confirm = React.useCallback(() => setState(R.mergeLeft({ opened: true })), [])
 
