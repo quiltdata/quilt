@@ -25,9 +25,10 @@ function visit(search: string) {
   )
   const close = vi.spyOn(window, 'close').mockImplementation(() => {})
   window.history.replaceState(null, '', `/oauth/mcp-callback${search}`)
+  const replace = vi.spyOn(window.history, 'replaceState')
   // oxlint-disable-next-line no-new-func
   new Function(SCRIPT)()
-  return { posted, channels, close, url: window.location.href }
+  return { posted, channels, close, replace, url: window.location.href }
 }
 
 describe('static/oauth-mcp-callback.html', () => {
@@ -51,6 +52,23 @@ describe('static/oauth-mcp-callback.html', () => {
     ])
     expect(url).not.toContain('c1')
     expect(close).toHaveBeenCalled()
+  })
+
+  it('reads the answer from the fragment and strips it', () => {
+    const { posted, replace, url } = visit('#code=c1&state=s1&iss=https%3A%2F%2Fi')
+    expect(posted).toEqual([
+      { type: 'quilt-mcp-oauth', ok: true, code: 'c1', state: 's1', iss: 'https://i' },
+    ])
+    expect(replace).toHaveBeenCalled()
+    expect(url).not.toContain('c1')
+    expect(url).not.toContain('#')
+  })
+
+  it('reads a fragment failure with its state', () => {
+    const { posted } = visit('#state=s1&error=expired')
+    expect(posted).toEqual([
+      { type: 'quilt-mcp-oauth', ok: false, code: null, state: 's1', error: 'expired' },
+    ])
   })
 
   it('broadcasts a failure with its state so the opener can end that flow', () => {

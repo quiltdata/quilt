@@ -9,9 +9,12 @@
     <p>Signing in. You can close this window and return to Quilt.</p>
     <script>
       // Hands the provider's answer to the Quilt tab that started the sign-in,
-      // which matches it by `state`. Stores nothing.
+      // which matches it by `state`. Stores nothing. The answer is in the
+      // fragment, which never reaches a server log; the query form is read only
+      // while registries still redirect with it.
       ;(function () {
-        var q = new URLSearchParams(window.location.search)
+        var hash = window.location.hash.replace(/^#/, '')
+        var q = new URLSearchParams(hash || window.location.search)
         var error = q.get('error')
         var msg = {
           type: 'quilt-mcp-oauth',

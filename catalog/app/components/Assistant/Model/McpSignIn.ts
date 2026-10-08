@@ -173,7 +173,6 @@ export function signIn({
     const settle = (result: SignInResult) => {
       if (done) return
       done = true
-      win.removeEventListener('message', onPostMessage)
       if (channel) {
         channel.onmessage = null
         channel.close()
@@ -224,11 +223,8 @@ export function signIn({
         })
         .catch((e) => settle(failed(e)))
     }
-    // The registry's own callback page posted to the opener before it redirected
-    // to the catalog's; accepted until every registry redirects.
-    const onPostMessage = (event: MessageEvent) => onAnswer(event.data ?? {})
+    // The only answer path: a window message carries no proof of who sent it.
     if (channel) channel.onmessage = (event) => onAnswer(event.data ?? {})
-    win.addEventListener('message', onPostMessage)
     signal?.addEventListener('abort', onAbort)
     const poll = win.setInterval(() => {
       if (!waiting && popup.closed) {

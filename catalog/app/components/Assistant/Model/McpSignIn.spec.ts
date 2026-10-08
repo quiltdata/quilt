@@ -177,11 +177,20 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('still accepts a postMessage answer with the matching state', async () => {
-    const { win, legacy } = fakeWindow()
-    const result = start(win, registry())
+  it('ignores a window message even with the matching state', async () => {
+    const { win, legacy, post } = fakeWindow()
+    const fetch = registry()
+    let settled = false
+    const result = start(win, fetch).then((r) => {
+      settled = true
+      return r
+    })
     await flush()
     legacy(callback())
+    await flush()
+    expect(settled).toBe(false)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    post(callback())
     await expect(result).resolves.toEqual({ ok: true })
   })
 
@@ -440,14 +449,31 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
   let originalFetch: typeof window.fetch
   let popup: { closed: boolean; close: () => void; location: { href: string } }
 
+  // Every flow's channel, so `reply` reaches whichever is listening.
+  let channels: { onmessage: ((e: MessageEvent) => void) | null }[] = []
+
   beforeEach(() => {
     originalOpen = window.open
     originalFetch = window.fetch
     popup = { closed: false, close: vi.fn(), location: { href: '' } }
     window.open = vi.fn(() => popup) as any
+    channels = []
+    vi.stubGlobal(
+      'BroadcastChannel',
+      class {
+        onmessage: ((e: MessageEvent) => void) | null = null
+
+        constructor() {
+          channels.push(this)
+        }
+
+        close() {}
+      },
+    )
   })
 
   afterEach(() => {
+    vi.unstubAllGlobals()
     window.open = originalOpen
     window.fetch = originalFetch
     captureException.mockReset()
@@ -457,14 +483,9 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     cleanup()
   })
 
-  const reply = (slug = 'slack') =>
-    window.dispatchEvent(
-      new MessageEvent('message', {
-        data: callback({ slug }),
-        origin: REGISTRY,
-        source: popup as unknown as Window,
-      }),
-    )
+  // Each flow's authorize URL carries the same STATE, so the open flow takes it.
+  const reply = (_slug = 'slack') =>
+    channels.forEach((c) => c.onmessage?.({ data: callback() } as MessageEvent))
 
   const getToken = () => Eff.Effect.succeed('tok')
   function mount(service: Connectors.ConnectorsService, list = servers) {
