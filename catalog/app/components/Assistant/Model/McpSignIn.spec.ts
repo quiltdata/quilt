@@ -35,7 +35,12 @@ const CODE = 'secret-auth-code'
 const STATE = 'secret-state'
 
 function fakeWindow() {
-  const popup = { closed: false, close: vi.fn(), location: { href: '' } }
+  const popup = {
+    closed: false,
+    close: vi.fn(),
+    location: { href: '' },
+    opener: {} as unknown,
+  }
   const target = new EventTarget()
   const win = {
     open: vi.fn(() => popup),
@@ -134,6 +139,37 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
         signal: expect.any(AbortSignal),
       },
     ])
+  })
+
+  it("cuts the popup off from this tab before the provider's page loads", async () => {
+    const { win, popup, post } = fakeWindow()
+    let openerAtNavigation: unknown = 'unset'
+    Object.defineProperty(popup.location, 'href', {
+      set: () => void (openerAtNavigation = popup.opener),
+      get: () => '',
+    })
+    const result = start(win, registry())
+    await flush()
+    expect(openerAtNavigation).toBeNull()
+    post(callback())
+    await expect(result).resolves.toEqual({ ok: true })
+  })
+
+  it('tells the caller when the answer arrives, before finish is sent', async () => {
+    const { win, post } = fakeWindow()
+    const onAnswered = vi.fn()
+    let answeredBeforeFinish = false
+    const fetch = vi.fn<typeof globalThis.fetch>(async (url) => {
+      if (String(url).endsWith('/start'))
+        return json({ authorizeUrl: `https://provider.test/authorize?state=${STATE}` })
+      answeredBeforeFinish = onAnswered.mock.calls.length === 1
+      return json({ ok: true })
+    })
+    const result = start(win, fetch, { onAnswered })
+    await flush()
+    post(callback())
+    await expect(result).resolves.toEqual({ ok: true })
+    expect(answeredBeforeFinish).toBe(true)
   })
 
   it('omits iss from finish when the provider sent none', async () => {
@@ -509,7 +545,12 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
 
   let originalOpen: typeof window.open
   let originalFetch: typeof window.fetch
-  let popup: { closed: boolean; close: () => void; location: { href: string } }
+  let popup: {
+    closed: boolean
+    close: () => void
+    location: { href: string }
+    opener: unknown
+  }
 
   // Every flow's channel, so `reply` reaches whichever is listening.
   let channels: { onmessage: ((e: MessageEvent) => void) | null }[] = []
@@ -517,7 +558,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
   beforeEach(() => {
     originalOpen = window.open
     originalFetch = window.fetch
-    popup = { closed: false, close: vi.fn(), location: { href: '' } }
+    popup = { closed: false, close: vi.fn(), location: { href: '' }, opener: {} }
     window.open = vi.fn(() => popup) as any
     channels = []
     vi.stubGlobal(
@@ -535,6 +576,8 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
   })
 
   afterEach(() => {
+    // A failed test must not leave fake timers on for the next one.
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     window.open = originalOpen
     window.fetch = originalFetch
@@ -874,6 +917,51 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     })
     expect(result.current.pending).toBe('slack')
     expect((window.open as any).mock.calls.length).toBe(opened + 1)
+  })
+
+  it('a waiting sign-in is not cancelled by another server, and finishing is not cancellable', async () => {
+    vi.useFakeTimers()
+    let finished: (r: Response) => void = () => {}
+    window.fetch = vi.fn(async (url: string) =>
+      String(url).endsWith('/start')
+        ? json({ authorizeUrl: `https://provider.test/authorize?state=${STATE}` })
+        : new Promise<Response>((r) => (finished = r)),
+    ) as any
+    const list = [...servers, { ...servers[0], slug: 'fathom', title: 'Fathom' }]
+    const { service } = makeConnectors(failed)
+    const result = mount(service, list)
+    let outcome: Promise<unknown> = Promise.resolve()
+    await act(async () => {
+      outcome = result.current.connect('slack')
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    popup.closed = true
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600)
+    })
+    expect(result.current.pending).toBeNull()
+    // Another server's Connect is refused while Slack's sign-in waits.
+    await act(async () => {
+      await expect(result.current.connect('fathom')).resolves.toBeNull()
+    })
+    expect(result.current.status).toBe('Finish or close the Slack sign-in first.')
+    vi.useRealTimers()
+    await act(async () => {
+      reply()
+      await flush()
+    })
+    // Finishing: pending again, and even a same-server Connect cannot replace it.
+    expect(result.current.pending).toBe('slack')
+    const opened = (window.open as any).mock.calls.length
+    await act(async () => {
+      await expect(result.current.connect('slack')).resolves.toBeNull()
+    })
+    expect((window.open as any).mock.calls.length).toBe(opened)
+    await act(async () => {
+      finished(json({ ok: true }))
+      await outcome
+    })
+    expect(result.current.status).toBe('Connected Slack.')
   })
 
   it.each([
