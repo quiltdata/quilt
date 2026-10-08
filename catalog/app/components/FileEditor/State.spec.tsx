@@ -9,6 +9,14 @@ const { useLockStatus } = vi.hoisted(() => ({ useLockStatus: vi.fn() }))
 
 vi.mock('constants/config', () => ({ default: {} }))
 vi.mock('utils/PackageLock', () => ({ useLockStatus }))
+
+const actions = { revisePackage: true, writeFile: true }
+vi.mock('utils/BucketPreferences', async () => {
+  const BP = await vi.importActual<typeof import('utils/BucketPreferences')>(
+    'utils/BucketPreferences',
+  )
+  return { ...BP, use: () => ({ prefs: BP.Result.Ok({ ui: { actions } } as never) }) }
+})
 vi.mock('./loader', () => ({
   detect: () => [{ brace: 'markdown' }],
   useWriteData: () => vi.fn(),
@@ -41,6 +49,18 @@ describe('components/FileEditor/State', () => {
       expect(result.current.editing).toBeNull()
       expect(result.current.writable).toBe(false)
       expect(useLockStatus).toHaveBeenCalledWith('b', 'team/ds', false)
+    },
+  )
+
+  it.each(['writeFile', 'revisePackage'] as const)(
+    'is not writable when bucket preferences turn off %s',
+    (action) => {
+      useLockStatus.mockReturnValue('unlocked')
+      actions[action] = false
+      const { result } = renderHook(() => useState(handle))
+      actions[action] = true
+      expect(result.current.writable).toBe(false)
+      expect(result.current.editing).toBeNull()
     },
   )
 

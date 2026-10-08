@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react-hooks'
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 
 import { getUsernamePrefix, useNameExistence } from './name'
 
@@ -12,7 +12,11 @@ interface QueryState {
 let queryState: QueryState = {}
 let lock = 'unlocked'
 
-vi.mock('utils/PackageLock', () => ({ useLockStatus: () => lock }))
+const { useLockStatus } = vi.hoisted(() => ({ useLockStatus: vi.fn() }))
+vi.mock('utils/PackageLock', () => ({ useLockStatus }))
+
+let debounced: string | undefined
+vi.mock('use-debounce', () => ({ useDebounce: (v: string) => [debounced ?? v] }))
 
 vi.mock('constants/config', () => ({
   default: {
@@ -45,6 +49,18 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
   })
 
   describe('useNameExistence', () => {
+    beforeEach(() => {
+      debounced = undefined
+      useLockStatus.mockImplementation(() => lock)
+    })
+
+    it('checks the lock of the debounced name and waits for it to settle', () => {
+      queryState = { data: { package: null } }
+      debounced = 'some/pack'
+      expect(run()._tag).toBe('loading')
+      expect(useLockStatus).toHaveBeenLastCalledWith('b', 'some/pack', false)
+    })
+
     const run = () =>
       renderHook(() => useNameExistence({ bucket: 'b', name: 'some/package' })).result
         .current

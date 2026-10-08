@@ -37,6 +37,7 @@ export type DeleteScope =
   | { type: 'package' }
 
 interface PackageDeleteDialogProps {
+  disabled?: boolean
   error?: React.ReactNode
   loading: boolean
   name: string
@@ -96,6 +97,7 @@ const textKey = (scope: DeleteScope) =>
   scope.type === 'revisions' && scope.count === 1 ? 'revision' : scope.type
 
 export default function PackageDeleteDialog({
+  disabled = false,
   error,
   loading,
   name,
@@ -135,7 +137,11 @@ export default function PackageDeleteDialog({
         <M.Button onClick={onCancel} color="primary" autoFocus disabled={loading}>
           Cancel
         </M.Button>
-        <M.Button onClick={onDelete} className={classes.danger} disabled={loading}>
+        <M.Button
+          onClick={onDelete}
+          className={classes.danger}
+          disabled={loading || disabled}
+        >
           Yes, delete it
         </M.Button>
       </M.DialogActions>

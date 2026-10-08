@@ -340,6 +340,7 @@ function DirDisplay({
   const deletePackage = GQL.useMutation(DELETE_PACKAGE)
 
   const handlePackageDeletion = React.useCallback(async () => {
+    if (lock !== 'unlocked') return
     setDeletionState(R.assoc('loading', true))
     try {
       const r =
@@ -369,6 +370,7 @@ function DirDisplay({
     name,
     deletionState.scope,
     deletePackage,
+    lock,
     deleteRevision,
     redirectToPackagesList,
     setDeletionState,
@@ -405,6 +407,7 @@ function DirDisplay({
       />
 
       <RevisionDeleteDialog
+        disabled={lock !== 'unlocked'}
         error={deletionState.error}
         open={deletionState.opened}
         name={name}

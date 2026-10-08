@@ -84,15 +84,16 @@ export function useNameExistence(
     dst as Required<PackageDst>,
     { pause },
   )
+  const [debouncedName] = useDebounce(dst.name, 300)
   const lock = PackageLock.useLockStatus(
     dst.bucket,
-    dst.name ?? '',
-    !dst.bucket || !dst.name,
+    debouncedName ?? '',
+    !dst.bucket || !debouncedName,
   )
   return React.useMemo(() => {
     if (!dst.bucket || !dst.name) return { _tag: 'idle' }
     // Files upload before the push, so a locked destination is refused here, not by it.
-    if (lock === 'loading') return { _tag: 'loading' }
+    if (lock === 'loading' || debouncedName !== dst.name) return { _tag: 'loading' }
     if (lock === 'locked') {
       return {
         _tag: 'error',
@@ -123,7 +124,7 @@ export function useNameExistence(
       fetching: () => ({ _tag: 'loading' }),
       error: (error) => ({ _tag: 'error', error }),
     })
-  }, [disableRestore, dst, lock, packageExistsQuery, src])
+  }, [debouncedName, disableRestore, dst, lock, packageExistsQuery, src])
 }
 
 function useNameValidator(dst: PackageDst): NameValidationStatus {

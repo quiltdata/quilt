@@ -11,7 +11,13 @@ import LOCK_STATE_QUERY from './gql/LockState.generated'
 const { useQuery } = vi.hoisted(() => ({ useQuery: vi.fn() }))
 
 vi.mock('constants/config', () => ({ default: {} }))
-vi.mock('utils/GraphQL', () => ({ useQuery }))
+vi.mock('utils/GraphQL', async () => ({
+  isPartial: (await vi.importActual<typeof import('utils/GraphQL')>('utils/GraphQL'))
+    .isPartial,
+  useQuery,
+}))
+
+const useQueryResult = (r: object) => useQuery.mockReturnValueOnce(r)
 
 const pkg = (lock: unknown) => ({ package: { bucket: 'b', name: 'team/ds', lock } })
 
@@ -30,6 +36,34 @@ describe('utils/PackageLock', () => {
         fetching: true,
       })
       expect(run().status).toBe('loading')
+    })
+
+    it.each([
+      ['in flight', { fetching: true }],
+      ['partial', { operation: { context: { meta: { cacheOutcome: 'partial' } } } }],
+      ['stale', { stale: true }],
+    ])(
+      'is loading while the lock query is %s on a package another query cached',
+      (_label, state) => {
+        // Graphcache fills the uncached lock with null.
+        useQueryResult({ data: pkg(null), ...state })
+        expect(run().status).toBe('loading')
+      },
+    )
+
+    it('reports a cached lock while the query is still in flight', () => {
+      useQueryResult({ data: pkg({ hash: 'h' }), fetching: true })
+      expect(run().status).toBe('locked')
+    })
+
+    it("withholds the previous package's latest hash", () => {
+      useQueryResult({
+        data: {
+          package: { bucket: 'b', name: 'other', lock: null, latest: { hash: 'x' } },
+        },
+        fetching: true,
+      })
+      expect(run().latestHash).toBeUndefined()
     })
 
     it('reads a registry without locks as unlocked with nothing to lock', () => {
