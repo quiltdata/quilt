@@ -247,6 +247,14 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.status._tag).toBe('error')
       })
 
+      it('does not block on a blank-named row that submit drops', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready({ meta: { ' ': 2 ** 53 + 2 } })),
+        )
+        expect(result.current.status._tag).toBe('ok')
+      })
+
       it('does not report a loading schema as a metadata error', () => {
         mkMetaValidator.mockReturnValue(() => [new Error('x')])
         const { result } = renderHook(() =>

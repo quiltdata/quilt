@@ -84,7 +84,10 @@ export function useMeta(
     () =>
       guided && !notObject && schema._tag === 'ready'
         ? getMetaValue(value, schema.schema, { keepSet: true })
-        : value,
+        : // blank-named rows are dropped on submit, so they cannot block it
+          value && !notObject
+          ? Object.fromEntries(Object.entries(value).filter(([k]) => k.trim()))
+          : value,
     [guided, notObject, schema, value],
   )
   // ramda and Ajv assign keys, so "__proto__" would vanish or become a prototype on submit

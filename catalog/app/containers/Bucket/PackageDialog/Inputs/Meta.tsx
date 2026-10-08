@@ -24,7 +24,7 @@ import type { SchemaStatus } from '../State/schema'
 import { IMPORT, pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
 import { humanizeError, invalidKeys, requiredFields, topKey } from '../State/metaGuide'
-import { newErrorsFrom, useMetaSuggestions } from '../State/metaSuggest'
+import { hasLossyToken, newErrorsFrom, useMetaSuggestions } from '../State/metaSuggest'
 import type { SuggestState } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
@@ -614,6 +614,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                   'keyword' in e &&
                   e.keyword === 'required' &&
                   !e.instancePath &&
+                  // the form or the panel names it only if the schema declares it
+                  !!schema?.properties?.[e.params?.missingProperty] &&
                   Array.isArray(schema?.required) &&
                   schema.required.includes(e.params?.missingProperty)
                 ),
@@ -759,7 +761,14 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             apply(contents)
           } else {
             try {
-              apply(JSON.parse(contents as string))
+              const parsed = JSON.parse(contents as string)
+              if (guided && hasLossyToken(contents as string)) {
+                notify(
+                  'The file has a number that cannot be stored exactly; use a string',
+                )
+              } else {
+                apply(parsed)
+              }
             } catch (e) {
               notify('The file does not contain valid JSON')
             }

@@ -108,6 +108,26 @@ export const allExact = (v: unknown): boolean =>
       ? Object.values(v).every(allExact)
       : true
 
+/** Whether decimal text, exponent included, is a whole number ("1.5e1" yes, "1.0…01e0" no). */
+export const isIntegralText = (t: string) => {
+  const [m, e = '0'] = t.replace(/^[-+]/, '').split(/e/i)
+  const [int, frac = ''] = m.split('.')
+  const digits = int + frac
+  const point = int.length + Number(e)
+  return !/[1-9]/.test(digits.slice(Math.max(point, 0)))
+}
+/** A number token JSON.parse would round to 0 or to an integer ("1e-400", "1.0…01"). */
+export const hasLossyToken = (json: string) =>
+  (
+    json.replace(/"(?:[^"\\]|\\.)*"/g, '""').match(/-?\d+(\.\d+)?(e[-+]?\d+)?/gi) || []
+  ).some((t) => {
+    const n = Number(t)
+    return (
+      (n === 0 && /[1-9]/.test(t.split(/e/i)[0])) ||
+      (Number.isInteger(n) && !isIntegralText(t))
+    )
+  })
+
 /** The first top-level `{...}` in `text` that parses as JSON, ignoring prose around it. */
 export function firstJsonObject(text: string): unknown {
   let end = -1
@@ -171,6 +191,8 @@ export function parseSuggestions(
 ): Suggestions {
   const raw = firstJsonObject(text)
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  // JSON.parse rounded already: a reply that wrote such a number is not trusted for it
+  if (hasLossyToken(text)) return {}
   const properties: Record<string, JsonSchema> = schema.properties || {}
   const adds = newErrorsFrom(validate, value)
   const out: Suggestions = {}
