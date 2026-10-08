@@ -403,3 +403,46 @@ describe('containers/Bucket/Workflows/model', () => {
     expect(edited.successors).toEqual({ 's3://prod/': { title: 'P', extra: 1 } })
   })
 })
+
+describe('formToMeta', () => {
+  const f = (name: string, type: model.FieldType): model.Field => ({
+    name,
+    type,
+    required: true,
+    options: [],
+  })
+
+  it('drops blanks and converts typed inputs', () => {
+    expect(
+      model.formToMeta(
+        [f('a', 'text'), f('n', 'integer'), f('b', 'boolean'), f('x', 'number')],
+        {
+          a: '',
+          n: '3',
+          b: 'false',
+          x: 'abc',
+        },
+      ),
+    ).toEqual({ n: 3, b: false, x: 'abc' })
+  })
+})
+
+describe('schemaToFormFields', () => {
+  it('reads titled, described, bounded properties the builder would refuse', () => {
+    const f = model.schemaToFormFields({
+      type: 'object',
+      required: ['n'],
+      properties: {
+        n: { type: 'integer', minimum: 1, title: 'Count', description: 'How many' },
+        a: { type: 'string', enum: ['x', 'y'] },
+      },
+    })
+    expect(f?.map((x) => [x.name, x.type, x.label, x.required])).toEqual([
+      ['n', 'integer', 'Count', true],
+      ['a', 'choice', 'a', false],
+    ])
+    expect(
+      model.schemaToFormFields({ type: 'object', properties: { o: { type: 'object' } } }),
+    ).toBeNull()
+  })
+})

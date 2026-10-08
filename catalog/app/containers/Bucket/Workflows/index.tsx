@@ -117,7 +117,14 @@ function WorkflowsInner({ config, bucket, slug, reload }: WorkflowsInnerProps) {
     if (!workflow)
       return <Layout.Message>Flow "{slug}" not found in this bucket.</Layout.Message>
 
-    return <Detail bucket={bucket} workflow={workflow} />
+    return (
+      <Detail
+        bucket={bucket}
+        workflow={workflow}
+        successors={config.successors}
+        onEdit={() => setEditing('edit')}
+      />
+    )
   }
 
   const handleSaved = (id: string | null) => {

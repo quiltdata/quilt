@@ -369,3 +369,55 @@ export function applyPromote(config: RawConfig, promote: Promote[]): RawConfig {
     ),
   }
 }
+
+// Try it's form: blank inputs are left out so `required` fires, and typed inputs are
+// converted the way a user means them. Text that isn't a number stays text, so the schema
+// reports the type error the push would.
+export function formToMeta(fields: Field[], values: Record<string, string>): Types.Json {
+  const meta: Record<string, Types.Json> = {}
+  fields.forEach((f) => {
+    const raw = values[f.name] ?? ''
+    if (raw === '') return
+    if (f.type === 'number' || f.type === 'integer') {
+      const n = Number(raw)
+      meta[f.name] = raw.trim() !== '' && Number.isFinite(n) ? n : raw
+    } else if (f.type === 'boolean') meta[f.name] = raw === 'true'
+    else meta[f.name] = raw
+  })
+  return meta
+}
+
+export interface FormField extends Field {
+  label: string
+  help?: string
+}
+
+// Try it only needs inputs, not a lossless round-trip: the schema itself still validates, so
+// titles, descriptions, bounds and formats are fine here. Nested or untyped properties fall
+// back to JSON.
+export function schemaToFormFields(schema: unknown): FormField[] | null {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return null
+  const s = schema as JsonSchema
+  if (s.type !== 'object' || !s.properties || typeof s.properties !== 'object')
+    return null
+  const required = Array.isArray(s.required) ? s.required : []
+  const out: FormField[] = []
+  for (const [name, p] of Object.entries(s.properties as Record<string, any>)) {
+    if (!p || typeof p !== 'object') return null
+    const base = {
+      name,
+      required: required.includes(name),
+      options: [] as string[],
+      label: typeof p.title === 'string' ? p.title : name,
+      help: typeof p.description === 'string' ? p.description : undefined,
+    }
+    if (Array.isArray(p.enum) && p.enum.every((o: unknown) => typeof o === 'string')) {
+      out.push({ ...base, type: 'choice', options: p.enum })
+    } else if (p.type === 'string') {
+      out.push({ ...base, type: p.format === 'date' ? 'date' : 'text' })
+    } else if (p.type === 'integer' || p.type === 'number' || p.type === 'boolean') {
+      out.push({ ...base, type: p.type })
+    } else return null
+  }
+  return out.length ? out : null
+}
