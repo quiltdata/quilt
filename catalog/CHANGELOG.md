@@ -22,7 +22,6 @@ complete sentence without it.
 ## Changes
 
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
-- [Changed] The bucket Overview, Files and Packages tabs load faster on a cold visit because the chart and molecule preview libraries now download only when such a file is previewed ([#5463](https://github.com/quiltdata/quilt/pull/5463))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
@@ -32,6 +31,7 @@ complete sentence without it.
 - [Fixed] Qurator: the panel's header menu opens below its button instead of covering it and the close button ([#5402](https://github.com/quiltdata/quilt/pull/5402))
 - [Added] Qurator can summarize PDFs and Office files up to 4 MiB and the first 2 MiB of text or CSV files, past the 500 KiB preview limit, and says how much of each it read ([#5404](https://github.com/quiltdata/quilt/pull/5404))
 - [Changed] Qurator: the model picker sits in the Ask Qurator box with Heavy, Medium and Light labels, and the panel's header shows one aligned menu and close button ([#5394](https://github.com/quiltdata/quilt/pull/5394))
+- [Changed] The bucket Overview, Files and Packages tabs load faster on a cold visit because the chart and molecule preview libraries now download only when such a file is previewed ([#5463](https://github.com/quiltdata/quilt/pull/5463))
 - [Added] Qurator's docked panel can be resized by dragging its edge or with the arrow keys, and keeps its width across reloads ([#5379](https://github.com/quiltdata/quilt/pull/5379))
 - [Fixed] When the approved-model list cannot be read, Qurator sends the stack's default model instead of a saved one the registry would refuse ([#5392](https://github.com/quiltdata/quilt/pull/5392))
 - [Changed] Admin > Settings > Qurator models lists the models in this account's Bedrock as a checklist, with a box for any other model IDs, instead of a bare text box ([#5393](https://github.com/quiltdata/quilt/pull/5393))
