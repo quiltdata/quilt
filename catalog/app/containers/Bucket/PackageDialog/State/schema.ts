@@ -49,15 +49,13 @@ export function mkMetaValidator(
 }
 
 /**
- * What submit will accept: normal validation decides, and when it fails only because of
- * `format`, which quilt3 and the registry ignore, the value passes. Format-blind
- * validation alone can add errors, e.g. a value matching two `oneOf` branches.
+ * What submit will accept: quilt3 and the registry validate with Draft7Validator and no
+ * format checker, so format-blind validation is the server's answer either way: a format
+ * failure passes, and a value matching two `oneOf` branches once formats are ignored fails.
  */
 export function mkSubmitValidator(schema?: JsonSchema) {
-  const full = mkMetaValidator(schema, { keepSet: true })
   const blind = mkMetaValidator(schema, { formats: false, keepSet: true })
-  return (value: Types.Json): (ErrorObject | Error)[] =>
-    full(value) ? (blind(value) ?? []) : []
+  return (value: Types.Json): (ErrorObject | Error)[] => blind(value) ?? []
 }
 
 export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {

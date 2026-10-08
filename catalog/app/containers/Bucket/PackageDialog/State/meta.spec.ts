@@ -17,9 +17,8 @@ vi.mock('./schema', async () => ({
   mkMetaValidator: (...args: unknown[]) => mkMetaValidator(...args),
   // the real composition, over the mocked validator (a module's own calls are not mocked)
   mkSubmitValidator: (s: unknown) => {
-    const full = mkMetaValidator(s, { keepSet: true })
     const blind = mkMetaValidator(s, { formats: false, keepSet: true })
-    return (v: unknown) => (full(v) ? (blind(v) ?? []) : [])
+    return (v: unknown) => blind(v) ?? []
   },
 }))
 

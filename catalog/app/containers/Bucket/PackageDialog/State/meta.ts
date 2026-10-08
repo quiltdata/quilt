@@ -110,7 +110,6 @@ export function useMeta(
     return validate(submitted || {}) ?? []
   }, [guided, rootError, settled, submitted, validate])
   const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
-  // mkSubmitValidator's rule, reusing the full pass above: format-only failures do not block
   const validateBlind = React.useMemo(
     () =>
       guided && schema._tag === 'ready'
@@ -118,12 +117,14 @@ export function useMeta(
         : null,
     [guided, schema],
   )
+  // mkSubmitValidator's rule: the server validates without formats, so that pass decides;
+  // the full pass above only supplies advisory warnings
   const blockingErrors = React.useMemo(() => {
-    if (!guidedErrors.length) return []
+    if (!guided || !settled) return []
     // a non-object root is not a format question; the blind pass would let an array through
     if (rootError || !validateBlind) return guidedErrors
     return validateBlind(submitted || {}) ?? []
-  }, [guidedErrors, rootError, validateBlind, submitted])
+  }, [guided, guidedErrors, rootError, settled, validateBlind, submitted])
 
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {

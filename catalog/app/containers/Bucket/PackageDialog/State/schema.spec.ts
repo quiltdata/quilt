@@ -170,8 +170,8 @@ describe('mkSubmitValidator', () => {
     },
   }
 
-  it('accepts a value normal validation accepts, even if both oneOf branches match without formats', () => {
-    expect(mkSubmitValidator(either)({ when: '2026-10-07' })).toEqual([])
+  it('blocks a value the server rejects: without formats both oneOf branches match', () => {
+    expect(mkSubmitValidator(either)({ when: '2026-10-07' }).length).toBeGreaterThan(0)
   })
 
   it('still relaxes a failure that is only about format', () => {

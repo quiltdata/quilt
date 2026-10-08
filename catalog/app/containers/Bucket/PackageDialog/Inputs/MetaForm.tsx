@@ -769,6 +769,8 @@ export function FreeFields({
   const free = useFreeStyles()
   const entries = Object.entries(value || {}).filter(([k]) => !exclude.includes(k))
   const [draft, setDraft] = React.useState<{ key: string; value: string } | null>(null)
+  // MUI v4 links label and helper text to the input only through an id
+  const [draftId] = React.useState(() => `meta-new-field-${(fieldIds += 1)}`)
   const draftRef = React.useRef<HTMLDivElement>(null)
 
   // "__proto__" is reserved: submit cannot store it as a field
@@ -848,6 +850,7 @@ export function FreeFields({
                 : undefined
             }
             label="Name"
+            id={`${draftId}-name`}
             onChange={(e) => setDraft({ ...draft, key: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
             size="small"
@@ -857,6 +860,7 @@ export function FreeFields({
           <M.TextField
             disabled={disabled}
             label="Value"
+            id={`${draftId}-value`}
             onChange={(e) => setDraft({ ...draft, value: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
             size="small"

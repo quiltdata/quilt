@@ -161,7 +161,8 @@ export function hasValue(v: unknown, prop: JsonSchema = {}): boolean {
     return prop.enum.some((e: unknown) => JSON.stringify(e) === JSON.stringify(v))
   }
   const types: unknown[] = Array.isArray(prop.type) ? prop.type : [prop.type]
-  if (v === null) return types.includes('null')
+  // no `type` (anyOf, unrestricted): validation decides, and marks it invalid if not allowed
+  if (v === null) return types[0] === undefined || types.includes('null')
   return types[0] === undefined || types.includes('string')
 }
 
