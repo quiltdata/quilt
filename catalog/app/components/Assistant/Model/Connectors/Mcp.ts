@@ -496,7 +496,12 @@ export function make(options: McpClientOptions): McpClient {
       // 401/403: token missing/expired/revoked. Surface as auth error so
       // the connector layer doesn't bump health and trigger a futile
       // reconnect loop — refresh is the redux/auth layer's job.
-      const errorCode = Eff.Either.isRight(body) ? relayErrorCode(body.right) : undefined
+      const errorCode =
+        resp.status >= 200 && resp.status < 300
+          ? undefined
+          : Eff.Either.isRight(body)
+            ? relayErrorCode(body.right)
+            : undefined
       if (resp.status === 401 || resp.status === 403) {
         return yield* Eff.Effect.fail(
           new McpAuthError({ detail: `HTTP ${resp.status}`, errorCode }),
@@ -730,15 +735,27 @@ const ERROR_TAG_MAP: Record<McpError['_tag'], BackendError['_tag']> = {
 }
 
 const adaptError = (e: McpError): BackendError => {
+  const errorCode =
+    e._tag === 'McpAuthError' || e._tag === 'McpTransportError' ? e.errorCode : undefined
   // The user has no sign-in of their own for this server; the catalog session is fine.
-  if (e._tag === 'McpAuthError' && e.errorCode === 'NeedsSignIn') {
+  if (errorCode === 'NeedsSignIn') {
     return {
       _tag: 'Auth',
       message: 'sign in to use this server',
       transient: false,
       retryable: false,
       needsSignIn: true,
-      cause: e.errorCode,
+      cause: errorCode,
+    }
+  }
+  // The provider's token endpoint failed transiently; the sign-in is kept.
+  if (errorCode === 'SignInServerUnavailable') {
+    return {
+      _tag: 'Transport',
+      message: 'the service is having trouble, try again shortly',
+      transient: true,
+      retryable: false,
+      cause: errorCode,
     }
   }
   if (e._tag !== 'McpTransportError') {
@@ -759,16 +776,6 @@ const adaptError = (e: McpError): BackendError => {
       transient: false,
       retryable: false,
       inertToHealth: true,
-      cause: e.errorCode,
-    }
-  }
-  // The provider's token endpoint failed transiently; the sign-in is kept.
-  if (e.errorCode === 'SignInServerUnavailable') {
-    return {
-      _tag: 'Transport',
-      message: 'the service is having trouble, try again shortly',
-      transient: true,
-      retryable: false,
       cause: e.errorCode,
     }
   }

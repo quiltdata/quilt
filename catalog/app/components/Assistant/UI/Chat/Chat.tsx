@@ -524,7 +524,7 @@ export function Menu({
               onClick={() => {
                 closeMenu()
                 const act = connected ? mcpSignIn.disconnect : mcpSignIn.connect
-                act(s.slug, menuButton.current)
+                void act(s.slug, { returnTo: menuButton.current })
               }}
             >
               {connected ? `Disconnect ${s.title}` : `Connect ${s.title}`}
@@ -743,7 +743,10 @@ export default function Chat({
     () =>
       connect &&
       ((slug: string) =>
-        connect(slug, document.activeElement as HTMLElement, signInStatus.current)),
+        void connect(slug, {
+          returnTo: document.activeElement as HTMLElement,
+          stable: signInStatus.current,
+        })),
     [connect],
   )
   const inputDisabled = state._tag !== 'Idle' || blocked
@@ -779,13 +782,16 @@ export default function Chat({
     )
   }
   const helperText = helperLines.length > 0 ? helperLines : undefined
-  const needsSignInKey = allConnectors
-    .filter((_c, i) => Model.Connectors.stateNeedsSignIn(connectorStates[i]))
-    .map((c) => c.id)
-    .join('\n')
+  // State values are immutable, so the deps change only when a state does.
   const needsSignIn = React.useMemo(
-    () => new Set(needsSignInKey ? needsSignInKey.split('\n') : []),
-    [needsSignInKey],
+    () =>
+      new Set(
+        allConnectors
+          .filter((_c, i) => Model.Connectors.stateNeedsSignIn(connectorStates[i]))
+          .map((c) => c.id),
+      ),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [connectors, ...connectorStates],
   )
   const helperSeverity =
     helperSeverityFor(

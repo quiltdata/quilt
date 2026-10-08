@@ -203,6 +203,25 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     await expect(result).resolves.toMatchObject({ ok: false, reason: 'failed' })
   })
 
+  it('an already-aborted signal opens no window and sends nothing', async () => {
+    const { win } = fakeWindow()
+    const fetch = registry()
+    const controller = new AbortController()
+    controller.abort()
+    await expect(
+      signIn({
+        slug: 'slack',
+        registryUrl: REGISTRY,
+        getToken: async () => 't',
+        win,
+        fetch,
+        signal: controller.signal,
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'closed' })
+    expect(win.open).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it('a bad registry URL fails before any window opens', async () => {
     const { win } = fakeWindow()
     const fetch = registry()
@@ -407,6 +426,81 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       await flush()
     })
     expect(retried).toEqual(['fathom', 'slack'])
+  })
+
+  it('holds the reconnect while the connector is still reconnecting', async () => {
+    window.fetch = registry() as any
+    const { state, service } = makeConnectors(
+      Connectors.ConnectorState.Disconnected({
+        retrying: true,
+        error: { _tag: 'Transport', message: 'down' },
+      }),
+    )
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      reply()
+      await flush()
+      await flush()
+    })
+    expect(retries).toBe(0)
+    await act(async () => {
+      Eff.Effect.runSync(
+        Eff.SubscriptionRef.set(state, Connectors.ConnectorState.Connecting()),
+      )
+      await flush()
+    })
+    expect(retries).toBe(0)
+    await act(async () => {
+      Eff.Effect.runSync(Eff.SubscriptionRef.set(state, failed))
+      await flush()
+    })
+    expect(retries).toBe(1)
+  })
+
+  it('a Connect for a server not in the list (an admin, disabled server) still reaches Ready', async () => {
+    window.fetch = registry() as any
+    let signedIn = false
+    const backend: Connectors.Backend = {
+      initialize: () =>
+        signedIn
+          ? Eff.Effect.void
+          : Eff.Effect.fail({ _tag: 'Auth', message: 'sign in', needsSignIn: true }),
+      listTools: () => Eff.Effect.succeed([]),
+      listResources: () => Eff.Effect.succeed([]),
+      readResource: () => Eff.Effect.succeed(''),
+      callTool: () => Eff.Effect.die('unused'),
+      ping: () => Eff.Effect.void,
+    }
+    const scope = Eff.Effect.runSync(Eff.Scope.make())
+    const service = await Eff.Effect.runPromise(
+      Connectors.buildService([
+        { id: 'slack', title: 'Slack', optional: true, backend },
+      ]).pipe(Eff.Effect.provideService(Eff.Scope.Scope, scope)),
+    )
+    const state = service.byId.slack.state
+    const settled = (tag: string) =>
+      Eff.Effect.runPromise(
+        state.changes.pipe(
+          Eff.Stream.filter((s) => s._tag === tag),
+          Eff.Stream.take(1),
+          Eff.Stream.runDrain,
+        ),
+      )
+    await settled('Failed')
+    const result = mount(service, [])
+    let outcome: unknown
+    await act(async () => {
+      const done = result.current.connect('slack', { title: 'Slack' })
+      await flush()
+      signedIn = true
+      reply()
+      outcome = await done
+      await settled('Ready')
+    })
+    expect(outcome).toEqual({ ok: true, message: 'Connected Slack.' })
+    await Eff.Effect.runPromise(Eff.Scope.close(scope, Eff.Exit.void))
   })
 
   it('holds the reconnect until a connection attempt in flight settles', async () => {

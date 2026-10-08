@@ -19,25 +19,27 @@ const push = vi.hoisted(() => vi.fn())
 const captureException = vi.hoisted(() => vi.fn())
 vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
 vi.mock('@sentry/react', () => ({ captureException }))
-const signIn = vi.hoisted(() => vi.fn())
-vi.mock('components/Assistant/Model/Assistant', () => ({
-  useSessionToken: () => () => ({ _tag: 'token' }),
-}))
-vi.mock('components/Assistant/Model/McpSignIn', async (importActual) => ({
-  ...(await importActual<typeof import('components/Assistant/Model/McpSignIn')>()),
-  signIn,
-}))
-
 import * as style from 'constants/style'
+import { McpSignInContext } from 'components/Assistant/Model/McpSignIn'
 
 import McpServerSettings from './McpServerSettings'
 
 // The endpoint styling reads the app-theme `typography.monospace` extension, so
 // render under the theme the app provides rather than MUI's default.
+const signInConnect = vi.fn()
+const signInApi = {
+  servers: [],
+  pending: null,
+  status: '',
+  connect: signInConnect,
+  disconnect: vi.fn(),
+}
 const mount = () =>
   render(
     <M.MuiThemeProvider theme={style.appTheme}>
-      <McpServerSettings />
+      <McpSignInContext.Provider value={signInApi}>
+        <McpServerSettings />
+      </McpSignInContext.Provider>
     </M.MuiThemeProvider>,
   )
 
@@ -68,6 +70,7 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
     afterEach(() => {
       cleanup()
       mutate.mockReset()
+      signInConnect.mockReset()
       push.mockReset()
       captureException.mockReset()
       servers = []
@@ -149,7 +152,8 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
         fireEvent.click(getByText('Save'))
       })
       const { input } = mutate.mock.calls[0][0]
-      expect(input).toMatchObject({ auth: 'OAUTH', oauthClientId: 'cid', secret: null })
+      expect(input).toMatchObject({ auth: 'OAUTH', secret: null })
+      expect('oauthClientId' in input).toBe(false)
       expect(input.oauthClientSecret).toBeNull()
       expect(mutate.mock.calls[0][1]).toEqual({ silent: true })
     })
@@ -172,40 +176,57 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       expect(input.authHeader).toBeNull()
     })
 
-    it('an admin can connect to a disabled OAUTH server, so Probe can use it', async () => {
+    it('an admin connects a disabled OAUTH server through the shared flow', async () => {
       servers = [server({ auth: 'OAUTH', enabled: false })]
-      signIn.mockResolvedValue({ ok: true })
+      signInConnect.mockResolvedValue({ ok: true, message: 'Connected GPU cluster.' })
       const { getByText } = mount()
       await act(async () => {
         fireEvent.click(getByText('Connect'))
       })
-      expect(signIn.mock.calls[0][0]).toMatchObject({
-        slug: 'gpu',
-        registryUrl: 'https://registry.test',
-      })
+      expect(signInConnect).toHaveBeenCalledWith('gpu', { title: 'GPU cluster' })
       expect(push).toHaveBeenCalledWith('Connected GPU cluster.')
     })
 
-    it('leaving Settings cancels an admin sign-in still in progress', async () => {
+    it('leaving Settings before the sign-in ends drops its notice', async () => {
       servers = [server({ auth: 'OAUTH' })]
-      let signal: AbortSignal | undefined
-      signIn.mockImplementation(
-        (opts: { signal: AbortSignal }) =>
-          new Promise((resolve) => {
-            signal = opts.signal
-            opts.signal.addEventListener('abort', () =>
-              resolve({ ok: false, reason: 'closed' }),
-            )
-          }),
-      )
+      let finish: (r: unknown) => void = () => {}
+      signInConnect.mockReturnValue(new Promise((resolve) => (finish = resolve)))
       const { getByText, unmount } = mount()
       await act(async () => {
         fireEvent.click(getByText('Connect'))
       })
       unmount()
-      await act(async () => {})
-      expect(signal?.aborted).toBe(true)
+      await act(async () => finish({ ok: true, message: 'Connected GPU cluster.' }))
       expect(push).not.toHaveBeenCalled()
+    })
+
+    it('saving an OAUTH server with an unchanged client id omits it, keeping the stored one', async () => {
+      servers = [server({ auth: 'OAUTH', authHeader: null, oauthClientId: 'cid' })]
+      mutate.mockResolvedValue(setResult({ __typename: 'McpServerAdmin' }))
+      const { getByText, getByLabelText } = mount()
+      fireEvent.click(getByText('Edit'))
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      expect('oauthClientId' in mutate.mock.calls[0][0].input).toBe(false)
+      fireEvent.click(getByText('Edit'))
+      fireEvent.change(getByLabelText('OAuth client ID'), { target: { value: '' } })
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      expect(mutate.mock.calls[1][0].input.oauthClientId).toBeNull()
+    })
+
+    it('switching away from OAUTH does not send a client id', async () => {
+      servers = [server({ auth: 'OAUTH', authHeader: null, oauthClientId: 'cid' })]
+      mutate.mockResolvedValue(setResult({ __typename: 'McpServerAdmin' }))
+      const { getByText, getByLabelText } = mount()
+      fireEvent.click(getByText('Edit'))
+      fireEvent.change(getByLabelText('Authentication'), { target: { value: 'NONE' } })
+      await act(async () => {
+        fireEvent.click(getByText('Save'))
+      })
+      expect('oauthClientId' in mutate.mock.calls[0][0].input).toBe(false)
     })
 
     it('signing everyone out asks first', async () => {

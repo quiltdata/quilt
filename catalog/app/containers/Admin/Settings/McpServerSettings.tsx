@@ -1,12 +1,9 @@
-import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
 import { toolNameFitsBedrock } from 'components/Assistant/Model/Connectors'
-import { useSessionToken } from 'components/Assistant/Model/Assistant'
-import { resultError, signIn, signInMessage } from 'components/Assistant/Model/McpSignIn'
-import cfg from 'constants/config'
+import { McpSignInContext, resultError } from 'components/Assistant/Model/McpSignIn'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
@@ -27,26 +24,27 @@ type Probe = GQL.DataForDoc<typeof MCP_SERVER_PROBE_MUTATION>['admin']['mcpServe
 
 /**
  * The full input for `server` with `overrides` applied. A null `secret` keeps
- * the stored one.
+ * the stored one; an omitted `oauthClientId` keeps the stored client.
  */
 const toInput = (
   server: Server,
   overrides: Partial<Types.McpServerInput> = {},
-): Types.McpServerInput => ({
-  title: server.title,
-  url: server.url,
-  hint: server.hint,
-  enabled: server.enabled,
-  trusted: server.trusted,
-  auth: server.auth,
-  authHeader: server.authHeader,
-  authPrefix: server.authPrefix,
-  forwardIdentity: server.forwardIdentity,
-  secret: null,
-  oauthClientId: server.oauthClientId,
-  oauthClientSecret: null,
-  ...overrides,
-})
+): Types.McpServerInput =>
+  ({
+    title: server.title,
+    url: server.url,
+    hint: server.hint,
+    enabled: server.enabled,
+    trusted: server.trusted,
+    auth: server.auth,
+    authHeader: server.authHeader,
+    authPrefix: server.authPrefix,
+    forwardIdentity: server.forwardIdentity,
+    secret: null,
+    oauthClientSecret: null,
+    ...overrides,
+    // The generated type requires the key, but omitting it is what keeps the client.
+  }) as Types.McpServerInput
 
 /**
  * Every MCP mutation runs `silent` and is reported through here: the wrapper
@@ -341,7 +339,10 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
       authPrefix: header ? values.authPrefix || null : null,
       // Blank keeps the stored secret.
       secret: header && values.secret ? values.secret : null,
-      oauthClientId: oauth ? values.oauthClientId.trim() || null : null,
+      // Sent only when edited: an omitted id keeps the stored client.
+      ...(oauth && values.oauthClientId.trim() !== (existing?.oauthClientId ?? '')
+        ? { oauthClientId: values.oauthClientId.trim() || null }
+        : {}),
       // Blank keeps the stored client secret.
       oauthClientSecret:
         oauth && values.oauthClientSecret ? values.oauthClientSecret : null,
@@ -352,7 +353,12 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
           slug: values.slug.trim(),
           input: existing
             ? toInput(existing, fields)
-            : { ...fields, enabled: false, trusted: false, forwardIdentity: false },
+            : ({
+                ...fields,
+                enabled: false,
+                trusted: false,
+                forwardIdentity: false,
+              } as Types.McpServerInput),
         },
         SILENT,
       )
@@ -661,29 +667,23 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
   }, [busy, notify, onChanged, server, signOutAll])
 
   // The admin's own sign-in is what Probe uses, and a disabled server never
-  // reaches Qurator's panel, so connecting has to be possible here.
-  const getToken = useSessionToken()
-  const flow = React.useRef<AbortController | null>(null)
-  React.useEffect(() => () => flow.current?.abort(), [])
+  // reaches Qurator's panel, so connecting has to be possible here. It is the
+  // page's one flow, so it also reconnects Qurator's connector.
+  const mcpSignIn = React.useContext(McpSignInContext)
+  const mounted = React.useRef(true)
+  React.useEffect(
+    () => () => {
+      mounted.current = false
+    },
+    [],
+  )
   const connect = React.useCallback(async () => {
-    if (busy) return
-    const controller = new AbortController()
-    flow.current = controller
-    setBusy(true)
-    try {
-      const result = await signIn({
-        slug: server.slug,
-        registryUrl: cfg.registryUrl,
-        getToken: () => Eff.Effect.runPromise(getToken()),
-        signal: controller.signal,
-      })
-      if (controller.signal.aborted) return
-      notify(signInMessage(result, server.title))
-      if (result.ok) onChanged()
-    } finally {
-      if (!controller.signal.aborted) setBusy(false)
-    }
-  }, [busy, getToken, notify, onChanged, server])
+    if (!mcpSignIn) return
+    const result = await mcpSignIn.connect(server.slug, { title: server.title })
+    if (!result || !mounted.current) return
+    notify(result.message)
+    if (result.ok) onChanged()
+  }, [mcpSignIn, notify, onChanged, server])
 
   const copyRedirectUri = React.useCallback(() => {
     notify(
@@ -789,8 +789,8 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
         <M.Button size="small" onClick={() => setEditing(true)} disabled={busy}>
           Edit
         </M.Button>
-        {server.auth === Types.McpServerAuth.OAUTH && (
-          <M.Button size="small" onClick={connect} disabled={busy}>
+        {server.auth === Types.McpServerAuth.OAUTH && mcpSignIn && (
+          <M.Button size="small" onClick={connect} disabled={busy || !!mcpSignIn.pending}>
             Connect
           </M.Button>
         )}

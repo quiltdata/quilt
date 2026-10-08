@@ -100,6 +100,7 @@ export function signIn({
   } catch {
     return Promise.resolve({ ok: false, reason: 'failed', error: 'InvalidRegistryUrl' })
   }
+  if (signal?.aborted) return Promise.resolve({ ok: false, reason: 'closed' })
   // Unique per flow, so two tabs never share one sign-in window.
   const popup = win.open('', `quilt-mcp-oauth-${uuid.v4()}`, POPUP_FEATURES)
   if (!popup) return Promise.resolve({ ok: false, reason: 'blocked' })
@@ -113,6 +114,7 @@ export function signIn({
     signal?.addEventListener('abort', onOuterAbort)
     const timer = win.setTimeout(() => timeout.abort(), REQUEST_TIMEOUT_MS)
     try {
+      if (signal?.aborted) throw new Error('aborted')
       const token = await getToken()
       const resp = await doFetch(`${base}/${path}`, {
         method: 'POST',
@@ -202,7 +204,10 @@ export function signIn({
       if (popup.closed) settle({ ok: false, reason: 'closed' })
     }, CLOSED_POLL_MS)
 
-    if (signal?.aborted) onAbort()
+    if (signal?.aborted) {
+      onAbort()
+      return
+    }
     post('start')
       .then(({ resp, json, errorCode }) => {
         if (!resp.ok || typeof json?.authorizeUrl !== 'string') {
@@ -235,24 +240,31 @@ export interface SignInServer {
   signedIn: boolean
 }
 
+export interface SignInActionOptions {
+  /** Where focus returns; defaults to the element focused when the action began. */
+  returnTo?: HTMLElement | null
+  /** Used instead when `returnTo` is gone, or the action succeeded and will replace it. */
+  stable?: HTMLElement | null
+  /** For a server missing from the user's list, such as a disabled one an admin connects. */
+  title?: string
+}
+
+/** `null` when another action was already running, or the flow was dropped. */
+type ActionOutcome = { ok: boolean; message: string } | null
+type ActionResult = Promise<ActionOutcome>
+
 export interface McpSignInAPI {
   /** The servers each user signs in to themselves. */
   servers: readonly SignInServer[]
   pending: string | null
   /** The last outcome, for a live region. */
   status: string
-  /**
-   * Focus returns to `returnFocus` (default: the focused element), or to
-   * `stableFocus` when that is gone or the connection succeeded and will
-   * replace the control that started it.
-   */
-  connect: (
-    slug: string,
-    returnFocus?: HTMLElement | null,
-    stableFocus?: HTMLElement | null,
-  ) => void
-  disconnect: (slug: string, returnFocus?: HTMLElement | null) => void
+  connect: (slug: string, opts?: SignInActionOptions) => ActionResult
+  disconnect: (slug: string, opts?: SignInActionOptions) => ActionResult
 }
+
+/** The one sign-in flow per page, so every Connect reconnects Qurator's connector. */
+export const McpSignInContext = React.createContext<McpSignInAPI | null>(null)
 
 const FAILURE: Record<SignInFailure, (title: string) => string> = {
   blocked: (t) =>
@@ -285,7 +297,7 @@ export const signInMessage = (result: SignInResult, title: string) => {
  */
 export function useMcpSignIn(
   servers: Servers,
-  connectors: Connectors.ConnectorsService,
+  connectors: Connectors.ConnectorsService | null,
   getToken: () => Eff.Effect.Effect<string | null>,
 ): McpSignInAPI {
   const client = urql.useClient()
@@ -317,15 +329,15 @@ export function useMcpSignIn(
   const run = React.useCallback(
     async (
       slug: string,
-      focus: { returnTo?: HTMLElement | null; stable?: HTMLElement | null },
+      focus: SignInActionOptions,
       act: (
         title: string,
         signal: AbortSignal,
       ) => Promise<{ ok: boolean; message: string }>,
-    ) => {
-      if (busy.current) return
+    ): Promise<ActionOutcome> => {
+      if (busy.current) return null
       busy.current = true
-      const title = oauth.find((s) => s.slug === slug)?.title ?? slug
+      const title = focus.title ?? oauth.find((s) => s.slug === slug)?.title ?? slug
       const returnTo = focus.returnTo ?? (document.activeElement as HTMLElement | null)
       const controller = new AbortController()
       flow.current = controller
@@ -335,8 +347,9 @@ export function useMcpSignIn(
       try {
         const result = await act(title, controller.signal)
         ok = result.ok
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) return null
         setStatus(result.message)
+        return result
       } finally {
         if (!controller.signal.aborted) {
           flow.current = null
@@ -346,9 +359,9 @@ export function useMcpSignIn(
             .query(MCP_SERVERS_QUERY, {}, { requestPolicy: 'network-only' })
             .toPromise()
             .catch(() => undefined)
-          const connector = connectors.byId[slug]
-          // A retry during Connecting is a no-op, and that attempt may still end
-          // in NeedsSignIn, so wait for it to settle first.
+          const connector = connectors?.byId[slug]
+          // A retry is lost while an attempt is in flight (Connecting, or the
+          // reconnect loop under Disconnected), so wait for one to settle.
           if (connector && ok) {
             const previous = retryFibers.current.get(slug)
             if (previous) runtime.runFork(Eff.Fiber.interrupt(previous))
@@ -356,7 +369,7 @@ export function useMcpSignIn(
               slug,
               runtime.runFork(
                 connector.state.changes.pipe(
-                  Eff.Stream.filter((s) => s._tag !== 'Connecting'),
+                  Eff.Stream.filter((s) => s._tag === 'Ready' || s._tag === 'Failed'),
                   Eff.Stream.take(1),
                   Eff.Stream.runDrain,
                   Eff.Effect.timeout(RETRY_WAIT),
@@ -376,8 +389,8 @@ export function useMcpSignIn(
   )
 
   const connect = React.useCallback(
-    (slug: string, returnTo?: HTMLElement | null, stable?: HTMLElement | null) =>
-      void run(slug, { returnTo, stable }, async (title, signal) => {
+    (slug: string, opts: SignInActionOptions = {}) =>
+      run(slug, opts, async (title, signal) => {
         const result = await signIn({
           slug,
           registryUrl: cfg.registryUrl,
@@ -390,8 +403,8 @@ export function useMcpSignIn(
   )
 
   const disconnect = React.useCallback(
-    (slug: string, returnTo?: HTMLElement | null) =>
-      void run(slug, { returnTo }, async (title) => {
+    (slug: string, opts: SignInActionOptions = {}) =>
+      run(slug, opts, async (title) => {
         try {
           const result = (await disconnectMutation({ slug })).mcpServerDisconnect
           if (result.__typename === 'Ok') {
