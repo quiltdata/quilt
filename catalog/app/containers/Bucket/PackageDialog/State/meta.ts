@@ -80,7 +80,7 @@ export function useMeta(
   // ramda and Ajv assign keys, so "__proto__" would vanish or become a prototype on submit
   const rootError = notObject
     ? 'Metadata must be a valid JSON object'
-    : value && Object.hasOwn(value, '__proto__')
+    : hasProtoKey(value)
       ? '"__proto__" cannot be a metadata field name'
       : null
   // submit drops blank keys (getMetaValue), so validation must not count them
@@ -171,6 +171,12 @@ export function useMeta(
 }
 
 /** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
+/** A "__proto__" key at any depth: ramda and Ajv would turn it into a prototype. */
+const hasProtoKey = (v: unknown): boolean =>
+  !!v &&
+  typeof v === 'object' &&
+  (Object.hasOwn(v, '__proto__') || Object.values(v).some(hasProtoKey))
+
 export const NEW_FIELD = '\u0000new field'
 
 /** Pending key while a metadata file is being read. */

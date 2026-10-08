@@ -320,6 +320,16 @@ describe('utils/JSONSchema', () => {
       })
     })
 
+    it('with keepSet, defaults a missing field named after an Object member', () => {
+      const schema = {
+        type: 'object',
+        properties: { constructor: { type: 'string', default: 'sample' } },
+      }
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({})).toEqual({
+        constructor: 'sample',
+      })
+    })
+
     it('with keepSet, keeps explicit false, 0 and null instead of applying defaults', () => {
       const schema = {
         type: 'object',

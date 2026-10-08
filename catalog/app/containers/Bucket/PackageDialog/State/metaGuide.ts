@@ -188,6 +188,6 @@ export function requiredFields(
           : schema?.properties?.[key]?.default,
         schema?.properties?.[key],
       ),
-      invalid: value?.[key] !== undefined && invalid.has(key),
+      invalid: !!value && Object.hasOwn(value, key) && invalid.has(key),
     }))
 }

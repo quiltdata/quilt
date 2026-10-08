@@ -224,7 +224,7 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
           useMeta(
             Form.Idle,
             SchemaReady,
-            Manifest.Ready({ meta: JSON.parse('{"__proto__": "x"}') }),
+            Manifest.Ready({ meta: JSON.parse('{"d": [{"__proto__": {"h": 1}}]}') }),
           ),
         )
         expect(result.current.status._tag).toBe('error')

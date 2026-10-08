@@ -896,7 +896,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 Object.entries(suggested)
                   // a present value is kept unless the whole schema rejects it, so a null
                   // allowed through anyOf or $ref stays the user's choice
-                  .filter(([k]) => value?.[k] === undefined || brokenNow.has(k))
+                  .filter(([k]) => !Object.hasOwn(value || {}, k) || brokenNow.has(k))
                   .map(([k, sg]) => [k, sg.value]),
               ),
             )

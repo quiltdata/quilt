@@ -285,7 +285,11 @@ function scanSchemaAndPrefillValues(
     return value
 
   return Object.keys(optSchema.properties).reduce((memo, key) => {
-    const valueItem = value === undefined ? undefined : value[key]
+    // keepSet: own keys only, so a missing "constructor" field is not Object's function
+    const valueItem =
+      value === undefined || (keepSet && !Object.hasOwn(value, key))
+        ? undefined
+        : value[key]
 
     // don't touch user's primitive value; with keepSet, false, 0 and null count as set too
     const isSet = keepSet ? valueItem !== undefined : !!valueItem
