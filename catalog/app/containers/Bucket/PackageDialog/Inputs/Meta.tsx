@@ -836,9 +836,19 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             exclusive
             onChange={(_e, v) => v && showView(v)}
             size="small"
-            value={view}
+            // the view actually shown: a non-object root is in Table whatever was picked
+            value={formView ? 'form' : 'table'}
           >
-            <Lab.ToggleButton value="form" aria-label="Form view">
+            <Lab.ToggleButton
+              aria-label="Form view"
+              disabled={value !== undefined && !objectRoot}
+              title={
+                value !== undefined && !objectRoot
+                  ? 'The metadata is not a JSON object, so there are no fields to show as a form. Fix it in Table view.'
+                  : undefined
+              }
+              value="form"
+            >
               <M.Icon fontSize="small">view_agenda</M.Icon>
               Form
             </Lab.ToggleButton>

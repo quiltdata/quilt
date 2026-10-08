@@ -760,6 +760,8 @@ function FreeRow({
         className={free.remove}
         disabled={disabled}
         onClick={onRemove}
+        // keep focus on the name: its blur would rename the row and unmount this button
+        onMouseDown={(e) => e.preventDefault()}
         size="small"
       >
         <M.Icon fontSize="small">close</M.Icon>

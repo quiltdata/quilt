@@ -67,13 +67,15 @@ export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
   const req = React.useCallback(() => metadataSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)
 
-  if (!schemaUrl) return Ready()
-
-  if (result === Request.Idle) return Idle
-  if (result === Request.Loading) return Loading
-  if (result instanceof Error) return Err(result)
-
-  return Ready(result)
+  // one wrapper per result: validators memoize on it, so a fresh one each render
+  // recompiled Ajv on every keystroke
+  return React.useMemo(() => {
+    if (!schemaUrl) return Ready()
+    if (result === Request.Idle) return Idle
+    if (result === Request.Loading) return Loading
+    if (result instanceof Error) return Err(result)
+    return Ready(result)
+  }, [result, schemaUrl])
 }
 
 export function useEntriesSchema(workflow?: workflows.Workflow): SchemaStatus {

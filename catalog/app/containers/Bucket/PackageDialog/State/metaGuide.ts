@@ -97,7 +97,8 @@ export function fieldMessage(e: Error | ErrorObject): string {
   const p = e.params as Record<string, any>
   switch (e.keyword) {
     case 'required':
-      return 'Required'
+      // nested: the field shown is the parent, so name the missing child
+      return e.instancePath ? `Missing "${p.missingProperty}"` : 'Required'
     case 'enum':
       return `Choose one of: ${p.allowedValues.map((v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))).join(', ')}`
     case 'const':
