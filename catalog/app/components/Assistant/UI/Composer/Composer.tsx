@@ -856,7 +856,8 @@ function PlusMenu({
       if (e.key === 'Escape') {
         e.preventDefault()
         e.nativeEvent.stopPropagation()
-        setPage('main')
+        if (page !== 'main') setPage('main')
+        else onClose()
       }
       return
     }

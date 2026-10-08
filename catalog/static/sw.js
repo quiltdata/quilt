@@ -32,6 +32,6 @@ self.addEventListener('fetch', (e) => {
     return
   }
   // The scope is a URL prefix, so it also covers /qurator-mode and any /qurator-*.
-  if (e.request.mode !== 'navigate' || new URL(e.request.url).pathname !== '/qurator') return
+  if (e.request.mode !== 'navigate' || !/^\/qurator\/?$/.test(new URL(e.request.url).pathname)) return
   e.respondWith(fetch(e.request).catch(() => caches.match(OFFLINE)))
 })
