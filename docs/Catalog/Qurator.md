@@ -86,6 +86,8 @@ have signed in, and **Sign everyone out** removes every stored sign-in.
 A user who has not signed in sees the server as `not connected`, which does not
 block the chat. **Connect** on that line, or in the Qurator menu, opens the
 provider's sign-in window; once it finishes, the server's tools are offered.
+If Quilt loses sight of that window, it says to finish signing in there and
+keeps waiting for up to ten minutes; **Connect** again starts over.
 **Disconnect** in the same menu removes the user's sign-in. Each user's tokens
 stay in the registry and never reach a browser.
 

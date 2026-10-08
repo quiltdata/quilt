@@ -452,8 +452,8 @@ interface MenuProps {
   onToggleDevTools: () => void
   devToolsOpen: boolean
   mcpSignIn?: Model.Assistant.API['mcpSignIn']
-  /** Slugs whose connector reports the user must sign in, whatever the cached list says. */
-  needsSignIn?: ReadonlySet<string>
+  /** Whether each server's connector is Ready; a server without one falls back to `signedIn`. */
+  connectorReady?: ReadonlyMap<string, boolean>
   className?: string
 }
 
@@ -463,7 +463,7 @@ export function Menu({
   devToolsOpen,
   onToggleDevTools,
   mcpSignIn,
-  needsSignIn,
+  connectorReady,
   className,
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
@@ -516,7 +516,7 @@ export function Menu({
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
         {mcpSignIn?.servers.map((s) => {
-          const connected = s.signedIn && !needsSignIn?.has(s.slug)
+          const connected = connectorReady?.get(s.slug) ?? s.signedIn
           return (
             <M.MenuItem
               key={s.slug}
@@ -550,7 +550,7 @@ const useConnectorHelperStyles = M.makeStyles((t) => ({
 interface ConnectorHelperLineProps {
   connector: Model.Connectors.ConnectorRuntime
   state: Model.Connectors.ConnectorState
-  onConnect?: (slug: string) => void
+  onConnect?: (slug: string, returnTo: HTMLElement) => void
   connectDisabled?: boolean
 }
 
@@ -595,7 +595,7 @@ export function ConnectorHelperLine({
               <MessageAction
                 className={classes.action}
                 disabled={connectDisabled}
-                onClick={() => onConnect(connector.id)}
+                onClick={(e) => onConnect(connector.id, e.currentTarget)}
               >
                 connect
               </MessageAction>
@@ -742,11 +742,8 @@ export default function Chat({
   const onConnect = React.useMemo(
     () =>
       connect &&
-      ((slug: string) =>
-        void connect(slug, {
-          returnTo: document.activeElement as HTMLElement,
-          stable: signInStatus.current,
-        })),
+      ((slug: string, returnTo: HTMLElement) =>
+        void connect(slug, { returnTo, stable: signInStatus.current })),
     [connect],
   )
   const inputDisabled = state._tag !== 'Idle' || blocked
@@ -783,13 +780,9 @@ export default function Chat({
   }
   const helperText = helperLines.length > 0 ? helperLines : undefined
   // State values are immutable, so the deps change only when a state does.
-  const needsSignIn = React.useMemo(
+  const connectorReady = React.useMemo(
     () =>
-      new Set(
-        allConnectors
-          .filter((_c, i) => Model.Connectors.stateNeedsSignIn(connectorStates[i]))
-          .map((c) => c.id),
-      ),
+      new Map(allConnectors.map((c, i) => [c.id, connectorStates[i]._tag === 'Ready'])),
     // oxlint-disable-next-line react-hooks/exhaustive-deps
     [connectors, ...connectorStates],
   )
@@ -840,7 +833,7 @@ export default function Chat({
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
           mcpSignIn={mcpSignIn}
-          needsSignIn={needsSignIn}
+          connectorReady={connectorReady}
           className={cx(classes.headerButton, classes.trailing)}
         />
         <M.IconButton

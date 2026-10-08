@@ -26,25 +26,30 @@ type Probe = GQL.DataForDoc<typeof MCP_SERVER_PROBE_MUTATION>['admin']['mcpServe
  * The full input for `server` with `overrides` applied. A null `secret` keeps
  * the stored one; an omitted `oauthClientId` keeps the stored client.
  */
-const toInput = (
-  server: Server,
-  overrides: Partial<Types.McpServerInput> = {},
-): Types.McpServerInput =>
-  ({
-    title: server.title,
-    url: server.url,
-    hint: server.hint,
-    enabled: server.enabled,
-    trusted: server.trusted,
-    auth: server.auth,
-    authHeader: server.authHeader,
-    authPrefix: server.authPrefix,
-    forwardIdentity: server.forwardIdentity,
-    secret: null,
-    oauthClientSecret: null,
-    ...overrides,
-    // The generated type requires the key, but omitting it is what keeps the client.
-  }) as Types.McpServerInput
+/** An omitted `oauthClientId` keeps the stored client, so this input may leave it out. */
+type ServerInput = Omit<Types.McpServerInput, 'oauthClientId'> &
+  Partial<Pick<Types.McpServerInput, 'oauthClientId'>>
+
+/**
+ * The generated variables require every key (`avoidOptionals`), though the
+ * schema makes `oauthClientId` optional; this is the one place that bridges it.
+ */
+const sendable = (input: ServerInput) => input as Types.McpServerInput
+
+const toInput = (server: Server, overrides: Partial<ServerInput> = {}): ServerInput => ({
+  title: server.title,
+  url: server.url,
+  hint: server.hint,
+  enabled: server.enabled,
+  trusted: server.trusted,
+  auth: server.auth,
+  authHeader: server.authHeader,
+  authPrefix: server.authPrefix,
+  forwardIdentity: server.forwardIdentity,
+  secret: null,
+  oauthClientSecret: null,
+  ...overrides,
+})
 
 /**
  * Every MCP mutation runs `silent` and is reported through here: the wrapper
@@ -92,7 +97,7 @@ function useProbe(slug: string) {
       setProbe({
         __typename: 'McpServerProbe',
         ok: false,
-        failure: `The check itself failed: ${e}`,
+        failure: 'The check itself failed, try again.',
         tools: [],
       })
     } finally {
@@ -351,14 +356,11 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
       const res = await set(
         {
           slug: values.slug.trim(),
-          input: existing
-            ? toInput(existing, fields)
-            : ({
-                ...fields,
-                enabled: false,
-                trusted: false,
-                forwardIdentity: false,
-              } as Types.McpServerInput),
+          input: sendable(
+            existing
+              ? toInput(existing, fields)
+              : { ...fields, enabled: false, trusted: false, forwardIdentity: false },
+          ),
         },
         SILENT,
       )
@@ -390,7 +392,7 @@ function ServerForm({ existing, onClose, onSaved }: ServerFormProps) {
       }
     } catch (e) {
       report('MCP server save failed', e)
-      setFormError(`Couldn't save: ${e instanceof Error ? e.message : e}`)
+      setFormError("Couldn't save, try again.")
     } finally {
       setPending(false)
     }
@@ -599,12 +601,12 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
   const { probe, probing, check } = useProbe(server.slug)
 
   const update = React.useCallback(
-    async (overrides: Partial<Types.McpServerInput>) => {
+    async (overrides: Partial<ServerInput>) => {
       if (busy) return
       setBusy(true)
       try {
         const res = await set(
-          { slug: server.slug, input: toInput(server, overrides) },
+          { slug: server.slug, input: sendable(toInput(server, overrides)) },
           SILENT,
         )
         const result = res.admin.mcpServerSet
@@ -613,7 +615,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
         onChanged()
       } catch (e) {
         report('MCP server update failed', e)
-        notify(`Couldn't update ${server.title}: ${e instanceof Error ? e.message : e}`)
+        notify(`Couldn't update ${server.title}, try again.`)
       } finally {
         setBusy(false)
       }
@@ -636,7 +638,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
       onChanged()
     } catch (e) {
       report('MCP server removal failed', e)
-      notify(`Couldn't remove ${server.title}: ${e instanceof Error ? e.message : e}`)
+      notify(`Couldn't remove ${server.title}, try again.`)
     } finally {
       setBusy(false)
     }
@@ -658,9 +660,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
       onChanged()
     } catch (e) {
       report('MCP server sign-out failed', e)
-      notify(
-        `Couldn't sign everyone out of ${server.title}: ${e instanceof Error ? e.message : e}`,
-      )
+      notify(`Couldn't sign everyone out of ${server.title}, try again.`)
     } finally {
       setBusy(false)
     }
@@ -679,7 +679,11 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
   )
   const connect = React.useCallback(async () => {
     if (!mcpSignIn) return
-    const result = await mcpSignIn.connect(server.slug, { title: server.title })
+    // Quiet: this card announces the outcome itself.
+    const result = await mcpSignIn.connect(server.slug, {
+      title: server.title,
+      quiet: true,
+    })
     if (!result || !mounted.current) return
     notify(result.message)
     if (result.ok) onChanged()
@@ -837,9 +841,9 @@ export default function McpServerSettings() {
             <Skeleton width="40%" height={20} mt="4px" />
           </>
         ),
-        error: (e) => (
+        error: () => (
           <M.Typography className={classes.error} role="alert">
-            Couldn’t load the MCP servers: {e.message}
+            Couldn’t load the MCP servers. Reload the page to try again.
           </M.Typography>
         ),
         data: (data) => {

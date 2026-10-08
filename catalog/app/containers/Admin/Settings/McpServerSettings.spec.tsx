@@ -183,7 +183,10 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       await act(async () => {
         fireEvent.click(getByText('Connect'))
       })
-      expect(signInConnect).toHaveBeenCalledWith('gpu', { title: 'GPU cluster' })
+      expect(signInConnect).toHaveBeenCalledWith('gpu', {
+        title: 'GPU cluster',
+        quiet: true,
+      })
       expect(push).toHaveBeenCalledWith('Connected GPU cluster.')
     })
 

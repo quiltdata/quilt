@@ -23,6 +23,8 @@ export type SignInFailure =
   | 'notFound'
   | 'sessionExpired'
   | 'serverTrouble'
+  | 'timedOut'
+  | 'waitTimedOut'
   | 'failed'
 
 /** The registry's start and finish error codes, by the reason they map to. */
@@ -36,9 +38,17 @@ const REASON_BY_CODE: Record<string, SignInFailure> = {
   SignInServerUnavailable: 'serverTrouble',
 }
 
+/** `error` is for debugging and is never shown to the user. */
 export type SignInResult =
   | { ok: true }
   | { ok: false; reason: SignInFailure; error?: string }
+
+interface Channel {
+  onmessage: ((event: MessageEvent) => void) | null
+  close: () => void
+}
+
+export const CALLBACK_CHANNEL = 'quilt-mcp-oauth'
 
 export interface SignInOptions {
   slug: string
@@ -47,15 +57,24 @@ export interface SignInOptions {
   getToken: () => Promise<string | null>
   win?: Window
   fetch?: typeof fetch
+  /** Where the catalog's callback page posts the provider's answer. */
+  openChannel?: () => Channel | null
   /** Aborting closes the popup and drops the flow, finish request included. */
   signal?: AbortSignal
+  /** Called once when the popup reads as closed while the sign-in may still finish. */
+  onWaiting?: () => void
 }
 
 const POPUP_FEATURES = 'popup,width=520,height=700'
 const CLOSED_POLL_MS = 500
 const REQUEST_TIMEOUT_MS = 30_000
+/** How long a sign-in may run, including in a window the catalog can no longer see. */
+const SIGN_IN_TIMEOUT_MS = 10 * 60_000
 /** Longer than a connector bootstrap, so an attempt in flight settles first. */
 const RETRY_WAIT = Eff.Duration.seconds(90)
+
+const defaultChannel = (): Channel | null =>
+  typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CALLBACK_CHANNEL)
 
 /** The message of a mutation's `InvalidInput` or `OperationError` result. */
 export const resultError = (
@@ -82,9 +101,12 @@ interface CallbackMessage {
  * start request so the click's user activation is still live: browsers block a
  * `window.open` that follows an await.
  *
- * The callback page only hands the code back; the exchange happens here, under
- * the catalog session, so a code cannot be bound to whoever started the flow.
- * The code and state are never logged or reported.
+ * The provider's answer comes back through the catalog's callback page, matched
+ * by the `state` in the authorize URL; a provider page with
+ * `Cross-Origin-Opener-Policy` severs the popup, so neither `opener` nor
+ * `popup.closed` can be relied on. The exchange happens here, under the catalog
+ * session, so a code cannot be bound to whoever started the flow. The code and
+ * state are never logged or reported.
  */
 export function signIn({
   slug,
@@ -92,11 +114,12 @@ export function signIn({
   getToken,
   win = window,
   fetch: doFetch = win.fetch.bind(win),
+  openChannel = defaultChannel,
   signal,
+  onWaiting,
 }: SignInOptions): Promise<SignInResult> {
-  let registryOrigin: string
   try {
-    registryOrigin = new URL(registryUrl).origin
+    new URL(registryUrl)
   } catch {
     return Promise.resolve({ ok: false, reason: 'failed', error: 'InvalidRegistryUrl' })
   }
@@ -136,14 +159,20 @@ export function signIn({
 
   return new Promise<SignInResult>((resolve) => {
     let done = false
-    // Set by the first valid callback message: later ones, and the popup
-    // closing itself, are then ignored.
     let answered = false
+    let waiting = false
+    let expectedState: string | null = null
+    const channel = openChannel()
     const settle = (result: SignInResult) => {
       if (done) return
       done = true
-      win.removeEventListener('message', onMessage)
+      win.removeEventListener('message', onPostMessage)
+      if (channel) {
+        channel.onmessage = null
+        channel.close()
+      }
       win.clearInterval(poll)
+      win.clearTimeout(cap)
       signal?.removeEventListener('abort', onAbort)
       if (!popup.closed) popup.close()
       resolve(result)
@@ -162,33 +191,23 @@ export function signIn({
         ? { ok: false, reason, error: errorCode ?? `HTTP ${resp.status}` }
         : { ok: false, reason }
     }
-    const failed = (e: unknown): SignInResult => ({
-      ok: false,
-      reason: 'failed',
-      error: e instanceof Error ? e.message : 'request failed',
-    })
+    const failed = (e: unknown): SignInResult =>
+      (e as { name?: unknown } | null)?.name === 'AbortError'
+        ? { ok: false, reason: 'timedOut' }
+        : { ok: false, reason: 'failed', error: 'request failed' }
 
-    const onMessage = (event: MessageEvent) => {
-      // Only the registry's callback page, in the popup we opened, may answer.
-      if (answered || event.origin !== registryOrigin || event.source !== popup) return
-      const data = (event.data ?? {}) as CallbackMessage
-      if (data.type !== 'quilt-mcp-oauth' || data.slug !== slug) return
+    const onAnswer = (data: CallbackMessage) => {
+      if (answered || done || expectedState === null) return
+      if (data.type !== 'quilt-mcp-oauth' || data.state !== expectedState) return
       answered = true
       win.clearInterval(poll)
-      if (
-        data.ok !== true ||
-        typeof data.code !== 'string' ||
-        typeof data.state !== 'string'
-      ) {
-        settle({
-          ok: false,
-          reason: data.error === 'denied' ? 'denied' : 'signInFailed',
-        })
+      if (data.ok !== true || typeof data.code !== 'string') {
+        settle({ ok: false, reason: data.error === 'denied' ? 'denied' : 'signInFailed' })
         return
       }
       const body = {
         code: data.code,
-        state: data.state,
+        state: expectedState,
         ...(typeof data.iss === 'string' ? { iss: data.iss } : {}),
       }
       post('finish', body)
@@ -198,11 +217,22 @@ export function signIn({
         })
         .catch((e) => settle(failed(e)))
     }
-    win.addEventListener('message', onMessage)
+    // The registry's own callback page posted to the opener before it redirected
+    // to the catalog's; accepted until every registry redirects.
+    const onPostMessage = (event: MessageEvent) => onAnswer(event.data ?? {})
+    if (channel) channel.onmessage = (event) => onAnswer(event.data ?? {})
+    win.addEventListener('message', onPostMessage)
     signal?.addEventListener('abort', onAbort)
     const poll = win.setInterval(() => {
-      if (popup.closed) settle({ ok: false, reason: 'closed' })
+      if (!waiting && popup.closed) {
+        waiting = true
+        onWaiting?.()
+      }
     }, CLOSED_POLL_MS)
+    const cap = win.setTimeout(
+      () => settle({ ok: false, reason: 'waitTimedOut' }),
+      SIGN_IN_TIMEOUT_MS,
+    )
 
     if (signal?.aborted) {
       onAbort()
@@ -222,10 +252,12 @@ export function signIn({
         } catch {
           url = null
         }
-        if (!url || url.protocol !== 'https:') {
+        const state = url?.searchParams.get('state')
+        if (!url || url.protocol !== 'https:' || !state) {
           settle({ ok: false, reason: 'failed', error: 'InvalidAuthorizeUrl' })
           return
         }
+        expectedState = state
         if (!done) popup.location.href = url.href
       })
       .catch((e) => settle(failed(e)))
@@ -247,6 +279,8 @@ export interface SignInActionOptions {
   stable?: HTMLElement | null
   /** For a server missing from the user's list, such as a disabled one an admin connects. */
   title?: string
+  /** The caller announces the outcome itself, so the shared status stays empty. */
+  quiet?: boolean
 }
 
 /** `null` when another action was already running, or the flow was dropped. */
@@ -280,15 +314,15 @@ const FAILURE: Record<SignInFailure, (title: string) => string> = {
   sessionExpired: (t) =>
     `Couldn't connect ${t}: your Quilt session expired. Sign in again.`,
   serverTrouble: (t) => `${t} is having trouble, try again shortly.`,
-  failed: (t) => `Couldn't connect ${t}.`,
+  timedOut: (t) => `Connecting ${t} timed out, try again.`,
+  waitTimedOut: (t) =>
+    `${t} sign-in took too long, so Quilt stopped waiting. Connect again.`,
+  failed: (t) => `Couldn't connect ${t}, try again.`,
 }
 
-/** What to tell the user about a finished `signIn`. */
-export const signInMessage = (result: SignInResult, title: string) => {
-  if (result.ok) return `Connected ${title}.`
-  const message = FAILURE[result.reason](title)
-  return result.error ? `${message} (${result.error})` : message
-}
+/** What to tell the user about a finished `signIn`; never the raw error. */
+export const signInMessage = (result: SignInResult, title: string) =>
+  result.ok ? `Connected ${title}.` : FAILURE[result.reason](title)
 
 /**
  * Connect and disconnect the signed-in user's own account on each OAUTH server.
@@ -306,6 +340,9 @@ export function useMcpSignIn(
   const [status, setStatus] = React.useState('')
   const flow = React.useRef<AbortController | null>(null)
   const busy = React.useRef(false)
+  // Set while a sign-in waits on a window Quilt can no longer see; a new
+  // Connect then replaces it rather than being refused.
+  const waiting = React.useRef(false)
   // Per server, so one server's reconnect never cancels another's.
   const retryFibers = React.useRef(
     new Map<string, Eff.Fiber.RuntimeFiber<unknown, unknown>>(),
@@ -333,32 +370,44 @@ export function useMcpSignIn(
       act: (
         title: string,
         signal: AbortSignal,
+        say: (message: string) => void,
       ) => Promise<{ ok: boolean; message: string }>,
     ): Promise<ActionOutcome> => {
-      if (busy.current) return null
+      if (busy.current && !waiting.current) return null
+      if (waiting.current) flow.current?.abort()
       busy.current = true
-      const title = focus.title ?? oauth.find((s) => s.slug === slug)?.title ?? slug
-      const returnTo = focus.returnTo ?? (document.activeElement as HTMLElement | null)
+      waiting.current = false
       const controller = new AbortController()
+      const title = focus.title ?? oauth.find((s) => s.slug === slug)?.title ?? slug
+      const active = document.activeElement as HTMLElement | null
+      // Safari leaves `body` focused after a click on a button.
+      const returnTo =
+        focus.returnTo ?? (active && active !== document.body ? active : null)
+      const say = (message: string) => {
+        if (!focus.quiet && !controller.signal.aborted) setStatus(message)
+      }
       flow.current = controller
       setPending(slug)
       setStatus('')
       let ok = false
       try {
-        const result = await act(title, controller.signal)
+        const result = await act(title, controller.signal, say)
         ok = result.ok
         if (controller.signal.aborted) return null
-        setStatus(result.message)
+        say(result.message)
         return result
       } finally {
         if (!controller.signal.aborted) {
           flow.current = null
           busy.current = false
+          waiting.current = false
           setPending(null)
-          client
-            .query(MCP_SERVERS_QUERY, {}, { requestPolicy: 'network-only' })
-            .toPromise()
-            .catch(() => undefined)
+          if (ok) {
+            client
+              .query(MCP_SERVERS_QUERY, {}, { requestPolicy: 'network-only' })
+              .toPromise()
+              .catch(() => undefined)
+          }
           const connector = connectors?.byId[slug]
           // A retry is lost while an attempt is in flight (Connecting, or the
           // reconnect loop under Disconnected), so wait for one to settle.
@@ -373,8 +422,9 @@ export function useMcpSignIn(
                   Eff.Stream.take(1),
                   Eff.Stream.runDrain,
                   Eff.Effect.timeout(RETRY_WAIT),
-                  Eff.Effect.zipRight(connector.retry),
+                  // Retry even when the wait ran out: the sign-in did succeed.
                   Eff.Effect.ignore,
+                  Eff.Effect.zipRight(connector.retry),
                 ),
               ),
             )
@@ -390,12 +440,18 @@ export function useMcpSignIn(
 
   const connect = React.useCallback(
     (slug: string, opts: SignInActionOptions = {}) =>
-      run(slug, opts, async (title, signal) => {
+      run(slug, opts, async (title, signal, say) => {
         const result = await signIn({
           slug,
           registryUrl: cfg.registryUrl,
           getToken: () => Eff.Effect.runPromise(getToken()),
           signal,
+          onWaiting: () => {
+            if (signal.aborted) return
+            waiting.current = true
+            setPending(null)
+            say(`Finish signing in to ${title} in the other window.`)
+          },
         })
         return { ok: result.ok, message: signInMessage(result, title) }
       }),
@@ -414,9 +470,8 @@ export function useMcpSignIn(
             ok: false,
             message: `Couldn't disconnect ${title}: ${resultError(result)}`,
           }
-        } catch (e) {
-          const why = e instanceof Error ? e.message : String(e)
-          return { ok: false, message: `Couldn't disconnect ${title}: ${why}` }
+        } catch {
+          return { ok: false, message: `Couldn't disconnect ${title}, try again.` }
         }
       }),
     [run, disconnectMutation],

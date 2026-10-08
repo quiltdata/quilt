@@ -769,6 +769,7 @@ input McpServerInput {
   "Write-only. Omit to keep the stored secret; a URL whose origin changed clears it."
   secret: String
   forwardIdentity: Boolean! = false
+  "Omit to keep the stored one; null clears it."
   oauthClientId: String
   "Write-only. Omit to keep the stored one."
   oauthClientSecret: String

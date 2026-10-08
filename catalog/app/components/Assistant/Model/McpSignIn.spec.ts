@@ -7,9 +7,19 @@ vi.mock('constants/config', () => ({ default: { registryUrl: 'https://registry.t
 
 const captureException = vi.hoisted(() => vi.fn())
 vi.mock('@sentry/react', () => ({ captureException }))
-const refetch = vi.hoisted(() => ({ current: async (): Promise<unknown> => ({}) }))
+const refetch = vi.hoisted(() => ({
+  current: async (): Promise<unknown> => ({}),
+  calls: 0,
+}))
 vi.mock('urql', () => ({
-  useClient: () => ({ query: () => ({ toPromise: () => refetch.current() }) }),
+  useClient: () => ({
+    query: () => ({
+      toPromise: () => {
+        refetch.calls += 1
+        return refetch.current()
+      },
+    }),
+  }),
 }))
 vi.mock('utils/GraphQL', () => ({ useMutation: () => vi.fn() }))
 vi.mock('utils/Effect', async () => {
@@ -29,6 +39,7 @@ function fakeWindow() {
   const target = new EventTarget()
   const win = {
     open: vi.fn(() => popup),
+    channelFactory: undefined as unknown,
     addEventListener: target.addEventListener.bind(target),
     removeEventListener: target.removeEventListener.bind(target),
     setInterval: (fn: () => void, ms: number) => setInterval(fn, ms),
@@ -36,9 +47,22 @@ function fakeWindow() {
     setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
     clearTimeout: (id: number) => clearTimeout(id),
   }
-  const post = (data: unknown, origin = REGISTRY, source: unknown = popup) =>
-    target.dispatchEvent(Object.assign(new Event('message'), { data, origin, source }))
-  return { win: win as unknown as Window, popup, post }
+  const channel = {
+    onmessage: null as ((e: MessageEvent) => void) | null,
+    close: vi.fn(),
+  }
+  const post = (data: unknown) => channel.onmessage?.({ data } as MessageEvent)
+  const legacy = (data: unknown) =>
+    target.dispatchEvent(Object.assign(new Event('message'), { data }))
+  win.channelFactory = () => channel
+  return {
+    win: win as unknown as Window,
+    popup,
+    post,
+    legacy,
+    channel,
+    openChannel: () => channel,
+  }
 }
 
 const json = (body: unknown, status = 200) =>
@@ -51,7 +75,7 @@ const json = (body: unknown, status = 200) =>
 const registry = (finish: () => Response = () => json({ ok: true })) =>
   vi.fn<typeof globalThis.fetch>(async (url) =>
     String(url).endsWith('/start')
-      ? json({ authorizeUrl: 'https://provider.test/authorize?x=1' })
+      ? json({ authorizeUrl: `https://provider.test/authorize?x=1&state=${STATE}` })
       : finish(),
   )
 
@@ -66,13 +90,19 @@ const callback = (extra: object = {}) => ({
 
 const flush = () => new Promise((r) => setTimeout(r, 0))
 
-const start = (win: Window, fetch: ReturnType<typeof registry>) =>
+const start = (
+  win: Window,
+  fetch: ReturnType<typeof registry>,
+  extra: Partial<Parameters<typeof signIn>[0]> = {},
+) =>
   signIn({
     slug: 'slack',
     registryUrl: REGISTRY,
     getToken: async () => 'tok',
     win,
     fetch,
+    openChannel: (win as any).channelFactory,
+    ...extra,
   })
 
 describe('components/Assistant/Model/McpSignIn signIn', () => {
@@ -92,7 +122,7 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
         signal: expect.any(AbortSignal),
       },
     ])
-    expect(popup.location.href).toBe('https://provider.test/authorize?x=1')
+    expect(popup.location.href).toBe(`https://provider.test/authorize?x=1&state=${STATE}`)
     post(callback({ iss: 'https://slack.com' }))
     await expect(result).resolves.toEqual({ ok: true })
     expect(fetch.mock.calls[1]).toEqual([
@@ -119,7 +149,7 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     })
   })
 
-  it('ignores a message from the wrong origin, the wrong window or another slug', async () => {
+  it('matches the answer by state and ignores a foreign one', async () => {
     const { win, post } = fakeWindow()
     const fetch = registry()
     let settled = false
@@ -128,14 +158,43 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
       return r
     })
     await flush()
-    post(callback(), 'https://evil.test')
-    post(callback(), REGISTRY, {})
-    post(callback({ slug: 'fathom' }))
+    post(callback({ state: 'someone-elses' }))
+    post({ ...callback(), type: 'other' })
     await flush()
     expect(settled).toBe(false)
     expect(fetch).toHaveBeenCalledTimes(1)
     post(callback())
     await expect(result).resolves.toEqual({ ok: true })
+  })
+
+  it('a failure with the matching state ends the flow', async () => {
+    const { win, post } = fakeWindow()
+    const fetch = registry()
+    const result = start(win, fetch)
+    await flush()
+    post({ type: 'quilt-mcp-oauth', ok: false, state: STATE, error: 'expired' })
+    await expect(result).resolves.toEqual({ ok: false, reason: 'signInFailed' })
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('still accepts a postMessage answer with the matching state', async () => {
+    const { win, legacy } = fakeWindow()
+    const result = start(win, registry())
+    await flush()
+    legacy(callback())
+    await expect(result).resolves.toEqual({ ok: true })
+  })
+
+  it('refuses an authorize URL without a state to match', async () => {
+    const { win } = fakeWindow()
+    const fetch = vi.fn(async () =>
+      json({ authorizeUrl: 'https://provider.test/authorize' }),
+    )
+    await expect(start(win, fetch as any)).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+      error: 'InvalidAuthorizeUrl',
+    })
   })
 
   it('handles only the first callback for a popup', async () => {
@@ -165,7 +224,7 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     const fetch = registry()
     const result = start(win, fetch)
     await flush()
-    post({ type: 'quilt-mcp-oauth', slug: 'slack', ok: false, error: 'denied' })
+    post({ type: 'quilt-mcp-oauth', ok: false, state: STATE, error: 'denied' })
     await expect(result).resolves.toEqual({ ok: false, reason: 'denied' })
     expect(fetch).toHaveBeenCalledTimes(1)
   })
@@ -256,13 +315,39 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('reports a popup the user closed', async () => {
+  it('a closed popup does not end the flow; an answer still finishes it', async () => {
     vi.useFakeTimers()
-    const { win, popup } = fakeWindow()
-    const result = start(win, registry())
+    const { win, popup, post } = fakeWindow()
+    const onWaiting = vi.fn()
+    let settled = false
+    const result = start(win, registry(), { onWaiting }).then((r) => {
+      settled = true
+      return r
+    })
+    await vi.advanceTimersByTimeAsync(10)
     popup.closed = true
-    await vi.advanceTimersByTimeAsync(600)
-    await expect(result).resolves.toEqual({ ok: false, reason: 'closed' })
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(settled).toBe(false)
+    expect(onWaiting).toHaveBeenCalledTimes(1)
+    post(callback())
+    await vi.advanceTimersByTimeAsync(10)
+    await expect(result).resolves.toEqual({ ok: true })
+  })
+
+  it('stops waiting after ten minutes', async () => {
+    vi.useFakeTimers()
+    const { win, popup, channel } = fakeWindow()
+    const result = start(win, registry())
+    await vi.advanceTimersByTimeAsync(10)
+    popup.closed = true
+    await vi.advanceTimersByTimeAsync(10 * 60_000 - 100)
+    let settled = false
+    void result.then(() => (settled = true))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(200)
+    await expect(result).resolves.toEqual({ ok: false, reason: 'waitTimedOut' })
+    expect(channel.close).toHaveBeenCalled()
   })
 
   it.each([
@@ -363,6 +448,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     window.fetch = originalFetch
     captureException.mockReset()
     refetch.current = async () => ({})
+    refetch.calls = 0
     retries = 0
     cleanup()
   })
@@ -503,6 +589,61 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     await Eff.Effect.runPromise(Eff.Scope.close(scope, Eff.Exit.void))
   })
 
+  it('retries even when the wait for a settled connector runs out', async () => {
+    vi.useFakeTimers()
+    window.fetch = registry() as any
+    const { service } = makeConnectors(Connectors.ConnectorState.Connecting())
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await vi.advanceTimersByTimeAsync(10)
+      reply()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(retries).toBe(0)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(91_000)
+    })
+    vi.useRealTimers()
+    expect(retries).toBe(1)
+  })
+
+  it('refetches the server list only after a successful sign-in', async () => {
+    window.fetch = registry(() => json({ error_code: 'SignInFailed' }, 400)) as any
+    const { service } = makeConnectors(failed)
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      reply()
+      await flush()
+      await flush()
+    })
+    expect(refetch.calls).toBe(0)
+    window.fetch = registry() as any
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      reply()
+      await flush()
+      await flush()
+    })
+    expect(refetch.calls).toBe(1)
+  })
+
+  it('shows a friendly message, never the raw error, when a request fails', async () => {
+    window.fetch = vi.fn(async () => json({ error_code: 'Weird' }, 500)) as any
+    const { service } = makeConnectors(failed)
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      await flush()
+    })
+    expect(result.current.status).toBe("Couldn't connect Slack, try again.")
+    expect(result.current.status).not.toContain('Weird')
+  })
+
   it('holds the reconnect until a connection attempt in flight settles', async () => {
     window.fetch = registry() as any
     const { state, service } = makeConnectors(Connectors.ConnectorState.Connecting())
@@ -618,7 +759,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     await Eff.Effect.runPromise(Eff.Scope.close(scope, Eff.Exit.void))
   })
 
-  it('a popup closed with no message leaves Connect available again', async () => {
+  it('a popup closed with no answer says to finish there, and Connect can start over', async () => {
     vi.useFakeTimers()
     window.fetch = registry() as any
     const { service } = makeConnectors(failed)
@@ -637,9 +778,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       await flush()
     })
     expect(result.current.pending).toBeNull()
-    expect(result.current.status).toBe(
-      'The Slack sign-in window was closed before you finished.',
-    )
+    expect(result.current.status).toBe('Finish signing in to Slack in the other window.')
     expect(retries).toBe(0)
     const opened = (window.open as any).mock.calls.length
     await act(async () => {

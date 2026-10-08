@@ -16,6 +16,7 @@ export interface McpServerInput {
   readonly enabled: boolean
   readonly forwardIdentity: boolean
   readonly hint: string | null | undefined
+  /** Omit to keep the stored one; null clears it. */
   readonly oauthClientId: string | null | undefined
   /** Write-only. Omit to keep the stored one. */
   readonly oauthClientSecret: string | null | undefined

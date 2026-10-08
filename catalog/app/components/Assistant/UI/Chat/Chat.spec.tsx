@@ -109,7 +109,9 @@ describe('components/Assistant/UI/Chat/ConnectorHelperLine sign-in', () => {
     expect(screen.getByText(/Slack: not connected/)).toBeTruthy()
     expect(screen.queryByText('reconnect')).toBeNull()
     fireEvent.click(screen.getByText('connect'))
-    expect(onConnect).toHaveBeenCalledWith('slack')
+    expect(onConnect.mock.calls[0][0]).toBe('slack')
+    // The clicked button, so focus returns to it even where Safari leaves `body` focused.
+    expect(onConnect.mock.calls[0][1]).toBe(screen.getByText('connect'))
   })
 })
 
@@ -227,14 +229,14 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     expect(disconnect.mock.calls[0][0]).toBe('fathom')
   })
 
-  it('offers Connect when the connector needs sign-in, whatever the cached list says', () => {
+  it('offers Connect when the connector is not Ready, whatever the cached list says', () => {
     render(
       <Menu
         state={idle}
         dispatch={vi.fn()}
         devToolsOpen={false}
         onToggleDevTools={vi.fn()}
-        needsSignIn={new Set(['fathom'])}
+        connectorReady={new Map([['fathom', false]])}
         mcpSignIn={{
           servers: [{ slug: 'fathom', title: 'Fathom', signedIn: true }],
           pending: null,

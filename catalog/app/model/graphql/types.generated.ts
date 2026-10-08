@@ -588,6 +588,7 @@ export interface McpServerInput {
   readonly enabled: Scalars['Boolean']['input']
   readonly forwardIdentity: Scalars['Boolean']['input']
   readonly hint: InputMaybe<Scalars['String']['input']>
+  /** Omit to keep the stored one; null clears it. */
   readonly oauthClientId: InputMaybe<Scalars['String']['input']>
   /** Write-only. Omit to keep the stored one. */
   readonly oauthClientSecret: InputMaybe<Scalars['String']['input']>
