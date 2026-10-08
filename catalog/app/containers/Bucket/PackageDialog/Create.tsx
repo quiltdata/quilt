@@ -4,6 +4,7 @@ import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
+import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import useDragging from 'utils/dragging'
@@ -18,6 +19,7 @@ import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as Inputs from './Inputs'
+import { pendingLabel } from './State/meta'
 import * as Layout from './Layout'
 import * as PDModel from './State'
 import { FormSkeleton } from './Skeleton'
@@ -254,6 +256,26 @@ function PackageCreationForm({
 }: PackageCreationFormProps) {
   const classes = useStyles()
 
+  // a new workflow or bucket reloads the schema and the editor, dropping unfinished drafts
+  const { push: notify } = Notifications.use()
+  const canChange = (what: string) => {
+    if (!meta.pending.length) return true
+    notify(
+      `Finish or undo the edit to ${pendingLabel(meta.pending)} before changing ${what}`,
+    )
+    return false
+  }
+  const guardedWorkflow = React.useMemo(
+    () => ({
+      ...workflow,
+      onChange: (w: Parameters<typeof workflow.onChange>[0]) => {
+        if (canChange('the workflow')) workflow.onChange(w)
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [workflow, meta.pending, notify],
+  )
+
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: measured = 0 } = useResizeObserver({ ref: editorElement })
   // A hidden metadata pane measures 0; keep the last real height so tabs don't resize the dialog.
@@ -352,7 +374,9 @@ function PackageCreationForm({
         <Successors.Dropdown
           bucket={dst.bucket || ''}
           successor={successor}
-          onChange={(s) => setDst((d) => ({ ...d, bucket: s.slug }))}
+          onChange={(s) =>
+            canChange('the bucket') && setDst((d) => ({ ...d, bucket: s.slug }))
+          }
         />{' '}
         bucket
       </M.DialogTitle>
@@ -363,7 +387,7 @@ function PackageCreationForm({
               <Inputs.Workflow
                 formStatus={formStatus}
                 schema={metadataSchema}
-                state={workflow}
+                state={guardedWorkflow}
                 config={workflowsConfig}
               />
               <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
