@@ -200,6 +200,17 @@ describe('containers/Bucket/Workflows/checks', () => {
     })
   })
 
+  it('matches schema patterns with Python semantics', () => {
+    const issues = (v: string) =>
+      checks.dryRun(
+        workflow(),
+        { type: 'object', properties: { s: { type: 'string', pattern: '^\\w+$' } } },
+        { name: 'lab/y', message: '', meta: { s: v } },
+      )
+    expect(issues('é')).toEqual([])
+    expect(issues('a b')).toHaveLength(1)
+  })
+
   it('accepts boolean schemas the way push does', () => {
     expect(checks.checkSchema(true)).toEqual([])
     expect(checks.checkSchema(false)).toHaveLength(1)

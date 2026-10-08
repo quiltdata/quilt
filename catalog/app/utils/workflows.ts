@@ -163,7 +163,7 @@ const PY_CLASSES: Record<string, [string, string]> = {
 }
 
 // Rewrites a Python pattern into an equivalent JS `u` source, or explains why it can't.
-function translatePattern(src: string): { source: string } | { error: string } {
+export function translatePattern(src: string): { source: string } | { error: string } {
   let out = ''
   let inClass = false
   for (let i = 0; i < src.length; i++) {

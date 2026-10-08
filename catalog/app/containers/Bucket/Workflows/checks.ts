@@ -11,7 +11,25 @@ const DRAFT_07 = 'http://json-schema.org/draft-07/schema#'
 
 // quilt3's jsonschema ignores unknown keywords and formats and doesn't fill defaults, so ajv
 // must not be stricter (or more lenient) than the push.
-const AJV_LIKE_PUSH = { strict: false, useDefaults: false, validateFormats: false }
+// Schema `pattern`s run with Python `re` on push: translate them like name patterns, and
+// let ones the browser can't reproduce pass here (push still enforces them).
+const pythonRegExp = (source: string) => {
+  const t = Workflows.translatePattern(source)
+  if ('error' in t) return { test: () => true }
+  try {
+    return new RegExp(t.source, t.source === source ? '' : 'u')
+  } catch {
+    return { test: () => true }
+  }
+}
+pythonRegExp.code = 'pythonRegExp'
+
+const AJV_LIKE_PUSH = {
+  strict: false,
+  useDefaults: false,
+  validateFormats: false,
+  code: { regExp: pythonRegExp },
+}
 
 // quilt3 `PACKAGE_NAME_FORMAT` checked on every push; Python's `\w` is Unicode-aware.
 const PACKAGE_NAME_FORMAT = new RegExp('^[\\p{L}\\p{N}_-]+/[\\p{L}\\p{N}_-]+$', 'u')
