@@ -269,6 +269,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               columnPath={columnPath}
               contextMenuPath={menuFieldPath}
               data={columnData}
+              disabled={disabled}
               hasSiblingColumn={multiColumned}
               jsonDict={jsonDict}
               key={columnPath.join(',')}

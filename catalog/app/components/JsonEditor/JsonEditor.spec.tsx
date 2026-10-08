@@ -9,34 +9,45 @@ const theme = createMuiTheme({
   typography: { monospace: { fontFamily: 'monospace' } } as ThemeOptions['typography'],
 })
 
-function editFirstValue(disabled: boolean) {
-  const onChange = vi.fn()
-  const { getAllByRole, getByDisplayValue } = render(
-    <ThemeProvider theme={theme}>
-      <JsonEditor
-        disabled={disabled}
-        errors={[]}
-        onChange={onChange}
-        value={{ a: 'x' }}
-      />
-    </ThemeProvider>,
-  )
-  // Cells are [key, value] per row; the value cell of row `a` is the second.
-  fireEvent.doubleClick(getAllByRole('textbox')[1])
-  const input = getByDisplayValue('"x"')
-  fireEvent.change(input, { target: { value: '"y"' } })
-  fireEvent.keyDown(input, { key: 'Enter' })
-  return onChange
-}
+const editor = (disabled: boolean, onChange = vi.fn()) => (
+  <ThemeProvider theme={theme}>
+    <JsonEditor disabled={disabled} errors={[]} onChange={onChange} value={{ a: 'x' }} />
+  </ThemeProvider>
+)
+
+// Cells are [key, value] per row; the value cell of row `a` is the second.
+const valueCell = (view: ReturnType<typeof render>) => view.getAllByRole('textbox')[1]
 
 describe('components/JsonEditor', () => {
   afterEach(cleanup)
 
   it('commits keyboard edits when enabled', () => {
-    expect(editFirstValue(false)).toHaveBeenCalledWith({ a: 'y' })
+    const onChange = vi.fn()
+    const view = render(editor(false, onChange))
+    fireEvent.doubleClick(valueCell(view))
+    const input = view.getByDisplayValue('"x"')
+    fireEvent.change(input, { target: { value: '"y"' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onChange).toHaveBeenCalledWith({ a: 'y' })
   })
 
-  it('ignores keyboard edits when disabled', () => {
-    expect(editFirstValue(true)).not.toHaveBeenCalled()
+  it('opens no input when disabled', () => {
+    const view = render(editor(true))
+    fireEvent.doubleClick(valueCell(view))
+    expect(view.queryByDisplayValue('"x"')).toBeNull()
+  })
+
+  it('shows the document value in a cell that was editing when disabled', () => {
+    const onChange = vi.fn()
+    const view = render(editor(false, onChange))
+    fireEvent.doubleClick(valueCell(view))
+    const input = view.getByDisplayValue('"x"')
+    view.rerender(editor(true, onChange))
+    fireEvent.change(input, { target: { value: '"y"' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(view.queryByDisplayValue('"y"')).toBeNull()
+    expect(valueCell(view).textContent).toContain('x')
+    expect(valueCell(view).textContent).not.toContain('y')
   })
 })

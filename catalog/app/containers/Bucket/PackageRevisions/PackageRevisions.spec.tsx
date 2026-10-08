@@ -18,6 +18,7 @@ vi.mock('utils/PackageLock', async () => ({
   ).useDialog,
   useLock,
   usePrefs: (s: unknown) => s,
+  PrefsProvider: ({ children }: React.PropsWithChildren<{}>) => children,
 }))
 vi.mock('utils/BucketPreferences', () => ({ Result: { match: () => null } }))
 vi.mock('utils/GraphQL', () => ({

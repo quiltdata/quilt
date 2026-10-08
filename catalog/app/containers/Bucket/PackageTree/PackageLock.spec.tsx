@@ -112,6 +112,14 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
     expect(dialog.queryByText(/A new revision was pushed/)).toBeNull()
   })
 
+  it('shows when the package was locked, to the minute', () => {
+    const lockedAt = new Date(2026, 9, 7, 14, 3)
+    const notice = mount(
+      <PackageLock.Notice lock={{ hash: HASH, lockedAt, lockedBy: 'a', reason: null }} />,
+    )
+    expect(notice.getByRole('status').textContent).toContain('October 7th 2026, 14:03')
+  })
+
   it('unlocks', async () => {
     unlock.mockResolvedValueOnce({ packageUnlock: { __typename: 'Ok' } })
     const onClose = vi.fn()

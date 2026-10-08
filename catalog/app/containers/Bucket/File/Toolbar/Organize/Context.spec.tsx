@@ -28,12 +28,8 @@ vi.mock('utils/BucketPreferences', async () => {
   const BP = await vi.importActual<typeof import('utils/BucketPreferences')>(
     'utils/BucketPreferences',
   )
-  return {
-    ...BP,
-    use: () => ({
-      prefs: BP.Result.Ok({ ui: { actions: { writeFile: false } } } as never),
-    }),
-  }
+  const prefs = BP.Result.Ok({ ui: { actions: { writeFile: false } } } as never)
+  return { ...BP, use: () => ({ prefs }), useForBucket: () => prefs }
 })
 
 const { route } = vi.hoisted(() => ({ route: { search: '', lock: 'unlocked' } }))

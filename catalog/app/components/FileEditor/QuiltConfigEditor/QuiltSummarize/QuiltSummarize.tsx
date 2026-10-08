@@ -362,12 +362,19 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
     [disabled, onChange, row.id, column.id],
   )
 
+  // The picker dialog keeps the callback it opened with, so read `disabled` when it submits.
+  const disabledRef = React.useRef(disabled)
+  disabledRef.current = disabled
   const pickPath = React.useCallback(
     (path: string, close: () => void) => {
-      onChangeValue('path', relative(initialPath, path))
+      if (!disabledRef.current) {
+        onChange(
+          State.changeValue(row.id, column.id)({ path: relative(initialPath, path) }),
+        )
+      }
       close()
     },
-    [initialPath, onChangeValue],
+    [column.id, initialPath, onChange, row.id],
   )
 
   const openDialog = Dialogs.use()
