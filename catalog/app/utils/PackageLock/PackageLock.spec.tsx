@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -84,6 +84,23 @@ describe('utils/PackageLock', () => {
       expect(run().status).toBe('loading')
     })
 
+    it("is loading on the previous name's absence while the next is in flight", () => {
+      useQueryResult({
+        data: { package: null },
+        operation: { variables: { bucket: 'b', name: 'team/missing' } },
+        fetching: true,
+      })
+      expect(run().status).toBe('loading')
+    })
+
+    it('reads an absent package as unlocked', () => {
+      useQueryResult({
+        data: { package: null },
+        operation: { variables: { bucket: 'b', name: 'team/ds' } },
+      })
+      expect(run().status).toBe('unlocked')
+    })
+
     it('reports a cached lock while the query is still in flight', () => {
       useQueryResult({ data: pkg({ hash: 'h' }), fetching: true })
       expect(run().status).toBe('locked')
@@ -158,6 +175,36 @@ describe('utils/PackageLock', () => {
     it('offers nothing without a latest revision or to a non-admin', () => {
       expect(PackageLock.canLock(true, 'unlocked')).toBe(false)
       expect(PackageLock.canLock(false, 'unlocked', 'h')).toBe(false)
+    })
+  })
+
+  describe('useDialog', () => {
+    const mountDialog = (open: 'lock' | 'unlock', status: PackageLock.Status) => {
+      const hook = renderHook(({ s, n }) => PackageLock.useDialog('b', n, s), {
+        initialProps: { s: status, n: 'team/ds' },
+      })
+      act(() => hook.result.current[1](open))
+      return hook
+    }
+
+    it('closes an open unlock dialog when the lock disappears', () => {
+      const { result, rerender } = mountDialog('unlock', 'locked')
+      rerender({ s: 'unlocked', n: 'team/ds' })
+      expect(result.current[0]).toBeNull()
+    })
+
+    it('closes an open lock dialog when someone else locks the package', () => {
+      const { result, rerender } = mountDialog('lock', 'unlocked')
+      rerender({ s: 'locked', n: 'team/ds' })
+      expect(result.current[0]).toBeNull()
+    })
+
+    it('keeps a dialog whose status still matches, and closes it on navigation', () => {
+      const { result, rerender } = mountDialog('lock', 'unlocked')
+      rerender({ s: 'loading', n: 'team/ds' })
+      expect(result.current[0]).toBe('lock')
+      rerender({ s: 'loading', n: 'team/other' })
+      expect(result.current[0]).toBeNull()
     })
   })
 

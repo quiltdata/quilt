@@ -90,6 +90,28 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
     }
   })
 
+  it('ignores a reply that lands after the page moved to another package', async () => {
+    let resolve: (v: unknown) => void = () => {}
+    lock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+    const onClose = vi.fn()
+    const onLatestMoved = vi.fn()
+    const props = { action: 'lock', bucket: 'b', hash: HASH, onClose, onLatestMoved }
+    const dialog = mount(<PackageLock.Dialog {...(props as any)} name="team/a" />)
+    fireEvent.click(dialog.getByRole('button', { name: 'Lock' }))
+    dialog.rerender(
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <PackageLock.Dialog {...(props as any)} name="team/b" />
+      </M.MuiThemeProvider>,
+    )
+    resolve({
+      packageLock: { __typename: 'OperationError', name: 'LatestMoved', message: 'x' },
+    })
+    await new Promise((r) => setTimeout(r))
+    expect(onClose).not.toHaveBeenCalled()
+    expect(onLatestMoved).not.toHaveBeenCalled()
+    expect(dialog.queryByText(/A new revision was pushed/)).toBeNull()
+  })
+
   it('unlocks', async () => {
     unlock.mockResolvedValueOnce({ packageUnlock: { __typename: 'Ok' } })
     const onClose = vi.fn()

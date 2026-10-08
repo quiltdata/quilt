@@ -30,8 +30,13 @@ function toStatus(result: Result, bucket: string, name: string, pause: boolean):
   const { data, error, fetching } = result
   const pkg = currentPackage(result, bucket, name)
   if (pkg?.lock) return 'locked'
+  // A null package is known absent only when it answers these variables.
+  const vars = result.operation?.variables as
+    | { bucket?: string; name?: string }
+    | undefined
+  const absent = !data?.package && vars?.bucket === bucket && vars?.name === name
   // Graphcache answers an uncached `lock` with null when another query cached the package.
-  const known = !GQL.isPartial(result) && !!data && (!data.package || !!pkg)
+  const known = !GQL.isPartial(result) && !!data && (absent || !!pkg)
   // Known data keeps its status while it refetches; only unknown data waits.
   if (fetching && !known) return 'loading'
   if (error) return 'unlocked'
@@ -63,6 +68,25 @@ export function useLockStatus(bucket: string, name: string, pause = false): Stat
 // Only a package known unlocked can be locked, never one whose lock is still loading.
 export const canLock = (isAdmin: boolean, status: Status, latestHash?: string) =>
   isAdmin && status === 'unlocked' && !!latestHash
+
+type Dialog = 'lock' | 'unlock' | null
+
+// The open lock dialog, closed when the page moves to another package or when someone
+// else locks or unlocks it, so it never acts on old state.
+export function useDialog(bucket: string, name: string, status: Status) {
+  const [dialog, setDialog] = React.useState<Dialog>(null)
+  React.useEffect(() => setDialog(null), [bucket, name])
+  React.useEffect(
+    () =>
+      setDialog((d) =>
+        (d === 'lock' && status === 'locked') || (d === 'unlock' && status === 'unlocked')
+          ? null
+          : d,
+      ),
+    [status],
+  )
+  return [dialog, setDialog] as const
+}
 
 const LOCKED_ACTIONS = { deleteRevision: false, revisePackage: false, writeFile: false }
 

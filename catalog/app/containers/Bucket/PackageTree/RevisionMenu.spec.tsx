@@ -21,8 +21,15 @@ vi.mock('utils/BucketPreferences', async () => {
       ui: { actions: { deleteRevision: true, revisePackage: true, writeFile: true } },
     }),
   )
-  return { ...actual, use: () => ({ prefs }) }
+  return {
+    ...actual,
+    use: () => ({
+      prefs: prefsResult.current === 'ok' ? prefs : actual.Result.Pending(),
+    }),
+  }
 })
+
+const { prefsResult } = vi.hoisted(() => ({ prefsResult: { current: 'ok' } }))
 
 const f = () => {}
 
@@ -50,6 +57,15 @@ describe('containers/Bucket/PackageTree/RevisionMenu', () => {
       'Delete package',
       'Lock package',
     ])
+  })
+
+  it('offers lock while the bucket preferences are not loaded', () => {
+    prefsResult.current = 'pending'
+    try {
+      expect(titles({ onLock: f })).toEqual(['Lock package'])
+    } finally {
+      prefsResult.current = 'ok'
+    }
   })
 
   it('hides lock without its handler', () => {

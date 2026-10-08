@@ -116,6 +116,46 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     })
   })
 
+  it('does not resume an old run after the page returns to its package', async () => {
+    const { result, rerender } = renderHook(
+      ({ name }) => useBulkDelete('b', name, true),
+      { initialProps: { name: 'foo/a' } },
+    )
+    act(() => ['h1', 'h2'].forEach(result.current.toggle))
+    let resolve: (v: unknown) => void = () => {}
+    deleteRevision.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+    let running = Promise.resolve()
+    act(() => {
+      running = result.current.run()
+    })
+    rerender({ name: 'foo/b' })
+    rerender({ name: 'foo/a' })
+    act(() => result.current.toggle('a1'))
+    act(() => result.current.confirm())
+    await act(async () => {
+      resolve(ok)
+      await running
+    })
+    expect(deleteRevision).toHaveBeenCalledTimes(1)
+    expect([...result.current.selected]).toEqual(['a1'])
+    expect(result.current.state).toMatchObject({
+      error: undefined,
+      loading: false,
+      opened: true,
+    })
+  })
+
+  it('says the package is locked when run while not known unlocked', async () => {
+    const { result } = renderHook(() => useBulkDelete('b', 'foo/bar', false))
+    act(() => result.current.toggle('h1'))
+    await act(() => result.current.run())
+    expect(deleteRevision).not.toHaveBeenCalled()
+    expect(result.current.state).toMatchObject({
+      error: expect.stringContaining('The package is locked'),
+      opened: true,
+    })
+  })
+
   it('drops the selection when the package changes', () => {
     const { result, rerender } = renderHook(
       ({ name }) => useBulkDelete('b', name, true),

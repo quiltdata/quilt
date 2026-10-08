@@ -1089,18 +1089,16 @@ function PackageTree({
     refresh: refreshLock,
   } = PackageLockState.useLock(bucket, name)
   const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
-  const [lockDialog, setLockDialog] = React.useState<'lock' | 'unlock' | null>(null)
-  const closeLockDialog = React.useCallback(() => setLockDialog(null), [])
+  const [lockDialog, setLockDialog] = PackageLockState.useDialog(bucket, name, lockStatus)
+  const closeLockDialog = React.useCallback(() => setLockDialog(null), [setLockDialog])
   const openLock = React.useMemo(
     () =>
       PackageLockState.canLock(isAdmin, lockStatus, latestHash)
         ? () => setLockDialog('lock')
         : undefined,
-    [isAdmin, lockStatus, latestHash],
+    [isAdmin, lockStatus, latestHash, setLockDialog],
   )
-  const openUnlock = React.useCallback(() => setLockDialog('unlock'), [])
-  // Navigating to another package must not leave a dialog that would act on it.
-  React.useEffect(() => setLockDialog(null), [bucket, name])
+  const openUnlock = React.useCallback(() => setLockDialog('unlock'), [setLockDialog])
 
   // TODO: use urql to get bucket config
   // const data = useQuery({

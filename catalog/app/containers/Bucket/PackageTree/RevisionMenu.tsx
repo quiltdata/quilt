@@ -44,13 +44,12 @@ export default function RevisionMenu({
                 title: 'Delete package',
               })
             }
-            if (onLock) menu.push({ onClick: onLock, title: 'Lock package' })
             return menu
           },
           _: () => [],
         },
         prefs,
-      ),
+      ).concat(onLock ? [{ onClick: onLock, title: 'Lock package' }] : []),
     [onCreateFile, onDelete, onDeletePackage, onLock, prefs],
   )
 

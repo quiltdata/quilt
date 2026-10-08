@@ -94,7 +94,17 @@ export function Dialog({
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
 
+  // A reply for a package the page no longer shows must not touch it or the page.
+  const generation = React.useRef(0)
+  React.useEffect(
+    () => () => {
+      generation.current += 1
+    },
+    [bucket, name],
+  )
+
   const submit = React.useCallback(async () => {
+    const gen = generation.current
     setLoading(true)
     setError(null)
     try {
@@ -103,11 +113,13 @@ export function Dialog({
           ? (await lock({ bucket, name, hash, reason: reason.trim() || null }))
               .packageLock
           : (await unlock({ bucket, name })).packageUnlock
+      if (gen !== generation.current) return
       const msg = errorMessage(r)
       if (!msg) return onClose()
       if (r.__typename === 'OperationError' && r.name === 'LatestMoved') onLatestMoved?.()
       setError(msg)
     } catch (e: any) {
+      if (gen !== generation.current) return
       setError(`Unexpected error: ${e.message ?? e}`)
     }
     setLoading(false)

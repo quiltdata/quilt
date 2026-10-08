@@ -19,7 +19,10 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
   // bucket and name are route params, so navigating to another package reuses
   // this hook; stale hashes would be deleted against the new package, and a
   // dialog left open would show the previous package's error.
+  // Bumped on every package change, so a run never resumes after A -> B -> A.
+  const generation = React.useRef(0)
   React.useEffect(() => {
+    generation.current += 1
     setSelected(new Set())
     setState({ error: undefined, loading: false, opened: false })
   }, [bucket, name])
@@ -35,13 +38,21 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
   )
 
   // Read per deletion: the lock or the page can change while earlier ones are in flight.
-  const current = React.useRef({ bucket, name, writable })
-  current.current = { bucket, name, writable }
+  const current = React.useRef({ writable })
+  current.current = { writable }
 
   const run = React.useCallback(async () => {
-    if (!current.current.writable) return
-    const samePackage = () =>
-      current.current.bucket === bucket && current.current.name === name
+    if (!current.current.writable) {
+      setState(
+        R.mergeLeft({
+          error: 'The package is locked; no revisions were deleted',
+          opened: true,
+        }),
+      )
+      return
+    }
+    const gen = generation.current
+    const samePackage = () => generation.current === gen
     setState(R.mergeLeft({ loading: true, error: undefined }))
     const done = new Set<string>()
     let error: React.ReactNode | undefined
