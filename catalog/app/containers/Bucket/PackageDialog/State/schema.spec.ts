@@ -190,6 +190,11 @@ describe('mkSubmitValidator', () => {
     expect(mkSubmitValidator(annotated)({ note: 'hi' })).toEqual([])
   })
 
+  it('still rejects a non-finite number', () => {
+    const num = { type: 'object', properties: { n: { type: 'number' } } }
+    expect(mkSubmitValidator(num)({ n: Infinity }).length).toBeGreaterThan(0)
+  })
+
   it('still blocks a real type error', () => {
     const num = { type: 'object', properties: { n: { type: 'number' } } }
     expect(mkSubmitValidator(num)({ n: 'x' }).length).toBeGreaterThan(0)

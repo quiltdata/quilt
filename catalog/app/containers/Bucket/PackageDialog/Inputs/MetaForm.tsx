@@ -64,6 +64,14 @@ function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
 let fieldIds = 0
 
 const NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i
+/** Whether decimal text, exponent included, is a whole number ("1.5e1" yes, "1.0…01e0" no). */
+const isIntegralText = (t: string) => {
+  const [m, e = '0'] = t.replace(/^[-+]/, '').split(/e/i)
+  const [int, frac = ''] = m.split('.')
+  const digits = int + frac
+  const point = int.length + Number(e)
+  return !/[1-9]/.test(digits.slice(Math.max(point, 0)))
+}
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 /** What a date input can show: a real calendar day ("2026-02-30" displays as empty). */
 const isCalendarDate = (s: string) => {
@@ -237,13 +245,9 @@ function Field({
         const n = Number(raw)
         const complete = raw.trim() !== '' && !Number.isNaN(n) && NUMBER.test(raw.trim())
         // Number() already rounded: "1e-400" became 0, "1.0000000000000001" became 1
-        const mantissa = raw.trim().split(/e/i)[0]
         const lossy =
-          (n === 0 && /[1-9]/.test(mantissa)) ||
-          (widget === 'integer' &&
-            !/e/i.test(raw) &&
-            Number.isInteger(n) &&
-            /\.\d*[1-9]/.test(mantissa))
+          (n === 0 && /[1-9]/.test(raw.trim().split(/e/i)[0])) ||
+          (widget === 'integer' && Number.isInteger(n) && !isIntegralText(raw.trim()))
         const unsafe = complete && (!isExactNumber(n) || lossy)
         setNumError(
           unsafe

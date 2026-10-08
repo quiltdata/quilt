@@ -7,6 +7,7 @@ import * as Types from 'utils/types'
 
 import type { FormStatus } from './form'
 import { isAdvisoryError as isAdvisory } from './metaGuide'
+import { allExact } from './metaSuggest'
 import { SchemaStatus, mkMetaValidator } from './schema'
 import { ManifestStatus } from './manifest'
 
@@ -82,7 +83,9 @@ export function useMeta(
     ? 'Metadata must be a valid JSON object'
     : hasProtoKey(value)
       ? '"__proto__" cannot be a metadata field name'
-      : null
+      : !allExact(value)
+        ? 'A number is too large to store exactly; use a string for IDs'
+        : null
   // submit drops blank keys (getMetaValue), so validation must not count them
   // an array or other non-object root is passed through so validation rejects it
   const submitted = React.useMemo(

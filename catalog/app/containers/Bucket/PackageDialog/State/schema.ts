@@ -36,7 +36,8 @@ export function mkMetaValidator(
     ...(formats ? {} : { validateFormats: false }),
     // guided blocks on this result, so an annotation keyword ("x-ui") must not fail
     // compilation where the server's Draft7Validator ignores it
-    ...(keepSet ? { useDefaults: false, strict: false } : {}),
+    // strictSchema only: strictNumbers must stay, or Infinity (from 1e400) validates
+    ...(keepSet ? { useDefaults: false, strictSchema: false } : {}),
   })
   return function validateMeta(value: Types.Json): (ErrorObject | Error)[] | undefined {
     const jsonObjectErr = value && !R.is(Object, value)

@@ -229,6 +229,14 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.status._tag).toBe('error')
       })
 
+      it('blocks an imported number JSON cannot keep', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready({ meta: { amount: Infinity } })),
+        )
+        expect(result.current.status._tag).toBe('error')
+      })
+
       it('does not report a loading schema as a metadata error', () => {
         mkMetaValidator.mockReturnValue(() => [new Error('x')])
         const { result } = renderHook(() =>
