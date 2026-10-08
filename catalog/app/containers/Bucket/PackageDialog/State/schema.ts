@@ -34,7 +34,9 @@ export function mkMetaValidator(
   // so Ajv must not add any to its private copy
   const schemaValidator = makeSchemaValidator(schema, undefined, {
     ...(formats ? {} : { validateFormats: false }),
-    ...(keepSet ? { useDefaults: false } : {}),
+    // guided blocks on this result, so an annotation keyword ("x-ui") must not fail
+    // compilation where the server's Draft7Validator ignores it
+    ...(keepSet ? { useDefaults: false, strict: false } : {}),
   })
   return function validateMeta(value: Types.Json): (ErrorObject | Error)[] | undefined {
     const jsonObjectErr = value && !R.is(Object, value)

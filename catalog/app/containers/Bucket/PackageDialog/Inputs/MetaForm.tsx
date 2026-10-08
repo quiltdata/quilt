@@ -236,12 +236,22 @@ function Field({
         setNumText(raw)
         const n = Number(raw)
         const complete = raw.trim() !== '' && !Number.isNaN(n) && NUMBER.test(raw.trim())
-        const unsafe = complete && !isExactNumber(n)
+        // Number() already rounded: "1e-400" became 0, "1.0000000000000001" became 1
+        const mantissa = raw.trim().split(/e/i)[0]
+        const lossy =
+          (n === 0 && /[1-9]/.test(mantissa)) ||
+          (widget === 'integer' &&
+            !/e/i.test(raw) &&
+            Number.isInteger(n) &&
+            /\.\d*[1-9]/.test(mantissa))
+        const unsafe = complete && (!isExactNumber(n) || lossy)
         setNumError(
           unsafe
-            ? Number.isFinite(n)
-              ? 'Too large to store exactly; use a string field for IDs'
-              : 'Too large to store'
+            ? lossy
+              ? 'Cannot be stored exactly; use fewer digits'
+              : Number.isFinite(n)
+                ? 'Too large to store exactly; use a string field for IDs'
+                : 'Too large to store'
             : null,
         )
         setPending?.(name, !complete || unsafe)

@@ -381,6 +381,8 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     ['integer', '9007199254740993.0'],
     ['integer', '9007199254740993e0'],
     ['number', '1e400'],
+    ['number', '1e-400'],
+    ['integer', '1.0000000000000001'],
   ])('holds a %s field typed as %s', (type, text) => {
     const onChange = vi.fn()
     const setPending = vi.fn()
@@ -401,8 +403,8 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     fireEvent.change(input, { target: { value: text } })
     expect(onChange).not.toHaveBeenCalled()
     expect(setPending).toHaveBeenLastCalledWith('id', true)
-    expect(screen.getByText(/Too large to store/)).toBeTruthy()
+    expect(screen.getByText(/Too large to store|Cannot be stored exactly/)).toBeTruthy()
     fireEvent.change(input, { target: { value: '' } })
-    expect(screen.queryByText(/Too large to store/)).toBeNull()
+    expect(screen.queryByText(/Too large to store|Cannot be stored exactly/)).toBeNull()
   })
 })

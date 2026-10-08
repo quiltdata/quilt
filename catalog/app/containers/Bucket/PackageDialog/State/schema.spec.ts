@@ -182,6 +182,14 @@ describe('mkSubmitValidator', () => {
     expect(mkSubmitValidator(dated)({ when: 'last tuesday' })).toEqual([])
   })
 
+  it('ignores annotation keywords the server ignores', () => {
+    const annotated = {
+      type: 'object',
+      properties: { note: { type: 'string', 'x-ui': 'textarea' } },
+    }
+    expect(mkSubmitValidator(annotated)({ note: 'hi' })).toEqual([])
+  })
+
   it('still blocks a real type error', () => {
     const num = { type: 'object', properties: { n: { type: 'number' } } }
     expect(mkSubmitValidator(num)({ n: 'x' }).length).toBeGreaterThan(0)
