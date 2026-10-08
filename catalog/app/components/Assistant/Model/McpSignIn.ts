@@ -371,9 +371,10 @@ export function useMcpSignIn(
   const [status, setStatus] = React.useState('')
   const flow = React.useRef<AbortController | null>(null)
   const busy = React.useRef(false)
-  // The slug of a sign-in waiting on a window Quilt can no longer see; a new
-  // Connect to that server replaces it, and anything else is refused.
-  const waiting = React.useRef<string | null>(null)
+  // Set while a sign-in waits on a window Quilt can no longer see, which the
+  // user may already have closed: any action replaces it. Cleared once the
+  // provider answers, so a finish in flight is never cancelled.
+  const waiting = React.useRef(false)
   // Per server, so one server's reconnect never cancels another's.
   const retryFibers = React.useRef(
     new Map<string, Eff.Fiber.RuntimeFiber<unknown, unknown>>(),
@@ -398,21 +399,16 @@ export function useMcpSignIn(
     async (
       slug: string,
       focus: SignInActionOptions,
-      replaces: boolean,
       act: (
         title: string,
         signal: AbortSignal,
         say: (message: string) => void,
       ) => Promise<{ ok: boolean; message: string }>,
     ): Promise<ActionOutcome> => {
-      if (busy.current && !(replaces && waiting.current === slug)) {
-        const other = waiting.current && oauth.find((s) => s.slug === waiting.current)
-        if (other) setStatus(`Finish or close the ${other.title} sign-in first.`)
-        return null
-      }
-      if (busy.current) flow.current?.abort()
+      if (busy.current && !waiting.current) return null
+      if (waiting.current) flow.current?.abort()
       busy.current = true
-      waiting.current = null
+      waiting.current = false
       const controller = new AbortController()
       const title = focus.title ?? oauth.find((s) => s.slug === slug)?.title ?? slug
       const active = document.activeElement as HTMLElement | null
@@ -436,7 +432,7 @@ export function useMcpSignIn(
         if (!controller.signal.aborted) {
           flow.current = null
           busy.current = false
-          waiting.current = null
+          waiting.current = false
           setPending(null)
           if (ok) {
             client
@@ -476,7 +472,7 @@ export function useMcpSignIn(
 
   const connect = React.useCallback(
     (slug: string, opts: SignInActionOptions = {}) =>
-      run(slug, opts, true, async (title, signal, say) => {
+      run(slug, opts, async (title, signal, say) => {
         const result = await signIn({
           slug,
           registryUrl: cfg.registryUrl,
@@ -484,7 +480,7 @@ export function useMcpSignIn(
           signal,
           onWaiting: () => {
             if (signal.aborted) return
-            waiting.current = slug
+            waiting.current = true
             setPending(null)
             const message = `Finish signing in to ${title} in the other window.`
             say(message)
@@ -493,7 +489,7 @@ export function useMcpSignIn(
           onAnswered: () => {
             // Finishing now: nothing in the UI may cancel it from here.
             if (signal.aborted) return
-            waiting.current = null
+            waiting.current = false
             setPending(slug)
             say('')
           },
@@ -505,7 +501,7 @@ export function useMcpSignIn(
 
   const disconnect = React.useCallback(
     (slug: string, opts: SignInActionOptions = {}) =>
-      run(slug, opts, false, async (title) => {
+      run(slug, opts, async (title) => {
         try {
           const result = (await disconnectMutation({ slug })).mcpServerDisconnect
           if (result.__typename === 'Ok') {

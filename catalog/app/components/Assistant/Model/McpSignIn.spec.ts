@@ -919,7 +919,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     expect((window.open as any).mock.calls.length).toBe(opened + 1)
   })
 
-  it('a waiting sign-in is not cancelled by another server, and finishing is not cancellable', async () => {
+  it('another server can replace a waiting sign-in, but not one that is finishing', async () => {
     vi.useFakeTimers()
     let finished: (r: Response) => void = () => {}
     window.fetch = vi.fn(async (url: string) =>
@@ -930,28 +930,28 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     const list = [...servers, { ...servers[0], slug: 'fathom', title: 'Fathom' }]
     const { service } = makeConnectors(failed)
     const result = mount(service, list)
-    let outcome: Promise<unknown> = Promise.resolve()
     await act(async () => {
-      outcome = result.current.connect('slack')
+      result.current.connect('slack')
       await vi.advanceTimersByTimeAsync(10)
     })
+    // The user closed Slack's window without signing in: Fathom may start.
     popup.closed = true
     await act(async () => {
       await vi.advanceTimersByTimeAsync(600)
     })
-    expect(result.current.pending).toBeNull()
-    // Another server's Connect is refused while Slack's sign-in waits.
+    let outcome: Promise<unknown> = Promise.resolve()
     await act(async () => {
-      await expect(result.current.connect('fathom')).resolves.toBeNull()
+      outcome = result.current.connect('fathom')
+      await vi.advanceTimersByTimeAsync(10)
     })
-    expect(result.current.status).toBe('Finish or close the Slack sign-in first.')
+    expect(result.current.pending).toBe('fathom')
     vi.useRealTimers()
     await act(async () => {
       reply()
       await flush()
     })
-    // Finishing: pending again, and even a same-server Connect cannot replace it.
-    expect(result.current.pending).toBe('slack')
+    // Finishing: nothing in the UI may cancel it.
+    expect(result.current.pending).toBe('fathom')
     const opened = (window.open as any).mock.calls.length
     await act(async () => {
       await expect(result.current.connect('slack')).resolves.toBeNull()
@@ -961,7 +961,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       finished(json({ ok: true }))
       await outcome
     })
-    expect(result.current.status).toBe('Connected Slack.')
+    expect(result.current.status).toBe('Connected Fathom.')
   })
 
   it.each([
