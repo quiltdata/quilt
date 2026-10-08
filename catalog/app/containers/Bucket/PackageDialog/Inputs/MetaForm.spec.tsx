@@ -338,6 +338,25 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     expect(screen.getByText(/Too large to store exactly/)).toBeTruthy()
   })
 
+  it('renders a field named after an Object prototype member as unset', () => {
+    const proto = {
+      type: 'object',
+      properties: { constructor: { title: 'Ctor', type: 'object' } },
+    }
+    render(
+      <MetaForm
+        disabled={false}
+        errors={[]}
+        onChange={() => {}}
+        onShowTable={() => {}}
+        onUseSuggestion={onUse}
+        schema={proto}
+        value={{}}
+      />,
+    )
+    expect(screen.getByText('Ctor')).toBeTruthy()
+  })
+
   it('shows an impossible stored date as text instead of crashing', () => {
     const dated = {
       type: 'object',

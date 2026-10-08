@@ -183,10 +183,16 @@ export function parseSuggestions(
     if (!allExact(v)) continue
     // the whole schema, so $refs and cross-field rules (if/then, dependencies) apply
     if (adds({ ...value, [key]: v }).length) continue
-    out[key] = {
-      value: v,
-      reason: typeof entry.reason === 'string' ? entry.reason.slice(0, 120) : undefined,
-    }
+    // defineProperty: a "__proto__" field must stay a field, not become the prototype
+    Object.defineProperty(out, key, {
+      value: {
+        value: v,
+        reason: typeof entry.reason === 'string' ? entry.reason.slice(0, 120) : undefined,
+      },
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    })
   }
   return out
 }
@@ -262,7 +268,7 @@ export function useMetaSuggestions({
         ? { _tag: 'error', message: 'The package changed while asking. Try again.' }
         : { _tag: 'idle' },
     )
-  }, [bucket, workflow, schema, filesKey])
+  }, [bucket, workflow, schema, filesKey, name])
   React.useEffect(
     () => () => {
       generation.current += 1

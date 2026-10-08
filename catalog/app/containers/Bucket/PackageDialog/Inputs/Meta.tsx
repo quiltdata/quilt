@@ -733,6 +733,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
 
   const onDrop = React.useCallback(
     ([file]) => {
+      if (!file) return
       if (file.size > MAX_META_FILE_SIZE) {
         notify(
           <>
@@ -1044,7 +1045,12 @@ export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
     // Guided status is live, so it fails on a blank form; errors there wait for
     // an edit or a submit, while the required-fields list says what is missing.
     // Inherited metadata shows its errors at once: they are why Create is off.
-    const blank = !value || !Object.keys(value).length
+    // a non-object root (null, false, a list) is an error to show, not a blank form
+    const blank =
+      value === undefined ||
+      (typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? !Object.keys(value).length
+        : false)
     const showErrors = !guided || touched || !blank || formStatus._tag === 'error'
     const errors = React.useMemo(() => {
       if (schema._tag === 'error') return [schema.error]

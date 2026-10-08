@@ -211,12 +211,17 @@ function Field({
   React.useEffect(() => () => setPending?.(name, false), [name, setPending])
 
   const set = React.useCallback(
-    (raw: string) => {
+    (raw: string, badInput?: boolean) => {
       if (numeric && raw.trim() === '') {
         setNumText(raw)
         setNumError(null)
         setPending?.(name, false)
         return onChange(name, undefined)
+      }
+      if (widget === 'date') {
+        // a half-typed date reads as "" with badInput: hold it, don't delete the value
+        setPending?.(name, !!badInput)
+        if (badInput) return
       }
       if (raw === '') return onChange(name, undefined)
       if (widget === 'enum') return onChange(name, prop.enum[Number(raw)])
@@ -309,7 +314,9 @@ function Field({
           InputLabelProps={widget === 'date' ? { shrink: true } : undefined}
           // no native `required`: a schema default satisfies it, and Enter must not disagree with Create
           label={required ? `${label} *` : label}
-          onChange={(e) => set(e.target.value)}
+          onChange={(e) =>
+            set(e.target.value, (e.target as HTMLInputElement).validity?.badInput)
+          }
           select={widget === 'enum'}
           size="small"
           // numbers use a text input: a number input reports "" for a partial "-" or "1e"
@@ -528,7 +535,8 @@ export default function MetaForm({
       setPending={setPending}
       required={isRequired}
       suggestion={suggestions?.[key]}
-      value={value?.[key]}
+      // own keys only: "constructor" would otherwise read Object's function
+      value={value && Object.hasOwn(value, key) ? value[key] : undefined}
     />
   )
 
