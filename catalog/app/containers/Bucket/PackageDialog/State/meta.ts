@@ -5,6 +5,8 @@ import * as Notifications from 'containers/Notifications'
 import { useFeature } from 'utils/features'
 import * as Types from 'utils/types'
 
+import { getMetaValue } from '../../requests'
+
 import type { FormStatus } from './form'
 import { isAdvisoryError as isAdvisory } from './metaGuide'
 import { allExact } from './metaSuggest'
@@ -78,12 +80,20 @@ export function useMeta(
   const notObject =
     value !== undefined &&
     (value === null || typeof value !== 'object' || Array.isArray(value))
+  const withDefaults = React.useMemo(
+    () =>
+      guided && !notObject && schema._tag === 'ready'
+        ? getMetaValue(value, schema.schema, { keepSet: true })
+        : value,
+    [guided, notObject, schema, value],
+  )
   // ramda and Ajv assign keys, so "__proto__" would vanish or become a prototype on submit
   const rootError = notObject
     ? 'Metadata must be a valid JSON object'
     : hasProtoKey(value)
       ? '"__proto__" cannot be a metadata field name'
-      : !allExact(value)
+      : // defaults included: a schema default can be an unsafe integer too
+        !allExact(withDefaults)
         ? 'A number is too large to store exactly; use a string for IDs'
         : null
   // submit drops blank keys (getMetaValue), so validation must not count them
@@ -174,13 +184,13 @@ export function useMeta(
   )
 }
 
-/** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
 /** A "__proto__" key at any depth: ramda and Ajv would turn it into a prototype. */
 const hasProtoKey = (v: unknown): boolean =>
   !!v &&
   typeof v === 'object' &&
   (Object.hasOwn(v, '__proto__') || Object.values(v).some(hasProtoKey))
 
+/** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
 export const NEW_FIELD = '\u0000new field'
 
 /** Pending key while a metadata file is being read. */

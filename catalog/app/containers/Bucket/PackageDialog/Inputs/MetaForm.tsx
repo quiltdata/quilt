@@ -247,7 +247,8 @@ function Field({
         // Number() already rounded: "1e-400" became 0, "1.0000000000000001" became 1
         const lossy =
           (n === 0 && /[1-9]/.test(raw.trim().split(/e/i)[0])) ||
-          (widget === 'integer' && Number.isInteger(n) && !isIntegralText(raw.trim()))
+          // either widget: "1.0000000000000001" would be saved as 1
+          (Number.isInteger(n) && !isIntegralText(raw.trim()))
         const unsafe = complete && (!isExactNumber(n) || lossy)
         setNumError(
           unsafe

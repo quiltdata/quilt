@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { getMetaValue } from '../../requests'
+
 import type { MetaState } from '../State/meta'
 import { invalidKeys, requiredFields } from '../State/metaGuide'
 import type { SchemaStatus } from '../State/schema'
@@ -64,12 +66,9 @@ export default function MetaSummary({ onOpen, schema, state }: MetaSummaryProps)
     invalidKeys(state.status._tag === 'error' ? state.status.errors : []),
   )
   const filled = required.filter((f) => f.filled && !f.invalid).length
-  const props: Record<string, any> = s?.properties || {}
-  const defaulted = Object.keys(props).filter(
-    (k) => !Object.hasOwn(state.value || {}, k) && props[k]?.default !== undefined,
-  ).length
-  // blank-named rows are dropped on submit, so they are not counted
-  const fields = Object.keys(state.value || {}).filter((k) => k.trim()).length + defaulted
+  // what submit pushes: blank-named rows dropped, applied schema defaults counted
+  const pushed = getMetaValue(state.value, s, { keepSet: true })
+  const fields = pushed && typeof pushed === 'object' ? Object.keys(pushed).length : 0
   const ok = state.status._tag === 'ok'
   // with nothing required, an empty form is not "done", just empty
   const complete = ok && (required.length ? filled === required.length : fields > 0)

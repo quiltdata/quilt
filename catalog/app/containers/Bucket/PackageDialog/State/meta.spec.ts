@@ -237,6 +237,16 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.status._tag).toBe('error')
       })
 
+      it('blocks a schema default JSON cannot keep exactly', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const big = Schema.Ready({
+          type: 'object',
+          properties: { n: { type: 'integer', default: 2 ** 53 } },
+        })
+        const { result } = renderHook(() => useMeta(Form.Idle, big, Manifest.Ready()))
+        expect(result.current.status._tag).toBe('error')
+      })
+
       it('does not report a loading schema as a metadata error', () => {
         mkMetaValidator.mockReturnValue(() => [new Error('x')])
         const { result } = renderHook(() =>

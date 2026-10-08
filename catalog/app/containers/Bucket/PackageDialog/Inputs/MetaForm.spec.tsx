@@ -384,6 +384,7 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     ['number', '1e-400'],
     ['integer', '1.0000000000000001'],
     ['integer', '1.0000000000000001e0'],
+    ['number', '1.0000000000000001'],
   ])('holds a %s field typed as %s', (type, text) => {
     const onChange = vi.fn()
     const setPending = vi.fn()
