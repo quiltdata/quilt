@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as s3paths from 'utils/s3paths'
 import StyledLink from 'utils/StyledLink'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
@@ -28,6 +29,7 @@ function useSchema(schemaUrl?: string): SchemaResult {
 
 const useCheckStyles = M.makeStyles((t) => ({
   ok: { color: t.palette.success.main },
+  warning: { color: t.palette.warning.main },
   error: { color: t.palette.error.main },
 }))
 
@@ -43,9 +45,19 @@ function SchemaCheck({ label, schema, result }: SchemaCheckProps) {
 
   let problems: string[] = []
   let pending = false
+  let unverified = false
   if (result === Request.Idle || result === Request.Loading) pending = true
-  else if (result instanceof Error) problems = [`Can't read schema: ${result.message}`]
-  else problems = checks.checkSchema(result)
+  else if (result instanceof Error) {
+    const e = checks.schemaReadError(result, s3paths.handleToS3Url(schema.location))
+    unverified = e.kind === 'denied'
+    problems = [e.text]
+  } else problems = checks.checkSchema(result)
+  const icon = unverified ? 'warning' : problems.length ? 'error' : 'check_circle'
+  const iconClass = unverified
+    ? classes.warning
+    : problems.length
+      ? classes.error
+      : classes.ok
 
   return (
     <M.ListItem disableGutters>
@@ -53,9 +65,7 @@ function SchemaCheck({ label, schema, result }: SchemaCheckProps) {
         {pending ? (
           <M.CircularProgress size={20} />
         ) : (
-          <M.Icon className={problems.length ? classes.error : classes.ok}>
-            {problems.length ? 'error' : 'check_circle'}
-          </M.Icon>
+          <M.Icon className={iconClass}>{icon}</M.Icon>
         )}
       </M.ListItemIcon>
       <M.ListItemText

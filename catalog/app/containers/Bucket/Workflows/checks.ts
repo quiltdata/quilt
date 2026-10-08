@@ -2,6 +2,7 @@ import type { ErrorObject } from 'ajv'
 
 import { JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
+import { FileNotFound, VersionNotFound } from 'containers/Bucket/errors'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
@@ -135,6 +136,40 @@ export function dryRun(
 
 export type SchemaResult = Request.Result<JsonSchema | null>
 
+export interface SchemaReadError {
+  // `denied`: the viewer can't read it; the push uses the stack's role, so it may still work.
+  kind: 'denied' | 'missing' | 'invalid' | 'other'
+  text: string
+}
+
+// S3 HEAD errors carry no body, so their `message` is often null: never print it as is.
+export function schemaReadError(e: Error, url?: string): SchemaReadError {
+  const where = url || 'the schema file'
+  const { code, statusCode } = e as Error & { code?: string; statusCode?: number }
+  if (statusCode === 403 || code === 'Forbidden' || code === 'AccessDenied') {
+    return {
+      kind: 'denied',
+      text: `You don't have access to ${where}, so it can't be checked here. Pushes read it with the stack's role.`,
+    }
+  }
+  if (e instanceof FileNotFound || e instanceof VersionNotFound || statusCode === 404) {
+    return {
+      kind: 'missing',
+      text: `${where} doesn't exist, so every push with this flow fails.`,
+    }
+  }
+  if (e instanceof SyntaxError) {
+    return {
+      kind: 'invalid',
+      text: `${where} isn't valid JSON, so every push with this flow fails.`,
+    }
+  }
+  return {
+    kind: 'other',
+    text: `Couldn't read ${where}${e.message ? `: ${e.message}` : ''}.`,
+  }
+}
+
 // Problems that fail every push before name, message or metadata are looked at.
 function schemaIssues(
   label: string,
@@ -146,7 +181,7 @@ function schemaIssues(
     return [{ path: label, message: `Loading the ${label} schema…` }]
   }
   if (result instanceof Error) {
-    return [{ path: label, message: `Can't read the ${label} schema: ${result.message}` }]
+    return [{ path: label, message: schemaReadError(result, url).text }]
   }
   return checkSchema(result).map((message) => ({ path: label, message }))
 }
