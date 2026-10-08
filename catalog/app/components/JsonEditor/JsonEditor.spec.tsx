@@ -67,4 +67,28 @@ describe('components/JsonEditor', () => {
     expect(valueCell(view).textContent).not.toContain('7')
     expect(onChange).not.toHaveBeenCalled()
   })
+
+  it('keeps the blank add-row read-only and drops its draft when disabled', () => {
+    const onChange = vi.fn()
+    const view = render(editor(false, onChange))
+    // The blank add-row follows row `a`: [key, value].
+    const addKey = () => view.getAllByRole('textbox')[2]
+    const addValue = () => view.getAllByRole('textbox')[3]
+    addValue().focus()
+    fireEvent.keyPress(addValue(), { key: '7', charCode: 55 })
+    const input = view.getByDisplayValue('7')
+    view.rerender(editor(true, onChange))
+    expect(view.queryByDisplayValue('7')).toBeNull()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.blur(input)
+    view.rerender(editor(false, onChange))
+    expect(addValue().textContent).not.toContain('7')
+    addKey().focus()
+    fireEvent.keyPress(addKey(), { key: 'Enter', charCode: 13 })
+    const key = view.getAllByPlaceholderText('Key').at(-1)!
+    fireEvent.change(key, { target: { value: 'k' } })
+    fireEvent.keyDown(key, { key: 'Enter' })
+    expect(onChange).toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalledWith(expect.objectContaining({ k: 7 }))
+  })
 })

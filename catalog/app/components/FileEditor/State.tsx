@@ -64,23 +64,25 @@ function useWritable(bucket: string, add?: string) {
   const otherBucket = !!pkg && pkg.bucket !== bucket
   const targetPrefs = BucketPreferences.useForBucket(pkg?.bucket ?? '', !otherBucket)
   const prefs = otherBucket ? targetPrefs : viewedPrefs
-  const unlocked =
-    PackageLock.useLockStatus(pkg?.bucket ?? '', pkg?.name ?? '', !pkg) === 'unlocked'
+  const lock = PackageLock.useLockStatus(pkg?.bucket ?? '', pkg?.name ?? '', !pkg)
   // A target with no lock to check, unparseable or pathless, must not pass as no target.
-  if (pkg === undefined || (pkg && !pkg.path)) return false
-  if (!pkg) return true
+  if (pkg === undefined || (pkg && !pkg.path)) return { lock, writable: false }
+  if (!pkg) return { lock, writable: true }
   const allowed = BucketPreferences.Result.match(
     { Ok: ({ ui: { actions } }) => actions.writeFile, _: () => false },
     prefs,
   )
-  return unlocked && allowed
+  return { lock, writable: lock === 'unlocked' && allowed }
 }
 
 export const LOCKED_OUT = "This package was locked; your changes can't be saved."
+const CANT_SAVE = "This file can't be saved right now."
 
 export interface EditorState {
   editing: EditorInputType | null
   error: Error | null
+  // Why an editor the URL asked for is not open yet.
+  requested: 'loading' | 'locked' | null
   onCancel: () => void
   onChange: (value: string) => void
   onEdit: (type: EditorInputType | null) => void
@@ -98,7 +100,10 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   const types = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
   const { add, edit } = parseSearch(location.search, true)
-  const writable = useWritable(handle.bucket, add)
+  const { lock, writable } = useWritable(handle.bucket, add)
+  // Read again after the revision check: the lock can land while it is in flight.
+  const current = React.useRef({ lock, writable })
+  current.current = { lock, writable }
   const [error, setError] = React.useState<Error | null>(null)
   const [value, setValue] = React.useState<string | undefined>()
   const [editingState, setEditingState] = React.useState<EditorInputType | null>(
@@ -114,11 +119,12 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   // The URL's editor opens on its first writable render, not after an effect.
   if (writable && editingState && !opened) setOpened(true)
   const editing = writable || opened ? editingState : null
-  const lockedOut = !!editing && !writable
+  const lockedOut = !!editing && lock === 'locked'
   const shownError = React.useMemo(
     () => (lockedOut ? new Error(LOCKED_OUT) : error),
     [lockedOut, error],
   )
+  const requested = !!edit && !editing && lock !== 'unlocked' ? lock : null
   const [preview, setPreview] = React.useState<boolean>(false)
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
@@ -131,7 +137,10 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
     setSaving(true)
     try {
       setError(null)
-      const h = await writeFile(value || '')
+      const h = await writeFile(value || '', () => {
+        if (current.current.writable) return
+        throw new Error(current.current.lock === 'locked' ? LOCKED_OUT : CANT_SAVE)
+      })
       setEditing(null)
       setSaving(false)
       redirect(h)
@@ -150,6 +159,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
     () => ({
       editing,
       error: shownError,
+      requested,
       onCancel,
       onChange: setValue,
       onEdit: setEditing,
@@ -164,6 +174,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
     [
       editing,
       shownError,
+      requested,
       onCancel,
       onSave,
       preview,

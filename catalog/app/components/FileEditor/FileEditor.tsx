@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import PreviewDisplay from 'components/Preview/Display'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
@@ -10,7 +11,7 @@ import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 
 import Skeleton from './Skeleton'
-import { EditorState } from './State'
+import { EditorState, LOCKED_OUT } from './State'
 import TextEditor from './TextEditor'
 import QuiltConfigEditor from './QuiltConfigEditor'
 import { loadMode } from './loader'
@@ -136,5 +137,15 @@ export function Editor(props: EditorProps) {
         )}
       </React.Suspense>
     </ErrorBoundary>
+  )
+}
+
+// In place of an editor the URL asked for that cannot open yet.
+export function Requested({ requested }: { requested: 'loading' | 'locked' }) {
+  if (requested === 'loading') return <Skeleton />
+  return (
+    <Lab.Alert role="status" severity="info" icon={<M.Icon>lock</M.Icon>}>
+      {LOCKED_OUT}
+    </Lab.Alert>
   )
 }

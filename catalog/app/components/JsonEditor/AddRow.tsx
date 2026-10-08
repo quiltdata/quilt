@@ -78,6 +78,7 @@ const emptyValueProps = {
 interface AddRowProps {
   columnPath: JSONPointer.Path
   contextMenuPath: JSONPointer.Path
+  disabled?: boolean
   onAdd: (path: JSONPointer.Path, key: string, value: JsonValue) => void
   onContextMenu: (path: JSONPointer.Path) => void
   onExpand: (path: JSONPointer.Path) => void
@@ -86,6 +87,7 @@ interface AddRowProps {
 export default function AddRow({
   columnPath,
   contextMenuPath,
+  disabled,
   onAdd,
   onContextMenu,
   onExpand,
@@ -93,13 +95,16 @@ export default function AddRow({
   const classes = useStyles()
 
   const [value, setValue] = React.useState('')
+  React.useEffect(() => {
+    if (disabled) setValue('')
+  }, [disabled])
 
   const onChangeKey = React.useCallback(
     (_1, _2, key) => {
-      if (!key) return
+      if (!key || disabled) return
       onAdd(columnPath, key, value)
     },
-    [columnPath, value, onAdd],
+    [columnPath, disabled, value, onAdd],
   )
 
   const onChangeValue = React.useCallback(
@@ -120,6 +125,7 @@ export default function AddRow({
             ...emptyKeyProps,
             columnPath,
             contextMenuPath,
+            disabled,
             editing: false,
             onContextMenu,
             onExpand,
@@ -135,6 +141,7 @@ export default function AddRow({
             ...emptyValueProps,
             columnPath,
             contextMenuPath,
+            disabled,
             editing: false,
             onContextMenu,
             onExpand,

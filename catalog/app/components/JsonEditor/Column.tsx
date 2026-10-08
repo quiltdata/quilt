@@ -261,6 +261,7 @@ export default function Column({
                 {...{
                   columnPath,
                   contextMenuPath,
+                  disabled,
                   key: `add_row_${rows.length}`,
                   onAdd: onAddRowInternal,
                   onContextMenu,

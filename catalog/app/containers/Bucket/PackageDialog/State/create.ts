@@ -39,7 +39,7 @@ function invalidInput(errors: ReadonlyArray<InputError>): FormStatus {
   return Err(error, fields)
 }
 
-function useCreate() {
+function useCreate(canPush: () => boolean) {
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const uploads = Uploads.useUploads()
 
@@ -49,6 +49,7 @@ function useCreate() {
         // `await` inside the `try` so rejections are caught, not just the
         // synchronous throws.
         return await uploads.upload({
+          canStart: canPush,
           files,
           bucket: bucket,
           getCanonicalKey: (path) => {
@@ -59,11 +60,12 @@ function useCreate() {
           },
         })
       } catch (e) {
+        if (e instanceof Error && e.message === Uploads.PUSH_STOPPED) throw e
         Log.error(e)
         throw new Error('Error uploading files')
       }
     },
-    [uploads],
+    [canPush, uploads],
   )
 
   return {
@@ -110,6 +112,8 @@ function useCreate() {
           }))
           .sort(({ logicalKey: a }, { logicalKey: b }) => a.localeCompare(b))
 
+        if (!canPush()) return Err(new Error(Uploads.PUSH_STOPPED))
+
         // Only the request itself is guarded: an exception here is an unexpected
         // runtime failure, while a rejected write comes back as a typed response
         // below. Collapsing the two loses the per-field errors.
@@ -147,7 +151,7 @@ function useCreate() {
             assertNever(r)
         }
       },
-      [constructPackage, upload],
+      [canPush, constructPackage, upload],
     ),
     progress: uploads.progress,
   }
@@ -161,12 +165,13 @@ export function useCreateHandler(
   params: FormParams,
   files: FilesState,
   setFormStatus: React.Dispatch<React.SetStateAction<FormStatus>>,
+  canPush: () => boolean = () => true,
 ): {
   create: CreateHandler
   progress: Uploads.UploadTotalProgress
   onAddReadme: ReadmeHandler
 } {
-  const { create: createPackage, progress } = useCreate()
+  const { create: createPackage, progress } = useCreate(canPush)
 
   const create = React.useCallback(
     async (whenNoFiles?: 'allow' | 'add-readme') => {

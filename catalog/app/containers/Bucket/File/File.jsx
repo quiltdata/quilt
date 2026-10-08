@@ -505,7 +505,10 @@ function File() {
                     },
                     prefs,
                   )}
-                  {editorState.editing ? (
+                  {editorState.requested && (
+                    <FileEditor.Requested requested={editorState.requested} />
+                  )}
+                  {editorState.editing && (
                     <FileEditorSection
                       onPreview={editorState.onPreview}
                       preview={editorState.preview}
@@ -517,7 +520,8 @@ function File() {
                         empty={deleted}
                       />
                     </FileEditorSection>
-                  ) : (
+                  )}
+                  {editorState.requested !== 'loading' && !editorState.editing && (
                     <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                       <div className={classes.preview}>
                         {/* A preview that can't load is the most routine failure on
@@ -548,7 +552,10 @@ function File() {
                 </>
               ),
               _: () =>
-                editorState.editing ? (
+                // eslint-disable-next-line no-nested-ternary
+                editorState.requested ? (
+                  <FileEditor.Requested requested={editorState.requested} />
+                ) : editorState.editing ? (
                   <FileEditorSection
                     onPreview={editorState.onPreview}
                     preview={editorState.preview}

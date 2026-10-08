@@ -103,7 +103,7 @@ vi.mock('../FallbackToDir', () => ({
   default: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
 }))
 
-const editor = vi.hoisted(() => ({ writable: true }))
+const editor = vi.hoisted(() => ({ writable: true, requested: null as string | null }))
 const prefsActions = vi.hoisted(() => ({ writeFile: false }))
 
 vi.mock('components/FileEditor', () => ({
@@ -112,8 +112,12 @@ vi.mock('components/FileEditor', () => ({
     onEdit: vi.fn(),
     onSave: vi.fn(),
     writable: editor.writable,
+    requested: editor.requested,
   }),
   Editor: () => <div data-testid="editor" />,
+  Requested: ({ requested }: { requested: string }) => (
+    <div data-testid={`requested-${requested}`} />
+  ),
   Controls: () => null,
   AddFileButton: () => <button>Create file</button>,
 }))
@@ -310,6 +314,32 @@ describe('containers/Bucket/File containment', () => {
     it('offers no create button that the editor would refuse', () => {
       editor.writable = false
       expect(renderFile().queryByText('Create file')).toBeNull()
+    })
+  })
+
+  describe('an editor the URL asked for', () => {
+    afterEach(() => {
+      editor.requested = null
+    })
+
+    it('shows the locked notice in place of the preview', () => {
+      editor.requested = 'locked'
+      const view = renderFile()
+      expect(view.getByTestId('requested-locked')).toBeTruthy()
+      expect(view.getByTestId('preview-body')).toBeTruthy()
+    })
+
+    it('shows the editor loading state while the lock loads', () => {
+      editor.requested = 'loading'
+      const view = renderFile()
+      expect(view.getByTestId('requested-loading')).toBeTruthy()
+      expect(view.queryByTestId('preview-body')).toBeNull()
+    })
+
+    it('shows the locked notice for a missing object', () => {
+      editor.requested = 'locked'
+      headResult.mockReturnValue(AsyncResult.Ok(requests.ObjectExistence.DoesNotExist()))
+      expect(renderFile().getByTestId('requested-locked')).toBeTruthy()
     })
   })
 })

@@ -2,12 +2,18 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as GQL from 'utils/GraphQL'
+import type * as PackageLock from 'utils/PackageLock'
 
 import DELETE_REVISION from '../PackageTree/gql/DeleteRevision.generated'
 
 // Deletes one at a time and stops at the first failure, so a partial failure
 // leaves the survivors selected.
-export function useBulkDelete(bucket: string, name: string, writable: boolean) {
+const notDeleting = (lock: PackageLock.Status) =>
+  lock === 'loading'
+    ? 'Still checking whether this package is locked'
+    : 'The package is locked'
+
+export function useBulkDelete(bucket: string, name: string, lock: PackageLock.Status) {
   const deleteRevision = GQL.useMutation(DELETE_REVISION)
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
   const [state, setState] = React.useState({
@@ -41,14 +47,14 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
   )
 
   // Read per deletion: the lock or the page can change while earlier ones are in flight.
-  const current = React.useRef({ writable })
-  current.current = { writable }
+  const current = React.useRef({ lock })
+  current.current = { lock }
 
   const run = React.useCallback(async () => {
-    if (!current.current.writable) {
+    if (current.current.lock !== 'unlocked') {
       setState(
         R.mergeLeft({
-          error: 'The package is locked; no revisions were deleted',
+          error: `${notDeleting(current.current.lock)}; no revisions were deleted`,
           opened: true,
         }),
       )
@@ -62,9 +68,9 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
     for (const hash of selected) {
       // Another package's page owns the selection and dialog now.
       if (!samePackage()) return
-      if (!current.current.writable) {
+      if (current.current.lock !== 'unlocked') {
         const n = selected.size - done.size
-        error = `The package is locked; ${n} ${n === 1 ? 'revision was' : 'revisions were'} not deleted`
+        error = `${notDeleting(current.current.lock)}; ${n} ${n === 1 ? 'revision was' : 'revisions were'} not deleted`
         break
       }
       try {
