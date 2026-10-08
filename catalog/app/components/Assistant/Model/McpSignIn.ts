@@ -25,6 +25,7 @@ export type SignInFailure =
   | 'serverTrouble'
   | 'timedOut'
   | 'waitTimedOut'
+  | 'unsupported'
   | 'failed'
 
 /** The registry's start and finish error codes, by the reason they map to. */
@@ -110,6 +111,10 @@ interface CallbackMessage {
  * `popup.closed` can be relied on. The exchange happens here, under the catalog
  * session, so a code cannot be bound to whoever started the flow. The code and
  * state are never logged or reported.
+ *
+ * The channel exposes the code to any same-origin listener. Only this tab holds
+ * the matching `state` and the session to finish with, but this design does not
+ * defend against compromised script running on the catalog's origin.
  */
 export function signIn({
   slug,
@@ -127,9 +132,21 @@ export function signIn({
     return Promise.resolve({ ok: false, reason: 'failed', error: 'InvalidRegistryUrl' })
   }
   if (signal?.aborted) return Promise.resolve({ ok: false, reason: 'closed' })
+  // Opened before the popup: without it the answer can never arrive, so the
+  // user should not be sent to the provider at all.
+  let channel: Channel | null
+  try {
+    channel = openChannel()
+  } catch {
+    channel = null
+  }
+  if (!channel) return Promise.resolve({ ok: false, reason: 'unsupported' })
   // Unique per flow, so two tabs never share one sign-in window.
   const popup = win.open('', `quilt-mcp-oauth-${uuid.v4()}`, POPUP_FEATURES)
-  if (!popup) return Promise.resolve({ ok: false, reason: 'blocked' })
+  if (!popup) {
+    channel.close()
+    return Promise.resolve({ ok: false, reason: 'blocked' })
+  }
   const base = `${registryUrl}/api/mcp/${encodeURIComponent(slug)}/oauth`
 
   const post = async (path: string, body?: object) => {
@@ -169,14 +186,11 @@ export function signIn({
     let answered = false
     let waiting = false
     let expectedState: string | null = null
-    const channel = openChannel()
     const settle = (result: SignInResult) => {
       if (done) return
       done = true
-      if (channel) {
-        channel.onmessage = null
-        channel.close()
-      }
+      channel.onmessage = null
+      channel.close()
       win.clearInterval(poll)
       win.clearTimeout(cap)
       signal?.removeEventListener('abort', onAbort)
@@ -224,7 +238,7 @@ export function signIn({
         .catch((e) => settle(failed(e)))
     }
     // The only answer path: a window message carries no proof of who sent it.
-    if (channel) channel.onmessage = (event) => onAnswer(event.data ?? {})
+    channel.onmessage = (event) => onAnswer(event.data ?? {})
     signal?.addEventListener('abort', onAbort)
     const poll = win.setInterval(() => {
       if (!waiting && popup.closed) {
@@ -322,6 +336,7 @@ const FAILURE: Record<SignInFailure, (title: string) => string> = {
   timedOut: (t) => `Connecting ${t} timed out, try again.`,
   waitTimedOut: (t) =>
     `${t} sign-in took too long, so Quilt stopped waiting. Connect again.`,
+  unsupported: () => "This browser can't finish sign-in here; try another browser.",
   failed: (t) => `Couldn't connect ${t}, try again.`,
 }
 

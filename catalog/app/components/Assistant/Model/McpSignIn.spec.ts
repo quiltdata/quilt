@@ -28,7 +28,7 @@ vi.mock('utils/Effect', async () => {
 })
 
 import * as Connectors from './Connectors'
-import { signIn, useMcpSignIn } from './McpSignIn'
+import { signIn, signInMessage, useMcpSignIn } from './McpSignIn'
 
 const REGISTRY = 'https://registry.test'
 const CODE = 'secret-auth-code'
@@ -292,6 +292,68 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     ).resolves.toEqual({ ok: false, reason: 'closed' })
     expect(win.open).not.toHaveBeenCalled()
     expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing', () => null],
+    [
+      'throwing',
+      () => {
+        throw new Error('denied')
+      },
+    ],
+  ])(
+    'a %s BroadcastChannel fails as unsupported before any window opens',
+    async (_k, openChannel) => {
+      const { win } = fakeWindow()
+      const fetch = registry()
+      await expect(
+        start(win, fetch, { openChannel: openChannel as any }),
+      ).resolves.toEqual({
+        ok: false,
+        reason: 'unsupported',
+      })
+      expect(win.open).not.toHaveBeenCalled()
+      expect(fetch).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    ['missing', undefined],
+    [
+      'throwing',
+      class {
+        constructor() {
+          throw new Error('SecurityError')
+        }
+      },
+    ],
+  ])(
+    'the default channel, when the global is %s, fails as unsupported',
+    async (_k, impl) => {
+      vi.stubGlobal('BroadcastChannel', impl)
+      try {
+        const { win } = fakeWindow()
+        await expect(
+          signIn({
+            slug: 'slack',
+            registryUrl: REGISTRY,
+            getToken: async () => 't',
+            win,
+            fetch: registry(),
+          }),
+        ).resolves.toEqual({ ok: false, reason: 'unsupported' })
+        expect(win.open).not.toHaveBeenCalled()
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    },
+  )
+
+  it('says an unsupported browser cannot finish sign-in', () => {
+    expect(signInMessage({ ok: false, reason: 'unsupported' }, 'Slack')).toBe(
+      "This browser can't finish sign-in here; try another browser.",
+    )
   })
 
   it('a bad registry URL fails before any window opens', async () => {
