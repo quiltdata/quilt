@@ -42,7 +42,7 @@ export function Notice({ lock, onUnlock }: NoticeProps) {
         <Lab.AlertTitle>Locked</Lab.AlertTitle>
         {lock.lockedBy} locked this package at revision{' '}
         <Code>{shortenRevision(lock.hash)}</Code> on{' '}
-        {dateFns.format(lock.lockedAt, 'MMMM do yyyy, HH:mm')}. Quilt refuses new
+        {dateFns.format(lock.lockedAt, 'MMMM do yyyy, HH:mm O')}. Quilt refuses new
         revisions and deletions until an admin unlocks it.
         {lock.reason && <M.Box mt={0.5}>Reason: {lock.reason}</M.Box>}
       </Lab.Alert>

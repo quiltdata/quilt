@@ -190,6 +190,16 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
       expect(result.current.params._tag).toBe('invalid')
     })
 
+    it('keeps an empty name idle, not checking', () => {
+      debounced = 'team/x'
+      const { result } = mount('')
+      expect(result.current.name.status._tag).toBe('idle')
+      expect(result.current.params).toEqual({
+        _tag: 'invalid',
+        error: new Error('Valid name required'),
+      })
+    })
+
     it("does not wait on the debounce for the source's own name", () => {
       debounced = 'team/d'
       const { result } = mount('team/d')

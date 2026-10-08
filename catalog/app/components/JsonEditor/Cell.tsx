@@ -71,8 +71,10 @@ export default function Cell({
 
   // A disabled editor shows the document, dropping any edit still in progress.
   React.useEffect(() => {
-    if (disabled) setEditing(false)
-  }, [disabled])
+    if (!disabled) return
+    setEditing(false)
+    setValue(initialValue)
+  }, [disabled, initialValue])
   const editing = editingState && !disabled
   const value = disabled ? initialValue : localValue
 
