@@ -55,14 +55,28 @@ export function useMeta(
   React.useEffect(() => {
     if (form._tag === 'submitting') setSubmittedAt(edits)
   }, [form]) // eslint-disable-line react-hooks/exhaustive-deps
+  // a new schema judges the metadata afresh, as an edit would (keyed by content:
+  // callers may pass a fresh status object every render)
+  const schemaKey =
+    schema._tag === 'ready' ? JSON.stringify(schema.schema ?? null) : schema._tag
+  const lastSchemaKey = React.useRef(schemaKey)
+  React.useEffect(() => {
+    if (lastSchemaKey.current === schemaKey) return
+    lastSchemaKey.current = schemaKey
+    setEdits((n) => n + 1)
+  }, [schemaKey])
   const onChange = React.useCallback((m: Types.JsonRecord) => {
     setMeta(m)
     setEdits((n) => n + 1)
   }, [])
   const value = React.useMemo(() => meta || getMetaFallback(manifest), [manifest, meta])
   // submit drops blank keys (getMetaValue), so validation must not count them
+  // an array or other non-object root is passed through so validation rejects it
   const submitted = React.useMemo(
-    () => value && Object.fromEntries(Object.entries(value).filter(([k]) => k.trim())),
+    () =>
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.entries(value).filter(([k]) => k.trim()))
+        : value,
     [value],
   )
 
@@ -77,10 +91,12 @@ export function useMeta(
   // any file is uploaded.
   // a loading schema is not a metadata error; params holds the submit until it is ready
   const settled = schema._tag === 'ready' || schema._tag === 'error'
-  const guidedErrors = React.useMemo(
-    () => (guided && settled ? (validate(submitted || {}) ?? []) : []),
-    [guided, settled, submitted, validate],
-  )
+  const guidedErrors = React.useMemo(() => {
+    if (!guided || !settled) return []
+    if (Array.isArray(submitted))
+      return [new Error('Metadata must be a valid JSON object')]
+    return validate(submitted || {}) ?? []
+  }, [guided, settled, submitted, validate])
   const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
   // mkSubmitValidator's rule, reusing the full pass above: format-only failures do not block
   const validateBlind = React.useMemo(
@@ -92,7 +108,9 @@ export function useMeta(
   )
   const blockingErrors = React.useMemo(() => {
     if (!guidedErrors.length) return []
-    return validateBlind ? (validateBlind(submitted || {}) ?? []) : guidedErrors
+    // a non-object root is not a format question; the blind pass would let an array through
+    if (Array.isArray(submitted) || !validateBlind) return guidedErrors
+    return validateBlind(submitted || {}) ?? []
   }, [guidedErrors, validateBlind, submitted])
 
   const status: MetaStatus = React.useMemo(() => {

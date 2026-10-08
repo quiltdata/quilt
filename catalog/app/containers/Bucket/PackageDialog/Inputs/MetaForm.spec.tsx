@@ -338,6 +338,26 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     expect(screen.getByText(/Too large to store exactly/)).toBeTruthy()
   })
 
+  it('shows an impossible stored date as text instead of crashing', () => {
+    const dated = {
+      type: 'object',
+      properties: { when: { title: 'When', type: 'string', format: 'date' } },
+    }
+    render(
+      <MetaForm
+        disabled={false}
+        errors={[]}
+        onChange={() => {}}
+        onShowTable={() => {}}
+        onUseSuggestion={onUse}
+        schema={dated}
+        value={{ when: '2026-13-01' }}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: /When/ }) as HTMLInputElement
+    expect(input.value).toBe('2026-13-01')
+  })
+
   it.each([
     ['integer', '9007199254740993.0'],
     ['integer', '9007199254740993e0'],

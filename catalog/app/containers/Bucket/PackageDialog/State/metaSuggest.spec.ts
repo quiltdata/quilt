@@ -83,6 +83,12 @@ describe('containers/Bucket/PackageDialog/State/metaSuggest', () => {
 
     it('skips empty values', () => {
       expect(parseSuggestions('{"project": {"value": ""}}', schema)).toEqual({})
+      expect(
+        parseSuggestions('{"project": {"value": 12345678901234567891}}', {
+          type: 'object',
+          properties: { project: {} },
+        }),
+      ).toEqual({})
     })
   })
 

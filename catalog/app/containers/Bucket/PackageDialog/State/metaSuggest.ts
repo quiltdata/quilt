@@ -97,6 +97,17 @@ export function buildPrompt({
   ].join('\n\n')
 }
 
+/** A number JSON keeps as typed: finite, and an integer only if within the safe range. */
+export const isExactNumber = (n: number) =>
+  Number.isFinite(n) && (!Number.isInteger(n) || Number.isSafeInteger(n))
+
+export const allExact = (v: unknown): boolean =>
+  typeof v === 'number'
+    ? isExactNumber(v)
+    : v !== null && typeof v === 'object'
+      ? Object.values(v).every(allExact)
+      : true
+
 /** The first top-level `{...}` in `text` that parses as JSON, ignoring prose around it. */
 export function firstJsonObject(text: string): unknown {
   let end = -1
@@ -168,6 +179,8 @@ export function parseSuggestions(
     if (!entry || typeof entry !== 'object' || !('value' in entry)) continue
     const v = entry.value
     if (v === null || v === undefined || v === '') continue
+    // JSON.parse already rounded it: an ID past 2^53 would be suggested wrong
+    if (!allExact(v)) continue
     // the whole schema, so $refs and cross-field rules (if/then, dependencies) apply
     if (adds({ ...value, [key]: v }).length) continue
     out[key] = {
@@ -183,7 +196,7 @@ const ask = (prompt: string) =>
     Eff.Effect.andThen((llm) =>
       llm.converse(
         { system: SYSTEM, messages: [LLM.userMessage(Content.text(prompt))] },
-        { inferenceConfig: { maxTokens: 800 } },
+        { inferenceConfig: { maxTokens: 1500 } },
       ),
     ),
     Eff.Effect.map(({ content }) =>
@@ -315,6 +328,12 @@ export function useMetaSuggestions({
       }
       if (generation.current !== mine) return
       if (text === null) throw lastError
+      // a cut-off or prose-only reply is not "no clear values"
+      if (firstJsonObject(text) === undefined) {
+        throw new SuggestError(
+          'The model did not return readable suggestions. Try again.',
+        )
+      }
       setState({
         _tag: 'ready',
         suggestions: parseSuggestions(text, schema, value, validate ?? undefined),

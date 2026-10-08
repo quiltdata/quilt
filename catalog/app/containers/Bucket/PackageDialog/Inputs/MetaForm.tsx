@@ -9,20 +9,10 @@ import type * as Types from 'utils/types'
 
 import { fieldMessage, hasValue, isFilled, pointer } from '../State/metaGuide'
 import { NEW_FIELD } from '../State/meta'
+import { allExact, isExactNumber } from '../State/metaSuggest'
 import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
-
-/** A number JSON keeps as typed: finite, and an integer only if within the safe range. */
-const isExactNumber = (n: number) =>
-  Number.isFinite(n) && (!Number.isInteger(n) || Number.isSafeInteger(n))
-
-const allExact = (v: unknown): boolean =>
-  typeof v === 'number'
-    ? isExactNumber(v)
-    : v !== null && typeof v === 'object'
-      ? Object.values(v).every(allExact)
-      : true
 
 const COMPOSED = ['anyOf', 'oneOf', 'allOf', 'not', '$ref', 'if'] as const
 
@@ -75,8 +65,11 @@ let fieldIds = 0
 const NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 /** What a date input can show: a real calendar day ("2026-02-30" displays as empty). */
-const isCalendarDate = (s: string) =>
-  DATE.test(s) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s
+const isCalendarDate = (s: string) => {
+  if (!DATE.test(s)) return false
+  const d = new Date(`${s}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+}
 
 const useFieldStyles = M.makeStyles((t) => ({
   root: {

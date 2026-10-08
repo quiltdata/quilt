@@ -722,6 +722,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     setView(v)
   }
   const [locked, setLocked] = React.useState(false)
+  // an import replaces the metadata when it finishes, so nothing else edits it meanwhile
+  const editLocked = disabled || locked
 
   // used to force json editor re-initialization
   const [jsonInlineEditorKey, setJsonInlineEditorKey] = React.useState(1)
@@ -742,11 +744,16 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
       setPending?.(IMPORT, true)
       readFile(file, schema)
         .then((contents) => {
+          // guided metadata is one object; an array would be pushed with "0", "1"… keys
+          const apply = (m: any) =>
+            guided && (!m || typeof m !== 'object' || Array.isArray(m))
+              ? notify('The file must hold one JSON object, not a list or a value')
+              : onChange(m)
           if (typeof contents === 'object') {
-            onChange(contents)
+            apply(contents)
           } else {
             try {
-              onChange(JSON.parse(contents as string))
+              apply(JSON.parse(contents as string))
             } catch (e) {
               notify('The file does not contain valid JSON')
             }
@@ -773,6 +780,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
       schema,
       setLocked,
       setPending,
+      guided,
       onChange,
       setJsonInlineEditorKey,
       setJsonFullscreenEditorKey,
@@ -819,7 +827,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           </Lab.ToggleButtonGroup>
           <div className={classes.toolbarActions}>
             <M.Button
-              disabled={disabled || locked}
+              disabled={editLocked}
               onClick={openFile}
               size="small"
               startIcon={<M.Icon fontSize="small">upload_file</M.Icon>}
@@ -828,7 +836,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
               Import file
             </M.Button>
             <M.Button
-              disabled={disabled}
+              disabled={editLocked}
               onClick={openEditor}
               size="small"
               startIcon={<M.Icon fontSize="small">open_in_full</M.Icon>}
@@ -848,7 +856,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           </M.Typography>
           <M.Button
             className={classes.jsonTrigger}
-            disabled={disabled}
+            disabled={editLocked}
             onClick={openEditor}
             size="small"
             title="Expand JSON editor"
@@ -875,7 +883,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
 
       {formView && hasForm && (
         <SuggestBar
-          disabled={disabled}
+          disabled={editLocked}
           onRequest={suggestions.request}
           onUseAll={() => {
             if (!suggested) return
@@ -912,7 +920,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             <>
               {hasForm && schema && (
                 <MetaForm
-                  disabled={disabled}
+                  disabled={editLocked}
                   // asterisks and the count already say a field is missing
                   errors={
                     insist
@@ -941,7 +949,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                     ? 'Fields this workflow does not define. Add any that help describe the package.'
                     : 'Name/value pairs stored with this package and searchable in the catalog. Use Table view for nested values.'
                 }
-                disabled={disabled}
+                disabled={editLocked}
                 exclude={hasForm ? Object.keys(schema?.properties || {}) : []}
                 onChange={onChangeForm}
                 setPending={setPending}
@@ -954,7 +962,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           {!formView && (
             <div className={classes.json}>
               <JsonEditor
-                disabled={disabled}
+                disabled={editLocked}
                 errors={errors}
                 key={jsonInlineEditorKey}
                 onChange={onChangeInline}

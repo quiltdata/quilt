@@ -201,6 +201,14 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.touched).toBe(false)
       })
 
+      it('blocks a metadata array instead of pushing it with numeric keys', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready({ meta: [{ s: 'A' }] as any })),
+        )
+        expect(result.current.status._tag).toBe('error')
+      })
+
       it('does not report a loading schema as a metadata error', () => {
         mkMetaValidator.mockReturnValue(() => [new Error('x')])
         const { result } = renderHook(() =>
