@@ -193,15 +193,40 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     await expect(result).resolves.toEqual({ ok: false, reason: 'closed' })
   })
 
-  it('closes the popup and reports the registry error code when start fails', async () => {
+  it.each([
+    [404, 'NotFound', 'notAvailable'],
+    [503, 'NeedsClientCredentials', 'needsClientCredentials'],
+    [503, 'NotAvailable', 'notAvailable'],
+    [429, 'Busy', 'busy'],
+  ])('start %i %s closes the popup as %s', async (status, code, reason) => {
     const { win, popup } = fakeWindow()
-    const fetch = vi.fn(async () => json({ error_code: 'NeedsClientCredentials' }, 503))
+    const fetch = vi.fn(async () => json({ error_code: code }, status))
+    await expect(start(win, fetch as any)).resolves.toEqual({ ok: false, reason })
+    expect(popup.close).toHaveBeenCalled()
+  })
+
+  it.each([
+    [400, 'SignInFailed', 'signInFailed'],
+    [401, 'NeedsSignIn', 'signInFailed'],
+  ])('finish %i %s is reported as %s', async (status, code, reason) => {
+    const { win, post } = fakeWindow()
+    const result = start(
+      win,
+      registry(() => json({ error_code: code }, status)),
+    )
+    await flush()
+    post(callback())
+    await expect(result).resolves.toEqual({ ok: false, reason })
+  })
+
+  it('an unknown code is reported with the code', async () => {
+    const { win } = fakeWindow()
+    const fetch = vi.fn(async () => json({ error_code: 'Weird' }, 500))
     await expect(start(win, fetch as any)).resolves.toEqual({
       ok: false,
       reason: 'failed',
-      error: 'NeedsClientCredentials',
+      error: 'Weird',
     })
-    expect(popup.close).toHaveBeenCalled()
   })
 })
 
@@ -346,6 +371,31 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     })
     expect(result.current.status).toBe('Connected Slack.')
     await Eff.Effect.runPromise(Eff.Scope.close(scope, Eff.Exit.void))
+  })
+
+  it('a popup closed with no message leaves Connect available again', async () => {
+    vi.useFakeTimers()
+    window.fetch = registry() as any
+    const { service } = makeConnectors(failed)
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(result.current.pending).toBe('slack')
+    popup.closed = true
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600)
+    })
+    vi.useRealTimers()
+    await act(async () => {
+      await flush()
+    })
+    expect(result.current.pending).toBeNull()
+    expect(result.current.status).toBe(
+      'The Slack sign-in window was closed before you finished.',
+    )
+    expect(retries).toBe(0)
   })
 
   it('shows SignInFailed without a reconnect, and never reports the code', async () => {

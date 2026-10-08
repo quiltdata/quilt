@@ -145,6 +145,7 @@ export interface AdminMutations {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  /** Runs initialize and tools/list against the server, enabled or not. */
   readonly mcpServerProbe: McpServerProbe
   readonly mcpServerRemove: McpServerRemoveResult
   readonly mcpServerSet: McpServerSetResult
@@ -202,6 +203,7 @@ export interface AdminQueries {
   readonly apiKeys: APIKeyAdminQueries
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
   readonly mcpServers: ReadonlyArray<McpServerAdmin>
+  /** False when the operator has switched MCP servers off for this stack. */
   readonly mcpServersAvailable: Scalars['Boolean']['output']
   readonly packager: PackagerAdminQueries
   readonly quratorAvailableModels: QuratorAvailableModels
@@ -536,6 +538,7 @@ export interface ManagedRoleInput {
   readonly policies: ReadonlyArray<Scalars['ID']['input']>
 }
 
+/** An enabled MCP server, as every signed-in user's Qurator reaches it: through `/api/mcp/<slug>`. */
 export interface McpServer {
   readonly __typename: 'McpServer'
   readonly auth: McpServerAuth
@@ -688,6 +691,7 @@ export interface Mutation {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketUpdate: BucketUpdateResult
+  /** Forget the caller's own sign-in to an MCP server. */
   readonly mcpServerDisconnect: McpServerDisconnectResult
   readonly packageConstruct: PackageConstructResult
   readonly packageDelete: PackageDeleteResult
@@ -1237,6 +1241,7 @@ export interface Query {
   readonly buckets: ReadonlyArray<Bucket>
   readonly config: Config
   readonly defaultRole: Maybe<Role>
+  /** Empty for an anonymous caller, and while the operator has MCP servers switched off. */
   readonly mcpServers: ReadonlyArray<McpServer>
   readonly me: Maybe<Me>
   readonly objectAccessCounts: Maybe<AccessCounts>

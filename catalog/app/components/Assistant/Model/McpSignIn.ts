@@ -11,7 +11,25 @@ import type * as Connectors from './Connectors'
 import MCP_SERVER_DISCONNECT_MUTATION from './gql/McpServerDisconnect.generated'
 import MCP_SERVERS_QUERY from './gql/McpServers.generated'
 
-export type SignInFailure = 'blocked' | 'closed' | 'denied' | 'signInFailed' | 'failed'
+export type SignInFailure =
+  | 'blocked'
+  | 'closed'
+  | 'denied'
+  | 'signInFailed'
+  | 'needsClientCredentials'
+  | 'busy'
+  | 'notAvailable'
+  | 'failed'
+
+/** The registry's start and finish error codes, by the reason they map to. */
+const REASON_BY_CODE: Record<string, SignInFailure> = {
+  SignInFailed: 'signInFailed',
+  NeedsSignIn: 'signInFailed',
+  NeedsClientCredentials: 'needsClientCredentials',
+  Busy: 'busy',
+  NotAvailable: 'notAvailable',
+  NotFound: 'notAvailable',
+}
 
 export type SignInResult =
   | { ok: true }
@@ -94,6 +112,12 @@ export function signIn({
       resolve(result)
     }
     const onAbort = () => settle({ ok: false, reason: 'closed' })
+    const refused = (resp: Response, errorCode?: string): SignInResult => {
+      const reason = (errorCode && REASON_BY_CODE[errorCode]) || 'failed'
+      return reason === 'failed'
+        ? { ok: false, reason, error: errorCode ?? `HTTP ${resp.status}` }
+        : { ok: false, reason }
+    }
     const failed = (e: unknown): SignInResult => ({
       ok: false,
       reason: 'failed',
@@ -126,14 +150,7 @@ export function signIn({
       post('finish', body)
         .then(({ resp, json, errorCode }) => {
           if (resp.ok && json?.ok === true) settle({ ok: true })
-          else if (errorCode === 'SignInFailed')
-            settle({ ok: false, reason: 'signInFailed' })
-          else
-            settle({
-              ok: false,
-              reason: 'failed',
-              error: errorCode ?? `HTTP ${resp.status}`,
-            })
+          else settle(refused(resp, errorCode))
         })
         .catch((e) => settle(failed(e)))
     }
@@ -147,11 +164,7 @@ export function signIn({
     post('start')
       .then(({ resp, json, errorCode }) => {
         if (!resp.ok || typeof json?.authorizeUrl !== 'string') {
-          settle({
-            ok: false,
-            reason: 'failed',
-            error: errorCode ?? `HTTP ${resp.status}`,
-          })
+          settle(refused(resp, errorCode))
           return
         }
         // The blank popup shares this origin, so a `javascript:` URL from a
@@ -205,6 +218,10 @@ const FAILURE: Record<SignInFailure, (title: string) => string> = {
   closed: (t) => `The ${t} sign-in window was closed before you finished.`,
   denied: (t) => `${t} sign-in was declined.`,
   signInFailed: (t) => `${t} sign-in failed, try again.`,
+  needsClientCredentials: (t) =>
+    `Couldn't connect ${t}: an admin must add this service's client credentials.`,
+  busy: (t) => `Couldn't connect ${t} right now. Try again in a moment.`,
+  notAvailable: (t) => `${t} isn't available to sign in to on this stack.`,
   failed: (t) => `Couldn't connect ${t}.`,
 }
 

@@ -724,6 +724,7 @@ enum McpServerAuth {
   OAUTH
 }
 
+"An enabled MCP server, as every signed-in user's Qurator reaches it: through `/api/mcp/<slug>`."
 type McpServer {
   slug: ID!
   title: String!
@@ -803,7 +804,7 @@ type AdminQueries {
   packager: PackagerAdminQueries!
   apiKeys: APIKeyAdminQueries!
   mcpServers: [McpServerAdmin!]!
-  # The stack's QuratorMcpServers switch, so the admin card can say why it is off.
+  "False when the operator has switched MCP servers off for this stack."
   mcpServersAvailable: Boolean!
 }
 
@@ -853,7 +854,7 @@ type Query {
   bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
   objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
 
-  # Enabled servers; [] for anonymous callers and when the stack switch is off.
+  "Empty for an anonymous caller, and while the operator has MCP servers switched off."
   mcpServers: [McpServer!]!
 
   admin: AdminQueries! @admin
@@ -1290,6 +1291,7 @@ type AdminMutations {
   apiKeys: APIKeyAdminMutations!
   mcpServerSet(slug: ID!, input: McpServerInput!): McpServerSetResult!
   mcpServerRemove(slug: ID!): McpServerRemoveResult!
+  "Runs initialize and tools/list against the server, enabled or not."
   mcpServerProbe(slug: ID!): McpServerProbe!
   mcpServerSignOutAll(slug: ID!): McpServerDisconnectResult!
 }
@@ -1316,6 +1318,7 @@ type Mutation {
   ): PackageRevisionDeleteResult!
   packageDelete(bucket: String!, name: String!): PackageDeleteResult!
 
+  "Forget the caller's own sign-in to an MCP server."
   mcpServerDisconnect(slug: ID!): McpServerDisconnectResult!
 
   admin: AdminMutations! @admin
