@@ -40,6 +40,7 @@ interface CellProps {
   column: RTable.Column<{ id: 'key' | 'value' }>
   columnPath: JSONPointer.Path
   contextMenuPath: JSONPointer.Path
+  disabled?: boolean
   editing: boolean
   onContextMenu: (path: JSONPointer.Path) => void
   onExpand: (path: JSONPointer.Path) => void
@@ -53,6 +54,7 @@ export default function Cell({
   column,
   columnPath,
   contextMenuPath,
+  disabled,
   editing: editingInitial,
   onContextMenu,
   onExpand,
@@ -63,9 +65,16 @@ export default function Cell({
 }: CellProps) {
   const classes = useStyles()
 
-  const [value, setValue] = React.useState(initialValue)
+  const [localValue, setValue] = React.useState(initialValue)
 
-  const [editing, setEditing] = React.useState(editingInitial)
+  const [editingState, setEditing] = React.useState(editingInitial)
+
+  // A disabled editor shows the document, dropping any edit still in progress.
+  React.useEffect(() => {
+    if (disabled) setEditing(false)
+  }, [disabled])
+  const editing = editingState && !disabled
+  const value = disabled ? initialValue : localValue
 
   const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
@@ -73,11 +82,12 @@ export default function Cell({
 
   const onChange = React.useCallback(
     (newValue) => {
+      if (disabled) return
       setValue(newValue)
       updateMyData(fieldPath, column.id as 'key' | 'value', newValue)
       setEditing(false)
     },
-    [column.id, fieldPath, updateMyData],
+    [column.id, disabled, fieldPath, updateMyData],
   )
 
   const isKeyCell = column.id === COLUMN_IDS.KEY
@@ -87,8 +97,8 @@ export default function Cell({
     const isPathDefinedInSchema =
       row.original.valueSchema &&
       R.last(row.original.address) !== JSON_POINTER_PLACEHOLDER
-    return !(isKeyCell && isPathDefinedInSchema)
-  }, [isKeyCell, row.original])
+    return !disabled && !(isKeyCell && isPathDefinedInSchema)
+  }, [disabled, isKeyCell, row.original])
 
   const isEnumCell = React.useMemo(
     () => isValueCell && isSchemaEnum(row.original.valueSchema),

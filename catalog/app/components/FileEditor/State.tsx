@@ -51,9 +51,9 @@ function useRedirect() {
 }
 
 // A plain bucket file is always writable here. A file added to a package is writable
-// when bucket preferences allow it and the package is known unlocked.
-function useWritable(add?: string) {
-  const { prefs } = BucketPreferences.use()
+// when the package's bucket preferences allow it and the package is known unlocked.
+function useWritable(bucket: string, add?: string) {
+  const { prefs: viewedPrefs } = BucketPreferences.use()
   const pkg = React.useMemo(() => {
     try {
       return add ? PackageUri.parse(add) : null
@@ -61,6 +61,9 @@ function useWritable(add?: string) {
       return undefined
     }
   }, [add])
+  const otherBucket = !!pkg && pkg.bucket !== bucket
+  const targetPrefs = BucketPreferences.useForBucket(pkg?.bucket ?? '', !otherBucket)
+  const prefs = otherBucket ? targetPrefs : viewedPrefs
   const unlocked =
     PackageLock.useLockStatus(pkg?.bucket ?? '', pkg?.name ?? '', !pkg) === 'unlocked'
   // A target with no lock to check, unparseable or pathless, must not pass as no target.
@@ -95,7 +98,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   const types = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
   const { add, edit } = parseSearch(location.search, true)
-  const writable = useWritable(add)
+  const writable = useWritable(handle.bucket, add)
   const [error, setError] = React.useState<Error | null>(null)
   const [value, setValue] = React.useState<string | undefined>()
   const [editingState, setEditingState] = React.useState<EditorInputType | null>(

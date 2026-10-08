@@ -129,6 +129,7 @@ interface ColumnProps {
     items: RowData[]
     parent?: JsonValue
   }
+  disabled?: boolean
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: JSONPointer.Path, key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: JSONPointer.Path) => void
@@ -144,6 +145,7 @@ export default function Column({
   columnPath,
   contextMenuPath,
   data,
+  disabled,
   hasSiblingColumn,
   jsonDict,
   onAddRow,
@@ -230,6 +232,7 @@ export default function Column({
                 cells: row.cells,
                 columnPath,
                 contextMenuPath,
+                disabled,
                 fresh: isLastRow && hasNewRow,
                 onContextMenu,
                 onExpand,

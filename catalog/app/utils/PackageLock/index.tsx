@@ -14,7 +14,6 @@ interface Result {
   data?: { package: { bucket: string; name: string; lock: unknown } | null }
   error?: unknown
   fetching?: boolean
-  stale?: boolean
 }
 
 const currentPackage = ({ data }: Result, bucket: string, name: string) => {

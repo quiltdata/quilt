@@ -11,11 +11,20 @@ vi.mock('constants/config', () => ({ default: {} }))
 vi.mock('utils/PackageLock', () => ({ useLockStatus }))
 
 const actions = { revisePackage: true, writeFile: true }
+const otherActions = { revisePackage: true, writeFile: true }
+const { useForBucket } = vi.hoisted(() => ({ useForBucket: vi.fn() }))
 vi.mock('utils/BucketPreferences', async () => {
   const BP = await vi.importActual<typeof import('utils/BucketPreferences')>(
     'utils/BucketPreferences',
   )
-  return { ...BP, use: () => ({ prefs: BP.Result.Ok({ ui: { actions } } as never) }) }
+  useForBucket.mockImplementation(() =>
+    BP.Result.Ok({ ui: { actions: otherActions } } as never),
+  )
+  return {
+    ...BP,
+    use: () => ({ prefs: BP.Result.Ok({ ui: { actions } } as never) }),
+    useForBucket,
+  }
 })
 const { writeFile } = vi.hoisted(() => ({ writeFile: vi.fn() }))
 vi.mock('./loader', () => ({
@@ -81,6 +90,26 @@ describe('components/FileEditor/State', () => {
     actions.revisePackage = true
     expect(result.current.writable).toBe(true)
   })
+
+  it.each([
+    [true, false],
+    [false, true],
+  ])(
+    'decides writeFile from the target bucket (viewed %s, target %s)',
+    (viewed, target) => {
+      useLockStatus.mockReturnValue('unlocked')
+      actions.writeFile = viewed
+      otherActions.writeFile = target
+      const other = PackageUri.stringify({ bucket: 'o', name: 'team/ds', path: 'f.md' })
+      search = `?add=${encodeURIComponent(other)}&edit=true`
+      const { result } = renderHook(() => useState(handle))
+      search = defaultSearch
+      actions.writeFile = true
+      otherActions.writeFile = true
+      expect(result.current.writable).toBe(target)
+      expect(useForBucket).toHaveBeenLastCalledWith('o', false)
+    },
+  )
 
   it('opens the editor once a loading lock turns out unlocked', () => {
     useLockStatus.mockReturnValue('loading')

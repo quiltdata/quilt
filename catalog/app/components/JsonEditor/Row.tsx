@@ -33,6 +33,7 @@ interface RowProps {
   cells: RTable.Cell<RowData>[]
   columnPath: JSONPointer.Path
   contextMenuPath: JSONPointer.Path
+  disabled?: boolean
   fresh: boolean
   onContextMenu: (path: JSONPointer.Path) => void
   onExpand: (path: JSONPointer.Path) => void
@@ -43,6 +44,7 @@ export default function Row({
   cells,
   columnPath,
   contextMenuPath,
+  disabled,
   fresh,
   onContextMenu,
   onExpand,
@@ -65,6 +67,7 @@ export default function Row({
           {cell.render('Cell', {
             columnPath,
             contextMenuPath,
+            disabled,
             editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
             onContextMenu,
             onExpand,
