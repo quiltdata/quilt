@@ -18,6 +18,8 @@ import {
 } from '../State/metaSuggest'
 import type { Suggestions } from '../State/metaSuggest'
 
+import { SuggestFieldRow } from './Suggest'
+
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
 
 const COMPOSED = ['anyOf', 'oneOf', 'allOf', 'not', '$ref', 'if'] as const
@@ -102,48 +104,6 @@ const useFieldStyles = M.makeStyles((t) => ({
       background: t.palette.action.selected,
       color: t.palette.text.primary,
     },
-  },
-  suggestion: {
-    ...t.typography.body2,
-    alignItems: 'center',
-    background: t.palette.background.paper,
-    border: `1px dashed ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
-    color: t.palette.text.primary,
-    cursor: 'pointer',
-    display: 'flex',
-    gap: t.spacing(1),
-    marginTop: t.spacing(0.5),
-    minHeight: 36,
-    padding: t.spacing(0, 0.5, 0, 1.5),
-    textAlign: 'left',
-    transition: 'border-color 150ms ease-out, background-color 150ms ease-out',
-    width: '100%',
-    '&:hover': {
-      background: t.palette.action.hover,
-      borderColor: t.palette.text.secondary,
-    },
-    '&:focus-visible': {
-      outline: `2px solid ${t.palette.primary.main}`,
-      outlineOffset: 2,
-    },
-  },
-  suggestionIcon: {
-    color: t.palette.text.secondary,
-    fontSize: 16,
-  },
-  suggestionValue: {
-    flexGrow: 1,
-    minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  suggestionUse: {
-    ...t.typography.button,
-    color: t.palette.primary.main,
-    fontSize: 12,
-    padding: t.spacing(0.5, 1),
   },
 }))
 
@@ -383,41 +343,18 @@ function Field({
       )
   }
 
-  const showSuggestion =
-    suggestion &&
-    !disabled &&
-    // by value, not text: the string "1" fixes a field where the number 1 is wrong
-    JSON.stringify(suggestion.value) !== JSON.stringify(value)
   return (
     <div className={cx(classes.root, { [classes.wide]: widget === 'complex' })}>
       {input}
-      {showSuggestion && (
-        <button
-          type="button"
-          className={classes.suggestion}
-          onClick={() => {
-            onUseSuggestion(name, suggestion.value)
-            // the button goes away once used; keep focus on the field it filled
-            window.setTimeout(() => document.getElementById(id)?.focus())
-          }}
-          title={
-            suggestion.reason ? `AI suggestion: ${suggestion.reason}` : 'AI suggestion'
-          }
-          aria-label={`Use suggested ${label}: ${display(suggestion.value)}`}
-          aria-describedby={suggestion.reason ? `${id}-reason` : undefined}
-        >
-          {suggestion.reason && (
-            <span id={`${id}-reason`} hidden>
-              {suggestion.reason}
-            </span>
-          )}
-          <M.Icon className={classes.suggestionIcon} aria-hidden>
-            auto_awesome
-          </M.Icon>
-          <span className={classes.suggestionValue}>{display(suggestion.value)}</span>
-          <span className={classes.suggestionUse}>Use</span>
-        </button>
-      )}
+      <SuggestFieldRow
+        disabled={disabled}
+        fieldId={id}
+        label={label}
+        name={name}
+        onUse={onUseSuggestion}
+        suggestion={suggestion}
+        value={value}
+      />
     </div>
   )
 }
@@ -563,7 +500,7 @@ export default function MetaForm({
   return (
     <>
       {!!required.length && (
-        <M.Paper variant="outlined" className={classes.section}>
+        <M.Paper variant="outlined" className={classes.section} data-section="required">
           <div className={classes.sectionHeader}>
             <span className={classes.sectionTitle}>Required</span>
             <span
@@ -590,7 +527,7 @@ export default function MetaForm({
         </M.Paper>
       )}
       {!!optional.length && (
-        <M.Paper variant="outlined" className={classes.section}>
+        <M.Paper variant="outlined" className={classes.section} data-section="optional">
           <div className={classes.sectionHeader}>
             <span className={classes.sectionTitle}>Optional</span>
             <span className={classes.sectionMeta}>{optional.length}</span>
@@ -856,7 +793,7 @@ export function FreeFields({
   }, [draftStuck, setPending])
 
   return (
-    <M.Paper variant="outlined" className={classes.section}>
+    <M.Paper variant="outlined" className={classes.section} data-section="other">
       <div className={classes.sectionHeader}>
         <span className={classes.sectionTitle}>{title}</span>
       </div>

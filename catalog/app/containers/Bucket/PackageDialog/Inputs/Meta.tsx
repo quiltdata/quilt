@@ -25,9 +25,11 @@ import { IMPORT, pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
 import { humanizeError, invalidKeys, requiredFields, topKey } from '../State/metaGuide'
 import { hasLossyToken, newErrorsFrom, useMetaSuggestions } from '../State/metaSuggest'
-import type { SuggestState } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
+import SectionRail from './SectionRail'
+import type { Section } from './SectionRail'
+import { SuggestBar } from './Suggest'
 import MetaSummary from './MetaSummary'
 import { MetaInputSkeleton } from '../Skeleton'
 
@@ -219,6 +221,8 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   dropzoneGuided: {
     flexShrink: 0,
     minHeight: t.spacing(30),
+    // the pane scrolls, not this; a scroller here would pin the section rail to itself
+    overflowY: 'visible',
   },
   metaContent: {
     display: 'flex',
@@ -419,138 +423,13 @@ function RequiredFields({ blocked, errors, schema, value }: RequiredFieldsProps)
   )
 }
 
-const useSuggestBarStyles = M.makeStyles((t) => ({
-  root: {
-    ...t.typography.body2,
-    alignItems: 'center',
-    background: t.palette.background.default,
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
-    color: t.palette.text.secondary,
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: t.spacing(1, 1.5),
-    marginBottom: t.spacing(2),
-    minHeight: 52,
-    padding: t.spacing(1, 1, 1, 1.5),
-  },
-  icon: {
-    color: t.palette.text.secondary,
-  },
-  text: {
-    flex: '1 1 220px',
-    minWidth: 0,
-  },
-  actions: {
-    display: 'flex',
-    gap: t.spacing(0.5),
-    marginLeft: 'auto',
-  },
-}))
-
-interface SuggestBarProps {
-  disabled: boolean
-  onRequest: () => void
-  onUseAll: () => void
-  state: SuggestState
-  /** Suggestions still offered beside their fields. */
-  usable: number
-  /** Of those, what Use all would apply: gaps and broken values, not valid replacements. */
-  fillable: number
-}
-
-function SuggestBar({
-  disabled,
-  fillable,
-  onRequest,
-  onUseAll,
-  state,
-  usable,
-}: SuggestBarProps) {
-  const classes = useSuggestBarStyles()
-  if (state._tag === 'unavailable') return null
-  const icon = (
-    <M.Icon className={classes.icon} fontSize="small" aria-hidden>
-      auto_awesome
-    </M.Icon>
-  )
-  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
-  switch (state._tag) {
-    case 'idle':
-      return (
-        <div className={classes.root}>
-          {icon}
-          <span className={classes.text}>
-            Fill fields from similar packages you can read and the files being added.
-          </span>
-          <div className={classes.actions}>
-            <M.Button
-              color="primary"
-              disabled={disabled}
-              onClick={onRequest}
-              size="small"
-              variant="outlined"
-            >
-              Suggest values
-            </M.Button>
-          </div>
-        </div>
-      )
-    case 'loading':
-      return (
-        <div className={classes.root} role="status">
-          <M.CircularProgress size={18} />
-          <span className={classes.text}>Reading similar packages…</span>
-        </div>
-      )
-    case 'error':
-      return (
-        <div className={classes.root} role="alert">
-          <M.Icon className={classes.icon} fontSize="small" aria-hidden>
-            error_outline
-          </M.Icon>
-          <span className={classes.text}>Couldn't get suggestions. {state.message}</span>
-          <div className={classes.actions}>
-            <M.Button disabled={disabled} onClick={onRequest} size="small">
-              Try again
-            </M.Button>
-          </div>
-        </div>
-      )
-    case 'ready': {
-      // later edits can rule suggestions out; count only those still offered
-      const n = usable
-      return (
-        <div className={classes.root} role="status">
-          {icon}
-          <span className={classes.text}>
-            {n
-              ? `${plural(n, 'suggestion')} from ${plural(state.examples, 'similar package')}. Review each before using it.`
-              : state.examples
-                ? `No suggestions: ${plural(state.examples, 'similar package')} gave no clear values.`
-                : 'No suggestions: there are no earlier packages with this workflow to learn from yet.'}
-          </span>
-          <div className={classes.actions}>
-            <M.Button disabled={disabled} onClick={onRequest} size="small">
-              Refresh
-            </M.Button>
-            {!!fillable && (
-              <M.Button
-                color="primary"
-                disableElevation
-                disabled={disabled}
-                onClick={onUseAll}
-                size="small"
-                variant="contained"
-              >
-                Use all
-              </M.Button>
-            )}
-          </div>
-        </div>
-      )
-    }
-  }
+/** The rail only with a schema form; a plain name/value list is one section. */
+function Rail({
+  on,
+  children,
+  ...props
+}: React.ComponentProps<typeof SectionRail> & { on: boolean }) {
+  return on ? <SectionRail {...props}>{children}</SectionRail> : <>{children}</>
 }
 
 export interface SuggestContext {
@@ -701,6 +580,40 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
       ),
     )
   }, [rawSuggested, validateFull, value])
+  // design A rail: one entry per card, with what is done and what needs fixing
+  const { sections, railSummary } = React.useMemo(() => {
+    const props = schema?.properties || {}
+    const bad = invalidKeys(errors)
+    const req = requiredFields(schema, value, bad)
+    const reqKeys = req.map((f) => f.key)
+    const done = req.filter((f) => f.filled && !f.invalid).length
+    const reqBad = req.filter((f) => f.invalid).length
+    const opt = Object.keys(props).filter((k) => !reqKeys.includes(k))
+    const own = (k: string) => !!value && Object.hasOwn(value, k)
+    const optBad = opt.filter((k) => own(k) && bad.has(k)).length
+    const other = Object.keys(value || {}).filter(
+      (k) => k.trim() && !Object.hasOwn(props, k) && !reqKeys.includes(k),
+    ).length
+    const list: Section[] = []
+    if (req.length)
+      list.push({
+        key: 'required',
+        title: 'Required',
+        status: reqBad ? `${reqBad} to fix` : `${done} of ${req.length}`,
+        tone: reqBad ? 'bad' : done === req.length ? 'done' : undefined,
+      })
+    if (opt.length)
+      list.push({
+        key: 'optional',
+        title: 'Optional',
+        status: optBad
+          ? `${optBad} to fix`
+          : `${opt.filter(own).length} of ${opt.length}`,
+        tone: optBad ? 'bad' : undefined,
+      })
+    list.push({ key: 'other', title: 'Other fields', status: String(other) })
+    return { sections: list, railSummary: { done, total: req.length } }
+  }, [errors, schema, value])
   const brokenNow = React.useMemo(
     () => invalidKeys(validateFull ? validateFull((value || {}) as JsonRecord) : []),
     [validateFull, value],
@@ -968,7 +881,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           {isDragging && <div className={classes.outlined} />}
 
           {formView && (
-            <>
+            <Rail on={hasForm} sections={sections} summary={railSummary}>
               {hasForm && schema && (
                 <MetaForm
                   // an import or full-screen save replaces the metadata: drop half-typed drafts
@@ -1020,7 +933,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 value={value}
               />
               {problems}
-            </>
+            </Rail>
           )}
           {!formView && (
             <div className={classes.json}>
