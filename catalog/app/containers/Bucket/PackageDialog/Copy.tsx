@@ -18,7 +18,7 @@ import * as Layout from './Layout'
 import * as Skeleton from './Skeleton'
 import * as PDModel from './State'
 import { isPackageHandle } from './State/manifest'
-import { usePendingGuard } from './State/meta'
+import { useGuardedInputs } from './State/meta'
 import SubmitSpinner from './SubmitSpinner'
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
@@ -116,21 +116,10 @@ function PackageCopyForm({ close, successor, state }: PackageCopyFormProps) {
   } = state
   const classes = useStyles()
 
-  const canChange = usePendingGuard(meta.pending)
-  const guardedWorkflow = React.useMemo(
-    () => ({
-      ...workflow,
-      onChange: (w: Parameters<typeof workflow.onChange>[0]) => {
-        if (canChange('the workflow')) workflow.onChange(w)
-      },
-    }),
-    [canChange, workflow],
-  )
-  const guardedSetSrc: typeof setSrc = React.useCallback(
-    (next) => {
-      if (canChange('the package')) setSrc(next)
-    },
-    [canChange, setSrc],
+  const { guardedWorkflow, guardedSetSrc } = useGuardedInputs(
+    meta.pending,
+    workflow,
+    setSrc,
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)

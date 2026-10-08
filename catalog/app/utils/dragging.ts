@@ -1,10 +1,11 @@
 import * as React from 'react'
 
-export default function useDragging() {
+export default function useDragging(enabled = true) {
   const [dragCounter, setDragCounter] = React.useState(0)
   const isDragActive = dragCounter > 0
 
   React.useEffect(() => {
+    if (!enabled) return
     const handleDragEnter = (event: DragEvent) => {
       event.preventDefault()
       if (event.dataTransfer?.types && event.dataTransfer.types.includes('Files')) {
@@ -49,7 +50,7 @@ export default function useDragging() {
       document.removeEventListener('drop', handleDrop)
       document.removeEventListener('dragend', handleDragEnd)
     }
-  }, [])
+  }, [enabled])
 
-  return isDragActive
+  return enabled && isDragActive
 }

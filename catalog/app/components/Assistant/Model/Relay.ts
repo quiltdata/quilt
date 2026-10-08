@@ -239,7 +239,7 @@ export function LLMRelay(options: RelayOptions) {
         // Re-read per attempt: a Busy wait can outlast the session token.
         const attempt = Eff.Effect.flatMap(options.getToken(), (fresh) =>
           Eff.Effect.tryPromise({
-            try: async () => {
+            try: async (signal) => {
               const r = await fetch(
                 `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
                 {
@@ -249,7 +249,11 @@ export function LLMRelay(options: RelayOptions) {
                     authorization: `Bearer ${fresh ?? token}`,
                   },
                   body: JSON.stringify(requestBody),
-                  signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+                  // interruption (dialog closed, request replaced) cancels the fetch too
+                  signal: AbortSignal.any([
+                    signal,
+                    AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+                  ]),
                 },
               )
               const text = await r.text()

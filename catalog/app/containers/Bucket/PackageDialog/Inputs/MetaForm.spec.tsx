@@ -325,4 +325,33 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     expect(setPending).toHaveBeenLastCalledWith('id', true)
     expect(screen.getByText(/Too large to store exactly/)).toBeTruthy()
   })
+
+  it.each([
+    ['integer', '9007199254740993.0'],
+    ['integer', '9007199254740993e0'],
+    ['number', '1e400'],
+  ])('holds a %s field typed as %s', (type, text) => {
+    const onChange = vi.fn()
+    const setPending = vi.fn()
+    const typed = { type: 'object', properties: { id: { title: 'ID', type } } }
+    render(
+      <MetaForm
+        disabled={false}
+        errors={[]}
+        onChange={onChange}
+        onShowTable={() => {}}
+        onUseSuggestion={onUse}
+        schema={typed}
+        setPending={setPending}
+        value={{}}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: /ID/ })
+    fireEvent.change(input, { target: { value: text } })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(setPending).toHaveBeenLastCalledWith('id', true)
+    expect(screen.getByText(/Too large to store/)).toBeTruthy()
+    fireEvent.change(input, { target: { value: '' } })
+    expect(screen.queryByText(/Too large to store/)).toBeNull()
+  })
 })

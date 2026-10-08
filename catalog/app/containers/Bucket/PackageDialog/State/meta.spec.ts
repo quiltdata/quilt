@@ -15,6 +15,12 @@ const mkMetaValidator = vi.fn()
 vi.mock('./schema', async () => ({
   ...(await vi.importActual('./schema')),
   mkMetaValidator: (...args: unknown[]) => mkMetaValidator(...args),
+  // the real composition, over the mocked validator (a module's own calls are not mocked)
+  mkSubmitValidator: (s: unknown) => {
+    const full = mkMetaValidator(s, { keepSet: true })
+    const blind = mkMetaValidator(s, { formats: false, keepSet: true })
+    return (v: unknown) => (full(v) ? (blind(v) ?? []) : [])
+  },
 }))
 
 const SchemaReady = Schema.Ready()
@@ -193,6 +199,14 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.status).toEqual(Err(validationErrors))
         expect(result.current.guided).toBe(true)
         expect(result.current.touched).toBe(false)
+      })
+
+      it('does not report a loading schema as a metadata error', () => {
+        mkMetaValidator.mockReturnValue(() => [new Error('x')])
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, Schema.Loading, Manifest.Ready()),
+        )
+        expect(result.current.status).toEqual(Ok)
       })
 
       it('validates the manifest metadata a revision would push', () => {

@@ -18,7 +18,7 @@ import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as Inputs from './Inputs'
-import { usePendingGuard } from './State/meta'
+import { useGuardedInputs } from './State/meta'
 import * as Layout from './Layout'
 import * as PDModel from './State'
 import { FormSkeleton } from './Skeleton'
@@ -255,21 +255,10 @@ function PackageCreationForm({
 }: PackageCreationFormProps) {
   const classes = useStyles()
 
-  const canChange = usePendingGuard(meta.pending)
-  const guardedWorkflow = React.useMemo(
-    () => ({
-      ...workflow,
-      onChange: (w: Parameters<typeof workflow.onChange>[0]) => {
-        if (canChange('the workflow')) workflow.onChange(w)
-      },
-    }),
-    [canChange, workflow],
-  )
-  const guardedSetSrc: typeof setSrc = React.useCallback(
-    (next) => {
-      if (canChange('the package')) setSrc(next)
-    },
-    [canChange, setSrc],
+  const { canChange, guardedWorkflow, guardedSetSrc } = useGuardedInputs(
+    meta.pending,
+    workflow,
+    setSrc,
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)

@@ -134,14 +134,20 @@ const errorSig = (e: Error | ErrorObject) =>
     : e.message
 
 /** Errors `candidate` has that `base` does not: what a change would add. */
-export function newErrors(
-  validate: (x: Types.JsonRecord) => (Error | ErrorObject)[],
+type Validate = (x: Types.JsonRecord) => (Error | ErrorObject)[]
+
+/** Errors a candidate adds over `base`; validates `base` once for many candidates. */
+export function newErrorsFrom(validate: Validate, base: Types.JsonRecord) {
+  const known = new Set(validate(base).map(errorSig))
+  return (candidate: Types.JsonRecord) =>
+    validate(candidate).filter((e) => !known.has(errorSig(e)))
+}
+
+export const newErrors = (
+  validate: Validate,
   base: Types.JsonRecord,
   candidate: Types.JsonRecord,
-) {
-  const known = new Set(validate(base).map(errorSig))
-  return validate(candidate).filter((e) => !known.has(errorSig(e)))
-}
+) => newErrorsFrom(validate, base)(candidate)
 
 /**
  * The model's answer, keeping only values that add no error to the current
@@ -151,11 +157,12 @@ export function parseSuggestions(
   text: string,
   schema: JsonSchema,
   value: Types.JsonRecord = {},
+  validate: Validate = mkSubmitValidator(schema),
 ): Suggestions {
   const raw = firstJsonObject(text)
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const properties: Record<string, JsonSchema> = schema.properties || {}
-  const validate = mkSubmitValidator(schema)
+  const adds = newErrorsFrom(validate, value)
   const out: Suggestions = {}
   for (const [key, entry] of Object.entries(raw as Record<string, any>)) {
     if (!Object.hasOwn(properties, key)) continue
@@ -163,7 +170,7 @@ export function parseSuggestions(
     const v = entry.value
     if (v === null || v === undefined || v === '') continue
     // the whole schema, so $refs and cross-field rules (if/then, dependencies) apply
-    if (newErrors(validate, value, { ...value, [key]: v }).length) continue
+    if (adds({ ...value, [key]: v }).length) continue
     out[key] = {
       value: v,
       reason: typeof entry.reason === 'string' ? entry.reason.slice(0, 120) : undefined,
@@ -227,6 +234,7 @@ export function useMetaSuggestions({
   const client = urql.useClient()
   const [state, setState] = React.useState<SuggestState>({ _tag: 'idle' })
   const available = !!llms?.length && !!schema?.properties
+  const validate = React.useMemo(() => schema && mkSubmitValidator(schema), [schema])
 
   // Suggestions were checked against one bucket/workflow/schema; a reply for
   // an older request or context must not land on the current form.
@@ -236,7 +244,12 @@ export function useMetaSuggestions({
   React.useEffect(() => {
     generation.current += 1
     inflight.current?.abort()
-    setState({ _tag: 'idle' })
+    // a request cut short by a change says so instead of vanishing
+    setState((s) =>
+      s._tag === 'loading'
+        ? { _tag: 'error', message: 'The package changed while asking. Try again.' }
+        : { _tag: 'idle' },
+    )
   }, [bucket, workflow, schema, filesKey])
   React.useEffect(
     () => () => {
@@ -265,14 +278,18 @@ export function useMetaSuggestions({
             .toPromise()
         : null
       const set = r?.data?.searchPackages
-      if (r && (r.error || (set && set.__typename !== 'PackagesSearchResultSet'))) {
+      // EmptySearchResultSet is "no similar packages"; any other variant is a failure
+      const page = set?.__typename === 'PackagesSearchResultSet' ? set.firstPage : null
+      if (
+        r &&
+        (r.error ||
+          (set &&
+            set.__typename !== 'EmptySearchResultSet' &&
+            page?.__typename !== 'PackagesSearchResultSetPage'))
+      ) {
         throw new SuggestError("Couldn't read similar packages.")
       }
-      const hits =
-        set?.__typename === 'PackagesSearchResultSet' &&
-        set.firstPage.__typename === 'PackagesSearchResultSetPage'
-          ? set.firstPage.hits
-          : []
+      const hits = page?.__typename === 'PackagesSearchResultSetPage' ? page.hits : []
       const examples: Example[] = hits.flatMap((h) => {
         try {
           const meta = h.meta ? JSON.parse(h.meta) : null
@@ -301,7 +318,7 @@ export function useMetaSuggestions({
       if (text === null) throw lastError
       setState({
         _tag: 'ready',
-        suggestions: parseSuggestions(text, schema, value),
+        suggestions: parseSuggestions(text, schema, value, validate ?? undefined),
         examples: examples.length,
         ms: Date.now() - t0,
       })
@@ -313,7 +330,7 @@ export function useMetaSuggestions({
         message: e instanceof SuggestError ? e.message : 'The model did not answer.',
       })
     }
-  }, [bucket, client, files, llms, name, schema, value, workflow])
+  }, [bucket, client, files, llms, name, schema, validate, value, workflow])
 
   return { state: available ? state : ({ _tag: 'unavailable' } as const), request }
 }

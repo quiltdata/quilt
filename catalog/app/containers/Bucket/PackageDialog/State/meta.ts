@@ -7,7 +7,7 @@ import * as Types from 'utils/types'
 
 import type { FormStatus } from './form'
 import { isAdvisoryError as isAdvisory } from './metaGuide'
-import { SchemaStatus, mkMetaValidator } from './schema'
+import { SchemaStatus, mkMetaValidator, mkSubmitValidator } from './schema'
 import { ManifestStatus } from './manifest'
 
 export type MetaStatus =
@@ -75,23 +75,22 @@ export function useMeta(
   // `value`, not `meta`: a revision keeps the manifest's metadata until edited,
   // and that is what gets pushed. Failing here also stops the submit before
   // any file is uploaded.
+  // a loading schema is not a metadata error; params holds the submit until it is ready
+  const settled = schema._tag === 'ready' || schema._tag === 'error'
   const guidedErrors = React.useMemo(
-    () => (guided ? (validate(submitted || {}) ?? []) : []),
-    [guided, submitted, validate],
+    () => (guided && settled ? (validate(submitted || {}) ?? []) : []),
+    [guided, settled, submitted, validate],
   )
   const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
-  // Blocking is decided with formats ignored, so a format failure inside anyOf
-  // or oneOf cannot surface as a type or anyOf error that blocks the push.
-  const validateBlocking = React.useMemo(() => {
-    if (!guided || schema._tag !== 'ready') return validate
-    return mkMetaValidator(schema.schema, { formats: false, keepSet: true })
-  }, [guided, schema, validate])
-  const blockingErrors = React.useMemo(
-    // what normal validation accepts is never blocked; format-blind errors only relax its failures
-    () =>
-      guided && guidedErrors.length ? (validateBlocking(submitted || {}) ?? []) : [],
-    [guided, guidedErrors.length, submitted, validateBlocking],
+  // the same rule the form and suggestions use: format-only failures do not block
+  const submitValidate = React.useMemo(
+    () => (guided && schema._tag === 'ready' ? mkSubmitValidator(schema.schema) : null),
+    [guided, schema],
   )
+  const blockingErrors = React.useMemo(() => {
+    if (!guidedErrors.length) return []
+    return submitValidate ? submitValidate(submitted || {}) : guidedErrors
+  }, [guidedErrors, submitValidate, submitted])
 
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {
@@ -163,6 +162,31 @@ export function usePendingGuard(pending: readonly string[]) {
     },
     [notify],
   )
+}
+
+/** Workflow and source-package inputs that refuse to change while an edit is unfinished. */
+export function useGuardedInputs<W extends { onChange: (w: any) => void }, S>(
+  pending: readonly string[],
+  workflow: W,
+  setSrc: (next: S) => void,
+) {
+  const canChange = usePendingGuard(pending)
+  const guardedWorkflow = React.useMemo(
+    () => ({
+      ...workflow,
+      onChange: (w: Parameters<W['onChange']>[0]) => {
+        if (canChange('the workflow')) workflow.onChange(w)
+      },
+    }),
+    [canChange, workflow],
+  )
+  const guardedSetSrc = React.useCallback(
+    (next: S) => {
+      if (canChange('the package')) setSrc(next)
+    },
+    [canChange, setSrc],
+  )
+  return { canChange, guardedWorkflow, guardedSetSrc }
 }
 
 export { useMeta as use }

@@ -195,6 +195,7 @@ function Field({
     const t = numTextRef.current
     if (Number(t) === value && t.trim() !== '') return
     setNumText(isEmpty(value) ? '' : display(value))
+    setNumError(null)
     setPending?.(name, false)
   }, [name, numeric, setPending, value])
   React.useEffect(() => () => setPending?.(name, false), [name, setPending])
@@ -203,6 +204,7 @@ function Field({
     (raw: string) => {
       if (numeric && raw.trim() === '') {
         setNumText(raw)
+        setNumError(null)
         setPending?.(name, false)
         return onChange(name, undefined)
       }
@@ -216,9 +218,17 @@ function Field({
           raw.trim() !== '' &&
           !Number.isNaN(n) &&
           /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(raw.trim())
-        const unsafe = /^[-+]?\d+$/.test(raw.trim()) && !Number.isSafeInteger(n)
+        // integers in any spelling ("…3.0", "…3e0"), and digit runs typed into a number field
+        const inexact =
+          (widget === 'integer' ? Number.isInteger(n) : /^[-+]?\d+$/.test(raw.trim())) &&
+          !Number.isSafeInteger(n)
+        const unsafe = complete && (!Number.isFinite(n) || inexact)
         setNumError(
-          unsafe ? 'Too large to store exactly; use a string field for IDs' : null,
+          unsafe
+            ? Number.isFinite(n)
+              ? 'Too large to store exactly; use a string field for IDs'
+              : 'Too large to store'
+            : null,
         )
         setPending?.(name, !complete || unsafe)
         if (complete && !unsafe) onChange(name, n)
@@ -347,7 +357,8 @@ function Field({
   const showSuggestion =
     suggestion &&
     !disabled &&
-    display(suggestion.value) !== (value === undefined ? '' : display(value))
+    // by value, not text: the string "1" fixes a field where the number 1 is wrong
+    JSON.stringify(suggestion.value) !== JSON.stringify(value)
   return (
     <div className={cx(classes.root, { [classes.wide]: widget === 'complex' })}>
       {input}
@@ -759,6 +770,14 @@ export function FreeFields({
     onChange({ ...value, [key]: draft.value })
     setDraft(null)
   }
+  // metadata replaced from outside (Import file, full-screen editor) while a draft was open
+  const draftKey = draft?.key.trim()
+  const valueRef = React.useRef(value)
+  React.useEffect(() => {
+    const replaced = valueRef.current !== value
+    valueRef.current = value
+    if (replaced && draftKey && Object.hasOwn(value || {}, draftKey)) setDraft(null)
+  }, [draftKey, value])
   const draftError = !!draft?.key.trim() && taken(draft.key.trim())
   // a draft that cannot be saved as it stands holds the submit until fixed or discarded
   const draftStuck =

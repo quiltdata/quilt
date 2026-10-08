@@ -24,7 +24,7 @@ import type { SchemaStatus } from '../State/schema'
 import { pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
 import { humanizeError, invalidKeys, requiredFields, topKey } from '../State/metaGuide'
-import { newErrors, useMetaSuggestions } from '../State/metaSuggest'
+import { newErrorsFrom, useMetaSuggestions } from '../State/metaSuggest'
 import type { SuggestState } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
@@ -673,9 +673,10 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   const suggested = React.useMemo(() => {
     if (!rawSuggested || !validateFull) return rawSuggested
     const base = (value || {}) as JsonRecord
+    const adds = newErrorsFrom(validateFull, base)
     return Object.fromEntries(
       Object.entries(rawSuggested).filter(
-        ([k, sg]) => !newErrors(validateFull, base, { ...base, [k]: sg.value }).length,
+        ([k, sg]) => !adds({ ...base, [k]: sg.value }).length,
       ),
     )
   }, [rawSuggested, validateFull, value])
@@ -683,8 +684,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     (picks: Record<string, JsonValue>) => {
       if (!validateFull || !Object.keys(picks).length) return
       const base = (value || {}) as JsonRecord
-      const introduces = (candidate: JsonRecord) =>
-        newErrors(validateFull, base, candidate).length > 0
+      const adds = newErrorsFrom(validateFull, base)
+      const introduces = (candidate: JsonRecord) => adds(candidate).length > 0
       let next = { ...value } as JsonRecord
       let kept = 0
       // Greedy: keep each pick that does not add a new error to what is kept so far.
@@ -777,7 +778,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   )
 
   // guided: files live behind their own tab, so drags go there (Import file covers metadata)
-  const isDragging = useDragging() && !guided
+  const isDragging = useDragging(!guided)
 
   const {
     getInputProps,
