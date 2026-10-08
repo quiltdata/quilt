@@ -92,6 +92,7 @@ The Platform MCP Server works with any MCP-compatible AI client, including:
 - **Databricks** (web)
 - **Benchling AI** (web)
 - **OpenAI Codex** (desktop/IDE)
+- **Amazon Quick** (web)
 - **Any client** supporting the [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ### Connecting Claude.ai
@@ -283,6 +284,42 @@ You can also configure it via the `codex mcp add` CLI or by editing
 
 Codex starts the OAuth flow on first connect and opens a browser to the
 Quilt authorization page.
+
+### Connecting Amazon Quick
+
+Before configuring Amazon Quick, add `quick.aws.com` to the
+`ConnectAllowedHosts` CloudFormation parameter and deploy the stack.
+Preserve any existing entries in the comma-separated list. Quick registers
+itself through Dynamic Client Registration with this redirect URI:
+
+```text
+https://quick.aws.com/sn/oauthcallback
+```
+
+The same host is used regardless of the AWS Region of your Quick account.
+Do not add `<region>.quicksight.aws.amazon.com` hosts; Quick does not use
+them for MCP connectors.
+
+In Amazon Quick, open **Connectors** and choose **Model Context Protocol**:
+
+1. **Connect:** enter a name and the MCP server endpoint:
+
+   ```text
+   https://<connect-host>/mcp/platform/mcp
+   ```
+
+2. **Authenticate:** keep **User authentication** with the
+   **Default OAuth app** auth configuration. No client ID or secret is
+   needed. Click **Create and continue**, then complete the Quilt OAuth
+   flow (see [User Authorization](#user-authorization) below).
+3. **Manage Write Permissions** and **Manage Read Permissions:** choose
+   which Quilt tools Quick may call
+4. **Publish** the connector
+
+If **Create and continue** fails with "One or more parameters are invalid",
+Quilt rejected Quick's client registration. Confirm that `quick.aws.com`
+is in `ConnectAllowedHosts` and that the stack update has finished rolling
+out the registry service.
 
 ### User Authorization
 
