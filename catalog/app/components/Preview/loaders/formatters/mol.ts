@@ -1,5 +1,3 @@
-const openchem = import('openchemlib/minimal')
-
 type ResponseFile = string | Uint8Array
 
 export interface MolMeta {
@@ -28,7 +26,7 @@ function getMeta(content: string): MolMeta {
 async function parseMolItem(content: string, ext: string): Promise<Molecule> {
   const meta = getMeta(content)
   if (content.indexOf('V3000') === -1) return { ext, file: content, meta }
-  const { Molecule } = await openchem
+  const { Molecule } = await import('openchemlib/minimal')
   return {
     ext: 'mol',
     file: Molecule.fromMolfile(content.trim()).toMolfile(),
