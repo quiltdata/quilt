@@ -162,5 +162,5 @@ redacted. When the session read other buckets, the form names them and warns
 that readers of the target bucket will see what you save; the README and
 metadata count them without naming them, and tool results are left out unless
 you tick **Include tool results**. Apart from that redaction, the transcript and
-`session.json` keep every message and tool input. Saving again from the same page adds a
-revision; a name that belongs to another package is refused.
+`session.json` keep every message and tool input. Saving again from the same page
+adds a revision; a name that belongs to another package is refused.

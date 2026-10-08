@@ -71,7 +71,14 @@ export function useSave(api: API) {
         const uploaded = await uploads.upload({
           files,
           bucket,
-          getCanonicalKey: (path) => s3paths.canonicalKey(name, path, cfg.packageRoot),
+          // A key per save: on an unversioned bucket, reusing the key would rewrite
+          // the files earlier revisions point at.
+          getCanonicalKey: (path) =>
+            s3paths.canonicalKey(
+              name,
+              `.qurator/${info.savedAt.getTime()}/${path}`,
+              cfg.packageRoot,
+            ),
         })
         const entries = Object.entries(uploaded).map(([logicalKey, f]) => ({
           logicalKey,

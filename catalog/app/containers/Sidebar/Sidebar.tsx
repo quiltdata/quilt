@@ -1024,7 +1024,11 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                 label="Qurator mode"
                 to={{
                   pathname: urls.quratorMode(),
-                  state: { from: location.pathname + location.search },
+                  state: {
+                    from: quratorModeActive
+                      ? (location.state as { from?: string } | undefined)?.from
+                      : location.pathname + location.search,
+                  },
                 }}
                 selected={quratorModeActive}
                 collapsed={collapsed}

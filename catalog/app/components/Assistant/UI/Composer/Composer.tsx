@@ -163,6 +163,7 @@ const useMenuStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
   },
   body: { display: 'flex', flexDirection: 'column', minHeight: 0, outline: 'none' },
+  scroll: { minHeight: 0, overflowY: 'auto' },
   grab: {
     background: t.palette.divider,
     borderRadius: 2,
@@ -409,7 +410,7 @@ export default function Composer({
     if (!el) return
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
-  }, [value])
+  }, [value, minimized])
 
   const submit = () => {
     if (!value.trim() || disabled) return
@@ -920,6 +921,7 @@ function PlusMenu({
         <SaveTarget save={save} onBack={() => setPage('main')} onDone={onClose} />
       ) : page === 'instructions' ? (
         <div
+          className={classes.scroll}
           onKeyDown={(e) => {
             if (e.key !== 'Escape') return
             e.stopPropagation()
@@ -1092,6 +1094,7 @@ function SaveTarget({ save, onBack, onDone }: SaveTargetProps) {
   const { urls } = NamedRoutes.use()
   return (
     <div
+      className={classes.scroll}
       onKeyDown={(e) => {
         if (e.key !== 'Escape') return
         e.stopPropagation()

@@ -21,13 +21,21 @@ const refId = (r: Reference) =>
       ? `s3://${r.bucket}/${r.key}`
       : `quilt+s3://${r.bucket}#package=${r.name}`
 
+const decodeKey = (k: string) => {
+  try {
+    return decodeURIComponent(k)
+  } catch {
+    return k
+  }
+}
+
 function parseUri(s: string): Reference | null {
   const q = s.match(/^quilt\+s3:\/\/([^/#?]+)[^#]*#(?:.*&)?package=([^/&@:]+\/[^/&@:]+)/)
   if (q) return { kind: 'package', bucket: q[1], name: q[2] }
   const o = s.match(/^s3:\/\/([^/?#]+)\/?([^?#]*)/)
   if (o)
     return o[2]
-      ? { kind: 'object', bucket: o[1], key: o[2] }
+      ? { kind: 'object', bucket: o[1], key: decodeKey(o[2]) }
       : { kind: 'bucket', bucket: o[1] }
   return null
 }
@@ -65,11 +73,16 @@ export const ran = (e: Conversation.Event) =>
   !e.result.content.some(
     (b) =>
       b._tag === 'Text' &&
-      (b.text.startsWith('Declined by the user') || /it was not run\.$/.test(b.text)),
+      (b.text.startsWith('Declined by the user') ||
+        /it was not run\.$/.test(b.text) ||
+        /^Tool ".*" not found$/.test(b.text)),
   )
 
-/** The first event's id: stable for the life of a conversation, unique across them. */
-export const sessionId = (events: Conversation.Event[]) => live(events)[0]?.id ?? ''
+/**
+ * The first event's id, discarded or not: discarding a message must not make
+ * the same conversation look new and stop revising its package.
+ */
+export const sessionId = (events: Conversation.Event[]) => events[0]?.id ?? ''
 
 // Tool inputs can carry credentials (third-party MCP servers take them as args).
 const SECRET =
