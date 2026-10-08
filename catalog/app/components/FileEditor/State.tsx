@@ -58,11 +58,13 @@ function useWritable(add?: string) {
     try {
       return add ? PackageUri.parse(add) : null
     } catch {
-      return null
+      return undefined
     }
   }, [add])
   const unlocked =
     PackageLock.useLockStatus(pkg?.bucket ?? '', pkg?.name ?? '', !pkg) === 'unlocked'
+  // An unparseable target has no lock to check, so it must not pass as no target.
+  if (pkg === undefined) return false
   const allowed = BucketPreferences.Result.match(
     {
       Ok: ({ ui: { actions } }) => actions.writeFile && (!pkg || actions.revisePackage),

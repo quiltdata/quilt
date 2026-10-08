@@ -28,11 +28,13 @@ const currentPackage = ({ data }: Result, bucket: string, name: string) => {
 function toStatus(result: Result, bucket: string, name: string, pause: boolean): Status {
   if (pause) return 'unlocked'
   const { data, error, fetching, stale } = result
-  if (currentPackage(result, bucket, name)?.lock) return 'locked'
-  if (fetching) return 'loading'
+  const pkg = currentPackage(result, bucket, name)
+  if (pkg?.lock) return 'locked'
+  // A stale result is a known lock revalidating; only a first fetch leaves it unknown.
+  if (fetching && !stale) return 'loading'
   if (error) return 'unlocked'
   // Graphcache answers an uncached `lock` with null when another query cached the package.
-  if (stale || GQL.isPartial(result) || !data) return 'loading'
+  if (GQL.isPartial(result) || !data || (data.package && !pkg)) return 'loading'
   return 'unlocked'
 }
 
@@ -57,6 +59,10 @@ export function useLockStatus(bucket: string, name: string, pause = false): Stat
   const result = GQL.useQuery(LOCK_STATE_QUERY, { bucket, name }, { pause })
   return toStatus(result, bucket, name, pause)
 }
+
+// Only a package known unlocked can be locked, never one whose lock is still loading.
+export const canLock = (isAdmin: boolean, status: Status, latestHash?: string) =>
+  isAdmin && status === 'unlocked' && !!latestHash
 
 const LOCKED_ACTIONS = { deleteRevision: false, revisePackage: false, writeFile: false }
 

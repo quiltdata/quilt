@@ -62,6 +62,20 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     expect(deleteRevision).not.toHaveBeenCalled()
   })
 
+  it('stops before the next deletion once the package is no longer known unlocked', async () => {
+    const { result, rerender } = renderHook(({ w }) => useBulkDelete('b', 'foo/bar', w), {
+      initialProps: { w: true },
+    })
+    act(() => ['h1', 'h2'].forEach(result.current.toggle))
+    deleteRevision.mockImplementationOnce(async () => {
+      rerender({ w: false })
+      return ok
+    })
+    await act(() => result.current.run())
+    expect(deleteRevision).toHaveBeenCalledTimes(1)
+    expect([...result.current.selected]).toEqual(['h2'])
+  })
+
   it('drops the selection when the package changes', () => {
     const { result, rerender } = renderHook(
       ({ name }) => useBulkDelete('b', name, true),

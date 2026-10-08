@@ -41,7 +41,6 @@ describe('utils/PackageLock', () => {
     it.each([
       ['in flight', { fetching: true }],
       ['partial', { operation: { context: { meta: { cacheOutcome: 'partial' } } } }],
-      ['stale', { stale: true }],
     ])(
       'is loading while the lock query is %s on a package another query cached',
       (_label, state) => {
@@ -50,6 +49,31 @@ describe('utils/PackageLock', () => {
         expect(run().status).toBe('loading')
       },
     )
+
+    it.each([
+      ['unlocked', pkg(null)],
+      ['locked', pkg({ hash: 'h' })],
+    ])('keeps a complete stale %s result while it revalidates', (status, data) => {
+      useQueryResult({ data, stale: true, fetching: true })
+      expect(run().status).toBe(status)
+    })
+
+    it('is loading on a stale partial result', () => {
+      useQueryResult({
+        data: pkg(null),
+        stale: true,
+        operation: { context: { meta: { cacheOutcome: 'partial' } } },
+      })
+      expect(run().status).toBe('loading')
+    })
+
+    it('is loading on a stale result for another package', () => {
+      useQueryResult({
+        data: { package: { bucket: 'b', name: 'other', lock: null } },
+        stale: true,
+      })
+      expect(run().status).toBe('loading')
+    })
 
     it('reports a cached lock while the query is still in flight', () => {
       useQueryResult({ data: pkg({ hash: 'h' }), fetching: true })
@@ -110,6 +134,21 @@ describe('utils/PackageLock', () => {
       useQuery.mockReturnValueOnce({ fetching: false })
       const { result } = renderHook(() => PackageLock.useLockStatus('', '', true))
       expect(result.current).toBe('unlocked')
+    })
+  })
+
+  describe('canLock', () => {
+    it.each([
+      ['unlocked', true],
+      ['loading', false],
+      ['locked', false],
+    ] as const)('offers an admin locking when the package is %s: %s', (s, want) => {
+      expect(PackageLock.canLock(true, s, 'h')).toBe(want)
+    })
+
+    it('offers nothing without a latest revision or to a non-admin', () => {
+      expect(PackageLock.canLock(true, 'unlocked')).toBe(false)
+      expect(PackageLock.canLock(false, 'unlocked', 'h')).toBe(false)
     })
   })
 

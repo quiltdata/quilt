@@ -1151,8 +1151,11 @@ function PackageTree({
   const [lockDialog, setLockDialog] = React.useState<'lock' | 'unlock' | null>(null)
   const closeLockDialog = React.useCallback(() => setLockDialog(null), [])
   const openLock = React.useMemo(
-    () => (isAdmin && !lock && latestHash ? () => setLockDialog('lock') : undefined),
-    [isAdmin, lock, latestHash],
+    () =>
+      PackageLockState.canLock(isAdmin, lockStatus, latestHash)
+        ? () => setLockDialog('lock')
+        : undefined,
+    [isAdmin, lockStatus, latestHash],
   )
   const openUnlock = React.useCallback(() => setLockDialog('unlock'), [])
   // Navigating to another package must not leave a dialog that would act on it.
