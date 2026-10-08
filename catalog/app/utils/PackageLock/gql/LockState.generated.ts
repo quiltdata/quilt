@@ -18,7 +18,13 @@ export interface utils_PackageLock_gql_LockStateQuery {
     readonly __typename: 'Package'
     readonly bucket: string
     readonly name: string
-    readonly lock: { readonly __typename: 'PackageLock'; readonly hash: string } | null
+    readonly lock: {
+      readonly __typename: 'PackageLock'
+      readonly hash: string
+      readonly lockedAt: Date
+      readonly lockedBy: string
+      readonly reason: string | null
+    } | null
   } | null
 }
 
@@ -77,6 +83,9 @@ export const utils_PackageLock_gql_LockStateDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'lockedAt' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'lockedBy' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'reason' } },
                     ],
                   },
                 },
