@@ -19,12 +19,15 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
   // bucket and name are route params, so navigating to another package reuses
   // this hook; stale hashes would be deleted against the new package, and a
   // dialog left open would show the previous package's error.
-  // Bumped on every package change, so a run never resumes after A -> B -> A.
+  // Bumped on every package change and on unmount, so a run never resumes
+  // after A -> B -> A and stops deleting once the page is gone.
   const generation = React.useRef(0)
   React.useEffect(() => {
-    generation.current += 1
     setSelected(new Set())
     setState({ error: undefined, loading: false, opened: false })
+    return () => {
+      generation.current += 1
+    }
   }, [bucket, name])
 
   const toggle = React.useCallback(

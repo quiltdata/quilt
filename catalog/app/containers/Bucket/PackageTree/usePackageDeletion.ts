@@ -45,7 +45,11 @@ export function usePackageDeletion(
 
   const handlePackageDeletion = React.useCallback(async () => {
     if (lock !== 'unlocked') {
-      setDeletionState(R.mergeLeft({ error: 'This package is locked' }))
+      const error =
+        lock === 'loading'
+          ? 'Still checking whether this package is locked…'
+          : 'This package is locked'
+      setDeletionState(R.mergeLeft({ error }))
       return
     }
     setDeletionState(R.assoc('loading', true))

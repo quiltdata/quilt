@@ -2,7 +2,8 @@ import * as React from 'react'
 import { renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
-import type * as FileEditor from 'components/FileEditor'
+import { useState as useEditorState } from 'components/FileEditor/State'
+import * as PackageUri from 'utils/PackageUri'
 
 import * as FileToolbar from '../Toolbar'
 
@@ -14,30 +15,58 @@ vi.mock('containers/Bucket/Toolbar/DeleteDialog', () => ({ default: () => null }
 vi.mock('utils/Dialogs', () => ({ use: () => ({ open: vi.fn(), render: () => null }) }))
 vi.mock('react-router-dom', async () => ({
   ...(await vi.importActual('react-router-dom')),
-  useLocation: () => ({ search: '' }),
+  useHistory: () => ({ push: vi.fn() }),
+  useLocation: () => ({ search: route.search }),
 }))
+vi.mock('utils/NamedRoutes', () => ({ use: () => ({ urls: {} }) }))
+vi.mock('components/FileEditor/loader', async () => ({
+  ...(await vi.importActual('components/FileEditor/loader')),
+  useWriteData: () => vi.fn(),
+}))
+vi.mock('utils/PackageLock', () => ({ useLockStatus: () => route.lock }))
+vi.mock('utils/BucketPreferences', async () => {
+  const BP = await vi.importActual<typeof import('utils/BucketPreferences')>(
+    'utils/BucketPreferences',
+  )
+  return {
+    ...BP,
+    use: () => ({
+      prefs: BP.Result.Ok({ ui: { actions: { writeFile: false } } } as never),
+    }),
+  }
+})
 
-const types = [{ brace: 'markdown' }] as FileEditor.EditorInputType[]
+const { route } = vi.hoisted(() => ({ route: { search: '', lock: 'unlocked' } }))
 
-const editTypes = (writable: boolean) =>
-  renderHook(() => Organize.use(), {
-    wrapper: ({ children }) => (
+const handle = { bucket: 'b', key: 'team/ds/README.md' }
+
+// Renders the Provider over the real editor state, so the plain-file case runs
+// through the same writability the editor itself uses.
+function organize(search: string, lock: string) {
+  route.search = search
+  route.lock = lock
+  const Inner = ({ children }: React.PropsWithChildren<{}>) => {
+    const editorState = useEditorState(handle)
+    return (
       <Organize.Provider
-        editorState={{ types, writable } as FileEditor.EditorState}
-        handle={FileToolbar.CreateHandle('b', 'k')}
+        editorState={editorState}
+        handle={FileToolbar.CreateHandle(handle.bucket, handle.key)}
         onReload={() => {}}
       >
         {children}
       </Organize.Provider>
-    ),
-  }).result.current.editTypes
+    )
+  }
+  return renderHook(() => Organize.use(), { wrapper: Inner }).result.current.editTypes
+}
 
 describe('containers/Bucket/File/Toolbar/Organize/Context', () => {
-  it('offers the editor types for a writable file', () => {
-    expect(editTypes(true)).toEqual(types)
+  it('keeps the Edit entries of a plain bucket file with writeFile off', () => {
+    expect(organize('', 'unlocked').map((t) => t.brace)).toEqual(['markdown'])
   })
 
-  it('offers no edit entries the editor would refuse', () => {
-    expect(editTypes(false)).toEqual([])
+  it('hides the Edit entries of a file added to a locked package', () => {
+    const add = PackageUri.stringify({ bucket: 'b', name: 'team/ds', path: 'README.md' })
+    expect(organize(`?add=${encodeURIComponent(add)}`, 'locked')).toEqual([])
   })
 })
