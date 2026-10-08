@@ -500,10 +500,9 @@ export default function MetaForm({
 
   const setField = React.useCallback(
     (key: string, v: Types.Json | undefined) => {
-      const next = { ...value }
-      if (v === undefined) delete next[key]
-      else next[key] = v
-      onChange(next)
+      // entries, not assignment: a "__proto__" key must become an own property
+      const rest = Object.entries(value || {}).filter(([k]) => k !== key)
+      onChange(Object.fromEntries(v === undefined ? rest : [...rest, [key, v]]))
     },
     [onChange, value],
   )
@@ -775,6 +774,7 @@ export function FreeFields({
   // Commit only when focus leaves the whole draft row, so Tab from Name to Value keeps it.
   const commitDraft = (e?: React.FocusEvent) => {
     if (e && draftRef.current?.contains(e.relatedTarget as Node)) return
+    if (disabled) return
     const key = draft?.key.trim()
     if (!draft || !key || taken(key)) return
     onChange({ ...value, [key]: draft.value })
@@ -819,6 +819,7 @@ export function FreeFields({
         <div className={free.row} ref={draftRef} onBlur={commitDraft}>
           <M.TextField
             autoFocus
+            disabled={disabled}
             error={draftError}
             helperText={draftError ? 'Already used' : undefined}
             label="Name"
@@ -829,6 +830,7 @@ export function FreeFields({
             variant="outlined"
           />
           <M.TextField
+            disabled={disabled}
             label="Value"
             onChange={(e) => setDraft({ ...draft, value: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
@@ -839,6 +841,7 @@ export function FreeFields({
           <M.IconButton
             aria-label="Discard new field"
             className={free.remove}
+            disabled={disabled}
             onClick={() => setDraft(null)}
             // keep focus in the row, so the blur that would save the draft never fires
             onMouseDown={(e) => e.preventDefault()}

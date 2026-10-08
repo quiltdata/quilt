@@ -302,7 +302,9 @@ export function useMetaSuggestions({
         throw new SuggestError("Couldn't read similar packages.")
       }
       const hits = page?.__typename === 'PackagesSearchResultSetPage' ? page.hits : []
+      // a revision's own earlier versions are not independent examples
       const examples: Example[] = hits.flatMap((h) => {
+        if (name && h.name === name) return []
         try {
           const meta = h.meta ? JSON.parse(h.meta) : null
           return meta && typeof meta === 'object' && !Array.isArray(meta)

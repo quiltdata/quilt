@@ -209,6 +209,15 @@ describe('containers/Bucket/PackageDialog/State/meta', () => {
         expect(result.current.status._tag).toBe('error')
       })
 
+      it('blocks metadata saved as null instead of pushing the old metadata', () => {
+        mkMetaValidator.mockReturnValue(() => undefined)
+        const { result } = renderHook(() =>
+          useMeta(Form.Idle, SchemaReady, Manifest.Ready({ meta: { a: 1 } })),
+        )
+        act(() => result.current.onChange(null as any))
+        expect(result.current.status._tag).toBe('error')
+      })
+
       it('does not report a loading schema as a metadata error', () => {
         mkMetaValidator.mockReturnValue(() => [new Error('x')])
         const { result } = renderHook(() =>

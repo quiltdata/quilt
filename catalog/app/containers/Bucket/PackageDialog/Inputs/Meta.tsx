@@ -31,6 +31,8 @@ import MetaForm, { FreeFields } from './MetaForm'
 import MetaSummary from './MetaSummary'
 import { MetaInputSkeleton } from '../Skeleton'
 
+const noop = () => {}
+
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
 const useDialogStyles = M.makeStyles({
@@ -965,7 +967,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 disabled={editLocked}
                 errors={errors}
                 key={jsonInlineEditorKey}
-                onChange={onChangeInline}
+                // `disabled` only blocks the mouse in JsonEditor; keyboard edits are dropped here
+                onChange={editLocked ? noop : onChangeInline}
                 schema={schema}
                 value={value}
               />
