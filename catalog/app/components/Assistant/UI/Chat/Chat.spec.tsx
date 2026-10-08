@@ -227,6 +227,28 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     expect(disconnect.mock.calls[0][0]).toBe('fathom')
   })
 
+  it('offers Connect when the connector needs sign-in, whatever the cached list says', () => {
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={false}
+        onToggleDevTools={vi.fn()}
+        needsSignIn={new Set(['fathom'])}
+        mcpSignIn={{
+          servers: [{ slug: 'fathom', title: 'Fathom', signedIn: true }],
+          pending: null,
+          status: '',
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        }}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Connect Fathom')).toBeTruthy()
+    expect(screen.queryByText('Disconnect Fathom')).toBeNull()
+  })
+
   it('CONTROL: offers Developer Tools while it is closed', () => {
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))

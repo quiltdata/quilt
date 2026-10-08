@@ -7,8 +7,9 @@ vi.mock('constants/config', () => ({ default: { registryUrl: 'https://registry.t
 
 const captureException = vi.hoisted(() => vi.fn())
 vi.mock('@sentry/react', () => ({ captureException }))
+const refetch = vi.hoisted(() => ({ current: async (): Promise<unknown> => ({}) }))
 vi.mock('urql', () => ({
-  useClient: () => ({ query: () => ({ toPromise: async () => ({}) }) }),
+  useClient: () => ({ query: () => ({ toPromise: () => refetch.current() }) }),
 }))
 vi.mock('utils/GraphQL', () => ({ useMutation: () => vi.fn() }))
 vi.mock('utils/Effect', async () => {
@@ -32,6 +33,8 @@ function fakeWindow() {
     removeEventListener: target.removeEventListener.bind(target),
     setInterval: (fn: () => void, ms: number) => setInterval(fn, ms),
     clearInterval: (id: number) => clearInterval(id),
+    setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+    clearTimeout: (id: number) => clearTimeout(id),
   }
   const post = (data: unknown, origin = REGISTRY, source: unknown = popup) =>
     target.dispatchEvent(Object.assign(new Event('message'), { data, origin, source }))
@@ -83,7 +86,11 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     await flush()
     expect(fetch.mock.calls[0]).toEqual([
       `${REGISTRY}/api/mcp/slack/oauth/start`,
-      { method: 'POST', headers: { Authorization: 'Bearer tok' } },
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer tok' },
+        signal: expect.any(AbortSignal),
+      },
     ])
     expect(popup.location.href).toBe('https://provider.test/authorize?x=1')
     post(callback({ iss: 'https://slack.com' }))
@@ -94,6 +101,7 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
         method: 'POST',
         headers: { Authorization: 'Bearer tok', 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: CODE, state: STATE, iss: 'https://slack.com' }),
+        signal: expect.any(AbortSignal),
       },
     ])
   })
@@ -174,6 +182,51 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     })
     expect(popup.location.href).toBe('')
     expect(popup.close).toHaveBeenCalled()
+  })
+
+  it('a stalled finish request times out and settles', async () => {
+    vi.useFakeTimers()
+    const { win, post } = fakeWindow()
+    const fetch = vi.fn<typeof globalThis.fetch>(async (url, init) =>
+      String(url).endsWith('/start')
+        ? json({ authorizeUrl: 'https://provider.test/authorize' })
+        : new Promise<Response>((_resolve, reject) =>
+            init?.signal?.addEventListener('abort', () =>
+              reject(new Error('The request timed out')),
+            ),
+          ),
+    )
+    const result = start(win, fetch as any)
+    await vi.advanceTimersByTimeAsync(0)
+    post(callback())
+    await vi.advanceTimersByTimeAsync(30_000)
+    await expect(result).resolves.toMatchObject({ ok: false, reason: 'failed' })
+  })
+
+  it('a bad registry URL fails before any window opens', async () => {
+    const { win } = fakeWindow()
+    const fetch = registry()
+    await expect(
+      signIn({
+        slug: 'slack',
+        registryUrl: 'not a url',
+        getToken: async () => 't',
+        win,
+        fetch,
+      }),
+    ).resolves.toEqual({ ok: false, reason: 'failed', error: 'InvalidRegistryUrl' })
+    expect(win.open).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('names each sign-in window uniquely', async () => {
+    const { win } = fakeWindow()
+    ;(win.open as any).mockReturnValue(null)
+    await start(win, registry())
+    await start(win, registry())
+    const [a, b] = (win.open as any).mock.calls.map((c: unknown[]) => c[1])
+    expect(a).toMatch(/^quilt-mcp-oauth-/)
+    expect(a).not.toBe(b)
   })
 
   it('reports a blocked popup without calling the registry', async () => {
@@ -289,6 +342,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     window.open = originalOpen
     window.fetch = originalFetch
     captureException.mockReset()
+    refetch.current = async () => ({})
     retries = 0
     cleanup()
   })
@@ -331,6 +385,40 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       await flush()
     })
     expect(retries).toBe(1)
+  })
+
+  it('a failing refetch still frees Connect and reconnects', async () => {
+    window.fetch = registry() as any
+    refetch.current = () => Promise.reject(new Error('network'))
+    const { service } = makeConnectors(failed)
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      reply()
+      await flush()
+      await flush()
+    })
+    expect(result.current.pending).toBeNull()
+    expect(retries).toBe(1)
+  })
+
+  it('unmounting drops a reconnect still waiting on a connection attempt', async () => {
+    window.fetch = registry() as any
+    const { state, service } = makeConnectors(Connectors.ConnectorState.Connecting())
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      reply()
+      await flush()
+      await flush()
+    })
+    result.unmount()
+    await flush()
+    Eff.Effect.runSync(Eff.SubscriptionRef.set(state, failed))
+    await flush()
+    expect(retries).toBe(0)
   })
 
   it('closes the popup and drops the flow when the hook unmounts', async () => {

@@ -123,6 +123,9 @@ const RELAYED_HEARTBEAT_TIMEOUT = Eff.Duration.seconds(10)
 
 export type McpServersRead = { servers: RegisteredServers } | { pending: unknown }
 
+const serversOf = (read: McpServersRead) =>
+  'servers' in read ? read.servers : NO_SERVERS
+
 // Module-level: a ref resets on every render that suspends before commit.
 let mcpReadWarned = false
 
@@ -166,7 +169,7 @@ export function useRegisteredConnectorConfigs(
   read: McpServersRead,
 ): readonly Connectors.ConnectorConfig[] {
   const getToken = useSessionToken()
-  const servers = 'servers' in read ? read.servers : NO_SERVERS
+  const servers = serversOf(read)
   const configs = React.useMemo(
     () =>
       servers.map((s) => ({
@@ -377,11 +380,7 @@ function useConstructAssistantAPI() {
   const connectors = useConnectors(connectorConfigs)
 
   const getToken = useSessionToken()
-  const mcpSignIn = useMcpSignIn(
-    'servers' in mcpRead ? mcpRead.servers : NO_SERVERS,
-    connectors,
-    getToken,
-  )
+  const mcpSignIn = useMcpSignIn(serversOf(mcpRead), connectors, getToken)
   const passThru = usePassThru({
     context: Context.useLayer(),
     connectors,

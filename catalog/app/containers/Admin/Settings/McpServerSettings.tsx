@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
 import { toolNameFitsBedrock } from 'components/Assistant/Model/Connectors'
+import { resultError } from 'components/Assistant/Model/McpSignIn'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
@@ -63,7 +64,7 @@ const setNotice = (
   result: Exclude<SetResult, { __typename: 'McpServerAdmin' }>,
 ) => {
   if (result.__typename === 'InvalidInput') {
-    return `Couldn't save ${title}: ${result.errors.map((e) => e.message).join('; ')}`
+    return `Couldn't save ${title}: ${resultError(result)}`
   }
   if (result.name === 'SavedWithoutSecret') {
     return `${title} was saved but stays disabled until a secret is supplied.`
@@ -621,11 +622,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
       const res = await remove({ slug: server.slug }, SILENT)
       const result = res.admin.mcpServerRemove
       if (result.__typename !== 'Ok') {
-        notify(
-          result.__typename === 'InvalidInput'
-            ? `Couldn't remove ${server.title}: ${result.errors.map((e) => e.message).join('; ')}`
-            : `Couldn't remove ${server.title}: ${result.message}`,
-        )
+        notify(`Couldn't remove ${server.title}: ${resultError(result)}`)
       }
       onChanged()
     } catch (e) {
@@ -647,11 +644,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
       notify(
         result.__typename === 'Ok'
           ? `Signed everyone out of ${server.title}.`
-          : `Couldn't sign everyone out of ${server.title}: ${
-              result.__typename === 'InvalidInput'
-                ? result.errors.map((e) => e.message).join('; ')
-                : result.message
-            }`,
+          : `Couldn't sign everyone out of ${server.title}: ${resultError(result)}`,
       )
       onChanged()
     } catch (e) {

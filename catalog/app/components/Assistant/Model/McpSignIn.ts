@@ -1,6 +1,7 @@
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as urql from 'urql'
+import * as uuid from 'uuid'
 
 import cfg from 'constants/config'
 import { runtime } from 'utils/Effect'
@@ -50,6 +51,19 @@ export interface SignInOptions {
 
 const POPUP_FEATURES = 'popup,width=520,height=700'
 const CLOSED_POLL_MS = 500
+const REQUEST_TIMEOUT_MS = 30_000
+/** Longer than a connector bootstrap, so an attempt in flight settles first. */
+const RETRY_WAIT = Eff.Duration.seconds(90)
+
+/** The message of a mutation's `InvalidInput` or `OperationError` result. */
+export const resultError = (
+  result:
+    | { __typename: 'InvalidInput'; errors: readonly { message: string }[] }
+    | { __typename: 'OperationError'; message: string },
+) =>
+  result.__typename === 'InvalidInput'
+    ? result.errors.map((e) => e.message).join('; ')
+    : result.message
 
 interface CallbackMessage {
   type?: unknown
@@ -78,25 +92,42 @@ export function signIn({
   fetch: doFetch = win.fetch.bind(win),
   signal,
 }: SignInOptions): Promise<SignInResult> {
-  const popup = win.open('', 'quilt-mcp-oauth', POPUP_FEATURES)
+  let registryOrigin: string
+  try {
+    registryOrigin = new URL(registryUrl).origin
+  } catch {
+    return Promise.resolve({ ok: false, reason: 'failed', error: 'InvalidRegistryUrl' })
+  }
+  // Unique per flow, so two tabs never share one sign-in window.
+  const popup = win.open('', `quilt-mcp-oauth-${uuid.v4()}`, POPUP_FEATURES)
   if (!popup) return Promise.resolve({ ok: false, reason: 'blocked' })
-  const registryOrigin = new URL(registryUrl).origin
   const base = `${registryUrl}/api/mcp/${encodeURIComponent(slug)}/oauth`
 
   const post = async (path: string, body?: object) => {
-    const token = await getToken()
-    const resp = await doFetch(`${base}/${path}`, {
-      method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-      },
-      ...(body ? { body: JSON.stringify(body) } : {}),
-      ...(signal ? { signal } : {}),
-    })
-    const json = (await resp.json().catch(() => null)) as Record<string, unknown> | null
-    const errorCode = typeof json?.error_code === 'string' ? json.error_code : undefined
-    return { resp, json, errorCode }
+    // Once the callback has arrived nothing else ends the flow, so a stalled
+    // request must time out.
+    const timeout = new AbortController()
+    const onOuterAbort = () => timeout.abort()
+    signal?.addEventListener('abort', onOuterAbort)
+    const timer = win.setTimeout(() => timeout.abort(), REQUEST_TIMEOUT_MS)
+    try {
+      const token = await getToken()
+      const resp = await doFetch(`${base}/${path}`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+        signal: timeout.signal,
+      })
+      const json = (await resp.json().catch(() => null)) as Record<string, unknown> | null
+      const errorCode = typeof json?.error_code === 'string' ? json.error_code : undefined
+      return { resp, json, errorCode }
+    } finally {
+      win.clearTimeout(timer)
+      signal?.removeEventListener('abort', onOuterAbort)
+    }
   }
 
   return new Promise<SignInResult>((resolve) => {
@@ -253,7 +284,14 @@ export function useMcpSignIn(
   const [status, setStatus] = React.useState('')
   const flow = React.useRef<AbortController | null>(null)
   const busy = React.useRef(false)
-  React.useEffect(() => () => flow.current?.abort(), [])
+  const retryFiber = React.useRef<Eff.Fiber.RuntimeFiber<unknown, unknown> | null>(null)
+  React.useEffect(
+    () => () => {
+      flow.current?.abort()
+      if (retryFiber.current) runtime.runFork(Eff.Fiber.interrupt(retryFiber.current))
+    },
+    [],
+  )
 
   const oauth = React.useMemo(
     () =>
@@ -289,21 +327,26 @@ export function useMcpSignIn(
       } finally {
         if (!controller.signal.aborted) {
           flow.current = null
-          await client
-            .query(MCP_SERVERS_QUERY, {}, { requestPolicy: 'network-only' })
-            .toPromise()
           busy.current = false
           setPending(null)
+          client
+            .query(MCP_SERVERS_QUERY, {}, { requestPolicy: 'network-only' })
+            .toPromise()
+            .catch(() => undefined)
           const connector = connectors.byId[slug]
           // A retry during Connecting is a no-op, and that attempt may still end
           // in NeedsSignIn, so wait for it to settle first.
           if (connector && ok) {
-            runtime.runFork(
+            if (retryFiber.current)
+              runtime.runFork(Eff.Fiber.interrupt(retryFiber.current))
+            retryFiber.current = runtime.runFork(
               connector.state.changes.pipe(
                 Eff.Stream.filter((s) => s._tag !== 'Connecting'),
                 Eff.Stream.take(1),
                 Eff.Stream.runDrain,
+                Eff.Effect.timeout(RETRY_WAIT),
                 Eff.Effect.zipRight(connector.retry),
+                Eff.Effect.ignore,
               ),
             )
           }
@@ -343,11 +386,10 @@ export function useMcpSignIn(
           if (result.__typename === 'Ok') {
             return { ok: true, message: `Disconnected ${title}.` }
           }
-          const why =
-            result.__typename === 'InvalidInput'
-              ? result.errors.map((e) => e.message).join('; ')
-              : result.message
-          return { ok: false, message: `Couldn't disconnect ${title}: ${why}` }
+          return {
+            ok: false,
+            message: `Couldn't disconnect ${title}: ${resultError(result)}`,
+          }
         } catch (e) {
           const why = e instanceof Error ? e.message : String(e)
           return { ok: false, message: `Couldn't disconnect ${title}: ${why}` }

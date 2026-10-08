@@ -452,6 +452,8 @@ interface MenuProps {
   onToggleDevTools: () => void
   devToolsOpen: boolean
   mcpSignIn?: Model.Assistant.API['mcpSignIn']
+  /** Slugs whose connector reports the user must sign in, whatever the cached list says. */
+  needsSignIn?: ReadonlySet<string>
   className?: string
 }
 
@@ -461,6 +463,7 @@ export function Menu({
   devToolsOpen,
   onToggleDevTools,
   mcpSignIn,
+  needsSignIn,
   className,
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
@@ -512,19 +515,22 @@ export function Menu({
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
-        {mcpSignIn?.servers.map((s) => (
-          <M.MenuItem
-            key={s.slug}
-            disabled={!!mcpSignIn.pending}
-            onClick={() => {
-              closeMenu()
-              const act = s.signedIn ? mcpSignIn.disconnect : mcpSignIn.connect
-              act(s.slug, menuButton.current)
-            }}
-          >
-            {s.signedIn ? `Disconnect ${s.title}` : `Connect ${s.title}`}
-          </M.MenuItem>
-        ))}
+        {mcpSignIn?.servers.map((s) => {
+          const connected = s.signedIn && !needsSignIn?.has(s.slug)
+          return (
+            <M.MenuItem
+              key={s.slug}
+              disabled={!!mcpSignIn.pending}
+              onClick={() => {
+                closeMenu()
+                const act = connected ? mcpSignIn.disconnect : mcpSignIn.connect
+                act(s.slug, menuButton.current)
+              }}
+            >
+              {connected ? `Disconnect ${s.title}` : `Connect ${s.title}`}
+            </M.MenuItem>
+          )
+        })}
       </M.Menu>
     </>
   )
@@ -578,8 +584,8 @@ export function ConnectorHelperLine({
     Disconnected: () => <>{title}: reconnecting…</>,
     // An optional connector is not gated on a dismissal, so offering
     // "continue without" would promise an effect it does not have.
-    Failed: ({ acked, error }) =>
-      error.needsSignIn ? (
+    Failed: ({ acked }) =>
+      Model.Connectors.stateNeedsSignIn(state) ? (
         <>
           {title}: not connected
           {onConnect && (
@@ -773,6 +779,14 @@ export default function Chat({
     )
   }
   const helperText = helperLines.length > 0 ? helperLines : undefined
+  const needsSignInKey = allConnectors
+    .filter((_c, i) => Model.Connectors.stateNeedsSignIn(connectorStates[i]))
+    .map((c) => c.id)
+    .join('\n')
+  const needsSignIn = React.useMemo(
+    () => new Set(needsSignInKey ? needsSignInKey.split('\n') : []),
+    [needsSignInKey],
+  )
   const helperSeverity =
     helperSeverityFor(
       connectorStates,
@@ -820,6 +834,7 @@ export default function Chat({
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
           mcpSignIn={mcpSignIn}
+          needsSignIn={needsSignIn}
           className={cx(classes.headerButton, classes.trailing)}
         />
         <M.IconButton
