@@ -21,6 +21,14 @@ vi.mock('./Chat', () => ({
   },
 }))
 
+let chat: { open: boolean; show: () => void; hide: () => void } | null = null
+vi.mock('components/HubSpot', () => ({
+  useChat: () => chat,
+}))
+vi.mock('./Help', () => ({
+  default: () => <div data-testid="help" />,
+}))
+
 let inlined = false
 vi.mock('./InlinePresence', () => ({
   Provider: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
@@ -90,6 +98,7 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     vi.clearAllMocks()
     inlined = false
     chatProps = null
+    chat = null
     delete (window as any).matchMedia
   })
 
@@ -155,6 +164,92 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(paper(baseElement)).toBeTruthy()
     expect(chatProps).toBeTruthy()
     expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
+  })
+
+  it("shows Help as the panel's second face, on the same gutter, and steps Qurator aside", () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { baseElement, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(baseElement.querySelector('.MuiDrawer-docked')).toBeTruthy()
+    expect(getByTestId('help')).toBeTruthy()
+    expect(chatProps).toBeNull()
+    expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
+    expect(api.hide).toHaveBeenCalled()
+  })
+
+  it('offers Help on the collapsed rail beside Qurator', () => {
+    useAssistantAPI.mockReturnValue(makeAPI())
+    chat = { open: false, show: vi.fn(), hide: vi.fn() }
+    const { getByLabelText, getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(getByLabelText('Ask Qurator')).toBeTruthy()
+    expect(getByTestId('reflow').textContent).toBe(RAIL_WIDTH)
+    fireEvent.click(getByLabelText('Help'))
+    expect(chat.show).toHaveBeenCalled()
+  })
+
+  it('docks Help alone when there is no Qurator', () => {
+    useAssistantAPI.mockReturnValue(null)
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { getByTestId } = render(
+      <WithAssistantUI>
+        <Reflow />
+      </WithAssistantUI>,
+    )
+    expect(getByTestId('help')).toBeTruthy()
+    expect(getByTestId('reflow').textContent).toBe(PANEL_WIDTH)
+  })
+
+  it('returns focus to the Help rail button when Help collapses', () => {
+    useAssistantAPI.mockReturnValue(makeAPI())
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { rerender, getByLabelText } = render(<WithAssistantUI />)
+    chat = { ...chat, open: false }
+    rerender(<WithAssistantUI />)
+    expect(document.activeElement).toBe(getByLabelText('Help'))
+  })
+
+  it('leaves Help open when Qurator is shown inline on the page', () => {
+    inlined = true
+    const api = makeAPI()
+    useAssistantAPI.mockReturnValue(api)
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { rerender } = render(<WithAssistantUI />)
+    api.visible = true
+    rerender(<WithAssistantUI />)
+    expect(chat.hide).not.toHaveBeenCalled()
+    expect(api.hide).not.toHaveBeenCalled()
+  })
+
+  it('closes Help when Qurator opens', () => {
+    const api = makeAPI()
+    useAssistantAPI.mockReturnValue(api)
+    chat = { open: false, show: vi.fn(), hide: vi.fn() }
+    const { rerender } = render(<WithAssistantUI />)
+    expect(chat.hide).not.toHaveBeenCalled()
+    api.visible = true
+    rerender(<WithAssistantUI />)
+    expect(chat.hide).toHaveBeenCalled()
+  })
+
+  it('keeps Help, not Qurator, in the compact overlay while it slides shut', () => {
+    narrowViewport()
+    useAssistantAPI.mockReturnValue(makeAPI())
+    chat = { open: true, show: vi.fn(), hide: vi.fn() }
+    const { rerender, queryByTestId } = render(<WithAssistantUI />)
+    expect(queryByTestId('help')).toBeTruthy()
+    chat = { ...chat, open: false }
+    rerender(<WithAssistantUI />)
+    expect(chatProps).toBeNull()
   })
 
   it('stays an overlay below 960px and reserves no gutter', () => {

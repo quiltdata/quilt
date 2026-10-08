@@ -92,6 +92,7 @@ The Platform MCP Server works with any MCP-compatible AI client, including:
 - **Databricks** (web)
 - **Benchling AI** (web)
 - **OpenAI Codex** (desktop/IDE)
+- **Amazon Quick** (web)
 - **Any client** supporting the [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ### Connecting Claude.ai
@@ -283,6 +284,65 @@ You can also configure it via the `codex mcp add` CLI or by editing
 
 Codex starts the OAuth flow on first connect and opens a browser to the
 Quilt authorization page.
+
+### Connecting Amazon Quick
+
+> Requires an Amazon Quick Enterprise subscription. See the AWS guide to
+> [MCP integration in Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/mcp-integration.html).
+
+Before configuring Amazon Quick, add `quick.aws.com` to the
+`ConnectAllowedHosts` CloudFormation parameter and deploy the stack.
+Preserve any existing entries in the comma-separated list. Quick registers
+itself through Dynamic Client Registration with this redirect URI:
+
+```text
+https://quick.aws.com/sn/oauthcallback
+```
+
+Do not add `<region>.quicksight.aws.amazon.com` hosts; Quick does not use
+them for MCP connectors.
+
+In the Amazon Quick console:
+
+1. Choose **Connectors**, then the **Create for your team** tab
+2. Find and choose **Model Context Protocol (MCP)**
+3. On the **Create Integration** page, enter:
+   - **Name:** for example, `Quilt`
+   - **Description** (optional)
+   - **MCP server endpoint:** `https://<connect-host>/mcp/platform/mcp`
+   - **Connection type** and **Auth server connection type:** **Public
+     network** for an internet-facing Quilt stack. For an internal stack,
+     choose a Quick VPC connection that can reach the Connect host for
+     both (Connect is both the MCP server and the OAuth authorization
+     server); see [Internal stacks](#amazon-quick-and-internal-stacks)
+4. Choose **Next**
+5. Keep **User authentication** with the **Default OAuth app** auth
+   configuration. No client ID or secret is needed: Quick registers itself.
+6. Choose **Create and continue**, then complete the Quilt OAuth flow (see
+   [User Authorization](#user-authorization) below)
+7. Under **Manage Write Permissions** and **Manage Read Permissions**,
+   choose which Quilt tools Quick may call
+8. **Publish** the integration and share it with other users if needed
+
+If **Create and continue** fails with "One or more parameters are invalid",
+Quilt rejected Quick's client registration. Confirm that `quick.aws.com`
+is in `ConnectAllowedHosts` and that the stack update has finished rolling
+out the registry service.
+
+Quick does not refresh the tool list of a custom MCP connector on its own.
+After upgrading Quilt, open the connector details page in Quick and choose
+**Sync** to pick up new or changed tools.
+
+#### Amazon Quick and internal stacks
+
+On an internal Quilt stack the Connect ALB is reachable only from your
+network (see [Connect DNS configuration](Connect.md#dns-configuration)).
+Quick then needs a
+[VPC connection](https://docs.aws.amazon.com/quick/latest/userguide/working-with-aws-vpc.html)
+with network access to the Connect host. Quick does not use the default VPC
+DNS resolver for MCP integrations: populate the VPC connection's **DNS
+resolver endpoints** with Route 53 Resolver inbound endpoint IPs that can
+resolve the Connect hostname.
 
 ### User Authorization
 
