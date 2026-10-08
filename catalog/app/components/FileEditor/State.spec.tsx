@@ -54,17 +54,22 @@ describe('components/FileEditor/State', () => {
     },
   )
 
-  it.each(['writeFile', 'revisePackage'] as const)(
-    'is not writable when bucket preferences turn off %s',
-    (action) => {
-      useLockStatus.mockReturnValue('unlocked')
-      actions[action] = false
-      const { result } = renderHook(() => useState(handle))
-      actions[action] = true
-      expect(result.current.writable).toBe(false)
-      expect(result.current.editing).toBeNull()
-    },
-  )
+  it('is not writable when bucket preferences turn off writeFile', () => {
+    useLockStatus.mockReturnValue('unlocked')
+    actions.writeFile = false
+    const { result } = renderHook(() => useState(handle))
+    actions.writeFile = true
+    expect(result.current.writable).toBe(false)
+    expect(result.current.editing).toBeNull()
+  })
+
+  it('needs only writeFile, not revisePackage, to add to an unlocked package', () => {
+    useLockStatus.mockReturnValue('unlocked')
+    actions.revisePackage = false
+    const { result } = renderHook(() => useState(handle))
+    actions.revisePackage = true
+    expect(result.current.writable).toBe(true)
+  })
 
   it('opens the editor once a loading lock turns out unlocked', () => {
     useLockStatus.mockReturnValue('loading')
@@ -75,9 +80,12 @@ describe('components/FileEditor/State', () => {
     expect(result.current.editing).toEqual({ brace: 'markdown' })
   })
 
-  it('is not writable when the add parameter does not parse', () => {
+  it.each([
+    ['does not parse', 'not-a-package-uri'],
+    ['has no path', PackageUri.stringify({ bucket: 'b', name: 'team/ds' })],
+  ])('is not writable when the add parameter %s', (_label, uri) => {
     useLockStatus.mockReturnValue('unlocked')
-    search = '?add=not-a-package-uri&edit=true'
+    search = `?add=${encodeURIComponent(uri)}&edit=true`
     const { result } = renderHook(() => useState(handle))
     search = defaultSearch
     expect(result.current.writable).toBe(false)

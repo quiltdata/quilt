@@ -6,7 +6,9 @@ import { useBulkDelete } from './useBulkDelete'
 const deleteRevision: Mock = vi.fn()
 vi.mock('utils/GraphQL', () => ({ useMutation: () => deleteRevision }))
 
-const ok = { packageRevisionDelete: { __typename: 'PackageRevisionDeleteSuccess' } }
+const ok = {
+  packageRevisionDelete: { __typename: 'PackageRevisionDeleteSuccess' },
+}
 const fail = (message: string) => ({
   packageRevisionDelete: { __typename: 'OperationError', message },
 })
@@ -31,7 +33,10 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     await act(() => result.current.run())
     expect(deleteRevision).toHaveBeenCalledTimes(2)
     expect([...result.current.selected]).toEqual([])
-    expect(result.current.state).toMatchObject({ error: undefined, opened: false })
+    expect(result.current.state).toMatchObject({
+      error: undefined,
+      opened: false,
+    })
   })
 
   it('stops at the first failure and keeps the survivors selected', async () => {
@@ -74,6 +79,41 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     await act(() => result.current.run())
     expect(deleteRevision).toHaveBeenCalledTimes(1)
     expect([...result.current.selected]).toEqual(['h2'])
+    expect(result.current.state).toMatchObject({
+      error: 'The package is locked; 1 revision was not deleted. 1 already deleted',
+      loading: false,
+      opened: true,
+    })
+  })
+
+  it('stops when the page moves to another package and leaves its state alone', async () => {
+    const { result, rerender } = renderHook(
+      ({ name }) => useBulkDelete('b', name, true),
+      {
+        initialProps: { name: 'foo/a' },
+      },
+    )
+    act(() => ['h1', 'h2'].forEach(result.current.toggle))
+    act(() => result.current.confirm())
+    let resolve: (v: unknown) => void = () => {}
+    deleteRevision.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+    let running = Promise.resolve()
+    act(() => {
+      running = result.current.run()
+    })
+    rerender({ name: 'foo/b' })
+    act(() => result.current.toggle('b1'))
+    await act(async () => {
+      resolve(ok)
+      await running
+    })
+    expect(deleteRevision).toHaveBeenCalledTimes(1)
+    expect([...result.current.selected]).toEqual(['b1'])
+    expect(result.current.state).toMatchObject({
+      error: undefined,
+      loading: false,
+      opened: false,
+    })
   })
 
   it('drops the selection when the package changes', () => {
@@ -101,7 +141,10 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     await act(() => result.current.run())
     expect(result.current.state.opened).toBe(true)
     rerender({ name: 'foo/other' })
-    expect(result.current.state).toMatchObject({ opened: false, error: undefined })
+    expect(result.current.state).toMatchObject({
+      opened: false,
+      error: undefined,
+    })
   })
 
   it('names the failing revision when the mutation throws', async () => {

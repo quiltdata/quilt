@@ -255,6 +255,89 @@ export function useCreateDialog(
   return createDialog
 }
 
+export function usePackageDeletion(
+  { bucket, name, hash }: PackageHandle,
+  lock: PackageLockState.Status,
+  onDeleted: () => void,
+) {
+  const [deletionState, setDeletionState] = React.useState({
+    error: undefined as React.ReactNode | undefined,
+    loading: false,
+    opened: false,
+    scope: 'revision' as 'revision' | 'package',
+  })
+
+  const confirmDelete = React.useCallback(
+    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'revision' })),
+    [],
+  )
+
+  const confirmDeletePackage = React.useCallback(
+    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'package' })),
+    [],
+  )
+
+  const onPackageDeleteDialogClose = React.useCallback(() => {
+    setDeletionState(
+      R.mergeLeft({
+        error: undefined,
+        opened: false,
+      }),
+    )
+  }, [])
+
+  const deleteRevision = GQL.useMutation(DELETE_REVISION)
+  const deletePackage = GQL.useMutation(DELETE_PACKAGE)
+
+  const handlePackageDeletion = React.useCallback(async () => {
+    if (lock !== 'unlocked') {
+      setDeletionState(R.mergeLeft({ error: 'This package is locked' }))
+      return
+    }
+    setDeletionState(R.assoc('loading', true))
+    try {
+      const r =
+        deletionState.scope === 'package'
+          ? (await deletePackage({ bucket, name })).packageDelete
+          : (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
+      switch (r.__typename) {
+        case 'Ok':
+        case 'PackageRevisionDeleteSuccess':
+          setDeletionState(R.mergeLeft({ opened: false, loading: false }))
+          onDeleted()
+          return
+        case 'OperationError':
+          setDeletionState(R.mergeLeft({ error: r.message, loading: false }))
+          return
+        default:
+          assertNever(r)
+      }
+    } catch (e: any) {
+      let error = 'Unexpected error'
+      if (e.message) error = `${error}: ${e.message}`
+      setDeletionState(R.mergeLeft({ error, loading: false }))
+    }
+  }, [
+    bucket,
+    hash,
+    name,
+    deletionState.scope,
+    deletePackage,
+    lock,
+    deleteRevision,
+    onDeleted,
+    setDeletionState,
+  ])
+
+  return {
+    deletionState,
+    confirmDelete,
+    confirmDeletePackage,
+    onPackageDeleteDialogClose,
+    handlePackageDeletion,
+  }
+}
+
 const useDirDisplayStyles = M.makeStyles((t) => ({
   button: {
     flexShrink: 0,
@@ -310,71 +393,13 @@ function DirDisplay({
     history.push(urls.bucketPackageList(bucket))
   }, [bucket, history, urls])
 
-  const [deletionState, setDeletionState] = React.useState({
-    error: undefined as React.ReactNode | undefined,
-    loading: false,
-    opened: false,
-    scope: 'revision' as 'revision' | 'package',
-  })
-
-  const confirmDelete = React.useCallback(
-    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'revision' })),
-    [],
-  )
-
-  const confirmDeletePackage = React.useCallback(
-    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'package' })),
-    [],
-  )
-
-  const onPackageDeleteDialogClose = React.useCallback(() => {
-    setDeletionState(
-      R.mergeLeft({
-        error: undefined,
-        opened: false,
-      }),
-    )
-  }, [])
-
-  const deleteRevision = GQL.useMutation(DELETE_REVISION)
-  const deletePackage = GQL.useMutation(DELETE_PACKAGE)
-
-  const handlePackageDeletion = React.useCallback(async () => {
-    if (lock !== 'unlocked') return
-    setDeletionState(R.assoc('loading', true))
-    try {
-      const r =
-        deletionState.scope === 'package'
-          ? (await deletePackage({ bucket, name })).packageDelete
-          : (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
-      switch (r.__typename) {
-        case 'Ok':
-        case 'PackageRevisionDeleteSuccess':
-          setDeletionState(R.mergeLeft({ opened: false, loading: false }))
-          redirectToPackagesList()
-          return
-        case 'OperationError':
-          setDeletionState(R.mergeLeft({ error: r.message, loading: false }))
-          return
-        default:
-          assertNever(r)
-      }
-    } catch (e: any) {
-      let error = 'Unexpected error'
-      if (e.message) error = `${error}: ${e.message}`
-      setDeletionState(R.mergeLeft({ error, loading: false }))
-    }
-  }, [
-    bucket,
-    hash,
-    name,
-    deletionState.scope,
-    deletePackage,
-    lock,
-    deleteRevision,
-    redirectToPackagesList,
-    setDeletionState,
-  ])
+  const {
+    deletionState,
+    confirmDelete,
+    confirmDeletePackage,
+    onPackageDeleteDialogClose,
+    handlePackageDeletion,
+  } = usePackageDeletion(packageHandle, lock, redirectToPackagesList)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()

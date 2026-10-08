@@ -34,17 +34,25 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
     [],
   )
 
-  // Read per deletion: the lock can change while earlier ones are in flight.
-  const writableRef = React.useRef(writable)
-  writableRef.current = writable
+  // Read per deletion: the lock or the page can change while earlier ones are in flight.
+  const current = React.useRef({ bucket, name, writable })
+  current.current = { bucket, name, writable }
 
   const run = React.useCallback(async () => {
-    if (!writableRef.current) return
+    if (!current.current.writable) return
+    const samePackage = () =>
+      current.current.bucket === bucket && current.current.name === name
     setState(R.mergeLeft({ loading: true, error: undefined }))
     const done = new Set<string>()
     let error: React.ReactNode | undefined
     for (const hash of selected) {
-      if (!writableRef.current) break
+      // Another package's page owns the selection and dialog now.
+      if (!samePackage()) return
+      if (!current.current.writable) {
+        const n = selected.size - done.size
+        error = `The package is locked; ${n} ${n === 1 ? 'revision was' : 'revisions were'} not deleted`
+        break
+      }
       try {
         const r = (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
         if (r.__typename === 'OperationError') {
@@ -57,6 +65,7 @@ export function useBulkDelete(bucket: string, name: string, writable: boolean) {
         break
       }
     }
+    if (!samePackage()) return
     setSelected((s) => new Set([...s].filter((h) => !done.has(h))))
     // The dialog's title tracks the selection, which just shrank by whatever
     // succeeded, so the error carries the only record of the partial result.

@@ -39,13 +39,17 @@ describe('utils/PackageLock', () => {
     })
 
     it.each([
+      ['settled', {}],
       ['in flight', { fetching: true }],
-      ['partial', { operation: { context: { meta: { cacheOutcome: 'partial' } } } }],
     ])(
-      'is loading while the lock query is %s on a package another query cached',
+      'is loading on a partial result for a package another query cached, %s',
       (_label, state) => {
         // Graphcache fills the uncached lock with null.
-        useQueryResult({ data: pkg(null), ...state })
+        useQueryResult({
+          data: pkg(null),
+          operation: { context: { meta: { cacheOutcome: 'partial' } } },
+          ...state,
+        })
         expect(run().status).toBe('loading')
       },
     )
@@ -56,6 +60,11 @@ describe('utils/PackageLock', () => {
     ])('keeps a complete stale %s result while it revalidates', (status, data) => {
       useQueryResult({ data, stale: true, fetching: true })
       expect(run().status).toBe(status)
+    })
+
+    it('keeps a complete unlocked result while a network-only refetch runs', () => {
+      useQueryResult({ data: pkg(null), fetching: true })
+      expect(run().status).toBe('unlocked')
     })
 
     it('is loading on a stale partial result', () => {

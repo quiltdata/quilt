@@ -563,16 +563,8 @@ function File() {
                 ) : (
                   <>
                     <Message headline="No Such Object">
-                      {BucketPreferences.Result.match(
-                        {
-                          Ok: ({ ui: { actions } }) =>
-                            actions.writeFile &&
-                            editorState.writable && (
-                              <FileEditor.AddFileButton onClick={editorState.onEdit} />
-                            ),
-                          _: () => null,
-                        },
-                        prefs,
+                      {editorState.writable && (
+                        <FileEditor.AddFileButton onClick={editorState.onEdit} />
                       )}
                     </Message>
                   </>
