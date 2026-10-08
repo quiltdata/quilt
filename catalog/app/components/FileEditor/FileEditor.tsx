@@ -32,7 +32,8 @@ interface EditorProps extends EditorState {
 
 function EditorSuspended({
   className,
-  saving: disabled,
+  saving,
+  writable,
   empty,
   error,
   handle,
@@ -48,6 +49,7 @@ function EditorSuspended({
   }
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
+  const disabled = saving || !writable
   const initialProps = {
     className,
     disabled,

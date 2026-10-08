@@ -72,6 +72,8 @@ function useWritable(add?: string) {
   return unlocked && allowed
 }
 
+export const LOCKED_OUT = "This package was locked; your changes can't be saved."
+
 export interface EditorState {
   editing: EditorInputType | null
   error: Error | null
@@ -98,12 +100,24 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   const [editingState, setEditing] = React.useState<EditorInputType | null>(
     edit ? types[0] : null,
   )
-  const editing = writable ? editingState : null
+  // An editor opened while writable stays open, read-only, if the package locks, so the
+  // typed text isn't lost; one asked for by the URL waits until the package is writable.
+  const opened = React.useRef(false)
+  const editing = writable || opened.current ? editingState : null
+  React.useEffect(() => {
+    opened.current = !!editing
+  }, [editing])
+  const lockedOut = !!editing && !writable
+  const shownError = React.useMemo(
+    () => (lockedOut ? new Error(LOCKED_OUT) : error),
+    [lockedOut, error],
+  )
   const [preview, setPreview] = React.useState<boolean>(false)
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
   const redirect = useRedirect()
   const onSave = React.useCallback(async () => {
+    if (!writable) return
     // XXX: implement custom MUI Dialog-based confirm?
     // eslint-disable-next-line no-restricted-globals, no-alert
     if (!value && !window.confirm('You are about to save empty file')) return
@@ -120,7 +134,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       setError(err)
       setSaving(false)
     }
-  }, [redirect, value, writeFile])
+  }, [redirect, value, writable, writeFile])
   const onCancel = React.useCallback(() => {
     setEditing(null)
     setError(null)
@@ -128,7 +142,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   return React.useMemo(
     () => ({
       editing,
-      error,
+      error: shownError,
       onCancel,
       onChange: setValue,
       onEdit: setEditing,
@@ -140,6 +154,6 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       value,
       writable,
     }),
-    [editing, error, onCancel, onSave, preview, saving, types, value, writable],
+    [editing, shownError, onCancel, onSave, preview, saving, types, value, writable],
   )
 }

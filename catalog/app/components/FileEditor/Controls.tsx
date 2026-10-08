@@ -41,12 +41,19 @@ interface ControlsProps extends EditorState {
   className?: string
 }
 
-export function Controls({ className, onCancel, saving, onSave }: ControlsProps) {
+export function Controls({
+  className,
+  onCancel,
+  saving,
+  onSave,
+  writable,
+}: ControlsProps) {
   const disabled = saving
   return (
     <M.ButtonGroup disabled={disabled} className={className} size="small">
       <Buttons.Iconized icon="undo" onClick={onCancel} label="Cancel" />
       <Buttons.Iconized
+        disabled={disabled || !writable}
         color="primary"
         icon="save"
         label="Save"

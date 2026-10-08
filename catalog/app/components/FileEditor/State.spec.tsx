@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
 import * as PackageUri from 'utils/PackageUri'
@@ -17,9 +17,10 @@ vi.mock('utils/BucketPreferences', async () => {
   )
   return { ...BP, use: () => ({ prefs: BP.Result.Ok({ ui: { actions } } as never) }) }
 })
+const { writeFile } = vi.hoisted(() => ({ writeFile: vi.fn() }))
 vi.mock('./loader', () => ({
   detect: () => [{ brace: 'markdown' }],
-  useWriteData: () => vi.fn(),
+  useWriteData: () => writeFile,
 }))
 vi.mock('utils/NamedRoutes', () => ({ use: () => ({ urls: {} }) }))
 
@@ -78,6 +79,22 @@ describe('components/FileEditor/State', () => {
     useLockStatus.mockReturnValue('unlocked')
     rerender()
     expect(result.current.editing).toEqual({ brace: 'markdown' })
+  })
+
+  it('keeps the typed text read-only with a notice when the package locks mid-edit', async () => {
+    useLockStatus.mockReturnValue('unlocked')
+    const { result, rerender } = renderHook(() => useState(handle))
+    act(() => result.current.onChange('typed'))
+    useLockStatus.mockReturnValue('locked')
+    rerender()
+    expect(result.current.editing).toEqual({ brace: 'markdown' })
+    expect(result.current.value).toBe('typed')
+    expect(result.current.writable).toBe(false)
+    expect(result.current.error?.message).toBe(
+      "This package was locked; your changes can't be saved.",
+    )
+    expect(await result.current.onSave()).toBeUndefined()
+    expect(writeFile).not.toHaveBeenCalled()
   })
 
   it.each([
