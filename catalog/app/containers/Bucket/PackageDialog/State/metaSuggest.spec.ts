@@ -101,6 +101,10 @@ describe('containers/Bucket/PackageDialog/State/metaSuggest', () => {
       ).toEqual({ ok: 1 })
     })
 
+    it('returns nothing for a truncated reply instead of one of its nested objects', () => {
+      expect(firstJsonObject('{"wrapper": {"assay": {"value": "RNA"}}')).toBeUndefined()
+    })
+
     it('returns undefined when no object parses', () => {
       expect(firstJsonObject('no json here {oops')).toBeUndefined()
     })

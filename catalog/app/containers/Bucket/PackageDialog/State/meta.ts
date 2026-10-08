@@ -143,9 +143,16 @@ export function useMeta(
 /** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
 export const NEW_FIELD = '\u0000new field'
 
+/** Pending key while a metadata file is being read. */
+export const IMPORT = '\u0000import'
+
 /** How pending keys read to a person; the new-field row has no name yet. */
 export const pendingLabel = (keys: readonly string[]) =>
-  keys.map((k) => (k === NEW_FIELD ? 'the new field' : `"${k}"`)).join(', ')
+  keys
+    .map((k) =>
+      k === NEW_FIELD ? 'the new field' : k === IMPORT ? 'the file import' : `"${k}"`,
+    )
+    .join(', ')
 
 /**
  * `canChange(what)`: false, with a notice, while any edit is unfinished. Changing the

@@ -127,6 +127,8 @@ export function firstJsonObject(text: string): unknown {
         }
       }
     }
+    // unterminated (a truncated reply): anything after `start` is inside it
+    if (depth > 0) return undefined
   }
   return undefined
 }

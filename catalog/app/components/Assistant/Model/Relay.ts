@@ -242,9 +242,16 @@ export function LLMRelay(options: RelayOptions) {
             try: async (signal) => {
               // by hand: AbortSignal.any is missing in supported Safari 16-17.3
               const ctrl = new AbortController()
-              const stop = () => ctrl.abort()
+              const stop = () => ctrl.abort(signal.reason)
+              if (signal.aborted) stop()
               signal.addEventListener('abort', stop)
-              const timer = setTimeout(stop, REQUEST_TIMEOUT_MS)
+              const timer = setTimeout(
+                () =>
+                  ctrl.abort(
+                    new DOMException('The operation timed out.', 'TimeoutError'),
+                  ),
+                REQUEST_TIMEOUT_MS,
+              )
               try {
                 const r = await fetch(
                   `${options.url}/model/${encodeURIComponent(modelId)}/converse`,

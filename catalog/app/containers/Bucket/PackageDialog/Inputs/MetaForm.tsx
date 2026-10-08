@@ -72,7 +72,11 @@ function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
 
 let fieldIds = 0
 
+const NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i
 const DATE = /^\d{4}-\d{2}-\d{2}$/
+/** What a date input can show: a real calendar day ("2026-02-30" displays as empty). */
+const isCalendarDate = (s: string) =>
+  DATE.test(s) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s
 
 const useFieldStyles = M.makeStyles((t) => ({
   root: {
@@ -175,7 +179,9 @@ function Field({
   const typed = widgetFor(prop, value)
   // a date input shows a stored value it cannot parse as empty
   const widget =
-    typed === 'date' && !isEmpty(value) && !DATE.test(String(value)) ? 'string' : typed
+    typed === 'date' && !isEmpty(value) && !isCalendarDate(String(value))
+      ? 'string'
+      : typed
   const label = prop.title || name
   const error = errors[0]
   const enumIndex =
@@ -204,7 +210,7 @@ function Field({
   React.useEffect(() => {
     if (!numeric) return
     const t = numTextRef.current
-    if (Number(t) === value && t.trim() !== '') return
+    if (NUMBER.test(t.trim()) && Number(t) === value) return
     setNumText(isEmpty(value) ? '' : display(value))
     setNumError(null)
     setPending?.(name, false)
@@ -225,10 +231,7 @@ function Field({
         // the text is the source of truth while typing; "1." or "0.50" stay as typed
         setNumText(raw)
         const n = Number(raw)
-        const complete =
-          raw.trim() !== '' &&
-          !Number.isNaN(n) &&
-          /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(raw.trim())
+        const complete = raw.trim() !== '' && !Number.isNaN(n) && NUMBER.test(raw.trim())
         const unsafe = complete && !isExactNumber(n)
         setNumError(
           unsafe
@@ -311,17 +314,18 @@ function Field({
           helperText={numError || helper}
           id={id}
           InputLabelProps={widget === 'date' ? { shrink: true } : undefined}
-          label={label}
+          // no native `required`: a schema default satisfies it, and Enter must not disagree with Create
+          label={required ? `${label} *` : label}
           onChange={(e) => set(e.target.value)}
-          required={required}
           select={widget === 'enum'}
           size="small"
           // numbers use a text input: a number input reports "" for a partial "-" or "1e"
-          inputProps={
-            widget === 'integer' || widget === 'number'
+          inputProps={{
+            'aria-required': required,
+            ...(widget === 'integer' || widget === 'number'
               ? { inputMode: widget === 'integer' ? 'numeric' : 'decimal' }
-              : undefined
-          }
+              : {}),
+          }}
           type={widget === 'date' ? 'date' : 'text'}
           value={
             // eslint-disable-next-line no-nested-ternary

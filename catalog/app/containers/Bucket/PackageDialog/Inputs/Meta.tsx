@@ -21,7 +21,7 @@ import { JsonRecord } from 'utils/types'
 import type { FormStatus } from '../State/form'
 import { mkSubmitValidator } from '../State/schema'
 import type { SchemaStatus } from '../State/schema'
-import { pendingLabel } from '../State/meta'
+import { IMPORT, pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
 import { humanizeError, invalidKeys, requiredFields, topKey } from '../State/metaGuide'
 import { newErrorsFrom, useMetaSuggestions } from '../State/metaSuggest'
@@ -739,6 +739,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         return
       }
       setLocked(true)
+      setPending?.(IMPORT, true)
       readFile(file, schema)
         .then((contents) => {
           if (typeof contents === 'object') {
@@ -765,11 +766,13 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         })
         .finally(() => {
           setLocked(false)
+          setPending?.(IMPORT, false)
         })
     },
     [
       schema,
       setLocked,
+      setPending,
       onChange,
       setJsonInlineEditorKey,
       setJsonFullscreenEditorKey,
