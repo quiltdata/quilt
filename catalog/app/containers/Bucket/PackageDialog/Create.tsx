@@ -280,9 +280,35 @@ function PackageCreationForm({
 
   const openMeta = React.useCallback(() => setPane('metadata'), [])
   const dragging = useDragging()
+  const paneRef = React.useRef(pane)
+  paneRef.current = pane
+  const fileCountRef = React.useRef(fileCount)
+  fileCountRef.current = fileCount
+  const beforeDrag = React.useRef<{ pane: typeof pane; files: number } | null>(null)
   React.useEffect(() => {
-    if (dragging && meta.guided) setPane('files')
+    if (!meta.guided) return
+    if (dragging) {
+      beforeDrag.current ??= { pane: paneRef.current, files: fileCountRef.current }
+      setPane('files')
+      return
+    }
+    const was = beforeDrag.current
+    beforeDrag.current = null
+    if (!was) return
+    // after the drop's own state updates: a drag that added no files returns the user
+    const t = window.setTimeout(() => {
+      if (fileCountRef.current === was.files) setPane(was.pane)
+    })
+    return () => window.clearTimeout(t)
   }, [dragging, meta.guided])
+
+  // a rejected submit shows the pane that holds the reason
+  React.useEffect(() => {
+    if (!meta.guided || formStatus._tag !== 'error') return
+    if (formStatus.fields?.files || files.status._tag === 'error') setPane('files')
+    else if (formStatus.fields?.userMeta || meta.status._tag === 'error')
+      setPane('metadata')
+  }, [files.status._tag, formStatus, meta.guided, meta.status._tag])
 
   const filesInput = (
     <Inputs.Files

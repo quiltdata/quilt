@@ -1,5 +1,7 @@
 import * as React from 'react'
 
+import * as Notifications from 'containers/Notifications'
+
 import type { UploadTotalProgress } from '../Uploads'
 
 import type { FilesState } from './files'
@@ -21,7 +23,7 @@ import { useMessage } from './message'
 import { useName } from './name'
 import { useMetadataSchema, useEntriesSchema } from './schema'
 import { useWorkflowsConfig, useWorkflow } from './workflow'
-import { useMeta } from './meta'
+import { pendingLabel, useMeta } from './meta'
 import { useParams } from './params'
 import { useCopyHandler } from './copy'
 import { useCreateHandler } from './create'
@@ -111,6 +113,36 @@ export function useState(
   const name = useName(formStatus, dst, setDst, src, workflow.value, disableRestore)
   const message = useMessage(formStatus)
   const meta = useMeta(formStatus, metadataSchema, manifest)
+
+  // a new workflow or bucket reloads the schema and the editor, dropping unfinished drafts
+  const { push: notify } = Notifications.use()
+  const pendingRef = React.useRef(meta.pending)
+  pendingRef.current = meta.pending
+  const guard = React.useCallback(
+    (what: string) => {
+      if (!pendingRef.current.length) return true
+      notify(
+        `Finish or undo the edit to ${pendingLabel(pendingRef.current)} before changing ${what}`,
+      )
+      return false
+    },
+    [notify],
+  )
+  const guardedWorkflow = React.useMemo(
+    () => ({
+      ...workflow,
+      onChange: (w: Parameters<typeof workflow.onChange>[0]) => {
+        if (guard('the workflow')) workflow.onChange(w)
+      },
+    }),
+    [guard, workflow],
+  )
+  const guardedSetDst: typeof setDst = React.useCallback(
+    (next) => {
+      if (guard('the bucket')) setDst(next)
+    },
+    [guard],
+  )
   const files = useFiles(formStatus, entriesSchema, manifest, open)
 
   const params = useParams({
@@ -142,7 +174,7 @@ export function useState(
     message,
     meta,
     name,
-    workflow,
+    workflow: guardedWorkflow,
 
     reset,
 
@@ -150,7 +182,7 @@ export function useState(
     setSrc,
 
     dst,
-    setDst,
+    setDst: guardedSetDst,
 
     open,
     setOpen,

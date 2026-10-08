@@ -274,8 +274,8 @@ function scanSchemaAndPrefillValues(
 
   if (!optSchema?.properties) return value
 
-  // null has no properties to prefill and would throw below; with keepSet the same holds
-  // for other primitives and arrays, which without keepSet keep their old handling
+  // null has nothing to prefill and would throw on `value[key]`; keepSet also leaves other
+  // non-objects as they are, while the default mode may still replace a falsy one below
   if (value === null) return value
   if (
     keepSet &&
@@ -297,7 +297,7 @@ function scanSchemaAndPrefillValues(
     // and not in conditionals like `oneOf`, `anyOf`, `if` etc.
     // https://github.com/ajv-validator/ajv/issues/42#issuecomment-170250113
 
-    // a null the user stored stays null (it used to throw here)
+    // a stored null is a value: it must not fall through to the default lookup below
     if (valueItem === null && schemaItem.properties) return memo
 
     if (schemaItem.properties) {

@@ -47,17 +47,23 @@ export function useMeta(
 ): MetaState {
   const guided = useFeature('guided-metadata')
   const [meta, setMeta] = React.useState<Types.JsonRecord>()
-  // The form status current at the last edit: a server rejection only stands
-  // until the metadata is edited after it.
-  const [editedAt, setEditedAt] = React.useState<FormStatus>()
-  const onChange = React.useCallback(
-    (m: Types.JsonRecord) => {
-      setMeta(m)
-      setEditedAt(form)
-    },
-    [form],
-  )
+  // A server rejection judged the metadata as it was when the submit began; it stands
+  // only while no edit has happened since then.
+  const [edits, setEdits] = React.useState(0)
+  const [submittedAt, setSubmittedAt] = React.useState(0)
+  React.useEffect(() => {
+    if (form._tag === 'submitting') setSubmittedAt(edits)
+  }, [form]) // eslint-disable-line react-hooks/exhaustive-deps
+  const onChange = React.useCallback((m: Types.JsonRecord) => {
+    setMeta(m)
+    setEdits((n) => n + 1)
+  }, [])
   const value = React.useMemo(() => meta || getMetaFallback(manifest), [manifest, meta])
+  // submit drops blank keys (getMetaValue), so validation must not count them
+  const submitted = React.useMemo(
+    () => value && Object.fromEntries(Object.entries(value).filter(([k]) => k.trim())),
+    [value],
+  )
 
   const validate = React.useMemo(() => {
     if (schema._tag === 'error') return () => [schema.error]
@@ -69,24 +75,26 @@ export function useMeta(
   // and that is what gets pushed. Failing here also stops the submit before
   // any file is uploaded.
   const guidedErrors = React.useMemo(
-    () => (guided ? (validate(value || {}) ?? []) : []),
-    [guided, validate, value],
+    () => (guided ? (validate(submitted || {}) ?? []) : []),
+    [guided, submitted, validate],
   )
   const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
   // Blocking is decided with formats ignored, so a format failure inside anyOf
   // or oneOf cannot surface as a type or anyOf error that blocks the push.
   const validateBlocking = React.useMemo(() => {
-    if (schema._tag !== 'ready') return validate
+    if (!guided || schema._tag !== 'ready') return validate
     return mkMetaValidator(schema.schema, { formats: false, keepSet: true })
-  }, [schema, validate])
+  }, [guided, schema, validate])
   const blockingErrors = React.useMemo(
-    () => (guided ? (validateBlocking(value || {}) ?? []) : []),
-    [guided, validateBlocking, value],
+    // what normal validation accepts is never blocked; format-blind errors only relax its failures
+    () =>
+      guided && guidedErrors.length ? (validateBlocking(submitted || {}) ?? []) : [],
+    [guided, guidedErrors.length, submitted, validateBlocking],
   )
 
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {
-      if (form._tag === 'error' && form.fields?.userMeta && editedAt !== form) {
+      if (form._tag === 'error' && form.fields?.userMeta && edits === submittedAt) {
         return Err(form.fields.userMeta)
       }
       return blockingErrors.length ? Err(blockingErrors) : Ok
@@ -96,7 +104,7 @@ export function useMeta(
 
     const errors = validate(meta || {})
     return errors ? Err(errors) : Ok
-  }, [blockingErrors, editedAt, form, guided, meta, validate])
+  }, [blockingErrors, edits, form, guided, meta, submittedAt, validate])
 
   const [pending, setPendingKeys] = React.useState<readonly string[]>([])
   const setPending = React.useCallback(

@@ -3,7 +3,13 @@ import { describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
 import { makeSchemaDefaultsSetter } from 'utils/JSONSchema'
-import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
+import {
+  mkMetaValidator,
+  mkSubmitValidator,
+  useMetadataSchema,
+  useEntriesSchema,
+  Ready,
+} from './schema'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -148,5 +154,36 @@ describe('mkMetaValidator keepSet', () => {
       allOf: [{ properties: { lane: { type: 'number', default: 1 } } }],
     }
     expect(mkMetaValidator(viaRef, { keepSet: true })({})).toBeTruthy()
+  })
+})
+
+describe('mkSubmitValidator', () => {
+  const either = {
+    type: 'object',
+    properties: {
+      when: {
+        oneOf: [
+          { type: 'string', format: 'date' },
+          { type: 'string', format: 'uri' },
+        ],
+      },
+    },
+  }
+
+  it('accepts a value normal validation accepts, even if both oneOf branches match without formats', () => {
+    expect(mkSubmitValidator(either)({ when: '2026-10-07' })).toEqual([])
+  })
+
+  it('still relaxes a failure that is only about format', () => {
+    const dated = {
+      type: 'object',
+      properties: { when: { type: 'string', format: 'date' } },
+    }
+    expect(mkSubmitValidator(dated)({ when: 'last tuesday' })).toEqual([])
+  })
+
+  it('still blocks a real type error', () => {
+    const num = { type: 'object', properties: { n: { type: 'number' } } }
+    expect(mkSubmitValidator(num)({ n: 'x' }).length).toBeGreaterThan(0)
   })
 })

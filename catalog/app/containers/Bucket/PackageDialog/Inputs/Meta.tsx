@@ -19,7 +19,7 @@ import { readableBytes } from 'utils/string'
 import { JsonRecord } from 'utils/types'
 
 import type { FormStatus } from '../State/form'
-import { mkMetaValidator } from '../State/schema'
+import { mkSubmitValidator } from '../State/schema'
 import type { SchemaStatus } from '../State/schema'
 import { pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
@@ -667,8 +667,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   // Suggestions are applied only if the metadata they produce, together, is no worse than now.
   const validateFull = React.useMemo(() => {
     if (!schema) return null
-    const v = mkMetaValidator(schema, { formats: false, keepSet: true })
-    return (x: JsonRecord) => v(x) ?? []
+    return mkSubmitValidator(schema) as (x: JsonRecord) => (Error | ErrorObject)[]
   }, [schema])
   // suggestions were checked against the metadata when asked; offer only those that still fit
   const suggested = React.useMemo(() => {

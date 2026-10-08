@@ -261,4 +261,44 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     fireEvent.click(no)
     expect(onChange).toHaveBeenLastCalledWith({ approved: false })
   })
+
+  describe('round 8', () => {
+    it('routes a composed field to the table editor instead of a text input', () => {
+      const composed = {
+        type: 'object',
+        properties: {
+          details: { title: 'Details', anyOf: [{ type: 'object' }, { type: 'string' }] },
+        },
+      }
+      render(
+        <MetaForm
+          disabled={false}
+          errors={[]}
+          onChange={vi.fn()}
+          onShowTable={() => {}}
+          onUseSuggestion={onUse}
+          schema={composed}
+          value={{ details: { count: 1 } }}
+        />,
+      )
+      expect(screen.getByRole('button', { name: /Edit in table view/ })).toBeTruthy()
+      expect(screen.queryByRole('textbox', { name: /Details/ })).toBeNull()
+    })
+
+    it('shows a stored null as null, not as an empty value', () => {
+      render(
+        <FreeFields
+          description="d"
+          disabled={false}
+          onChange={vi.fn()}
+          title="t"
+          value={{ a: null }}
+        />,
+      )
+      const input = screen.getByRole('textbox', {
+        name: 'Value of a',
+      }) as HTMLInputElement
+      expect(input.value).toBe('null')
+    })
+  })
 })

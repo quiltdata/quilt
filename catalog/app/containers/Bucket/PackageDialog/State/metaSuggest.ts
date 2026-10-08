@@ -12,7 +12,7 @@ import type { JsonSchema } from 'utils/JSONSchema'
 import Log from 'utils/Logging'
 import type * as Types from 'utils/types'
 
-import { mkMetaValidator } from './schema'
+import { mkSubmitValidator } from './schema'
 
 export type Suggestions = Record<string, { value: Types.Json; reason?: string }>
 
@@ -89,7 +89,7 @@ export function buildPrompt({
   )
   return [
     `<fields>\n${tagSafe(fields)}\n</fields>`,
-    `<current-metadata>\n${tagSafe(value || {})}\n</current-metadata>`,
+    `<current-metadata>\n${tagSafe(toExample('', value || {}, schema).meta)}\n</current-metadata>`,
     `<package-name>${tagSafe(name || '(not set)')}</package-name>`,
     `<files count="${files.length}">\n${files.slice(0, MAX_FILES).map(tagSafe).join('\n')}\n</files>`,
     `<similar-packages>\n${examples.map(tagSafe).join('\n')}\n</similar-packages>`,
@@ -155,8 +155,7 @@ export function parseSuggestions(
   const raw = firstJsonObject(text)
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const properties: Record<string, JsonSchema> = schema.properties || {}
-  const check = mkMetaValidator(schema, { formats: false, keepSet: true })
-  const validate = (x: Types.JsonRecord) => check(x) ?? []
+  const validate = mkSubmitValidator(schema)
   const out: Suggestions = {}
   for (const [key, entry] of Object.entries(raw as Record<string, any>)) {
     if (!Object.hasOwn(properties, key)) continue

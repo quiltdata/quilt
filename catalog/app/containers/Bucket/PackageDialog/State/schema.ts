@@ -48,6 +48,18 @@ export function mkMetaValidator(
   }
 }
 
+/**
+ * What submit will accept: normal validation decides, and when it fails only because of
+ * `format`, which quilt3 and the registry ignore, the value passes. Format-blind
+ * validation alone can add errors, e.g. a value matching two `oneOf` branches.
+ */
+export function mkSubmitValidator(schema?: JsonSchema) {
+  const full = mkMetaValidator(schema, { keepSet: true })
+  const blind = mkMetaValidator(schema, { formats: false, keepSet: true })
+  return (value: Types.Json): (ErrorObject | Error)[] =>
+    full(value) ? (blind(value) ?? []) : []
+}
+
 export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
   const s3 = AWS.S3.use()
   const schemaUrl = workflow?.schema?.url

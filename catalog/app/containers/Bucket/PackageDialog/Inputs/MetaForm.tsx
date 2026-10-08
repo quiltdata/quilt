@@ -13,15 +13,26 @@ import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
 
-function widgetFor(prop: JsonSchema = {}): Widget {
+const COMPOSED = ['anyOf', 'oneOf', 'allOf', 'not', '$ref', 'if'] as const
+
+function widgetFor(prop: JsonSchema = {}, value?: unknown): Widget {
   if (Array.isArray(prop.enum)) return 'enum'
-  const types: unknown[] = Array.isArray(prop.type) ? prop.type : [prop.type]
-  const type = types.find((x) => x !== 'null')
+  // a typed input would turn an object or number in such a field into a string
+  if (COMPOSED.some((k) => prop[k] !== undefined)) return 'complex'
+  const types: unknown[] = (Array.isArray(prop.type) ? prop.type : [prop.type]).filter(
+    (x) => x !== 'null',
+  )
+  if (types.length > 1) return 'complex'
+  const type = types[0]
   if (type === 'boolean') return 'boolean'
   if (type === 'integer') return 'integer'
   if (type === 'number') return 'number'
   if (type === 'string') return prop.format === 'date' ? 'date' : 'string'
-  if (type === undefined && !prop.properties && !prop.items) return 'string'
+  if (type === undefined && !prop.properties && !prop.items) {
+    return value === undefined || value === null || typeof value === 'string'
+      ? 'string'
+      : 'complex'
+  }
   return 'complex'
 }
 
@@ -150,7 +161,7 @@ function Field({
   value,
 }: FieldProps) {
   const classes = useFieldStyles()
-  const typed = widgetFor(prop)
+  const typed = widgetFor(prop, value)
   // a date input shows a stored value it cannot parse as empty
   const widget =
     typed === 'date' && !isEmpty(value) && !DATE.test(String(value)) ? 'string' : typed
@@ -329,7 +340,9 @@ function Field({
   }
 
   const showSuggestion =
-    suggestion && !disabled && display(suggestion.value) !== display(value ?? '')
+    suggestion &&
+    !disabled &&
+    display(suggestion.value) !== (value === undefined ? '' : display(value))
   return (
     <div className={cx(classes.root, { [classes.wide]: widget === 'complex' })}>
       {input}
@@ -621,19 +634,21 @@ function FreeRow({
   const typed = typeof value !== 'string'
   const [nameDraft, setNameDraft] = React.useState(name)
   const [nameError, setNameError] = React.useState<string | null>(null)
-  const [text, setText] = React.useState(() => display(value ?? ''))
+  const [text, setText] = React.useState(() =>
+    value === undefined ? '' : display(value),
+  )
   const [textError, setTextError] = React.useState<string | null>(null)
   React.useEffect(() => setNameDraft(name), [name])
   React.useEffect(() => {
     setText((t) => {
-      if (!typed) return display(value ?? '')
+      if (!typed) return value === undefined ? '' : display(value)
       try {
         // the text already means this value; keep its spacing and caret
         if (JSON.stringify(JSON.parse(t)) === JSON.stringify(value)) return t
       } catch {
         // not parseable: an outside change replaces it
       }
-      return display(value ?? '')
+      return value === undefined ? '' : display(value)
     })
     setTextError(null)
   }, [typed, value])
