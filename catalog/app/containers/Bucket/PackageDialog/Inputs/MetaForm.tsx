@@ -72,6 +72,17 @@ const isIntegralText = (t: string) => {
   const point = int.length + Number(e)
   return !/[1-9]/.test(digits.slice(Math.max(point, 0)))
 }
+/** A number token JSON.parse would round to 0 or to an integer ("1e-400", "1.0…01"). */
+const hasLossyToken = (json: string) =>
+  (
+    json.replace(/"(?:[^"\\]|\\.)*"/g, '""').match(/-?\d+(\.\d+)?(e[-+]?\d+)?/gi) || []
+  ).some((t) => {
+    const n = Number(t)
+    return (
+      (n === 0 && /[1-9]/.test(t.split(/e/i)[0])) ||
+      (Number.isInteger(n) && !isIntegralText(t))
+    )
+  })
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 /** What a date input can show: a real calendar day ("2026-02-30" displays as empty). */
 const isCalendarDate = (s: string) => {
@@ -715,7 +726,7 @@ function FreeRow({
     if (!typed) return onValue(raw)
     try {
       const parsed = JSON.parse(raw)
-      if (!allExact(parsed)) {
+      if (!allExact(parsed) || hasLossyToken(raw)) {
         return setTextError(
           'A number is too large to store exactly; use a string for IDs',
         )

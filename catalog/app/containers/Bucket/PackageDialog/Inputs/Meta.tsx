@@ -453,9 +453,11 @@ interface SuggestBarProps {
   onRequest: () => void
   onUseAll: () => void
   state: SuggestState
+  /** Suggestions that still fit the metadata as it is now. */
+  usable: number
 }
 
-function SuggestBar({ disabled, onRequest, onUseAll, state }: SuggestBarProps) {
+function SuggestBar({ disabled, onRequest, onUseAll, state, usable }: SuggestBarProps) {
   const classes = useSuggestBarStyles()
   if (state._tag === 'unavailable') return null
   const icon = (
@@ -507,7 +509,8 @@ function SuggestBar({ disabled, onRequest, onUseAll, state }: SuggestBarProps) {
         </div>
       )
     case 'ready': {
-      const n = Object.keys(state.suggestions).length
+      // later edits can rule suggestions out; count only those still offered
+      const n = usable
       return (
         <div className={classes.root} role="status">
           {icon}
@@ -902,6 +905,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             )
           }}
           state={suggestions.state}
+          usable={Object.keys(suggested || {}).length}
         />
       )}
       {guided && !formView && (

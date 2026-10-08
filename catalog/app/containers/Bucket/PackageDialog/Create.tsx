@@ -267,7 +267,11 @@ function PackageCreationForm({
   const lastHeight = React.useRef(0)
   if (measured > 0) lastHeight.current = measured
   const metaHeight = measured || lastHeight.current
-  const dialogContentClasses = Layout.useContentStyles({ metaHeight })
+  // guided: the metadata pane flex-grows beside the inputs, so feeding its measured height
+  // back would grow the dialog each time it is re-measured; take the available height
+  const dialogContentClasses = Layout.useContentStyles({
+    metaHeight: meta.guided ? Infinity : metaHeight,
+  })
 
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
 
