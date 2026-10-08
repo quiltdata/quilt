@@ -515,7 +515,7 @@ interface NavRowProps {
   collapsed: boolean
   selected?: boolean
   disabled?: boolean
-  to?: string
+  to?: string | { pathname: string; state?: unknown }
   onClick?: () => void
 }
 
@@ -1020,7 +1020,10 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
               <NavRow
                 icon={<OutlinedIcon>forum</OutlinedIcon>}
                 label="Qurator mode"
-                to={urls.quratorMode()}
+                to={{
+                  pathname: urls.quratorMode(),
+                  state: { from: location.pathname + location.search },
+                }}
                 selected={quratorModeActive}
                 collapsed={collapsed}
               />

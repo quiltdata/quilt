@@ -315,7 +315,7 @@ const statusText = (s: Connectors.ConnectorState, tools: number) =>
     Connecting: () => 'Connecting…',
     Ready: () => `On · ${tools} tool${tools === 1 ? '' : 's'}`,
     Disconnected: () => 'Reconnecting…',
-    Failed: ({ error }) => `Failed: ${error.message}. Chat keeps working without it.`,
+    Failed: ({ error }) => `Failed: ${error.message}.`,
   })
 
 // --- menu model ------------------------------------------------------------
@@ -628,9 +628,9 @@ function PlusMenu({
               monoDetail: true,
               sub: saveSub(save),
               disabled: !!save.blocked,
-              onSelect: () => {
-                save.save()
-              },
+              // Saving elsewhere than the session read goes through the target page,
+              // which names those buckets before anything is written.
+              onSelect: () => (save.foreign.length ? setPage('save') : save.save()),
               end: (
                 <span className={classes.split}>
                   <M.IconButton
@@ -846,6 +846,16 @@ function PlusMenu({
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Typing in the save form or the instructions editor is not menu navigation.
+    const target = e.target as HTMLElement
+    if (target !== searchRef.current && target.closest('input, textarea, select')) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.nativeEvent.stopPropagation()
+        setPage('main')
+      }
+      return
+    }
     const r = shown[activeIdx]
     if (e.key === 'ArrowDown') {
       e.preventDefault()

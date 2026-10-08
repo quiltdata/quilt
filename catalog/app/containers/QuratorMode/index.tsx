@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
+import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Assistant from 'components/Assistant'
@@ -39,7 +39,7 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     padding: t.spacing(2),
     width: 320,
-    [t.breakpoints.only('sm')]: {
+    [t.breakpoints.down('sm')]: {
       borderTop: `1px solid ${t.palette.divider}`,
       maxHeight: '40%',
       width: 'auto',
@@ -80,7 +80,7 @@ function ContextPane({ api, onCatalog }: { api: API; onCatalog: () => void }) {
   const used = React.useMemo(() => {
     const counts = new Map<string, { ok: number; failed: number }>()
     events.forEach((e) => {
-      if (e._tag !== 'ToolUse' || e.discarded) return
+      if (e._tag !== 'ToolUse' || e.discarded || !SessionPackage.ran(e)) return
       const c = counts.get(e.name) ?? { ok: 0, failed: 0 }
       if (e.result.status === 'success') c.ok += 1
       else c.failed += 1
@@ -164,13 +164,14 @@ function Workspace({
   const classes = useStyles()
   const history = useHistory()
   const { urls } = NamedRoutes.use()
-  // Back to wherever the user switched modes from; a cold open lands on home.
+  // `history.length` counts the whole tab, other sites included; only a link
+  // from the catalog's own rail says where to return.
+  const from = (useLocation().state as { from?: string } | undefined)?.from
   const toCatalog = React.useCallback(
-    () => (history.length > 1 ? history.goBack() : history.push(urls.home())),
-    [history, urls],
+    () => history.push(from ?? urls.home()),
+    [history, from, urls],
   )
   const save = SessionSave.useSessionSave(api)
-  const phone = M.useMediaQuery(M.useTheme().breakpoints.down('xs'))
   return (
     <div className={classes.root}>
       {/* Registered presence drops the docked panel: one conversation, one place. */}
@@ -179,7 +180,7 @@ function Workspace({
           <Chat {...api} composer="compact" save={save} onClose={toCatalog} />
         </div>
       </InlinePresence.Provide>
-      {!phone && <ContextPane api={{ ...api, save }} onCatalog={toCatalog} />}
+      <ContextPane api={{ ...api, save }} onCatalog={toCatalog} />
     </div>
   )
 }

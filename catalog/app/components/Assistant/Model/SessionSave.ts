@@ -182,9 +182,18 @@ export function useSessionSave(api: API): SessionSave {
 
   // A save sends only the session files, so as a revision of another package it
   // would drop that package's files; only a package this session saved may be revised.
-  const [saved, setSaved] = React.useState<{ bucket: string; name: string }>()
+  const [savedTo, setSavedTo] = React.useState<readonly string[]>([])
   const dst = React.useMemo(() => ({ bucket, name }), [bucket, name])
-  const existence = useNameExistence(dst, saved)
+  const mine = savedTo.includes(`${bucket}/${name}`)
+  const existence = useNameExistence(dst, mine ? dst : undefined)
+  // A new conversation is a new package: drop what the last one typed and saved.
+  const sid = SessionPackage.sessionId(events)
+  React.useEffect(() => {
+    setName('')
+    setSavedTo([])
+    setStatus({ _tag: 'idle' })
+  }, [sid])
+
   const blocked = empty
     ? 'Ask something first'
     : !bucket
@@ -209,7 +218,10 @@ export function useSessionSave(api: API): SessionSave {
       // Unpersisted, the choice still holds for this save.
     }
     const result = await doSave(bucket, name, includeResults)
-    if (result._tag === 'saved') setSaved({ bucket, name })
+    if (result._tag === 'saved')
+      setSavedTo((s) =>
+        s.includes(`${bucket}/${name}`) ? s : [...s, `${bucket}/${name}`],
+      )
     setStatus(result)
   }, [bucket, name, includeResults, doSave])
 

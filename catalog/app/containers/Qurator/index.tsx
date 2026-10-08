@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import * as Assistant from 'components/Assistant'
 import Chat from 'components/Assistant/UI/Chat/Chat'
 import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
+import * as SessionSave from 'components/Assistant/Model/SessionSave'
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -103,6 +104,23 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+function QuratorChat({
+  api,
+  onClose,
+}: {
+  api: Assistant.Model.Assistant.API
+  onClose: () => void
+}) {
+  return (
+    <Chat
+      {...api}
+      composer="compact"
+      save={SessionSave.useSessionSave(api)}
+      onClose={onClose}
+    />
+  )
+}
+
 export default function Qurator() {
   const classes = useStyles()
   const api = Assistant.Model.useAssistantAPI()
@@ -128,7 +146,7 @@ export default function Qurator() {
           <div className={classes.chat}>
             {/* The whole API, not a prop list: a Chat prop added on another branch
                 (e.g. `sessions`) would otherwise reach Chat undefined and crash it. */}
-            <Chat {...api} composer="compact" onClose={toCatalog} />
+            <QuratorChat api={api} onClose={toCatalog} />
           </div>
         </InlinePresence.Provide>
       ) : (

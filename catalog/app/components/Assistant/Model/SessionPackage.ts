@@ -56,11 +56,24 @@ function collect(value: unknown, out: Reference[]) {
 
 const live = (events: Conversation.Event[]) => events.filter((e) => !e.discarded)
 
+/**
+ * Whether a tool call's executor ran. A declined approval, or a tool gone or
+ * changed while waiting, ends with this marker and reached no data.
+ */
+export const ran = (e: Conversation.Event) =>
+  e._tag === 'ToolUse' &&
+  !e.result.content.some(
+    (b) =>
+      b._tag === 'Text' &&
+      (b.text.startsWith('Declined by the user') || /it was not run\.$/.test(b.text)),
+  )
+
 /** The first event's id: stable for the life of a conversation, unique across them. */
 export const sessionId = (events: Conversation.Event[]) => live(events)[0]?.id ?? ''
 
 // Tool inputs can carry credentials (third-party MCP servers take them as args).
-const SECRET = /token|secret|password|passwd|authorization|api[-_]?key|credential/i
+const SECRET =
+  /token|secret|password|passwd|authorization|api[-_]?key|credential|access[-_]?key|private[-_]?key/i
 
 function redact(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redact)
@@ -77,7 +90,7 @@ function redact(value: unknown): unknown {
 /** What the session's tool calls touched, first mention first, deduplicated. */
 export function references(events: Conversation.Event[]): Reference[] {
   const out: Reference[] = []
-  live(events).forEach((e) => e._tag === 'ToolUse' && collect(e.input, out))
+  live(events).forEach((e) => e._tag === 'ToolUse' && ran(e) && collect(e.input, out))
   const seen = new Set<string>()
   // A bucket is only worth listing when nothing more specific in it was named.
   const specific = new Set(out.filter((r) => r.kind !== 'bucket').map((r) => r.bucket))
