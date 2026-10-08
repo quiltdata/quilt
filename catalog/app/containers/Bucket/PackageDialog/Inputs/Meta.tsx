@@ -816,7 +816,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           </Lab.ToggleButtonGroup>
           <div className={classes.toolbarActions}>
             <M.Button
-              disabled={disabled}
+              disabled={disabled || locked}
               onClick={openFile}
               size="small"
               startIcon={<M.Icon fontSize="small">upload_file</M.Icon>}

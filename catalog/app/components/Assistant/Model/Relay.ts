@@ -240,25 +240,32 @@ export function LLMRelay(options: RelayOptions) {
         const attempt = Eff.Effect.flatMap(options.getToken(), (fresh) =>
           Eff.Effect.tryPromise({
             try: async (signal) => {
-              const r = await fetch(
-                `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'content-type': 'application/json',
-                    authorization: `Bearer ${fresh ?? token}`,
+              // by hand: AbortSignal.any is missing in supported Safari 16-17.3
+              const ctrl = new AbortController()
+              const stop = () => ctrl.abort()
+              signal.addEventListener('abort', stop)
+              const timer = setTimeout(stop, REQUEST_TIMEOUT_MS)
+              try {
+                const r = await fetch(
+                  `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'content-type': 'application/json',
+                      authorization: `Bearer ${fresh ?? token}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                    // interruption (dialog closed, request replaced) cancels the fetch too
+                    signal: ctrl.signal,
                   },
-                  body: JSON.stringify(requestBody),
-                  // interruption (dialog closed, request replaced) cancels the fetch too
-                  signal: AbortSignal.any([
-                    signal,
-                    AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-                  ]),
-                },
-              )
-              const text = await r.text()
-              if (!r.ok) throw classifyFailure(r, text)
-              return JSON.parse(text) as BedrockRuntime.ConverseResponse
+                )
+                const text = await r.text()
+                if (!r.ok) throw classifyFailure(r, text)
+                return JSON.parse(text) as BedrockRuntime.ConverseResponse
+              } finally {
+                clearTimeout(timer)
+                signal.removeEventListener('abort', stop)
+              }
             },
             catch: (e) =>
               e instanceof Failure

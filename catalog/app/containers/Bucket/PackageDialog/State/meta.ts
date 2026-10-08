@@ -7,7 +7,7 @@ import * as Types from 'utils/types'
 
 import type { FormStatus } from './form'
 import { isAdvisoryError as isAdvisory } from './metaGuide'
-import { SchemaStatus, mkMetaValidator, mkSubmitValidator } from './schema'
+import { SchemaStatus, mkMetaValidator } from './schema'
 import { ManifestStatus } from './manifest'
 
 export type MetaStatus =
@@ -82,15 +82,18 @@ export function useMeta(
     [guided, settled, submitted, validate],
   )
   const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
-  // the same rule the form and suggestions use: format-only failures do not block
-  const submitValidate = React.useMemo(
-    () => (guided && schema._tag === 'ready' ? mkSubmitValidator(schema.schema) : null),
+  // mkSubmitValidator's rule, reusing the full pass above: format-only failures do not block
+  const validateBlind = React.useMemo(
+    () =>
+      guided && schema._tag === 'ready'
+        ? mkMetaValidator(schema.schema, { formats: false, keepSet: true })
+        : null,
     [guided, schema],
   )
   const blockingErrors = React.useMemo(() => {
     if (!guidedErrors.length) return []
-    return submitValidate ? submitValidate(submitted || {}) : guidedErrors
-  }, [guidedErrors, submitValidate, submitted])
+    return validateBlind ? (validateBlind(submitted || {}) ?? []) : guidedErrors
+  }, [guidedErrors, validateBlind, submitted])
 
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {

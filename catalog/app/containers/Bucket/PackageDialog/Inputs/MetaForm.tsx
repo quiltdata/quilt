@@ -13,6 +13,17 @@ import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
 
+/** A number JSON keeps as typed: finite, and an integer only if within the safe range. */
+const isExactNumber = (n: number) =>
+  Number.isFinite(n) && (!Number.isInteger(n) || Number.isSafeInteger(n))
+
+const allExact = (v: unknown): boolean =>
+  typeof v === 'number'
+    ? isExactNumber(v)
+    : v !== null && typeof v === 'object'
+      ? Object.values(v).every(allExact)
+      : true
+
 const COMPOSED = ['anyOf', 'oneOf', 'allOf', 'not', '$ref', 'if'] as const
 
 function widgetFor(prop: JsonSchema = {}, value?: unknown): Widget {
@@ -218,11 +229,7 @@ function Field({
           raw.trim() !== '' &&
           !Number.isNaN(n) &&
           /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(raw.trim())
-        // integers in any spelling ("…3.0", "…3e0"), and digit runs typed into a number field
-        const inexact =
-          (widget === 'integer' ? Number.isInteger(n) : /^[-+]?\d+$/.test(raw.trim())) &&
-          !Number.isSafeInteger(n)
-        const unsafe = complete && (!Number.isFinite(n) || inexact)
+        const unsafe = complete && !isExactNumber(n)
         setNumError(
           unsafe
             ? Number.isFinite(n)
@@ -680,7 +687,13 @@ function FreeRow({
     setText(raw)
     if (!typed) return onValue(raw)
     try {
-      onValue(JSON.parse(raw))
+      const parsed = JSON.parse(raw)
+      if (!allExact(parsed)) {
+        return setTextError(
+          'A number is too large to store exactly; use a string for IDs',
+        )
+      }
+      onValue(parsed)
       setTextError(null)
     } catch {
       setTextError('Not valid JSON yet. Finish it, or undo the change, before saving')

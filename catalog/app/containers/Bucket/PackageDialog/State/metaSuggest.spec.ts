@@ -93,6 +93,14 @@ describe('containers/Bucket/PackageDialog/State/metaSuggest', () => {
       })
     })
 
+    it('does not mistake a nested field for the answer when the outer object is broken', () => {
+      expect(
+        firstJsonObject(
+          '{"assay": {"value": "RNA"}, "lane": {"value": 3,}} then {"ok": 1}',
+        ),
+      ).toEqual({ ok: 1 })
+    })
+
     it('returns undefined when no object parses', () => {
       expect(firstJsonObject('no json here {oops')).toBeUndefined()
     })

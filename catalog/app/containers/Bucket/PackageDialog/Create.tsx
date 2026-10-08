@@ -286,18 +286,19 @@ function PackageCreationForm({
   const fileCount = fileKeys.length
 
   const openMeta = React.useCallback(() => setPane('metadata'), [])
-  const dragging = useDragging()
+  const dragging = useDragging(meta.guided)
   const paneRef = React.useRef(pane)
   paneRef.current = pane
   const beforeDrag = React.useRef<typeof pane | null>(null)
   const dropped = React.useRef(false)
   React.useEffect(() => {
+    if (!meta.guided) return
     const onDrop = () => {
       dropped.current = true
     }
     document.addEventListener('drop', onDrop, true)
     return () => document.removeEventListener('drop', onDrop, true)
-  }, [])
+  }, [meta.guided])
   React.useEffect(() => {
     if (!meta.guided) return
     if (dragging) {

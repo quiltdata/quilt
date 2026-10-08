@@ -92,6 +92,18 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
       fireEvent.blur(name)
       expect(onChange).toHaveBeenLastCalledWith({ count: 1, b: 'x' })
     })
+
+    it.each(['1e400', '[9007199254740993]', '{"n": 9007199254740993.0}'])(
+      'holds a typed value with an inexact number: %s',
+      (text) => {
+        const onChange = renderFree({ a: 1 })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Value of a' }), {
+          target: { value: text },
+        })
+        expect(onChange).not.toHaveBeenCalled()
+        expect(screen.getByText(/too large to store exactly/)).toBeTruthy()
+      },
+    )
   })
 
   describe('FreeFields drafts', () => {

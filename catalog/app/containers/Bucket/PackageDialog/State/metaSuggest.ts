@@ -99,10 +99,11 @@ export function buildPrompt({
 
 /** The first top-level `{...}` in `text` that parses as JSON, ignoring prose around it. */
 export function firstJsonObject(text: string): unknown {
+  let end = -1
   for (
     let start = text.indexOf('{');
     start !== -1;
-    start = text.indexOf('{', start + 1)
+    start = text.indexOf('{', Math.max(start, end) + 1)
   ) {
     let depth = 0
     let inString = false
@@ -119,6 +120,8 @@ export function firstJsonObject(text: string): unknown {
           try {
             return JSON.parse(text.slice(start, i + 1))
           } catch {
+            // its inner objects are fields, not the answer: resume after it
+            end = i
             break
           }
         }
@@ -142,12 +145,6 @@ export function newErrorsFrom(validate: Validate, base: Types.JsonRecord) {
   return (candidate: Types.JsonRecord) =>
     validate(candidate).filter((e) => !known.has(errorSig(e)))
 }
-
-export const newErrors = (
-  validate: Validate,
-  base: Types.JsonRecord,
-  candidate: Types.JsonRecord,
-) => newErrorsFrom(validate, base)(candidate)
 
 /**
  * The model's answer, keeping only values that add no error to the current
