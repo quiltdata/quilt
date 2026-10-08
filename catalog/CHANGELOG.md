@@ -21,7 +21,7 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Browsers cache the catalog's large vendor script for 90 days like its other hashed scripts, instead of re-checking it on visits more than 10 minutes apart ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+- [Fixed] Browsers cache the catalog's large vendor script for 90 days like its other hashed scripts, instead of re-checking it on visits more than 10 minutes apart ([#5462](https://github.com/quiltdata/quilt/pull/5462))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
