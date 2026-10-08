@@ -302,6 +302,11 @@ describe('containers/Bucket/File containment', () => {
       expect(renderFile().queryByText('Create file')).toBeTruthy()
     })
 
+    it('offers no create button when the bucket disables writeFile', () => {
+      prefsActions.writeFile = false
+      expect(renderFile().queryByText('Create file')).toBeNull()
+    })
+
     it('offers no create button that the editor would refuse', () => {
       editor.writable = false
       expect(renderFile().queryByText('Create file')).toBeNull()

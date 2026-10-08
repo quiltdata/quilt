@@ -4,6 +4,9 @@ query ($bucket: String!, $name: String!) {
     name
     lock {
       hash
+      lockedAt
+      lockedBy
+      reason
     }
   }
 }

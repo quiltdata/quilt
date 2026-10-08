@@ -216,10 +216,7 @@ export function useCreateDialog(
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
-  const match = !!RRDom.useRouteMatch({
-    path: paths.bucketPackageAddFiles,
-    exact: true,
-  })
+  const match = !!RRDom.useRouteMatch({ path: paths.bucketPackageAddFiles, exact: true })
 
   const { push } = history
   const { bucket, name } = packageHandle
@@ -1232,11 +1229,7 @@ function PackageTreeQueries({
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
-  const revisionQuery = GQL.useQuery(REVISION_QUERY, {
-    bucket,
-    name,
-    hashOrTag,
-  })
+  const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
   const displayError = React.useMemo(() => errors.displayError(), [])
 

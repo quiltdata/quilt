@@ -212,33 +212,37 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
 
   const handleRowAdd = React.useCallback(
     (path: JSONPointer.Path, key: string | number, value: JsonValue) => {
+      if (disabled) return
       const newData = addRow(path, key, value)
       if (newData) onChange(newData)
     },
-    [addRow, onChange],
+    [addRow, disabled, onChange],
   )
 
   const handleRowRemove = React.useCallback(
     (path: JSONPointer.Path) => {
+      if (disabled) return
       const newData = removeField(path)
       if (newData) onChange(newData)
     },
-    [removeField, onChange],
+    [disabled, removeField, onChange],
   )
 
   const handleValueChange = React.useCallback(
     (path: JSONPointer.Path, key: 'key' | 'value', value: JsonValue | string) => {
+      if (disabled) return
       const newData = changeValue(path, key, value)
       if (newData) onChange(newData)
     },
-    [changeValue, onChange],
+    [changeValue, disabled, onChange],
   )
 
   const handleToolbar = React.useCallback(
     (transform) => {
+      if (disabled) return
       onChange(transformer(transform))
     },
-    [onChange, transformer],
+    [disabled, onChange, transformer],
   )
 
   if (!columns.length) throw new Error('No column data')
