@@ -707,7 +707,7 @@ function FreeRow({
     if (nameDraft === name) return setNameError(null)
     const to = nameDraft.trim()
     if (to === name) return setNameError(null)
-    // a rename remounts the row, which would drop the unfinished value
+    // rename only a row whose value is saved, so the two never land half-applied
     if (textError) return setNameError('Finish the value first')
     setNameError(onRename(to))
   }
@@ -796,10 +796,22 @@ export function FreeFields({
   // "__proto__" is reserved: submit cannot store it as a field
   const taken = (k: string) =>
     k === '__proto__' || Object.hasOwn(value || {}, k) || exclude.includes(k)
+  // row identity survives a rename, so the row is not remounted and keyboard focus stays
+  const rowIds = React.useRef(new Map<string, string>())
+  const rowId = (k: string) => {
+    let id = rowIds.current.get(k)
+    if (!id) {
+      id = `row-${(fieldIds += 1)}`
+      rowIds.current.set(k, id)
+    }
+    return id
+  }
   const rename = (from: string, to: string): string | null => {
     if (!to) return 'Enter a name'
     if (to === '__proto__') return 'Reserved name'
     if (taken(to)) return 'Already used'
+    rowIds.current.set(to, rowId(from))
+    rowIds.current.delete(from)
     onChange(
       Object.fromEntries(
         Object.entries(value || {}).map(([k, v]) => (k === from ? [to, v] : [k, v])),
@@ -852,7 +864,7 @@ export function FreeFields({
       {entries.map(([k, v]) => (
         <FreeRow
           disabled={disabled}
-          key={k}
+          key={rowId(k)}
           name={k}
           onRemove={() => remove(k)}
           onRename={(to) => rename(k, to)}

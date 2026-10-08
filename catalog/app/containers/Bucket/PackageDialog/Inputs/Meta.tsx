@@ -683,10 +683,11 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   const { push: notify } = Notifications.use()
 
   // Suggestions are applied only if the metadata they produce, together, is no worse than now.
+  // guided only: flag-off has no suggestions, and this would validate on every edit
   const validateFull = React.useMemo(() => {
-    if (!schema) return null
+    if (!schema || !guided) return null
     return mkSubmitValidator(schema) as (x: JsonRecord) => (Error | ErrorObject)[]
-  }, [schema])
+  }, [guided, schema])
   // suggestions were checked against the metadata when asked; offer only those that still fit
   const suggested = React.useMemo(() => {
     if (!rawSuggested || !validateFull) return rawSuggested

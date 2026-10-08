@@ -109,6 +109,21 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
     })
   })
 
+  describe('FreeFields rows', () => {
+    it('keeps the row mounted across a rename, so keyboard focus is not lost', () => {
+      const onChange = vi.fn()
+      const props = { description: 'd', disabled: false, onChange, title: 'Fields' }
+      const { rerender } = render(<FreeFields {...props} value={{ a: 1 }} />)
+      const valueInput = screen.getByRole('textbox', { name: 'Value of a' })
+      const name = screen.getByRole('textbox', { name: 'Name of field a' })
+      fireEvent.change(name, { target: { value: 'b' } })
+      fireEvent.blur(name)
+      expect(onChange).toHaveBeenLastCalledWith({ b: 1 })
+      rerender(<FreeFields {...props} value={{ b: 1 }} />)
+      expect(screen.getByRole('textbox', { name: 'Value of b' })).toBe(valueInput)
+    })
+  })
+
   describe('FreeFields drafts', () => {
     it('keeps a draft whose name is already taken when another field is edited', () => {
       const setPending = vi.fn()
