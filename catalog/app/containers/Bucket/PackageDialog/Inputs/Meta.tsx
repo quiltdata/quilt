@@ -691,6 +691,10 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
       ),
     )
   }, [rawSuggested, validateFull, value])
+  const brokenNow = React.useMemo(
+    () => invalidKeys(validateFull ? validateFull((value || {}) as JsonRecord) : []),
+    [validateFull, value],
+  )
   const applySuggestions = React.useCallback(
     (picks: Record<string, JsonValue>) => {
       if (!validateFull || !Object.keys(picks).length) return
@@ -919,7 +923,6 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           onRequest={suggestions.request}
           onUseAll={() => {
             if (!suggested) return
-            const brokenNow = invalidKeys(validateFull ? validateFull(value || {}) : [])
             applySuggestions(
               Object.fromEntries(
                 Object.entries(suggested)
@@ -931,7 +934,12 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             )
           }}
           state={suggestions.state}
-          usable={Object.keys(suggested || {}).length}
+          // what Use all would apply: gaps and broken values, not valid replacements
+          usable={
+            Object.keys(suggested || {}).filter(
+              (k) => !Object.hasOwn(value || {}, k) || brokenNow.has(k),
+            ).length
+          }
         />
       )}
       {guided && !formView && (
@@ -954,7 +962,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
               {hasForm && schema && (
                 <MetaForm
                   // an import or full-screen save replaces the metadata: drop half-typed drafts
-                  key={jsonInlineEditorKey}
+                  key={`form-${jsonInlineEditorKey}`}
                   disabled={editLocked}
                   // asterisks and the count already say a field is missing
                   errors={
@@ -980,7 +988,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
               )}
               <FreeFields
                 // an import or full-screen save replaces the metadata: drop half-typed drafts
-                key={jsonInlineEditorKey}
+                key={`free-${jsonInlineEditorKey}`}
                 description={
                   hasForm
                     ? 'Fields this workflow does not define. Add any that help describe the package.'

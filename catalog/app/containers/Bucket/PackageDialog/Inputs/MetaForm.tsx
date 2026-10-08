@@ -701,6 +701,8 @@ function FreeRow({
   }, [typed, value])
 
   const commitName = () => {
+    // untouched: tabbing through must not trim an imported " lab " key into "lab"
+    if (nameDraft === name) return setNameError(null)
     const to = nameDraft.trim()
     if (to === name) return setNameError(null)
     // a rename remounts the row, which would drop the unfinished value
