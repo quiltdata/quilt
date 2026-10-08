@@ -186,6 +186,28 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       expect(push).toHaveBeenCalledWith('Connected GPU cluster.')
     })
 
+    it('leaving Settings cancels an admin sign-in still in progress', async () => {
+      servers = [server({ auth: 'OAUTH' })]
+      let signal: AbortSignal | undefined
+      signIn.mockImplementation(
+        (opts: { signal: AbortSignal }) =>
+          new Promise((resolve) => {
+            signal = opts.signal
+            opts.signal.addEventListener('abort', () =>
+              resolve({ ok: false, reason: 'closed' }),
+            )
+          }),
+      )
+      const { getByText, unmount } = mount()
+      await act(async () => {
+        fireEvent.click(getByText('Connect'))
+      })
+      unmount()
+      await act(async () => {})
+      expect(signal?.aborted).toBe(true)
+      expect(push).not.toHaveBeenCalled()
+    })
+
     it('signing everyone out asks first', async () => {
       servers = [server({ auth: 'OAUTH', signedInUsers: 2 })]
       mutate.mockResolvedValue({ admin: { mcpServerSignOutAll: { __typename: 'Ok' } } })

@@ -663,19 +663,25 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
   // The admin's own sign-in is what Probe uses, and a disabled server never
   // reaches Qurator's panel, so connecting has to be possible here.
   const getToken = useSessionToken()
+  const flow = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => flow.current?.abort(), [])
   const connect = React.useCallback(async () => {
     if (busy) return
+    const controller = new AbortController()
+    flow.current = controller
     setBusy(true)
     try {
       const result = await signIn({
         slug: server.slug,
         registryUrl: cfg.registryUrl,
         getToken: () => Eff.Effect.runPromise(getToken()),
+        signal: controller.signal,
       })
+      if (controller.signal.aborted) return
       notify(signInMessage(result, server.title))
       if (result.ok) onChanged()
     } finally {
-      setBusy(false)
+      if (!controller.signal.aborted) setBusy(false)
     }
   }, [busy, getToken, notify, onChanged, server])
 
