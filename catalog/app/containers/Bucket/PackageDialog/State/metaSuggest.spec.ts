@@ -66,6 +66,21 @@ describe('containers/Bucket/PackageDialog/State/metaSuggest', () => {
       })
     })
 
+    it('drops a suggestion that breaks a cross-field rule', () => {
+      const conditional = {
+        type: 'object',
+        properties: { assay: { type: 'string' }, library: { type: 'string' } },
+        if: { properties: { assay: { const: 'rna' } }, required: ['assay'] },
+        then: { required: ['library'] },
+      }
+      expect(parseSuggestions('{"assay": {"value": "rna"}}', conditional, {})).toEqual({})
+      expect(
+        parseSuggestions('{"assay": {"value": "rna"}}', conditional, {
+          library: 'polyA',
+        }),
+      ).toEqual({ assay: { value: 'rna', reason: undefined } })
+    })
+
     it('skips empty values', () => {
       expect(parseSuggestions('{"project": {"value": ""}}', schema)).toEqual({})
     })

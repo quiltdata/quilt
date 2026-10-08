@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import * as Intercom from 'components/Intercom'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
+import useDragging from 'utils/dragging'
 import assertNever from 'utils/assertNever'
 import * as workflows from 'utils/workflows'
 
@@ -278,6 +279,10 @@ function PackageCreationForm({
   const fileCount = fileKeys.length
 
   const openMeta = React.useCallback(() => setPane('metadata'), [])
+  const dragging = useDragging()
+  React.useEffect(() => {
+    if (dragging && meta.guided) setPane('files')
+  }, [dragging, meta.guided])
 
   const filesInput = (
     <Inputs.Files

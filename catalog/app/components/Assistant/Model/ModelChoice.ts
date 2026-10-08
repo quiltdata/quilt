@@ -25,22 +25,25 @@ export function useGoverned({ pause = false }: { pause?: boolean } = {}): {
   const query = GQL.useQuery(QURATOR_MODELS_QUERY, {}, { pause })
   return React.useMemo(
     () =>
-      GQL.fold(query, {
-        data: ({ config: { quratorModels: m } }) => ({
-          governed: m?.allowlist
-            ? {
-                allowlist: m.allowlist,
-                default: m.default,
-                names: Object.fromEntries((m.names ?? []).map((n) => [n.id, n.name])),
-              }
-            : null,
-          settled: true,
-          failed: false,
-        }),
-        fetching: () => ({ governed: null, settled: false, failed: false }),
-        error: () => ({ governed: null, settled: true, failed: true }),
-      }),
-    [query],
+      // paused, the query has neither data nor error, which fold would read as a failure
+      pause
+        ? { governed: null, settled: false, failed: false }
+        : GQL.fold(query, {
+            data: ({ config: { quratorModels: m } }) => ({
+              governed: m?.allowlist
+                ? {
+                    allowlist: m.allowlist,
+                    default: m.default,
+                    names: Object.fromEntries((m.names ?? []).map((n) => [n.id, n.name])),
+                  }
+                : null,
+              settled: true,
+              failed: false,
+            }),
+            fetching: () => ({ governed: null, settled: false, failed: false }),
+            error: () => ({ governed: null, settled: true, failed: true }),
+          }),
+    [pause, query],
   )
 }
 

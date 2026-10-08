@@ -23,15 +23,8 @@ import { mkMetaValidator } from '../State/schema'
 import type { SchemaStatus } from '../State/schema'
 import { pendingLabel } from '../State/meta'
 import type { MetaState } from '../State/meta'
-import {
-  hasValue,
-  humanizeError,
-  invalidKeys,
-  isAdvisoryError,
-  requiredFields,
-  topKey,
-} from '../State/metaGuide'
-import { useMetaSuggestions } from '../State/metaSuggest'
+import { humanizeError, invalidKeys, requiredFields, topKey } from '../State/metaGuide'
+import { newErrors, useMetaSuggestions } from '../State/metaSuggest'
 import type { SuggestState } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
@@ -601,7 +594,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     value,
     workflow: suggest?.workflow,
   })
-  const suggested =
+  const rawSuggested =
     suggestions.state._tag === 'ready' ? suggestions.state.suggestions : undefined
   // Guided: the required-fields panel already lists missing root fields, so
   // those errors would only repeat it.
@@ -677,16 +670,22 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     const v = mkMetaValidator(schema, { formats: false, keepSet: true })
     return (x: JsonRecord) => v(x) ?? []
   }, [schema])
+  // suggestions were checked against the metadata when asked; offer only those that still fit
+  const suggested = React.useMemo(() => {
+    if (!rawSuggested || !validateFull) return rawSuggested
+    const base = (value || {}) as JsonRecord
+    return Object.fromEntries(
+      Object.entries(rawSuggested).filter(
+        ([k, sg]) => !newErrors(validateFull, base, { ...base, [k]: sg.value }).length,
+      ),
+    )
+  }, [rawSuggested, validateFull, value])
   const applySuggestions = React.useCallback(
     (picks: Record<string, JsonValue>) => {
       if (!validateFull || !Object.keys(picks).length) return
-      const sig = (e: Error | ErrorObject) =>
-        'schemaPath' in e
-          ? `${e.instancePath}|${e.schemaPath}|${JSON.stringify(e.params)}`
-          : e.message
-      const known = new Set(validateFull(value || {}).map(sig))
+      const base = (value || {}) as JsonRecord
       const introduces = (candidate: JsonRecord) =>
-        validateFull(candidate).some((e) => !known.has(sig(e)) && !isAdvisoryError(e))
+        newErrors(validateFull, base, candidate).length > 0
       let next = { ...value } as JsonRecord
       let kept = 0
       // Greedy: keep each pick that does not add a new error to what is kept so far.
@@ -778,7 +777,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     ],
   )
 
-  const isDragging = useDragging()
+  // guided: files live behind their own tab, so drags go there (Import file covers metadata)
+  const isDragging = useDragging() && !guided
 
   const {
     getInputProps,
@@ -788,6 +788,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   } = useDropzone({
     onDrop,
     noClick: true,
+    noDrag: guided,
     noKeyboard: true,
   })
 
@@ -875,10 +876,13 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
           onRequest={suggestions.request}
           onUseAll={() => {
             if (!suggested) return
+            const brokenNow = invalidKeys(validateFull ? validateFull(value || {}) : [])
             applySuggestions(
               Object.fromEntries(
                 Object.entries(suggested)
-                  .filter(([k]) => !hasValue(value?.[k], schema?.properties?.[k]))
+                  // a present value is kept unless the whole schema rejects it, so a null
+                  // allowed through anyOf or $ref stays the user's choice
+                  .filter(([k]) => value?.[k] === undefined || brokenNow.has(k))
                   .map(([k, sg]) => [k, sg.value]),
               ),
             )
@@ -1030,8 +1034,22 @@ export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
     const showErrors = !guided || touched || !blank || formStatus._tag === 'error'
     const errors = React.useMemo(() => {
       if (schema._tag === 'error') return [schema.error]
-      if (status._tag === 'error' && showErrors) return status.errors
-      return []
+      if (status._tag !== 'error') return []
+      if (showErrors) return status.errors
+      // before any edit, a missing root field is already shown by its asterisk and the count
+      const marked: unknown[] =
+        schema._tag === 'ready' && Array.isArray(schema.schema?.required)
+          ? schema.schema.required
+          : []
+      return status.errors.filter(
+        (e) =>
+          !(
+            'keyword' in e &&
+            e.keyword === 'required' &&
+            !e.instancePath &&
+            marked.includes(e.params?.missingProperty)
+          ),
+      )
     }, [schema, showErrors, status])
     if (schema._tag === 'loading') {
       return <MetaInputSkeleton ref={ref} className={classes.root} />

@@ -8,6 +8,7 @@ import type { JsonSchema } from 'utils/JSONSchema'
 import type * as Types from 'utils/types'
 
 import { fieldMessage, hasValue, isFilled, pointer } from '../State/metaGuide'
+import { NEW_FIELD } from '../State/meta'
 import type { Suggestions } from '../State/metaSuggest'
 
 type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
@@ -46,9 +47,6 @@ function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
     return e.instancePath === at || e.instancePath.startsWith(`${at}/`)
   })
 }
-
-/** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
-export const NEW_FIELD = '\u0000new field'
 
 let fieldIds = 0
 

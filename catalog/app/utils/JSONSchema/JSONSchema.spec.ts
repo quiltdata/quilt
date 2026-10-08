@@ -367,6 +367,17 @@ describe('utils/JSONSchema', () => {
       expect(makeSchemaDefaultsSetter(schema)({ obj: 0 })).toEqual({ obj: { a: 1 } })
     })
 
+    it('keeps a null object value in both modes instead of crashing or defaulting it', () => {
+      const schema = {
+        type: 'object',
+        properties: { lab: { properties: { pi: { type: 'string', default: 'x' } } } },
+      }
+      expect(makeSchemaDefaultsSetter(schema)({ lab: null })).toEqual({ lab: null })
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({ lab: null })).toEqual({
+        lab: null,
+      })
+    })
+
     it('leaves null array items alone', () => {
       const schema = {
         type: 'object',

@@ -129,8 +129,11 @@ export function useMeta(
   )
 }
 
+/** Pending key for the unsaved new-field row; not a string the UI can produce as a key. */
+export const NEW_FIELD = '\u0000new field'
+
 /** How pending keys read to a person; the new-field row has no name yet. */
 export const pendingLabel = (keys: readonly string[]) =>
-  keys.map((k) => (k.startsWith('\u0000') ? 'the new field' : `"${k}"`)).join(', ')
+  keys.map((k) => (k === NEW_FIELD ? 'the new field' : `"${k}"`)).join(', ')
 
 export { useMeta as use }

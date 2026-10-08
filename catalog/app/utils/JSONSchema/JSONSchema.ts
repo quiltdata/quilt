@@ -297,6 +297,9 @@ function scanSchemaAndPrefillValues(
     // and not in conditionals like `oneOf`, `anyOf`, `if` etc.
     // https://github.com/ajv-validator/ajv/issues/42#issuecomment-170250113
 
+    // a null the user stored stays null (it used to throw here)
+    if (valueItem === null && schemaItem.properties) return memo
+
     if (schemaItem.properties) {
       const properties = scanSchemaAndPrefillValues(
         getValue,

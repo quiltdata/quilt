@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as urql from 'urql'
@@ -11,7 +12,6 @@ import type { JsonSchema } from 'utils/JSONSchema'
 import Log from 'utils/Logging'
 import type * as Types from 'utils/types'
 
-import { pointer } from './metaGuide'
 import { mkMetaValidator } from './schema'
 
 export type Suggestions = Record<string, { value: Types.Json; reason?: string }>
@@ -97,10 +97,6 @@ export function buildPrompt({
   ].join('\n\n')
 }
 
-/**
- * The model's answer, keeping only values that pass their field's schema: a
- * suggestion the workflow would reject is worse than none.
- */
 /** The first top-level `{...}` in `text` that parses as JSON, ignoring prose around it. */
 export function firstJsonObject(text: string): unknown {
   for (
@@ -132,6 +128,25 @@ export function firstJsonObject(text: string): unknown {
   return undefined
 }
 
+const errorSig = (e: Error | ErrorObject) =>
+  'schemaPath' in e
+    ? `${e.instancePath}|${e.schemaPath}|${JSON.stringify(e.params)}`
+    : e.message
+
+/** Errors `candidate` has that `base` does not: what a change would add. */
+export function newErrors(
+  validate: (x: Types.JsonRecord) => (Error | ErrorObject)[],
+  base: Types.JsonRecord,
+  candidate: Types.JsonRecord,
+) {
+  const known = new Set(validate(base).map(errorSig))
+  return validate(candidate).filter((e) => !known.has(errorSig(e)))
+}
+
+/**
+ * The model's answer, keeping only values that add no error to the current
+ * metadata: a suggestion the workflow would reject is worse than none.
+ */
 export function parseSuggestions(
   text: string,
   schema: JsonSchema,
@@ -142,28 +157,14 @@ export function parseSuggestions(
   const properties: Record<string, JsonSchema> = schema.properties || {}
   const check = mkMetaValidator(schema, { formats: false, keepSet: true })
   const validate = (x: Types.JsonRecord) => check(x) ?? []
-  // Root-level errors the metadata already has are not the suggestion's fault.
-  const sig = (e: Error | { keyword?: string; schemaPath?: string; message?: string }) =>
-    'schemaPath' in e ? `${e.schemaPath}|${e.message}` : e.message
-  const before = new Set(
-    validate(value)
-      .filter((e) => !('instancePath' in e) || !e.instancePath)
-      .map(sig),
-  )
   const out: Suggestions = {}
   for (const [key, entry] of Object.entries(raw as Record<string, any>)) {
     if (!Object.hasOwn(properties, key)) continue
     if (!entry || typeof entry !== 'object' || !('value' in entry)) continue
     const v = entry.value
     if (v === null || v === undefined || v === '') continue
-    // the whole schema, so $refs and cross-field rules apply; only this key's errors count
-    const ptr = pointer(key)
-    const errors = validate({ ...value, [key]: v }).filter((e) => {
-      if (!('instancePath' in e)) return true
-      if (e.instancePath === ptr || e.instancePath.startsWith(`${ptr}/`)) return true
-      return !e.instancePath && e.keyword !== 'required' && !before.has(sig(e))
-    })
-    if (errors.length) continue
+    // the whole schema, so $refs and cross-field rules (if/then, dependencies) apply
+    if (newErrors(validate, value, { ...value, [key]: v }).length) continue
     out[key] = {
       value: v,
       reason: typeof entry.reason === 'string' ? entry.reason.slice(0, 120) : undefined,
@@ -281,13 +282,6 @@ export function useMetaSuggestions({
           break
         } catch (e) {
           lastError = e
-          // only a model this stack cannot reach is worth trying the next one for
-          if (
-            !/AccessDenied|not (authorized|available|found)|ResourceNotFound|ValidationException.*model|Throttl|Busy|timed? ?out|\b(404|429|503)\b/i.test(
-              String(e),
-            )
-          )
-            break
         }
       }
       if (generation.current !== mine) return
