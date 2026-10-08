@@ -347,25 +347,66 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     cleanup()
   })
 
-  const reply = () =>
+  const reply = (slug = 'slack') =>
     window.dispatchEvent(
       new MessageEvent('message', {
-        data: callback(),
+        data: callback({ slug }),
         origin: REGISTRY,
         source: popup as unknown as Window,
       }),
     )
 
   const getToken = () => Eff.Effect.succeed('tok')
-  function mount(service: Connectors.ConnectorsService) {
+  function mount(service: Connectors.ConnectorsService, list = servers) {
     const result = { current: null as unknown as ReturnType<typeof useMcpSignIn> }
     function Probe() {
-      result.current = useMcpSignIn(servers, service, getToken)
+      result.current = useMcpSignIn(list, service, getToken)
       return null
     }
     const view = render(React.createElement(Probe))
     return Object.assign(result, { unmount: view.unmount })
   }
+
+  it("a second server's sign-in leaves the first one's waiting reconnect alone", async () => {
+    window.fetch = registry() as any
+    const slack = Eff.Effect.runSync(
+      Eff.SubscriptionRef.make<Connectors.ConnectorState>(
+        Connectors.ConnectorState.Connecting(),
+      ),
+    )
+    const fathom = Eff.Effect.runSync(
+      Eff.SubscriptionRef.make<Connectors.ConnectorState>(failed),
+    )
+    const retried: string[] = []
+    const service = {
+      byId: {
+        slack: { state: slack, retry: Eff.Effect.sync(() => void retried.push('slack')) },
+        fathom: {
+          state: fathom,
+          retry: Eff.Effect.sync(() => void retried.push('fathom')),
+        },
+      },
+    } as any
+    const result = mount(service, [
+      ...servers,
+      { ...servers[0], slug: 'fathom', title: 'Fathom' },
+    ])
+    for (const slug of ['slack', 'fathom']) {
+      await act(async () => {
+        result.current.connect(slug)
+        await flush()
+        reply(slug)
+        await flush()
+        await flush()
+      })
+    }
+    expect(retried).toEqual(['fathom'])
+    await act(async () => {
+      Eff.Effect.runSync(Eff.SubscriptionRef.set(slack, failed))
+      await flush()
+    })
+    expect(retried).toEqual(['fathom', 'slack'])
+  })
 
   it('holds the reconnect until a connection attempt in flight settles', async () => {
     window.fetch = registry() as any

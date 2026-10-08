@@ -284,11 +284,14 @@ export function useMcpSignIn(
   const [status, setStatus] = React.useState('')
   const flow = React.useRef<AbortController | null>(null)
   const busy = React.useRef(false)
-  const retryFiber = React.useRef<Eff.Fiber.RuntimeFiber<unknown, unknown> | null>(null)
+  // Per server, so one server's reconnect never cancels another's.
+  const retryFibers = React.useRef(
+    new Map<string, Eff.Fiber.RuntimeFiber<unknown, unknown>>(),
+  )
   React.useEffect(
     () => () => {
       flow.current?.abort()
-      if (retryFiber.current) runtime.runFork(Eff.Fiber.interrupt(retryFiber.current))
+      retryFibers.current.forEach((f) => runtime.runFork(Eff.Fiber.interrupt(f)))
     },
     [],
   )
@@ -337,16 +340,19 @@ export function useMcpSignIn(
           // A retry during Connecting is a no-op, and that attempt may still end
           // in NeedsSignIn, so wait for it to settle first.
           if (connector && ok) {
-            if (retryFiber.current)
-              runtime.runFork(Eff.Fiber.interrupt(retryFiber.current))
-            retryFiber.current = runtime.runFork(
-              connector.state.changes.pipe(
-                Eff.Stream.filter((s) => s._tag !== 'Connecting'),
-                Eff.Stream.take(1),
-                Eff.Stream.runDrain,
-                Eff.Effect.timeout(RETRY_WAIT),
-                Eff.Effect.zipRight(connector.retry),
-                Eff.Effect.ignore,
+            const previous = retryFibers.current.get(slug)
+            if (previous) runtime.runFork(Eff.Fiber.interrupt(previous))
+            retryFibers.current.set(
+              slug,
+              runtime.runFork(
+                connector.state.changes.pipe(
+                  Eff.Stream.filter((s) => s._tag !== 'Connecting'),
+                  Eff.Stream.take(1),
+                  Eff.Stream.runDrain,
+                  Eff.Effect.timeout(RETRY_WAIT),
+                  Eff.Effect.zipRight(connector.retry),
+                  Eff.Effect.ignore,
+                ),
               ),
             )
           }
