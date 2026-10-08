@@ -161,6 +161,61 @@ describe('components/FileEditor/State', () => {
     ])
   })
 
+  it('does not write when the package locks during the revision check', async () => {
+    useLockStatus.mockReturnValue('unlocked')
+    let head: () => void = () => {}
+    const put = vi.fn()
+    writeFile.mockImplementationOnce(async (_value: string, beforePut: () => void) => {
+      await new Promise<void>((resolve) => {
+        head = resolve
+      })
+      beforePut()
+      put()
+    })
+    const { result, rerender } = renderHook(() => useState(handle))
+    act(() => result.current.onChange('typed'))
+    let saving: Promise<unknown> = Promise.resolve()
+    act(() => {
+      saving = result.current.onSave()
+    })
+    useLockStatus.mockReturnValue('locked')
+    rerender()
+    await act(async () => {
+      head()
+      await saving
+    })
+    expect(put).not.toHaveBeenCalled()
+    expect(result.current.error?.message).toBe(
+      "This package was locked; your changes can't be saved.",
+    )
+  })
+
+  it('claims no lock when writing stops for another reason', () => {
+    useLockStatus.mockReturnValue('unlocked')
+    const { result, rerender } = renderHook(() => useState(handle))
+    actions.writeFile = false
+    rerender()
+    actions.writeFile = true
+    expect(result.current.editing).toEqual({ brace: 'markdown' })
+    expect(result.current.writable).toBe(false)
+    expect(result.current.error).toBeNull()
+  })
+
+  it.each(['locked', 'loading'])(
+    'says why the editor the URL asked for is closed while %s',
+    (status) => {
+      useLockStatus.mockReturnValue(status)
+      const { result } = renderHook(() => useState(handle))
+      expect(result.current.requested).toBe(status)
+    },
+  )
+
+  it('asks for nothing once the editor opens', () => {
+    useLockStatus.mockReturnValue('unlocked')
+    const { result } = renderHook(() => useState(handle))
+    expect(result.current.requested).toBeNull()
+  })
+
   it.each([
     ['does not parse', 'not-a-package-uri'],
     ['has no path', PackageUri.stringify({ bucket: 'b', name: 'team/ds' })],

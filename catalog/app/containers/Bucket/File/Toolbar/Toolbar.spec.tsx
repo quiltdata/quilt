@@ -80,6 +80,7 @@ const editorState = {
   types: [],
   value: 'test content',
   writable: true,
+  requested: null,
 }
 
 const handle = FileToolbar.CreateHandle('test-bucket', 'test/file.txt')

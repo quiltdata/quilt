@@ -18,6 +18,8 @@ interface UploadResult extends S3.ManagedUpload.SendData {
   VersionId: string
 }
 
+export const PUSH_STOPPED = 'This package is locked; the push was stopped'
+
 export interface UploadTotalProgress {
   total: number
   loaded: number
@@ -70,10 +72,13 @@ export function useUploads() {
       files,
       bucket,
       getCanonicalKey,
+      canStart = () => true,
     }: {
       files: { path: string; file: LocalFile; meta?: Types.JsonRecord | null }[]
       bucket: string
       getCanonicalKey: (path: string) => string
+      // Read as each queued upload starts: the destination can lock while earlier ones run.
+      canStart?: () => boolean
     }) => {
       const limit = pLimit(2)
       let rejected = false
@@ -83,6 +88,11 @@ export function useUploads() {
         if (rejected) {
           remove(path)
           return undefined as never
+        }
+        if (!canStart()) {
+          rejected = true
+          remove(path)
+          throw new Error(PUSH_STOPPED)
         }
 
         const upload: S3.ManagedUpload = s3.upload(

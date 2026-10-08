@@ -475,7 +475,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     prefs,
   )
 
-  const bulk = useBulkDelete(bucket, name, lockStatus === 'unlocked')
+  const bulk = useBulkDelete(bucket, name, lockStatus)
 
   usePrevious(actualPage, (prev) => {
     if (prev && actualPage !== prev) {
