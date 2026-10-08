@@ -1070,9 +1070,13 @@ export const MetaPane = React.forwardRef<HTMLDivElement, InputMetaProps>(
       if (status._tag !== 'error') return []
       if (showErrors) return status.errors
       // before any edit, a missing root field is already shown by its asterisk and the count
+      // only declared fields get an asterisk; an undeclared required one must be named here
+      const props = schema._tag === 'ready' ? schema.schema?.properties || {} : {}
       const marked: unknown[] =
         schema._tag === 'ready' && Array.isArray(schema.schema?.required)
-          ? schema.schema.required
+          ? schema.schema.required.filter(
+              (k: unknown) => typeof k === 'string' && Object.hasOwn(props, k),
+            )
           : []
       return status.errors.filter(
         (e) =>

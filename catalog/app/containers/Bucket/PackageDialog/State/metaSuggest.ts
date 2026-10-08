@@ -224,7 +224,8 @@ const ask = (prompt: string) =>
     Eff.Effect.andThen((llm) =>
       llm.converse(
         { system: SYSTEM, messages: [LLM.userMessage(Content.text(prompt))] },
-        { inferenceConfig: { maxTokens: 1500 } },
+        // ~40 fields with a value and a short reason each
+        { inferenceConfig: { maxTokens: 4000 } },
       ),
     ),
     Eff.Effect.map(({ content }) =>

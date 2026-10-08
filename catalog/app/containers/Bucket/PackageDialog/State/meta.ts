@@ -91,14 +91,21 @@ export function useMeta(
     [guided, notObject, schema, value],
   )
   // ramda and Ajv assign keys, so "__proto__" would vanish or become a prototype on submit
-  const rootError = notObject
-    ? 'Metadata must be a valid JSON object'
-    : hasProtoKey(value)
-      ? '"__proto__" cannot be a metadata field name'
-      : // defaults included: a schema default can be an unsafe integer too
-        !allExact(withDefaults)
-        ? 'A number is too large to store exactly; use a string for IDs'
-        : null
+  // memoized: both checks walk the whole tree, and imports can be large
+  const rootError = React.useMemo(
+    () =>
+      !guided
+        ? null
+        : notObject
+          ? 'Metadata must be a valid JSON object'
+          : hasProtoKey(value)
+            ? '"__proto__" cannot be a metadata field name'
+            : // defaults included: a schema default can be an unsafe integer too
+              !allExact(withDefaults)
+              ? 'A number is too large to store exactly; use a string for IDs'
+              : null,
+    [guided, notObject, value, withDefaults],
+  )
   // submit drops blank keys (getMetaValue), so validation must not count them
   // an array or other non-object root is passed through so validation rejects it
   const submitted = React.useMemo(

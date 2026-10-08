@@ -124,7 +124,10 @@ function PackageCopyForm({ close, successor, state }: PackageCopyFormProps) {
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
-  const dialogContentClasses = Layout.useContentStyles({ metaHeight })
+  // guided: the pane flex-grows, so its measured height must not size the dialog (see Create)
+  const dialogContentClasses = Layout.useContentStyles({
+    metaHeight: meta.guided ? Infinity : metaHeight,
+  })
 
   const handleCopy = React.useCallback(
     (event: React.FormEvent) => {
