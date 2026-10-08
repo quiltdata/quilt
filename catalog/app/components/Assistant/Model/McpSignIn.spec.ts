@@ -484,7 +484,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
   })
 
   // Each flow's authorize URL carries the same STATE, so the open flow takes it.
-  const reply = (_slug = 'slack') =>
+  const reply = () =>
     channels.forEach((c) => c.onmessage?.({ data: callback() } as MessageEvent))
 
   const getToken = () => Eff.Effect.succeed('tok')
@@ -526,7 +526,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       await act(async () => {
         result.current.connect(slug)
         await flush()
-        reply(slug)
+        reply()
         await flush()
         await flush()
       })
