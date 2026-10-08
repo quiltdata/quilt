@@ -683,7 +683,9 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
     const adds = newErrorsFrom(validateFull, base)
     return Object.fromEntries(
       Object.entries(rawSuggested).filter(
-        ([k, sg]) => !adds({ ...base, [k]: sg.value }).length,
+        ([k, sg]) =>
+          // already the value: nothing left to offer, so the bar's count stops at zero
+          !R.equals(base[k], sg.value) && !adds({ ...base, [k]: sg.value }).length,
       ),
     )
   }, [rawSuggested, validateFull, value])
@@ -753,10 +755,16 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
       readFile(file, schema)
         .then((contents) => {
           // guided metadata is one object; an array would be pushed with "0", "1"… keys
-          const apply = (m: any) =>
-            guided && (!m || typeof m !== 'object' || Array.isArray(m))
-              ? notify('The file must hold one JSON object, not a list or a value')
-              : onChange(m)
+          const apply = (m: any) => {
+            if (guided && (!m || typeof m !== 'object' || Array.isArray(m))) {
+              notify('The file must hold one JSON object, not a list or a value')
+              return
+            }
+            onChange(m)
+            // only a metadata that replaced the old one resets the editors and their drafts
+            setJsonInlineEditorKey(R.inc)
+            setJsonFullscreenEditorKey(R.inc)
+          }
           if (typeof contents === 'object') {
             apply(contents)
           } else {
@@ -774,9 +782,6 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             }
             // FIXME: show error
           }
-          // force json editor to re-initialize
-          setJsonInlineEditorKey(R.inc)
-          setJsonFullscreenEditorKey(R.inc)
         })
         .catch((e) => {
           if (e.message === 'abort') return
