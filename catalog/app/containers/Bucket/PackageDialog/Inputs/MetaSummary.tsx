@@ -68,7 +68,8 @@ export default function MetaSummary({ onOpen, schema, state }: MetaSummaryProps)
   const defaulted = Object.keys(props).filter(
     (k) => !Object.hasOwn(state.value || {}, k) && props[k]?.default !== undefined,
   ).length
-  const fields = Object.keys(state.value || {}).length + defaulted
+  // blank-named rows are dropped on submit, so they are not counted
+  const fields = Object.keys(state.value || {}).filter((k) => k.trim()).length + defaulted
   const ok = state.status._tag === 'ok'
   // with nothing required, an empty form is not "done", just empty
   const complete = ok && (required.length ? filled === required.length : fields > 0)

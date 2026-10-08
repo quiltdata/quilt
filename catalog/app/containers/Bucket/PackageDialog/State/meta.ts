@@ -77,6 +77,12 @@ export function useMeta(
   const notObject =
     value !== undefined &&
     (value === null || typeof value !== 'object' || Array.isArray(value))
+  // ramda and Ajv assign keys, so "__proto__" would vanish or become a prototype on submit
+  const rootError = notObject
+    ? 'Metadata must be a valid JSON object'
+    : value && Object.hasOwn(value, '__proto__')
+      ? '"__proto__" cannot be a metadata field name'
+      : null
   // submit drops blank keys (getMetaValue), so validation must not count them
   // an array or other non-object root is passed through so validation rejects it
   const submitted = React.useMemo(
@@ -100,9 +106,9 @@ export function useMeta(
   const settled = schema._tag === 'ready' || schema._tag === 'error'
   const guidedErrors = React.useMemo(() => {
     if (!guided || !settled) return []
-    if (notObject) return [new Error('Metadata must be a valid JSON object')]
+    if (rootError) return [new Error(rootError)]
     return validate(submitted || {}) ?? []
-  }, [guided, notObject, settled, submitted, validate])
+  }, [guided, rootError, settled, submitted, validate])
   const warnings = React.useMemo(() => guidedErrors.filter(isAdvisory), [guidedErrors])
   // mkSubmitValidator's rule, reusing the full pass above: format-only failures do not block
   const validateBlind = React.useMemo(
@@ -115,9 +121,9 @@ export function useMeta(
   const blockingErrors = React.useMemo(() => {
     if (!guidedErrors.length) return []
     // a non-object root is not a format question; the blind pass would let an array through
-    if (notObject || !validateBlind) return guidedErrors
+    if (rootError || !validateBlind) return guidedErrors
     return validateBlind(submitted || {}) ?? []
-  }, [guidedErrors, notObject, validateBlind, submitted])
+  }, [guidedErrors, rootError, validateBlind, submitted])
 
   const status: MetaStatus = React.useMemo(() => {
     if (guided) {

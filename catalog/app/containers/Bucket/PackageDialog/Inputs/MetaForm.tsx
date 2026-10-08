@@ -208,6 +208,10 @@ function Field({
     setNumError(null)
     setPending?.(name, false)
   }, [name, numeric, setPending, value])
+  // an outside value (import, suggestion, Expand) replaces a half-typed date
+  React.useEffect(() => {
+    if (widget === 'date') setPending?.(name, false)
+  }, [name, setPending, value, widget])
   React.useEffect(() => () => setPending?.(name, false), [name, setPending])
 
   const set = React.useCallback(
@@ -763,9 +767,12 @@ export function FreeFields({
   const [draft, setDraft] = React.useState<{ key: string; value: string } | null>(null)
   const draftRef = React.useRef<HTMLDivElement>(null)
 
-  const taken = (k: string) => Object.hasOwn(value || {}, k) || exclude.includes(k)
+  // "__proto__" is reserved: submit cannot store it as a field
+  const taken = (k: string) =>
+    k === '__proto__' || Object.hasOwn(value || {}, k) || exclude.includes(k)
   const rename = (from: string, to: string): string | null => {
     if (!to) return 'Enter a name'
+    if (to === '__proto__') return 'Reserved name'
     if (taken(to)) return 'Already used'
     onChange(
       Object.fromEntries(
@@ -829,7 +836,13 @@ export function FreeFields({
             autoFocus
             disabled={disabled}
             error={draftError}
-            helperText={draftError ? 'Already used' : undefined}
+            helperText={
+              draftError
+                ? draft.key.trim() === '__proto__'
+                  ? 'Reserved name'
+                  : 'Already used'
+                : undefined
+            }
             label="Name"
             onChange={(e) => setDraft({ ...draft, key: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}

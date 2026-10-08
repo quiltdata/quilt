@@ -268,7 +268,7 @@ export function useMetaSuggestions({
         ? { _tag: 'error', message: 'The package changed while asking. Try again.' }
         : { _tag: 'idle' },
     )
-  }, [bucket, workflow, schema, filesKey, name])
+  }, [bucket, workflow, schema, filesKey])
   React.useEffect(
     () => () => {
       generation.current += 1
