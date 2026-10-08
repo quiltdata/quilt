@@ -27,15 +27,15 @@ const currentPackage = ({ data }: Result, bucket: string, name: string) => {
 // registry still refuses writes to a locked package.
 function toStatus(result: Result, bucket: string, name: string, pause: boolean): Status {
   if (pause) return 'unlocked'
-  const { data, error, fetching, stale } = result
+  const { data, error, fetching } = result
   const pkg = currentPackage(result, bucket, name)
   if (pkg?.lock) return 'locked'
-  // A stale result is a known lock revalidating; only a first fetch leaves it unknown.
-  if (fetching && !stale) return 'loading'
-  if (error) return 'unlocked'
   // Graphcache answers an uncached `lock` with null when another query cached the package.
-  if (GQL.isPartial(result) || !data || (data.package && !pkg)) return 'loading'
-  return 'unlocked'
+  const known = !GQL.isPartial(result) && !!data && (!data.package || !!pkg)
+  // Known data keeps its status while it refetches; only unknown data waits.
+  if (fetching && !known) return 'loading'
+  if (error) return 'unlocked'
+  return known ? 'unlocked' : 'loading'
 }
 
 // Its own query, so a registry without locks fails only this one.
