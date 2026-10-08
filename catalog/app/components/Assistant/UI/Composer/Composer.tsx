@@ -847,9 +847,12 @@ function PlusMenu({
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    // Typing in the save form or the instructions editor is not menu navigation.
+    // Typing in a form field, or Enter on a nested button, is not menu navigation.
     const target = e.target as HTMLElement
-    if (target !== searchRef.current && target.closest('input, textarea, select')) {
+    if (
+      target !== searchRef.current &&
+      target.closest('input, textarea, select, button')
+    ) {
       if (e.key === 'Escape') {
         e.preventDefault()
         e.nativeEvent.stopPropagation()
