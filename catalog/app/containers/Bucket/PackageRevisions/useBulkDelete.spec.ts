@@ -145,6 +145,22 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     })
   })
 
+  it('sends no further deletes after the hook unmounts', async () => {
+    const { result, unmount } = renderHook(() => useBulkDelete('b', 'foo/a', true))
+    act(() => ['h1', 'h2', 'h3'].forEach(result.current.toggle))
+    let resolve: (v: unknown) => void = () => {}
+    deleteRevision.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+    deleteRevision.mockResolvedValue(ok)
+    let running = Promise.resolve()
+    act(() => {
+      running = result.current.run()
+    })
+    unmount()
+    resolve(ok)
+    await running
+    expect(deleteRevision).toHaveBeenCalledTimes(1)
+  })
+
   it('says the package is locked when run while not known unlocked', async () => {
     const { result } = renderHook(() => useBulkDelete('b', 'foo/bar', false))
     act(() => result.current.toggle('h1'))

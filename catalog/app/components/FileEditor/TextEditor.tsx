@@ -58,12 +58,17 @@ export default function TextEditor({
 }: TextEditorProps) {
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
+  const editorRef = React.useRef<brace.Editor | null>(null)
+  const readOnly = React.useRef(!!disabled)
+  readOnly.current = !!disabled
 
   React.useEffect(() => {
     const wrapper = ref.current
     if (!wrapper) return
 
     const editor = brace.edit(wrapper)
+    editorRef.current = editor
+    editor.setReadOnly(readOnly.current)
 
     const resizeObserver = new window.ResizeObserver(() => editor.resize())
     resizeObserver.observe(wrapper)
@@ -89,8 +94,13 @@ export default function TextEditor({
     return () => {
       resizeObserver.unobserve(wrapper)
       editor.destroy()
+      editorRef.current = null
     }
   }, [autoFocus, leadingChange, onChange, ref, type.brace, initialValue])
+
+  React.useEffect(() => {
+    editorRef.current?.setReadOnly(!!disabled)
+  }, [disabled])
 
   return (
     <div className={cx(classes.root, className, { [classes.error]: !!error })}>

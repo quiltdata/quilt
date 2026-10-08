@@ -58,12 +58,12 @@ import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 
 import * as AssistantContext from './AssistantContext'
+import DirActions from './DirActions'
 import PackageLink from './PackageLink'
 import * as PackageLock from './PackageLock'
 import { usePackageDeletion } from './usePackageDeletion'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
-import RevisionMenu from './RevisionMenu'
 
 import REVISION_QUERY from './gql/Revision.generated'
 import REVISION_LIST_QUERY from './gql/RevisionList.generated'
@@ -216,7 +216,10 @@ export function useCreateDialog(
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
-  const match = !!RRDom.useRouteMatch({ path: paths.bucketPackageAddFiles, exact: true })
+  const match = !!RRDom.useRouteMatch({
+    path: paths.bucketPackageAddFiles,
+    exact: true,
+  })
 
   const { push } = history
   const { bucket, name } = packageHandle
@@ -439,73 +442,60 @@ function DirDisplay({
             <>
               {prompt.render()}
               <TopBar crumbs={crumbs}>
-                {BucketPreferences.Result.match(
-                  {
-                    Ok: ({ ui: { actions, blocks } }) => (
-                      <>
-                        {actions.downloadPackage && (
-                          <Selection.Control
-                            className={classes.button}
-                            packageHandle={packageHandle}
-                          />
-                        )}
-                        {actions.revisePackage && (
-                          <M.Button
-                            className={classes.button}
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            onClick={() => updateDialog.open()}
-                          >
-                            Revise package
-                          </M.Button>
-                        )}
-                        {actions.copyPackage && (
-                          <Successors.Button
-                            className={classes.button}
-                            bucket={bucket}
-                            icon="exit_to_app"
-                            onChange={setSuccessor}
-                          >
-                            Push to bucket
-                          </Successors.Button>
-                        )}
-                        {actions.downloadPackage && (
-                          <Download.Button
-                            className={classes.button}
-                            label={
-                              !packageUri.path && slt.isEmpty ? 'Get package' : undefined
-                            }
-                          >
-                            <Download.PackageOptions
-                              hashOrTag={hashOrTag}
-                              hideCode={!blocks.code}
-                              selection={slt.isEmpty ? undefined : slt.selection}
-                              uri={packageUri}
-                            />
-                          </Download.Button>
-                        )}
-                        <RevisionMenu
+                <DirActions
+                  className={classes.button}
+                  onDelete={confirmDelete}
+                  onDeletePackage={confirmDeletePackage}
+                  onCreateFile={prompt.open}
+                  onLock={onLock}
+                >
+                  {({ ui: { actions, blocks } }) => (
+                    <>
+                      {actions.downloadPackage && (
+                        <Selection.Control
                           className={classes.button}
-                          onDelete={confirmDelete}
-                          onDeletePackage={confirmDeletePackage}
-                          onCreateFile={prompt.open}
-                          onLock={onLock}
+                          packageHandle={packageHandle}
                         />
-                      </>
-                    ),
-                    Pending: () => (
-                      <>
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                      </>
-                    ),
-                    Init: () => null,
-                  },
-                  prefs,
-                )}
+                      )}
+                      {actions.revisePackage && (
+                        <M.Button
+                          className={classes.button}
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => updateDialog.open()}
+                        >
+                          Revise package
+                        </M.Button>
+                      )}
+                      {actions.copyPackage && (
+                        <Successors.Button
+                          className={classes.button}
+                          bucket={bucket}
+                          icon="exit_to_app"
+                          onChange={setSuccessor}
+                        >
+                          Push to bucket
+                        </Successors.Button>
+                      )}
+                      {actions.downloadPackage && (
+                        <Download.Button
+                          className={classes.button}
+                          label={
+                            !packageUri.path && slt.isEmpty ? 'Get package' : undefined
+                          }
+                        >
+                          <Download.PackageOptions
+                            hashOrTag={hashOrTag}
+                            hideCode={!blocks.code}
+                            selection={slt.isEmpty ? undefined : slt.selection}
+                            uri={packageUri}
+                          />
+                        </Download.Button>
+                      )}
+                    </>
+                  )}
+                </DirActions>
               </TopBar>
               {BucketPreferences.Result.match(
                 {
@@ -1242,7 +1232,11 @@ function PackageTreeQueries({
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
-  const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
+  const revisionQuery = GQL.useQuery(REVISION_QUERY, {
+    bucket,
+    name,
+    hashOrTag,
+  })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
   const displayError = React.useMemo(() => errors.displayError(), [])
 

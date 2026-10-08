@@ -64,6 +64,16 @@ describe('components/FileEditor/State', () => {
     expect(result.current.editing).toBeNull()
   })
 
+  it('keeps a plain bucket file editable whatever writeFile says', () => {
+    actions.writeFile = false
+    search = '?edit=true'
+    const { result } = renderHook(() => useState(handle))
+    search = defaultSearch
+    actions.writeFile = true
+    expect(result.current.writable).toBe(true)
+    expect(result.current.editing).toEqual({ brace: 'markdown' })
+  })
+
   it('needs only writeFile, not revisePackage, to add to an unlocked package', () => {
     useLockStatus.mockReturnValue('unlocked')
     actions.revisePackage = false
@@ -95,6 +105,31 @@ describe('components/FileEditor/State', () => {
     )
     expect(await result.current.onSave()).toBeUndefined()
     expect(writeFile).not.toHaveBeenCalled()
+  })
+
+  it('keeps an editor opened while writable mounted across lock flips', () => {
+    useLockStatus.mockReturnValue('unlocked')
+    search = `?add=${encodeURIComponent(add)}`
+    const { result, rerender } = renderHook(() => useState(handle))
+    search = defaultSearch
+    expect(result.current.editing).toBeNull()
+    act(() => {
+      result.current.onEdit({ brace: 'markdown' } as never)
+      // The lock lands in the same batch as the click, before any effect runs.
+      useLockStatus.mockReturnValue('locked')
+    })
+    const shown: unknown[] = [result.current.editing]
+    useLockStatus.mockReturnValue('unlocked')
+    rerender()
+    shown.push(result.current.editing)
+    useLockStatus.mockReturnValue('locked')
+    rerender()
+    shown.push(result.current.editing)
+    expect(shown).toEqual([
+      { brace: 'markdown' },
+      { brace: 'markdown' },
+      { brace: 'markdown' },
+    ])
   })
 
   it.each([

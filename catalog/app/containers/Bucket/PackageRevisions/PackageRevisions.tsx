@@ -454,10 +454,9 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
   const { status: lockStatus, lock } = PackageLock.useLock(bucket, name)
   const prefs = PackageLock.usePrefs(lockStatus)
   const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
-  const [unlocking, setUnlocking] = React.useState(false)
-  const closeUnlock = React.useCallback(() => setUnlocking(false), [])
-  const openUnlock = React.useCallback(() => setUnlocking(true), [])
-  React.useEffect(() => setUnlocking(false), [bucket, name])
+  const [lockDialog, setLockDialog] = PackageLock.useDialog(bucket, name, lockStatus)
+  const closeUnlock = React.useCallback(() => setLockDialog(null), [setLockDialog])
+  const openUnlock = React.useCallback(() => setLockDialog('unlock'), [setLockDialog])
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -592,7 +591,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
           <LockUI.Notice lock={lock} onUnlock={isAdmin ? openUnlock : undefined} />
         </M.Box>
       )}
-      {unlocking && (
+      {lockDialog === 'unlock' && (
         <LockUI.Dialog
           action="unlock"
           bucket={bucket}
