@@ -170,7 +170,7 @@ function translatePattern(src: string): { source: string } | { error: string } {
     const c = src[i]
     if (c === '\\') {
       const n = src[++i] ?? ''
-      if ('AZbB'.includes(n)) return { error: `Python-only \\${n} semantics` }
+      if ('AZbBNU'.includes(n)) return { error: `Python-only \\${n} semantics` }
       const cls = PY_CLASSES[n]
       if (cls) {
         if (inClass && !cls[1]) return { error: `\\${n} inside [...]` }

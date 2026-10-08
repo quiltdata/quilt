@@ -29,7 +29,21 @@ function hasRef(value: unknown): boolean {
   return false
 }
 
+// Try it runs on every keystroke; compile each loaded schema once.
+const validators = new WeakMap<object, ReturnType<typeof makeSchemaValidator>>()
+function validatorFor(schema: JsonSchema) {
+  let v = validators.get(schema)
+  if (!v) {
+    v = makeSchemaValidator(schema, undefined, AJV_LIKE_PUSH)
+    validators.set(schema, v)
+  }
+  return v
+}
+
 export function checkSchema(schema: unknown): string[] {
+  // draft-07 boolean schemas load on push: `true` accepts anything, `false` nothing.
+  if (schema === true) return []
+  if (schema === false) return ['Schema is `false`, so push rejects every package']
   if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
     return ['Schema must be a JSON object']
   }
@@ -41,23 +55,23 @@ export function checkSchema(schema: unknown): string[] {
   if (hasRef(schema)) {
     problems.push('Schema uses $ref, which push rejects')
   }
-  const compileError = makeSchemaValidator(
-    schema as JsonSchema,
-    undefined,
-    AJV_LIKE_PUSH,
-  )({}).find((e): e is Error => e instanceof Error)
+  const compileError = validatorFor(schema as JsonSchema)({}).find(
+    (e): e is Error => e instanceof Error,
+  )
   if (compileError)
     problems.push(`Catalog can't use this schema: ${compileError.message}`)
   return problems
 }
 
+const pointerToken = (name: string) => `/${name.replace(/~/g, '~0').replace(/\//g, '~1')}`
+
 function toIssue(e: ErrorObject | Error): Issue {
   if (e instanceof Error) return { path: '', message: e.message }
   const prop =
     e.keyword === 'required'
-      ? `/${e.params.missingProperty}`
+      ? pointerToken(e.params.missingProperty)
       : e.keyword === 'additionalProperties'
-        ? `/${e.params.additionalProperty}`
+        ? pointerToken(e.params.additionalProperty)
         : ''
   return {
     path: `${e.instancePath}${prop}` || '/',
@@ -96,13 +110,7 @@ export function dryRun(
     issues.push({ path: 'name', message: "Package name doesn't match required pattern." })
   }
   if (metadataSchema) {
-    issues.push(
-      ...makeSchemaValidator(
-        metadataSchema,
-        undefined,
-        AJV_LIKE_PUSH,
-      )(meta ?? {}).map(toIssue),
-    )
+    issues.push(...validatorFor(metadataSchema)(meta ?? {}).map(toIssue))
   }
   return issues
 }

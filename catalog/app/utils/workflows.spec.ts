@@ -296,6 +296,13 @@ describe('utils/workflows', () => {
     it('skips word boundaries, which JS keeps ASCII-only', () => {
       expect(pattern('^lab/\\b').packageNamePatternError).toMatch('\\b')
     })
+
+    it('skips named and long Unicode escapes', () => {
+      expect(
+        pattern('^lab/\\N{LATIN SMALL LETTER E WITH ACUTE}$').packageNamePattern,
+      ).toBeNull()
+      expect(pattern('^lab/\\U000000e9$').packageNamePatternError).toMatch('\\U')
+    })
   })
 
   describe('workflow naming a schema the config does not define', () => {

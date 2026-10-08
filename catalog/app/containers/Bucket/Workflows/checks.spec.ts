@@ -189,5 +189,19 @@ describe('containers/Bucket/Workflows/checks', () => {
       )
       expect(issues).toEqual([{ path: '/a', message: "must have required property 'a'" }])
     })
+
+    it('escapes property names as JSON Pointer tokens', () => {
+      const issues = checks.tryIt(
+        withSchema,
+        schemas({ type: 'object', required: ['a/b~c'] }),
+        { ...input, name: 'lab/y' },
+      )
+      expect(issues[0].path).toBe('/a~1b~0c')
+    })
+  })
+
+  it('accepts boolean schemas the way push does', () => {
+    expect(checks.checkSchema(true)).toEqual([])
+    expect(checks.checkSchema(false)).toHaveLength(1)
   })
 })
