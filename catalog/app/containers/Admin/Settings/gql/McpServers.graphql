@@ -13,6 +13,10 @@ query {
       hasSecret
       forwardIdentity
       updatedAt
+      oauthClientId
+      hasOauthClientSecret
+      oauthRedirectUri
+      signedInUsers
     }
     mcpServersAvailable
   }

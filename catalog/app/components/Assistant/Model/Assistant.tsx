@@ -2,7 +2,6 @@ import * as Eff from 'effect'
 import invariant from 'invariant'
 
 import * as React from 'react'
-import * as redux from 'react-redux'
 import * as urql from 'urql'
 
 import * as Actor from 'utils/Actor'
@@ -11,12 +10,12 @@ import * as GQL from 'utils/GraphQL'
 import logger from 'utils/Logging'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
-import * as authActions from 'containers/Auth/actions'
 import defer from 'utils/defer'
 
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
 import * as Mcp from './Connectors/Mcp'
+import { McpSignInContext, useMcpSignIn } from './McpSignIn'
 import MCP_SERVERS_QUERY from './gql/McpServers.generated'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
@@ -25,6 +24,7 @@ import * as GlobalContext from './GlobalContext'
 import * as ModelChoice from './ModelChoice'
 import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
+import useSessionToken from './useSessionToken'
 
 export const DISABLED = Symbol('DISABLED')
 
@@ -122,6 +122,9 @@ const RELAYED_HEARTBEAT_TIMEOUT = Eff.Duration.seconds(10)
 
 export type McpServersRead = { servers: RegisteredServers } | { pending: unknown }
 
+const serversOf = (read: McpServersRead) =>
+  'servers' in read ? read.servers : NO_SERVERS
+
 // Module-level: a ref resets on every render that suspends before commit.
 let mcpReadWarned = false
 
@@ -165,7 +168,7 @@ export function useRegisteredConnectorConfigs(
   read: McpServersRead,
 ): readonly Connectors.ConnectorConfig[] {
   const getToken = useSessionToken()
-  const servers = 'servers' in read ? read.servers : NO_SERVERS
+  const servers = serversOf(read)
   const configs = React.useMemo(
     () =>
       servers.map((s) => ({
@@ -181,31 +184,6 @@ export function useRegisteredConnectorConfigs(
   )
   if ('pending' in read) throw read.pending
   return configs
-}
-
-/**
- * The catalog session token, resolved through the auth saga so an expired
- * session is refreshed rather than handed over stale. Reading the store
- * directly would 401 forever after an idle tab, where the Bedrock path used to
- * self-heal through the credential refresh. `null` when there is no session.
- */
-function useSessionToken(): () => Eff.Effect.Effect<string | null> {
-  const dispatch = redux.useDispatch()
-  return React.useCallback(
-    () =>
-      Eff.Effect.tryPromise({
-        try: () => {
-          const { resolver, promise } = defer<{ token?: string } | undefined>()
-          dispatch(authActions.getTokens(resolver))
-          return promise
-        },
-        catch: () => null,
-      }).pipe(
-        Eff.Effect.map((tokens) => tokens?.token ?? null),
-        Eff.Effect.catchAll(() => Eff.Effect.succeed(null)),
-      ),
-    [dispatch],
-  )
 }
 
 /**
@@ -376,6 +354,7 @@ function useConstructAssistantAPI() {
   const connectors = useConnectors(connectorConfigs)
 
   const getToken = useSessionToken()
+  const mcpSignIn = useMcpSignIn(serversOf(mcpRead), connectors, getToken)
   const passThru = usePassThru({
     context: Context.useLayer(),
     connectors,
@@ -427,6 +406,7 @@ function useConstructAssistantAPI() {
     dispatch,
     busy,
     connectors,
+    mcpSignIn,
     instructions,
     model,
     devTools: { recording, modelIdOverride },
@@ -439,11 +419,24 @@ export type { AssistantAPI as API }
 const Ctx = React.createContext<AssistantAPI | typeof DISABLED | null>(null)
 
 function AssistantAPIProvider({ children }: React.PropsWithChildren<{}>) {
-  return <Ctx.Provider value={useConstructAssistantAPI()}>{children}</Ctx.Provider>
+  const api = useConstructAssistantAPI()
+  return (
+    <Ctx.Provider value={api}>
+      <McpSignInContext.Provider value={api.mcpSignIn}>
+        {children}
+      </McpSignInContext.Provider>
+    </Ctx.Provider>
+  )
 }
 
 function DisabledAPIProvider({ children }: React.PropsWithChildren<{}>) {
-  return <Ctx.Provider value={DISABLED}>{children}</Ctx.Provider>
+  // No connectors to reconnect, but an admin can still sign in for Probe.
+  const mcpSignIn = useMcpSignIn(NO_SERVERS, null, useSessionToken())
+  return (
+    <Ctx.Provider value={DISABLED}>
+      <McpSignInContext.Provider value={mcpSignIn}>{children}</McpSignInContext.Provider>
+    </Ctx.Provider>
+  )
 }
 
 export function AssistantProvider({ children }: React.PropsWithChildren<{}>) {

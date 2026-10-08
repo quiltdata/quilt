@@ -1,0 +1,15 @@
+mutation ($slug: ID!) {
+  admin {
+    mcpServerSignOutAll(slug: $slug) {
+      __typename
+      ... on InvalidInput {
+        errors {
+          message
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}

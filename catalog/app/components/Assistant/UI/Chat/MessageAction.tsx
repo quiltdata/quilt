@@ -26,17 +26,23 @@ const useStyles = M.makeStyles((t) => ({
 interface MessageActionProps {
   children: React.ReactNode
   className?: string
-  onClick?: () => void
+  disabled?: boolean
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
 }
 
 export default function MessageAction({
   children,
   className,
+  disabled,
   onClick,
 }: MessageActionProps) {
   const classes = useStyles()
   return (
-    <M.ButtonBase className={cx(classes.action, className)} onClick={onClick}>
+    <M.ButtonBase
+      className={cx(classes.action, className)}
+      disabled={disabled}
+      onClick={onClick}
+    >
       {children}
     </M.ButtonBase>
   )

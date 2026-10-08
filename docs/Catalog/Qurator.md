@@ -75,6 +75,22 @@ its tool descriptions and results as untrusted data.
 MCP servers are off until the stack's `QuratorMcpServers` CloudFormation
 parameter is set to `Enabled`.
 
+#### Per-user sign-in
+
+For a server where each user should act as themselves (Slack, Fathom), choose
+**Each user signs in (OAuth)** as its authentication. Register the redirect URI
+the card shows with the provider; enter a client ID and secret only if the
+provider does not register clients on its own. The card counts the users who
+have signed in, and **Sign everyone out** removes every stored sign-in.
+
+A user who has not signed in sees the server as `not connected`, which does not
+block the chat. **Connect** on that line, or in the Qurator menu, opens the
+provider's sign-in window; once it finishes, the server's tools are offered.
+If Quilt loses sight of that window, it says to finish signing in there and
+keeps waiting for up to ten minutes; **Connect** again starts over.
+**Disconnect** in the same menu removes the user's sign-in. Each user's tokens
+stay in the registry and never reach a browser.
+
 ## Getting Started
 
 To enable Qurator Omni:

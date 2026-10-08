@@ -145,9 +145,11 @@ export interface AdminMutations {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  /** Runs initialize and tools/list against the server, enabled or not. */
   readonly mcpServerProbe: McpServerProbe
   readonly mcpServerRemove: McpServerRemoveResult
   readonly mcpServerSet: McpServerSetResult
+  readonly mcpServerSignOutAll: McpServerSignOutAllResult
   readonly packager: PackagerAdminMutations
   readonly setQuratorConfig: SetQuratorConfigResult
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
@@ -180,6 +182,10 @@ export interface AdminMutationsmcpServerSetArgs {
   slug: Scalars['ID']['input']
 }
 
+export interface AdminMutationsmcpServerSignOutAllArgs {
+  slug: Scalars['ID']['input']
+}
+
 export interface AdminMutationssetQuratorConfigArgs {
   input: QuratorConfigInput
 }
@@ -197,6 +203,7 @@ export interface AdminQueries {
   readonly apiKeys: APIKeyAdminQueries
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
   readonly mcpServers: ReadonlyArray<McpServerAdmin>
+  /** False when the operator has switched MCP servers off for this stack. */
   readonly mcpServersAvailable: Scalars['Boolean']['output']
   readonly packager: PackagerAdminQueries
   readonly quratorAvailableModels: QuratorAvailableModels
@@ -531,9 +538,13 @@ export interface ManagedRoleInput {
   readonly policies: ReadonlyArray<Scalars['ID']['input']>
 }
 
+/** An enabled MCP server, as every signed-in user's Qurator reaches it: through `/api/mcp/<slug>`. */
 export interface McpServer {
   readonly __typename: 'McpServer'
+  readonly auth: McpServerAuth
   readonly hint: Maybe<Scalars['String']['output']>
+  /** Whether the calling user has a stored sign-in for this server. False for NONE/HEADER servers. */
+  readonly signedIn: Scalars['Boolean']['output']
   readonly slug: Scalars['ID']['output']
   readonly title: Scalars['String']['output']
   readonly trusted: Scalars['Boolean']['output']
@@ -546,8 +557,14 @@ export interface McpServerAdmin {
   readonly authPrefix: Maybe<Scalars['String']['output']>
   readonly enabled: Scalars['Boolean']['output']
   readonly forwardIdentity: Scalars['Boolean']['output']
+  readonly hasOauthClientSecret: Scalars['Boolean']['output']
   readonly hasSecret: Scalars['Boolean']['output']
   readonly hint: Maybe<Scalars['String']['output']>
+  readonly oauthClientId: Maybe<Scalars['String']['output']>
+  /** The callback URL to register with the provider. */
+  readonly oauthRedirectUri: Maybe<Scalars['String']['output']>
+  /** How many users have a stored sign-in. */
+  readonly signedInUsers: Scalars['Int']['output']
   readonly slug: Scalars['ID']['output']
   readonly title: Scalars['String']['output']
   readonly trusted: Scalars['Boolean']['output']
@@ -559,7 +576,10 @@ export interface McpServerAdmin {
 export enum McpServerAuth {
   HEADER = 'HEADER',
   NONE = 'NONE',
+  OAUTH = 'OAUTH',
 }
+
+export type McpServerDisconnectResult = InvalidInput | Ok | OperationError
 
 export interface McpServerInput {
   readonly auth: McpServerAuth
@@ -568,6 +588,10 @@ export interface McpServerInput {
   readonly enabled: Scalars['Boolean']['input']
   readonly forwardIdentity: Scalars['Boolean']['input']
   readonly hint: InputMaybe<Scalars['String']['input']>
+  /** Omit to keep the stored one; null clears it. */
+  readonly oauthClientId: InputMaybe<Scalars['String']['input']>
+  /** Write-only. Omit to keep the stored one. */
+  readonly oauthClientSecret: InputMaybe<Scalars['String']['input']>
   /** Write-only. Omit to keep the stored secret; a URL whose origin changed clears it. */
   readonly secret: InputMaybe<Scalars['String']['input']>
   readonly title: Scalars['String']['input']
@@ -585,6 +609,8 @@ export interface McpServerProbe {
 export type McpServerRemoveResult = InvalidInput | Ok | OperationError
 
 export type McpServerSetResult = InvalidInput | McpServerAdmin | OperationError
+
+export type McpServerSignOutAllResult = InvalidInput | Ok | OperationError
 
 export interface McpToolSummary {
   readonly __typename: 'McpToolSummary'
@@ -668,6 +694,8 @@ export interface Mutation {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketUpdate: BucketUpdateResult
+  /** Forget the caller's own sign-in to an MCP server. */
+  readonly mcpServerDisconnect: McpServerDisconnectResult
   readonly packageConstruct: PackageConstructResult
   readonly packageDelete: PackageDeleteResult
   readonly packagePromote: PackagePromoteResult
@@ -733,6 +761,10 @@ export interface MutationbucketSetTabulatorTableArgs {
 export interface MutationbucketUpdateArgs {
   input: BucketUpdateInput
   name: Scalars['String']['input']
+}
+
+export interface MutationmcpServerDisconnectArgs {
+  slug: Scalars['ID']['input']
 }
 
 export interface MutationpackageConstructArgs {
@@ -1212,6 +1244,7 @@ export interface Query {
   readonly buckets: ReadonlyArray<Bucket>
   readonly config: Config
   readonly defaultRole: Maybe<Role>
+  /** Empty for an anonymous caller, and while the operator has MCP servers switched off. */
   readonly mcpServers: ReadonlyArray<McpServer>
   readonly me: Maybe<Me>
   readonly objectAccessCounts: Maybe<AccessCounts>

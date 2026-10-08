@@ -15,6 +15,10 @@ mutation ($slug: ID!, $input: McpServerInput!) {
         hasSecret
         forwardIdentity
         updatedAt
+        oauthClientId
+        hasOauthClientSecret
+        oauthRedirectUri
+        signedInUsers
       }
       ... on InvalidInput {
         errors {

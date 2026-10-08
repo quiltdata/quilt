@@ -563,6 +563,30 @@ export default {
             ],
           },
           {
+            name: 'mcpServerSignOutAll',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'McpServerSignOutAllResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'slug',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'packager',
             type: {
               kind: 'NON_NULL',
@@ -2274,11 +2298,34 @@ export default {
         name: 'McpServer',
         fields: [
           {
+            name: 'auth',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
+            },
+            args: [],
+          },
+          {
             name: 'hint',
             type: {
               kind: 'SCALAR',
               name: 'String',
               ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'signedIn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -2379,6 +2426,18 @@ export default {
             args: [],
           },
           {
+            name: 'hasOauthClientSecret',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'hasSecret',
             type: {
               kind: 'NON_NULL',
@@ -2396,6 +2455,39 @@ export default {
               kind: 'SCALAR',
               name: 'String',
               ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'oauthClientId',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'oauthRedirectUri',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'signedInUsers',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -2472,6 +2564,24 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'UNION',
+        name: 'McpServerDisconnectResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
         kind: 'OBJECT',
         name: 'McpServerProbe',
         fields: [
@@ -2546,6 +2656,24 @@ export default {
           {
             kind: 'OBJECT',
             name: 'McpServerAdmin',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'McpServerSignOutAllResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
           },
           {
             kind: 'OBJECT',
@@ -3290,6 +3418,30 @@ export default {
                   ofType: {
                     kind: 'SCALAR',
                     name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'mcpServerDisconnect',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'McpServerDisconnectResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'slug',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
                     ofType: null,
                   },
                 },

@@ -1,0 +1,13 @@
+mutation ($slug: ID!) {
+  mcpServerDisconnect(slug: $slug) {
+    __typename
+    ... on InvalidInput {
+      errors {
+        message
+      }
+    }
+    ... on OperationError {
+      message
+    }
+  }
+}

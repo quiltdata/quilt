@@ -411,6 +411,89 @@ describe('Connectors/Mcp', () => {
       },
     )
 
+    it('maps a relay 401 NeedsSignIn to a sign-in prompt, not the catalog session', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response(JSON.stringify({ error_code: 'NeedsSignIn' }), {
+            status: 401,
+            headers: { 'content-type': 'application/json' },
+          }),
+      )
+      const backend = Mcp.relayed({
+        slug: 'slack',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(withFetch(backend.ping(), fetchSpy))
+      const failure = Eff.Exit.isFailure(exit)
+        ? Eff.Cause.failureOption(exit.cause)
+        : Eff.Option.none()
+      expect(Eff.Option.isSome(failure)).toBe(true)
+      if (Eff.Option.isNone(failure)) return
+      expect(failure.value).toMatchObject({ _tag: 'Auth', needsSignIn: true })
+    })
+
+    it('a relay 503 SignInServerUnavailable is transient, not a sign-in prompt', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response(JSON.stringify({ error_code: 'SignInServerUnavailable' }), {
+            status: 503,
+            headers: { 'content-type': 'application/json', 'retry-after': '10' },
+          }),
+      )
+      const backend = Mcp.relayed({
+        slug: 'slack',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(withFetch(backend.ping(), fetchSpy))
+      const failure = Eff.Exit.isFailure(exit)
+        ? Eff.Cause.failureOption(exit.cause)
+        : Eff.Option.none()
+      if (Eff.Option.isNone(failure)) throw new Error('expected a failure')
+      expect(failure.value).toMatchObject({
+        _tag: 'Transport',
+        transient: true,
+        message: 'the service is having trouble, try again shortly',
+      })
+      expect(failure.value.needsSignIn).toBeUndefined()
+    })
+
+    it('a 401 carrying SignInServerUnavailable is transient, not the catalog session', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response(JSON.stringify({ error_code: 'SignInServerUnavailable' }), {
+            status: 401,
+            headers: { 'content-type': 'application/json' },
+          }),
+      )
+      const backend = Mcp.relayed({
+        slug: 'slack',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(withFetch(backend.ping(), fetchSpy))
+      const failure = Eff.Exit.isFailure(exit)
+        ? Eff.Cause.failureOption(exit.cause)
+        : Eff.Option.none()
+      if (Eff.Option.isNone(failure)) throw new Error('expected a failure')
+      expect(failure.value).toMatchObject({ _tag: 'Transport', transient: true })
+    })
+
+    it('a relay 401 without NeedsSignIn stays a plain auth error', async () => {
+      const { fetchSpy } = captureCalls(
+        () => new Response('Unauthorized', { status: 401 }),
+      )
+      const backend = Mcp.relayed({
+        slug: 'slack',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(withFetch(backend.ping(), fetchSpy))
+      const failure = Eff.Exit.isFailure(exit)
+        ? Eff.Cause.failureOption(exit.cause)
+        : Eff.Option.none()
+      if (Eff.Option.isNone(failure)) throw new Error('expected a failure')
+      expect(failure.value._tag).toBe('Auth')
+      expect(failure.value.needsSignIn).toBeUndefined()
+    })
+
     it('a relay 502 that is not UpstreamAuth still counts toward health', async () => {
       const { fetchSpy } = captureCalls(
         () =>

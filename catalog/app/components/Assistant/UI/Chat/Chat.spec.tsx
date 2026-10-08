@@ -87,6 +87,34 @@ describe('components/Assistant/UI/Chat/ConnectorHelperLine', () => {
   })
 })
 
+describe('components/Assistant/UI/Chat/ConnectorHelperLine sign-in', () => {
+  afterEach(cleanup)
+
+  it('offers connect when the server needs the user to sign in', () => {
+    const onConnect = vi.fn()
+    const connector = {
+      id: 'slack',
+      config: { title: 'Slack', optional: true },
+    } as unknown as Model.Connectors.ConnectorRuntime
+    render(
+      <ConnectorHelperLine
+        connector={connector}
+        state={Model.Connectors.ConnectorState.Failed({
+          error: { _tag: 'Auth', message: 'sign in', needsSignIn: true },
+          acked: false,
+        })}
+        onConnect={onConnect}
+      />,
+    )
+    expect(screen.getByText(/Slack: not connected/)).toBeTruthy()
+    expect(screen.queryByText('reconnect')).toBeNull()
+    fireEvent.click(screen.getByText('connect'))
+    expect(onConnect.mock.calls[0][0]).toBe('slack')
+    // The clicked button, so focus returns to it even where Safari leaves `body` focused.
+    expect(onConnect.mock.calls[0][1]).toBe(screen.getByText('connect'))
+  })
+})
+
 // The bug this guards: `Markdown` was rendered without `processLink`, so a
 // foreign host in an assistant answer was followed verbatim onto another stack.
 describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
@@ -170,6 +198,78 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     fireEvent.click(screen.getByText('Hide Developer Tools'))
     expect(toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('lists Connect or Disconnect for each server users sign in to', () => {
+    const connect = vi.fn()
+    const disconnect = vi.fn()
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={false}
+        onToggleDevTools={vi.fn()}
+        mcpSignIn={{
+          servers: [
+            { slug: 'slack', title: 'Slack', signedIn: false },
+            { slug: 'fathom', title: 'Fathom', signedIn: true },
+          ],
+          pending: null,
+          status: '',
+          connect,
+          disconnect,
+        }}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Connect Slack'))
+    expect(connect.mock.calls[0][0]).toBe('slack')
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    fireEvent.click(screen.getByText('Disconnect Fathom'))
+    expect(disconnect.mock.calls[0][0]).toBe('fathom')
+  })
+
+  it('offers Connect when the connector needs sign-in, whatever the cached list says', () => {
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={false}
+        onToggleDevTools={vi.fn()}
+        connectorAccount={new Map([['fathom', 'needsSignIn' as const]])}
+        mcpSignIn={{
+          servers: [{ slug: 'fathom', title: 'Fathom', signedIn: true }],
+          pending: null,
+          status: '',
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        }}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Connect Fathom')).toBeTruthy()
+    expect(screen.queryByText('Disconnect Fathom')).toBeNull()
+  })
+
+  it('keeps Disconnect for a signed-in server that is down', () => {
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={false}
+        onToggleDevTools={vi.fn()}
+        connectorAccount={new Map([['fathom', 'unknown' as const]])}
+        mcpSignIn={{
+          servers: [{ slug: 'fathom', title: 'Fathom', signedIn: true }],
+          pending: null,
+          status: '',
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        }}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Disconnect Fathom')).toBeTruthy()
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {
