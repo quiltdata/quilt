@@ -453,11 +453,20 @@ interface SuggestBarProps {
   onRequest: () => void
   onUseAll: () => void
   state: SuggestState
-  /** Suggestions that still fit the metadata as it is now. */
+  /** Suggestions still offered beside their fields. */
   usable: number
+  /** Of those, what Use all would apply: gaps and broken values, not valid replacements. */
+  fillable: number
 }
 
-function SuggestBar({ disabled, onRequest, onUseAll, state, usable }: SuggestBarProps) {
+function SuggestBar({
+  disabled,
+  fillable,
+  onRequest,
+  onUseAll,
+  state,
+  usable,
+}: SuggestBarProps) {
   const classes = useSuggestBarStyles()
   if (state._tag === 'unavailable') return null
   const icon = (
@@ -525,7 +534,7 @@ function SuggestBar({ disabled, onRequest, onUseAll, state, usable }: SuggestBar
             <M.Button disabled={disabled} onClick={onRequest} size="small">
               Refresh
             </M.Button>
-            {!!n && (
+            {!!fillable && (
               <M.Button
                 color="primary"
                 disableElevation
@@ -934,8 +943,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             )
           }}
           state={suggestions.state}
-          // what Use all would apply: gaps and broken values, not valid replacements
-          usable={
+          usable={Object.keys(suggested || {}).length}
+          fillable={
             Object.keys(suggested || {}).filter(
               (k) => !Object.hasOwn(value || {}, k) || brokenNow.has(k),
             ).length
@@ -995,7 +1004,15 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                     : 'Name/value pairs stored with this package and searchable in the catalog. Use Table view for nested values.'
                 }
                 disabled={editLocked}
-                exclude={hasForm ? Object.keys(schema?.properties || {}) : []}
+                // MetaForm also renders required keys missing from properties
+                exclude={
+                  hasForm
+                    ? [
+                        ...Object.keys(schema?.properties || {}),
+                        ...(Array.isArray(schema?.required) ? schema.required : []),
+                      ]
+                    : []
+                }
                 onChange={onChangeForm}
                 setPending={setPending}
                 title={hasForm ? 'Other fields' : 'Metadata fields'}

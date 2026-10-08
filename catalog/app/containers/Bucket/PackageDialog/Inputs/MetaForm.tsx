@@ -678,6 +678,8 @@ function FreeRow({
   value,
 }: FreeRowProps) {
   const free = useFreeStyles()
+  // MUI v4 links helper text (rename and JSON errors) to the input only through an id
+  const [rowId] = React.useState(() => `meta-row-${(fieldIds += 1)}`)
   const typed = typeof value !== 'string'
   const [nameDraft, setNameDraft] = React.useState(name)
   const [nameError, setNameError] = React.useState<string | null>(null)
@@ -736,6 +738,7 @@ function FreeRow({
         disabled={disabled}
         error={!!nameError}
         helperText={nameError || undefined}
+        id={`${rowId}-name`}
         inputProps={{ 'aria-label': `Name of field ${name}` }}
         label="Name"
         onBlur={commitName}
@@ -749,6 +752,7 @@ function FreeRow({
         disabled={disabled}
         error={!!textError}
         helperText={textError || (typed ? 'JSON value' : undefined)}
+        id={`${rowId}-value`}
         inputProps={{ 'aria-label': `Value of ${name}` }}
         label="Value"
         multiline={typed && typeof value === 'object' && value !== null}

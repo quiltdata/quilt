@@ -121,7 +121,9 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
       }
       const { rerender } = render(<FreeFields {...props} value={{ lab: 'old' }} />)
       fireEvent.click(screen.getByRole('button', { name: /Add field/ }))
-      const name = screen.getAllByRole('textbox').find((el) => el.id.endsWith('-name'))!
+      const name = screen
+        .getAllByRole('textbox')
+        .find((el) => el.id.startsWith('meta-new-field-') && el.id.endsWith('-name'))!
       fireEvent.change(name, { target: { value: 'lab' } })
       rerender(<FreeFields {...props} value={{ lab: 'new' }} />)
       expect(screen.getByText('Already used')).toBeTruthy()
