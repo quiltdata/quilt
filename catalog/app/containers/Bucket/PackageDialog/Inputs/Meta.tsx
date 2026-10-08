@@ -65,6 +65,8 @@ function Dialog({ onChange, onClose, open, schema, value }: DialogProps) {
   const classes = useStyles()
   const dialogClasses = useDialogStyles()
   const [isRaw, setRaw] = React.useState(false)
+  // Save would commit the last valid object while the visible JSON is broken
+  const [textValid, setTextValid] = React.useState(true)
   const handleSubmit = React.useCallback(() => {
     onChange(innerValue)
     onClose()
@@ -88,17 +90,35 @@ function Dialog({ onChange, onClose, open, schema, value }: DialogProps) {
           isRaw={isRaw}
           value={innerValue}
           onChange={setInnerValue}
+          onTextValid={setTextValid}
           schema={schema}
         />
       </M.DialogContent>
       <M.DialogActions>
         <M.FormControlLabel
           className={classes.switch}
-          control={<M.Switch checked={isRaw} onChange={() => setRaw(!isRaw)} />}
+          control={
+            <M.Switch
+              checked={isRaw}
+              // leaving raw mode with broken text would show the last valid value as if saved
+              disabled={isRaw && !textValid}
+              onChange={() => setRaw(!isRaw)}
+            />
+          }
           label="Edit as JSON"
         />
         <M.Button onClick={handleCancel}>Discard</M.Button>
-        <M.Button onClick={handleSubmit} variant="contained" color="primary">
+        {isRaw && !textValid && (
+          <M.Typography color="error" variant="body2">
+            Fix the JSON before saving
+          </M.Typography>
+        )}
+        <M.Button
+          color="primary"
+          disabled={isRaw && !textValid}
+          onClick={handleSubmit}
+          variant="contained"
+        >
           Save
         </M.Button>
       </M.DialogActions>
