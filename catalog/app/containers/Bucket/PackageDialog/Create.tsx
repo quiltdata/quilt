@@ -262,11 +262,7 @@ function PackageCreationForm({
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-  const { height: measured = 0 } = useResizeObserver({ ref: editorElement })
-  // A hidden metadata pane measures 0; keep the last real height so tabs don't resize the dialog.
-  const lastHeight = React.useRef(0)
-  if (measured > 0) lastHeight.current = measured
-  const metaHeight = measured || lastHeight.current
+  const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   // guided: the metadata pane flex-grows beside the inputs, so feeding its measured height
   // back would grow the dialog each time it is re-measured; take the available height
   const dialogContentClasses = Layout.useContentStyles({
@@ -322,9 +318,11 @@ function PackageCreationForm({
   statusTags.current = { files: files.status._tag, meta: meta.status._tag }
   React.useEffect(() => {
     if (!meta.guided || formStatus._tag !== 'error') return
-    if (formStatus.fields?.files || statusTags.current.files === 'error') setPane('files')
-    else if (formStatus.fields?.userMeta || statusTags.current.meta === 'error')
-      setPane('metadata')
+    // the rejection's own field first; a leftover status error elsewhere must not win
+    if (formStatus.fields?.userMeta) setPane('metadata')
+    else if (formStatus.fields?.files) setPane('files')
+    else if (statusTags.current.meta === 'error') setPane('metadata')
+    else if (statusTags.current.files === 'error') setPane('files')
   }, [formStatus]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filesInput = (

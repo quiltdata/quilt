@@ -817,9 +817,14 @@ export function FreeFields({
   const draftKey = draft?.key.trim()
   const valueRef = React.useRef(value)
   React.useEffect(() => {
-    const replaced = valueRef.current !== value
+    const before = valueRef.current
     valueRef.current = value
-    if (replaced && draftKey && Object.hasOwn(value || {}, draftKey)) setDraft(null)
+    // only when the change added the key: a draft already in conflict stays until discarded
+    const added =
+      !!draftKey &&
+      Object.hasOwn(value || {}, draftKey) &&
+      !Object.hasOwn(before || {}, draftKey)
+    if (added) setDraft(null)
   }, [draftKey, value])
   const draftError = !!draft?.key.trim() && taken(draft.key.trim())
   // a draft that cannot be saved as it stands holds the submit until fixed or discarded

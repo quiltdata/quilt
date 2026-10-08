@@ -110,6 +110,23 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
   })
 
   describe('FreeFields drafts', () => {
+    it('keeps a draft whose name is already taken when another field is edited', () => {
+      const setPending = vi.fn()
+      const props = {
+        description: 'd',
+        disabled: false,
+        onChange: () => {},
+        setPending,
+        title: 'Fields',
+      }
+      const { rerender } = render(<FreeFields {...props} value={{ lab: 'old' }} />)
+      fireEvent.click(screen.getByRole('button', { name: /Add field/ }))
+      const name = screen.getAllByRole('textbox').find((el) => el.id.endsWith('-name'))!
+      fireEvent.change(name, { target: { value: 'lab' } })
+      rerender(<FreeFields {...props} value={{ lab: 'new' }} />)
+      expect(screen.getByText('Already used')).toBeTruthy()
+    })
+
     it('keeps a JSON value typed while it is half-edited', () => {
       const onChange = vi.fn()
       render(
