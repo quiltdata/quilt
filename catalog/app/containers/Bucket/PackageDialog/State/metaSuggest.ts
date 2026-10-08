@@ -191,6 +191,8 @@ const ask = (prompt: string) =>
     ),
   )
 
+class SuggestError extends Error {}
+
 export type SuggestState =
   | { _tag: 'unavailable' }
   | { _tag: 'idle' }
@@ -229,14 +231,17 @@ export function useMetaSuggestions({
   // Suggestions were checked against one bucket/workflow/schema; a reply for
   // an older request or context must not land on the current form.
   const generation = React.useRef(0)
+  const inflight = React.useRef<AbortController | null>(null)
   const filesKey = files.join('\n')
   React.useEffect(() => {
     generation.current += 1
+    inflight.current?.abort()
     setState({ _tag: 'idle' })
   }, [bucket, workflow, schema, filesKey])
   React.useEffect(
     () => () => {
       generation.current += 1
+      inflight.current?.abort()
     },
     [],
   )
@@ -244,6 +249,9 @@ export function useMetaSuggestions({
   const request = React.useCallback(async () => {
     if (!llms?.length || !schema) return
     const mine = ++generation.current
+    inflight.current?.abort()
+    const abort = new AbortController()
+    inflight.current = abort
     setState({ _tag: 'loading' })
     const t0 = Date.now()
     try {
@@ -257,6 +265,9 @@ export function useMetaSuggestions({
             .toPromise()
         : null
       const set = r?.data?.searchPackages
+      if (r && (r.error || (set && set.__typename !== 'PackagesSearchResultSet'))) {
+        throw new SuggestError("Couldn't read similar packages.")
+      }
       const hits =
         set?.__typename === 'PackagesSearchResultSet' &&
         set.firstPage.__typename === 'PackagesSearchResultSetPage'
@@ -276,8 +287,11 @@ export function useMetaSuggestions({
       let text: string | null = null
       let lastError: unknown
       for (const llm of llms) {
+        if (generation.current !== mine || abort.signal.aborted) return
         try {
-          text = await runtime.runPromise(ask(prompt).pipe(Eff.Effect.provide(llm)))
+          text = await runtime.runPromise(ask(prompt).pipe(Eff.Effect.provide(llm)), {
+            signal: abort.signal,
+          })
           break
         } catch (e) {
           lastError = e
@@ -294,7 +308,10 @@ export function useMetaSuggestions({
     } catch (e) {
       if (generation.current !== mine) return
       Log.error('Metadata suggestions failed:', e)
-      setState({ _tag: 'error', message: 'The model did not answer.' })
+      setState({
+        _tag: 'error',
+        message: e instanceof SuggestError ? e.message : 'The model did not answer.',
+      })
     }
   }, [bucket, client, files, llms, name, schema, value, workflow])
 

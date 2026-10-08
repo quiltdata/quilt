@@ -184,6 +184,7 @@ function Field({
   const [id] = React.useState(() => `meta-field-${(fieldIds += 1)}`)
 
   const numeric = widget === 'integer' || widget === 'number'
+  const [numError, setNumError] = React.useState<string | null>(null)
   const [numText, setNumText] = React.useState(() =>
     isEmpty(value) ? '' : display(value),
   )
@@ -215,8 +216,12 @@ function Field({
           raw.trim() !== '' &&
           !Number.isNaN(n) &&
           /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(raw.trim())
-        setPending?.(name, !complete)
-        if (complete) onChange(name, n)
+        const unsafe = /^[-+]?\d+$/.test(raw.trim()) && !Number.isSafeInteger(n)
+        setNumError(
+          unsafe ? 'Too large to store exactly; use a string field for IDs' : null,
+        )
+        setPending?.(name, !complete || unsafe)
+        if (complete && !unsafe) onChange(name, n)
         return
       }
       onChange(name, raw)
@@ -284,9 +289,9 @@ function Field({
       input = (
         <M.TextField
           disabled={disabled}
-          error={!!error}
+          error={!!error || !!numError}
           fullWidth
-          helperText={helper}
+          helperText={numError || helper}
           id={id}
           InputLabelProps={widget === 'date' ? { shrink: true } : undefined}
           label={label}

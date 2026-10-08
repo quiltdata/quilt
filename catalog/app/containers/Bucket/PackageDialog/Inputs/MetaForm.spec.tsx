@@ -301,4 +301,28 @@ describe('containers/Bucket/PackageDialog/Inputs/MetaForm', () => {
       expect(input.value).toBe('null')
     })
   })
+
+  it('holds an integer too large to store exactly and says why', () => {
+    const onChange = vi.fn()
+    const setPending = vi.fn()
+    const int = { type: 'object', properties: { id: { title: 'ID', type: 'integer' } } }
+    render(
+      <MetaForm
+        disabled={false}
+        errors={[]}
+        onChange={onChange}
+        onShowTable={() => {}}
+        onUseSuggestion={onUse}
+        schema={int}
+        setPending={setPending}
+        value={{}}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox', { name: /ID/ }), {
+      target: { value: '9007199254740993' },
+    })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(setPending).toHaveBeenLastCalledWith('id', true)
+    expect(screen.getByText(/Too large to store exactly/)).toBeTruthy()
+  })
 })

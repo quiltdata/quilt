@@ -72,6 +72,13 @@ describe('containers/Bucket/PackageDialog/State/metaGuide', () => {
     })
   })
 
+  it('words union types', () => {
+    const nullable = { type: 'object', properties: { x: { type: ['string', 'null'] } } }
+    const errs = makeSchemaValidator(nullable)({ x: 1 }) as ErrorObject[]
+    expect(errs.map(humanizeError)).toEqual(['"x" must be a string or null'])
+    expect(errs.map(fieldMessage)).toEqual(['Must be a string or null'])
+  })
+
   describe('hasValue', () => {
     it('counts "" for strings and null only where the schema allows it', () => {
       expect(hasValue('', { type: 'string' })).toBe(true)

@@ -16,6 +16,20 @@ export const topKey = (instancePath: string) => unescape(instancePath.split('/')
 export const isAdvisoryError = (e: Error | ErrorObject): e is ErrorObject =>
   'keyword' in e && e.keyword === 'format'
 
+/** Ajv's `type` param ("string", "string,null" or an array) as words: "a string or null". */
+function typeWords(type: unknown): string {
+  const names = (Array.isArray(type) ? type : String(type).split(',')).map((t) =>
+    String(t).trim(),
+  )
+  const word = (t: string) =>
+    t === 'null'
+      ? 'null'
+      : t === 'integer'
+        ? 'a whole number'
+        : `${/^[aeiou]/.test(t) ? 'an' : 'a'} ${t}`
+  return names.map(word).join(' or ')
+}
+
 /** `/a/b/0` → `a.b[0]`, the way users name fields; empty for the root. */
 function fieldName(instancePath: string): string {
   return instancePath
@@ -53,7 +67,7 @@ export function humanizeError(e: Error | ErrorObject): string {
     case 'const':
       return `${at} must be ${JSON.stringify(p.allowedValue)}`
     case 'type':
-      return `${at} must be ${/^[aeiou]/.test(p.type) ? 'an' : 'a'} ${p.type}`
+      return `${at} must be ${typeWords(p.type)}`
     case 'format':
       return `${at} must be a valid ${p.format}`
     case 'pattern':
@@ -91,7 +105,7 @@ export function fieldMessage(e: Error | ErrorObject): string {
     case 'type':
       if (p.type === 'integer') return 'Must be a whole number'
       if (p.type === 'number') return 'Must be a number'
-      return `Must be ${/^[aeiou]/.test(p.type) ? 'an' : 'a'} ${p.type}`
+      return `Must be ${typeWords(p.type)}`
     case 'format':
       return p.format === 'date'
         ? 'Use the format YYYY-MM-DD'

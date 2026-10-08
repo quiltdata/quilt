@@ -4,7 +4,6 @@ import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
-import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import useDragging from 'utils/dragging'
@@ -19,7 +18,7 @@ import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as Inputs from './Inputs'
-import { pendingLabel } from './State/meta'
+import { usePendingGuard } from './State/meta'
 import * as Layout from './Layout'
 import * as PDModel from './State'
 import { FormSkeleton } from './Skeleton'
@@ -256,15 +255,7 @@ function PackageCreationForm({
 }: PackageCreationFormProps) {
   const classes = useStyles()
 
-  // a new workflow or bucket reloads the schema and the editor, dropping unfinished drafts
-  const { push: notify } = Notifications.use()
-  const canChange = (what: string) => {
-    if (!meta.pending.length) return true
-    notify(
-      `Finish or undo the edit to ${pendingLabel(meta.pending)} before changing ${what}`,
-    )
-    return false
-  }
+  const canChange = usePendingGuard(meta.pending)
   const guardedWorkflow = React.useMemo(
     () => ({
       ...workflow,
@@ -272,8 +263,13 @@ function PackageCreationForm({
         if (canChange('the workflow')) workflow.onChange(w)
       },
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [workflow, meta.pending, notify],
+    [canChange, workflow],
+  )
+  const guardedSetSrc: typeof setSrc = React.useCallback(
+    (next) => {
+      if (canChange('the package')) setSrc(next)
+    },
+    [canChange, setSrc],
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
@@ -304,33 +300,38 @@ function PackageCreationForm({
   const dragging = useDragging()
   const paneRef = React.useRef(pane)
   paneRef.current = pane
-  const fileCountRef = React.useRef(fileCount)
-  fileCountRef.current = fileCount
-  const beforeDrag = React.useRef<{ pane: typeof pane; files: number } | null>(null)
+  const beforeDrag = React.useRef<typeof pane | null>(null)
+  const dropped = React.useRef(false)
+  React.useEffect(() => {
+    const onDrop = () => {
+      dropped.current = true
+    }
+    document.addEventListener('drop', onDrop, true)
+    return () => document.removeEventListener('drop', onDrop, true)
+  }, [])
   React.useEffect(() => {
     if (!meta.guided) return
     if (dragging) {
-      beforeDrag.current ??= { pane: paneRef.current, files: fileCountRef.current }
+      beforeDrag.current ??= paneRef.current
+      dropped.current = false
       setPane('files')
       return
     }
     const was = beforeDrag.current
     beforeDrag.current = null
-    if (!was) return
-    // after the drop's own state updates: a drag that added no files returns the user
-    const t = window.setTimeout(() => {
-      if (fileCountRef.current === was.files) setPane(was.pane)
-    })
-    return () => window.clearTimeout(t)
+    // a cancelled drag returns the user; a drop stays on Files while its files load
+    if (was && !dropped.current) setPane(was)
   }, [dragging, meta.guided])
 
-  // a rejected submit shows the pane that holds the reason
+  // a new rejected submit shows the pane that holds the reason, once
+  const statusTags = React.useRef({ files: files.status._tag, meta: meta.status._tag })
+  statusTags.current = { files: files.status._tag, meta: meta.status._tag }
   React.useEffect(() => {
     if (!meta.guided || formStatus._tag !== 'error') return
-    if (formStatus.fields?.files || files.status._tag === 'error') setPane('files')
-    else if (formStatus.fields?.userMeta || meta.status._tag === 'error')
+    if (formStatus.fields?.files || statusTags.current.files === 'error') setPane('files')
+    else if (formStatus.fields?.userMeta || statusTags.current.meta === 'error')
       setPane('metadata')
-  }, [files.status._tag, formStatus, meta.guided, meta.status._tag])
+  }, [formStatus]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filesInput = (
     <Inputs.Files
@@ -390,7 +391,7 @@ function PackageCreationForm({
                 state={guardedWorkflow}
                 config={workflowsConfig}
               />
-              <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
+              <Inputs.Name formStatus={formStatus} state={name} setSrc={guardedSetSrc} />
               <Inputs.Message formStatus={formStatus} state={message} />
               <Inputs.Meta
                 formStatus={formStatus}

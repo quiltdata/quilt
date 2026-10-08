@@ -1,6 +1,7 @@
 import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 
+import * as Notifications from 'containers/Notifications'
 import { useFeature } from 'utils/features'
 import * as Types from 'utils/types'
 
@@ -143,5 +144,25 @@ export const NEW_FIELD = '\u0000new field'
 /** How pending keys read to a person; the new-field row has no name yet. */
 export const pendingLabel = (keys: readonly string[]) =>
   keys.map((k) => (k === NEW_FIELD ? 'the new field' : `"${k}"`)).join(', ')
+
+/**
+ * `canChange(what)`: false, with a notice, while any edit is unfinished. Changing the
+ * workflow, bucket or source package reloads the editor and would drop those drafts.
+ */
+export function usePendingGuard(pending: readonly string[]) {
+  const { push: notify } = Notifications.use()
+  const ref = React.useRef(pending)
+  ref.current = pending
+  return React.useCallback(
+    (what: string) => {
+      if (!ref.current.length) return true
+      notify(
+        `Finish or undo the edit to ${pendingLabel(ref.current)} before changing ${what}`,
+      )
+      return false
+    },
+    [notify],
+  )
+}
 
 export { useMeta as use }
