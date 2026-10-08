@@ -590,7 +590,9 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   const hasForm =
     guided && !!schema?.properties && !!Object.keys(schema.properties).length
   const [view, setView] = React.useState<'form' | 'table'>('form')
-  const formView = guided && view === 'form'
+  // a non-object root (from a revision or JSON save) has no fields to show as a form
+  const objectRoot = !!value && typeof value === 'object' && !Array.isArray(value)
+  const formView = guided && view === 'form' && (value === undefined || objectRoot)
   const suggestions = useMetaSuggestions({
     bucket: suggest?.bucket || '',
     files: suggest?.files || [],

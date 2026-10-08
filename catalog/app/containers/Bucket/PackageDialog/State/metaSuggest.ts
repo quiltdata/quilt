@@ -1,5 +1,6 @@
 import type { ErrorObject } from 'ajv'
 import * as Eff from 'effect'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as urql from 'urql'
 
@@ -177,9 +178,7 @@ export function newErrorsFrom(validate: Validate, base: Types.JsonRecord) {
   const known = new Set(validate(base).map(errorSig))
   return (candidate: Types.JsonRecord) => {
     // a changed field must come out valid: 0 → -1 under minimum 1 is not "no worse"
-    const changed = Object.keys(candidate).filter(
-      (k) => JSON.stringify(candidate[k]) !== JSON.stringify(base[k]),
-    )
+    const changed = Object.keys(candidate).filter((k) => !R.equals(candidate[k], base[k]))
     return validate(candidate).filter(
       (e) =>
         !known.has(errorSig(e)) ||

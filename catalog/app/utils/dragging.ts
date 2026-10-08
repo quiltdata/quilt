@@ -6,7 +6,10 @@ export default function useDragging(enabled = true) {
 
   React.useEffect(() => {
     // listeners are about to go: a drag in progress would never be heard ending
-    if (!enabled) return setDragCounter(0)
+    if (!enabled) {
+      setDragCounter(0)
+      return
+    }
     const handleDragEnter = (event: DragEvent) => {
       event.preventDefault()
       if (event.dataTransfer?.types && event.dataTransfer.types.includes('Files')) {
