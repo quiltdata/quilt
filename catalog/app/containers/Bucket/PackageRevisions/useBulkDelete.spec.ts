@@ -12,7 +12,7 @@ const fail = (message: string) => ({
 })
 
 function selecting(...hashes: string[]) {
-  const { result } = renderHook(() => useBulkDelete('b', 'foo/bar'))
+  const { result } = renderHook(() => useBulkDelete('b', 'foo/bar', true))
   act(() => hashes.forEach(result.current.toggle))
   return result
 }
@@ -52,10 +52,23 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     expect(result.current.state.error).toContain('1 already deleted')
   })
 
-  it('drops the selection when the package changes', () => {
-    const { result, rerender } = renderHook(({ name }) => useBulkDelete('b', name), {
-      initialProps: { name: 'foo/bar' },
+  it('refuses to delete once the package is no longer known unlocked', async () => {
+    const { result, rerender } = renderHook(({ w }) => useBulkDelete('b', 'foo/bar', w), {
+      initialProps: { w: true },
     })
+    act(() => result.current.toggle('h1'))
+    rerender({ w: false })
+    await act(() => result.current.run())
+    expect(deleteRevision).not.toHaveBeenCalled()
+  })
+
+  it('drops the selection when the package changes', () => {
+    const { result, rerender } = renderHook(
+      ({ name }) => useBulkDelete('b', name, true),
+      {
+        initialProps: { name: 'foo/bar' },
+      },
+    )
     act(() => result.current.toggle('h1'))
     expect([...result.current.selected]).toEqual(['h1'])
     rerender({ name: 'foo/other' })
@@ -64,9 +77,12 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
 
   it('closes a failed dialog when the package changes', async () => {
     deleteRevision.mockResolvedValue(fail('nope'))
-    const { result, rerender } = renderHook(({ name }) => useBulkDelete('b', name), {
-      initialProps: { name: 'foo/bar' },
-    })
+    const { result, rerender } = renderHook(
+      ({ name }) => useBulkDelete('b', name, true),
+      {
+        initialProps: { name: 'foo/bar' },
+      },
+    )
     act(() => result.current.toggle('h1'))
     await act(() => result.current.run())
     expect(result.current.state.opened).toBe(true)

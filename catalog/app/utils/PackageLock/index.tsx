@@ -1,4 +1,5 @@
 import * as React from 'react'
+import type * as urql from 'urql'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as GQL from 'utils/GraphQL'
@@ -9,26 +10,29 @@ import LOCK_STATE_QUERY from './gql/LockState.generated'
 export type Status = 'loading' | 'locked' | 'unlocked'
 
 interface Result {
+  operation?: urql.Operation
   data?: { package: { bucket: string; name: string; lock: unknown } | null }
   error?: unknown
   fetching?: boolean
+  stale?: boolean
+}
+
+const currentPackage = ({ data }: Result, bucket: string, name: string) => {
+  const pkg = data?.package
+  // urql keeps the previous variables' data while the next request is in flight.
+  return pkg && pkg.bucket === bucket && pkg.name === name ? pkg : null
 }
 
 // A query error, including a registry without the lock field, reads as unlocked: the
 // registry still refuses writes to a locked package.
-function toStatus(
-  { data, error, fetching }: Result,
-  bucket: string,
-  name: string,
-  pause: boolean,
-): Status {
+function toStatus(result: Result, bucket: string, name: string, pause: boolean): Status {
   if (pause) return 'unlocked'
-  const pkg = data?.package
-  // urql keeps the previous variables' data while the next request is in flight.
-  if (pkg && pkg.bucket === bucket && pkg.name === name) {
-    return pkg.lock ? 'locked' : 'unlocked'
-  }
-  if (fetching || (!data && !error)) return 'loading'
+  const { data, error, fetching, stale } = result
+  if (currentPackage(result, bucket, name)?.lock) return 'locked'
+  if (fetching) return 'loading'
+  if (error) return 'unlocked'
+  // Graphcache answers an uncached `lock` with null when another query cached the package.
+  if (stale || GQL.isPartial(result) || !data) return 'loading'
   return 'unlocked'
 }
 
@@ -41,7 +45,9 @@ export function useLock(bucket: string, name: string, pause = false) {
   return {
     status,
     lock: status === 'locked' ? (result.data?.package?.lock ?? null) : null,
-    latestHash: result.data?.package?.latest?.hash,
+    latestHash: currentPackage(result, bucket, name)
+      ? result.data?.package?.latest?.hash
+      : undefined,
     refresh,
   }
 }

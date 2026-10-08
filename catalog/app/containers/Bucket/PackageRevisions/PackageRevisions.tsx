@@ -2,6 +2,7 @@ import * as dateFns from 'date-fns'
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
@@ -12,6 +13,7 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -28,6 +30,7 @@ import usePrevious from 'utils/usePrevious'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
+import * as LockUI from '../PackageTree/PackageLock'
 import RevisionDeleteDialog from '../PackageTree/RevisionDeleteDialog'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -448,7 +451,13 @@ interface PackageRevisionsProps {
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
   const classes = usePackageRevisionsStyles()
-  const prefs = PackageLock.usePrefs(PackageLock.useLock(bucket, name).status)
+  const { status: lockStatus, lock } = PackageLock.useLock(bucket, name)
+  const prefs = PackageLock.usePrefs(lockStatus)
+  const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
+  const [unlocking, setUnlocking] = React.useState(false)
+  const closeUnlock = React.useCallback(() => setUnlocking(false), [])
+  const openUnlock = React.useCallback(() => setUnlocking(true), [])
+  React.useEffect(() => setUnlocking(false), [bucket, name])
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -467,7 +476,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     prefs,
   )
 
-  const bulk = useBulkDelete(bucket, name)
+  const bulk = useBulkDelete(bucket, name, lockStatus === 'unlocked')
 
   usePrevious(actualPage, (prev) => {
     if (prev && actualPage !== prev) {
@@ -499,6 +508,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       <RevisionDeleteDialog
+        disabled={lockStatus !== 'unlocked'}
         error={bulk.state.error}
         loading={bulk.state.loading}
         name={name}
@@ -576,6 +586,20 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
           prefs,
         )}
       </M.Box>
+
+      {lock && (
+        <M.Box px={{ xs: 2, sm: 0 }}>
+          <LockUI.Notice lock={lock} onUnlock={isAdmin ? openUnlock : undefined} />
+        </M.Box>
+      )}
+      {unlocking && (
+        <LockUI.Dialog
+          action="unlock"
+          bucket={bucket}
+          name={name}
+          onClose={closeUnlock}
+        />
+      )}
 
       {GQL.fold(revisionCountQuery, {
         error: displayError(),

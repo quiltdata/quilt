@@ -203,7 +203,17 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       const { result } = renderHook(() =>
         useParamsWith({ name: { ...name, status: { _tag: 'loading' as const } } }),
       )
-      expect(result.current).toEqual(Invalid(new Error('Valid name required')))
+      expect(result.current).toEqual(Invalid(new Error('Checking the package name…')))
+    })
+
+    it('reports a real message error over a name still being checked', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          name: { ...name, status: { _tag: 'loading' as const } },
+          message: { ...message, value: '' },
+        }),
+      )
+      expect(result.current).toEqual(Invalid(new Error('Valid message required')))
     })
 
     it('should return invalid when name status is error', () => {

@@ -3,6 +3,7 @@ import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
 import { isQuickPreviewAvailable } from 'components/Preview/quick'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageLock from 'utils/PackageLock'
@@ -49,8 +50,10 @@ function useRedirect() {
   )
 }
 
-// Writable unless the file is added to a package that is locked or not yet known unlocked.
+// Writable when bucket preferences allow it, and the package the file is added to, if
+// any, is known unlocked.
 function useWritable(add?: string) {
+  const { prefs } = BucketPreferences.use()
   const pkg = React.useMemo(() => {
     try {
       return add ? PackageUri.parse(add) : null
@@ -58,9 +61,16 @@ function useWritable(add?: string) {
       return null
     }
   }, [add])
-  return (
+  const unlocked =
     PackageLock.useLockStatus(pkg?.bucket ?? '', pkg?.name ?? '', !pkg) === 'unlocked'
+  const allowed = BucketPreferences.Result.match(
+    {
+      Ok: ({ ui: { actions } }) => actions.writeFile && (!pkg || actions.revisePackage),
+      _: () => false,
+    },
+    prefs,
   )
+  return unlocked && allowed
 }
 
 export interface EditorState {

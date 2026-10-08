@@ -7,7 +7,7 @@ import DELETE_REVISION from '../PackageTree/gql/DeleteRevision.generated'
 
 // Deletes one at a time and stops at the first failure, so a partial failure
 // leaves the survivors selected.
-export function useBulkDelete(bucket: string, name: string) {
+export function useBulkDelete(bucket: string, name: string, writable: boolean) {
   const deleteRevision = GQL.useMutation(DELETE_REVISION)
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
   const [state, setState] = React.useState({
@@ -35,6 +35,7 @@ export function useBulkDelete(bucket: string, name: string) {
   )
 
   const run = React.useCallback(async () => {
+    if (!writable) return
     setState(R.mergeLeft({ loading: true, error: undefined }))
     const done = new Set<string>()
     let error: React.ReactNode | undefined
@@ -56,7 +57,7 @@ export function useBulkDelete(bucket: string, name: string) {
     // succeeded, so the error carries the only record of the partial result.
     if (error && done.size) error = `${error}. ${done.size} already deleted`
     setState({ error, loading: false, opened: !!error })
-  }, [bucket, name, selected, deleteRevision])
+  }, [bucket, name, selected, deleteRevision, writable])
 
   const confirm = React.useCallback(() => setState(R.mergeLeft({ opened: true })), [])
 
