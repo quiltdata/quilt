@@ -19,6 +19,8 @@ export type SignInFailure =
   | 'needsClientCredentials'
   | 'busy'
   | 'notAvailable'
+  | 'notFound'
+  | 'sessionExpired'
   | 'failed'
 
 /** The registry's start and finish error codes, by the reason they map to. */
@@ -28,7 +30,7 @@ const REASON_BY_CODE: Record<string, SignInFailure> = {
   NeedsClientCredentials: 'needsClientCredentials',
   Busy: 'busy',
   NotAvailable: 'notAvailable',
-  NotFound: 'notAvailable',
+  NotFound: 'notFound',
 }
 
 export type SignInResult =
@@ -113,7 +115,14 @@ export function signIn({
     }
     const onAbort = () => settle({ ok: false, reason: 'closed' })
     const refused = (resp: Response, errorCode?: string): SignInResult => {
-      const reason = (errorCode && REASON_BY_CODE[errorCode]) || 'failed'
+      const known =
+        errorCode && Object.prototype.hasOwnProperty.call(REASON_BY_CODE, errorCode)
+      // Only the catalog's own login check answers 401 without a code.
+      const reason: SignInFailure = known
+        ? REASON_BY_CODE[errorCode]
+        : resp.status === 401 && !errorCode
+          ? 'sessionExpired'
+          : 'failed'
       return reason === 'failed'
         ? { ok: false, reason, error: errorCode ?? `HTTP ${resp.status}` }
         : { ok: false, reason }
@@ -221,7 +230,10 @@ const FAILURE: Record<SignInFailure, (title: string) => string> = {
   needsClientCredentials: (t) =>
     `Couldn't connect ${t}: an admin must add this service's client credentials.`,
   busy: (t) => `Couldn't connect ${t} right now. Try again in a moment.`,
-  notAvailable: (t) => `${t} isn't available to sign in to on this stack.`,
+  notAvailable: (t) => `Couldn't connect ${t}: sign-in isn't available right now.`,
+  notFound: (t) => `${t} isn't available to sign in to on this stack.`,
+  sessionExpired: (t) =>
+    `Couldn't connect ${t}: your Quilt session expired. Sign in again.`,
   failed: (t) => `Couldn't connect ${t}.`,
 }
 

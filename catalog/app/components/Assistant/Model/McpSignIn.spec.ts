@@ -194,7 +194,7 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
   })
 
   it.each([
-    [404, 'NotFound', 'notAvailable'],
+    [404, 'NotFound', 'notFound'],
     [503, 'NeedsClientCredentials', 'needsClientCredentials'],
     [503, 'NotAvailable', 'notAvailable'],
     [429, 'Busy', 'busy'],
@@ -208,6 +208,8 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
   it.each([
     [400, 'SignInFailed', 'signInFailed'],
     [401, 'NeedsSignIn', 'signInFailed'],
+    [429, 'Busy', 'busy'],
+    [503, 'NeedsClientCredentials', 'needsClientCredentials'],
   ])('finish %i %s is reported as %s', async (status, code, reason) => {
     const { win, post } = fakeWindow()
     const result = start(
@@ -217,6 +219,25 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     await flush()
     post(callback())
     await expect(result).resolves.toEqual({ ok: false, reason })
+  })
+
+  it('a 401 without a code is the catalog session expiring', async () => {
+    const { win } = fakeWindow()
+    const fetch = vi.fn(async () => new Response('Not logged in', { status: 401 }))
+    await expect(start(win, fetch as any)).resolves.toEqual({
+      ok: false,
+      reason: 'sessionExpired',
+    })
+  })
+
+  it('a code naming an Object.prototype member is just unknown', async () => {
+    const { win } = fakeWindow()
+    const fetch = vi.fn(async () => json({ error_code: 'toString' }, 500))
+    await expect(start(win, fetch as any)).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+      error: 'toString',
+    })
   })
 
   it('an unknown code is reported with the code', async () => {
@@ -396,6 +417,34 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
       'The Slack sign-in window was closed before you finished.',
     )
     expect(retries).toBe(0)
+    const opened = (window.open as any).mock.calls.length
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+    })
+    expect(result.current.pending).toBe('slack')
+    expect((window.open as any).mock.calls.length).toBe(opened + 1)
+  })
+
+  it.each([
+    [
+      503,
+      'NeedsClientCredentials',
+      "Couldn't connect Slack: an admin must add this service's client credentials.",
+    ],
+    [429, 'Busy', "Couldn't connect Slack right now. Try again in a moment."],
+    [503, 'NotAvailable', "Couldn't connect Slack: sign-in isn't available right now."],
+    [404, 'NotFound', "Slack isn't available to sign in to on this stack."],
+  ])('start %i %s tells the user what to do', async (status, code, message) => {
+    window.fetch = vi.fn(async () => json({ error_code: code }, status)) as any
+    const { service } = makeConnectors(failed)
+    const result = mount(service)
+    await act(async () => {
+      result.current.connect('slack')
+      await flush()
+      await flush()
+    })
+    expect(result.current.status).toBe(message)
   })
 
   it('shows SignInFailed without a reconnect, and never reports the code', async () => {
