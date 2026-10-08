@@ -432,6 +432,31 @@ describe('Connectors/Mcp', () => {
       expect(failure.value).toMatchObject({ _tag: 'Auth', needsSignIn: true })
     })
 
+    it('a relay 503 SignInServerUnavailable is transient, not a sign-in prompt', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response(JSON.stringify({ error_code: 'SignInServerUnavailable' }), {
+            status: 503,
+            headers: { 'content-type': 'application/json', 'retry-after': '10' },
+          }),
+      )
+      const backend = Mcp.relayed({
+        slug: 'slack',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(withFetch(backend.ping(), fetchSpy))
+      const failure = Eff.Exit.isFailure(exit)
+        ? Eff.Cause.failureOption(exit.cause)
+        : Eff.Option.none()
+      if (Eff.Option.isNone(failure)) throw new Error('expected a failure')
+      expect(failure.value).toMatchObject({
+        _tag: 'Transport',
+        transient: true,
+        message: 'the service is having trouble, try again shortly',
+      })
+      expect(failure.value.needsSignIn).toBeUndefined()
+    })
+
     it('a relay 401 without NeedsSignIn stays a plain auth error', async () => {
       const { fetchSpy } = captureCalls(
         () => new Response('Unauthorized', { status: 401 }),

@@ -794,6 +794,8 @@ union McpServerRemoveResult = Ok | InvalidInput | OperationError
 
 union McpServerDisconnectResult = Ok | InvalidInput | OperationError
 
+union McpServerSignOutAllResult = Ok | InvalidInput | OperationError
+
 type AdminQueries {
   quratorConfig: QuratorConfig!
   quratorAvailableModels: QuratorAvailableModels!
@@ -1293,7 +1295,7 @@ type AdminMutations {
   mcpServerRemove(slug: ID!): McpServerRemoveResult!
   "Runs initialize and tools/list against the server, enabled or not."
   mcpServerProbe(slug: ID!): McpServerProbe!
-  mcpServerSignOutAll(slug: ID!): McpServerDisconnectResult!
+  mcpServerSignOutAll(slug: ID!): McpServerSignOutAllResult!
 }
 
 type Mutation {
@@ -1319,7 +1321,7 @@ type Mutation {
   packageDelete(bucket: String!, name: String!): PackageDeleteResult!
 
   "Forget the caller's own sign-in to an MCP server."
-  mcpServerDisconnect(slug: ID!): McpServerDisconnectResult!
+  mcpServerDisconnect(slug: ID!): McpServerDisconnectResult! @authenticated
 
   admin: AdminMutations! @admin
 

@@ -22,6 +22,7 @@ export type SignInFailure =
   | 'notAvailable'
   | 'notFound'
   | 'sessionExpired'
+  | 'serverTrouble'
   | 'failed'
 
 /** The registry's start and finish error codes, by the reason they map to. */
@@ -32,6 +33,7 @@ const REASON_BY_CODE: Record<string, SignInFailure> = {
   Busy: 'busy',
   NotAvailable: 'notAvailable',
   NotFound: 'notFound',
+  SignInServerUnavailable: 'serverTrouble',
 }
 
 export type SignInResult =
@@ -265,7 +267,15 @@ const FAILURE: Record<SignInFailure, (title: string) => string> = {
   notFound: (t) => `${t} isn't available to sign in to on this stack.`,
   sessionExpired: (t) =>
     `Couldn't connect ${t}: your Quilt session expired. Sign in again.`,
+  serverTrouble: (t) => `${t} is having trouble, try again shortly.`,
   failed: (t) => `Couldn't connect ${t}.`,
+}
+
+/** What to tell the user about a finished `signIn`. */
+export const signInMessage = (result: SignInResult, title: string) => {
+  if (result.ok) return `Connected ${title}.`
+  const message = FAILURE[result.reason](title)
+  return result.error ? `${message} (${result.error})` : message
 }
 
 /**
@@ -374,12 +384,7 @@ export function useMcpSignIn(
           getToken: () => Eff.Effect.runPromise(getToken()),
           signal,
         })
-        if (result.ok) return { ok: true, message: `Connected ${title}.` }
-        const message = FAILURE[result.reason](title)
-        return {
-          ok: false,
-          message: result.error ? `${message} (${result.error})` : message,
-        }
+        return { ok: result.ok, message: signInMessage(result, title) }
       }),
     [run, getToken],
   )

@@ -263,6 +263,7 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     [401, 'NeedsSignIn', 'signInFailed'],
     [429, 'Busy', 'busy'],
     [503, 'NeedsClientCredentials', 'needsClientCredentials'],
+    [503, 'SignInServerUnavailable', 'serverTrouble'],
   ])('finish %i %s is reported as %s', async (status, code, reason) => {
     const { win, post } = fakeWindow()
     const result = start(
@@ -564,6 +565,7 @@ describe('components/Assistant/Model/McpSignIn useMcpSignIn', () => {
     [429, 'Busy', "Couldn't connect Slack right now. Try again in a moment."],
     [503, 'NotAvailable', "Couldn't connect Slack: sign-in isn't available right now."],
     [404, 'NotFound', "Slack isn't available to sign in to on this stack."],
+    [503, 'SignInServerUnavailable', 'Slack is having trouble, try again shortly.'],
   ])('start %i %s tells the user what to do', async (status, code, message) => {
     window.fetch = vi.fn(async () => json({ error_code: code }, status)) as any
     const { service } = makeConnectors(failed)

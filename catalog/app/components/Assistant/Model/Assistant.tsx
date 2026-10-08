@@ -193,7 +193,7 @@ export function useRegisteredConnectorConfigs(
  * directly would 401 forever after an idle tab, where the Bedrock path used to
  * self-heal through the credential refresh. `null` when there is no session.
  */
-function useSessionToken(): () => Eff.Effect.Effect<string | null> {
+export function useSessionToken(): () => Eff.Effect.Effect<string | null> {
   const dispatch = redux.useDispatch()
   return React.useCallback(
     () =>

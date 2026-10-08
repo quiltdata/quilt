@@ -19,6 +19,14 @@ const push = vi.hoisted(() => vi.fn())
 const captureException = vi.hoisted(() => vi.fn())
 vi.mock('containers/Notifications', () => ({ use: () => ({ push }) }))
 vi.mock('@sentry/react', () => ({ captureException }))
+const signIn = vi.hoisted(() => vi.fn())
+vi.mock('components/Assistant/Model/Assistant', () => ({
+  useSessionToken: () => () => ({ _tag: 'token' }),
+}))
+vi.mock('components/Assistant/Model/McpSignIn', async (importActual) => ({
+  ...(await importActual<typeof import('components/Assistant/Model/McpSignIn')>()),
+  signIn,
+}))
 
 import * as style from 'constants/style'
 
@@ -162,6 +170,20 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       expect(input).toMatchObject({ auth: 'OAUTH', oauthClientSecret: 'cs3cret' })
       expect(input.secret).toBeNull()
       expect(input.authHeader).toBeNull()
+    })
+
+    it('an admin can connect to a disabled OAUTH server, so Probe can use it', async () => {
+      servers = [server({ auth: 'OAUTH', enabled: false })]
+      signIn.mockResolvedValue({ ok: true })
+      const { getByText } = mount()
+      await act(async () => {
+        fireEvent.click(getByText('Connect'))
+      })
+      expect(signIn.mock.calls[0][0]).toMatchObject({
+        slug: 'gpu',
+        registryUrl: 'https://registry.test',
+      })
+      expect(push).toHaveBeenCalledWith('Connected GPU cluster.')
     })
 
     it('signing everyone out asks first', async () => {

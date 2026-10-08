@@ -762,6 +762,16 @@ const adaptError = (e: McpError): BackendError => {
       cause: e.errorCode,
     }
   }
+  // The provider's token endpoint failed transiently; the sign-in is kept.
+  if (e.errorCode === 'SignInServerUnavailable') {
+    return {
+      _tag: 'Transport',
+      message: 'the service is having trouble, try again shortly',
+      transient: true,
+      retryable: false,
+      cause: e.errorCode,
+    }
+  }
   // The relay's back-pressure: busy, not unhealthy.
   if (e.status === 429 && e.errorCode === 'Busy') {
     return {

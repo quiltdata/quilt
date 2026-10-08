@@ -149,7 +149,7 @@ export interface AdminMutations {
   readonly mcpServerProbe: McpServerProbe
   readonly mcpServerRemove: McpServerRemoveResult
   readonly mcpServerSet: McpServerSetResult
-  readonly mcpServerSignOutAll: McpServerDisconnectResult
+  readonly mcpServerSignOutAll: McpServerSignOutAllResult
   readonly packager: PackagerAdminMutations
   readonly setQuratorConfig: SetQuratorConfigResult
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
@@ -608,6 +608,8 @@ export interface McpServerProbe {
 export type McpServerRemoveResult = InvalidInput | Ok | OperationError
 
 export type McpServerSetResult = InvalidInput | McpServerAdmin | OperationError
+
+export type McpServerSignOutAllResult = InvalidInput | Ok | OperationError
 
 export interface McpToolSummary {
   readonly __typename: 'McpToolSummary'

@@ -568,7 +568,7 @@ export default {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'UNION',
-                name: 'McpServerDisconnectResult',
+                name: 'McpServerSignOutAllResult',
                 ofType: null,
               },
             },
@@ -2656,6 +2656,24 @@ export default {
           {
             kind: 'OBJECT',
             name: 'McpServerAdmin',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'McpServerSignOutAllResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
           },
           {
             kind: 'OBJECT',

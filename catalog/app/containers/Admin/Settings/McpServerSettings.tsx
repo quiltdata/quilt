@@ -1,9 +1,12 @@
+import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Sentry from '@sentry/react'
 
 import { toolNameFitsBedrock } from 'components/Assistant/Model/Connectors'
-import { resultError } from 'components/Assistant/Model/McpSignIn'
+import { useSessionToken } from 'components/Assistant/Model/Assistant'
+import { resultError, signIn, signInMessage } from 'components/Assistant/Model/McpSignIn'
+import cfg from 'constants/config'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
@@ -657,6 +660,25 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
     }
   }, [busy, notify, onChanged, server, signOutAll])
 
+  // The admin's own sign-in is what Probe uses, and a disabled server never
+  // reaches Qurator's panel, so connecting has to be possible here.
+  const getToken = useSessionToken()
+  const connect = React.useCallback(async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const result = await signIn({
+        slug: server.slug,
+        registryUrl: cfg.registryUrl,
+        getToken: () => Eff.Effect.runPromise(getToken()),
+      })
+      notify(signInMessage(result, server.title))
+      if (result.ok) onChanged()
+    } finally {
+      setBusy(false)
+    }
+  }, [busy, getToken, notify, onChanged, server])
+
   const copyRedirectUri = React.useCallback(() => {
     notify(
       copyToClipboard(server.oauthRedirectUri)
@@ -761,6 +783,11 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
         <M.Button size="small" onClick={() => setEditing(true)} disabled={busy}>
           Edit
         </M.Button>
+        {server.auth === Types.McpServerAuth.OAUTH && (
+          <M.Button size="small" onClick={connect} disabled={busy}>
+            Connect
+          </M.Button>
+        )}
         {server.auth === Types.McpServerAuth.OAUTH && (
           <M.Button
             size="small"
