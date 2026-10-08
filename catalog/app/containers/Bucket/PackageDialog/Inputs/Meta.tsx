@@ -936,6 +936,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             <>
               {hasForm && schema && (
                 <MetaForm
+                  // an import or full-screen save replaces the metadata: drop half-typed drafts
+                  key={jsonInlineEditorKey}
                   disabled={editLocked}
                   // asterisks and the count already say a field is missing
                   errors={
@@ -960,6 +962,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 />
               )}
               <FreeFields
+                // an import or full-screen save replaces the metadata: drop half-typed drafts
+                key={jsonInlineEditorKey}
                 description={
                   hasForm
                     ? 'Fields this workflow does not define. Add any that help describe the package.'

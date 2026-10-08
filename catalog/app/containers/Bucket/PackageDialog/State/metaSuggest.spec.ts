@@ -66,6 +66,14 @@ describe('containers/Bucket/PackageDialog/State/metaSuggest', () => {
       })
     })
 
+    it('drops an invalid replacement even when the current value fails the same way', () => {
+      const counted = {
+        type: 'object',
+        properties: { n: { type: 'integer', minimum: 1 } },
+      }
+      expect(parseSuggestions('{"n": {"value": -1}}', counted, { n: 0 })).toEqual({})
+    })
+
     it('drops a suggestion that breaks a cross-field rule', () => {
       const conditional = {
         type: 'object',

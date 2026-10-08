@@ -175,9 +175,21 @@ type Validate = (x: Types.JsonRecord) => (Error | ErrorObject)[]
 /** Errors a candidate adds over `base`; validates `base` once for many candidates. */
 export function newErrorsFrom(validate: Validate, base: Types.JsonRecord) {
   const known = new Set(validate(base).map(errorSig))
-  return (candidate: Types.JsonRecord) =>
-    validate(candidate).filter((e) => !known.has(errorSig(e)))
+  return (candidate: Types.JsonRecord) => {
+    // a changed field must come out valid: 0 → -1 under minimum 1 is not "no worse"
+    const changed = Object.keys(candidate).filter(
+      (k) => JSON.stringify(candidate[k]) !== JSON.stringify(base[k]),
+    )
+    return validate(candidate).filter(
+      (e) =>
+        !known.has(errorSig(e)) ||
+        ('instancePath' in e && changed.some((k) => topKeyOf(e.instancePath) === k)),
+    )
+  }
 }
+
+const topKeyOf = (path: string) =>
+  path.split('/')[1]?.replace(/~1/g, '/').replace(/~0/g, '~')
 
 /**
  * The model's answer, keeping only values that add no error to the current
@@ -292,6 +304,16 @@ export function useMetaSuggestions({
         : { _tag: 'idle' },
     )
   }, [bucket, workflow, schema, filesKey])
+  // the name is prompt evidence: suggestions built for an old name go, but typing the
+  // name must not abort a request in flight (its reply is checked by generation below)
+  const nameAtRequest = React.useRef(name)
+  const nameRef = React.useRef(name)
+  nameRef.current = name
+  React.useEffect(() => {
+    setState((s) =>
+      s._tag === 'ready' && nameAtRequest.current !== name ? { _tag: 'idle' } : s,
+    )
+  }, [name])
   React.useEffect(
     () => () => {
       generation.current += 1
@@ -303,6 +325,7 @@ export function useMetaSuggestions({
   const request = React.useCallback(async () => {
     if (!llms?.length || !schema) return
     const mine = ++generation.current
+    nameAtRequest.current = name
     inflight.current?.abort()
     const abort = new AbortController()
     inflight.current = abort
@@ -364,6 +387,10 @@ export function useMetaSuggestions({
       }
       if (generation.current !== mine) return
       if (text === null) throw lastError
+      // renamed while asking: the reply was built for the old name
+      if (nameAtRequest.current !== nameRef.current) {
+        throw new SuggestError('The package name changed while asking. Try again.')
+      }
       // a cut-off or prose-only reply is not "no clear values"
       if (firstJsonObject(text) === undefined) {
         throw new SuggestError(

@@ -184,6 +184,13 @@ describe('lightest', () => {
     ])
   })
 
+  it('picks the lightest allowed tier when no Light model is allowed', () => {
+    const opus = 'us.anthropic.claude-opus-4-1-20250805-v1:0'
+    expect(lightest({ allowlist: [opus, sonnet], default: opus }, haiku, sonnet)).toEqual(
+      [sonnet, opus],
+    )
+  })
+
   it('tries the guess then the fallback when ungoverned', () => {
     expect(lightest(null, haiku, sonnet)).toEqual([haiku, sonnet])
   })

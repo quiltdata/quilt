@@ -83,7 +83,10 @@ export function lightest(
   if (readFailed) return [fallback]
   if (!governed) return light === fallback ? [fallback] : [light, fallback]
   if (!governed.allowlist.length) return []
-  const pick = governed.allowlist.find((id) => tier(id) === 'Light')
+  // the lightest tier the admin allows, Light before Medium before Heavy
+  const pick = ['Light', 'Medium', 'Heavy']
+    .map((t) => governed.allowlist.find((id) => tier(id) === t))
+    .find(Boolean)
   const turn = resolve(governed, '', fallback)
   return pick && pick !== turn ? [pick, turn] : [turn]
 }
