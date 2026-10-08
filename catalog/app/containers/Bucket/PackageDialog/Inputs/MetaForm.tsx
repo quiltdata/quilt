@@ -1,5 +1,6 @@
 import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -180,7 +181,8 @@ function Field({
   const enumIndex =
     widget === 'enum' && value !== undefined
       ? prop.enum.findIndex(
-          (v: Types.Json) => JSON.stringify(v) === JSON.stringify(value),
+          // structural: {"b":2,"a":1} is the enum's {"a":1,"b":2}
+          (v: Types.Json) => R.equals(v, value),
         )
       : -1
   // A schema default is applied on save; show it so what is pushed is what is seen.
@@ -538,8 +540,10 @@ export default function MetaForm({
       prop={properties[key] || {}}
       setPending={setPending}
       required={isRequired}
-      suggestion={suggestions?.[key]}
       // own keys only: "constructor" would otherwise read Object's function
+      suggestion={
+        suggestions && Object.hasOwn(suggestions, key) ? suggestions[key] : undefined
+      }
       value={value && Object.hasOwn(value, key) ? value[key] : undefined}
     />
   )

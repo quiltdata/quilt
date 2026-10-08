@@ -289,10 +289,15 @@ export function useMetaSuggestions({
       // Without a workflow there is no way to tell which packages are similar.
       const r = workflow
         ? await client
-            .query(WORKFLOW_PACKAGES, {
-              buckets: [bucket],
-              filter: { workflow: { terms: [workflow] } } as any,
-            })
+            .query(
+              WORKFLOW_PACKAGES,
+              {
+                buckets: [bucket],
+                filter: { workflow: { terms: [workflow] } } as any,
+              },
+              // the package just created is usually the closest example
+              { requestPolicy: 'network-only' },
+            )
             .toPromise()
         : null
       const set = r?.data?.searchPackages
