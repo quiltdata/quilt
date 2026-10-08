@@ -562,7 +562,7 @@ export interface McpServerAdmin {
   readonly hint: Maybe<Scalars['String']['output']>
   readonly oauthClientId: Maybe<Scalars['String']['output']>
   /** The callback URL to register with the provider. */
-  readonly oauthRedirectUri: Scalars['String']['output']
+  readonly oauthRedirectUri: Maybe<Scalars['String']['output']>
   /** How many users have a stored sign-in. */
   readonly signedInUsers: Scalars['Int']['output']
   readonly slug: Scalars['ID']['output']

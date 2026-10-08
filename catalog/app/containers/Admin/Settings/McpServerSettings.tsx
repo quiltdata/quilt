@@ -694,7 +694,7 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
 
   const copyRedirectUri = React.useCallback(() => {
     notify(
-      copyToClipboard(server.oauthRedirectUri)
+      server.oauthRedirectUri && copyToClipboard(server.oauthRedirectUri)
         ? 'Redirect URI copied.'
         : "Couldn't copy; select the URI and copy it by hand.",
     )
@@ -744,7 +744,13 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
             }.`}
           {server.auth === Types.McpServerAuth.NONE && 'No credential is sent.'}
         </M.Typography>
-        {server.auth === Types.McpServerAuth.OAUTH && (
+        {server.auth === Types.McpServerAuth.OAUTH && !server.oauthRedirectUri && (
+          <M.Typography variant="caption" color="textSecondary">
+            No redirect URI: this stack&apos;s catalog URL is not https, so users cannot
+            sign in.
+          </M.Typography>
+        )}
+        {server.auth === Types.McpServerAuth.OAUTH && server.oauthRedirectUri && (
           <div className={classes.heading}>
             <M.Typography variant="caption" color="textSecondary">
               Redirect URI to register with the provider:

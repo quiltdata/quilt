@@ -751,8 +751,8 @@ type McpServerAdmin {
   updatedBy: String
   oauthClientId: String
   hasOauthClientSecret: Boolean!
-  "The callback URL to register with the provider."
-  oauthRedirectUri: String!
+  "The callback URL to register with the provider; null while the stack's CATALOG_URL is not https."
+  oauthRedirectUri: String
   "How many users have a stored sign-in."
   signedInUsers: Int!
 }

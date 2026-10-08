@@ -62,7 +62,7 @@ export interface containers_Admin_Settings_gql_McpServerSetMutation {
           readonly updatedAt: Date
           readonly oauthClientId: string | null
           readonly hasOauthClientSecret: boolean
-          readonly oauthRedirectUri: string
+          readonly oauthRedirectUri: string | null
           readonly signedInUsers: number
         }
       | {
