@@ -73,6 +73,9 @@ const SIGN_IN_TIMEOUT_MS = 10 * 60_000
 /** Longer than a connector bootstrap, so an attempt in flight settles first. */
 const RETRY_WAIT = Eff.Duration.seconds(90)
 
+// A plain sentinel: an `Error` subclass loses `instanceof` in the ES5 build.
+const TIMED_OUT = { timedOut: true } as const
+
 const defaultChannel = (): Channel | null =>
   typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CALLBACK_CHANNEL)
 
@@ -151,6 +154,10 @@ export function signIn({
       const json = (await resp.json().catch(() => null)) as Record<string, unknown> | null
       const errorCode = typeof json?.error_code === 'string' ? json.error_code : undefined
       return { resp, json, errorCode }
+    } catch (e) {
+      // Whatever a fetch rejects with on abort, our own signal says why it ended.
+      if (timeout.signal.aborted) throw TIMED_OUT
+      throw e
     } finally {
       win.clearTimeout(timer)
       signal?.removeEventListener('abort', onOuterAbort)
@@ -192,7 +199,7 @@ export function signIn({
         : { ok: false, reason }
     }
     const failed = (e: unknown): SignInResult =>
-      (e as { name?: unknown } | null)?.name === 'AbortError'
+      e === TIMED_OUT
         ? { ok: false, reason: 'timedOut' }
         : { ok: false, reason: 'failed', error: 'request failed' }
 
@@ -281,6 +288,8 @@ export interface SignInActionOptions {
   title?: string
   /** The caller announces the outcome itself, so the shared status stays empty. */
   quiet?: boolean
+  /** Told when Quilt loses sight of the sign-in window and keeps waiting. */
+  onWaiting?: (message: string) => void
 }
 
 /** `null` when another action was already running, or the flow was dropped. */
@@ -450,7 +459,9 @@ export function useMcpSignIn(
             if (signal.aborted) return
             waiting.current = true
             setPending(null)
-            say(`Finish signing in to ${title} in the other window.`)
+            const message = `Finish signing in to ${title} in the other window.`
+            say(message)
+            opts.onWaiting?.(message)
           },
         })
         return { ok: result.ok, message: signInMessage(result, title) }

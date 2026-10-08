@@ -6,6 +6,10 @@
     "public": "build",
     "rewrites": [
       {
+        "source": "/oauth/mcp-callback",
+        "destination": "/oauth-mcp-callback.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

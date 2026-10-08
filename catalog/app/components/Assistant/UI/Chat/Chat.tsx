@@ -452,8 +452,11 @@ interface MenuProps {
   onToggleDevTools: () => void
   devToolsOpen: boolean
   mcpSignIn?: Model.Assistant.API['mcpSignIn']
-  /** Whether each server's connector is Ready; a server without one falls back to `signedIn`. */
-  connectorReady?: ReadonlyMap<string, boolean>
+  /**
+   * Each server's connector, as far as the account goes: Ready means signed in,
+   * needs-sign-in means not, anything else (an outage) defers to `signedIn`.
+   */
+  connectorAccount?: ReadonlyMap<string, 'ready' | 'needsSignIn' | 'unknown'>
   className?: string
 }
 
@@ -463,7 +466,7 @@ export function Menu({
   devToolsOpen,
   onToggleDevTools,
   mcpSignIn,
-  connectorReady,
+  connectorAccount,
   className,
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
@@ -516,7 +519,9 @@ export function Menu({
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
         {mcpSignIn?.servers.map((s) => {
-          const connected = connectorReady?.get(s.slug) ?? s.signedIn
+          const account = connectorAccount?.get(s.slug)
+          const connected =
+            account === 'ready' || (account !== 'needsSignIn' && s.signedIn)
           return (
             <M.MenuItem
               key={s.slug}
@@ -780,9 +785,19 @@ export default function Chat({
   }
   const helperText = helperLines.length > 0 ? helperLines : undefined
   // State values are immutable, so the deps change only when a state does.
-  const connectorReady = React.useMemo(
+  const connectorAccount = React.useMemo(
     () =>
-      new Map(allConnectors.map((c, i) => [c.id, connectorStates[i]._tag === 'Ready'])),
+      new Map(
+        allConnectors.map((c, i) => {
+          const s = connectorStates[i]
+          const account = Model.Connectors.stateNeedsSignIn(s)
+            ? ('needsSignIn' as const)
+            : s._tag === 'Ready'
+              ? ('ready' as const)
+              : ('unknown' as const)
+          return [c.id, account]
+        }),
+      ),
     // oxlint-disable-next-line react-hooks/exhaustive-deps
     [connectors, ...connectorStates],
   )
@@ -833,7 +848,7 @@ export default function Chat({
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
           mcpSignIn={mcpSignIn}
-          connectorReady={connectorReady}
+          connectorAccount={connectorAccount}
           className={cx(classes.headerButton, classes.trailing)}
         />
         <M.IconButton

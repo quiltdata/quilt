@@ -248,7 +248,7 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     const { win, post } = fakeWindow()
     const fetch = vi.fn<typeof globalThis.fetch>(async (url, init) =>
       String(url).endsWith('/start')
-        ? json({ authorizeUrl: 'https://provider.test/authorize' })
+        ? json({ authorizeUrl: `https://provider.test/authorize?state=${STATE}` })
         : new Promise<Response>((_resolve, reject) =>
             init?.signal?.addEventListener('abort', () =>
               reject(new Error('The request timed out')),
@@ -258,8 +258,12 @@ describe('components/Assistant/Model/McpSignIn signIn', () => {
     const result = start(win, fetch as any)
     await vi.advanceTimersByTimeAsync(0)
     post(callback())
+    await vi.advanceTimersByTimeAsync(0)
+    expect(String(fetch.mock.calls[1]?.[0])).toBe(
+      `${REGISTRY}/api/mcp/slack/oauth/finish`,
+    )
     await vi.advanceTimersByTimeAsync(30_000)
-    await expect(result).resolves.toMatchObject({ ok: false, reason: 'failed' })
+    await expect(result).resolves.toEqual({ ok: false, reason: 'timedOut' })
   })
 
   it('an already-aborted signal opens no window and sends nothing', async () => {

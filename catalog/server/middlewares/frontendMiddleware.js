@@ -13,6 +13,7 @@ const addProdMiddlewares = (app, { publicPath, outputPath }) => {
 
   const sendFile = (name) => (req, res) => res.sendFile(path.resolve(outputPath, name))
   app.get('/oauth-callback', sendFile('oauth-callback.html'))
+  app.get('/oauth/mcp-callback', sendFile('oauth-mcp-callback.html'))
   app.get('*', sendFile('index.html'))
 }
 

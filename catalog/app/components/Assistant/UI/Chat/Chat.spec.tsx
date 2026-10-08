@@ -229,14 +229,14 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     expect(disconnect.mock.calls[0][0]).toBe('fathom')
   })
 
-  it('offers Connect when the connector is not Ready, whatever the cached list says', () => {
+  it('offers Connect when the connector needs sign-in, whatever the cached list says', () => {
     render(
       <Menu
         state={idle}
         dispatch={vi.fn()}
         devToolsOpen={false}
         onToggleDevTools={vi.fn()}
-        connectorReady={new Map([['fathom', false]])}
+        connectorAccount={new Map([['fathom', 'needsSignIn' as const]])}
         mcpSignIn={{
           servers: [{ slug: 'fathom', title: 'Fathom', signedIn: true }],
           pending: null,
@@ -249,6 +249,27 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText('Connect Fathom')).toBeTruthy()
     expect(screen.queryByText('Disconnect Fathom')).toBeNull()
+  })
+
+  it('keeps Disconnect for a signed-in server that is down', () => {
+    render(
+      <Menu
+        state={idle}
+        dispatch={vi.fn()}
+        devToolsOpen={false}
+        onToggleDevTools={vi.fn()}
+        connectorAccount={new Map([['fathom', 'unknown' as const]])}
+        mcpSignIn={{
+          servers: [{ slug: 'fathom', title: 'Fathom', signedIn: true }],
+          pending: null,
+          status: '',
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        }}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Disconnect Fathom')).toBeTruthy()
   })
 
   it('CONTROL: offers Developer Tools while it is closed', () => {

@@ -683,6 +683,9 @@ function ServerRow({ server, onChanged }: ServerRowProps) {
     const result = await mcpSignIn.connect(server.slug, {
       title: server.title,
       quiet: true,
+      onWaiting: (message) => {
+        if (mounted.current) notify(message)
+      },
     })
     if (!result || !mounted.current) return
     notify(result.message)

@@ -183,11 +183,27 @@ describe('containers/Admin/Settings/McpServerSettings', () => {
       await act(async () => {
         fireEvent.click(getByText('Connect'))
       })
-      expect(signInConnect).toHaveBeenCalledWith('gpu', {
+      expect(signInConnect.mock.calls[0][0]).toBe('gpu')
+      expect(signInConnect.mock.calls[0][1]).toMatchObject({
         title: 'GPU cluster',
         quiet: true,
       })
       expect(push).toHaveBeenCalledWith('Connected GPU cluster.')
+    })
+
+    it('tells the admin to finish signing in when the window is cut off', async () => {
+      servers = [server({ auth: 'OAUTH' })]
+      signInConnect.mockImplementation(async (_slug: string, opts: any) => {
+        opts.onWaiting('Finish signing in to GPU cluster in the other window.')
+        return null
+      })
+      const { getByText } = mount()
+      await act(async () => {
+        fireEvent.click(getByText('Connect'))
+      })
+      expect(push).toHaveBeenCalledWith(
+        'Finish signing in to GPU cluster in the other window.',
+      )
     })
 
     it('leaving Settings before the sign-in ends drops its notice', async () => {
