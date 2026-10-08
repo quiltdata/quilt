@@ -6,9 +6,7 @@ import { useBulkDelete } from './useBulkDelete'
 const deleteRevision: Mock = vi.fn()
 vi.mock('utils/GraphQL', () => ({ useMutation: () => deleteRevision }))
 
-const ok = {
-  packageRevisionDelete: { __typename: 'PackageRevisionDeleteSuccess' },
-}
+const ok = { packageRevisionDelete: { __typename: 'PackageRevisionDeleteSuccess' } }
 const fail = (message: string) => ({
   packageRevisionDelete: { __typename: 'OperationError', message },
 })
@@ -33,10 +31,7 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     await act(() => result.current.run())
     expect(deleteRevision).toHaveBeenCalledTimes(2)
     expect([...result.current.selected]).toEqual([])
-    expect(result.current.state).toMatchObject({
-      error: undefined,
-      opened: false,
-    })
+    expect(result.current.state).toMatchObject({ error: undefined, opened: false })
   })
 
   it('stops at the first failure and keeps the survivors selected', async () => {
@@ -197,10 +192,7 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     await act(() => result.current.run())
     expect(result.current.state.opened).toBe(true)
     rerender({ name: 'foo/other' })
-    expect(result.current.state).toMatchObject({
-      opened: false,
-      error: undefined,
-    })
+    expect(result.current.state).toMatchObject({ opened: false, error: undefined })
   })
 
   it('names the failing revision when the mutation throws', async () => {

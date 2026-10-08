@@ -463,9 +463,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const makePageUrl = React.useCallback(
     (newP: number) =>
-      urls.bucketPackageRevisions(bucket, name, {
-        p: newP !== 1 ? newP : undefined,
-      }),
+      urls.bucketPackageRevisions(bucket, name, { p: newP !== 1 ? newP : undefined }),
     [urls, bucket, name],
   )
 
@@ -486,10 +484,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     }
   })
 
-  const revisionCountQuery = GQL.useQuery(REVISION_COUNT_QUERY, {
-    bucket,
-    name,
-  })
+  const revisionCountQuery = GQL.useQuery(REVISION_COUNT_QUERY, { bucket, name })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
     bucket,
     name,

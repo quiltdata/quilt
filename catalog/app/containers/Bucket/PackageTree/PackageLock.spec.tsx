@@ -117,7 +117,10 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
     const notice = mount(
       <PackageLock.Notice lock={{ hash: HASH, lockedAt, lockedBy: 'a', reason: null }} />,
     )
-    expect(notice.getByRole('status').textContent).toContain('October 7th 2026, 14:03')
+    // The offset is the test machine's, so only its shape is asserted.
+    expect(notice.getByRole('status').textContent).toMatch(
+      /October 7th 2026, 14:03 GMT([+-]\d{1,2}(:\d{2})?)?\./,
+    )
   })
 
   it('unlocks', async () => {
