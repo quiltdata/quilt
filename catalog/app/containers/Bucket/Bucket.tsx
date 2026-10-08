@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Route, Switch } from 'react-router-dom'
+import { Redirect, Route, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout, { Container } from 'components/Layout'
@@ -32,6 +32,16 @@ const PackageRevisions = RT.mkLazy(
 )
 const PackageCompare = RT.mkLazy(() => import('./PackageCompare'), SuspensePlaceholder)
 const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
+function LegacyWorkflowsRedirect() {
+  const { bucket, slug } = useParams<{ bucket: string; slug?: string }>()
+  const { search, hash } = useLocation()
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const pathname = slug
+    ? urls.bucketWorkflowDetail(bucket, slug)
+    : urls.bucketWorkflowList(bucket)
+  return <Redirect to={{ pathname, search, hash }} />
+}
+
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
 const useStyles = M.makeStyles((t) => ({
@@ -133,6 +143,9 @@ export default function Bucket() {
           </Route>
           <Route path={paths.bucketWorkflowDetail} exact>
             <Workflows />
+          </Route>
+          <Route path={paths.legacyBucketWorkflows} exact>
+            <LegacyWorkflowsRedirect />
           </Route>
           <Route>
             <NotFoundInTabs />

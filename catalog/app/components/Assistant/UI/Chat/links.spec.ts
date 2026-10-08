@@ -129,6 +129,7 @@ describe('components/Assistant/UI/Chat/links', () => {
         '/b/my-bucket/search?q=x',
         '/b/my-bucket/queries/athena',
         '/b/my-bucket/workflows/',
+        '/b/my-bucket/flows/standard',
       ]
       paths.forEach((path) => expect(rewrite(`${STABLE}${path}`)).toBe(path))
     })

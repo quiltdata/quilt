@@ -32,7 +32,7 @@ function NavList({ bucket, preferences, section }: NavListProps) {
     },
     {
       value: 'workflows',
-      label: 'Workflows',
+      label: 'Flows',
       to: urls.bucketWorkflowList(bucket),
       show: preferences.workflows,
     },
