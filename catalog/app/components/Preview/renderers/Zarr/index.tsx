@@ -43,7 +43,15 @@ export default function ZarrWrapper(
   return (
     <ErrorBoundary FallbackComponent={ZarrError}>
       <div {...props}>
-        {deferred ? <Deferred handle={handle} /> : <Viewer handle={handle} />}
+        {deferred ? (
+          // Keyed so a reused row does not carry an earlier store's open state.
+          <Deferred
+            key={`${handle.bucket}/${handle.key}/${handle.version}`}
+            handle={handle}
+          />
+        ) : (
+          <Viewer handle={handle} />
+        )}
       </div>
     </ErrorBoundary>
   )

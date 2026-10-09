@@ -72,9 +72,8 @@ const DTYPE_MAX: Record<string, number> = {
   Int32: 2147483647,
 }
 
-// Floats have no natural range; a wide default keeps an image visible until the user
-// has controls to tune it.
-const FLOAT_FALLBACK = 65535
+// Floats have no natural range; [0, 1] fits normalized data and stats cover the rest.
+const FLOAT_FALLBACK = 1
 
 async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane) {
   const lowest = loaded.data[loaded.data.length - 1]
@@ -83,10 +82,12 @@ async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane)
   return Promise.all(
     channels.map(async (ch) => {
       if (ch.contrastLimits) return ch
-      if (y * x > MAX_STATS_PIXELS) return { ...ch, contrastLimits: fallback }
-      const { data } = await lowest.getRaster({
-        selection: selectionFor(lowest.labels, ch.index, plane),
-      })
+      const selection = selectionFor(lowest.labels, ch.index, plane)
+      // A single-resolution store makes the lowest level the full image; sample one tile.
+      const { data } =
+        y * x > MAX_STATS_PIXELS
+          ? await lowest.getTile({ x: 0, y: 0, selection })
+          : await lowest.getRaster({ selection })
       const [start, end] = getChannelStats(data as any).contrastLimits
       return { ...ch, contrastLimits: validLimits(start, end) ?? fallback }
     }),
@@ -142,16 +143,19 @@ export default function Viewer({
       return
     }
     // Store keys resolve against the root metadata file's directory: through the package
-    // in a package, as plain S3 keys in a bucket. In a bucket only the root file can be
-    // pinned to a version; a store is not versioned as a unit.
-    const resolvePath =
-      resolveLogicalKey && logicalKey
-        ? async (path: string) => resolveLogicalKey(s3paths.resolveKey(logicalKey, path))
-        : async (path: string): Promise<Model.S3.S3ObjectLocation> => {
-            const k = s3paths.resolveKey(key, path)
-            return k === key ? { bucket, key, version } : { bucket, key: k }
-          }
-    const store = createStore(resolvePath, sign)
+    // in a package, as plain S3 keys in a bucket. A bucket store is not versioned as a
+    // unit, so every key reads at latest rather than mixing the root's old version in.
+    const inPackage = !!(resolveLogicalKey && logicalKey)
+    const resolvePath = inPackage
+      ? async (path: string) => resolveLogicalKey!(s3paths.resolveKey(logicalKey!, path))
+      : async (path: string): Promise<Model.S3.S3ObjectLocation> => ({
+          bucket,
+          key: s3paths.resolveKey(key, path),
+        })
+    const store = createStore(resolvePath, sign, {
+      forbiddenIsMissing: !inPackage,
+      rootPath: (logicalKey || key).split('/').pop()!,
+    })
     ;(async () => {
       const all = await loadOmeZarrFromStore(store as any)
       const base = all.data[0]
@@ -238,11 +242,20 @@ export default function Viewer({
             height={HEIGHT}
             width={width}
             snapScaleBar
+            // A failed tile is requested again once the view moves; clear the note then.
+            onViewStateChange={() => {
+              if (tileError) setTileError(null)
+            }}
           />
         )}
       </div>
       {state._tag === 'ready' && (
         <div className={classes.channels}>
+          {version && !logicalKey && (
+            <M.Typography variant="caption" color="textSecondary">
+              Showing the latest version of this store
+            </M.Typography>
+          )}
           {(state.depth.z > 1 || state.depth.t > 1) && (
             <M.Typography variant="caption" color="textSecondary">
               {[

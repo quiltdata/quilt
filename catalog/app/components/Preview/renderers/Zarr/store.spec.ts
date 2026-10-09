@@ -8,6 +8,8 @@ const resolvePath = async (path: string) => {
   return { bucket: 'b', key: `root.zarr/${path}` }
 }
 const sign = ({ key }: { key: string }) => `https://s3/${key}`
+const BUCKET = { forbiddenIsMissing: true, rootPath: '.zattrs' }
+const PACKAGE = { forbiddenIsMissing: false, rootPath: '.zattrs' }
 
 const fetchFor = (status: number) =>
   vi.fn(
@@ -20,31 +22,41 @@ const fetchFor = (status: number) =>
 describe('components/Preview/renderers/Zarr/store', () => {
   it('resolves store keys relative to the store root and returns bytes', async () => {
     const fetchImpl = fetchFor(200)
-    const store = createStore(resolvePath, sign, fetchImpl)
+    const store = createStore(resolvePath, sign, BUCKET, fetchImpl)
     expect(await store.get('/0/.zarray')).toEqual(new Uint8Array([1, 2]))
     expect(fetchImpl).toHaveBeenCalledWith('https://s3/root.zarr/0/.zarray', undefined)
   })
 
   it('treats 404 as missing for any key', async () => {
-    const store = createStore(resolvePath, sign, fetchFor(404))
+    const store = createStore(resolvePath, sign, BUCKET, fetchFor(404))
     expect(await store.get('/0/0.0.0.0')).toBeUndefined()
   })
 
-  it('treats 403 as missing, since S3 denies absent keys to non-listing callers', async () => {
-    const store = createStore(resolvePath, sign, fetchFor(403))
+  it('in a bucket, treats 403 on a probe or sparse chunk as missing', async () => {
+    const store = createStore(resolvePath, sign, BUCKET, fetchFor(403))
     expect(await store.get('/.zgroup')).toBeUndefined()
     expect(await store.get('/0/0.0.0.0')).toBeUndefined()
   })
 
+  it('reports a denied root metadata file as access denied', async () => {
+    const store = createStore(resolvePath, sign, BUCKET, fetchFor(403))
+    await expect(store.get('/.zattrs')).rejects.toThrow('Access denied to .zattrs')
+  })
+
+  it('in a package, fails a denied chunk instead of rendering fill value', async () => {
+    const store = createStore(resolvePath, sign, PACKAGE, fetchFor(403))
+    await expect(store.get('/0/0.0.0.0')).rejects.toThrow('Access denied')
+  })
+
   it('treats a key absent from the package as missing', async () => {
     const fetchImpl = fetchFor(200)
-    const store = createStore(resolvePath, sign, fetchImpl)
+    const store = createStore(resolvePath, sign, BUCKET, fetchImpl)
     expect(await store.get('/gone')).toBeUndefined()
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 
   it('surfaces resolver failures other than a missing key', async () => {
-    const store = createStore(resolvePath, sign, fetchFor(200))
+    const store = createStore(resolvePath, sign, BUCKET, fetchFor(200))
     await expect(store.get('/offline')).rejects.toThrow('Network request failed')
   })
 
@@ -53,29 +65,22 @@ describe('components/Preview/renderers/Zarr/store', () => {
     [{ suffixLength: 16 }, 'bytes=-16'],
   ])('sends range %j as %s', async (range, header) => {
     const fetchImpl = fetchFor(206)
-    const store = createStore(resolvePath, sign, fetchImpl)
+    const store = createStore(resolvePath, sign, BUCKET, fetchImpl)
     await store.getRange('/0/c/0/0', range)
     expect(fetchImpl).toHaveBeenCalledWith('https://s3/root.zarr/0/c/0/0', {
       headers: { Range: header },
     })
   })
 
-  it.each([
-    [{ offset: 1, length: 2 }, [2, 3]],
-    [{ suffixLength: 2 }, [3, 4]],
-  ])(
-    'slices %j itself when the server answers 200 with the whole object',
-    async (range, want) => {
-      const whole = vi.fn(
-        async () => new Response(new Uint8Array([1, 2, 3, 4]), { status: 200 }),
-      )
-      const store = createStore(resolvePath, sign, whole)
-      expect(await store.getRange('/0/c/0/0', range)).toEqual(new Uint8Array(want))
-    },
-  )
+  it('rejects a ranged read answered with the whole object', async () => {
+    const store = createStore(resolvePath, sign, BUCKET, fetchFor(200))
+    await expect(store.getRange('/0/c/0/0', { suffixLength: 16 })).rejects.toThrow(
+      'Range not honoured',
+    )
+  })
 
   it('throws on other HTTP errors', async () => {
-    const store = createStore(resolvePath, sign, fetchFor(500))
+    const store = createStore(resolvePath, sign, BUCKET, fetchFor(500))
     await expect(store.get('/0/0.0.0.0')).rejects.toThrow('500')
   })
 })

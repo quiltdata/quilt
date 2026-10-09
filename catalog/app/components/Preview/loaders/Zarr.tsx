@@ -12,7 +12,8 @@ import { isImage } from './zarrDetect'
 
 export { detect } from './zarrDetect'
 
-export const FILE_TYPE = FileType.Zarr
+// A view mode only: not a quilt_summarize type, so no FILE_TYPE.
+export const MODES = [FileType.Zarr]
 
 const BYTES_TO_SCAN = 128 * 1024
 

@@ -9,10 +9,15 @@ export interface ReadableStore {
   getRange(key: string, range: RangeQuery): Promise<Uint8Array | undefined>
 }
 
-// S3 answers 403 rather than 404 for an absent key when the caller cannot list the
-// bucket, and sparse arrays omit empty chunks, so 403 has to read as missing too. Access
-// is granted per bucket or prefix, so a store whose metadata loaded is readable as a whole.
-const MISSING = [403, 404]
+export interface StoreOptions {
+  // In a plain bucket S3 answers 403 for an absent key when the caller cannot list it, and
+  // sparse arrays omit empty chunks, so 403 must read as missing. A package already says
+  // which entries exist, so there a 403 is a real denial.
+  forbiddenIsMissing: boolean
+  // The root metadata file is known to exist (the loader read it), so a 403 on it is
+  // always a denial, never an absent key.
+  rootPath: string
+}
 
 // Prefix of the package LogicalKeyResolver's error for a path the revision lacks.
 export const NOT_IN_PACKAGE = 'Could not resolve logical key'
@@ -22,14 +27,10 @@ const rangeHeader = (r: RangeQuery) =>
     ? `bytes=-${r.suffixLength}`
     : `bytes=${r.offset}-${r.offset + r.length - 1}`
 
-const sliceRange = (bytes: Uint8Array, r: RangeQuery) =>
-  'suffixLength' in r
-    ? bytes.subarray(Math.max(0, bytes.length - r.suffixLength))
-    : bytes.subarray(r.offset, r.offset + r.length)
-
 export function createStore(
   resolvePath: (path: string) => Promise<Model.S3.S3ObjectLocation>,
   sign: (handle: Model.S3.S3ObjectLocation) => string,
+  { forbiddenIsMissing, rootPath }: StoreOptions,
   fetchImpl: typeof fetch = fetch,
 ): ReadableStore {
   async function read(key: string, range?: RangeQuery) {
@@ -47,11 +48,16 @@ export function createStore(
     }
     const init = range && { headers: { Range: rangeHeader(range) } }
     const res = await fetchImpl(sign(handle), init)
-    if (MISSING.includes(res.status)) return undefined
+    if (res.status === 404) return undefined
+    if (res.status === 403) {
+      if (forbiddenIsMissing && path !== rootPath) return undefined
+      throw new Error(`Access denied to ${path}`)
+    }
     if (!res.ok) throw new Error(`Failed to fetch ${path}: ${res.status}`)
-    const bytes = new Uint8Array(await res.arrayBuffer())
-    // A server that ignores Range answers 200 with the whole object.
-    return range && res.status !== 206 ? sliceRange(bytes, range) : bytes
+    // A server that ignores Range answers 200 with the whole object; slicing it would
+    // download a whole shard once per inner chunk.
+    if (range && res.status !== 206) throw new Error(`Range not honoured for ${path}`)
+    return new Uint8Array(await res.arrayBuffer())
   }
   return {
     get: (key) => read(key),
