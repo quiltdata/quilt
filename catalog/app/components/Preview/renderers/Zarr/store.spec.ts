@@ -32,6 +32,11 @@ describe('components/Preview/renderers/Zarr/store', () => {
     expect(await store.get('/0/0.0.0.0')).toBeUndefined()
   })
 
+  it('fails when the root metadata file has gone since the loader read it', async () => {
+    const store = createStore(resolvePath, sign, BUCKET, fetchFor(404))
+    await expect(store.get('/.zattrs')).rejects.toThrow('no longer exists')
+  })
+
   it('in a bucket, treats 403 on a probe or sparse chunk as missing', async () => {
     const store = createStore(resolvePath, sign, BUCKET, fetchFor(403))
     expect(await store.get('/.zgroup')).toBeUndefined()

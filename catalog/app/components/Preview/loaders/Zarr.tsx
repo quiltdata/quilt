@@ -28,6 +28,12 @@ export const Loader = function ZarrLoader({
   children,
   options,
 }: ZarrLoaderProps) {
+  const listing = options?.context === CONTEXT.LISTING
+  // Search hits and package diffs hand over a bare physical key with no package to
+  // resolve the store's other files through; reading them as siblings would be wrong.
+  if (listing && !(handle as { logicalKey?: string }).logicalKey) {
+    return <Json.Loader {...{ handle, children, options }} />
+  }
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes }: { firstBytes: string }) =>
       isImage(firstBytes) ? (
@@ -37,7 +43,7 @@ export const Loader = function ZarrLoader({
               handle,
               // Listings can hold many stores; each viewer is a WebGL context and a
               // tile stream, and browsers cap live contexts at about 16.
-              deferred: options?.context === CONTEXT.LISTING,
+              deferred: listing,
               modes: [FileType.Zarr, FileType.Json, FileType.Text],
             }),
           ),

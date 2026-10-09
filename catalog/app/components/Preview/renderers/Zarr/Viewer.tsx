@@ -86,7 +86,11 @@ async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane)
       // A single-resolution store makes the lowest level the full image; sample one tile.
       const { data } =
         y * x > MAX_STATS_PIXELS
-          ? await lowest.getTile({ x: 0, y: 0, selection })
+          ? await lowest.getTile({
+              x: Math.floor(x / lowest.tileSize / 2),
+              y: Math.floor(y / lowest.tileSize / 2),
+              selection,
+            })
           : await lowest.getRaster({ selection })
       const [start, end] = getChannelStats(data as any).contrastLimits
       return { ...ch, contrastLimits: validLimits(start, end) ?? fallback }
@@ -104,6 +108,10 @@ export default function Viewer({
   const classes = useStyles()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const sign = AWS.Signer.useS3Signer({ forceProxy: true })
+  // The signer's identity follows the bucket-region cache; reloading on every change
+  // would reset the view, so the store reads it through a ref.
+  const signRef = React.useRef(sign)
+  signRef.current = sign
   const ref = React.useRef<HTMLDivElement>(null)
   const [width, setWidth] = React.useState(0)
   const [state, setState] = React.useState<
@@ -117,6 +125,7 @@ export default function Viewer({
         selections: Record<string, number>[]
         plane: { z: number; t: number }
         depth: { z: number; t: number }
+        channelCount: number
       }
   >({ _tag: 'loading' })
   const [tileError, setTileError] = React.useState<string | null>(null)
@@ -152,7 +161,7 @@ export default function Viewer({
           bucket,
           key: s3paths.resolveKey(key, path),
         })
-    const store = createStore(resolvePath, sign, {
+    const store = createStore(resolvePath, (h) => signRef.current(h), {
       forbiddenIsMissing: !inPackage,
       rootPath: (logicalKey || key).split('/').pop()!,
     })
@@ -166,7 +175,7 @@ export default function Viewer({
       const cIndex = base.labels.indexOf('c')
       // ponytail: interleaved RGB(A) (`yxc`) is not composited yet; NGFF puts `c` first,
       // so this is rare. Viv's ZarrPixelSource cannot select all bands of one pixel.
-      if (isInterleaved(base.shape)) {
+      if (base.labels[base.labels.length - 1] === 'c' && isInterleaved(base.shape)) {
         throw new Error('Interleaved RGB OME-Zarr images are not supported yet.')
       }
       // The tile layer calls this from a promise, so its rethrow of a failed chunk would
@@ -194,15 +203,24 @@ export default function Viewer({
         return i === -1 ? 1 : base.shape[i]
       }
       const depth = { z: extent('z'), t: extent('t') }
-      if (!cancelled)
-        setState({ _tag: 'ready', loaded, channels, selections, plane, depth })
+      if (!cancelled) {
+        setState({
+          _tag: 'ready',
+          loaded,
+          channels,
+          selections,
+          plane,
+          depth,
+          channelCount,
+        })
+      }
     })().catch((error) => {
       if (!cancelled) setState({ _tag: 'error', error })
     })
     return () => {
       cancelled = true
     }
-  }, [bucket, key, version, logicalKey, resolveLogicalKey, sign])
+  }, [bucket, key, version, logicalKey, resolveLogicalKey])
 
   const toggle = (index: number) =>
     setState((s) =>
@@ -242,10 +260,6 @@ export default function Viewer({
             height={HEIGHT}
             width={width}
             snapScaleBar
-            // A failed tile is requested again once the view moves; clear the note then.
-            onViewStateChange={() => {
-              if (tileError) setTileError(null)
-            }}
           />
         )}
       </div>
@@ -281,9 +295,14 @@ export default function Viewer({
               }
             />
           ))}
+          {state.channelCount > state.channels.length && (
+            <M.Typography variant="caption" color="textSecondary">
+              Showing {state.channels.length} of {state.channelCount} channels
+            </M.Typography>
+          )}
           {tileError && (
             <M.Typography variant="caption" color="error">
-              Some tiles failed to load: {tileError}
+              Some tiles failed to load and are left blank: {tileError}
             </M.Typography>
           )}
         </div>

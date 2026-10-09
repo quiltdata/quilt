@@ -41,7 +41,10 @@ export default function ZarrWrapper(
   props: React.HTMLAttributes<HTMLDivElement>,
 ) {
   return (
-    <ErrorBoundary FallbackComponent={ZarrError}>
+    <ErrorBoundary
+      FallbackComponent={ZarrError}
+      resetKeys={[handle.bucket, handle.key, handle.version]}
+    >
       <div {...props}>
         {deferred ? (
           // Keyed so a reused row does not carry an earlier store's open state.

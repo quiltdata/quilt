@@ -48,6 +48,10 @@ export function createStore(
     }
     const init = range && { headers: { Range: rangeHeader(range) } }
     const res = await fetchImpl(sign(handle), init)
+    // The root was read by the loader; losing it now (deleted, or only an old version
+    // exists) must not read as an empty store with default layout.
+    if (res.status === 404 && path === rootPath)
+      throw new Error(`${path} no longer exists`)
     if (res.status === 404) return undefined
     if (res.status === 403) {
       if (forbiddenIsMissing && path !== rootPath) return undefined
