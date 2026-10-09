@@ -6,6 +6,8 @@ import * as Sentry from '@sentry/react'
 import Error from 'components/Error'
 import Layout from 'components/Layout'
 
+import { reloadIfStaleChunk } from './staleChunk'
+
 function FallbackComponent() {
   return (
     <Layout bare>
@@ -14,7 +16,9 @@ function FallbackComponent() {
   )
 }
 
-const onError = (error: Error) => Sentry.captureException(error)
+const onError = (error: Error) => {
+  if (!reloadIfStaleChunk(error)) Sentry.captureException(error)
+}
 
 export default function AppErrorBoundary({ children }: React.PropsWithChildren<{}>) {
   const location = useLocation()

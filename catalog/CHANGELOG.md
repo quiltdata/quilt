@@ -37,6 +37,7 @@ complete sentence without it.
 - [Added] The Tabulator table editor accepts `parser.format: h5ad`, so admins can declare tables over single-cell `.h5ad` files: expression as one row per cell, gene and value, or cell and gene annotations ([#5438](https://github.com/quiltdata/quilt/pull/5438))
 - [Added] Admins can approve the models Qurator may run under Admin > Settings > Qurator models, and users then pick among those in the Qurator menu instead of typing a model ID ([#5389](https://github.com/quiltdata/quilt/pull/5389))
 - [Fixed] Signed-in users get the admin-configured catalog settings (front door, theme, Qurator, feature flags) right after sign-in, without reloading the page ([#5371](https://github.com/quiltdata/quilt/pull/5371))
+- [Fixed] After a release, the catalog loads the new version on the next visit, and an open page reloads itself once instead of showing "Something went wrong" ([#5445](https://github.com/quiltdata/quilt/pull/5445))
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
 - [Fixed] Opening a folder or file your role cannot read shows Access Denied below the breadcrumbs instead of replacing the page with an error ([#5382](https://github.com/quiltdata/quilt/pull/5382))
 - [Fixed] Bucket directory listings keep their page in the URL, so Back from a file, a reload or a shared link returns to the same page instead of the first ([#5378](https://github.com/quiltdata/quilt/pull/5378))
