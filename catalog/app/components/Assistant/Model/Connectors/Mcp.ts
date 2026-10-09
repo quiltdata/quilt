@@ -25,6 +25,8 @@ import * as HttpClientRequest from '@effect/platform/HttpClientRequest'
 import * as Eff from 'effect'
 import * as uuid from 'uuid'
 
+import cfg from 'constants/config'
+
 import * as Content from '../Content'
 import * as Tool from '../Tool'
 
@@ -155,9 +157,13 @@ export class McpTransportError {
 
   readonly status?: number
 
-  constructor(props: { detail: string; status?: number }) {
+  /** The registry relay's `error_code`, e.g. `UpstreamAuth`. */
+  readonly errorCode?: string
+
+  constructor(props: { detail: string; status?: number; errorCode?: string }) {
     this.detail = props.detail
     this.status = props.status
+    this.errorCode = props.errorCode
   }
 
   get message() {
@@ -337,6 +343,42 @@ export function parseSseToJson(text: string): unknown | null {
   return null
 }
 
+/** The first complete event in `text` that answers request `id`, if any. */
+function findSseAnswer(text: string, id: string): string | null {
+  // The last segment may be an event still arriving.
+  const events = text.replace(/\r\n/g, '\n').split('\n\n').slice(0, -1)
+  for (const event of events) {
+    try {
+      const json = parseSseToJson(event) as { id?: unknown } | null
+      if (json && String(json.id) === id) return event
+    } catch {
+      // Not JSON: not the answer.
+    }
+  }
+  return null
+}
+
+/**
+ * Read an SSE body until the event answering `id` arrives, else to its end.
+ * A server may hold the stream open well after answering, past the
+ * connector's ping timeout; ending the read early aborts the request.
+ */
+const readSseUntilAnswer = <E>(stream: Eff.Stream.Stream<Uint8Array, E>, id: string) =>
+  stream.pipe(
+    Eff.Stream.decodeText(),
+    Eff.Stream.runFoldWhile(
+      { text: '', answer: null as string | null },
+      (s) => s.answer === null,
+      (s, chunk) => {
+        const text = s.text + chunk
+        // An event can only complete on a chunk carrying a newline.
+        return { text, answer: chunk.includes('\n') ? findSseAnswer(text, id) : null }
+      },
+    ),
+    // The stream's end also ends its last event.
+    Eff.Effect.map((s) => s.answer ?? findSseAnswer(`${s.text}\n\n`, id) ?? s.text),
+  )
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -348,8 +390,11 @@ export interface McpClientOptions {
    * circuits the request without firing a fetch. The token is read fresh on
    * every call — callers can close over a redux store and project the
    * current token via a memoized selector.
+   *
+   * Omitted, the request carries no `Authorization` header at all, rather
+   * than an empty or placeholder one.
    */
-  getToken: () => Eff.Effect.Effect<string, McpAuthError>
+  getToken?: () => Eff.Effect.Effect<string, McpAuthError>
 }
 
 export interface McpClient {
@@ -363,28 +408,41 @@ export interface McpClient {
   readResource: (uri: string) => Eff.Effect.Effect<McpResourceContents, McpError>
   /**
    * MCP base protocol `ping` — JSON-RPC method returning an empty object
-   * on success. Used as a transport-health probe; independent POST in
-   * stateless HTTP mode, no session state.
+   * on success. Used as a transport-health probe. After the server ends a
+   * session, it re-initializes instead.
    */
   ping: () => Eff.Effect.Effect<void, McpError>
 }
 
 export function make(options: McpClientOptions): McpClient {
+  // Streamable HTTP: a stateful server assigns `Mcp-Session-Id` on `initialize`
+  // and rejects later requests without it. Stateless servers never send one.
+  let sessionId: string | null = null
+  // Set when the server ends a session: a session-less `ping` would then get a
+  // 400 and the reconnect probe would never reach bootstrap.
+  let sessionExpired = false
+  // Set when that ping opened a new session and cleared by any later request, so
+  // only a bootstrap straight after the ping reuses it instead of opening another.
+  let reinitialized = false
+
   const post = (
     payload: JsonRpcRequest | Omit<JsonRpcRequest, 'id'>,
   ): Eff.Effect.Effect<JsonRpcResponse | null, McpError> =>
     Eff.Effect.gen(function* () {
-      const token = yield* options.getToken()
+      const token = options.getToken ? yield* options.getToken() : null
       const httpClient = yield* HttpClient.HttpClient
+      const sentSession = sessionId
+      reinitialized = false
 
-      const request = HttpClientRequest.post(options.url).pipe(
-        HttpClientRequest.bearerToken(token),
+      const base = HttpClientRequest.post(options.url).pipe(
         HttpClientRequest.setHeaders({
           Accept: 'application/json, text/event-stream',
           'MCP-Protocol-Version': PROTOCOL_VERSION,
+          ...(sentSession ? { 'Mcp-Session-Id': sentSession } : {}),
         }),
         HttpClientRequest.bodyText(JSON.stringify(payload), 'application/json'),
       )
+      const request = token === null ? base : HttpClientRequest.bearerToken(token)(base)
 
       // Strip W3C `traceparent` + Zipkin `b3` headers — the MCP server's
       // CORS allow-list rejects them (preflight: "Disallowed CORS
@@ -403,9 +461,33 @@ export function make(options: McpClientOptions): McpClient {
 
       // Read the body on every status, even the empty 202 of a notification:
       // an unread response is aborted when collected, which logs a failed request.
-      const body = yield* Eff.Effect.either(resp.text)
+      const isSse = (resp.headers['content-type'] ?? '')
+        .toLowerCase()
+        .includes('text/event-stream')
+      const body = yield* Eff.Effect.either(
+        isSse && 'id' in payload
+          ? readSseUntilAnswer(resp.stream, payload.id)
+          : resp.text,
+      )
+
+      // Only a session-less request (`initialize`) opens a session: a late reply
+      // echoing an ended one must not overwrite its replacement.
+      const assigned = resp.headers['mcp-session-id']
+      if (assigned && sentSession === null) sessionId = assigned
 
       if (resp.status === 202) return null
+
+      if (resp.status === 404 && sentSession) {
+        // A late 404 from a call in flight across a re-initialize must not end
+        // the session that replaced it.
+        if (sessionId === sentSession) {
+          sessionId = null
+          sessionExpired = true
+        }
+        return yield* Eff.Effect.fail(
+          new McpTransportError({ detail: 'session expired', status: 404 }),
+        )
+      }
 
       // 401/403: token missing/expired/revoked. Surface as auth error so
       // the connector layer doesn't bump health and trigger a futile
@@ -415,10 +497,14 @@ export function make(options: McpClientOptions): McpClient {
       }
 
       if (resp.status < 200 || resp.status >= 300) {
+        const errorCode = Eff.Either.isRight(body)
+          ? relayErrorCode(body.right)
+          : undefined
         return yield* Eff.Effect.fail(
           new McpTransportError({
-            detail: `HTTP ${resp.status}`,
+            detail: errorCode ?? `HTTP ${resp.status}`,
             status: resp.status,
+            errorCode,
           }),
         )
       }
@@ -497,16 +583,25 @@ export function make(options: McpClientOptions): McpClient {
       Eff.Effect.asVoid,
     )
 
+  const initialize = () =>
+    Eff.Effect.gen(function* () {
+      sessionId = null
+      yield* rpc('initialize', {
+        protocolVersion: PROTOCOL_VERSION,
+        capabilities: {},
+        clientInfo: CLIENT_INFO,
+      })
+      // Server MUST receive `initialized` after `initialize`.
+      yield* notify('notifications/initialized')
+      sessionExpired = false
+    })
+
   return {
     initialize: () =>
-      Eff.Effect.gen(function* () {
-        yield* rpc('initialize', {
-          protocolVersion: PROTOCOL_VERSION,
-          capabilities: {},
-          clientInfo: CLIENT_INFO,
-        })
-        // Server MUST receive `initialized` after `initialize`.
-        yield* notify('notifications/initialized')
+      Eff.Effect.suspend(() => {
+        if (!reinitialized) return initialize()
+        reinitialized = false
+        return Eff.Effect.void
       }),
     listTools: () =>
       rpc('tools/list').pipe(
@@ -528,7 +623,16 @@ export function make(options: McpClientOptions): McpClient {
         Eff.Effect.flatMap(decodeWith(McpResourceContentsSchema, 'resources/read')),
         Eff.Effect.map((r) => r as unknown as McpResourceContents),
       ),
-    ping: () => rpc('ping').pipe(Eff.Effect.asVoid),
+    ping: () =>
+      Eff.Effect.suspend(() =>
+        sessionExpired
+          ? initialize().pipe(
+              Eff.Effect.tap(() => {
+                reinitialized = true
+              }),
+            )
+          : rpc('ping').pipe(Eff.Effect.asVoid),
+      ),
   }
 }
 
@@ -579,7 +683,7 @@ export function mapContent(block: McpContent): Content.ToolResultContentBlock {
 }
 
 // ---------------------------------------------------------------------------
-// Backend adapter — `bearerPassthru` (1st-party, catalog auth passthrough)
+// Backend adapters
 // ---------------------------------------------------------------------------
 
 const adaptDescriptor = (m: McpToolDescriptor): BackendToolDescriptor => ({
@@ -621,13 +725,57 @@ const ERROR_TAG_MAP: Record<McpError['_tag'], BackendError['_tag']> = {
   McpRpcError: 'Application',
 }
 
-const adaptError = (e: McpError): BackendError => ({
-  _tag: ERROR_TAG_MAP[e._tag],
-  message: e.message,
-  transient: e._tag === 'McpTransportError',
-  retryable: e._tag === 'McpTransportError' && e.status === undefined,
-  cause: e._tag,
-})
+const adaptError = (e: McpError): BackendError => {
+  if (e._tag !== 'McpTransportError') {
+    return {
+      _tag: ERROR_TAG_MAP[e._tag],
+      message: e.message,
+      transient: false,
+      retryable: false,
+      cause: e._tag,
+    }
+  }
+  // The server refusing the credential the registry holds for it: not the
+  // catalog session, and no reconnect will fix it.
+  if (e.errorCode === 'UpstreamAuth') {
+    return {
+      _tag: 'Application',
+      message: 'the server refused the credential this stack holds for it',
+      transient: false,
+      retryable: false,
+      inertToHealth: true,
+      cause: e.errorCode,
+    }
+  }
+  // The relay's back-pressure: busy, not unhealthy.
+  if (e.status === 429 && e.errorCode === 'Busy') {
+    return {
+      _tag: 'Transport',
+      message: 'busy, try again shortly',
+      transient: false,
+      retryable: false,
+      inertToHealth: true,
+      cause: e._tag,
+    }
+  }
+  return {
+    _tag: 'Transport',
+    message: e.message,
+    transient: true,
+    retryable: e.status === undefined,
+    cause: e._tag,
+  }
+}
+
+/** The `error_code` of a registry error body, if it has one. */
+const relayErrorCode = (text: string): string | undefined => {
+  try {
+    const code = (JSON.parse(text) as { error_code?: unknown } | null)?.error_code
+    return typeof code === 'string' ? code : undefined
+  } catch {
+    return undefined
+  }
+}
 
 export interface BearerPassthruOptions {
   readonly url: string
@@ -686,3 +834,19 @@ export const bearerPassthru = (opts: BearerPassthruOptions): Backend => {
     ping: () => lift(wire.ping()),
   }
 }
+
+export interface RelayedOptions {
+  readonly slug: string
+  readonly getToken: BearerPassthruOptions['getToken']
+}
+
+/**
+ * An admin-registered server, reached through the registry's relay. The
+ * catalog token goes only to the registry, which holds the server's own
+ * credential and never sends it to the browser.
+ */
+export const relayed = (opts: RelayedOptions): Backend =>
+  bearerPassthru({
+    url: `${cfg.registryUrl}/api/mcp/${encodeURIComponent(opts.slug)}`,
+    getToken: opts.getToken,
+  })
