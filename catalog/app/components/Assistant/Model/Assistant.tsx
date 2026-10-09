@@ -1,5 +1,6 @@
 import * as Eff from 'effect'
 import invariant from 'invariant'
+import * as uuid from 'uuid'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -9,6 +10,7 @@ import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import defer from 'utils/defer'
 
 import * as Relay from './Relay'
@@ -20,6 +22,7 @@ import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import * as ModelChoice from './ModelChoice'
 import * as UserInstructions from './UserInstructions'
+import * as Sessions from './Sessions'
 import useIsEnabled from './enabled'
 
 export const DISABLED = Symbol('DISABLED')
@@ -281,6 +284,115 @@ function useDualInstructionsContext(): UserInstructions.DualInstructions {
   return React.useMemo(() => ({ global, personal }), [global, personal])
 }
 
+interface Saved {
+  id: string
+  updatedAt: string
+}
+
+/**
+ * The open session changes only once state shows the restored events, so a
+ * `Restore` the actor ignores never saves one conversation under another's id.
+ * A session another tab has saved since this one last did is forked, not
+ * overwritten. A conversation already on screen when the account changes is
+ * never saved for the new account.
+ */
+function useSessions(
+  state: Conversation.State,
+  dispatch: (action: Conversation.Action) => unknown,
+) {
+  const username: string = redux.useSelector(AuthSelectors.username) || ''
+  const [enabled, setEnabledState] = React.useState(false)
+  const [list, setList] = React.useState<Sessions.Session[]>([])
+  const [currentId, setCurrentId] = React.useState<string | null>(null)
+  const current = React.useRef<Saved | null>(null)
+  const pending = React.useRef<(Saved & { events: Conversation.Event[] }) | null>(null)
+  const owner = React.useRef<string | null>(null)
+  const { events } = state
+  const latestEvents = React.useRef(events)
+  latestEvents.current = events
+
+  const select = React.useCallback((saved: Saved | null) => {
+    current.current = saved
+    setCurrentId(saved?.id ?? null)
+  }, [])
+
+  React.useEffect(() => {
+    const on = !!username && Sessions.isEnabled(username)
+    setEnabledState(on)
+    setList(on ? Sessions.list(username) : [])
+    pending.current = null
+    owner.current = latestEvents.current.some((e) => !e.discarded) ? null : username
+    select(null)
+  }, [username, select])
+
+  React.useEffect(() => {
+    if (!username) return
+    const live = events.filter((e) => !e.discarded)
+    if (!live.length) owner.current = username
+    if (!enabled) return
+    if (pending.current?.events === events) {
+      const { id, updatedAt } = pending.current
+      pending.current = null
+      owner.current = username
+      return select({ id, updatedAt })
+    }
+    // An emptied conversation is "New session": the next turn saves as a new one.
+    if (!live.length) return select(null)
+    if (owner.current !== username) return
+    // Turned off in another tab since this one loaded.
+    if (!Sessions.isEnabled(username)) return setEnabledState(false)
+    const open = current.current
+    const stored = open && Sessions.list(username).find((s) => s.id === open.id)
+    const id = open && stored?.updatedAt === open.updatedAt ? open.id : uuid.v4()
+    const updatedAt = new Date().toISOString()
+    const saved = Sessions.save(username, {
+      id,
+      title: Sessions.titleOf(live),
+      updatedAt,
+      envelope: Sessions.encode(live),
+    })
+    if (saved) select({ id, updatedAt })
+    setList(Sessions.list(username))
+  }, [enabled, events, username, select])
+
+  const setEnabled = React.useCallback(
+    (on: boolean) => {
+      Sessions.setEnabled(username, on)
+      setEnabledState(on)
+      setList(on ? Sessions.list(username) : [])
+      pending.current = null
+      select(null)
+    },
+    [username, select],
+  )
+
+  const open = React.useCallback(
+    (id: string) => {
+      if (current.current?.id === id) return
+      const session = Sessions.list(username).find((s) => s.id === id)
+      const restored = session && Sessions.decode(session.envelope)
+      if (!restored) return
+      pending.current = { id, updatedAt: session.updatedAt, events: restored }
+      dispatch(Conversation.Action.Restore({ events: restored }))
+    },
+    [username, dispatch],
+  )
+
+  const remove = React.useCallback(
+    (id: string) => {
+      Sessions.remove(username, id)
+      setList(Sessions.list(username))
+      if (current.current?.id === id) dispatch(Conversation.Action.Clear())
+    },
+    [username, dispatch],
+  )
+
+  return React.useMemo(
+    () => ({ available: !!username, enabled, setEnabled, list, currentId, open, remove }),
+    [username, enabled, setEnabled, list, currentId, open, remove],
+  )
+}
+
 function useConstructAssistantAPI() {
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
@@ -320,6 +432,8 @@ function useConstructAssistantAPI() {
 
   GlobalContext.use(llm)
 
+  const sessions = useSessions(state, dispatch)
+
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
   const show = React.useCallback(() => setVisible(true), [])
@@ -341,6 +455,7 @@ function useConstructAssistantAPI() {
     state,
     dispatch,
     busy,
+    sessions,
     connectors,
     instructions,
     model,

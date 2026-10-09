@@ -24,6 +24,7 @@ complete sentence without it.
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
+- [Added] Qurator can keep your conversations in this browser (preview, off until you turn it on in the chat menu), listing them under Recent sessions to reopen or delete ([#5427](https://github.com/quiltdata/quilt/pull/5427))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
 - [Fixed] Qurator waits up to a minute for a free slot when other asks keep the stack busy, saying so while it waits, instead of failing with an HTTP 429 error, and reports an unavailable AI gateway at once instead of retrying it ([#5405](https://github.com/quiltdata/quilt/pull/5405))
