@@ -11,7 +11,7 @@ import time
 
 import requests
 
-from . import Package, __version__ as quilt3_version, api, session, util
+from . import Package, __version__ as quilt3_version, api, graphql, session, util
 from .backends import get_package_registry
 from .session import open_url
 from .uri import is_package_uri
@@ -28,6 +28,13 @@ def parse_arg_json(value):
         return json.loads(value)
     except json.JSONDecodeError:
         raise argparse.ArgumentTypeError(f'{value!r} is not a valid json string.')
+
+
+def parse_arg_json_object(value):
+    result = parse_arg_json(value)
+    if not isinstance(result, dict):
+        raise argparse.ArgumentTypeError(f'{value!r} is not a valid json object.')
+    return result
 
 
 def parse_positive_int(value):
@@ -192,6 +199,26 @@ def cmd_disable_telemetry():
 def cmd_list_packages(registry):
     for package_name in get_package_registry(registry).list_packages():
         print(package_name)
+
+
+def cmd_graphql(query, variables, operation_name):
+    if query == "-":
+        query = sys.stdin.read()
+    if not query.strip():
+        raise QuiltException("Empty GraphQL document.")
+    try:
+        data = graphql.execute(query, variables=variables, operation_name=operation_name)
+    except graphql.GraphQLOperationError as ex:
+        # The GraphQL spec allows errors alongside partial data; keep them on
+        # separate streams so stdout stays valid JSON.
+        for error in ex.errors:
+            print(f"GraphQL error: {error.message}", file=sys.stderr)
+        if ex.data is not None:
+            print(json.dumps(ex.data, indent=2))
+        return 1
+    except graphql.GraphQLError as ex:
+        raise QuiltException(f"GraphQL request failed: {ex}")
+    print(json.dumps(data, indent=2))
 
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
@@ -423,6 +450,29 @@ def create_parser():
         type=str,
     )
     list_packages_p.set_defaults(func=cmd_list_packages)
+
+    # graphql
+    shorthelp = "Execute a GraphQL query or mutation against the registry"
+    graphql_p = subparsers.add_parser("graphql", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    graphql_p.add_argument(
+        "query",
+        help="GraphQL document to execute, or - to read it from stdin",
+        type=str,
+    )
+    graphql_p.add_argument(
+        "--variables",
+        help="""
+            Variables for the query.
+            Format: A json string with keys in double quotes '{"key": "value"}'
+            """,
+        type=parse_arg_json_object,
+    )
+    graphql_p.add_argument(
+        "--operation-name",
+        help="Name of the operation to execute, if the document contains more than one",
+        type=str,
+    )
+    graphql_p.set_defaults(func=cmd_graphql)
 
     # verify
     shorthelp = "Verify that package contents matches a given directory"
