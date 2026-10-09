@@ -46,7 +46,7 @@ source:
   package_name: "^ccle/(?<date>[^_]+)_(?<study_id>[^_]+)_nfcore_rnaseq$"
   logical_key: "salmon/(?<sample_id>[^/]+)/quant*\\.genes\\.sf$"
 parser:
-  format: csv  # or `parquet`
+  format: csv  # or `parquet`; `h5ad` takes other fields, see below
   delimiter: "\t"
   header: true
 continue_on_error: true
@@ -71,10 +71,72 @@ continue_on_error: true
    expression may include named capture groups that will be added as columns
    to the table.
 1. **Parser**: The parser defines how to read the files. The `format` must be
-   one of `csv` or `parquet`. The optional `delimiter` (defaults to ',') is the
-   character used to separate fields in the CSV file. The optional `header`
-   field (defaults to 'false') is a boolean that indicates whether the first row
-   of the CSV file contains column names.
+   one of `csv`, `parquet` or `h5ad` (see [H5AD](#h5ad-anndata) below). The
+   optional `delimiter` (defaults to ',') is the character used to separate
+   fields in the CSV file. The optional `header` field (defaults to 'false') is
+   a boolean that indicates whether the first row of the CSV file contains
+   column names.
+
+### H5AD (AnnData)
+
+Single-cell `.h5ad` files are cell × gene matrices too wide for a fixed column
+schema, so the `h5ad` parser narrows each file to one of three standard tables,
+picked by `view`:
+
+- `view: x` (the default) has one row per non-zero value of the expression
+  matrix, whether it is stored sparse or dense; zeros are omitted. Declare any
+  of `cell_id STRING`, `gene_id STRING`, `value DOUBLE`, `cell_index BIGINT`
+  and `gene_index BIGINT`. `layer` picks the matrix: omitted for `X`, `raw`
+  for `raw/X`, or the name of an entry in `layers`. `layer` applies to
+  `view: x` only.
+- `view: obs` has one row per cell: `cell_id` (the cell names), `cell_index
+  BIGINT` (the row position) and any columns of the file's `obs` annotations,
+  declared by name.
+- `view: var` has one row per gene: `gene_id` (the gene names), `gene_index
+  BIGINT` and any columns of `var`.
+
+```yaml
+schema:
+  - name: cell_id
+    type: STRING
+  - name: gene_id
+    type: STRING
+  - name: value
+    type: DOUBLE
+source:
+  type: quilt-packages
+  package_name: ".*"
+  logical_key: "\\.h5ad$"
+parser:
+  format: h5ad
+  view: x
+```
+
+Tables of the three views join on `cell_id` or `gene_id` together with
+`$pkg_name`, `$top_hash` and `$logical_key`. Where names repeat within a file,
+join on `cell_index` or `gene_index` instead, except `gene_index` with
+`layer: raw`, which counts positions in `raw/var` rather than `var`:
+
+```sql
+SELECT o.batch, avg(x.value) AS mean_cd3e
+FROM "expression" x
+JOIN "cells" o
+  ON o.cell_id = x.cell_id
+  AND o."$pkg_name" = x."$pkg_name"
+  AND o."$top_hash" = x."$top_hash"
+  AND o."$logical_key" = x."$logical_key"
+WHERE x.gene_id = 'CD3E'
+GROUP BY o.batch
+```
+
+Files must use the current AnnData encoding (written by anndata 0.8 or later).
+Re-save older files with a current anndata. In `obs` and `var` tables, a
+nullable column that a file lacks reads as null and is noted in `$issue`, while
+a missing `nullable: false` column fails the file. Missing values in a
+`nullable: false` column read as the type's default (0, empty string or false),
+as for CSV. A value that cannot be cast to its declared type fails the file.
+Filters on `gene_id` or `cell_id` are applied after each matching file is read
+in full.
 
 ### Added columns
 
