@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 import { FileNotFound } from '../errors'
 
-import { deleteObject, fetchFile, objectVersions } from './object'
+import { applyS3Tags, deleteObject, fetchFile, objectVersions } from './object'
 
 class AWSError extends Error {
   code: string
@@ -155,6 +155,80 @@ describe('app/containers/Bucket/requests/object', () => {
         Bucket: 'test-bucket',
         Key: 'test-key',
       })
+    })
+  })
+
+  describe('applyS3Tags', () => {
+    it('merges into the current version and skips what it must not tag', async () => {
+      const putObjectTagging = vi.fn(() => ({ promise: () => Promise.resolve({}) }))
+      const s3 = {
+        headObject: ({ Key }: { Key: string }) => ({
+          promise: () => Promise.resolve({ VersionId: Key === 'stale' ? 'v2' : 'v1' }),
+        }),
+        getObjectTagging: () => ({
+          promise: () =>
+            Promise.resolve({
+              TagSet: [
+                { Key: 'owner', Value: 'ops' },
+                { Key: 'project', Value: 'old' },
+              ],
+            }),
+        }),
+        putObjectTagging,
+      } as unknown as S3
+
+      const result = await applyS3Tags({
+        s3,
+        config: { tags: { project: '/project' } },
+        meta: { project: 'apollo' },
+        bucket: 'b',
+        physicalKeys: [
+          's3://b/current?versionId=v1',
+          's3://b/stale?versionId=v1',
+          's3://b/unversioned',
+          's3://other/x?versionId=v1',
+        ],
+      })
+
+      expect(result.tagged).toBe(1)
+      expect(result.skipped.map((s) => s.reason).sort()).toEqual([
+        'No object version',
+        'Not the current version of the object',
+        'Outside the package bucket',
+      ])
+      expect(putObjectTagging).toHaveBeenCalledWith({
+        Bucket: 'b',
+        Key: 'current',
+        Tagging: {
+          TagSet: [
+            { Key: 'owner', Value: 'ops' },
+            { Key: 'project', Value: 'apollo' },
+          ],
+        },
+      })
+    })
+
+    it("doesn't write a tag set that is already up to date", async () => {
+      const putObjectTagging = vi.fn()
+      const s3 = {
+        headObject: () => ({ promise: () => Promise.resolve({ VersionId: 'v1' }) }),
+        getObjectTagging: () => ({
+          promise: () =>
+            Promise.resolve({ TagSet: [{ Key: 'project', Value: 'apollo' }] }),
+        }),
+        putObjectTagging,
+      } as unknown as S3
+
+      const result = await applyS3Tags({
+        s3,
+        config: { tags: { project: '/project' } },
+        meta: { project: 'apollo' },
+        bucket: 'b',
+        physicalKeys: ['s3://b/k?versionId=v1'],
+      })
+
+      expect(result).toEqual({ tagged: 0, unchanged: 1, skipped: [] })
+      expect(putObjectTagging).not.toHaveBeenCalled()
     })
   })
 })
