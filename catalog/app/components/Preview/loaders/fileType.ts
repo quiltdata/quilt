@@ -18,5 +18,6 @@ enum FileType {
   Text = 'text',
   Vega = 'vega',
   Voila = 'voila',
+  Zarr = 'zarr',
 }
 export default FileType

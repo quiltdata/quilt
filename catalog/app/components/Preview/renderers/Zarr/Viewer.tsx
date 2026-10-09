@@ -72,10 +72,14 @@ const DTYPE_MAX: Record<string, number> = {
   Int32: 2147483647,
 }
 
+// Floats have no natural range; a wide default keeps an image visible until the user
+// has controls to tune it.
+const FLOAT_FALLBACK = 65535
+
 async function deriveContrast(loaded: Loaded, channels: Channel[], plane: Plane) {
   const lowest = loaded.data[loaded.data.length - 1]
   const [y, x] = lowest.shape.slice(-2)
-  const fallback: [number, number] = [0, DTYPE_MAX[lowest.dtype] ?? 1]
+  const fallback: [number, number] = [0, DTYPE_MAX[lowest.dtype] ?? FLOAT_FALLBACK]
   return Promise.all(
     channels.map(async (ch) => {
       if (ch.contrastLimits) return ch
@@ -93,7 +97,9 @@ export interface ViewerProps {
   handle: LogicalKeyResolver.S3SummarizeHandle
 }
 
-export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerProps) {
+export default function Viewer({
+  handle: { bucket, key, version, logicalKey },
+}: ViewerProps) {
   const classes = useStyles()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const sign = AWS.Signer.useS3Signer({ forceProxy: true })
@@ -108,8 +114,11 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
         channels: Channel[]
         // Built once: Viv refetches every tile when this array's identity changes.
         selections: Record<string, number>[]
+        plane: { z: number; t: number }
+        depth: { z: number; t: number }
       }
   >({ _tag: 'loading' })
+  const [tileError, setTileError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     const el = ref.current
@@ -122,15 +131,26 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
   React.useEffect(() => {
     let cancelled = false
     setState({ _tag: 'loading' })
+    setTileError(null)
+    if (resolveLogicalKey && !logicalKey) {
+      // Inside a package the store's siblings must come from the same revision; reading
+      // them as plain S3 keys would mix revisions silently.
+      setState({
+        _tag: 'error',
+        error: new Error('Missing logical key for package entry'),
+      })
+      return
+    }
     // Store keys resolve against the root metadata file's directory: through the package
-    // in a package, as plain S3 keys in a bucket.
+    // in a package, as plain S3 keys in a bucket. In a bucket only the root file can be
+    // pinned to a version; a store is not versioned as a unit.
     const resolvePath =
       resolveLogicalKey && logicalKey
         ? async (path: string) => resolveLogicalKey(s3paths.resolveKey(logicalKey, path))
-        : async (path: string): Promise<Model.S3.S3ObjectLocation> => ({
-            bucket,
-            key: s3paths.resolveKey(key, path),
-          })
+        : async (path: string): Promise<Model.S3.S3ObjectLocation> => {
+            const k = s3paths.resolveKey(key, path)
+            return k === key ? { bucket, key, version } : { bucket, key: k }
+          }
     const store = createStore(resolvePath, sign)
     ;(async () => {
       const all = await loadOmeZarrFromStore(store as any)
@@ -146,13 +166,14 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
         throw new Error('Interleaved RGB OME-Zarr images are not supported yet.')
       }
       // The tile layer calls this from a promise, so its rethrow of a failed chunk would
-      // be an unhandled rejection and a silently blank tile.
+      // be an unhandled rejection and a silently blank tile. One failed tile is reported
+      // without discarding the rest; deck.gl requests it again on the next pan or zoom.
       const onTileError = base.onTileError.bind(base)
       base.onTileError = (e: Error) => {
         try {
           onTileError(e)
         } catch (error) {
-          if (!cancelled) setState({ _tag: 'error', error: error as Error })
+          if (!cancelled) setTileError((error as Error).message)
         }
       }
       const channelCount = cIndex === -1 ? 1 : base.shape[cIndex]
@@ -164,14 +185,20 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
         plane,
       )
       const selections = channels.map((c) => selectionFor(base.labels, c.index, plane))
-      if (!cancelled) setState({ _tag: 'ready', loaded, channels, selections })
+      const extent = (axis: string) => {
+        const i = base.labels.indexOf(axis)
+        return i === -1 ? 1 : base.shape[i]
+      }
+      const depth = { z: extent('z'), t: extent('t') }
+      if (!cancelled)
+        setState({ _tag: 'ready', loaded, channels, selections, plane, depth })
     })().catch((error) => {
       if (!cancelled) setState({ _tag: 'error', error })
     })
     return () => {
       cancelled = true
     }
-  }, [bucket, key, logicalKey, resolveLogicalKey, sign])
+  }, [bucket, key, version, logicalKey, resolveLogicalKey, sign])
 
   const toggle = (index: number) =>
     setState((s) =>
@@ -216,6 +243,16 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
       </div>
       {state._tag === 'ready' && (
         <div className={classes.channels}>
+          {(state.depth.z > 1 || state.depth.t > 1) && (
+            <M.Typography variant="caption" color="textSecondary">
+              {[
+                state.depth.z > 1 && `z ${state.plane.z + 1} of ${state.depth.z}`,
+                state.depth.t > 1 && `t ${state.plane.t + 1} of ${state.depth.t}`,
+              ]
+                .filter(Boolean)
+                .join(', ')}
+            </M.Typography>
+          )}
           {state.channels.map((c) => (
             <M.Chip
               key={c.index}
@@ -231,6 +268,11 @@ export default function Viewer({ handle: { bucket, key, logicalKey } }: ViewerPr
               }
             />
           ))}
+          {tileError && (
+            <M.Typography variant="caption" color="error">
+              Some tiles failed to load: {tileError}
+            </M.Typography>
+          )}
         </div>
       )}
     </div>

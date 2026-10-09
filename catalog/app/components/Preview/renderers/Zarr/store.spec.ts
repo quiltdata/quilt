@@ -30,11 +30,10 @@ describe('components/Preview/renderers/Zarr/store', () => {
     expect(await store.get('/0/0.0.0.0')).toBeUndefined()
   })
 
-  it('treats 403 as missing for metadata but fails a denied chunk', async () => {
+  it('treats 403 as missing, since S3 denies absent keys to non-listing callers', async () => {
     const store = createStore(resolvePath, sign, fetchFor(403))
     expect(await store.get('/.zgroup')).toBeUndefined()
-    expect(await store.get('/0/zarr.json')).toBeUndefined()
-    await expect(store.get('/0/0.0.0.0')).rejects.toThrow('403')
+    expect(await store.get('/0/0.0.0.0')).toBeUndefined()
   })
 
   it('treats a key absent from the package as missing', async () => {
@@ -61,12 +60,19 @@ describe('components/Preview/renderers/Zarr/store', () => {
     })
   })
 
-  it('rejects a ranged read answered with the whole object', async () => {
-    const store = createStore(resolvePath, sign, fetchFor(200))
-    await expect(store.getRange('/0/c/0/0', { suffixLength: 16 })).rejects.toThrow(
-      'Range not honoured',
-    )
-  })
+  it.each([
+    [{ offset: 1, length: 2 }, [2, 3]],
+    [{ suffixLength: 2 }, [3, 4]],
+  ])(
+    'slices %j itself when the server answers 200 with the whole object',
+    async (range, want) => {
+      const whole = vi.fn(
+        async () => new Response(new Uint8Array([1, 2, 3, 4]), { status: 200 }),
+      )
+      const store = createStore(resolvePath, sign, whole)
+      expect(await store.getRange('/0/c/0/0', range)).toEqual(new Uint8Array(want))
+    },
+  )
 
   it('throws on other HTTP errors', async () => {
     const store = createStore(resolvePath, sign, fetchFor(500))

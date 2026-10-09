@@ -87,8 +87,10 @@ export function onBaseGrid<L extends Level>(level: L, base: Level): L {
   const scale = (selection: Selection) =>
     Object.fromEntries(
       Object.entries(selection).map(([k, v]) => {
-        const i = level.labels.indexOf(k)
-        return [k, Math.floor((v * level.shape[i]) / base.shape[i])]
+        const li = level.labels.indexOf(k)
+        const bi = base.labels.indexOf(k)
+        if (li === -1 || bi === -1) return [k, v]
+        return [k, Math.floor((v * level.shape[li]) / base.shape[bi])]
       }),
     )
   return Object.create(level, {

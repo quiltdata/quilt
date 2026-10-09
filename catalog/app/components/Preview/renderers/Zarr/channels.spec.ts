@@ -68,4 +68,20 @@ describe('components/Preview/renderers/Zarr/channels', () => {
     await low.getRaster({ selection: { c: 1, z: 118 } })
     expect(getRaster).toHaveBeenCalledWith({ selection: { c: 1, z: 15 } })
   })
+
+  it('indexes each shape by its own labels and passes unknown keys through', async () => {
+    const base = {
+      labels: ['c', 'z', 'y', 'x'],
+      shape: [2, 236, 4, 4],
+      getTile: vi.fn(),
+      getRaster: vi.fn(),
+    }
+    const getRaster = vi.fn(async (p: unknown) => p)
+    const low = onBaseGrid(
+      { labels: ['z', 'c', 'y', 'x'], shape: [30, 2, 1, 1], getTile: vi.fn(), getRaster },
+      base,
+    )
+    await low.getRaster({ selection: { c: 1, z: 118, t: 3 } })
+    expect(getRaster).toHaveBeenCalledWith({ selection: { c: 1, z: 15, t: 3 } })
+  })
 })

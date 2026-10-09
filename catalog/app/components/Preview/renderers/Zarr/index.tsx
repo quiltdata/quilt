@@ -25,14 +25,25 @@ const Viewer: React.FC<ViewerProps> = RT.mkLazy(
   SuspensePlaceholder,
 )
 
+function Deferred({ handle }: { handle: Model.S3.S3ObjectLocation }) {
+  const [open, setOpen] = React.useState(false)
+  return open ? (
+    <Viewer handle={handle} />
+  ) : (
+    <M.Button variant="outlined" size="small" onClick={() => setOpen(true)}>
+      Open OME-Zarr viewer
+    </M.Button>
+  )
+}
+
 export default function ZarrWrapper(
-  { handle }: { handle: Model.S3.S3ObjectLocation },
+  { handle, deferred }: { handle: Model.S3.S3ObjectLocation; deferred?: boolean },
   props: React.HTMLAttributes<HTMLDivElement>,
 ) {
   return (
     <ErrorBoundary FallbackComponent={ZarrError}>
       <div {...props}>
-        <Viewer handle={handle} />
+        {deferred ? <Deferred handle={handle} /> : <Viewer handle={handle} />}
       </div>
     </ErrorBoundary>
   )
