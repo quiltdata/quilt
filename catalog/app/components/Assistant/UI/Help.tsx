@@ -19,7 +19,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexShrink: 0,
     gap: t.spacing(1),
-    minHeight: 56,
+    // Kept in sync with Chat.tsx's header: both match the 64px seam the rail
+    // logo and ContentBar toolbar share.
+    minHeight: 64,
     padding: t.spacing(1, 1, 1, 2),
   },
   mark: {
