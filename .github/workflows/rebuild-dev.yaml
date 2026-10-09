@@ -8,7 +8,19 @@ name: Rebuild dev
 # Rebuilding the real `dev` force-pushes it, so it stays off until the repo
 # variable REBUILD_DEV_ENABLED is `true`. A `dev-rebuild-*` target can be rebuilt
 # by hand to preview the result.
+#
+# Automatic rebuilds only happen on weekdays, 7 AM to 7 PM Colombia time
+# (America/Bogota, UTC-5 all year). Outside that window a push or PR event is
+# skipped rather than queued: dev is re-made from scratch each time, so the 7 AM
+# run picks up everything that changed overnight or over the weekend. A rebuild
+# on request (workflow_dispatch) runs at any hour.
 on:
+  # Hourly from 7 AM to 7 PM Colombia time, Monday to Friday. In UTC that is
+  # 12:00-23:00 Mon-Fri plus 00:00 Tue-Sat (7 PM Friday is 00:00 Saturday UTC).
+  # Off the hour because GitHub delays top-of-the-hour schedules the most.
+  schedule:
+    - cron: "7 12-23 * * 1-5"
+    - cron: "7 0 * * 2-6"
   push:
     branches: [master]
   # Any base: a stacked PR targets the branch of the PR below it.
@@ -26,7 +38,10 @@ permissions:
   pull-requests: write
 
 jobs:
-  rebuild:
+  # Decides whether this event rebuilds, in its own job so that a skipped or
+  # out-of-hours event never enters the rebuild job's concurrency group, where it
+  # could displace a pending rebuild someone asked for.
+  gate:
     # An unlabelled PR can be a link in a labelled stack, so its close or
     # retarget rebuilds too; the same-tree check keeps a needless run from pushing.
     if: >-
@@ -39,6 +54,37 @@ jobs:
       && (github.event.action != 'edited' || github.event.changes.base)
       && (startsWith(inputs.target, 'dev-rebuild-')
         || ((inputs.target || 'dev') == 'dev' && vars.REBUILD_DEV_ENABLED == 'true'))
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      rebuild: ${{ steps.hours.outputs.rebuild }}
+    steps:
+      - name: Check working hours
+        id: hours
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          # Scheduled runs are already limited to working hours by their cron,
+          # and a rebuild on request runs whenever it is asked for.
+          case "$EVENT" in
+            schedule | workflow_dispatch) echo rebuild=true >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          # Colombia has no daylight saving, so a fixed UTC-5 offset is exact and
+          # does not depend on the runner's time zone data.
+          day="$(TZ=COT5 date +%u)"   # 1 = Monday ... 7 = Sunday
+          hour="$(TZ=COT5 date +%-H)"
+          if [ "$day" -le 5 ] && [ "$hour" -ge 7 ] && [ "$hour" -lt 19 ]; then
+            echo rebuild=true >> "$GITHUB_OUTPUT"
+          else
+            echo "Outside weekday 7 AM-7 PM Colombia time; skipping. The next working-hours run picks this change up." \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+            echo rebuild=false >> "$GITHUB_OUTPUT"
+          fi
+
+  rebuild:
+    needs: gate
+    if: needs.gate.outputs.rebuild == 'true'
     # On the job so a skipped run cannot displace a pending one.
     concurrency:
       group: rebuild-dev-${{ inputs.target || 'dev' }}
