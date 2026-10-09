@@ -150,6 +150,21 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(out).not.toContain('TOKEN')
   })
 
+  it('counts a successful result as run, whatever its text says', () => {
+    const e = [
+      tool(
+        'platform__object_read',
+        { bucket: 'other', key: 'k' },
+        Tool.succeed(
+          Content.ToolResultContentBlock.Text({
+            text: 'Declined by the user; do not retry.',
+          }),
+        ),
+      ),
+    ]
+    expect(SessionPackage.foreignBuckets(e, 'quilt-dev')).toEqual(['other'])
+  })
+
   it('flags a call that ran without naming a bucket', () => {
     expect(SessionPackage.unscoped(events)).toBe(false)
     const search = [tool('platform__search_objects', { query: 'csv' }, Tool.succeed())]
