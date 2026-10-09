@@ -239,22 +239,40 @@ export function LLMRelay(options: RelayOptions) {
         // Re-read per attempt: a Busy wait can outlast the session token.
         const attempt = Eff.Effect.flatMap(options.getToken(), (fresh) =>
           Eff.Effect.tryPromise({
-            try: async () => {
-              const r = await fetch(
-                `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'content-type': 'application/json',
-                    authorization: `Bearer ${fresh ?? token}`,
-                  },
-                  body: JSON.stringify(requestBody),
-                  signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-                },
+            try: async (signal) => {
+              // by hand: AbortSignal.any is missing in supported Safari 16-17.3
+              const ctrl = new AbortController()
+              const stop = () => ctrl.abort(signal.reason)
+              if (signal.aborted) stop()
+              signal.addEventListener('abort', stop)
+              const timer = setTimeout(
+                () =>
+                  ctrl.abort(
+                    new DOMException('The operation timed out.', 'TimeoutError'),
+                  ),
+                REQUEST_TIMEOUT_MS,
               )
-              const text = await r.text()
-              if (!r.ok) throw classifyFailure(r, text)
-              return JSON.parse(text) as BedrockRuntime.ConverseResponse
+              try {
+                const r = await fetch(
+                  `${options.url}/model/${encodeURIComponent(modelId)}/converse`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'content-type': 'application/json',
+                      authorization: `Bearer ${fresh ?? token}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                    // interruption (dialog closed, request replaced) cancels the fetch too
+                    signal: ctrl.signal,
+                  },
+                )
+                const text = await r.text()
+                if (!r.ok) throw classifyFailure(r, text)
+                return JSON.parse(text) as BedrockRuntime.ConverseResponse
+              } finally {
+                clearTimeout(timer)
+                signal.removeEventListener('abort', stop)
+              }
             },
             catch: (e) =>
               e instanceof Failure

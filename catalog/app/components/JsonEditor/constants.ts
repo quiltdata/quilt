@@ -23,3 +23,6 @@ export const COLUMN_IDS = {
 export const EMPTY_VALUE = Symbol('empty')
 
 export const JSON_POINTER_PLACEHOLDER = '__*'
+
+/** `property` (guided metadata): rows also show required, type and the schema's description. */
+export type EditorMode = 'default' | 'property'

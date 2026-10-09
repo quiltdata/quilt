@@ -25,18 +25,40 @@ export const Loading = { _tag: 'loading' as const }
 export const Err = (error: Error) => ({ _tag: 'error' as const, error })
 export const Ready = (schema?: JsonSchema) => ({ _tag: 'ready' as const, schema })
 
-export function mkMetaValidator(schema?: JsonSchema) {
-  const schemaValidator = makeSchemaValidator(schema)
+/** `{ formats: false }` ignores `format`, which only quilt's catalog enforces. */
+export function mkMetaValidator(
+  schema?: JsonSchema,
+  { formats = true, keepSet = false } = {},
+) {
+  // keepSet: defaults come only from the walker below, which submit also runs,
+  // so Ajv must not add any to its private copy
+  const schemaValidator = makeSchemaValidator(schema, undefined, {
+    ...(formats ? {} : { validateFormats: false }),
+    // guided blocks on this result, so an annotation keyword ("x-ui") must not fail
+    // compilation where the server's Draft7Validator ignores it
+    // strictSchema only: strictNumbers must stay, or Infinity (from 1e400) validates
+    ...(keepSet ? { useDefaults: false, strictSchema: false } : {}),
+  })
   return function validateMeta(value: Types.Json): (ErrorObject | Error)[] | undefined {
     const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
       return [new Error('Metadata must be a valid JSON object')]
     }
 
-    const setDefaults = makeSchemaDefaultsSetter(schema)
+    const setDefaults = makeSchemaDefaultsSetter(schema, { keepSet })
     const errors = schemaValidator(setDefaults(value))
     if (errors.length) return errors
   }
+}
+
+/**
+ * What submit will accept: quilt3 and the registry validate with Draft7Validator and no
+ * format checker, so format-blind validation is the server's answer either way: a format
+ * failure passes, and a value matching two `oneOf` branches once formats are ignored fails.
+ */
+export function mkSubmitValidator(schema?: JsonSchema) {
+  const blind = mkMetaValidator(schema, { formats: false, keepSet: true })
+  return (value: Types.Json): (ErrorObject | Error)[] => blind(value) ?? []
 }
 
 export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
@@ -45,13 +67,15 @@ export function useMetadataSchema(workflow?: workflows.Workflow): SchemaStatus {
   const req = React.useCallback(() => metadataSchema({ s3, schemaUrl }), [schemaUrl, s3])
   const result = Request.use(req, !!schemaUrl)
 
-  if (!schemaUrl) return Ready()
-
-  if (result === Request.Idle) return Idle
-  if (result === Request.Loading) return Loading
-  if (result instanceof Error) return Err(result)
-
-  return Ready(result)
+  // one wrapper per result: validators memoize on it, so a fresh one each render
+  // recompiled Ajv on every keystroke
+  return React.useMemo(() => {
+    if (!schemaUrl) return Ready()
+    if (result === Request.Idle) return Idle
+    if (result === Request.Loading) return Loading
+    if (result instanceof Error) return Err(result)
+    return Ready(result)
+  }, [result, schemaUrl])
 }
 
 export function useEntriesSchema(workflow?: workflows.Workflow): SchemaStatus {

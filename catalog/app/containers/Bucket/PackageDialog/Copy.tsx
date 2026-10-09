@@ -18,6 +18,7 @@ import * as Layout from './Layout'
 import * as Skeleton from './Skeleton'
 import * as PDModel from './State'
 import { isPackageHandle } from './State/manifest'
+import { useGuardedInputs } from './State/meta'
 import SubmitSpinner from './SubmitSpinner'
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
@@ -115,9 +116,18 @@ function PackageCopyForm({ close, successor, state }: PackageCopyFormProps) {
   } = state
   const classes = useStyles()
 
+  const { guardedWorkflow, guardedSetSrc } = useGuardedInputs(
+    meta.pending,
+    workflow,
+    setSrc,
+  )
+
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
-  const dialogContentClasses = Layout.useContentStyles({ metaHeight })
+  // guided: the pane flex-grows, so its measured height must not size the dialog (see Create)
+  const dialogContentClasses = Layout.useContentStyles({
+    metaHeight: meta.guided ? Infinity : metaHeight,
+  })
 
   const handleCopy = React.useCallback(
     (event: React.FormEvent) => {
@@ -138,10 +148,10 @@ function PackageCopyForm({ close, successor, state }: PackageCopyFormProps) {
           <Inputs.Workflow
             formStatus={formStatus}
             schema={metadataSchema}
-            state={workflow}
+            state={guardedWorkflow}
             config={workflowsConfig}
           />
-          <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
+          <Inputs.Name formStatus={formStatus} state={name} setSrc={guardedSetSrc} />
           <Inputs.Message formStatus={formStatus} state={message} />
           <Inputs.Meta
             formStatus={formStatus}

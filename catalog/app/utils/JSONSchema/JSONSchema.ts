@@ -268,16 +268,32 @@ function scanSchemaAndPrefillValues(
   getValue: (s?: JsonSchema) => any,
   value: Record<string, any>,
   optSchema?: JsonSchema,
+  keepSet = false,
 ): Record<string, any> {
   if (!optSchema) return value
 
   if (!optSchema?.properties) return value
 
-  return Object.keys(optSchema.properties).reduce((memo, key) => {
-    const valueItem = value === undefined ? undefined : value[key]
+  // null has nothing to prefill and would throw on `value[key]`; keepSet also leaves other
+  // non-objects as they are, while the default mode may still replace a falsy one below
+  if (value === null) return value
+  if (
+    keepSet &&
+    value !== undefined &&
+    (typeof value !== 'object' || Array.isArray(value))
+  )
+    return value
 
-    // don't touch user's primitive value
-    if (valueItem && !R.is(Object, valueItem)) return memo
+  return Object.keys(optSchema.properties).reduce((memo, key) => {
+    // keepSet: own keys only, so a missing "constructor" field is not Object's function
+    const valueItem =
+      value === undefined || (keepSet && !Object.hasOwn(value, key))
+        ? undefined
+        : value[key]
+
+    // don't touch user's primitive value; with keepSet, false, 0 and null count as set too
+    const isSet = keepSet ? valueItem !== undefined : !!valueItem
+    if (isSet && !R.is(Object, valueItem)) return memo
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
@@ -285,8 +301,16 @@ function scanSchemaAndPrefillValues(
     // and not in conditionals like `oneOf`, `anyOf`, `if` etc.
     // https://github.com/ajv-validator/ajv/issues/42#issuecomment-170250113
 
+    // a stored null is a value: it must not fall through to the default lookup below
+    if (valueItem === null && schemaItem.properties) return memo
+
     if (schemaItem.properties) {
-      const properties = scanSchemaAndPrefillValues(getValue, valueItem, schemaItem)
+      const properties = scanSchemaAndPrefillValues(
+        getValue,
+        valueItem,
+        schemaItem,
+        keepSet,
+      )
       if (properties) {
         return R.assoc(key, properties, memo)
       }
@@ -294,7 +318,7 @@ function scanSchemaAndPrefillValues(
 
     if (schemaItem.items && Array.isArray(valueItem)) {
       const items = valueItem
-        .map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items))
+        .map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items, keepSet))
         .filter((x) => x !== undefined)
       if (items.length) {
         return R.assoc(key, items, memo)
@@ -302,6 +326,12 @@ function scanSchemaAndPrefillValues(
     }
 
     const preDefinedValue = getValue(schemaItem)
+    if (keepSet) {
+      const unset = valueItem === undefined
+      return unset && preDefinedValue !== undefined
+        ? R.assoc(key, preDefinedValue, memo)
+        : memo
+    }
     if (preDefinedValue) return R.assoc(key, preDefinedValue, memo)
 
     return memo
@@ -324,8 +354,13 @@ export function getDefaultValue(optSchema?: JsonSchema): any {
   return undefined
 }
 
-export function makeSchemaDefaultsSetter(optSchema?: JsonSchema) {
-  return (obj: any) => scanSchemaAndPrefillValues(getDefaultValue, obj, optSchema)
+/** `keepSet` treats false, 0 and null as values the user chose, not gaps to default. */
+export function makeSchemaDefaultsSetter(
+  optSchema?: JsonSchema,
+  { keepSet = false } = {},
+) {
+  return (obj: any) =>
+    scanSchemaAndPrefillValues(getDefaultValue, obj, optSchema, keepSet)
 }
 
 export function getSchemaItemKeysOr<T extends string[]>(
