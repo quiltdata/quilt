@@ -183,6 +183,13 @@ const useToolMessageStyles = M.makeStyles((t) => ({
   details: {
     marginTop: t.spacing(1),
   },
+  reason: {
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 2,
+    color: t.palette.text.secondary,
+    display: '-webkit-box',
+    overflow: 'hidden',
+  },
 }))
 
 interface ConversationDispatchProps {
@@ -193,15 +200,26 @@ interface ConversationStateProps {
   state: Model.Conversation.State['_tag']
 }
 
+/** `platform__package_patch` → `package patch` */
+export const toolTitle = (name: string) => name.replace(/^.*?__/, '').replace(/_/g, ' ')
+
 interface ToolMessageProps {
   name: string
   status?: 'success' | 'error' | 'running'
+  reason?: string
   details: Record<string, any>
   timestamp: Date
   actions?: React.ReactNode
 }
 
-function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageProps) {
+function ToolMessage({
+  name,
+  status,
+  reason,
+  details,
+  timestamp,
+  actions,
+}: ToolMessageProps) {
   const classes = useToolMessageStyles()
   const [expanded, setExpanded] = React.useState(false)
 
@@ -237,6 +255,7 @@ function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageP
           />
         )}
       </M.ButtonBase>
+      {reason && !expanded && <div className={classes.reason}>{reason}</div>}
       <M.Collapse in={expanded}>
         <div className={classes.details}>
           <JsonDisplay defaultExpanded={2} name="details" value={details} />
@@ -308,10 +327,16 @@ function ToolUseEvent({
     () => ({ toolUseId, input, result }),
     [toolUseId, input, result],
   )
+  const reason = React.useMemo(() => {
+    if (result.status !== 'error') return undefined
+    const text = result.content.find((c) => c._tag === 'Text')
+    return text?._tag === 'Text' ? text.text : undefined
+  }, [result])
   return (
     <ToolMessage
-      name={name}
+      name={toolTitle(name)}
       status={result.status}
+      reason={reason}
       details={details}
       timestamp={timestamp}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
@@ -324,27 +349,149 @@ interface ToolUseStateProps extends ConversationDispatchProps {
   calls: Model.Conversation.ToolCalls
 }
 
-function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
+export function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
   const abort = React.useCallback(
     () => dispatch(Model.Conversation.Action.Abort()),
     [dispatch],
   )
 
-  const details = React.useMemo(
-    () => Eff.Record.map(calls, Eff.Struct.pick('name', 'input')),
+  const running = React.useMemo(
+    () => Eff.Record.filter(calls, (c) => !c.approval),
     [calls],
   )
+  const details = React.useMemo(
+    () => Eff.Record.map(running, Eff.Struct.pick('name', 'input')),
+    [running],
+  )
 
-  const names = Eff.Record.collect(calls, (_k, v) => v.name)
+  const names = Eff.Record.collect(running, (_k, v) => toolTitle(v.name))
+  const abortAction = <MessageAction onClick={abort}>abort</MessageAction>
 
   return (
-    <ToolMessage
-      name={names.join(', ')}
-      status="running"
-      details={details}
-      timestamp={timestamp}
-      actions={<MessageAction onClick={abort}>abort</MessageAction>}
-    />
+    <>
+      {Eff.Record.collect(calls, (id, call) =>
+        call.approval ? (
+          <ApprovalCard
+            key={id}
+            id={id}
+            call={call}
+            approval={call.approval}
+            dispatch={dispatch}
+            timestamp={timestamp}
+            actions={names.length ? undefined : abortAction}
+          />
+        ) : null,
+      )}
+      {names.length > 0 && (
+        <ToolMessage
+          name={names.join(', ')}
+          status="running"
+          details={details}
+          timestamp={timestamp}
+          actions={abortAction}
+        />
+      )}
+    </>
+  )
+}
+
+const useApprovalStyles = M.makeStyles((t) => ({
+  heading: {
+    alignItems: 'center',
+    display: 'flex',
+    fontWeight: t.typography.fontWeightMedium,
+    gap: t.spacing(0.5),
+  },
+  destructive: {
+    color: t.palette.error.dark,
+  },
+  icon: {
+    fontSize: t.typography.body1.fontSize,
+  },
+  args: {
+    color: t.palette.text.secondary,
+    listStyle: 'none',
+    margin: t.spacing(0.5, 0),
+    overflowWrap: 'anywhere',
+    padding: 0,
+    // An inline file body must not push Run / Don't run off-screen; the full
+    // input is in the expander below.
+    '& li': {
+      WebkitBoxOrient: 'vertical',
+      WebkitLineClamp: 3,
+      display: '-webkit-box',
+      overflow: 'hidden',
+    },
+  },
+  buttons: {
+    display: 'flex',
+    gap: t.spacing(1),
+    marginTop: t.spacing(1),
+  },
+}))
+
+const isScalar = (v: unknown) =>
+  typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+
+interface ApprovalCardProps extends ConversationDispatchProps {
+  id: string
+  call: Model.Conversation.ToolCall
+  approval: NonNullable<Model.Conversation.ToolCall['approval']>
+  timestamp: Date
+  actions?: React.ReactNode
+}
+
+// A write waits here until the user says so: content Qurator has read can
+// steer the model, so the user's role permitting a write is not consent.
+function ApprovalCard({
+  id,
+  call,
+  approval,
+  dispatch,
+  timestamp,
+  actions,
+}: ApprovalCardProps) {
+  const classes = useApprovalStyles()
+  const approve = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Approve({ id, key: call.key ?? '' })),
+    [dispatch, id, call.key],
+  )
+  const deny = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Deny({ id, key: call.key ?? '' })),
+    [dispatch, id, call.key],
+  )
+  const destructive = approval === 'destructive'
+  const args = Object.entries(call.input).filter(([, v]) => isScalar(v))
+  return (
+    <MessageContainer timestamp={timestamp} actions={actions}>
+      <div className={cx(classes.heading, destructive && classes.destructive)}>
+        <M.Icon className={classes.icon}>{destructive ? 'warning' : 'edit'}</M.Icon>
+        Qurator wants to run “{toolTitle(call.name)}”
+      </div>
+      {destructive && <div>This can replace or delete existing data.</div>}
+      {args.length > 0 && (
+        <ul className={classes.args}>
+          {args.map(([k, v]) => (
+            <li key={k}>
+              {k}: {String(v)}
+            </li>
+          ))}
+        </ul>
+      )}
+      <JsonDisplay
+        defaultExpanded={args.length < Object.keys(call.input).length ? 2 : 0}
+        name="input"
+        value={call.input}
+      />
+      <div className={classes.buttons}>
+        <M.Button size="small" variant="contained" color="primary" onClick={approve}>
+          Run
+        </M.Button>
+        <M.Button size="small" variant="outlined" onClick={deny}>
+          Don't run
+        </M.Button>
+      </div>
+    </MessageContainer>
   )
 }
 

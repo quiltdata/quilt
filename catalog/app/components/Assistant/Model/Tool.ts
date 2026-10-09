@@ -21,7 +21,15 @@ export type ResultOption = Eff.Option.Option<Result>
 
 export type Executor<I> = (params: I) => Eff.Effect.Effect<ResultOption>
 
+/**
+ * What running a tool can do to the user's data. Anything but `read` waits
+ * for the user's approval before it runs, so an unknown tool must not
+ * default to `read`.
+ */
+export type Effect = 'read' | 'write' | 'destructive'
+
 export interface Descriptor<I> {
+  effect: Effect
   description?: string
   schema: Eff.JSONSchema.JsonSchema7Root
   executor: Executor<I>
@@ -78,6 +86,7 @@ export function makeJSONSchema(schema: Eff.Schema.Schema<any, any>) {
 export function make<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
+  effect: Effect = 'write',
 ): Descriptor<A> {
   // Lift `description` out of the schema body so Bedrock doesn't ship
   // it twice (once as `toolSpec.description`, once inside
@@ -109,6 +118,7 @@ export function make<A, I>(
     )
 
   return {
+    effect,
     description,
     schema: jsonSchema,
     executor: wrappedFn,
@@ -121,14 +131,15 @@ export function useMakeTool<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
   deps: React.DependencyList = EMPTY_DEPS,
+  effect: Effect = 'write',
 ): Descriptor<A> {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fnMemo = React.useCallback(fn, deps)
-  return React.useMemo(() => make(schema, fnMemo), [schema, fnMemo])
+  return React.useMemo(() => make(schema, fnMemo, effect), [schema, fnMemo, effect])
 }
 
 export const execute = (tools: Collection, name: string, input: unknown) =>
-  name in tools
+  Eff.Record.has(tools, name)
     ? tools[name].executor(input)
     : Eff.Effect.succeed(
         Eff.Option.some(
