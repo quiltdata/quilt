@@ -231,6 +231,9 @@ export function useSessionSave(api: API): SessionSave {
   const existence = useNameExistence(dst, mine ? dst : undefined)
   // A new conversation is a new package: drop what the last one typed and saved.
   const sid = SessionPackage.sessionId(events)
+  // A save still in flight when a new session starts belongs to the old one.
+  const sidRef = React.useRef(sid)
+  sidRef.current = sid
   React.useEffect(() => {
     setName('')
     setSavedTo([])
@@ -261,7 +264,9 @@ export function useSessionSave(api: API): SessionSave {
     } catch {
       // Unpersisted, the choice still holds for this save.
     }
+    const startedIn = sidRef.current
     const result = await doSave(bucket, name, includeResults, mine)
+    if (sidRef.current !== startedIn) return
     if (result._tag === 'saved')
       setSavedTo((s) =>
         s.includes(`${bucket}/${name}`) ? s : [...s, `${bucket}/${name}`],
