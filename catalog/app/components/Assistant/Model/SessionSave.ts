@@ -267,6 +267,8 @@ export function useSessionSave(api: API): SessionSave {
     const startedIn = sidRef.current
     const result = await doSave(bucket, name, includeResults, mine)
     if (sidRef.current !== startedIn) return
+    // Pinned once saved: discarding the first message would otherwise derive a new name.
+    if (result._tag === 'saved') setName(name)
     if (result._tag === 'saved')
       setSavedTo((s) =>
         s.includes(`${bucket}/${name}`) ? s : [...s, `${bucket}/${name}`],

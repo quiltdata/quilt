@@ -840,6 +840,12 @@ function PlusMenu({
     .map((r, i) => (r.divider || r.heading || r.disabled ? -1 : i))
     .filter((i) => i >= 0)
   const activeIdx = focusable[Math.min(active, focusable.length - 1)] ?? -1
+  React.useEffect(() => {
+    if (activeIdx < 0) return
+    document
+      .getElementById(`${listId}-${activeIdx}`)
+      ?.scrollIntoView?.({ block: 'nearest' })
+  }, [activeIdx, listId])
 
   const activate = (r: Row) => {
     if (r.disabled) return
