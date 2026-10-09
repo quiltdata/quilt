@@ -961,6 +961,8 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 disabled={editLocked}
                 errors={errors}
                 key={jsonInlineEditorKey}
+                // guided: say what each field is, as the form does
+                mode={guided ? 'property' : 'default'}
                 // `disabled` only blocks the mouse in JsonEditor; keyboard edits are dropped here
                 onChange={editLocked ? noop : onChangeInline}
                 schema={schema}

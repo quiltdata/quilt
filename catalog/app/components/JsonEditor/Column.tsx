@@ -16,9 +16,17 @@ import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
 import * as Toolbar from './Toolbar'
-import { COLUMN_IDS, JsonValue, RowData } from './constants'
+import { COLUMN_IDS, EditorMode, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
+  head: {
+    ...t.typography.caption,
+    background: t.palette.background.default,
+    border: `1px solid ${t.palette.grey[400]}`,
+    color: t.palette.text.secondary,
+    fontWeight: t.typography.fontWeightMedium,
+    padding: t.spacing(0.5, 1),
+  },
   root: {
     flex: 'none',
     padding: '1px 0', // NOTE: fit 2px border for input
@@ -130,6 +138,7 @@ interface ColumnProps {
     parent?: JsonValue
   }
   jsonDict: Record<string, JsonValue>
+  mode?: EditorMode
   onAddRow: (path: JSONPointer.Path, key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: JSONPointer.Path) => void
   onChange: (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => void
@@ -146,6 +155,7 @@ export default function Column({
   data,
   hasSiblingColumn,
   jsonDict,
+  mode = 'default',
   onAddRow,
   onBreadcrumb,
   onChange,
@@ -220,6 +230,17 @@ export default function Column({
 
       <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>
         <M.Table {...getTableProps({ className: classes.table })}>
+          {mode === 'property' && (
+            <M.TableHead>
+              <M.TableRow>
+                {['Field', 'Value', 'Type', 'About'].map((h) => (
+                  <M.TableCell className={classes.head} key={h}>
+                    {h}
+                  </M.TableCell>
+                ))}
+              </M.TableRow>
+            </M.TableHead>
+          )}
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
               const isLastRow = index === rows.length - 1
@@ -231,6 +252,7 @@ export default function Column({
                 columnPath,
                 contextMenuPath,
                 fresh: isLastRow && hasNewRow,
+                mode,
                 onContextMenu,
                 onExpand,
                 onRemove,

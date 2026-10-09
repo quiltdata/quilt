@@ -11,7 +11,7 @@ import illustrationEnterValues from './enter-values.webm'
 import illustrationObjectExpand from './object-expand.webm'
 import Column from './Column'
 import State, { StateRenderProps } from './State'
-import { JsonValue, RowData, ValidationErrors } from './constants'
+import { JsonValue, RowData, ValidationErrors, EditorMode } from './constants'
 
 const useEmptyStateCaseStyles = M.makeStyles((t) => ({
   icon: {
@@ -183,6 +183,7 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
 interface JsonEditorProps extends StateRenderProps {
   className?: string
   disabled?: boolean
+  mode?: EditorMode
   multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
 }
@@ -197,6 +198,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     fieldPath,
     jsonDict,
     menuFieldPath,
+    mode,
     multiColumned,
     onChange,
     removeField,
@@ -268,6 +270,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               hasSiblingColumn={multiColumned}
               jsonDict={jsonDict}
               key={columnPath.join(',')}
+              mode={mode}
               onAddRow={handleRowAdd}
               onBreadcrumb={setFieldPath}
               onChange={handleValueChange}
@@ -294,6 +297,7 @@ interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
   errors: ValidationErrors
+  mode?: EditorMode
   multiColumned?: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
@@ -302,7 +306,16 @@ interface JsonEditorWrapperProps {
 
 export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
   function JsonEditorWrapper(
-    { className, disabled, errors, multiColumned, onChange, schema: optSchema, value },
+    {
+      className,
+      disabled,
+      errors,
+      mode,
+      multiColumned,
+      onChange,
+      schema: optSchema,
+      value,
+    },
     ref,
   ) {
     const schema = optSchema || EMPTY_SCHEMA
@@ -314,6 +327,7 @@ export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
             {...{
               className,
               disabled,
+              mode,
               onChange,
               multiColumned: !!multiColumned,
               ref,
