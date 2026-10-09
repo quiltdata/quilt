@@ -90,10 +90,12 @@ const SECRET =
 
 // A presigned URL is a credential: anyone holding it reads the object.
 // Matched however the URL is written: with or without a scheme, `&` escaped as
-// `&amp;`, or percent-encoded inside another URL.
-const PRESIGNED =
-  /[^\s"'<>]*(?:[?&]|&amp;|%3F|%26)(?:X-Amz-(?:Signature|Credential)|X-Amz-Security-Token|AWSAccessKeyId|Signature|Key-Pair-Id)(?:=|%3D)[^\s"'<>]*/gi
-const unsign = (s: string) => s.replace(PRESIGNED, '[presigned URL removed]')
+// `&amp;`, or percent-encoded inside another URL. Token by token, not one regex
+// over the string: an unanchored match is quadratic on a long tool result.
+const SIGNED =
+  /(?:[?&]|&amp;|%3F|%26)(?:X-Amz-(?:Signature|Credential)|X-Amz-Security-Token|AWSAccessKeyId|Signature|Key-Pair-Id)(?:=|%3D)/i
+const unsign = (s: string) =>
+  s.replace(/[^\s"'<>()[\]]+/g, (t) => (SIGNED.test(t) ? '[presigned URL removed]' : t))
 
 function redact(value: unknown): unknown {
   if (typeof value === 'string') return unsign(value)

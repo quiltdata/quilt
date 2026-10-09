@@ -126,6 +126,15 @@ describe('components/Assistant/Model/SessionPackage', () => {
     ).not.toContain('LEAK')
   })
 
+  it('keeps markdown around a removed link, and stays fast on a large value', () => {
+    const md = '[file](https://b.s3.amazonaws.com/k?X-Amz-Signature=LEAK)'
+    const e = [tool('t', { note: md, blob: 'A'.repeat(256_000) }, Tool.succeed())]
+    const t0 = Date.now()
+    const out = SessionPackage.toSessionJson(e, { ...info, includeResults: true })
+    expect(Date.now() - t0).toBeLessThan(500)
+    expect(out).toContain('[file]([presigned URL removed])')
+  })
+
   it('removes SigV2 presigned URLs, the Platform server default in most regions', () => {
     const url =
       'https://b.s3.amazonaws.com/k?AWSAccessKeyId=ASIAEXAMPLE&Signature=sig%3D&x-amz-security-token=TOKEN&Expires=1'
