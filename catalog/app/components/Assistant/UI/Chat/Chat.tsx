@@ -463,7 +463,9 @@ function ApprovalCard({
     [dispatch, id, call.key],
   )
   const destructive = approval === 'destructive'
-  const args = Object.entries(call.input).filter(([, v]) => isScalar(v))
+  // A model can send no input at all; the card must still render.
+  const input = call.input ?? {}
+  const args = Object.entries(input).filter(([, v]) => isScalar(v))
   return (
     <MessageContainer timestamp={timestamp} actions={actions}>
       <div className={cx(classes.heading, destructive && classes.destructive)}>
@@ -481,9 +483,9 @@ function ApprovalCard({
         </ul>
       )}
       <JsonDisplay
-        defaultExpanded={args.length < Object.keys(call.input).length ? 2 : 0}
+        defaultExpanded={args.length < Object.keys(input).length ? 2 : 0}
         name="input"
-        value={call.input}
+        value={input}
       />
       <div className={classes.buttons}>
         <M.Button size="small" variant="contained" color="primary" onClick={approve}>

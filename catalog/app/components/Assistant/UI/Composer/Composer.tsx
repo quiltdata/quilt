@@ -631,7 +631,8 @@ function PlusMenu({
               disabled: !!save.blocked,
               // Saving elsewhere than the session read goes through the target page,
               // which names those buckets before anything is written.
-              onSelect: () => (save.foreign.length ? setPage('save') : save.save()),
+              onSelect: () =>
+                save.foreign.length || save.unscoped ? setPage('save') : save.save(),
               end: (
                 <span className={classes.split}>
                   <M.IconButton
@@ -1142,10 +1143,12 @@ function SaveTarget({ save, onBack, onDone }: SaveTargetProps) {
               : 'Saving again adds a revision.'
           }
         />
-        {!!save.foreign.length && (
+        {(!!save.foreign.length || save.unscoped) && (
           <M.Typography variant="caption" color="textSecondary">
-            This session also read {save.foreign.join(', ')}. Anyone who can read{' '}
-            {save.bucket} will see what you save.
+            {save.foreign.length
+              ? `This session also read ${save.foreign.join(', ')}`
+              : 'This session searched across buckets'}
+            . Anyone who can read {save.bucket} will see what you save.
           </M.Typography>
         )}
         <M.FormControlLabel

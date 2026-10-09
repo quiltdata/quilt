@@ -86,9 +86,14 @@ export const sessionId = (events: Conversation.Event[]) => events[0]?.id ?? ''
 
 // Tool inputs can carry credentials (third-party MCP servers take them as args).
 const SECRET =
-  /token|secret|password|passwd|authorization|api[-_]?key|credential|access[-_]?key|private[-_]?key/i
+  /token|secret|password|passwd|authorization|api[-_]?key|credential|access[-_]?key|private[-_]?key|bearer|cookie|jwt|^auth$|^session$/i
+
+// A presigned URL is a credential: anyone holding it reads the object.
+const PRESIGNED = /https?:\/\/[^\s"'<>]*[?&]X-Amz-(?:Signature|Credential)=[^\s"'<>]*/gi
+const unsign = (s: string) => s.replace(PRESIGNED, '[presigned URL removed]')
 
 function redact(value: unknown): unknown {
+  if (typeof value === 'string') return unsign(value)
   if (Array.isArray(value)) return value.map(redact)
   if (value && typeof value === 'object')
     return Object.fromEntries(
@@ -121,9 +126,9 @@ export { refId as referenceId }
 function blockToJson(b: Content.MessageContentBlock | Content.ToolResultContentBlock) {
   switch (b._tag) {
     case 'Text':
-      return { type: 'text', text: b.text }
+      return { type: 'text', text: unsign(b.text) }
     case 'Json':
-      return { type: 'json', json: b.json }
+      return { type: 'json', json: redact(b.json) }
     case 'Image':
       return { type: 'image', format: b.format, omitted: true }
     case 'Document':
@@ -134,9 +139,9 @@ function blockToJson(b: Content.MessageContentBlock | Content.ToolResultContentB
 function blockToText(b: Content.MessageContentBlock | Content.ToolResultContentBlock) {
   switch (b._tag) {
     case 'Text':
-      return b.text
+      return unsign(b.text)
     case 'Json':
-      return JSON.stringify(b.json, null, 2)
+      return JSON.stringify(redact(b.json), null, 2)
     case 'Image':
       return `[image (${b.format}) omitted]`
     case 'Document':
@@ -179,6 +184,18 @@ export interface SessionInfo {
 }
 
 /** Buckets other than the target that the session's tools touched. */
+/**
+ * Whether a call that ran named no bucket at all (a catalog-wide search, a
+ * bucket list, an Athena query): its results can hold any bucket's data.
+ */
+export const unscoped = (events: Conversation.Event[]) =>
+  live(events).some((e) => {
+    if (e._tag !== 'ToolUse' || !ran(e)) return false
+    const out: Reference[] = []
+    collect(e.input, out)
+    return !out.length
+  })
+
 export const foreignBuckets = (events: Conversation.Event[], bucket: string) =>
   Array.from(new Set(references(events).map((r) => r.bucket))).filter((b) => b !== bucket)
 

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 
 import type * as Assistant from './Assistant'
 import * as SessionPackage from './SessionPackage'
@@ -8,6 +9,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 import * as FI from 'containers/Bucket/PackageDialog/Inputs/Files/State'
 import * as Uploads from 'containers/Bucket/PackageDialog/Uploads'
 import PACKAGE_CONSTRUCT from 'containers/Bucket/PackageDialog/gql/PackageConstruct.generated'
+import PACKAGE_EXISTS from 'containers/Bucket/PackageDialog/gql/PackageExists.generated'
 import {
   getUsernamePrefix,
   useNameExistence,
@@ -45,8 +47,23 @@ export type Status =
 export function useSave(api: API) {
   const uploads = Uploads.useUploads()
   const construct = GQL.useMutation(PACKAGE_CONSTRUCT)
+  const client = urql.useClient()
   return React.useCallback(
-    async (bucket: string, name: string, includeResults: boolean): Promise<Status> => {
+    async (
+      bucket: string,
+      name: string,
+      includeResults: boolean,
+      revising: boolean,
+    ): Promise<Status> => {
+      // Checked again at the click, from the network: a package created at this name
+      // since the form's check would otherwise lose its files to this revision.
+      if (!revising) {
+        const r = await client
+          .query(PACKAGE_EXISTS, { bucket, name }, { requestPolicy: 'network-only' })
+          .toPromise()
+        if (r.error) return { _tag: 'error', message: r.error.message }
+        if (r.data?.package) return { _tag: 'error', message: NAME_TAKEN }
+      }
       const { events } = api.state
       const info = {
         model: api.model.current,
@@ -117,7 +134,7 @@ export function useSave(api: API) {
           : { _tag: 'error', message }
       }
     },
-    [api, uploads, construct],
+    [api, uploads, construct, client],
   )
 }
 
@@ -130,6 +147,8 @@ export interface SessionSave {
   name: string
   setName: (n: string) => void
   foreign: readonly string[]
+  /** A call that ran named no bucket, so its results may hold any bucket's data. */
+  unscoped: boolean
   includeResults: boolean
   setIncludeResults: (on: boolean) => void
   /** Why the save is unavailable right now, if it is. */
@@ -181,11 +200,16 @@ export function useSessionSave(api: API): SessionSave {
   // Results read from another bucket would be readable by everyone who reads this one,
   // so the choice is per destination.
   const [results, setResults] = React.useState<boolean | null>(null)
-  const includeResults = results ?? !foreign.length
+  const unscoped = SessionPackage.unscoped(events)
+  const includeResults = results ?? (!foreign.length && !unscoped)
   const setBucket = React.useCallback((b: string) => {
     setPicked(b)
     setResults(null)
   }, [])
+  const shownStatus: Status =
+    status._tag === 'saved' && (status.bucket !== bucket || status.name !== name)
+      ? { _tag: 'idle' }
+      : status
 
   // A save sends only the session files, so as a revision of another package it
   // would drop that package's files; only a package this session saved may be revised.
@@ -224,13 +248,13 @@ export function useSessionSave(api: API): SessionSave {
     } catch {
       // Unpersisted, the choice still holds for this save.
     }
-    const result = await doSave(bucket, name, includeResults)
+    const result = await doSave(bucket, name, includeResults, mine)
     if (result._tag === 'saved')
       setSavedTo((s) =>
         s.includes(`${bucket}/${name}`) ? s : [...s, `${bucket}/${name}`],
       )
     setStatus(result)
-  }, [bucket, name, includeResults, doSave])
+  }, [bucket, name, includeResults, doSave, mine])
 
   return {
     bucket,
@@ -239,10 +263,11 @@ export function useSessionSave(api: API): SessionSave {
     name,
     setName,
     foreign,
+    unscoped,
     includeResults,
     setIncludeResults: setResults,
     blocked,
-    status,
+    status: shownStatus,
     save,
   }
 }

@@ -98,6 +98,26 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(readme).toContain('1 other bucket(s)')
   })
 
+  it('removes presigned URLs from inputs and results', () => {
+    const url = 'https://b.s3.amazonaws.com/k?X-Amz-Signature=abc123&X-Amz-Credential=xyz'
+    const e = [
+      tool(
+        'object_link',
+        { bucket: 'b', key: 'k', note: url },
+        Tool.succeed(Content.ToolResultContentBlock.Text({ text: `link: ${url}` })),
+      ),
+    ]
+    const info2 = { ...info, includeResults: true }
+    expect(SessionPackage.toSessionJson(e, info2)).not.toContain('abc123')
+    expect(SessionPackage.toTranscript(e, info2)).not.toContain('abc123')
+  })
+
+  it('flags a call that ran without naming a bucket', () => {
+    expect(SessionPackage.unscoped(events)).toBe(false)
+    const search = [tool('search_objects', { query: 'csv' }, Tool.succeed())]
+    expect(SessionPackage.unscoped(search)).toBe(true)
+  })
+
   it('leaves tool results out when told to', () => {
     const off = { ...info, includeResults: false }
     expect(SessionPackage.toSessionJson(events, off)).not.toContain('x'.repeat(100))
