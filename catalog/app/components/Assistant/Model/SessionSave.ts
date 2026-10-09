@@ -199,15 +199,23 @@ export function useSessionSave(api: API): SessionSave {
   const foreign = SessionPackage.foreignBuckets(events, bucket)
   // Results read from another bucket would be readable by everyone who reads this one,
   // so the choice is per destination.
-  const [results, setResults] = React.useState<boolean | null>(null)
   const unscoped = SessionPackage.unscoped(events)
-  const includeResults = results ?? (!foreign.length && !unscoped)
+  const risky = !!foreign.length || unscoped
+  // A choice made before the session read another bucket doesn't cover that bucket.
+  const [choice, setChoice] = React.useState<{ on: boolean; risky: boolean } | null>(null)
+  const includeResults = choice && choice.risky === risky ? choice.on : !risky
+  const setResults = React.useCallback(
+    (on: boolean | null) => setChoice(on === null ? null : { on, risky }),
+    [risky],
+  )
   const setBucket = React.useCallback((b: string) => {
     setPicked(b)
-    setResults(null)
+    setChoice(null)
   }, [])
+  const [statusFor, setStatusFor] = React.useState('')
   const shownStatus: Status =
-    status._tag === 'saved' && (status.bucket !== bucket || status.name !== name)
+    (status._tag === 'saved' || status._tag === 'error') &&
+    statusFor !== `${bucket}/${name}`
       ? { _tag: 'idle' }
       : status
 
@@ -222,6 +230,7 @@ export function useSessionSave(api: API): SessionSave {
   React.useEffect(() => {
     setName('')
     setSavedTo([])
+    setChoice(null)
     setStatus({ _tag: 'idle' })
   }, [sid])
 
@@ -253,6 +262,7 @@ export function useSessionSave(api: API): SessionSave {
       setSavedTo((s) =>
         s.includes(`${bucket}/${name}`) ? s : [...s, `${bucket}/${name}`],
       )
+    setStatusFor(`${bucket}/${name}`)
     setStatus(result)
   }, [bucket, name, includeResults, doSave, mine])
 

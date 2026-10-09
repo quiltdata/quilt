@@ -112,10 +112,28 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(SessionPackage.toTranscript(e, info2)).not.toContain('abc123')
   })
 
+  it('removes SigV2 presigned URLs, the Platform server default in most regions', () => {
+    const url =
+      'https://b.s3.amazonaws.com/k?AWSAccessKeyId=ASIAEXAMPLE&Signature=sig%3D&x-amz-security-token=TOKEN&Expires=1'
+    const e = [
+      tool(
+        'platform__object_read',
+        { bucket: 'b', key: 'k' },
+        Tool.succeed(Content.ToolResultContentBlock.Text({ text: url })),
+      ),
+    ]
+    const out = SessionPackage.toSessionJson(e, { ...info, includeResults: true })
+    expect(out).not.toContain('ASIAEXAMPLE')
+    expect(out).not.toContain('TOKEN')
+  })
+
   it('flags a call that ran without naming a bucket', () => {
     expect(SessionPackage.unscoped(events)).toBe(false)
-    const search = [tool('search_objects', { query: 'csv' }, Tool.succeed())]
+    const search = [tool('platform__search_objects', { query: 'csv' }, Tool.succeed())]
     expect(SessionPackage.unscoped(search)).toBe(true)
+    // Catalog tools read no data.
+    const nav = [tool('navigate', { route: 'search' }, Tool.succeed())]
+    expect(SessionPackage.unscoped(nav)).toBe(false)
   })
 
   it('leaves tool results out when told to', () => {

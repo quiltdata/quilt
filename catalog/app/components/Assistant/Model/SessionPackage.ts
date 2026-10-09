@@ -89,7 +89,8 @@ const SECRET =
   /token|secret|password|passwd|authorization|api[-_]?key|credential|access[-_]?key|private[-_]?key|bearer|cookie|jwt|^auth$|^session$/i
 
 // A presigned URL is a credential: anyone holding it reads the object.
-const PRESIGNED = /https?:\/\/[^\s"'<>]*[?&]X-Amz-(?:Signature|Credential)=[^\s"'<>]*/gi
+const PRESIGNED =
+  /https?:\/\/[^\s"'<>]*[?&](?:X-Amz-(?:Signature|Credential)|X-Amz-Security-Token|AWSAccessKeyId|Signature|Key-Pair-Id)=[^\s"'<>]*/gi
 const unsign = (s: string) => s.replace(PRESIGNED, '[presigned URL removed]')
 
 function redact(value: unknown): unknown {
@@ -170,7 +171,7 @@ const slug = (s: string) =>
  */
 export function defaultName(events: Conversation.Event[], now: Date, namespace: string) {
   const id = sessionId(events).slice(0, 6)
-  const base = `qurator-${now.toISOString().slice(0, 10)}-${slug(firstPrompt(events))}`
+  const base = `qurator-${now.toISOString().slice(0, 10)}-${slug(unsign(firstPrompt(events)))}`
   return `${namespace || 'qurator'}/${id ? `${base}-${id}` : base}`
 }
 
@@ -183,19 +184,20 @@ export interface SessionInfo {
   includeResults: boolean
 }
 
-/** Buckets other than the target that the session's tools touched. */
 /**
- * Whether a call that ran named no bucket at all (a catalog-wide search, a
- * bucket list, an Athena query): its results can hold any bucket's data.
+ * Whether a connector call that ran named no bucket at all (a catalog-wide
+ * search, a bucket list, an Athena query): its results can hold any bucket's
+ * data. Catalog tools (no `<connector>__` prefix, e.g. navigate) read no data.
  */
 export const unscoped = (events: Conversation.Event[]) =>
   live(events).some((e) => {
-    if (e._tag !== 'ToolUse' || !ran(e)) return false
+    if (e._tag !== 'ToolUse' || !ran(e) || !e.name.includes('__')) return false
     const out: Reference[] = []
     collect(e.input, out)
     return !out.length
   })
 
+/** Buckets other than the target that the session's tools touched. */
 export const foreignBuckets = (events: Conversation.Event[], bucket: string) =>
   Array.from(new Set(references(events).map((r) => r.bucket))).filter((b) => b !== bucket)
 
@@ -302,7 +304,8 @@ export function toReadme(events: Conversation.Event[], info: SessionInfo) {
   const { turns, toolCalls } = stats(events)
   const refs = localRefs(events, info.bucket)
   const others = foreignBuckets(events, info.bucket).length
-  const title = firstPrompt(events).split('\n')[0].slice(0, 120) || 'Qurator session'
+  const title =
+    unsign(firstPrompt(events)).split('\n')[0].slice(0, 120) || 'Qurator session'
   return [
     `# ${title}`,
     '',
