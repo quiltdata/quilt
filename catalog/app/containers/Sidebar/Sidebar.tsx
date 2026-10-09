@@ -14,6 +14,7 @@ import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
+import { useFeature } from 'utils/features'
 import isTypingTarget from 'utils/isTypingTarget'
 
 import * as NavMenu from './AuthState'
@@ -584,6 +585,8 @@ function AccountMenu({
     [],
   )
   const close = React.useCallback(() => setAnchor(null), [])
+  const { urls } = NamedRoutes.use()
+  const milestones = useFeature('product-badges')
   const rowClass = cx(classes.identityRow, collapsed && classes.rowCollapsed)
   const textClass = cx(classes.wsText, classes.label, collapsed && classes.labelHidden)
 
@@ -647,6 +650,14 @@ function AccountMenu({
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
+          {milestones && (
+            <M.MenuItem component={Link} to={urls.milestones()} onClick={close}>
+              <M.ListItemIcon>
+                <OutlinedIcon>emoji_events</OutlinedIcon>
+              </M.ListItemIcon>
+              Milestones
+            </M.MenuItem>
+          )}
           <M.MenuItem component={Link} to={signOutUrl} onClick={close}>
             <M.ListItemIcon>
               <OutlinedIcon>meeting_room</OutlinedIcon>

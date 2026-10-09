@@ -135,6 +135,10 @@ export const dataProducts = route('/data-products')
 
 export type DataProductsArgs = Parameters<typeof dataProducts.url>
 
+export const milestones = route('/milestones', (badgeId?: string) =>
+  badgeId ? `/milestones#${badgeId}` : '/milestones',
+)
+
 // NOT `encode` from utils/s3paths: that one splits on `/` and encodes each
 // segment separately, deliberately preserving slashes as path separators for S3
 // keys. Product ids embed the binding and contain slashes of their own
