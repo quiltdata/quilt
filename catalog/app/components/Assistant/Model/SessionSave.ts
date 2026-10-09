@@ -201,12 +201,16 @@ export function useSessionSave(api: API): SessionSave {
   // so the choice is per destination.
   const unscoped = SessionPackage.unscoped(events)
   const risky = !!foreign.length || unscoped
-  // A choice made before the session read another bucket doesn't cover that bucket.
-  const [choice, setChoice] = React.useState<{ on: boolean; risky: boolean } | null>(null)
-  const includeResults = choice && choice.risky === risky ? choice.on : !risky
+  // A choice covers exactly what the session had read when it was made: a bucket
+  // read since, or a new destination, needs asking again.
+  const exposure = [bucket, unscoped ? '*' : '', ...[...foreign].sort()].join('|')
+  const [choice, setChoice] = React.useState<{ on: boolean; exposure: string } | null>(
+    null,
+  )
+  const includeResults = choice && choice.exposure === exposure ? choice.on : !risky
   const setResults = React.useCallback(
-    (on: boolean | null) => setChoice(on === null ? null : { on, risky }),
-    [risky],
+    (on: boolean | null) => setChoice(on === null ? null : { on, exposure }),
+    [exposure],
   )
   const setBucket = React.useCallback((b: string) => {
     setPicked(b)

@@ -89,8 +89,10 @@ const SECRET =
   /token|secret|password|passwd|authorization|api[-_]?key|credential|access[-_]?key|private[-_]?key|bearer|cookie|jwt|^auth$|^session$/i
 
 // A presigned URL is a credential: anyone holding it reads the object.
+// Matched however the URL is written: with or without a scheme, `&` escaped as
+// `&amp;`, or percent-encoded inside another URL.
 const PRESIGNED =
-  /https?:\/\/[^\s"'<>]*[?&](?:X-Amz-(?:Signature|Credential)|X-Amz-Security-Token|AWSAccessKeyId|Signature|Key-Pair-Id)=[^\s"'<>]*/gi
+  /[^\s"'<>]*(?:[?&]|&amp;|%3F|%26)(?:X-Amz-(?:Signature|Credential)|X-Amz-Security-Token|AWSAccessKeyId|Signature|Key-Pair-Id)(?:=|%3D)[^\s"'<>]*/gi
 const unsign = (s: string) => s.replace(PRESIGNED, '[presigned URL removed]')
 
 function redact(value: unknown): unknown {

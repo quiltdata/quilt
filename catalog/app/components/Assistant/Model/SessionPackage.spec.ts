@@ -112,6 +112,20 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(SessionPackage.toTranscript(e, info2)).not.toContain('abc123')
   })
 
+  it.each([
+    ['escaped ampersand', 'https://b.s3.amazonaws.com/k?a=1&amp;X-Amz-Signature=LEAK'],
+    [
+      'percent-encoded inside another URL',
+      'https://x.io/r?to=https%3A%2F%2Fb%2Fk%3FX-Amz-Signature%3DLEAK',
+    ],
+    ['no scheme', 'b.s3.amazonaws.com/k?X-Amz-Credential=LEAK'],
+  ])('removes a presigned URL written with %s', (_, url) => {
+    const e = [tool('t', { note: url }, Tool.succeed())]
+    expect(
+      SessionPackage.toSessionJson(e, { ...info, includeResults: true }),
+    ).not.toContain('LEAK')
+  })
+
   it('removes SigV2 presigned URLs, the Platform server default in most regions', () => {
     const url =
       'https://b.s3.amazonaws.com/k?AWSAccessKeyId=ASIAEXAMPLE&Signature=sig%3D&x-amz-security-token=TOKEN&Expires=1'
