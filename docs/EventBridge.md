@@ -1,398 +1,178 @@
 <!-- markdownlint-disable -->
-# EventBridge Integration: Resolving S3 Event Conflicts
+# S3 Events via EventBridge
 
-When using Quilt alongside other AWS services that consume S3 events (like FSx, Lambda triggers, or custom applications), you may encounter conflicts because **S3 only allows one event notification configuration per bucket**. This guide shows you how to resolve these conflicts using AWS EventBridge.
+Quilt keeps search, package events and your own EventBridge rules up to date
+from a bucket's S3 events. By default it does that with an SNS topic that it
+writes into the bucket's notification configuration. When another service
+(FSx, a Lambda trigger, your own pipeline) already owns that configuration,
+wire the bucket through **native S3 EventBridge** instead. The Admin panel
+generates the commands.
 
-## 🎯 Understanding the Problem
+This path:
 
-### How Quilt Uses S3 Events
+- leaves the bucket's existing SNS, SQS and Lambda notification targets alone;
+- needs no SNS topic and no CloudTrail data events;
+- captures bulk deletes: S3 sends one `Object Deleted` event per key that a
+  `DeleteObjects` call removes;
+- works for buckets in the stack's account and in other accounts.
 
-By default, Quilt automatically creates S3 Event Notifications to:
-- Keep its managed Elasticsearch index up-to-date
-- Track changes to bucket contents in real-time
-- Maintain package metadata and search functionality
+## How it works
 
-**Default Quilt Event Flow:**
 ```
-S3 Bucket → S3 Event Notification → SNS Topic → SQS Queue → Lambda → Elasticsearch
-```
-
-### The S3 Event Limitation
-
-**AWS S3 Limitation**: Each S3 bucket can only have **one event notification configuration**. This means:
-
-❌ **This Won't Work:**
-```
-S3 Bucket ──┬── Quilt Event Notification
-            └── FSx Event Notification     ← CONFLICT!
+S3 bucket → default event bus (bucket's account and region)
+          → rule quilt-<stack>-<hash> → this stack's event bus
+          → normalizer → search indexer, package events, stack event bus
 ```
 
-✅ **This Will Work:**
-```
-S3 Bucket → EventBridge → ┬── Quilt SNS Topic
-                          └── FSx Event Handler
-```
+The normalizer turns each native event into the S3 notification record that
+the SNS path delivers today, so everything downstream reads the same shape.
 
-## 🛠️ Solution Options
+## Wire a bucket
 
-### Option 1: SNS Fanout (Recommended)
-Use SNS to distribute events to multiple consumers:
-- **Best for**: Multiple AWS services needing S3 events
-- **Complexity**: Medium
-- **Reliability**: High
-- **Guide**: [AWS Fanout Pattern](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/)
+You need a stack whose template supports EventBridge wiring. On an older stack
+the panel says *This stack doesn't support EventBridge wiring yet*; use the
+[CloudTrail recipe](#appendix-older-stacks) instead.
 
-### Option 2: EventBridge Routing (This Guide)
-Use EventBridge to create synthetic S3 events:
-- **Best for**: Complex event routing and transformation
-- **Complexity**: Medium-High  
-- **Reliability**: High
-- **Flexibility**: Highest
+1. In **Admin → Buckets**, add the bucket with **Skip S3 notifications**, so
+   Quilt creates no SNS topic. A bucket that already has a topic would get its
+   events twice.
+2. Open the bucket's admin page and click **Event wiring** next to
+   **Notifications**.
+3. Enter the bucket's AWS account ID. It defaults to the stack's account.
+4. For a bucket in another account, click **Admit account**. This lets rules
+   in that account put events on the stack's event bus. **Remove** takes the
+   permission back.
+5. Copy the three commands and run them as an admin of the bucket's account,
+   in the bucket's region, with the AWS CLI and `jq`:
+   1. Turn on EventBridge for the bucket. The command reads the bucket's
+      notification configuration and adds `EventBridgeConfiguration` to it, so
+      the existing targets stay.
+   2. In another account, create the forwarding role
+      `quilt-eventbridge-forwarder` and give it a policy for this stack's event
+      bus. The role is shared by every stack the account feeds; if it already
+      exists, `create-role` fails and the policy is still added. In the stack's
+      account the rule uses the stack's own forwarding role.
+   3. Create the rule and point it at the stack's event bus.
+6. Write an object to the bucket. **Events received (24h)** in the panel counts
+   the events the stack received from the bucket. It reads a CloudWatch metric,
+   so allow a few minutes. *unknown* means the metric could not be read.
+7. Run **Re-index and repair** with **Repair S3 notifications** unchecked to
+   index the objects already in the bucket.
 
-### Option 3: Just-in-Time Resources
-Spin up resources only when needed:
-- **Best for**: Batch processing workloads
-- **Complexity**: Low
-- **Cost**: Lowest
-- **Limitation**: Not suitable for real-time use cases
+If the bucket's access is granted by prefix, the rule matches only those
+prefixes and `.quilt/`, so writes elsewhere reach search only on a bulk scan.
 
-## 🚀 EventBridge Implementation Guide
+### Unwire a bucket
 
-This section provides a complete step-by-step guide to set up EventBridge routing for S3 events to resolve conflicts between Quilt and other services.
-
-### Prerequisites
-
-Before starting, ensure you have:
-- ✅ AWS CLI or Console access with appropriate permissions
-- ✅ A Quilt deployment already running
-- ✅ The S3 bucket you want to add to Quilt
-- ✅ CloudTrail enabled for the bucket (Quilt requirement)
-
-### Step-by-Step Implementation
-
-#### Step 1: Create SNS Topic
-
-Create an SNS topic in the **same region** as your S3 bucket:
+In the bucket's account and region:
 
 <!-- pytest.mark.skip -->
 ```bash
-# Using AWS CLI
-aws sns create-topic \
-    --name quilt-eventbridge-notifications \
-    --region us-east-1
-
-# Note the TopicArn from the response
+aws events remove-targets --rule RULE_NAME --ids quilt-stack-bus
+aws events delete-rule --name RULE_NAME
 ```
 
-**Console Steps:**
-1. Navigate to **SNS Console** → **Topics** → **Create topic**
-2. **Type**: Standard
-3. **Name**: `quilt-eventbridge-notifications`
-4. **Region**: Same as your S3 bucket
-5. Click **Create topic** and note the ARN
-
-#### Step 2: Verify CloudTrail Configuration
-
-Quilt requires CloudTrail for S3 data events. Check your CloudFormation stack:
-
-**Option A: Quilt-Managed Trail**
-- Go to **CloudFormation** → **Your Quilt Stack** → **Resources**
-- Look for a CloudTrail resource
-- Quilt will automatically add your bucket to this trail
-
-**Option B: Existing Trail**
-- Go to **CloudFormation** → **Your Quilt Stack** → **Parameters**  
-- Find the CloudTrail bucket parameter
-- Manually add your bucket to the existing trail in CloudTrail console
-
-#### Step 3: Create EventBridge Rule
-
-Create an EventBridge rule to capture S3 events:
-
-**Console Steps:**
-1. Navigate to **EventBridge Console** → **Rules** → **Create rule**
-2. **Builder mode**: Advanced builder (step-by-step configuration)
-3. **Name**: `quilt-s3-events-rule`
-4. **Event bus**: default
-5. Click **Next**
-
-#### Step 4: Configure Event Pattern
-
-Set up the event pattern to capture S3 operations:
-
-1. **Event source**: AWS events or EventBridge partner events
-2. Under **Event pattern**, choose **Custom pattern (JSON editor)**
-3. Paste the pattern below, replacing `your-bucket-name` with the name of
-   your bucket
-4. Confirm the editor reports **JSON is valid**, then click **Next**
-
-**Event Pattern JSON:**
-```json
-{
-  "source": ["aws.s3"],
-  "detail-type": ["AWS API Call via CloudTrail"],
-  "detail": {
-    "eventSource": ["s3.amazonaws.com"],
-    "eventName": [
-      "PutObject",
-      "CopyObject", 
-      "CompleteMultipartUpload",
-      "DeleteObject",
-      "DeleteObjects"
-    ],
-    "requestParameters": {
-      "bucketName": ["your-bucket-name"]
-    }
-  }
-}
-```
-
-![Event Pattern Configuration](./imgs/event-pattern.png)
-
-#### Step 5: Configure Event Target
-
-Set the SNS topic as the target for EventBridge events:
-
-1. **Target types**: AWS service
-2. **Select a target**: SNS topic
-3. **Target location**: Target in this account
-4. **Topic**: Select the SNS topic created in Step 1
-
-![Event Target Configuration](./imgs/event-target.png)
-
-#### Step 6: Set Up Input Transformer
-
-Configure the input transformer to convert EventBridge events to S3 event format:
-
-**Input Path:**
-```json
-{
-  "awsRegion": "$.detail.awsRegion",
-  "bucketName": "$.detail.requestParameters.bucketName", 
-  "eventName": "$.detail.eventName",
-  "eventTime": "$.detail.eventTime",
-  "isDeleteMarker": "$.detail.responseElements.x-amz-delete-marker",
-  "key": "$.detail.requestParameters.key",
-  "versionId": "$.detail.responseElements.x-amz-version-id"
-}
-```
-
-**Input Template:**
-```json
-{
-  "Records": [
-    {
-      "awsRegion": <awsRegion>,
-      "eventName": <eventName>, 
-      "eventTime": <eventTime>,
-      "s3": {
-        "bucket": {
-          "name": <bucketName>
-        },
-        "object": {
-          "eTag": "",
-          "isDeleteMarker": <isDeleteMarker>,
-          "key": <key>,
-          "versionId": <versionId>
-        }
-      }
-    }
-  ]
-}
-```
-
-#### Step 7: Save and Test the Rule
-
-1. Click **Create rule** to save the EventBridge configuration
-2. Test by uploading a file to your S3 bucket
-3. Check CloudWatch Logs for the EventBridge rule to verify events are being processed
-
-#### Step 8: Configure Quilt
-
-Add the bucket to Quilt using the SNS topic:
-
-1. Open **Quilt Admin Panel** → **Buckets**
-2. Click **Add Bucket** or edit existing bucket
-3. **Bucket Name**: `your-bucket-name`
-4. **SNS Topic ARN**: Paste the ARN from Step 1
-5. **Important**: Leave S3 Event Notifications **disabled**
-
-![Quilt EventBridge Configuration](./imgs/quilt-eventbridge.png)
-
-#### Step 9: Initial Indexing
-
-Perform initial bucket indexing:
-
-1. In Quilt Admin Panel, find your bucket
-2. Click **Re-Index and Repair**
-3. **⚠️ IMPORTANT**: Do **NOT** check the "Repair" checkbox
-   - Repair would attempt to create S3 event notifications
-   - This would conflict with your existing service (FSx, etc.)
-4. Click **Start Re-Index**
-
-### 🧪 Testing Your Setup
-
-#### Verify Event Flow
-
-Test that events are flowing correctly:
-
-<!-- pytest.mark.skip -->
-```bash
-# Upload a test file
-aws s3 cp test.txt s3://your-bucket-name/test.txt
-
-# Check EventBridge metrics
-aws events describe-rule --name quilt-s3-events-rule
-
-# Check SNS topic metrics  
-aws sns get-topic-attributes --topic-arn YOUR_SNS_TOPIC_ARN
-```
-
-#### Validate Quilt Integration
-
-1. Upload a file to your S3 bucket
-2. Wait 1-2 minutes for processing
-3. Check Quilt catalog to see if the file appears
-4. Search for the file in Quilt's search interface
-
-## 🔧 Troubleshooting
-
-### Common Issues and Solutions
-
-#### Issue 1: Events Not Appearing in Quilt
-
-**Symptoms:**
-- Files uploaded to S3 don't appear in Quilt catalog
-- Search doesn't find recently uploaded files
-
-**Troubleshooting Steps:**
-1. **Check EventBridge Rule Status**
-   <!-- pytest.mark.skip -->
-```bash
-aws events describe-rule --name quilt-s3-events-rule
-```
-   - Ensure `State` is `ENABLED`
-
-2. **Verify CloudTrail is Logging S3 Events**
-   - Go to CloudTrail Console → Event history
-   - Filter by Event source: `s3.amazonaws.com`
-   - Confirm events are being logged
-
-3. **Check SNS Topic Metrics**
-   - Go to SNS Console → Your topic → Monitoring
-   - Look for "Messages published" metrics
-
-4. **Validate Input Transformer**
-   - Test the EventBridge rule with a sample event
-   - Check CloudWatch Logs for transformation errors
-
-#### Issue 2: Permission Errors
-
-**Symptoms:**
-- EventBridge rule shows errors in CloudWatch
-- SNS topic not receiving messages
-
-**Solution:**
-Ensure EventBridge has permission to publish to SNS:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "events.amazonaws.com"
-      },
-      "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:region:account:quilt-eventbridge-notifications"
-    }
-  ]
-}
-```
-
-#### Issue 3: Duplicate Events
-
-**Symptoms:**
-- Files appear multiple times in Quilt
-- Excessive processing in Quilt logs
-
-**Solution:**
-- Check for multiple EventBridge rules targeting the same bucket
-- Ensure you haven't enabled both S3 Event Notifications AND EventBridge
-
-### Performance Considerations
-
-#### Event Latency
-- **EventBridge Latency**: ~1-5 seconds additional delay vs direct S3 events
-- **CloudTrail Dependency**: Events only trigger after CloudTrail processes them
-- **Batch Processing**: Consider batching for high-volume buckets
-
-#### Cost Optimization
-<!-- pytest.mark.skip -->
-```bash
-# Monitor EventBridge usage
-aws events describe-rule --name quilt-s3-events-rule --query 'EventPattern'
-
-# Check SNS costs
-aws sns get-topic-attributes --topic-arn YOUR_TOPIC_ARN --attribute-names All
-```
-
-### Known Limitations
-
-#### EventBridge-Specific Limitations
-
-1. **Bulk Delete Operations**
-   - The `delete-objects` API (used by AWS Console bulk delete) doesn't generate individual `delete-object` events
-   - **Workaround**: Use individual delete operations or manual re-indexing
-   - **Impact**: Bulk deletes may not be reflected in Quilt immediately
-
-2. **Event Transformation Complexity**
-   - EventBridge events have different structure than native S3 events
-   - Input transformer may not capture all S3 event metadata
-   - **Mitigation**: Test thoroughly with your specific use cases
-
-#### General S3 Event Limitations
-
-1. **Lifecycle Policy Deletions**
-   - S3 lifecycle deletions are **not** captured by CloudTrail or S3 Events
-   - **AWS Documentation**: [Supported Event Types](https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-how-to-event-types-and-destinations.title.html)
-   
-   > You do not receive event notifications from automatic deletes from lifecycle policies or from failed operations.
-
-2. **CloudTrail Dependency**
-   - EventBridge S3 events require CloudTrail data events
-   - **AWS Documentation**: [Lifecycle and Logging](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-and-other-bucket-config.html#lifecycle-general-considerations-logging)
-   
-   > Amazon S3 Lifecycle actions are not captured by AWS CloudTrail object level logging. CloudTrail captures API requests made to external Amazon S3 endpoints, whereas S3 Lifecycle actions are performed using internal Amazon S3 endpoints.
-
-### Best Practices
-
-#### Security
-- ✅ Use least-privilege IAM policies
-- ✅ Enable SNS topic encryption
-- ✅ Monitor EventBridge rule metrics
-- ✅ Set up CloudWatch alarms for failed events
-
-#### Reliability  
-- ✅ Test event flow end-to-end before production
-- ✅ Set up dead letter queues for failed events
-- ✅ Monitor CloudWatch metrics for all components
-- ✅ Have a rollback plan to direct S3 events if needed
-
-#### Cost Management
-- ✅ Monitor EventBridge and SNS costs
-- ✅ Consider event filtering to reduce volume
-- ✅ Use appropriate SNS delivery retry policies
-- ✅ Clean up test resources after implementation
-
-## 📚 Additional Resources
-
-- **[AWS EventBridge Documentation](https://docs.aws.amazon.com/eventbridge/)**
-- **[S3 Event Notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html)**
-- **[SNS Fanout Pattern](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/)**
-- **[CloudTrail S3 Data Events](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-data-events-with-cloudtrail.html)**
-
----
-
-**Need help?** Contact Quilt support or join our [Slack community](https://slack.quilt.bio) for assistance with EventBridge integration.
+`RULE_NAME` is the one the panel shows. Click **Remove** for the account once
+no bucket in it is wired to the stack.
+
+## Troubleshooting
+
+If **Events received (24h)** stays at 0 after a write:
+
+1. EventBridge is on for the bucket: `aws s3api
+   get-bucket-notification-configuration --bucket BUCKET` shows
+   `"EventBridgeConfiguration": {}`.
+2. The rule exists in the bucket's region and is `ENABLED`: `aws events
+   describe-rule --name RULE_NAME`.
+3. For a bucket in another account, the panel shows the account as admitted,
+   and `quilt-eventbridge-forwarder` allows `events:PutEvents` on the stack's
+   event bus.
+4. The rule's `FailedInvocations` metric in CloudWatch is 0. A non-zero count
+   points at the role or the stack bus permission.
+
+## Appendix: older stacks
+
+A stack without EventBridge wiring can still take events from a bucket whose
+notification configuration belongs to another service, through CloudTrail
+data events, an EventBridge rule and an SNS topic. This path does not capture
+bulk deletes: a `DeleteObjects` call produces one CloudTrail event without the
+keys.
+
+1. Make sure the stack's CloudTrail trail logs data events for the bucket.
+2. Create a standard SNS topic in the bucket's region, with a policy that lets
+   `events.amazonaws.com` publish to it.
+3. Create a rule on the default event bus with this pattern:
+
+   ```json
+   {
+     "source": ["aws.s3"],
+     "detail-type": ["AWS API Call via CloudTrail"],
+     "detail": {
+       "eventSource": ["s3.amazonaws.com"],
+       "eventName": [
+         "PutObject",
+         "CopyObject",
+         "CompleteMultipartUpload",
+         "DeleteObject",
+         "DeleteObjects"
+       ],
+       "requestParameters": {"bucketName": ["your-bucket-name"]}
+     }
+   }
+   ```
+
+   ![Event Pattern Configuration](./imgs/event-pattern.png)
+
+4. Target the SNS topic through an input transformer that builds an S3
+   notification record:
+
+   ![Event Target Configuration](./imgs/event-target.png)
+
+   Input path:
+
+   ```json
+   {
+     "awsRegion": "$.detail.awsRegion",
+     "bucketName": "$.detail.requestParameters.bucketName",
+     "eventName": "$.detail.eventName",
+     "eventTime": "$.detail.eventTime",
+     "isDeleteMarker": "$.detail.responseElements.x-amz-delete-marker",
+     "key": "$.detail.requestParameters.key",
+     "versionId": "$.detail.responseElements.x-amz-version-id"
+   }
+   ```
+
+   Input template:
+
+   ```json
+   {
+     "Records": [
+       {
+         "awsRegion": <awsRegion>,
+         "eventName": <eventName>,
+         "eventTime": <eventTime>,
+         "s3": {
+           "bucket": {"name": <bucketName>},
+           "object": {
+             "eTag": "",
+             "isDeleteMarker": <isDeleteMarker>,
+             "key": <key>,
+             "versionId": <versionId>
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+5. In **Admin → Buckets**, set the bucket's SNS topic ARN to the topic.
+
+   ![Quilt EventBridge Configuration](./imgs/quilt-eventbridge.png)
+
+6. Run **Re-index and repair** with **Repair S3 notifications** unchecked.
+
+## Additional resources
+
+- [Amazon S3 events in EventBridge](https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html)
+- [S3 Event Notifications](https://docs.aws.amazon.com/AmazonS3/latest/userguide/NotificationHowTo.html)
+- [Cross-account setup](CrossAccount.md)

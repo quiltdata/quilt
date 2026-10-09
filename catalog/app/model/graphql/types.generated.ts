@@ -145,6 +145,8 @@ export interface AdminMutations {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly eventBridgeAccountAdmit: EventBridgeAccountResult
+  readonly eventBridgeAccountRemove: EventBridgeAccountResult
   readonly packager: PackagerAdminMutations
   readonly setQuratorConfig: SetQuratorConfigResult
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
@@ -164,6 +166,14 @@ export interface AdminMutationsbucketSetTabulatorTableArgs {
   tableName: Scalars['String']['input']
 }
 
+export interface AdminMutationseventBridgeAccountAdmitArgs {
+  accountId: Scalars['String']['input']
+}
+
+export interface AdminMutationseventBridgeAccountRemoveArgs {
+  accountId: Scalars['String']['input']
+}
+
 export interface AdminMutationssetQuratorConfigArgs {
   input: QuratorConfigInput
 }
@@ -179,6 +189,7 @@ export interface AdminMutationssetTabulatorOpenQueryArgs {
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly apiKeys: APIKeyAdminQueries
+  readonly eventBridgeAccounts: EventBridgeAccounts
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
   readonly packager: PackagerAdminQueries
   readonly quratorAvailableModels: QuratorAvailableModels
@@ -280,6 +291,7 @@ export interface BucketConfig {
   readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
   readonly browsable: Scalars['Boolean']['output']
   readonly description: Maybe<Scalars['String']['output']>
+  readonly eventBridgeWiring: Maybe<EventBridgeWiring>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']['output']>>
   readonly iconUrl: Maybe<Scalars['String']['output']>
   readonly indexContentBytes: Maybe<Scalars['Int']['output']>
@@ -435,6 +447,40 @@ export interface DatetimeSearchPredicate {
 export interface EmptySearchResultSet {
   readonly __typename: 'EmptySearchResultSet'
   readonly _: Maybe<Scalars['Boolean']['output']>
+}
+
+export interface EventBridgeAccountInvalid {
+  readonly __typename: 'EventBridgeAccountInvalid'
+  readonly _: Maybe<Scalars['Boolean']['output']>
+}
+
+export type EventBridgeAccountResult =
+  | EventBridgeAccountInvalid
+  | EventBridgeAccountsSuccess
+  | OperationError
+
+export interface EventBridgeAccounts {
+  readonly __typename: 'EventBridgeAccounts'
+  /** Account IDs admitted to put events on the stack bus (from its policy statement ids) */
+  readonly admitted: ReadonlyArray<Scalars['String']['output']>
+}
+
+export interface EventBridgeAccountsSuccess {
+  readonly __typename: 'EventBridgeAccountsSuccess'
+  readonly accounts: EventBridgeAccounts
+}
+
+export interface EventBridgeWiring {
+  readonly __typename: 'EventBridgeWiring'
+  readonly eventPattern: Scalars['Json']['output']
+  /** Sum of EventsReceived for this bucket over the last 24h; null when the metric can't be read */
+  readonly eventsLast24h: Maybe<Scalars['Int']['output']>
+  /** Stack-account forwarding role; use it only when the bucket is in the stack account */
+  readonly forwardingRoleArn: Scalars['String']['output']
+  readonly ruleName: Scalars['String']['output']
+  readonly stackAccountId: Scalars['String']['output']
+  readonly stackBusArn: Scalars['String']['output']
+  readonly stackRegion: Scalars['String']['output']
 }
 
 export enum GlacierRestoreTier {
