@@ -68,7 +68,7 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
   const overrideClasses = useOverrideStyles()
 
   const onBreadcrumb = React.useCallback(
-    (index) => {
+    (index: any) => {
       if (index === items.length + 1) return
       const path = items.slice(0, index)
       onSelect(path)

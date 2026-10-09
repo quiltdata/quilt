@@ -14,7 +14,7 @@ export default function Menu({ className, items }: MenuProps) {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
 
   const handleOpen = React.useCallback(
-    (event) => setAnchorEl(event.target),
+    (event: any) => setAnchorEl(event.target),
     [setAnchorEl],
   )
 

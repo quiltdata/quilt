@@ -250,7 +250,7 @@ interface CrumbsProps {
 function Crumbs({ handle }: CrumbsProps) {
   const { urls } = NamedRoutes.use()
   const getSegmentRoute = React.useCallback(
-    (segPath) => urls.bucketFile(handle.bucket, segPath),
+    (segPath: any) => urls.bucketFile(handle.bucket, segPath),
     [urls, handle.bucket],
   )
   const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, undefined, {
@@ -295,7 +295,7 @@ export function FilePreview({
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
   const renderContents = React.useCallback(
-    (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
+    (children: any) => <PreviewBox {...{ children, expanded, onToggle }} />,
     [expanded, onToggle],
   )
 

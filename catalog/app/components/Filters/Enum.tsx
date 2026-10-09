@@ -43,7 +43,7 @@ export default function Enum({
     [extents, selectAll],
   )
   const handleChange = React.useCallback(
-    (event, newValue: string[]) => {
+    (event: any, newValue: string[]) => {
       if (!selectAll) {
         onChange(newValue)
         return

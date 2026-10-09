@@ -214,7 +214,7 @@ function Create({ close }: CreateProps) {
   const [managed, setManaged] = React.useState(true)
 
   const onSubmit = React.useCallback(
-    async (values) => {
+    async (values: any) => {
       try {
         let data
         if (managed) {
@@ -526,7 +526,7 @@ export function Edit({ role, close }: EditProps) {
   const managed = role.__typename === 'ManagedRole'
 
   const onSubmit = React.useCallback(
-    async (values) => {
+    async (values: any) => {
       try {
         let data
         if (managed) {

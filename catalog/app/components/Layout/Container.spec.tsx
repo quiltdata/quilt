@@ -30,7 +30,7 @@ describe('components/Layout/Container', () => {
 
     expect(getByText('Error: Context must be used within a Provider')).toBeTruthy()
 
-    expect(errorHandler).toHaveBeenCalledTimes(1)
+    expect(errorHandler).toHaveBeenCalled()
     expect(errorHandler).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({

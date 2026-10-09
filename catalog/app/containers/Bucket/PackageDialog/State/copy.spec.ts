@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from 'utils/renderHook'
 import * as React from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 

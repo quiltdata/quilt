@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-hooks'
+import { renderHook } from 'utils/renderHook'
 import { describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
@@ -69,9 +69,9 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
     it('should call metadataSchema with correct parameters from workflow', async () => {
       const workflow = { schema: { url: 'https://example.com/schema.json' } } as any
 
-      const { waitForNextUpdate, unmount } = renderHook(() => useMetadataSchema(workflow))
+      const { waitFor, unmount } = renderHook(() => useMetadataSchema(workflow))
 
-      await act(() => waitForNextUpdate())
+      await waitFor(() => expect(metadataSchema).toHaveBeenCalled())
 
       expect(metadataSchema).toHaveBeenCalledWith({
         schemaUrl: 'https://example.com/schema.json',
@@ -97,8 +97,8 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
     it('should call objectSchema with correct parameters from workflow', async () => {
       const workflow = { entriesSchema: 'https://example.com/entries.json' } as any
 
-      const { waitForNextUpdate, unmount } = renderHook(() => useEntriesSchema(workflow))
-      await act(() => waitForNextUpdate())
+      const { waitFor, unmount } = renderHook(() => useEntriesSchema(workflow))
+      await waitFor(() => expect(objectSchema).toHaveBeenCalled())
 
       expect(objectSchema).toHaveBeenCalledWith({
         schemaUrl: 'https://example.com/entries.json',

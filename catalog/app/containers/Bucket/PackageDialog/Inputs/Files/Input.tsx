@@ -1259,7 +1259,7 @@ function DirUpload({
   const [expanded, setExpanded] = React.useState(!childEntries.length)
 
   const toggleExpanded = React.useCallback(
-    (e) => {
+    (e: any) => {
       // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
       setExpanded((x) => !x)
@@ -1629,7 +1629,7 @@ export function FilesInput({
   })
 
   const onDrop = React.useCallback(
-    (files) => dispatch(FilesAction.Add({ files: files.map(computeHash) })),
+    (files: any) => dispatch(FilesAction.Add({ files: files.map(computeHash) })),
     [dispatch],
   )
   const onReset = React.useCallback(() => dispatch(FilesAction.Reset()), [dispatch])

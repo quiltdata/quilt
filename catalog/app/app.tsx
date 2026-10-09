@@ -3,7 +3,7 @@
 // Import all the third party stuff
 import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
-import * as ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import { Router } from 'react-router-dom'
 import { createSelector } from 'reselect'
 import * as M from '@material-ui/core'
@@ -70,7 +70,7 @@ fontLoader('Roboto', 'Roboto Mono')
     log.error(error)
   })
 
-const MOUNT_NODE = document.getElementById('app')
+const root = createRoot(document.getElementById('app')!)
 
 // TODO: make storage injectable
 const storage = mkStorage({ user: 'USER', tokens: 'TOKENS' })
@@ -86,9 +86,12 @@ const intercomUserSelector = createSelector(
 )
 
 const render = () => {
-  ReactDOM.render(
+  root.render(
     nest(
-      [M.MuiThemeProvider as React.ComponentType, { theme: style.appTheme }],
+      [
+        M.MuiThemeProvider as React.ComponentType<React.PropsWithChildren<unknown>>,
+        { theme: style.appTheme },
+      ],
       WithGlobalStyles,
       Errors.FinalBoundary,
       // @ts-expect-error
@@ -119,6 +122,10 @@ const render = () => {
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,
+      // S3.Provider suspends on the buckets query. React 18 drops the state of
+      // an uncommitted tree on suspend, so without this boundary the GraphQL
+      // client and AWS credentials above are rebuilt and refetch forever.
+      [React.Suspense, { fallback: <Placeholder /> }],
       AWS.S3.Provider,
       BucketCacheProvider,
       Assistant.Provider,
@@ -129,20 +136,7 @@ const render = () => {
       PFSCookieManager,
       App,
     ),
-    MOUNT_NODE,
   )
 }
-
-/*
-if (module.hot) {
-  // Hot reloadable React components and translation json files
-  // modules.hot.accept does not accept dynamic dependencies,
-  // have to be constants at compile-time
-  module.hot.accept(['./i18n', 'containers/App'], () => {
-    ReactDOM.unmountComponentAtNode(MOUNT_NODE);
-    render(translationMessages);
-  });
-}
-*/
 
 render()

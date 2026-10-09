@@ -106,7 +106,9 @@ describe('containers/Sidebar/Sidebar (the fold)', () => {
     store[COLLAPSED_STORAGE_KEY] = '1'
     renderRail()
     for (const name of ['Volumes', 'Search', 'Queries', 'Bookmarks', 'Sign in']) {
-      expect(screen.getByRole(/button|link/, { name })).toBeTruthy()
+      expect(
+        screen.queryByRole('button', { name }) ?? screen.queryByRole('link', { name }),
+      ).toBeTruthy()
     }
     const version = screen.getByTitle(/copy platform release version/i)
     expect(version.getAttribute('tabindex')).toBe('-1')

@@ -147,7 +147,7 @@ const columns: DG.GridColumns = [
           }
         >
           <M.Link href={url} rel="noreferrer" target="_blank">
-            {params.value}
+            {params.value as React.ReactNode}
           </M.Link>
         </M.Tooltip>
       )
@@ -174,7 +174,7 @@ const columns: DG.GridColumns = [
         <>
           <StateIcon ok={c.ok} />
           <M.Box component="span" ml={1}>
-            {params.value}
+            {params.value as React.ReactNode}
           </M.Box>
         </>
       )

@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react-hooks'
+import { renderHook, act } from 'utils/renderHook'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import useSearchState from './State'

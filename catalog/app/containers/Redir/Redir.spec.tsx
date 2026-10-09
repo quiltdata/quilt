@@ -55,7 +55,7 @@ describe('containers/Redir/Redir', () => {
 
     expect(getByText('Error: `uri` must be defined')).toBeTruthy()
 
-    expect(errorHandler).toHaveBeenCalledTimes(1)
+    expect(errorHandler).toHaveBeenCalled()
     expect(errorHandler).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({

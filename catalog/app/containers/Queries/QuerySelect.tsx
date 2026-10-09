@@ -38,7 +38,7 @@ export default function QuerySelect<T>({
   const labelId = useId()
   const buttonId = useId()
   const handleChange = React.useCallback(
-    (event) => {
+    (event: any) => {
       if (event.target.value === LOAD_MORE && onLoadMore) {
         onLoadMore()
       } else {

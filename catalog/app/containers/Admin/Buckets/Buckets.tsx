@@ -227,7 +227,7 @@ interface AddProps {
 function Add({ back, settings, submit }: AddProps) {
   const classes = useStyles()
   const onSubmit = React.useCallback(
-    async (values, form) => {
+    async (values: any, form: any) => {
       try {
         const input = R.applySpec(addFormSpec)(values)
         const error = await submit(input)

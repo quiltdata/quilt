@@ -408,12 +408,12 @@ export default function JsonEditorState({
   // TODO: Use `sortIndex: -1` to "remove" fields that cannot be removed,
   //       like properties from JSON Schema
   const removeField = React.useCallback(
-    (removingFieldPath) => dissocObjValue(removingFieldPath, jsonObject),
+    (removingFieldPath: any) => dissocObjValue(removingFieldPath, jsonObject),
     [jsonObject],
   )
 
   const changeValue = React.useCallback(
-    (editingFieldPath, columnId, str) => {
+    (editingFieldPath: any, columnId: any, str: any) => {
       // TODO: str is not string, it's any value
       // TODO: make this `safeStr` conversion inside component
       const safeStr = str === EMPTY_VALUE ? '' : str
@@ -431,7 +431,7 @@ export default function JsonEditorState({
   )
 
   const addRow = React.useCallback(
-    (addFieldPath, key, value) => {
+    (addFieldPath: any, key: any, value: any) => {
       // NOTE: value can't be `Symbol('empty')`
       //       because it's imposible to have `{ [newKey]: Symbol('empty') }` object
       sortOrder.current.counter += 1
@@ -445,7 +445,7 @@ export default function JsonEditorState({
   )
 
   const transformer = React.useCallback(
-    (transform) => transform(jsonObject),
+    (transform: any) => transform(jsonObject),
     [jsonObject],
   )
 

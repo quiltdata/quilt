@@ -45,7 +45,7 @@ export function useViewModes(modeInput: string | null | undefined) {
   const [previewResult, setPreviewResult] = React.useState(null)
 
   const handlePreviewResult = React.useCallback(
-    (result) => {
+    (result: any) => {
       if (!previewResult && AsyncResult.Ok.is(result)) {
         setPreviewResult(AsyncResult.Ok.unbox(result))
       }

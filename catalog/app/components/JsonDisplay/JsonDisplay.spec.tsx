@@ -59,4 +59,11 @@ describe('components/JsonDisplay', () => {
     await findByText(/s3:\/\/bucket\/path\/to\/key/)
     expect(queryByRole('link')).toBeNull()
   })
+
+  it('renders values nested inside an expanded object', async () => {
+    const { findByRole } = renderValue({ value: { outer: { inner: value } } })
+    // React 18 throttles each nested Suspense reveal by ~500ms
+    const link = await findByRole('link', undefined, { timeout: 5000 })
+    expect(link.textContent).toBe('s3://bucket/path/to/key')
+  })
 })

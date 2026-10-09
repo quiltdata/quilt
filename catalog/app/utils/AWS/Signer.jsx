@@ -22,6 +22,11 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const shouldSign = useShouldSign()
   const getRegion = useGetCachedBucketRegion()
   return React.useCallback(
+    /**
+     * @param {import('model/S3').S3ObjectLocation} handle
+     * @param {object} [opts]
+     * @returns {string}
+     */
     ({ bucket, key, version }, opts = {}) => {
       if (shouldSign(bucket)) {
         const s3 = s3Factory(getRegion(bucket))

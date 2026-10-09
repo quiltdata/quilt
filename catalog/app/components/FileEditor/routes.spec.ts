@@ -1,4 +1,4 @@
-import { renderHook, suppressErrorOutput } from '@testing-library/react-hooks/pure'
+import { renderHook } from 'utils/renderHook'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
@@ -93,15 +93,14 @@ describe('components/FileEditor/routes', () => {
 
   describe('useParams', () => {
     it('should throw error when no bucket', () => {
-      const restoreConsole = suppressErrorOutput()
-
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
       try {
-        useParamsInternal.mockImplementationOnce(() => ({}))
-        const { result } = renderHook(() => useParams())
-
-        expect(result.error?.message).toBe('`bucket` must be defined')
+        // Not ...Once: React 18 retries a failed render once
+        useParamsInternal.mockImplementation(() => ({}))
+        expect(() => renderHook(() => useParams())).toThrow('`bucket` must be defined')
       } finally {
-        restoreConsole()
+        useParamsInternal.mockReset()
+        consoleError.mockRestore()
       }
     })
 

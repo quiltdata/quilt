@@ -95,7 +95,7 @@ export default function AddRow({
   const [value, setValue] = React.useState('')
 
   const onChangeKey = React.useCallback(
-    (_1, _2, key) => {
+    (_1: any, _2: any, key: any) => {
       if (!key) return
       onAdd(columnPath, key, value)
     },
@@ -103,7 +103,7 @@ export default function AddRow({
   )
 
   const onChangeValue = React.useCallback(
-    (_1, _2, newValue) => {
+    (_1: any, _2: any, newValue: any) => {
       if (newValue === undefined || newValue === EMPTY_VALUE) return
       setValue(newValue)
     },

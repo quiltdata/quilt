@@ -32,7 +32,7 @@ export default function Meta({ meta }: MetaProps) {
             <M.TableCell>
               <strong>{key}:</strong>
             </M.TableCell>
-            <M.TableCell>{value}</M.TableCell>
+            <M.TableCell>{value as React.ReactNode}</M.TableCell>
           </M.TableRow>
         ))}
       </M.TableBody>

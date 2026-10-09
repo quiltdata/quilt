@@ -188,7 +188,7 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
   const classes = useToggleButtonStyles()
   const model = SearchUIModel.use()
   const handleChange = React.useCallback(
-    (_e, value: SearchUIModel.View) => model.actions.setView(value),
+    (_e: any, value: SearchUIModel.View) => model.actions.setView(value),
     [model.actions],
   )
   return (

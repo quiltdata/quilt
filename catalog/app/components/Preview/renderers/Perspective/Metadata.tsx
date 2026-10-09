@@ -16,24 +16,26 @@ const useMonoStringStyles = M.makeStyles((t) => ({
   },
 }))
 
-const MonoString: React.FC<{ value: string }> = ({ value }) => {
+const MonoString: React.FC<React.PropsWithChildren<{ value: string }>> = ({ value }) => {
   const classes = useMonoStringStyles()
   return <span className={classes.mono}>{value}</span>
 }
 
-const Shape: React.FC<{ value: [number, number] }> = ({ value }) => (
+const Shape: React.FC<React.PropsWithChildren<{ value: [number, number] }>> = ({
+  value,
+}) => (
   <span>
     {value[0]} rows &times; {value[1]} columns
   </span>
 )
 
-const Boolean: React.FC<{ value: boolean }> = ({ value }) => (
+const Boolean: React.FC<React.PropsWithChildren<{ value: boolean }>> = ({ value }) => (
   <span>{value ? '✓' : '✗'}</span>
 )
 
 interface MetadataFieldConfig {
   title: string
-  RenderValue?: React.ComponentType<{ value: NonNullable<any> }>
+  RenderValue?: React.ComponentType<React.PropsWithChildren<{ value: NonNullable<any> }>>
 }
 
 const FIELDS_MAP: Record<
@@ -80,7 +82,7 @@ interface MetadataField {
   key: string
   title: string
   value: NonNullable<any>
-  RenderValue?: React.ComponentType<{ value: NonNullable<any> }>
+  RenderValue?: React.ComponentType<React.PropsWithChildren<{ value: NonNullable<any> }>>
 }
 
 function getMetadataFields(metadata: ParquetMetadata | H5adMetadata | PackageMetadata) {

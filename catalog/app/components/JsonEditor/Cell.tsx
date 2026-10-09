@@ -72,7 +72,7 @@ export default function Cell({
   const hasKey = React.useMemo(() => key !== EMPTY_VALUE, [key])
 
   const onChange = React.useCallback(
-    (newValue) => {
+    (newValue: any) => {
       setValue(newValue)
       updateMyData(fieldPath, column.id as 'key' | 'value', newValue)
       setEditing(false)
@@ -101,7 +101,7 @@ export default function Cell({
   }, [isEditable, setEditing])
 
   const onKeyPress = React.useCallback(
-    (event) => {
+    (event: any) => {
       if (editing) return
 
       // Chromium able to send key event to Input created after this key event.
@@ -146,7 +146,7 @@ export default function Cell({
   const addressPath = React.useMemo(() => [...columnPath, key], [columnPath, key])
   const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null)
   const handleContextMenu = React.useCallback(
-    (event) => {
+    (event: any) => {
       event.preventDefault()
       onContextMenu(addressPath)
     },

@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook } from 'utils/renderHook'
 import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import { HTTPError } from 'utils/APIConnector'
@@ -29,7 +29,6 @@ describe('Preview/loaders/utils', () => {
           throw boom
         }),
       )
-      expect(result.error).toBeUndefined()
       expect(
         AsyncResult.case({ Err: (e: unknown) => e, _: () => null }, result.current),
       ).toBe(boom)

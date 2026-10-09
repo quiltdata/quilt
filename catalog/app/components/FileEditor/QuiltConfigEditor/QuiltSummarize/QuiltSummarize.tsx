@@ -33,7 +33,7 @@ function JsonTextField({ helperText, onChange, value, ...props }: JsonTextFieldP
   const [str, setStr] = React.useState(JSON.stringify(value) || '{}')
   const [error, setError] = React.useState<Error | null>(null)
   const handleChange = React.useCallback(
-    (event) => {
+    (event: any) => {
       setStr(event.currentTarget.value)
       try {
         const json = JSON.parse(event.currentTarget.value)
@@ -86,7 +86,7 @@ function FilePicker({ initialPath, res, onCell, onReload }: FilePickerProps) {
   const classes = useFilePickerStyles()
   const items = useFormattedListing(res, initialPath)
   const CellComponent = React.useCallback(
-    ({ item, ...props }) => (
+    ({ item, ...props }: any) => (
       <div
         role="button"
         style={{ cursor: 'pointer' }}

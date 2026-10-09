@@ -125,7 +125,7 @@ export function useOrdering<Row>({ rows, ...opts }: UseOrderingProps<Row>) {
   const ordered = useMemoEq([sort, rows], () => sort(rows))
 
   const change = React.useCallback(
-    (newCol) => {
+    (newCol: any) => {
       if (column !== newCol) {
         setColumn(newCol)
         setDirection('asc')

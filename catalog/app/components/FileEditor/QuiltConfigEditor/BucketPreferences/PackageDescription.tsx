@@ -31,7 +31,7 @@ const emptyArray: string[] = []
 function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
   const [error, setError] = React.useState<Error | null>(null)
   const handleChange = React.useCallback(
-    (_e, labels: string[]) => {
+    (_e: any, labels: string[]) => {
       onChange(labels)
       try {
         labels.forEach((label: string) => jsonpath.parse(label))
@@ -43,7 +43,7 @@ function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
     [onChange],
   )
   const handleBlur = React.useCallback(
-    (e) => {
+    (e: any) => {
       const labels = e.target.value.split(',').map((x: string) => x.trim())
       if (labels.join(',') === value.join(',')) return
       handleChange(e, labels)
@@ -85,7 +85,7 @@ interface MessageProps {
 
 function Message({ disabled, onChange, size, value = false }: MessageProps) {
   const handleChange = React.useCallback(
-    (_e, checked: boolean) => onChange(checked),
+    (_e: any, checked: boolean) => onChange(checked),
     [onChange],
   )
   return (
@@ -121,7 +121,7 @@ function PackageHandle({
     },
     [onChange, value],
   )
-  const handleChange = React.useCallback((event) => setValue(event.target.value), [])
+  const handleChange = React.useCallback((event: any) => setValue(event.target.value), [])
   return (
     <M.TextField
       InputLabelProps={{
@@ -188,7 +188,7 @@ function PackageDescription({
     [onRename, handlePattern],
   )
   const handleMessage = React.useCallback(
-    (message) => onChange(handlePattern, { ...value, message }),
+    (message: any) => onChange(handlePattern, { ...value, message }),
     [handlePattern, onChange, value],
   )
   const handleLabels = React.useCallback(
@@ -278,7 +278,7 @@ export default function PackageDescriptionsList({
   )
 
   const handleNewKey = React.useCallback(
-    (_, key: string) => {
+    (_: any, key: string) => {
       onChange({
         ...value,
         [key]: {},

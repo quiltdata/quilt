@@ -330,7 +330,11 @@ export function Package({
           {!!hit.workflow?.id && (
             <>
               <Divider />{' '}
-              <M.Chip size="small" variant="outlined" label={hit.workflow.id} />
+              <M.Chip
+                size="small"
+                variant="outlined"
+                label={hit.workflow.id as React.ReactNode}
+              />
             </>
           )}
           {showRevision && (

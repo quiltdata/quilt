@@ -31,9 +31,9 @@ function Dialog({
   const [submitted, setSubmitted] = React.useState(false)
   const error = React.useMemo(() => validate(value), [validate, value])
   const { push } = Notifications.use()
-  const handleChange = React.useCallback((event) => setValue(event.target.value), [])
+  const handleChange = React.useCallback((event: any) => setValue(event.target.value), [])
   const handleSubmit = React.useCallback(
-    (event) => {
+    (event: any) => {
       event.stopPropagation()
       event.preventDefault()
       setSubmitted(true)

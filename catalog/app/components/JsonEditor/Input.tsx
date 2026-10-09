@@ -121,7 +121,7 @@ export default function Input({
   }, [])
 
   const onChangeInternal = React.useCallback(
-    (event) => {
+    (event: any) => {
       setValue(parseJSON(event.target.value))
       setValueStr(event.target.value)
     },
@@ -141,7 +141,7 @@ export default function Input({
   }, [onChange, columnId, data.key, value, valueStr])
 
   const onKeyDown = React.useCallback(
-    (event) => {
+    (event: any) => {
       switch (event.key) {
         case 'Escape':
           event.stopPropagation() // avoid closing the dialog

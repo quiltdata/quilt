@@ -48,7 +48,7 @@ function WorkgroupSelect({ disabled, value, workgroups }: WorkgroupSelectProps) 
   )
 
   const handleChange = React.useCallback(
-    (event) => {
+    (event: any) => {
       storage.setWorkgroup(event.target.value)
       goToWorkgroup(event.target.value)
     },
