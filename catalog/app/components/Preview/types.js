@@ -36,6 +36,7 @@ export const PreviewData = tagged([
   'Vega', // { spec: Object }
   'Video', // { src: string }
   'Voila', // { src: string }
+  'Zarr', // { handle: S3ObjectLocation of the root metadata file, deferred: boolean, modes }
 ])
 
 export const PreviewError = tagged([

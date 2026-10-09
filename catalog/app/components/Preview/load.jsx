@@ -20,10 +20,13 @@ import * as Vcf from './loaders/Vcf'
 import * as Vega from './loaders/Vega'
 import * as Video from './loaders/Video'
 import * as Voila from './loaders/Voila'
+import * as Zarr from './loaders/Zarr'
 import * as fallback from './loaders/fallback'
 import * as summarize from './loaders/summarize'
 
 const loaderChain = [
+  // ahead of Json: a v3 store's root metadata file is `zarr.json`
+  Zarr,
   Audio,
   ECharts,
   Fcs,
