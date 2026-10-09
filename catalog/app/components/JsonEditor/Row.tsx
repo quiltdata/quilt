@@ -46,7 +46,15 @@ const useStyles = M.makeStyles((t) => ({
   },
   required: {
     color: t.palette.error.dark,
-    marginLeft: 2,
+    paddingRight: t.spacing(1),
+  },
+  keyLine: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  keyText: {
+    flexGrow: 1,
+    minWidth: 0,
   },
 }))
 
@@ -102,18 +110,34 @@ export default function Row({
             [classes.errorValue]: property && bad && cell.column.id === COLUMN_IDS.VALUE,
           })}
         >
-          {cell.render('Cell', {
-            columnPath,
-            contextMenuPath,
-            editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
-            onContextMenu,
-            onExpand,
-            onRemove,
-          })}
-          {property && cell.column.id === COLUMN_IDS.KEY && item.required && (
-            <span aria-label="required" className={classes.required}>
-              *
-            </span>
+          {property && cell.column.id === COLUMN_IDS.KEY ? (
+            // one line: the key's preview is a block, so the mark would wrap under it
+            <div className={classes.keyLine}>
+              <div className={classes.keyText}>
+                {cell.render('Cell', {
+                  columnPath,
+                  contextMenuPath,
+                  editing: false,
+                  onContextMenu,
+                  onExpand,
+                  onRemove,
+                })}
+              </div>
+              {item.required && (
+                <span aria-label="required" className={classes.required}>
+                  *
+                </span>
+              )}
+            </div>
+          ) : (
+            cell.render('Cell', {
+              columnPath,
+              contextMenuPath,
+              editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
+              onContextMenu,
+              onExpand,
+              onRemove,
+            })
           )}
         </M.TableCell>
       ))}
