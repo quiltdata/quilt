@@ -1263,6 +1263,15 @@ export default {
             args: [],
           },
           {
+            name: 'objectTagsConfig',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'overviewUrl',
             type: {
               kind: 'SCALAR',
@@ -1441,6 +1450,25 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'BucketObjectTagsConfigInvalid',
+        fields: [
+          {
+            name: 'message',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
         kind: 'INTERFACE',
         name: 'BucketPermission',
         fields: [
@@ -1547,6 +1575,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'BucketNotFound',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketObjectTagsConfigInvalid',
           },
           {
             kind: 'OBJECT',

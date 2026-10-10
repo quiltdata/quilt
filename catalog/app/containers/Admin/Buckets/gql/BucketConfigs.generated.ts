@@ -29,6 +29,7 @@ export interface containers_Admin_Buckets_gql_BucketConfigsQuery {
     readonly skipMetaDataIndexing: boolean | null
     readonly lastIndexed: Date | null
     readonly browsable: boolean
+    readonly objectTagsConfig: string | null
   }>
 }
 
@@ -79,6 +80,7 @@ export const containers_Admin_Buckets_gql_BucketConfigsDocument = {
           { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },
           { kind: 'Field', name: { kind: 'Name', value: 'lastIndexed' } },
           { kind: 'Field', name: { kind: 'Name', value: 'browsable' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'objectTagsConfig' } },
         ],
       },
     },
