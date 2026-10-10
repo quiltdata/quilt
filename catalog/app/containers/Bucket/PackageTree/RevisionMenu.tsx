@@ -9,6 +9,7 @@ interface RevisionMenuProps {
   onCreateFile: () => void
   onDelete: () => void
   onDeletePackage: () => void
+  onLock?: () => void
 }
 
 export default function RevisionMenu({
@@ -16,6 +17,7 @@ export default function RevisionMenu({
   onCreateFile,
   onDelete,
   onDeletePackage,
+  onLock,
 }: RevisionMenuProps) {
   const { prefs } = BucketPreferences.use()
 
@@ -47,8 +49,8 @@ export default function RevisionMenu({
           _: () => [],
         },
         prefs,
-      ),
-    [onCreateFile, onDelete, onDeletePackage, prefs],
+      ).concat(onLock ? [{ onClick: onLock, title: 'Lock package' }] : []),
+    [onCreateFile, onDelete, onDeletePackage, onLock, prefs],
   )
 
   if (!items.length) return null

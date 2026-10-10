@@ -3,6 +3,7 @@ import * as React from 'react'
 import Log from 'utils/Logging'
 import assertNever from 'utils/assertNever'
 import { useMutation } from 'utils/GraphQL'
+import * as PackageLock from 'utils/PackageLock'
 
 import PACKAGE_PROMOTE from '../gql/PackagePromote.generated'
 
@@ -84,7 +85,7 @@ function useCopy() {
             hash: r.revision.hash,
           })
         case 'OperationError':
-          return Err(new Error(r.message))
+          return Err(new Error(PackageLock.errorMessage(r)))
         case 'InvalidInput':
           return invalidInput(r.errors)
         default:

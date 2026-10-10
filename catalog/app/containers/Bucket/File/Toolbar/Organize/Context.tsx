@@ -83,11 +83,19 @@ function OrganizeProvider({
       toggleBookmark,
       isBookmarked,
       editFile,
-      editTypes: editorState.types,
+      editTypes: editorState.writable ? editorState.types : [],
       confirmDelete,
       handle,
     }),
-    [editorState.types, toggleBookmark, isBookmarked, editFile, confirmDelete, handle],
+    [
+      editorState.types,
+      editorState.writable,
+      toggleBookmark,
+      isBookmarked,
+      editFile,
+      confirmDelete,
+      handle,
+    ],
   )
 
   return (

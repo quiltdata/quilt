@@ -199,6 +199,23 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
+    it('should return invalid while the name and its lock are still being checked', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({ name: { ...name, status: { _tag: 'loading' as const } } }),
+      )
+      expect(result.current).toEqual(Invalid(new Error('Checking the package name…')))
+    })
+
+    it('reports a real message error over a name still being checked', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          name: { ...name, status: { _tag: 'loading' as const } },
+          message: { ...message, value: '' },
+        }),
+      )
+      expect(result.current).toEqual(Invalid(new Error('Valid message required')))
+    })
+
     it('should return invalid when name status is error', () => {
       const nameError = {
         value: 'test-name',
@@ -418,23 +435,23 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
-    it.each([
-      ['while its name check is in flight', { _tag: 'loading' as const }],
-      ['when the name resolves elsewhere', { _tag: 'new-revision' as const }],
-    ])('permits a copy, which loads no entries to overwrite (%s)', (_tag, status) => {
-      // Copy fetches its manifest with skipEntries and promotes server-side by hash, so
-      // there is nothing loaded for this gate to protect.
-      const { result } = renderHook(() =>
-        useParamsWith({
-          dst: { bucket: 'other-bucket', name: 'test-package' },
-          manifest: MANIFEST_READY,
-          name: { ...name, status },
-          src,
-        }),
-      )
+    it.each([['when the name resolves elsewhere', { _tag: 'new-revision' as const }]])(
+      'permits a copy, which loads no entries to overwrite (%s)',
+      (_tag, status) => {
+        // Copy fetches its manifest with skipEntries and promotes server-side by hash, so
+        // there is nothing loaded for this gate to protect.
+        const { result } = renderHook(() =>
+          useParamsWith({
+            dst: { bucket: 'other-bucket', name: 'test-package' },
+            manifest: MANIFEST_READY,
+            name: { ...name, status },
+            src,
+          }),
+        )
 
-      expect(result.current._tag).toBe('ok')
-    })
+        expect(result.current._tag).toBe('ok')
+      },
+    )
 
     it('permits the plain revise, where dst and src name the same package', () => {
       const { result } = renderHook(() =>

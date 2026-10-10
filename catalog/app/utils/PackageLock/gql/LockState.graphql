@@ -1,0 +1,12 @@
+query ($bucket: String!, $name: String!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    lock {
+      hash
+      lockedAt
+      lockedBy
+      reason
+    }
+  }
+}

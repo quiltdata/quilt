@@ -103,11 +103,23 @@ vi.mock('../FallbackToDir', () => ({
   default: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
 }))
 
+const editor = vi.hoisted(() => ({ writable: true, requested: null as string | null }))
+const prefsActions = vi.hoisted(() => ({ writeFile: false }))
+
 vi.mock('components/FileEditor', () => ({
-  useState: () => ({ editing: false, onEdit: vi.fn(), onSave: vi.fn() }),
+  useState: () => ({
+    editing: false,
+    onEdit: vi.fn(),
+    onSave: vi.fn(),
+    writable: editor.writable,
+    requested: editor.requested,
+  }),
   Editor: () => <div data-testid="editor" />,
+  Requested: ({ requested }: { requested: string }) => (
+    <div data-testid={`requested-${requested}`} />
+  ),
   Controls: () => null,
-  AddFileButton: () => null,
+  AddFileButton: () => <button>Create file</button>,
 }))
 
 // renderPreview / Preview.load drive the preview branch; the boundary specs only
@@ -141,7 +153,7 @@ vi.mock('utils/BucketPreferences', async () => {
     ...actual,
     use: () => ({
       prefs: actual.Result.Ok({
-        ui: { blocks: { analytics: false, meta: true }, actions: { writeFile: false } },
+        ui: { blocks: { analytics: false, meta: true }, actions: prefsActions },
       } as never),
     }),
   }
@@ -277,5 +289,57 @@ describe('containers/Bucket/File containment', () => {
     expect(getByTestId('preview-body')).toBeTruthy()
     expect(queryByText('Preview unavailable')).toBeNull()
     expect(queryByText('This object could not be loaded')).toBeNull()
+  })
+
+  describe('a missing object', () => {
+    beforeEach(() => {
+      headResult.mockReturnValue(AsyncResult.Ok(requests.ObjectExistence.DoesNotExist()))
+      prefsActions.writeFile = true
+    })
+
+    afterEach(() => {
+      prefsActions.writeFile = false
+      editor.writable = true
+    })
+
+    it('offers to create it', () => {
+      expect(renderFile().queryByText('Create file')).toBeTruthy()
+    })
+
+    it('offers no create button when the bucket disables writeFile', () => {
+      prefsActions.writeFile = false
+      expect(renderFile().queryByText('Create file')).toBeNull()
+    })
+
+    it('offers no create button that the editor would refuse', () => {
+      editor.writable = false
+      expect(renderFile().queryByText('Create file')).toBeNull()
+    })
+  })
+
+  describe('an editor the URL asked for', () => {
+    afterEach(() => {
+      editor.requested = null
+    })
+
+    it('shows the locked notice in place of the preview', () => {
+      editor.requested = 'locked'
+      const view = renderFile()
+      expect(view.getByTestId('requested-locked')).toBeTruthy()
+      expect(view.getByTestId('preview-body')).toBeTruthy()
+    })
+
+    it('shows the editor loading state while the lock loads', () => {
+      editor.requested = 'loading'
+      const view = renderFile()
+      expect(view.getByTestId('requested-loading')).toBeTruthy()
+      expect(view.queryByTestId('preview-body')).toBeNull()
+    })
+
+    it('shows the locked notice for a missing object', () => {
+      editor.requested = 'locked'
+      headResult.mockReturnValue(AsyncResult.Ok(requests.ObjectExistence.DoesNotExist()))
+      expect(renderFile().getByTestId('requested-locked')).toBeTruthy()
+    })
   })
 })
