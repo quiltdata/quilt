@@ -34,7 +34,6 @@
 * [Quilt Connect Server](Catalog/Connect.md)
 * [Cross-Account Access](CrossAccount.md)
 * [Enterprise Installs](technical-reference.md)
-* [quilt3.admin Python API](api-reference/Admin.md)
 * **Advanced**
   * [Checksums & Hashing](CHUNKED_CHECKSUMS.md)
   * [Package Events](advanced-features/package-events.md)
