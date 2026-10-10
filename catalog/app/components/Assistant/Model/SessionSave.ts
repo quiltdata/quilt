@@ -212,7 +212,9 @@ export function useSessionSave(api: API): SessionSave {
   const [choice, setChoice] = React.useState<{ on: boolean; exposure: string } | null>(
     null,
   )
-  const includeResults = choice && choice.exposure === exposure ? choice.on : !risky
+  // Leaving results out holds through later reads; only including them needs asking again.
+  const includeResults =
+    choice && (choice.exposure === exposure || !choice.on) ? choice.on : !risky
   const setResults = React.useCallback(
     (on: boolean | null) => setChoice(on === null ? null : { on, exposure }),
     [exposure],
@@ -273,7 +275,7 @@ export function useSessionSave(api: API): SessionSave {
     const result = await doSave(bucket, name, includeResults, mine)
     if (sidRef.current !== startedIn) return
     // Pinned once saved: discarding the first message would otherwise derive a new name.
-    if (result._tag === 'saved') setName(name)
+    if (result._tag === 'saved') setName((current) => current || name)
     if (result._tag === 'saved')
       setSavedTo((s) =>
         s.includes(`${bucket}/${name}`) ? s : [...s, `${bucket}/${name}`],

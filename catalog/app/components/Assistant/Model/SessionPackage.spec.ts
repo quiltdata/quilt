@@ -165,6 +165,22 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(SessionPackage.foreignBuckets(e, 'quilt-dev')).toEqual(['other'])
   })
 
+  it('names only kept calls in the README, but warns about discarded ones', () => {
+    const e = [
+      Conversation.Event.ToolUse({
+        id: 'd',
+        timestamp: at,
+        toolUseId: 'd',
+        name: 'platform__object_read',
+        input: { bucket: 'quilt-dev', key: 'secret-key' },
+        result: Tool.succeed(),
+        discarded: true,
+      }),
+    ]
+    expect(SessionPackage.references(e)).toEqual([])
+    expect(SessionPackage.toReadme(e, info)).not.toContain('secret-key')
+  })
+
   it('keeps a discarded call that read another bucket in the warning', () => {
     const e = [
       Conversation.Event.ToolUse({

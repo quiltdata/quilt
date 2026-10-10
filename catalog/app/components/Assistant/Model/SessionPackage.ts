@@ -115,10 +115,20 @@ function redact(value: unknown): unknown {
 }
 
 /** What the session's tool calls touched, first mention first, deduplicated. */
-export function references(events: Conversation.Event[]): Reference[] {
+/** What kept tool calls touched: what the README, metadata and pane name. */
+export const references = (events: Conversation.Event[]) =>
+  dedupe(collectAll(live(events)))
+
+/** What any call that ran touched, discarded or not: answers built on it are still saved. */
+const readReferences = (events: Conversation.Event[]) => dedupe(collectAll(events))
+
+function collectAll(events: Conversation.Event[]): Reference[] {
   const out: Reference[] = []
-  // Discarded calls count too: the answers built on what they read are still saved.
   events.forEach((e) => e._tag === 'ToolUse' && ran(e) && collect(e.input, out))
+  return out
+}
+
+function dedupe(out: Reference[]): Reference[] {
   const seen = new Set<string>()
   // A bucket is only worth listing when nothing more specific in it was named.
   const specific = new Set(out.filter((r) => r.kind !== 'bucket').map((r) => r.bucket))
@@ -212,7 +222,9 @@ export const readIds = (events: Conversation.Event[]) =>
 
 /** Buckets other than the target that the session's tools touched. */
 export const foreignBuckets = (events: Conversation.Event[], bucket: string) =>
-  Array.from(new Set(references(events).map((r) => r.bucket))).filter((b) => b !== bucket)
+  Array.from(new Set(readReferences(events).map((r) => r.bucket))).filter(
+    (b) => b !== bucket,
+  )
 
 const localRefs = (events: Conversation.Event[], bucket: string) =>
   references(events).filter((r) => r.bucket === bucket)
