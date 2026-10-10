@@ -145,6 +145,9 @@ export interface AdminMutations {
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly mcpServerProbe: McpServerProbe
+  readonly mcpServerRemove: McpServerRemoveResult
+  readonly mcpServerSet: McpServerSetResult
   readonly packager: PackagerAdminMutations
   readonly setQuratorConfig: SetQuratorConfigResult
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
@@ -164,6 +167,19 @@ export interface AdminMutationsbucketSetTabulatorTableArgs {
   tableName: Scalars['String']['input']
 }
 
+export interface AdminMutationsmcpServerProbeArgs {
+  slug: Scalars['ID']['input']
+}
+
+export interface AdminMutationsmcpServerRemoveArgs {
+  slug: Scalars['ID']['input']
+}
+
+export interface AdminMutationsmcpServerSetArgs {
+  input: McpServerInput
+  slug: Scalars['ID']['input']
+}
+
 export interface AdminMutationssetQuratorConfigArgs {
   input: QuratorConfigInput
 }
@@ -180,6 +196,8 @@ export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly apiKeys: APIKeyAdminQueries
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']['output']
+  readonly mcpServers: ReadonlyArray<McpServerAdmin>
+  readonly mcpServersAvailable: Scalars['Boolean']['output']
   readonly packager: PackagerAdminQueries
   readonly quratorAvailableModels: QuratorAvailableModels
   readonly quratorConfig: QuratorConfig
@@ -511,6 +529,70 @@ export interface ManagedRole {
 export interface ManagedRoleInput {
   readonly name: Scalars['String']['input']
   readonly policies: ReadonlyArray<Scalars['ID']['input']>
+}
+
+export interface McpServer {
+  readonly __typename: 'McpServer'
+  readonly hint: Maybe<Scalars['String']['output']>
+  readonly slug: Scalars['ID']['output']
+  readonly title: Scalars['String']['output']
+  readonly trusted: Scalars['Boolean']['output']
+}
+
+export interface McpServerAdmin {
+  readonly __typename: 'McpServerAdmin'
+  readonly auth: McpServerAuth
+  readonly authHeader: Maybe<Scalars['String']['output']>
+  readonly authPrefix: Maybe<Scalars['String']['output']>
+  readonly enabled: Scalars['Boolean']['output']
+  readonly forwardIdentity: Scalars['Boolean']['output']
+  readonly hasSecret: Scalars['Boolean']['output']
+  readonly hint: Maybe<Scalars['String']['output']>
+  readonly slug: Scalars['ID']['output']
+  readonly title: Scalars['String']['output']
+  readonly trusted: Scalars['Boolean']['output']
+  readonly updatedAt: Scalars['Datetime']['output']
+  readonly updatedBy: Maybe<Scalars['String']['output']>
+  readonly url: Scalars['String']['output']
+}
+
+export enum McpServerAuth {
+  HEADER = 'HEADER',
+  NONE = 'NONE',
+}
+
+export interface McpServerInput {
+  readonly auth: McpServerAuth
+  readonly authHeader: InputMaybe<Scalars['String']['input']>
+  readonly authPrefix: InputMaybe<Scalars['String']['input']>
+  readonly enabled: Scalars['Boolean']['input']
+  readonly forwardIdentity: Scalars['Boolean']['input']
+  readonly hint: InputMaybe<Scalars['String']['input']>
+  /** Write-only. Omit to keep the stored secret; a URL whose origin changed clears it. */
+  readonly secret: InputMaybe<Scalars['String']['input']>
+  readonly title: Scalars['String']['input']
+  readonly trusted: Scalars['Boolean']['input']
+  readonly url: Scalars['String']['input']
+}
+
+export interface McpServerProbe {
+  readonly __typename: 'McpServerProbe'
+  readonly failure: Maybe<Scalars['String']['output']>
+  readonly ok: Scalars['Boolean']['output']
+  readonly tools: ReadonlyArray<McpToolSummary>
+}
+
+export type McpServerRemoveResult = InvalidInput | Ok | OperationError
+
+export type McpServerSetResult = InvalidInput | McpServerAdmin | OperationError
+
+export interface McpToolSummary {
+  readonly __typename: 'McpToolSummary'
+  readonly description: Maybe<Scalars['String']['output']>
+  readonly destructive: Maybe<Scalars['Boolean']['output']>
+  readonly name: Scalars['String']['output']
+  readonly openWorld: Maybe<Scalars['Boolean']['output']>
+  readonly readOnly: Maybe<Scalars['Boolean']['output']>
 }
 
 export interface Me {
@@ -1157,6 +1239,7 @@ export interface Query {
   readonly buckets: ReadonlyArray<Bucket>
   readonly config: Config
   readonly defaultRole: Maybe<Role>
+  readonly mcpServers: ReadonlyArray<McpServer>
   readonly me: Maybe<Me>
   readonly milestones: StackMilestonesResult
   readonly objectAccessCounts: Maybe<AccessCounts>

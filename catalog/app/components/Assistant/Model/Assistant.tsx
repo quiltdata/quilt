@@ -4,9 +4,12 @@ import * as uuid from 'uuid'
 
 import * as React from 'react'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 
 import * as Actor from 'utils/Actor'
 import { runtime } from 'utils/Effect'
+import * as GQL from 'utils/GraphQL'
+import logger from 'utils/Logging'
 import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
@@ -16,6 +19,7 @@ import defer from 'utils/defer'
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
 import * as Mcp from './Connectors/Mcp'
+import MCP_SERVERS_QUERY from './gql/McpServers.generated'
 import * as Context from './Context'
 import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
@@ -116,6 +120,78 @@ function usePlatformConnectorConfig(): Connectors.ConnectorConfig {
   )
 }
 
+type RegisteredServers = GQL.DataForDoc<typeof MCP_SERVERS_QUERY>['mcpServers']
+
+const NO_SERVERS: RegisteredServers = []
+
+const SUSPENSE = { suspense: true }
+
+/** The registry adds a hop to every relayed call. */
+const RELAYED_HEARTBEAT_TIMEOUT = Eff.Duration.seconds(10)
+
+export type McpServersRead = { servers: RegisteredServers } | { pending: unknown }
+
+// Module-level: a ref resets on every render that suspends before commit.
+let mcpReadWarned = false
+
+const isThenable = (e: unknown) =>
+  typeof (e as { then?: unknown } | null)?.then === 'function'
+
+/**
+ * Starts the MCP server read without suspending, so it runs alongside the
+ * suspending reads after it instead of after them. A failed read degrades to
+ * platform tools only, warned once: a registry without this field is a real
+ * state mid-update.
+ */
+export function useMcpServersRead(): McpServersRead {
+  const committed = React.useRef(false)
+  React.useEffect(() => {
+    committed.current = true
+  }, [])
+  let result
+  try {
+    ;[result] = urql.useQuery({ query: MCP_SERVERS_QUERY, context: SUSPENSE })
+  } catch (e) {
+    // urql throws between its own hooks. Carrying on is safe only on a first
+    // mount, which never commits with the hooks it skipped; after that (a new
+    // client on sign-in or sign-out) the hook order would break.
+    if (committed.current || !isThenable(e)) throw e
+    return { pending: e }
+  }
+  if (result.data) return { servers: result.data.mcpServers }
+  if (!mcpReadWarned) {
+    mcpReadWarned = true
+    logger.warn('Could not read the MCP server list; platform tools only', result.error)
+  }
+  return { servers: NO_SERVERS }
+}
+
+/**
+ * Suspends until `read` settles: the connector set is allocated once per
+ * mount, so a later list would never reach the assistant.
+ */
+export function useRegisteredConnectorConfigs(
+  read: McpServersRead,
+): readonly Connectors.ConnectorConfig[] {
+  const getToken = useSessionToken()
+  const servers = 'servers' in read ? read.servers : NO_SERVERS
+  const configs = React.useMemo(
+    () =>
+      servers.map((s) => ({
+        id: s.slug,
+        title: s.title,
+        hint: s.hint ?? undefined,
+        optional: true,
+        thirdParty: !s.trusted,
+        heartbeatTimeout: RELAYED_HEARTBEAT_TIMEOUT,
+        backend: Mcp.relayed({ slug: s.slug, getToken }),
+      })),
+    [servers, getToken],
+  )
+  if ('pending' in read) throw read.pending
+  return configs
+}
+
 /**
  * The catalog session token, resolved through the auth saga so an expired
  * session is refreshed rather than handed over stale. Reading the store
@@ -151,11 +227,12 @@ function useSessionToken(): () => Eff.Effect.Effect<string | null> {
  * If React aborts the render before commit (Suspense unwind, Error
  * Boundary, concurrent-mode discard), the cleanup `useEffect` never
  * fires and the lifecycle fibers leak. Mitigation: in
- * `useConstructAssistantAPI`, `useDualInstructionsContext` (the only
- * suspending hook, via `CatalogSettings.use()`) runs before this one, so
- * a cold-load suspend throws before `useConst` allocates; keep that
- * order. Proper fix is to defer allocation into `useEffect` and expose a
- * Loading state on AssistantAPI.
+ * `useConstructAssistantAPI`, the suspending hooks
+ * (`useDualInstructionsContext` via `CatalogSettings.use()`, and
+ * `useRegisteredConnectorConfigs` via the registry query) run before this
+ * one, so a cold-load suspend throws before `useConst` allocates; keep
+ * that order. Proper fix is to defer allocation into `useEffect` and
+ * expose a Loading state on AssistantAPI.
  */
 function useConnectors(
   configs: readonly Connectors.ConnectorConfig[],
@@ -400,6 +477,8 @@ function useSessions(
 }
 
 function useConstructAssistantAPI() {
+  // First, so the registry read is in flight while the settings read suspends.
+  const mcpRead = useMcpServersRead()
   const [modelId, modelIdOverride, model] = useModelIdOverride()
   const [record, recording] = useRecording()
   const [mode, setMode] = React.useState<Mode>('agent')
@@ -415,7 +494,13 @@ function useConstructAssistantAPI() {
   const instructions = useDualInstructionsContext()
 
   const platformConfig = usePlatformConnectorConfig()
-  const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
+  // Before `useConnectors`: this suspends on first render, and a render
+  // unwound after `useConnectors` allocates would orphan its fibers.
+  const registeredConfigs = useRegisteredConnectorConfigs(mcpRead)
+  const connectorConfigs = React.useMemo(
+    () => [platformConfig, ...registeredConfigs],
+    [platformConfig, registeredConfigs],
+  )
   const connectors = useConnectors(connectorConfigs)
 
   const getToken = useSessionToken()
