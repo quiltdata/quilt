@@ -64,4 +64,11 @@ describe('utils/OIDC takeRedirectResult', () => {
     // No error_description: the message falls back to the code.
     expect((error as OIDCError).details).toBe('access_denied')
   })
+
+  it('names the code when the IdP sends an empty description', () => {
+    pend('s1')
+    callback('?error=access_denied&error_description=&state=s1')
+    const { error } = takeRedirectResult() ?? {}
+    expect((error as OIDCError).details).toBe('access_denied')
+  })
 })
