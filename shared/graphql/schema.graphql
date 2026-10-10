@@ -737,6 +737,36 @@ type AdminQueries {
   apiKeys: APIKeyAdminQueries!
 }
 
+"""
+Stack-wide metrics the catalog derives milestone badges from, across every
+bucket in the catalog regardless of the reader's role. Counts and dates only:
+no package names, no users. Cached for up to ten minutes.
+"""
+type StackMilestones {
+  "Named packages, one per (bucket, name). Exact, not capped."
+  packages: Int!
+  "Largest single revision, bytes. Null when the stack has no packages."
+  largestPackageBytes: Float
+  "Most files in a single revision. Null when the stack has no packages."
+  largestPackageFiles: Int
+  "Bytes across distinct manifests still referenced by a package; revisions sharing a manifest count it once."
+  totalPackagedBytes: Float!
+  "Buckets holding at least one package revision."
+  bucketsWithPackages: Int!
+  "Revisions of the most-revised package (approximate on multi-shard indices)."
+  mostRevisions: Int!
+  "Active catalog users."
+  activeUsers: Int!
+  "Earliest pointer write time (S3 LastModified). Null when the stack has no packages."
+  firstPackageAt: Datetime
+  "Earliest pointer write time of a revision of at least 10^12 bytes. Null when none."
+  firstMultiTerabyteAt: Datetime
+  "Earliest pointer write time of a revision validated by a workflow. Null when none."
+  firstWorkflowPackageAt: Datetime
+}
+
+union StackMilestonesResult = StackMilestones | OperationError
+
 type MyRole {
   name: String!
 }
@@ -791,6 +821,7 @@ type Query {
   role(id: ID!): Role @admin
   defaultRole: Role @admin
   status: StatusResult! @admin
+  milestones: StackMilestonesResult! @authenticated
 }
 
 input BucketAddInput {

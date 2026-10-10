@@ -207,6 +207,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           SearchHitPackageMatchingEntry: () => null,
           SsoConfig: (c) =>
             c.timestamp instanceof Date ? c.timestamp.getTime().toString() : null,
+          StackMilestones: () => null,
           Status: () => null,
           StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
           StatusReportList: () => null,

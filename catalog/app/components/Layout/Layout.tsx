@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import MilestonesRibbon from 'containers/Milestones/Ribbon'
 import { Sidebar } from 'containers/Sidebar'
 import { MOTION, STILL, usePanelGutter } from 'components/Assistant/UI/PanelReflow'
 
@@ -173,6 +174,7 @@ export function Layout({
                 <M.Box flexGrow={1} />
               </Container.FullWidthProvider>
             </div>
+            <MilestonesRibbon />
           </Column.Provider>
         </M.Box>
       </M.Box>

@@ -101,6 +101,26 @@ function DataProductsRoute() {
     </React.Suspense>
   )
 }
+const Milestones = requireAuth()(
+  RT.mkLazy(() => import('containers/Milestones'), Placeholder),
+)
+
+// Same ordering as the data-products gate: the flag before auth, so a flagged-off
+// page never redirects an anonymous visitor to sign-in.
+function MilestonesGate() {
+  const { urls } = NamedRoutes.use()
+  if (!useFeature('product-badges')) return <Redirect to={urls.home()} />
+  return <Milestones />
+}
+
+function MilestonesRoute() {
+  return (
+    <React.Suspense fallback={<Placeholder />}>
+      <MilestonesGate />
+    </React.Suspense>
+  )
+}
+
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
 const Qurator = requireAuth()(RT.mkLazy(() => import('containers/Qurator'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
@@ -229,6 +249,10 @@ export default function App() {
           auth can redirect to sign-in. */}
       <Route path={paths.dataProducts}>
         <DataProductsRoute />
+      </Route>
+
+      <Route path={paths.milestones} exact>
+        <MilestonesRoute />
       </Route>
 
       <Route path={paths.queries}>
