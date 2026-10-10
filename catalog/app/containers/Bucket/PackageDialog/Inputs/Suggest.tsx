@@ -246,3 +246,41 @@ export function SuggestFieldRow({
     </button>
   )
 }
+
+const useCellStyles = M.makeStyles((t) => ({
+  ghost: {
+    alignItems: 'center',
+    color: t.palette.text.secondary,
+    display: 'inline-flex',
+    fontStyle: 'italic',
+    gap: t.spacing(0.5),
+  },
+  icon: {
+    fontSize: 14,
+  },
+}))
+
+export interface SuggestCellProps {
+  suggestion: { value: Types.Json; reason?: string }
+}
+
+/**
+ * Cell slot (contract §7): a suggestion shown as grey text in an empty grid cell. The cell
+ * stays empty in state; typing replaces the text, and the form view's row applies it.
+ */
+export function SuggestCell({ suggestion }: SuggestCellProps) {
+  const classes = useCellStyles()
+  return (
+    <span
+      className={classes.ghost}
+      title={suggestion.reason ? `AI suggestion: ${suggestion.reason}` : 'AI suggestion'}
+    >
+      <M.Icon aria-hidden className={classes.icon}>
+        auto_awesome
+      </M.Icon>
+      <span aria-label={`Suggested: ${display(suggestion.value)}`}>
+        {display(suggestion.value)}
+      </span>
+    </span>
+  )
+}

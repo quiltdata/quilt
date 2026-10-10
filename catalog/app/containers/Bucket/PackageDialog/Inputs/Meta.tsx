@@ -30,7 +30,7 @@ import MetaForm, { FreeFields } from './MetaForm'
 import PasteFields from './PasteFields'
 import SectionRail from './SectionRail'
 import type { Section } from './SectionRail'
-import { SuggestBar } from './Suggest'
+import { SuggestBar, SuggestCell } from './Suggest'
 import MetaSummary from './MetaSummary'
 import { MetaInputSkeleton } from '../Skeleton'
 
@@ -988,6 +988,13 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
                 key={jsonInlineEditorKey}
                 // guided: say what each field is, as the form does
                 mode={guided ? 'property' : 'default'}
+                // only top-level fields have suggestions; nested cells keep their placeholder
+                renderEmptyValue={(address) => {
+                  const k = address.length === 1 ? String(address[0]) : null
+                  const sg =
+                    k && suggested && Object.hasOwn(suggested, k) ? suggested[k] : null
+                  return sg && !editLocked ? <SuggestCell suggestion={sg} /> : null
+                }}
                 // `disabled` only blocks the mouse in JsonEditor; keyboard edits are dropped here
                 onChange={editLocked ? noop : onChangeInline}
                 schema={schema}

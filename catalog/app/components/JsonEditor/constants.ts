@@ -1,5 +1,9 @@
 import type { ErrorObject } from 'ajv'
 
+import type * as React from 'react'
+
+import type * as JSONPointer from 'utils/JSONPointer'
+
 import { JsonDictItem } from './State'
 
 // TODO: any JSON or EMPTY_VALUE
@@ -26,3 +30,6 @@ export const JSON_POINTER_PLACEHOLDER = '__*'
 
 /** `property` (guided metadata): rows also show required, type and the schema's description. */
 export type EditorMode = 'default' | 'property'
+
+/** Property mode: what an empty value cell shows in place of its placeholder (the cell slot). */
+export type RenderEmptyValue = (address: JSONPointer.Path) => React.ReactNode

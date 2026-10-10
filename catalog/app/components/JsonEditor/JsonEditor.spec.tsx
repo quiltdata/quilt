@@ -25,9 +25,11 @@ const theme = createMuiTheme({
 function Editor({
   mode,
   onChange,
+  renderEmptyValue,
 }: {
   mode?: 'default' | 'property'
   onChange: (v: unknown) => void
+  renderEmptyValue?: (address: (string | number)[]) => React.ReactNode
 }) {
   const [value, setValue] = React.useState<unknown>({
     project: 'ONC-104',
@@ -41,6 +43,7 @@ function Editor({
         setValue(v)
         onChange(v)
       }}
+      renderEmptyValue={renderEmptyValue}
       schema={schema}
       value={value}
     />
@@ -106,6 +109,29 @@ describe('components/JsonEditor', () => {
       fireEvent.blur(input)
       expect(onChange).not.toHaveBeenCalled()
       expect(projectCell().textContent).toContain('ONC-104')
+    })
+  })
+
+  describe('empty value slot', () => {
+    const slot = (address: (string | number)[]) =>
+      address.join('/') === 'assay' ? <i>RNA-seq?</i> : null
+
+    it('shows the slot in an empty value cell in property mode only', () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <Editor mode="property" onChange={() => {}} renderEmptyValue={slot} />
+        </ThemeProvider>,
+      )
+      expect(screen.getByText('RNA-seq?')).toBeTruthy()
+    })
+
+    it('is ignored by the default grid', () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <Editor onChange={() => {}} renderEmptyValue={slot} />
+        </ThemeProvider>,
+      )
+      expect(screen.queryByText('RNA-seq?')).toBeNull()
     })
   })
 
