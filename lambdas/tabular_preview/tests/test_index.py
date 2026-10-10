@@ -65,6 +65,44 @@ def test_preview_csv(handler_name, data):
 
 
 @pytest.mark.parametrize(
+    "data, rows_skipped",
+    [
+        # nothing but a header: an empty query export, a filter that matched nothing
+        (b"a,b\n", 0),
+        # every data row malformed, so invalid_row_handler skips them all
+        (b"a,b\n1,2,3\n4\n", 2),
+    ]
+)
+def test_preview_csv_no_rows(data, rows_skipped):
+    """A preview with no rows must still be a loadable Arrow file.
+
+    pyarrow yields no record batches for a 0-row table, and a batch-less IPC file
+    is rejected outright by perspective, so without an explicit empty batch the
+    catalog shows "Could not render tabular data" instead of an empty table.
+    """
+    with patch_urlopen(data):
+        code, body, headers = t4_lambda_tabular_preview.handlers["csv"](
+            url=mock.sentinel.URL,
+            compression=mock.sentinel.COMPRESSION,
+            max_out_size=None,
+        )
+
+    assert code == 200
+    assert json.loads(headers[QUILT_INFO_HEADER]) == {
+        "truncated": False,
+        "rows_skipped": rows_skipped,
+    }
+
+    with pyarrow.ipc.open_file(io.BytesIO(gzip.decompress(body))) as reader:
+        # the point of the fix: a consumer that reads batches finds one to read
+        assert reader.num_record_batches == 1
+        t = reader.read_all()
+
+    assert t.column_names == ["a", "b"]
+    assert t.num_rows == 0
+
+
+@pytest.mark.parametrize(
     "filename, handler_name",
     [
         ("simple/test.xls", "excel"),
