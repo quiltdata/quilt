@@ -468,7 +468,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 // and a root-field invalidate does not reliably notify it.
                 cache.updateQuery(
                   {
-                    query: urql.gql`{ config { quratorModels { allowlist default names { id name } } } }`,
+                    query: urql.gql`{ config { quratorModels { allowlist default maxToolCallsPerTurn names { id name } } } }`,
                   },
                   (data) =>
                     data && {
@@ -478,6 +478,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                           __typename: 'QuratorModelConfig',
                           allowlist: saved.models.allowlist,
                           default: saved.models.default,
+                          maxToolCallsPerTurn: saved.models.maxToolCallsPerTurn,
                           names: saved.models.names,
                         },
                       },
