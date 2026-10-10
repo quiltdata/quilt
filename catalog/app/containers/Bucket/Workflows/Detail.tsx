@@ -11,6 +11,7 @@ import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 import * as Workflows from 'utils/workflows'
 
+import Health from './Health'
 import * as search from './search'
 
 import PACKAGES_QUERY from './gql/WorkflowPackages.generated'
@@ -208,6 +209,8 @@ export default function WorkflowDetail({ bucket, workflow }: WorkflowDetailProps
           <SchemaLink label="Entries Schema" schema={workflow.schemas.entries} />
         </M.Box>
       )}
+
+      <Health workflow={workflow} />
 
       <M.Box mt={3} mb={2}>
         <M.Typography variant="h5">Recent Packages</M.Typography>
