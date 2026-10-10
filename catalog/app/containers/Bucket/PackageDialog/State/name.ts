@@ -158,6 +158,14 @@ function validateNamePattern(
   workflow?: workflows.Workflow,
 ): NameValidationStatus {
   if (!dst.name) return { _tag: 'error', error: new Error('Enter a package name') }
+  if (workflow?.packageNamePatternInvalid) {
+    return {
+      _tag: 'error',
+      error: new Error(
+        `This flow's name pattern is broken (${workflow.packageNamePatternInvalid}), so pushes with it fail. Pick another flow or fix it on the Flows page.`,
+      ),
+    }
+  }
   if (workflow?.packageNamePattern?.test(dst.name) === false) {
     return {
       _tag: 'error',

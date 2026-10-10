@@ -259,6 +259,7 @@ function PackageCreationForm({
           <Layout.Container>
             <Layout.LeftColumn>
               <Inputs.Workflow
+                bucket={dst.bucket}
                 formStatus={formStatus}
                 schema={metadataSchema}
                 state={workflow}
@@ -361,6 +362,7 @@ function RenderDialog({
     case 'error':
       return (
         <DialogError
+          bucket={formState.dst.bucket}
           error={dialogStatus.error}
           skeletonElement={<FormSkeleton animate={false} />}
           title={ui.title || 'Create package'}
