@@ -78,6 +78,17 @@ export interface BackendToolDescriptor {
    * tools (or tools without the hint) fail immediately.
    */
   readonly readOnly?: boolean
+  /** See `effectOf`. */
+  readonly destructive?: boolean
+}
+
+/**
+ * MCP hint semantics: `destructiveHint` defaults to true unless the tool is
+ * read-only, so a server that omits both hints gets the strictest prompt.
+ */
+export const effectOf = (d: BackendToolDescriptor): Tool.Effect => {
+  if (d.readOnly === true) return 'read'
+  return d.destructive === false ? 'write' : 'destructive'
 }
 
 /**
@@ -358,6 +369,7 @@ const buildConnectorTool = (
   // otherwise Bedrock would ship it twice.
   const retryOnTransport = descriptor.readOnly === true
   return {
+    effect: effectOf(descriptor),
     description: descriptor.description,
     schema: descriptor.inputSchema as unknown as Eff.JSONSchema.JsonSchema7Root,
     executor: (args) =>

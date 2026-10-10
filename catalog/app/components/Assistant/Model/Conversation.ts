@@ -22,8 +22,24 @@ const getNow = Eff.Clock.currentTimeMillis.pipe(Eff.Effect.map((t) => new Date(t
 export interface ToolCall {
   readonly name: string
   readonly input: Record<string, any>
-  readonly fiber: Eff.Fiber.RuntimeFiber<void>
+  /** Absent while the call waits for the user's approval. */
+  readonly fiber?: Eff.Fiber.RuntimeFiber<void>
+  /** Set while the call waits for the user's approval. */
+  readonly approval?: Exclude<Tool.Effect, 'read'>
+  /** The tool when approval was asked; Approve refuses to run if it differs. */
+  readonly tool?: Tool.Descriptor<any>
+  /**
+   * Ours, not the model's: Run and Don't run name it, so an answer can only
+   * settle the card it was clicked on, even if the model reuses a tool-use id.
+   */
+  readonly key?: string
 }
+
+const sameTool = (a: Tool.Descriptor<any>, b: Tool.Descriptor<any> | undefined) =>
+  !!b &&
+  a.effect === b.effect &&
+  a.description === b.description &&
+  JSON.stringify(a.schema) === JSON.stringify(b.schema)
 
 export type ToolUseId = string
 
@@ -125,6 +141,8 @@ export type Action = Eff.Data.TaggedEnum<{
     readonly id: string
     readonly result: Tool.ResultOption
   }
+  Approve: { readonly id: string; readonly key: string }
+  Deny: { readonly id: string; readonly key: string }
   Abort: {}
   Clear: {}
   Discard: { readonly id: string }
@@ -153,7 +171,7 @@ const llmRequest = (events: Event[]) =>
       const reactCtx = yield* ctxService.context
       const connectors = yield* Connectors.Connectors
       const connectorsCtx = yield* connectors.contextContribution
-      const ctx = Context.merge(reactCtx, connectorsCtx)
+      const ctx = Context.forMode(Context.merge(reactCtx, connectorsCtx))
       const filteredEvents = events.filter((e) => !e.discarded)
       const prompt = yield* constructPrompt(filteredEvents, ctx)
 
@@ -170,6 +188,28 @@ const llmRequest = (events: Event[]) =>
       )
 
       return { content, toolUses }
+    }),
+  )
+
+const currentTools = Eff.Effect.gen(function* () {
+  const ctxService = yield* Context.ConversationContext
+  const reactCtx = yield* ctxService.context
+  const connectors = yield* Connectors.Connectors
+  const connectorsCtx = yield* connectors.contextContribution
+  return Context.forMode(Context.merge(reactCtx, connectorsCtx)).tools
+})
+
+const forkCall = (
+  tools: Tool.Collection,
+  id: string,
+  name: string,
+  input: unknown,
+  dispatch: Actor.Dispatch<Action>,
+) =>
+  Eff.Effect.fork(
+    Eff.Effect.gen(function* () {
+      const result = yield* Tool.execute(tools, name, input)
+      yield* dispatch(Action.ToolResult({ id, result }))
     }),
   )
 
@@ -209,6 +249,43 @@ const advanceFromEvents = (
       (error) => Eff.Effect.succeed(Action.LLMError({ error })),
     )
     return State.WaitingForAssistant({ events, timestamp, requestFiber })
+  })
+
+type ToolUseState = Extract<State, { _tag: 'ToolUse' }>
+
+const completeCall = (
+  state: ToolUseState,
+  id: string,
+  result: Tool.ResultOption,
+  dispatch: Actor.Dispatch<Action>,
+) =>
+  Eff.Effect.gen(function* () {
+    if (!(id in state.calls)) return state
+
+    const calls = { ...state.calls }
+    const call = calls[id]
+    delete calls[id]
+
+    let events = state.events
+    if (Eff.Option.isSome(result)) {
+      const event = Event.ToolUse({
+        id: yield* genId,
+        timestamp: yield* getNow,
+        toolUseId: id,
+        name: call.name,
+        input: call.input,
+        result: result.value,
+      })
+      events = events.concat(event)
+    }
+
+    if (Object.keys(calls).length) {
+      // some calls still in progress
+      return State.ToolUse({ events, timestamp: state.timestamp, calls })
+    }
+
+    // all calls completed: gate on connectors before the next LLM round
+    return yield* advanceFromEvents(events, dispatch)
   })
 
 // XXX: separate "service" from handlers
@@ -273,23 +350,37 @@ export const ConversationActor = Eff.Effect.succeed(
               return State.Idle({ events, timestamp, error: Eff.Option.none() })
             }
 
-            const ctxService = yield* Context.ConversationContext
-            const reactCtx = yield* ctxService.context
-            const connectors = yield* Connectors.Connectors
-            const connectorsCtx = yield* connectors.contextContribution
-            const { tools } = Context.merge(reactCtx, connectorsCtx)
+            // Results are matched to calls by id, so a repeated id would let one
+            // call's result settle another (e.g. a read clearing a write's card),
+            // and an id like `__proto__` is not an own key of the calls record.
+            const ids = toolUses.map((tu) => tu.toolUseId)
+            if (new Set(ids).size !== ids.length || ids.some((id) => id in {})) {
+              return yield* idle(events, {
+                message: 'Qurator stopped: the model sent an unusable tool-call id.',
+                details: 'No tools were run. Ask again to continue.',
+              })
+            }
+
+            const tools = yield* currentTools
             const calls: Record<string, ToolCall> = {}
             for (const tu of toolUses) {
-              const fiber = yield* Eff.Effect.fork(
-                Eff.Effect.gen(function* () {
-                  const result = yield* Tool.execute(tools, tu.name, tu.input)
-                  yield* dispatch(Action.ToolResult({ id: tu.toolUseId, result }))
-                }),
-              )
+              const effect = Eff.Record.has(tools, tu.name)
+                ? tools[tu.name].effect
+                : undefined
+              if (effect && effect !== 'read') {
+                calls[tu.toolUseId] = {
+                  name: tu.name,
+                  input: tu.input,
+                  approval: effect,
+                  tool: tools[tu.name],
+                  key: yield* genId,
+                }
+                continue
+              }
               calls[tu.toolUseId] = {
                 name: tu.name,
                 input: tu.input,
-                fiber,
+                fiber: yield* forkCall(tools, tu.toolUseId, tu.name, tu.input, dispatch),
               }
             }
 
@@ -309,33 +400,44 @@ export const ConversationActor = Eff.Effect.succeed(
       },
       ToolUse: {
         ToolResult: (state, { id, result }, dispatch) =>
+          completeCall(state, id, result, dispatch),
+        Approve: (state, { id, key }, dispatch) =>
           Eff.Effect.gen(function* () {
-            if (!(id in state.calls)) return state
-
-            const calls = { ...state.calls }
-            const call = calls[id]
-            delete calls[id]
-
-            let events = state.events
-            if (Eff.Option.isSome(result)) {
-              const event = Event.ToolUse({
-                id: yield* genId,
-                timestamp: yield* getNow,
-                toolUseId: id,
-                name: call.name,
-                input: call.input,
-                result: result.value,
-              })
-              events = events.concat(event)
+            const call = state.calls[id]
+            if (!call?.approval || call.key !== key) return state
+            const tools = yield* currentTools
+            const current = Eff.Record.has(tools, call.name)
+              ? tools[call.name]
+              : undefined
+            if (!call.tool || !sameTool(call.tool, current)) {
+              const result = Tool.fail(
+                Content.ToolResultContentBlock.Text({
+                  text: current
+                    ? 'The tool changed while waiting for approval; it was not run.'
+                    : "The tool isn't available right now; it was not run.",
+                }),
+              )
+              return yield* completeCall(state, id, Eff.Option.some(result), dispatch)
             }
-
-            if (Object.keys(calls).length) {
-              // some calls still in progress
-              return State.ToolUse({ events, timestamp: state.timestamp, calls })
+            const fiber = yield* forkCall(tools, id, call.name, call.input, dispatch)
+            return {
+              ...state,
+              calls: {
+                ...state.calls,
+                [id]: { name: call.name, input: call.input, fiber },
+              },
             }
-
-            // all calls completed: gate on connectors before the next LLM round
-            return yield* advanceFromEvents(events, dispatch)
+          }),
+        Deny: (state, { id, key }, dispatch) =>
+          Eff.Effect.gen(function* () {
+            const call = state.calls[id]
+            if (!call?.approval || call.key !== key) return state
+            const result = Tool.fail(
+              Content.ToolResultContentBlock.Text({
+                text: 'Declined by the user; do not retry unless asked.',
+              }),
+            )
+            return yield* completeCall(state, id, Eff.Option.some(result), dispatch)
           }),
         Abort: ({ events, calls }) =>
           Eff.Effect.gen(function* () {
@@ -343,6 +445,7 @@ export const ConversationActor = Eff.Effect.succeed(
             yield* Eff.pipe(
               calls,
               Eff.Record.collect((_k, v) => v.fiber),
+              Eff.Array.filter(Eff.Predicate.isNotUndefined),
               Eff.Array.map(Eff.Fiber.interruptFork),
               Eff.Effect.all,
             )

@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+// Its styles read the app theme's monospace font, absent here.
+vi.mock('components/JsonDisplay', () => ({ default: () => null }))
+
 // `useIsInStack` normally suspends on the buckets query; the link rewrite only
 // needs the membership predicate.
 vi.mock('utils/Buckets', () => ({
@@ -12,7 +15,7 @@ vi.mock('utils/Buckets', () => ({
 
 import * as Model from '../../Model'
 
-import { ConnectorHelperLine, Menu, MessageEvent } from './Chat'
+import { ConnectorHelperLine, Menu, MessageEvent, ToolUseState, toolTitle } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
 // any block element there is invalid DOM nesting.
@@ -176,5 +179,46 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText('Developer Tools')).toBeTruthy()
+  })
+})
+
+describe('components/Assistant/UI/Chat/ToolUseState', () => {
+  afterEach(cleanup)
+
+  it('names tools without the connector prefix', () => {
+    expect(toolTitle('platform__s3_object_put')).toBe('s3 object put')
+    expect(toolTitle('navigate')).toBe('navigate')
+  })
+
+  it('asks before a pending write and dispatches the answer', () => {
+    const dispatch = vi.fn()
+    render(
+      <ToolUseState
+        dispatch={dispatch}
+        timestamp={new Date()}
+        calls={{
+          w: {
+            name: 'platform__object_delete',
+            input: { bucket: 'b', key: 'k.txt' },
+            approval: 'destructive',
+            key: 'k1',
+          },
+        }}
+      />,
+    )
+    expect(screen.getByText(/object delete/)).toBeTruthy()
+    expect(screen.getByText(/replace or delete existing data/)).toBeTruthy()
+    expect(screen.getByText('key: k.txt')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Run'))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Approve({ id: 'w', key: 'k1' }),
+    )
+    fireEvent.click(screen.getByText("Don't run"))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Deny({ id: 'w', key: 'k1' }),
+    )
+    fireEvent.click(screen.getByText('abort'))
+    expect(dispatch).toHaveBeenCalledWith(Model.Conversation.Action.Abort())
   })
 })

@@ -46,8 +46,7 @@ const CLIENT_INFO = { name: 'quilt-catalog', version: '1' } as const
 
 /**
  * Subset of MCP tool annotations the catalog cares about. The wire spec
- * permits more (`idempotentHint`, `openWorldHint`); the connector layer
- * only consumes `readOnlyHint` today.
+ * permits more (`idempotentHint`, `openWorldHint`).
  */
 export interface McpToolAnnotations {
   readOnlyHint?: boolean
@@ -587,6 +586,7 @@ const adaptDescriptor = (m: McpToolDescriptor): BackendToolDescriptor => ({
   description: m.description,
   inputSchema: m.inputSchema,
   readOnly: m.annotations?.readOnlyHint,
+  destructive: m.annotations?.destructiveHint,
 })
 
 const adaptResourceDescriptor = (
