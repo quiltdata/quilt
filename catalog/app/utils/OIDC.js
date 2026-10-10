@@ -7,8 +7,8 @@ import { BaseError } from 'utils/error'
 
 export class OIDCError extends BaseError {
   constructor(code, details) {
-    // IdPs may omit `error_description`; the code still says what went wrong.
-    super('Login failure', { code, details: details ?? code })
+    // IdPs may omit `error_description` or send it empty; the code still says what went wrong.
+    super('Login failure', { code, details: details || code })
   }
 }
 
