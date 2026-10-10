@@ -1,20 +1,20 @@
 import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 
-import type * as PackageLock from 'utils/PackageLock'
-
 import { useBulkDelete } from './useBulkDelete'
+
+vi.mock('constants/config', () => ({ default: {} }))
 
 const deleteRevision: Mock = vi.fn()
 vi.mock('utils/GraphQL', () => ({ useMutation: () => deleteRevision }))
 
 const ok = { packageRevisionDelete: { __typename: 'PackageRevisionDeleteSuccess' } }
-const fail = (message: string) => ({
-  packageRevisionDelete: { __typename: 'OperationError', message },
+const fail = (message: string, name = 'Other') => ({
+  packageRevisionDelete: { __typename: 'OperationError', message, name },
 })
 
 function selecting(...hashes: string[]) {
-  const { result } = renderHook(() => useBulkDelete('b', 'foo/bar', 'unlocked'))
+  const { result } = renderHook(() => useBulkDelete('b', 'foo/bar'))
   act(() => hashes.forEach(result.current.toggle))
   return result
 }
@@ -54,42 +54,10 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     expect(result.current.state.error).toContain('1 already deleted')
   })
 
-  it('refuses to delete once the package is no longer known unlocked', async () => {
-    const { result, rerender } = renderHook(({ w }) => useBulkDelete('b', 'foo/bar', w), {
-      initialProps: { w: 'unlocked' as PackageLock.Status },
+  it("leaves the next package's state alone when a run finishes after navigation", async () => {
+    const { result, rerender } = renderHook(({ name }) => useBulkDelete('b', name), {
+      initialProps: { name: 'foo/a' },
     })
-    act(() => result.current.toggle('h1'))
-    rerender({ w: 'locked' })
-    await act(() => result.current.run())
-    expect(deleteRevision).not.toHaveBeenCalled()
-  })
-
-  it('stops before the next deletion once the package is no longer known unlocked', async () => {
-    const { result, rerender } = renderHook(({ w }) => useBulkDelete('b', 'foo/bar', w), {
-      initialProps: { w: 'unlocked' as PackageLock.Status },
-    })
-    act(() => ['h1', 'h2'].forEach(result.current.toggle))
-    deleteRevision.mockImplementationOnce(async () => {
-      rerender({ w: 'locked' })
-      return ok
-    })
-    await act(() => result.current.run())
-    expect(deleteRevision).toHaveBeenCalledTimes(1)
-    expect([...result.current.selected]).toEqual(['h2'])
-    expect(result.current.state).toMatchObject({
-      error: 'The package is locked; 1 revision was not deleted. 1 already deleted',
-      loading: false,
-      opened: true,
-    })
-  })
-
-  it('stops when the page moves to another package and leaves its state alone', async () => {
-    const { result, rerender } = renderHook(
-      ({ name }) => useBulkDelete('b', name, 'unlocked'),
-      {
-        initialProps: { name: 'foo/a' },
-      },
-    )
     act(() => ['h1', 'h2'].forEach(result.current.toggle))
     act(() => result.current.confirm())
     let resolve: (v: unknown) => void = () => {}
@@ -104,7 +72,6 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
       resolve(ok)
       await running
     })
-    expect(deleteRevision).toHaveBeenCalledTimes(1)
     expect([...result.current.selected]).toEqual(['b1'])
     expect(result.current.state).toMatchObject({
       error: undefined,
@@ -113,11 +80,10 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     })
   })
 
-  it('does not resume an old run after the page returns to its package', async () => {
-    const { result, rerender } = renderHook(
-      ({ name }) => useBulkDelete('b', name, 'unlocked'),
-      { initialProps: { name: 'foo/a' } },
-    )
+  it('leaves the state alone when a run finishes after the page returns to its package', async () => {
+    const { result, rerender } = renderHook(({ name }) => useBulkDelete('b', name), {
+      initialProps: { name: 'foo/a' },
+    })
     act(() => ['h1', 'h2'].forEach(result.current.toggle))
     let resolve: (v: unknown) => void = () => {}
     deleteRevision.mockReturnValueOnce(new Promise((r) => (resolve = r)))
@@ -133,7 +99,6 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
       resolve(ok)
       await running
     })
-    expect(deleteRevision).toHaveBeenCalledTimes(1)
     expect([...result.current.selected]).toEqual(['a1'])
     expect(result.current.state).toMatchObject({
       error: undefined,
@@ -142,58 +107,10 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
     })
   })
 
-  it('sends no further deletes after the hook unmounts', async () => {
-    const { result, unmount } = renderHook(() => useBulkDelete('b', 'foo/a', 'unlocked'))
-    act(() => ['h1', 'h2', 'h3'].forEach(result.current.toggle))
-    let resolve: (v: unknown) => void = () => {}
-    deleteRevision.mockReturnValueOnce(new Promise((r) => (resolve = r)))
-    deleteRevision.mockResolvedValue(ok)
-    let running = Promise.resolve()
-    act(() => {
-      running = result.current.run()
-    })
-    unmount()
-    resolve(ok)
-    await running
-    expect(deleteRevision).toHaveBeenCalledTimes(1)
-  })
-
-  it.each([
-    ['locked', 'The package is locked; no revisions were deleted'],
-    [
-      'loading',
-      'Still checking whether this package is locked; no revisions were deleted',
-    ],
-  ] as const)('explains why nothing was deleted while %s', async (lock, error) => {
-    const { result } = renderHook(() => useBulkDelete('b', 'foo/bar', lock))
-    act(() => result.current.toggle('h1'))
-    await act(() => result.current.run())
-    expect(deleteRevision).not.toHaveBeenCalled()
-    expect(result.current.state).toMatchObject({ error, opened: true })
-  })
-
-  it('says it is still checking when the lock goes back to loading mid-run', async () => {
-    const { result, rerender } = renderHook(({ w }) => useBulkDelete('b', 'foo/bar', w), {
-      initialProps: { w: 'unlocked' as PackageLock.Status },
-    })
-    act(() => ['h1', 'h2'].forEach(result.current.toggle))
-    deleteRevision.mockImplementationOnce(async () => {
-      rerender({ w: 'loading' })
-      return ok
-    })
-    await act(() => result.current.run())
-    expect(result.current.state.error).toBe(
-      'Still checking whether this package is locked; 1 revision was not deleted. 1 already deleted',
-    )
-  })
-
   it('drops the selection when the package changes', () => {
-    const { result, rerender } = renderHook(
-      ({ name }) => useBulkDelete('b', name, 'unlocked'),
-      {
-        initialProps: { name: 'foo/bar' },
-      },
-    )
+    const { result, rerender } = renderHook(({ name }) => useBulkDelete('b', name), {
+      initialProps: { name: 'foo/bar' },
+    })
     act(() => result.current.toggle('h1'))
     expect([...result.current.selected]).toEqual(['h1'])
     rerender({ name: 'foo/other' })
@@ -202,17 +119,23 @@ describe('containers/Bucket/PackageRevisions/useBulkDelete', () => {
 
   it('closes a failed dialog when the package changes', async () => {
     deleteRevision.mockResolvedValue(fail('nope'))
-    const { result, rerender } = renderHook(
-      ({ name }) => useBulkDelete('b', name, 'unlocked'),
-      {
-        initialProps: { name: 'foo/bar' },
-      },
-    )
+    const { result, rerender } = renderHook(({ name }) => useBulkDelete('b', name), {
+      initialProps: { name: 'foo/bar' },
+    })
     act(() => result.current.toggle('h1'))
     await act(() => result.current.run())
     expect(result.current.state.opened).toBe(true)
     rerender({ name: 'foo/other' })
     expect(result.current.state).toMatchObject({ opened: false, error: undefined })
+  })
+
+  it('says the package is locked when the registry refuses a deletion for it', async () => {
+    deleteRevision.mockResolvedValueOnce(
+      fail("Package 'foo/bar' is locked", 'PackageLocked'),
+    )
+    const result = selecting('h1')
+    await act(() => result.current.run())
+    expect(result.current.state.error).toBe('This package is locked (h1)')
   })
 
   it('names the failing revision when the mutation throws', async () => {

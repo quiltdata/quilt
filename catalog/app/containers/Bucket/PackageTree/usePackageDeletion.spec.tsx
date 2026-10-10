@@ -14,23 +14,23 @@ vi.mock('utils/GraphQL', async () => ({
 const handle = { bucket: 'b', name: 'team/ds', hash: 'h' }
 
 describe('containers/Bucket/PackageTree/usePackageDeletion', () => {
-  it.each([
-    ['locked', 'This package is locked'],
-    ['loading', 'Still checking whether this package is locked…'],
-  ] as const)(
-    'reports a deletion confirmed while the package is %s',
-    async (lock, error) => {
-      const onDeleted = vi.fn()
-      const { result } = renderHook(() => usePackageDeletion(handle, lock, onDeleted))
-      act(() => result.current.confirmDelete())
-      await act(() => result.current.handlePackageDeletion())
-      expect(mutate).not.toHaveBeenCalled()
-      expect(onDeleted).not.toHaveBeenCalled()
-      expect(result.current.deletionState).toMatchObject({
-        error,
-        loading: false,
-        opened: true,
-      })
-    },
-  )
+  it('says the package is locked when the registry refuses the deletion for it', async () => {
+    mutate.mockResolvedValueOnce({
+      packageRevisionDelete: {
+        __typename: 'OperationError',
+        message: "Package 'team/ds' in bucket 'b' is locked",
+        name: 'PackageLocked',
+      },
+    })
+    const onDeleted = vi.fn()
+    const { result } = renderHook(() => usePackageDeletion(handle, onDeleted))
+    act(() => result.current.confirmDelete())
+    await act(() => result.current.handlePackageDeletion())
+    expect(onDeleted).not.toHaveBeenCalled()
+    expect(result.current.deletionState).toMatchObject({
+      error: 'This package is locked',
+      loading: false,
+      opened: true,
+    })
+  })
 })

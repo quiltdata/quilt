@@ -88,17 +88,6 @@ describe('components/FileEditor/loader', () => {
       )
       return expect(result.current('any')).rejects.toThrow('Revision is outdated')
     })
-    it('does not write when the check before the write throws', async () => {
-      putObject.mockClear()
-      const { result } = renderHook(() =>
-        useWriteData({ bucket: 'a', key: 'b', version: 'foo' }),
-      )
-      const locked = () => {
-        throw new Error('locked')
-      }
-      await expect(result.current('any', locked)).rejects.toThrow('locked')
-      expect(putObject).not.toHaveBeenCalled()
-    })
     it('returns new version', () => {
       const { result } = renderHook(() =>
         useWriteData({ bucket: 'a', key: 'b', version: 'foo' }),

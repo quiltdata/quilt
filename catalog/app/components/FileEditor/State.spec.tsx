@@ -8,7 +8,10 @@ import { useState } from './State'
 const { useLockStatus } = vi.hoisted(() => ({ useLockStatus: vi.fn() }))
 
 vi.mock('constants/config', () => ({ default: {} }))
-vi.mock('utils/PackageLock', () => ({ useLockStatus }))
+vi.mock('utils/PackageLock', async () => ({
+  ...(await vi.importActual('utils/PackageLock')),
+  useLockStatus,
+}))
 
 const actions = { revisePackage: true, writeFile: true }
 const otherActions = { revisePackage: true, writeFile: true }
@@ -129,9 +132,7 @@ describe('components/FileEditor/State', () => {
     expect(result.current.editing).toEqual({ brace: 'markdown' })
     expect(result.current.value).toBe('typed')
     expect(result.current.writable).toBe(false)
-    expect(result.current.error?.message).toBe(
-      "This package was locked; your changes can't be saved.",
-    )
+    expect(result.current.lockedOut).toBe(true)
     expect(await result.current.onSave()).toBeUndefined()
     expect(writeFile).not.toHaveBeenCalled()
   })
@@ -161,35 +162,6 @@ describe('components/FileEditor/State', () => {
     ])
   })
 
-  it('does not write when the package locks during the revision check', async () => {
-    useLockStatus.mockReturnValue('unlocked')
-    let head: () => void = () => {}
-    const put = vi.fn()
-    writeFile.mockImplementationOnce(async (_value: string, beforePut: () => void) => {
-      await new Promise<void>((resolve) => {
-        head = resolve
-      })
-      beforePut()
-      put()
-    })
-    const { result, rerender } = renderHook(() => useState(handle))
-    act(() => result.current.onChange('typed'))
-    let saving: Promise<unknown> = Promise.resolve()
-    act(() => {
-      saving = result.current.onSave()
-    })
-    useLockStatus.mockReturnValue('locked')
-    rerender()
-    await act(async () => {
-      head()
-      await saving
-    })
-    expect(put).not.toHaveBeenCalled()
-    expect(result.current.error?.message).toBe(
-      "This package was locked; your changes can't be saved.",
-    )
-  })
-
   it('claims no lock when writing stops for another reason', () => {
     useLockStatus.mockReturnValue('unlocked')
     const { result, rerender } = renderHook(() => useState(handle))
@@ -198,7 +170,7 @@ describe('components/FileEditor/State', () => {
     actions.writeFile = true
     expect(result.current.editing).toEqual({ brace: 'markdown' })
     expect(result.current.writable).toBe(false)
-    expect(result.current.error).toBeNull()
+    expect(result.current.lockedOut).toBe(false)
   })
 
   it.each(['locked', 'loading'])(
@@ -226,5 +198,14 @@ describe('components/FileEditor/State', () => {
     search = defaultSearch
     expect(result.current.writable).toBe(false)
     expect(result.current.editing).toBeNull()
+    expect(result.current.requested).toBe('invalid')
+  })
+
+  it("says why the URL's editor is closed when bucket preferences turn off writeFile", () => {
+    useLockStatus.mockReturnValue('unlocked')
+    actions.writeFile = false
+    const { result } = renderHook(() => useState(handle))
+    actions.writeFile = true
+    expect(result.current.requested).toBe('forbidden')
   })
 })

@@ -16,7 +16,11 @@ export interface containers_Bucket_PackageTree_gql_DeletePackageMutation {
   readonly __typename: 'Mutation'
   readonly packageDelete:
     | { readonly __typename: 'Ok' }
-    | { readonly __typename: 'OperationError'; readonly message: string }
+    | {
+        readonly __typename: 'OperationError'
+        readonly message: string
+        readonly name: string
+      }
 }
 
 export const containers_Bucket_PackageTree_gql_DeletePackageDocument = {
@@ -76,6 +80,7 @@ export const containers_Bucket_PackageTree_gql_DeletePackageDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     ],
                   },
                 },

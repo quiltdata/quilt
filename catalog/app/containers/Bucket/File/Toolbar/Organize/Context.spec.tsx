@@ -23,7 +23,10 @@ vi.mock('components/FileEditor/loader', async () => ({
   ...(await vi.importActual('components/FileEditor/loader')),
   useWriteData: () => vi.fn(),
 }))
-vi.mock('utils/PackageLock', () => ({ useLockStatus: () => route.lock }))
+vi.mock('utils/PackageLock', async () => ({
+  ...(await vi.importActual('utils/PackageLock')),
+  useLockStatus: () => route.lock,
+}))
 vi.mock('utils/BucketPreferences', async () => {
   const BP = await vi.importActual<typeof import('utils/BucketPreferences')>(
     'utils/BucketPreferences',

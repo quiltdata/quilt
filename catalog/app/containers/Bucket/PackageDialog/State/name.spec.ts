@@ -19,7 +19,10 @@ let queryState: QueryState = {}
 let lock = 'unlocked'
 
 const { useLockStatus } = vi.hoisted(() => ({ useLockStatus: vi.fn() }))
-vi.mock('utils/PackageLock', () => ({ useLockStatus }))
+vi.mock('utils/PackageLock', async () => ({
+  ...(await vi.importActual('utils/PackageLock')),
+  useLockStatus,
+}))
 
 let debounced: string | undefined
 vi.mock('use-debounce', () => ({

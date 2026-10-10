@@ -80,6 +80,7 @@ const editorState = {
   types: [],
   value: 'test content',
   writable: true,
+  lockedOut: false,
   requested: null,
 }
 

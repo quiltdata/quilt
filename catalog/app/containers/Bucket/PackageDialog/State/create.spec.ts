@@ -16,7 +16,6 @@ vi.mock('utils/GraphQL', () => ({ useMutation: () => constructPackage }))
 
 const upload: Mock = vi.fn()
 vi.mock('../Uploads', () => ({
-  PUSH_STOPPED: 'This package is locked; the push was stopped',
   useUploads: () => ({ upload, progress: { percent: 0, total: 0, loaded: 0 } }),
 }))
 
@@ -38,13 +37,9 @@ const FILES = {
   onChange: () => {},
 } as unknown as FilesState
 
-function useTestHandler(
-  params: FormParams = PARAMS,
-  files: FilesState = FILES,
-  canPush?: () => boolean,
-) {
+function useTestHandler(params: FormParams = PARAMS, files: FilesState = FILES) {
   const [formStatus, setFormStatus] = React.useState<FormStatus>(Ready)
-  const { create } = useCreateHandler(params, files, setFormStatus, canPush)
+  const { create } = useCreateHandler(params, files, setFormStatus)
   return { formStatus, create }
 }
 
@@ -97,6 +92,22 @@ describe('containers/Bucket/PackageDialog/State/create', () => {
 
     expect(status.error.message).toBe('Name is taken')
     expect(status.fields).toEqual({})
+  })
+
+  it('should say the package is locked when the registry refuses it as locked', async () => {
+    constructPackage.mockResolvedValue({
+      packageConstruct: {
+        __typename: 'OperationError',
+        message: "Package 'foo/bar' in bucket 'dst-bucket' is locked",
+        name: 'PackageLocked',
+      },
+    })
+    const { result } = renderHook(() => useTestHandler())
+    await act(() => result.current.create('allow'))
+    expect(result.current.formStatus).toMatchObject({
+      _tag: 'error',
+      error: new Error('This package is locked'),
+    })
   })
 
   it('should surface an unexpected runtime error as a generic failure', async () => {
@@ -168,31 +179,6 @@ describe('containers/Bucket/PackageDialog/State/create', () => {
     expect(result.current.formStatus).toEqual({
       _tag: 'success',
       handle: { bucket: 'dst-bucket', name: 'foo/bar', hash: 'deadbeef' },
-    })
-  })
-
-  it('sends no manifest once the destination stops being pushable during uploads', async () => {
-    let pushable = true
-    upload.mockImplementation(async () => {
-      pushable = false
-      return {}
-    })
-    const { result } = renderHook(() => useTestHandler(PARAMS, FILES, () => pushable))
-    await act(() => result.current.create('allow'))
-    expect(constructPackage).not.toHaveBeenCalled()
-    expect(result.current.formStatus).toMatchObject({
-      _tag: 'error',
-      error: new Error('This package is locked; the push was stopped'),
-    })
-  })
-
-  it('reports a stopped upload as stopped, not as an upload error', async () => {
-    upload.mockRejectedValue(new Error('This package is locked; the push was stopped'))
-    const { result } = renderHook(() => useTestHandler())
-    await act(() => result.current.create('allow'))
-    expect(constructPackage).not.toHaveBeenCalled()
-    expect(result.current.formStatus).toMatchObject({
-      error: new Error('This package is locked; the push was stopped'),
     })
   })
 })

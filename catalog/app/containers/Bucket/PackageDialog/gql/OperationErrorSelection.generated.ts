@@ -8,6 +8,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 export type OperationErrorSelectionFragment = {
   readonly __typename: 'OperationError'
   readonly message: string
+  readonly name: string
 }
 
 export const OperationErrorSelectionFragmentDoc = {
@@ -22,7 +23,10 @@ export const OperationErrorSelectionFragmentDoc = {
       },
       selectionSet: {
         kind: 'SelectionSet',
-        selections: [{ kind: 'Field', name: { kind: 'Name', value: 'message' } }],
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+        ],
       },
     },
   ],

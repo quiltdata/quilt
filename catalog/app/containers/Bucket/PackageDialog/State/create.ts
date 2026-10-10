@@ -4,6 +4,7 @@ import cfg from 'constants/config'
 import Log from 'utils/Logging'
 import assertNever from 'utils/assertNever'
 import { useMutation } from 'utils/GraphQL'
+import * as PackageLock from 'utils/PackageLock'
 import * as s3paths from 'utils/s3paths'
 
 import * as Uploads from '../Uploads'
@@ -39,7 +40,7 @@ function invalidInput(errors: ReadonlyArray<InputError>): FormStatus {
   return Err(error, fields)
 }
 
-function useCreate(canPush: () => boolean) {
+function useCreate() {
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const uploads = Uploads.useUploads()
 
@@ -49,7 +50,6 @@ function useCreate(canPush: () => boolean) {
         // `await` inside the `try` so rejections are caught, not just the
         // synchronous throws.
         return await uploads.upload({
-          canStart: canPush,
           files,
           bucket: bucket,
           getCanonicalKey: (path) => {
@@ -60,12 +60,11 @@ function useCreate(canPush: () => boolean) {
           },
         })
       } catch (e) {
-        if (e instanceof Error && e.message === Uploads.PUSH_STOPPED) throw e
         Log.error(e)
         throw new Error('Error uploading files')
       }
     },
-    [canPush, uploads],
+    [uploads],
   )
 
   return {
@@ -112,8 +111,6 @@ function useCreate(canPush: () => boolean) {
           }))
           .sort(({ logicalKey: a }, { logicalKey: b }) => a.localeCompare(b))
 
-        if (!canPush()) return Err(new Error(Uploads.PUSH_STOPPED))
-
         // Only the request itself is guarded: an exception here is an unexpected
         // runtime failure, while a rejected write comes back as a typed response
         // below. Collapsing the two loses the per-field errors.
@@ -144,14 +141,14 @@ function useCreate(canPush: () => boolean) {
               hash: r.revision.hash,
             })
           case 'OperationError':
-            return Err(new Error(r.message))
+            return Err(new Error(PackageLock.errorMessage(r)))
           case 'InvalidInput':
             return invalidInput(r.errors)
           default:
             assertNever(r)
         }
       },
-      [canPush, constructPackage, upload],
+      [constructPackage, upload],
     ),
     progress: uploads.progress,
   }
@@ -165,13 +162,12 @@ export function useCreateHandler(
   params: FormParams,
   files: FilesState,
   setFormStatus: React.Dispatch<React.SetStateAction<FormStatus>>,
-  canPush: () => boolean = () => true,
 ): {
   create: CreateHandler
   progress: Uploads.UploadTotalProgress
   onAddReadme: ReadmeHandler
 } {
-  const { create: createPackage, progress } = useCreate(canPush)
+  const { create: createPackage, progress } = useCreate()
 
   const create = React.useCallback(
     async (whenNoFiles?: 'allow' | 'add-readme') => {
