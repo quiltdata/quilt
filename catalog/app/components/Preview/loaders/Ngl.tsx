@@ -3,7 +3,6 @@ import { extname } from 'path'
 import type { PromiseResult } from 'aws-sdk/lib/request'
 import * as R from 'ramda'
 import * as React from 'react'
-import { DecompressorRegistry } from 'ngl'
 
 import type * as Model from 'model'
 
@@ -42,8 +41,6 @@ export const detect = R.pipe(
   utils.extIn(['.cif', '.ent', '.mol', '.mol2', '.pdb', '.sdf']),
 )
 
-const gzipDecompress = DecompressorRegistry.get('gz')
-
 interface NglLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: Model.S3.S3ObjectLocation
@@ -55,7 +52,11 @@ export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
     data.result,
     async (r: PromiseResult<{ Body: ResponseFile }, null>) => {
       const compression = utils.getCompression(handle.key)
-      const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
+      // Imported here so ngl and three.js stay out of the bucket tabs' bundle.
+      const body =
+        compression === 'gz'
+          ? (await import('ngl')).DecompressorRegistry.get('gz')(r.Body as string)
+          : r.Body
       const files = await parseResponse(body, handle)
       return PreviewData.Ngl({
         files: files.map(({ file, ...rest }) => ({
