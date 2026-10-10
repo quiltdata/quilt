@@ -8,10 +8,7 @@ import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as NamedRoutes from 'utils/NamedRoutes'
-
-const isStandalone = () =>
-  (window.navigator as { standalone?: boolean }).standalone === true ||
-  !!window.matchMedia?.('(display-mode: standalone)').matches
+import * as OIDC from 'utils/OIDC'
 
 // Only this page carries the manifest, so the rest of the catalog never offers
 // to install. Removed on unmount for the same reason.
@@ -50,7 +47,7 @@ function InstallHint() {
     window.addEventListener('beforeinstallprompt', onPrompt)
     return () => window.removeEventListener('beforeinstallprompt', onPrompt)
   }, [])
-  if (isStandalone()) return null
+  if (OIDC.isStandalone()) return null
   if (prompt) {
     return (
       <M.Button

@@ -2,7 +2,28 @@
 <html lang="en">
   <body>
     <script>
-      window.opener.postMessage({ type: "callback" }, window.location.origin);
+      // Keys and TTL shared with utils/OIDC. An installed app signs in by
+      // redirect: the query goes through storage so the code never enters a
+      // catalog URL, and /qurator (the app's scope) sends the user to /signin.
+      const redirected = () => {
+        try {
+          const pending = JSON.parse(localStorage.getItem("QUILT_OIDC_REDIRECT"));
+          if (!(Date.now() - pending.ts < 10 * 60 * 1000)) return false;
+          localStorage.setItem("QUILT_OIDC_CALLBACK", window.location.search);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      if (window.opener) {
+        window.opener.postMessage({ type: "callback" }, window.location.origin);
+      } else if (redirected()) {
+        window.location.replace("/qurator");
+      } else {
+        document.body.textContent =
+          "Sign-in started in another window. Return to it to continue.";
+        window.close();
+      }
     </script>
   </body>
 </html>
