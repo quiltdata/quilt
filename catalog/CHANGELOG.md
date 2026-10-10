@@ -23,6 +23,7 @@ complete sentence without it.
 
 - [Added] Admins can lock a package at its latest revision; a locked package shows who locked it and why, and refuses changes until an admin unlocks it ([#5399](https://github.com/quiltdata/quilt/pull/5399))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
+- [Fixed] Return visits load the catalog faster because browsers keep its content-hashed scripts, fonts and images cached for a year ([#5462](https://github.com/quiltdata/quilt/pull/5462))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator can keep your conversations in this browser (preview, off until you turn it on in the chat menu), listing them under Recent sessions to reopen or delete ([#5427](https://github.com/quiltdata/quilt/pull/5427))
