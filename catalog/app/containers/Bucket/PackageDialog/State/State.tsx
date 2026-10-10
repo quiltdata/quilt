@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import type { ApplyS3TagsResult } from '../../requests'
 import type { UploadTotalProgress } from '../Uploads'
 
 import type { FilesState } from './files'
@@ -13,6 +14,7 @@ import type { MetaState } from './meta'
 import type { FormParams } from './params'
 import type { CopyHandler } from './copy'
 import type { CreateHandler, ReadmeHandler } from './create'
+import type { S3TagsConfigState } from './s3Tags'
 
 import { useFiles } from './files'
 import { useFormStatus } from './form'
@@ -25,12 +27,19 @@ import { useMeta } from './meta'
 import { useParams } from './params'
 import { useCopyHandler } from './copy'
 import { useCreateHandler } from './create'
+import { useS3TagsConfig } from './s3Tags'
 
 export type DialogStatus =
   | { _tag: 'loading'; waitListing?: boolean }
   | { _tag: 'error'; error: Error }
   | { _tag: 'ready' }
-  | { _tag: 'success'; bucket: string; name: string; hash: string }
+  | {
+      _tag: 'success'
+      bucket: string
+      name: string
+      hash: string
+      s3Tags?: ApplyS3TagsResult
+    }
 
 export interface PackageDst {
   bucket: string
@@ -55,6 +64,8 @@ export interface State {
   manifest: ManifestStatus
   workflowsConfig: WorkflowsConfigStatus
   metadataSchema: SchemaStatus
+  s3TagsConfig: S3TagsConfigState
+  s3TagsLoading: boolean
 
   params: FormParams
   formStatus: FormStatus
@@ -102,6 +113,11 @@ export function useState(
   // disableRestore marks the copy dialog, which has no use for the entries.
   const manifest = useManifestRequest(!!open, src, disableRestore)
   const workflowsConfig = useWorkflowsConfig(!!open, dst)
+  // The copy dialog doesn't write tags.
+  const { config: s3TagsConfig, loading: s3TagsLoading } = useS3TagsConfig(
+    !!open && !disableRestore,
+    dst.bucket,
+  )
 
   const workflow = useWorkflow(formStatus, manifest, workflowsConfig)
 
@@ -124,7 +140,12 @@ export function useState(
     workflow,
   })
 
-  const { create, progress, onAddReadme } = useCreateHandler(params, files, setFormStatus)
+  const { create, progress, onAddReadme } = useCreateHandler(
+    params,
+    files,
+    setFormStatus,
+    s3TagsConfig instanceof Error ? null : s3TagsConfig,
+  )
   const copy = useCopyHandler(params, setFormStatus)
 
   const { resetDirty } = name
@@ -159,6 +180,8 @@ export function useState(
     workflowsConfig,
     metadataSchema,
     entriesSchema,
+    s3TagsConfig,
+    s3TagsLoading,
 
     create,
     copy,
