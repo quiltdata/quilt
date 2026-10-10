@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import JsonEditor from './JsonEditor'
 import { typeLabel } from './Row'
@@ -21,16 +21,39 @@ const theme = createMuiTheme({
   typography: { monospace: { fontFamily: 'monospace' } } as ThemeOptions['typography'],
 })
 
-const renderEditor = (mode?: 'default' | 'property') =>
+// holds the value like the dialog does, so a commit re-renders (and re-keys) the rows
+function Editor({
+  mode,
+  onChange,
+}: {
+  mode?: 'default' | 'property'
+  onChange: (v: unknown) => void
+}) {
+  const [value, setValue] = React.useState<unknown>({
+    project: 'ONC-104',
+    lab_notebook: 'ELN-2291',
+  })
+  return (
+    <JsonEditor
+      errors={[]}
+      mode={mode}
+      onChange={(v: unknown) => {
+        setValue(v)
+        onChange(v)
+      }}
+      schema={schema}
+      value={value}
+    />
+  )
+}
+
+const renderEditor = (
+  mode?: 'default' | 'property',
+  onChange: (v: unknown) => void = () => {},
+) =>
   render(
     <ThemeProvider theme={theme}>
-      <JsonEditor
-        errors={[]}
-        mode={mode}
-        onChange={() => {}}
-        schema={schema}
-        value={{ project: 'ONC-104', lab_notebook: 'ELN-2291' }}
-      />
+      <Editor mode={mode} onChange={onChange} />
     </ThemeProvider>,
   )
 
@@ -45,6 +68,44 @@ describe('components/JsonEditor', () => {
       expect(screen.getByText('choice')).toBeTruthy()
       expect(screen.getByText('date')).toBeTruthy()
       expect(screen.getByText('Not in workflow')).toBeTruthy()
+    })
+  })
+
+  describe('keyboard', () => {
+    // the project value cell: rows follow the schema order
+    const projectCell = () =>
+      screen.getAllByRole('textbox').find((el) => el.textContent?.includes('ONC-104'))!
+
+    it('Enter edits and Enter commits, keeping focus on the cell', async () => {
+      const onChange = vi.fn()
+      renderEditor('property', onChange)
+      const cell = projectCell()
+      cell.focus()
+      fireEvent.keyPress(cell, { key: 'Enter', code: 'Enter', charCode: 13 })
+      const input = cell.querySelector('input')!
+      fireEvent.change(input, { target: { value: 'ONC-200' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ project: 'ONC-200' }),
+      )
+      await new Promise((r) => setTimeout(r))
+      // the row remounted on commit: the focused cell is the new one at the same address
+      expect(document.activeElement?.textContent).toContain('ONC-200')
+      expect(document.activeElement?.getAttribute('role')).toBe('textbox')
+    })
+
+    it('Esc drops the edit and keeps the value', async () => {
+      const onChange = vi.fn()
+      renderEditor('property', onChange)
+      const cell = projectCell()
+      cell.focus()
+      fireEvent.keyPress(cell, { key: 'Enter', code: 'Enter', charCode: 13 })
+      const input = cell.querySelector('input')!
+      fireEvent.change(input, { target: { value: 'typo' } })
+      fireEvent.keyDown(input, { key: 'Escape' })
+      fireEvent.blur(input)
+      expect(onChange).not.toHaveBeenCalled()
+      expect(projectCell().textContent).toContain('ONC-104')
     })
   })
 
