@@ -117,7 +117,8 @@ function redact(value: unknown): unknown {
 /** What the session's tool calls touched, first mention first, deduplicated. */
 export function references(events: Conversation.Event[]): Reference[] {
   const out: Reference[] = []
-  live(events).forEach((e) => e._tag === 'ToolUse' && ran(e) && collect(e.input, out))
+  // Discarded calls count too: the answers built on what they read are still saved.
+  events.forEach((e) => e._tag === 'ToolUse' && ran(e) && collect(e.input, out))
   const seen = new Set<string>()
   // A bucket is only worth listing when nothing more specific in it was named.
   const specific = new Set(out.filter((r) => r.kind !== 'bucket').map((r) => r.bucket))
@@ -198,12 +199,16 @@ export interface SessionInfo {
  * data. Catalog tools (no `<connector>__` prefix, e.g. navigate) read no data.
  */
 export const unscoped = (events: Conversation.Event[]) =>
-  live(events).some((e) => {
+  events.some((e) => {
     if (e._tag !== 'ToolUse' || !ran(e) || !e.name.includes('__')) return false
     const out: Reference[] = []
     collect(e.input, out)
     return !out.length
   })
+
+/** Ids of the tool calls that ran, discarded or not: what a results choice covers. */
+export const readIds = (events: Conversation.Event[]) =>
+  events.filter((e) => e._tag === 'ToolUse' && ran(e)).map((e) => e.id)
 
 /** Buckets other than the target that the session's tools touched. */
 export const foreignBuckets = (events: Conversation.Event[], bucket: string) =>

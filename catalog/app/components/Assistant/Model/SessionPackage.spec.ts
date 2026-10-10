@@ -165,6 +165,21 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(SessionPackage.foreignBuckets(e, 'quilt-dev')).toEqual(['other'])
   })
 
+  it('keeps a discarded call that read another bucket in the warning', () => {
+    const e = [
+      Conversation.Event.ToolUse({
+        id: 'd',
+        timestamp: at,
+        toolUseId: 'd',
+        name: 'platform__object_read',
+        input: { bucket: 'other', key: 'k' },
+        result: Tool.succeed(),
+        discarded: true,
+      }),
+    ]
+    expect(SessionPackage.foreignBuckets(e, 'quilt-dev')).toEqual(['other'])
+  })
+
   it('flags a call that ran without naming a bucket', () => {
     expect(SessionPackage.unscoped(events)).toBe(false)
     const search = [tool('platform__search_objects', { query: 'csv' }, Tool.succeed())]

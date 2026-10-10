@@ -707,7 +707,7 @@ function PlusMenu({
         opens: 'mcp',
         end: (
           <>
-            {!!failed && <span className={cx(classes.dot, classes.pending)} />}
+            {!!failed && <span className={cx(classes.dot, classes.failed)} />}
             <M.Icon fontSize="small">chevron_right</M.Icon>
           </>
         ),

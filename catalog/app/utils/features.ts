@@ -36,7 +36,7 @@ export const FEATURES = {
   'qurator-composer-next': {
     label: 'Qurator composer: upcoming rows',
     description:
-      'Show the Modes and Files rows in the Qurator mode + menu, marked "Soon". Off, the menu lists only what works today.',
+      'Show the Files and context row in the Qurator mode + menu, marked "Soon". Off, the menu lists only what works today.',
   },
   'qurator-mode': {
     label: 'Qurator mode',

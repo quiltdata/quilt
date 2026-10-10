@@ -203,7 +203,12 @@ export function useSessionSave(api: API): SessionSave {
   const risky = !!foreign.length || unscoped
   // A choice covers exactly what the session had read when it was made: a bucket
   // read since, or a new destination, needs asking again.
-  const exposure = [bucket, unscoped ? '*' : '', ...[...foreign].sort()].join('|')
+  const exposure = [
+    bucket,
+    unscoped ? '*' : '',
+    ...[...foreign].sort(),
+    ...SessionPackage.readIds(events),
+  ].join('|')
   const [choice, setChoice] = React.useState<{ on: boolean; exposure: string } | null>(
     null,
   )
