@@ -426,7 +426,8 @@ export function useCreateDialog({
   const [waitingListing, setWaitingListing] = React.useState(false)
   const [resolveError, setResolveError] = React.useState<Error | null>(null)
   const resolveHandles = requests.useFilesListing()
-  // Bumped on close, so a listing that resolves after it doesn't reopen the dialog.
+  // Bumped on close, so a listing that resolves after it neither reopens the dialog
+  // nor ends a newer listing's wait.
   const generation = React.useRef(0)
 
   const open = React.useCallback(
@@ -457,7 +458,7 @@ export function useCreateDialog({
               setResolveError(new ERRORS.FailedResolvingFiles(errorMessage))
             }
           }
-          setWaitingListing(false)
+          if (gen === generation.current) setWaitingListing(false)
         }
       }
     },
@@ -466,6 +467,7 @@ export function useCreateDialog({
 
   const close = React.useCallback(() => {
     generation.current += 1
+    setWaitingListing(false)
     setOpen(false)
     reset()
     setResolveError(null)

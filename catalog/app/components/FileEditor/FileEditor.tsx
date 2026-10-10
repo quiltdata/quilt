@@ -9,9 +9,10 @@ import * as PreviewUtils from 'components/Preview/loaders/utils'
 import { QuickPreview } from 'components/Preview/quick'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
+import * as PackageLock from 'utils/PackageLock'
 
 import Skeleton from './Skeleton'
-import { EditorState, LOCKED_OUT } from './State'
+import { Blocked, EditorState, LOCKED_OUT } from './State'
 import TextEditor from './TextEditor'
 import QuiltConfigEditor from './QuiltConfigEditor'
 import { loadMode } from './loader'
@@ -122,6 +123,8 @@ export function Editor(props: EditorProps) {
     // `loadMode` throws its failure rather than re-suspending, so without a boundary
     // here a missing syntax-mode chunk takes down the page around the editor.
     <ErrorBoundary FallbackComponent={ModeFallback}>
+      {/* Here, not in the editors: config editors read `error` only on mount. */}
+      {props.lockedOut && <Notice>{LOCKED_OUT}</Notice>}
       <React.Suspense fallback={<Skeleton />}>
         <div className={cx(classes.tab, { [classes.active]: !props.preview })}>
           <EditorSuspended {...props} />
@@ -140,12 +143,22 @@ export function Editor(props: EditorProps) {
   )
 }
 
-// In place of an editor the URL asked for that cannot open yet.
-export function Requested({ requested }: { requested: 'loading' | 'locked' }) {
-  if (requested === 'loading') return <Skeleton />
+function Notice({ children }: React.PropsWithChildren<{}>) {
   return (
     <Lab.Alert role="status" severity="info" icon={<M.Icon>lock</M.Icon>}>
-      {LOCKED_OUT}
+      {children}
     </Lab.Alert>
   )
+}
+
+const BLOCKED = {
+  locked: `${PackageLock.reason('locked')}; it can't be edited until an admin unlocks it.`,
+  invalid: "This file can't be edited: the link doesn't name a file in a package.",
+  forbidden: 'Editing files is turned off for this bucket.',
+}
+
+// In place of an editor the URL asked for that can't open.
+export function Requested({ requested }: { requested: Blocked }) {
+  if (requested === 'loading') return <Skeleton />
+  return <Notice>{BLOCKED[requested]}</Notice>
 }

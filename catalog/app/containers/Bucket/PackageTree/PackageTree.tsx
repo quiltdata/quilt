@@ -315,7 +315,7 @@ function DirDisplay({
     confirmDeletePackage,
     onPackageDeleteDialogClose,
     handlePackageDeletion,
-  } = usePackageDeletion(packageHandle, lock, redirectToPackagesList)
+  } = usePackageDeletion(packageHandle, redirectToPackagesList)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()

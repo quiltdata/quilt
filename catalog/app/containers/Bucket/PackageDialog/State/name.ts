@@ -102,7 +102,9 @@ export function useNameExistence(
     if (lock === 'locked') {
       return {
         _tag: 'error',
-        error: new Error('This package is locked; an admin must unlock it first'),
+        error: new Error(
+          `${PackageLock.reason('locked')}; an admin must unlock it first`,
+        ),
       }
     }
     if (isSrc) return { _tag: 'new-revision' }

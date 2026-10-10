@@ -2,18 +2,13 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as GQL from 'utils/GraphQL'
-import type * as PackageLock from 'utils/PackageLock'
+import * as PackageLock from 'utils/PackageLock'
 
 import DELETE_REVISION from '../PackageTree/gql/DeleteRevision.generated'
 
 // Deletes one at a time and stops at the first failure, so a partial failure
 // leaves the survivors selected.
-const notDeleting = (lock: PackageLock.Status) =>
-  lock === 'loading'
-    ? 'Still checking whether this package is locked'
-    : 'The package is locked'
-
-export function useBulkDelete(bucket: string, name: string, lock: PackageLock.Status) {
+export function useBulkDelete(bucket: string, name: string) {
   const deleteRevision = GQL.useMutation(DELETE_REVISION)
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
   const [state, setState] = React.useState({
@@ -25,8 +20,8 @@ export function useBulkDelete(bucket: string, name: string, lock: PackageLock.St
   // bucket and name are route params, so navigating to another package reuses
   // this hook; stale hashes would be deleted against the new package, and a
   // dialog left open would show the previous package's error.
-  // Bumped on every package change and on unmount, so a run never resumes
-  // after A -> B -> A and stops deleting once the page is gone.
+  // Bumped on every package change and on unmount, so a run finishing after
+  // A -> B -> A doesn't set the new page's state.
   const generation = React.useRef(0)
   React.useEffect(() => {
     setSelected(new Set())
@@ -46,37 +41,17 @@ export function useBulkDelete(bucket: string, name: string, lock: PackageLock.St
     [],
   )
 
-  // Read per deletion: the lock or the page can change while earlier ones are in flight.
-  const current = React.useRef({ lock })
-  current.current = { lock }
-
   const run = React.useCallback(async () => {
-    if (current.current.lock !== 'unlocked') {
-      setState(
-        R.mergeLeft({
-          error: `${notDeleting(current.current.lock)}; no revisions were deleted`,
-          opened: true,
-        }),
-      )
-      return
-    }
     const gen = generation.current
     const samePackage = () => generation.current === gen
     setState(R.mergeLeft({ loading: true, error: undefined }))
     const done = new Set<string>()
     let error: React.ReactNode | undefined
     for (const hash of selected) {
-      // Another package's page owns the selection and dialog now.
-      if (!samePackage()) return
-      if (current.current.lock !== 'unlocked') {
-        const n = selected.size - done.size
-        error = `${notDeleting(current.current.lock)}; ${n} ${n === 1 ? 'revision was' : 'revisions were'} not deleted`
-        break
-      }
       try {
         const r = (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
         if (r.__typename === 'OperationError') {
-          error = `${r.message} (${hash})`
+          error = `${PackageLock.errorMessage(r)} (${hash})`
           break
         }
         done.add(hash)

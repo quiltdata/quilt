@@ -124,17 +124,7 @@ export function useState(
     workflow,
   })
 
-  // Read while a push runs: closing the dialog, or the destination locking or going
-  // unknown, stops what hasn't started yet.
-  const pushable = React.useRef(false)
-  pushable.current = !!open && !['idle', 'loading', 'error'].includes(name.status._tag)
-  const canPush = React.useCallback(() => pushable.current, [])
-  const { create, progress, onAddReadme } = useCreateHandler(
-    params,
-    files,
-    setFormStatus,
-    canPush,
-  )
+  const { create, progress, onAddReadme } = useCreateHandler(params, files, setFormStatus)
   const copy = useCopyHandler(params, setFormStatus)
 
   const { resetDirty } = name

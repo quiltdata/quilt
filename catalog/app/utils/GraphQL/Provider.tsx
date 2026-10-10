@@ -64,7 +64,7 @@ function refetchRootField(clientRef: React.RefObject<urql.Client>, query: RootQu
 const evolveCached = (transformations: any) =>
   R.unless(R.isNil, R.evolve(transformations))
 
-function handlePackageCreation(result: any, cache: GraphCache.Cache) {
+export function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
   const { bucket, name } = result.package
   const revList = cache.resolve({ __typename: 'Package', bucket, name }, 'revisions')
@@ -84,6 +84,10 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
     { bucket, name },
     { __typename: 'Package', bucket, name },
   )
+  // The lock dialog locks the latest revision, which this push just moved.
+  cache.invalidate({ __typename: 'Package', bucket, name }, 'revision', {
+    hashOrTag: 'latest',
+  })
   invalidateRootField(cache, 'packages')
 }
 

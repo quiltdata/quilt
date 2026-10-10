@@ -7,7 +7,7 @@ import AsyncResult from 'utils/AsyncResult'
 import noop from 'utils/noop'
 
 import { useState } from './State'
-import { Editor } from './FileEditor'
+import { Editor, Requested } from './FileEditor'
 
 vi.mock('utils/AWS', () => ({ S3: { use: noop } }))
 
@@ -105,6 +105,25 @@ describe('components/FileEditor/FileEditor', () => {
       expect(getByTestId('Text Editor').textContent).toBe('')
     })
 
+    it('shows the locked notice above an open editor without remounting it', () => {
+      const props = {
+        ...state,
+        className: 'root',
+        editing: { brace: 'json' as const },
+        handle,
+      }
+      const { getByTestId, queryByRole, rerender } = render(
+        <Editor {...props} lockedOut={false} />,
+      )
+      const editor = getByTestId('Text Editor')
+      expect(queryByRole('status')).toBeNull()
+      rerender(<Editor {...props} lockedOut />)
+      expect(queryByRole('status')?.textContent).toContain(
+        "This package is locked; your changes can't be saved.",
+      )
+      expect(getByTestId('Text Editor')).toBe(editor)
+    })
+
     it('shows Skeleton while loading data', () => {
       getObjectData.mockImplementationOnce((cases: any) =>
         AsyncResult.case(cases, AsyncResult.Pending()),
@@ -135,6 +154,27 @@ describe('components/FileEditor/FileEditor', () => {
         />,
       )
       expect(getByTestId('error')).toBeTruthy()
+    })
+  })
+
+  describe('Requested', () => {
+    it.each([
+      ['locked', "This package is locked; it can't be edited until an admin unlocks it."],
+      [
+        'invalid',
+        "This file can't be edited: the link doesn't name a file in a package.",
+      ],
+      ['forbidden', 'Editing files is turned off for this bucket.'],
+    ] as const)('says why the editor is closed when %s', (requested, text) => {
+      expect(
+        render(<Requested requested={requested} />).getByRole('status').textContent,
+      ).toContain(text)
+    })
+
+    it('shows a skeleton while loading', () => {
+      expect(
+        render(<Requested requested="loading" />).getByTestId('Skeleton'),
+      ).toBeTruthy()
     })
   })
 })

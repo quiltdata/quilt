@@ -50,7 +50,11 @@ export interface containers_Bucket_PackageDialog_gql_PackageConstructMutation {
           readonly message: string
         }>
       }
-    | { readonly __typename: 'OperationError'; readonly message: string }
+    | {
+        readonly __typename: 'OperationError'
+        readonly message: string
+        readonly name: string
+      }
     | {
         readonly __typename: 'PackagePushSuccess'
         readonly package: {
@@ -337,7 +341,10 @@ export const containers_Bucket_PackageDialog_gql_PackageConstructDocument = {
       },
       selectionSet: {
         kind: 'SelectionSet',
-        selections: [{ kind: 'Field', name: { kind: 'Name', value: 'message' } }],
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+        ],
       },
     },
   ],

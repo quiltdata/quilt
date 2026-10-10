@@ -64,6 +64,15 @@ export function useLockStatus(bucket: string, name: string, pause = false): Stat
   return toStatus(result, bucket, name, pause)
 }
 
+export const reason = (status: 'loading' | 'locked') =>
+  status === 'loading'
+    ? 'Still checking whether this package is locked…'
+    : 'This package is locked'
+
+// The registry refuses every write to a locked package with this error.
+export const errorMessage = (e: { name: string; message: string }) =>
+  e.name === 'PackageLocked' ? reason('locked') : e.message
+
 // Only a package known unlocked can be locked, never one whose lock is still loading.
 export const canLock = (isAdmin: boolean, status: Status, latestHash?: string) =>
   isAdmin && status === 'unlocked' && !!latestHash

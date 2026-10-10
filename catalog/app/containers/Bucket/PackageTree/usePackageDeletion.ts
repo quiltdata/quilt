@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as GQL from 'utils/GraphQL'
-import type * as PackageLockState from 'utils/PackageLock'
+import * as PackageLock from 'utils/PackageLock'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 
@@ -11,7 +11,6 @@ import DELETE_REVISION from './gql/DeleteRevision.generated'
 
 export function usePackageDeletion(
   { bucket, name, hash }: PackageHandle,
-  lock: PackageLockState.Status,
   onDeleted: () => void,
 ) {
   const [deletionState, setDeletionState] = React.useState({
@@ -44,14 +43,6 @@ export function usePackageDeletion(
   const deletePackage = GQL.useMutation(DELETE_PACKAGE)
 
   const handlePackageDeletion = React.useCallback(async () => {
-    if (lock !== 'unlocked') {
-      const error =
-        lock === 'loading'
-          ? 'Still checking whether this package is locked…'
-          : 'This package is locked'
-      setDeletionState(R.mergeLeft({ error }))
-      return
-    }
     setDeletionState(R.assoc('loading', true))
     try {
       const r =
@@ -65,7 +56,9 @@ export function usePackageDeletion(
           onDeleted()
           return
         case 'OperationError':
-          setDeletionState(R.mergeLeft({ error: r.message, loading: false }))
+          setDeletionState(
+            R.mergeLeft({ error: PackageLock.errorMessage(r), loading: false }),
+          )
           return
         default:
           assertNever(r)
@@ -81,7 +74,6 @@ export function usePackageDeletion(
     name,
     deletionState.scope,
     deletePackage,
-    lock,
     deleteRevision,
     onDeleted,
     setDeletionState,

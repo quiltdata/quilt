@@ -2,9 +2,29 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-import { handlePackageLock } from './Provider'
+import { handlePackageCreation, handlePackageLock } from './Provider'
 
 describe('utils/GraphQL/Provider', () => {
+  describe('handlePackageCreation', () => {
+    it('refreshes the latest revision of the pushed package', () => {
+      const cache = {
+        inspectFields: () => [],
+        invalidate: vi.fn(),
+        link: vi.fn(),
+        resolve: () => null,
+      }
+      handlePackageCreation(
+        { __typename: 'PackagePushSuccess', package: { bucket: 'b', name: 'team/ds' } },
+        cache as never,
+      )
+      expect(cache.invalidate).toHaveBeenCalledWith(
+        { __typename: 'Package', bucket: 'b', name: 'team/ds' },
+        'revision',
+        { hashOrTag: 'latest' },
+      )
+    })
+  })
+
   describe('handlePackageLock', () => {
     const vars = { bucket: 'b', name: 'team/ds' }
     const pkg = { __typename: 'Package', bucket: 'b', name: 'team/ds' }

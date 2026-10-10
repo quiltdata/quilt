@@ -3,6 +3,7 @@ mutation ($bucket: String!, $name: String!) {
     __typename
     ... on OperationError {
       message
+      name
     }
   }
 }
