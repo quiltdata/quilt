@@ -839,7 +839,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexShrink: 0,
     gap: t.spacing(1),
-    minHeight: 56,
+    // Match the 64px seam the rail logo and ContentBar toolbar share, so the
+    // header's own bottom hairline continues theirs instead of sitting 8px off.
+    minHeight: 64,
     padding: t.spacing(1, 1, 1, 2),
   },
   qicon: {
