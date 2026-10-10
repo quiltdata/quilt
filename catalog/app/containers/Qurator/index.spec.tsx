@@ -6,7 +6,7 @@ vi.mock('components/Assistant', () => ({}))
 vi.mock('components/Assistant/UI/Chat/Chat', () => ({ default: () => null }))
 vi.mock('components/Intercom', () => ({}))
 
-import { useKeyboardFrame } from './index'
+import { useInstallable, useKeyboardFrame } from './index'
 
 function fakeViewport(height: number, offsetTop = 0) {
   const listeners: Record<string, () => void> = {}
@@ -60,5 +60,29 @@ describe('containers/Qurator useKeyboardFrame', () => {
       fire('resize')
     })
     expect(result.current).toBeUndefined()
+  })
+})
+
+describe('containers/Qurator useInstallable', () => {
+  const installTags = () => document.head.querySelectorAll('link[rel="manifest"]').length
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('adds nothing and registers no worker without the assistant', () => {
+    const register = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('navigator', { ...navigator, serviceWorker: { register } })
+    renderHook(() => useInstallable(false))
+    expect(installTags()).toBe(0)
+    expect(register).not.toHaveBeenCalled()
+  })
+
+  it('makes the page installable while mounted, and only this page', () => {
+    const register = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('navigator', { ...navigator, serviceWorker: { register } })
+    const { unmount } = renderHook(() => useInstallable(true))
+    expect(installTags()).toBe(1)
+    expect(register).toHaveBeenCalledWith('/sw.js', { scope: '/qurator' })
+    unmount()
+    expect(installTags()).toBe(0)
   })
 })

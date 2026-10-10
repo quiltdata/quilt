@@ -16,7 +16,7 @@ const isStandalone = () =>
 
 // Only this page carries the manifest, so the rest of the catalog never offers
 // to install. Removed on unmount for the same reason.
-function useInstallable(enabled: boolean) {
+export function useInstallable(enabled: boolean) {
   React.useEffect(() => {
     if (!enabled) return
     const tags = [
