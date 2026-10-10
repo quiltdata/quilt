@@ -90,23 +90,8 @@ const Ctx = React.createContext<State>({
   update: () => Promise.reject(new Error('Bucket preferences context not initialized')),
 })
 
-type ProviderProps = React.PropsWithChildren<{ bucket: string }>
-
-function CatalogProvider({ bucket, children }: ProviderProps) {
-  const s3 = AWS.S3.use()
-  const [counter, setCounter] = React.useState(0)
-  const data = useData(fetchBucketPreferences, { s3, bucket, counter })
-
-  const update = React.useCallback(
-    async (upd: BucketPreferencesInput) => {
-      const preferences = await uploadBucketPreferences(s3, bucket, upd)
-      setCounter((prev) => prev + 1)
-      return preferences
-    },
-    [s3, bucket],
-  )
-
-  const prefs = data.case({
+const toResult = (data: ReturnType<typeof useData>, bucket: string): Result =>
+  data.case({
     Ok: ({ body }: FetchBucketPreferencesOutput) => {
       try {
         // You can adjust input here to add beta features if `settings?.beta`
@@ -125,6 +110,24 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
     Pending: Result.Pending,
     Init: Result.Init,
   })
+
+type ProviderProps = React.PropsWithChildren<{ bucket: string }>
+
+function CatalogProvider({ bucket, children }: ProviderProps) {
+  const s3 = AWS.S3.use()
+  const [counter, setCounter] = React.useState(0)
+  const data = useData(fetchBucketPreferences, { s3, bucket, counter })
+
+  const update = React.useCallback(
+    async (upd: BucketPreferencesInput) => {
+      const preferences = await uploadBucketPreferences(s3, bucket, upd)
+      setCounter((prev) => prev + 1)
+      return preferences
+    },
+    [s3, bucket],
+  )
+
+  const prefs = toResult(data, bucket)
   const handle = data.case({
     Ok: (r: FetchBucketPreferencesOutput) => r.handle,
     _: () => null,
@@ -139,6 +142,27 @@ export function Provider({ bucket, children }: ProviderProps) {
   return <CatalogProvider bucket={bucket}>{children}</CatalogProvider>
 }
 
+type OverrideProps = React.PropsWithChildren<{ prefs: Result }>
+
+export function Override({ prefs, children }: OverrideProps) {
+  const state = React.useContext(Ctx)
+  const value = React.useMemo(() => ({ ...state, prefs }), [state, prefs])
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
 export const useBucketPreferences = () => React.useContext(Ctx)
+
+// Another bucket's preferences, outside its own Provider.
+export function useForBucket(bucket: string, pause = false): Result {
+  const s3 = AWS.S3.use()
+  const { prefs } = React.useContext(Ctx)
+  const local = cfg.mode === 'LOCAL'
+  const data = useData(
+    fetchBucketPreferences,
+    { s3, bucket, counter: 0 },
+    { noAutoFetch: pause || local },
+  )
+  return local ? prefs : toResult(data, bucket)
+}
 
 export const use = useBucketPreferences

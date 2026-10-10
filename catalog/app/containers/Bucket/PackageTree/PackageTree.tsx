@@ -1,6 +1,7 @@
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
@@ -14,6 +15,7 @@ import * as Column from 'components/Layout/Column'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
@@ -28,6 +30,7 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import Log from 'utils/Logging'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageLockState from 'utils/PackageLock'
 import RouteRedirect from 'utils/RouteRedirect'
 import * as XML from 'utils/XML'
 import assertNever from 'utils/assertNever'
@@ -55,17 +58,17 @@ import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 
 import * as AssistantContext from './AssistantContext'
+import DirActions from './DirActions'
 import PackageLink from './PackageLink'
+import * as PackageLock from './PackageLock'
+import { usePackageDeletion } from './usePackageDeletion'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
-import RevisionMenu from './RevisionMenu'
 
 import REVISION_QUERY from './gql/Revision.generated'
 import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
-import DELETE_REVISION from './gql/DeleteRevision.generated'
-import DELETE_PACKAGE from './gql/DeletePackage.generated'
 
 interface RouteArgs {
   bucket: string
@@ -206,7 +209,10 @@ function parseFilesQueryString(qs: string) {
   return PD.FromPhysicalKeys(value)
 }
 
-function useCreateDialog(packageHandle: PackageHandle) {
+export function useCreateDialog(
+  packageHandle: PackageHandle,
+  lock: PackageLockState.Status,
+) {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
@@ -230,8 +236,9 @@ function useCreateDialog(packageHandle: PackageHandle) {
 
   const { open, close } = createDialog
 
-  const shouldClose = !match
-  const shouldOpen = !!match
+  // While the lock loads it neither opens nor closes, so it never opens only to close.
+  const shouldClose = !match || lock === 'locked'
+  const shouldOpen = !!match && lock === 'unlocked'
 
   React.useEffect(() => {
     if (shouldClose) {
@@ -261,9 +268,18 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
+  lock: PackageLockState.Status
+  onLock?: () => void
 }
 
-function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps) {
+function DirDisplay({
+  packageHandle,
+  hashOrTag,
+  path,
+  crumbs,
+  lock,
+  onLock,
+}: DirDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
@@ -275,7 +291,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
 
   const { bucket, name, hash } = packageHandle
 
-  const updateDialog = useCreateDialog(packageHandle)
+  const updateDialog = useCreateDialog(packageHandle, lock)
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
@@ -293,69 +309,13 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
     history.push(urls.bucketPackageList(bucket))
   }, [bucket, history, urls])
 
-  const [deletionState, setDeletionState] = React.useState({
-    error: undefined as React.ReactNode | undefined,
-    loading: false,
-    opened: false,
-    scope: 'revision' as 'revision' | 'package',
-  })
-
-  const confirmDelete = React.useCallback(
-    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'revision' })),
-    [],
-  )
-
-  const confirmDeletePackage = React.useCallback(
-    () => setDeletionState(R.mergeLeft({ opened: true, scope: 'package' })),
-    [],
-  )
-
-  const onPackageDeleteDialogClose = React.useCallback(() => {
-    setDeletionState(
-      R.mergeLeft({
-        error: undefined,
-        opened: false,
-      }),
-    )
-  }, [])
-
-  const deleteRevision = GQL.useMutation(DELETE_REVISION)
-  const deletePackage = GQL.useMutation(DELETE_PACKAGE)
-
-  const handlePackageDeletion = React.useCallback(async () => {
-    setDeletionState(R.assoc('loading', true))
-    try {
-      const r =
-        deletionState.scope === 'package'
-          ? (await deletePackage({ bucket, name })).packageDelete
-          : (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
-      switch (r.__typename) {
-        case 'Ok':
-        case 'PackageRevisionDeleteSuccess':
-          setDeletionState(R.mergeLeft({ opened: false, loading: false }))
-          redirectToPackagesList()
-          return
-        case 'OperationError':
-          setDeletionState(R.mergeLeft({ error: r.message, loading: false }))
-          return
-        default:
-          assertNever(r)
-      }
-    } catch (e: any) {
-      let error = 'Unexpected error'
-      if (e.message) error = `${error}: ${e.message}`
-      setDeletionState(R.mergeLeft({ error, loading: false }))
-    }
-  }, [
-    bucket,
-    hash,
-    name,
-    deletionState.scope,
-    deletePackage,
-    deleteRevision,
-    redirectToPackagesList,
-    setDeletionState,
-  ])
+  const {
+    deletionState,
+    confirmDelete,
+    confirmDeletePackage,
+    onPackageDeleteDialogClose,
+    handlePackageDeletion,
+  } = usePackageDeletion(packageHandle, redirectToPackagesList)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
@@ -388,6 +348,7 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
       />
 
       <RevisionDeleteDialog
+        disabled={lock !== 'unlocked'}
         error={deletionState.error}
         open={deletionState.opened}
         name={name}
@@ -478,72 +439,60 @@ function DirDisplay({ packageHandle, hashOrTag, path, crumbs }: DirDisplayProps)
             <>
               {prompt.render()}
               <TopBar crumbs={crumbs}>
-                {BucketPreferences.Result.match(
-                  {
-                    Ok: ({ ui: { actions, blocks } }) => (
-                      <>
-                        {actions.downloadPackage && (
-                          <Selection.Control
-                            className={classes.button}
-                            packageHandle={packageHandle}
-                          />
-                        )}
-                        {actions.revisePackage && (
-                          <M.Button
-                            className={classes.button}
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            onClick={() => updateDialog.open()}
-                          >
-                            Revise package
-                          </M.Button>
-                        )}
-                        {actions.copyPackage && (
-                          <Successors.Button
-                            className={classes.button}
-                            bucket={bucket}
-                            icon="exit_to_app"
-                            onChange={setSuccessor}
-                          >
-                            Push to bucket
-                          </Successors.Button>
-                        )}
-                        {actions.downloadPackage && (
-                          <Download.Button
-                            className={classes.button}
-                            label={
-                              !packageUri.path && slt.isEmpty ? 'Get package' : undefined
-                            }
-                          >
-                            <Download.PackageOptions
-                              hashOrTag={hashOrTag}
-                              hideCode={!blocks.code}
-                              selection={slt.isEmpty ? undefined : slt.selection}
-                              uri={packageUri}
-                            />
-                          </Download.Button>
-                        )}
-                        <RevisionMenu
+                <DirActions
+                  className={classes.button}
+                  onDelete={confirmDelete}
+                  onDeletePackage={confirmDeletePackage}
+                  onCreateFile={prompt.open}
+                  onLock={onLock}
+                >
+                  {({ ui: { actions, blocks } }) => (
+                    <>
+                      {actions.downloadPackage && (
+                        <Selection.Control
                           className={classes.button}
-                          onDelete={confirmDelete}
-                          onDeletePackage={confirmDeletePackage}
-                          onCreateFile={prompt.open}
+                          packageHandle={packageHandle}
                         />
-                      </>
-                    ),
-                    Pending: () => (
-                      <>
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                        <Buttons.Skeleton className={classes.button} size="small" />
-                      </>
-                    ),
-                    Init: () => null,
-                  },
-                  prefs,
-                )}
+                      )}
+                      {actions.revisePackage && (
+                        <M.Button
+                          className={classes.button}
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => updateDialog.open()}
+                        >
+                          Revise package
+                        </M.Button>
+                      )}
+                      {actions.copyPackage && (
+                        <Successors.Button
+                          className={classes.button}
+                          bucket={bucket}
+                          icon="exit_to_app"
+                          onChange={setSuccessor}
+                        >
+                          Push to bucket
+                        </Successors.Button>
+                      )}
+                      {actions.downloadPackage && (
+                        <Download.Button
+                          className={classes.button}
+                          label={
+                            !packageUri.path && slt.isEmpty ? 'Get package' : undefined
+                          }
+                        >
+                          <Download.PackageOptions
+                            hashOrTag={hashOrTag}
+                            hideCode={!blocks.code}
+                            selection={slt.isEmpty ? undefined : slt.selection}
+                            uri={packageUri}
+                          />
+                        </Download.Button>
+                      )}
+                    </>
+                  )}
+                </DirActions>
               </TopBar>
               {BucketPreferences.Result.match(
                 {
@@ -1052,6 +1001,8 @@ interface PackageRevisionProps {
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
   revision?: RevisionData
+  lock: PackageLockState.Status
+  onLock?: () => void
 }
 
 function PackageRevision({
@@ -1061,6 +1012,8 @@ function PackageRevision({
   crumbs,
   mode,
   revision,
+  lock,
+  onLock,
 }: PackageRevisionProps) {
   const isDir = path === '' || path.endsWith('/')
 
@@ -1077,7 +1030,7 @@ function PackageRevision({
           <DirDisplay
             packageHandle={packageHandle}
             {...{ hashOrTag, path }}
-            {...{ crumbs }}
+            {...{ crumbs, lock, onLock }}
           />
         ) : (
           <FileDisplayQuery
@@ -1115,6 +1068,24 @@ function PackageTree({
   const hash = revision?.hash
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
+
+  const {
+    status: lockStatus,
+    lock,
+    latestHash,
+    refresh: refreshLock,
+  } = PackageLockState.useLock(bucket, name)
+  const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
+  const [lockDialog, setLockDialog] = PackageLockState.useDialog(bucket, name, lockStatus)
+  const closeLockDialog = React.useCallback(() => setLockDialog(null), [setLockDialog])
+  const openLock = React.useMemo(
+    () =>
+      PackageLockState.canLock(isAdmin, lockStatus, latestHash)
+        ? () => setLockDialog('lock')
+        : undefined,
+    [isAdmin, lockStatus, latestHash, setLockDialog],
+  )
+  const openUnlock = React.useCallback(() => setLockDialog('unlock'), [setLockDialog])
 
   // TODO: use urql to get bucket config
   // const data = useQuery({
@@ -1186,14 +1157,39 @@ function PackageTree({
         {' @ '}
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
-      {packageHandle ? (
-        <PackageRevision
-          packageHandle={packageHandle}
-          hashOrTag={hashOrTag}
-          path={path}
-          crumbs={crumbs}
-          mode={mode}
+      {lock && (
+        <PackageLock.Notice lock={lock} onUnlock={isAdmin ? openUnlock : undefined} />
+      )}
+      {lockDialog === 'lock' && latestHash && (
+        <PackageLock.Dialog
+          action="lock"
+          bucket={bucket}
+          name={name}
+          hash={latestHash}
+          onClose={closeLockDialog}
+          onLatestMoved={refreshLock}
         />
+      )}
+      {lockDialog === 'unlock' && (
+        <PackageLock.Dialog
+          action="unlock"
+          bucket={bucket}
+          name={name}
+          onClose={closeLockDialog}
+        />
+      )}
+      {packageHandle ? (
+        <PackageLockState.PrefsProvider status={lockStatus}>
+          <PackageRevision
+            packageHandle={packageHandle}
+            hashOrTag={hashOrTag}
+            path={path}
+            crumbs={crumbs}
+            mode={mode}
+            lock={lockStatus}
+            onLock={openLock}
+          />
+        </PackageLockState.PrefsProvider>
       ) : (
         <>
           <TopBar crumbs={crumbs} />

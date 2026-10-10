@@ -2,6 +2,7 @@ import * as dateFns from 'date-fns'
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
@@ -12,10 +13,12 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as Column from 'components/Layout/Column'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageLock from 'utils/PackageLock'
 import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
@@ -27,6 +30,7 @@ import usePrevious from 'utils/usePrevious'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
+import * as LockUI from '../PackageTree/PackageLock'
 import RevisionDeleteDialog from '../PackageTree/RevisionDeleteDialog'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -447,7 +451,12 @@ interface PackageRevisionsProps {
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
   const classes = usePackageRevisionsStyles()
-  const { prefs } = BucketPreferences.use()
+  const { status: lockStatus, lock } = PackageLock.useLock(bucket, name)
+  const prefs = PackageLock.usePrefs(lockStatus)
+  const isAdmin = !!redux.useSelector(AuthSelectors.isAdmin)
+  const [lockDialog, setLockDialog] = PackageLock.useDialog(bucket, name, lockStatus)
+  const closeUnlock = React.useCallback(() => setLockDialog(null), [setLockDialog])
+  const openUnlock = React.useCallback(() => setLockDialog('unlock'), [setLockDialog])
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -496,129 +505,148 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
   const updateDialog = PD.useCreateDialog({ dst, src })
 
   return (
-    <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <RevisionDeleteDialog
-        error={bulk.state.error}
-        loading={bulk.state.loading}
-        name={name}
-        onClose={bulk.close}
-        onDelete={bulk.run}
-        open={bulk.state.opened}
-        scope={{ type: 'revisions', count: bulk.selected.size }}
-      />
+    <PackageLock.PrefsProvider status={lockStatus}>
+      <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
+        <RevisionDeleteDialog
+          disabled={lockStatus !== 'unlocked'}
+          error={bulk.state.error}
+          loading={bulk.state.loading}
+          name={name}
+          onClose={bulk.close}
+          onDelete={bulk.run}
+          open={bulk.state.opened}
+          scope={{ type: 'revisions', count: bulk.selected.size }}
+        />
 
-      {updateDialog.render({
-        resetFiles: 'Undo changes',
-        submit: 'Push',
-        successBrowse: 'Browse',
-        successTitle: 'Push complete',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package revision {packageLink} successfully created</>
-        ),
-        title: 'Push package revision',
-      })}
+        {updateDialog.render({
+          resetFiles: 'Undo changes',
+          submit: 'Push',
+          successBrowse: 'Browse',
+          successTitle: 'Push complete',
+          successRenderMessage: ({ packageLink }) => (
+            <>Package revision {packageLink} successfully created</>
+          ),
+          title: 'Push package revision',
+        })}
 
-      <M.Box
-        pt={{ xs: 2, sm: 3 }}
-        pb={{ xs: 2, sm: 1 }}
-        px={{ xs: 2, sm: 0 }}
-        display="flex"
-      >
-        <M.Typography variant="h5" ref={scrollRef}>
-          <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>{' '}
-          revisions
-        </M.Typography>
-        <M.Box flexGrow={1} />
-        {BucketPreferences.Result.match(
-          {
-            Ok: ({ ui: { actions } }) => (
-              <>
-                {canDelete && (
-                  <>
-                    <M.FormControlLabel
-                      control={
-                        <M.Checkbox
-                          checked={allSelected}
-                          disabled={!pageHashes.length}
-                          onChange={toggleAll}
-                        />
-                      }
-                      label="Select all"
-                      style={{ marginTop: -3, marginBottom: -3 }}
-                    />
+        <M.Box
+          pt={{ xs: 2, sm: 3 }}
+          pb={{ xs: 2, sm: 1 }}
+          px={{ xs: 2, sm: 0 }}
+          display="flex"
+        >
+          <M.Typography variant="h5" ref={scrollRef}>
+            <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>{' '}
+            revisions
+          </M.Typography>
+          <M.Box flexGrow={1} />
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) => (
+                <>
+                  {canDelete && (
+                    <>
+                      <M.FormControlLabel
+                        control={
+                          <M.Checkbox
+                            checked={allSelected}
+                            disabled={!pageHashes.length}
+                            onChange={toggleAll}
+                          />
+                        }
+                        label="Select all"
+                        style={{ marginTop: -3, marginBottom: -3 }}
+                      />
+                      <M.Button
+                        variant="outlined"
+                        className={classes.danger}
+                        disabled={!bulk.selected.size}
+                        style={{ marginTop: -3, marginBottom: -3 }}
+                        onClick={bulk.confirm}
+                      >
+                        Delete {bulk.selected.size || ''} selected
+                      </M.Button>
+                    </>
+                  )}
+                  {actions.revisePackage && (
                     <M.Button
-                      variant="outlined"
-                      className={classes.danger}
-                      disabled={!bulk.selected.size}
+                      variant="contained"
+                      color="primary"
                       style={{ marginTop: -3, marginBottom: -3 }}
-                      onClick={bulk.confirm}
+                      onClick={() => updateDialog.open()}
                     >
-                      Delete {bulk.selected.size || ''} selected
+                      Revise package
                     </M.Button>
-                  </>
-                )}
-                {actions.revisePackage && (
-                  <M.Button
-                    variant="contained"
-                    color="primary"
-                    style={{ marginTop: -3, marginBottom: -3 }}
-                    onClick={() => updateDialog.open()}
-                  >
-                    Revise package
-                  </M.Button>
+                  )}
+                </>
+              ),
+              Pending: () => <Buttons.Skeleton />,
+              Init: () => null,
+            },
+            prefs,
+          )}
+        </M.Box>
+
+        {lock && (
+          <M.Box px={{ xs: 2, sm: 0 }}>
+            <LockUI.Notice lock={lock} onUnlock={isAdmin ? openUnlock : undefined} />
+          </M.Box>
+        )}
+        {lockDialog === 'unlock' && (
+          <LockUI.Dialog
+            action="unlock"
+            bucket={bucket}
+            name={name}
+            onClose={closeUnlock}
+          />
+        )}
+
+        {GQL.fold(revisionCountQuery, {
+          error: displayError(),
+          fetching: () => renderRevisionSkeletons(10),
+          data: (d) => {
+            const revisionCount = d.package?.revisions.total
+            if (!revisionCount) {
+              return (
+                <M.Box py={5} textAlign="center">
+                  <M.Typography variant="h4">No such package</M.Typography>
+                </M.Box>
+              )
+            }
+
+            const pages = Math.ceil(revisionCount / PER_PAGE)
+
+            // Deleting a whole page shrinks the count past the page in the URL,
+            // which would otherwise render empty with no pagination to escape it.
+            if (actualPage > pages) return <RRDom.Redirect to={makePageUrl(pages)} />
+
+            return (
+              <>
+                {GQL.fold(revisionListQuery, {
+                  error: displayError(),
+                  fetching: () => {
+                    const items = actualPage < pages ? PER_PAGE : revisionCount % PER_PAGE
+                    return renderRevisionSkeletons(items)
+                  },
+                  data: (dd) =>
+                    (dd.package?.revisions.page || []).map((r) => (
+                      <Revision
+                        key={`${r.hash}:${r.modified.valueOf()}`}
+                        {...{ bucket, name, ...r }}
+                        selected={bulk.selected.has(r.hash)}
+                        onSelect={canDelete ? bulk.toggle : undefined}
+                      />
+                    )),
+                })}
+                {pages > 1 && (
+                  <Pagination {...{ pages, page: actualPage, makePageUrl }} />
                 )}
               </>
-            ),
-            Pending: () => <Buttons.Skeleton />,
-            Init: () => null,
-          },
-          prefs,
-        )}
-      </M.Box>
-
-      {GQL.fold(revisionCountQuery, {
-        error: displayError(),
-        fetching: () => renderRevisionSkeletons(10),
-        data: (d) => {
-          const revisionCount = d.package?.revisions.total
-          if (!revisionCount) {
-            return (
-              <M.Box py={5} textAlign="center">
-                <M.Typography variant="h4">No such package</M.Typography>
-              </M.Box>
             )
-          }
-
-          const pages = Math.ceil(revisionCount / PER_PAGE)
-
-          // Deleting a whole page shrinks the count past the page in the URL,
-          // which would otherwise render empty with no pagination to escape it.
-          if (actualPage > pages) return <RRDom.Redirect to={makePageUrl(pages)} />
-
-          return (
-            <>
-              {GQL.fold(revisionListQuery, {
-                error: displayError(),
-                fetching: () => {
-                  const items = actualPage < pages ? PER_PAGE : revisionCount % PER_PAGE
-                  return renderRevisionSkeletons(items)
-                },
-                data: (dd) =>
-                  (dd.package?.revisions.page || []).map((r) => (
-                    <Revision
-                      key={`${r.hash}:${r.modified.valueOf()}`}
-                      {...{ bucket, name, ...r }}
-                      selected={bulk.selected.has(r.hash)}
-                      onSelect={canDelete ? bulk.toggle : undefined}
-                    />
-                  )),
-              })}
-              {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
-            </>
-          )
-        },
-      })}
-    </M.Box>
+          },
+        })}
+      </M.Box>
+    </PackageLock.PrefsProvider>
   )
 }
 

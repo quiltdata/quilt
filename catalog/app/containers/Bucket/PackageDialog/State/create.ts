@@ -4,6 +4,7 @@ import cfg from 'constants/config'
 import Log from 'utils/Logging'
 import assertNever from 'utils/assertNever'
 import { useMutation } from 'utils/GraphQL'
+import * as PackageLock from 'utils/PackageLock'
 import * as s3paths from 'utils/s3paths'
 
 import * as Uploads from '../Uploads'
@@ -140,7 +141,7 @@ function useCreate() {
               hash: r.revision.hash,
             })
           case 'OperationError':
-            return Err(new Error(r.message))
+            return Err(new Error(PackageLock.errorMessage(r)))
           case 'InvalidInput':
             return invalidInput(r.errors)
           default:

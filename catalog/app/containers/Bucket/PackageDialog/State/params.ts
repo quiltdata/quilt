@@ -103,6 +103,10 @@ export function useParams({
     if (!message.value || message.status._tag === 'error') {
       return Invalid(new Error('Valid message required'))
     }
+    // A name whose lock is still unknown must not submit: a push uploads its files first.
+    if (name.status._tag === 'loading') {
+      return Invalid(new Error('Checking the package name…'))
+    }
 
     if (metadataSchema._tag !== 'ready') {
       return Invalid(new Error('Metadata JSON Schema is not ready'))

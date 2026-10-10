@@ -3,8 +3,10 @@ import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
 import { isQuickPreviewAvailable } from 'components/Preview/quick'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageLock from 'utils/PackageLock'
 import * as PackageUri from 'utils/PackageUri'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -48,9 +50,49 @@ function useRedirect() {
   )
 }
 
+// A plain bucket file is always writable here. A file added to a package is writable
+// when the package's bucket preferences allow it and the package is known unlocked.
+function useWritable(bucket: string, add?: string) {
+  const { prefs: viewedPrefs } = BucketPreferences.use()
+  const pkg = React.useMemo(() => {
+    try {
+      return add ? PackageUri.parse(add) : null
+    } catch {
+      return undefined
+    }
+  }, [add])
+  const otherBucket = !!pkg && pkg.bucket !== bucket
+  const targetPrefs = BucketPreferences.useForBucket(pkg?.bucket ?? '', !otherBucket)
+  const prefs = otherBucket ? targetPrefs : viewedPrefs
+  const lock = PackageLock.useLockStatus(pkg?.bucket ?? '', pkg?.name ?? '', !pkg)
+  // A target with no lock to check, unparseable or pathless, must not pass as no target.
+  if (pkg === undefined || (pkg && !pkg.path))
+    return { lock, blocked: 'invalid' as const }
+  if (!pkg) return { lock, blocked: null }
+  const allowed = BucketPreferences.Result.match(
+    { Ok: ({ ui: { actions } }) => actions.writeFile, _: () => undefined },
+    prefs,
+  )
+  let blocked: Blocked | null = null
+  if (lock === 'locked') blocked = 'locked'
+  else if (lock === 'loading' || allowed === undefined) blocked = 'loading'
+  else if (!allowed) blocked = 'forbidden'
+  return { lock, blocked }
+}
+
+// Why a file can't be edited: the target package is locked, its lock or bucket
+// preferences are still loading, the `add` link is bad, or writeFile is off.
+export type Blocked = 'loading' | 'locked' | 'invalid' | 'forbidden'
+
+export const LOCKED_OUT = `${PackageLock.reason('locked')}; your changes can't be saved.`
+
 export interface EditorState {
   editing: EditorInputType | null
   error: Error | null
+  // An open editor's package locked: it stays open, read-only.
+  lockedOut: boolean
+  // Why an editor the URL asked for is not open.
+  requested: Blocked | null
   onCancel: () => void
   onChange: (value: string) => void
   onEdit: (type: EditorInputType | null) => void
@@ -60,23 +102,39 @@ export interface EditorState {
   saving: boolean
   types: EditorInputType[]
   value?: string
+  writable: boolean
 }
 
 // TODO: use Provider
 export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   const types = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
-  const { edit } = parseSearch(location.search, true)
+  const { add, edit } = parseSearch(location.search, true)
+  const { lock, blocked } = useWritable(handle.bucket, add)
+  const writable = !blocked
   const [error, setError] = React.useState<Error | null>(null)
   const [value, setValue] = React.useState<string | undefined>()
-  const [editing, setEditing] = React.useState<EditorInputType | null>(
+  const [editingState, setEditingState] = React.useState<EditorInputType | null>(
     edit ? types[0] : null,
   )
+  // An editor opened while writable stays open, read-only, if the package locks, so the
+  // typed text isn't lost; one asked for by the URL waits until the package is writable.
+  const [opened, setOpened] = React.useState(false)
+  const setEditing = React.useCallback((t: EditorInputType | null) => {
+    setEditingState(t)
+    setOpened(!!t)
+  }, [])
+  // The URL's editor opens on its first writable render, not after an effect.
+  if (writable && editingState && !opened) setOpened(true)
+  const editing = writable || opened ? editingState : null
+  const lockedOut = !!editing && lock === 'locked'
+  const requested = !!edit && !editing ? blocked : null
   const [preview, setPreview] = React.useState<boolean>(false)
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
   const redirect = useRedirect()
   const onSave = React.useCallback(async () => {
+    if (!writable) return
     // XXX: implement custom MUI Dialog-based confirm?
     // eslint-disable-next-line no-restricted-globals, no-alert
     if (!value && !window.confirm('You are about to save empty file')) return
@@ -93,15 +151,17 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       setError(err)
       setSaving(false)
     }
-  }, [redirect, value, writeFile])
+  }, [redirect, setEditing, value, writable, writeFile])
   const onCancel = React.useCallback(() => {
     setEditing(null)
     setError(null)
-  }, [])
+  }, [setEditing])
   return React.useMemo(
     () => ({
       editing,
       error,
+      lockedOut,
+      requested,
       onCancel,
       onChange: setValue,
       onEdit: setEditing,
@@ -111,7 +171,21 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       saving,
       types,
       value,
+      writable,
     }),
-    [editing, error, onCancel, onSave, preview, saving, types, value],
+    [
+      editing,
+      error,
+      lockedOut,
+      requested,
+      onCancel,
+      onSave,
+      preview,
+      saving,
+      setEditing,
+      types,
+      value,
+      writable,
+    ],
   )
 }

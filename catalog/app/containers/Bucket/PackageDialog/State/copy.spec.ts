@@ -118,6 +118,22 @@ describe('containers/Bucket/PackageDialog/State/copy', () => {
     expect(status.fields).toBeUndefined()
   })
 
+  it('should say the package is locked when the registry refuses it as locked', async () => {
+    promotePackage.mockResolvedValue({
+      packagePromote: {
+        __typename: 'OperationError',
+        message: "Package 'foo/bar' is locked",
+        name: 'PackageLocked',
+      },
+    })
+    const { result } = renderHook(() => useTestHandler())
+    await act(() => result.current.copy(SRC, null))
+    expect(result.current.formStatus).toMatchObject({
+      _tag: 'error',
+      error: new Error('This package is locked'),
+    })
+  })
+
   it('should not call the mutation when params are invalid', async () => {
     const { result } = renderHook(() =>
       useTestHandler({ _tag: 'invalid', error: new Error('Valid name required') }),

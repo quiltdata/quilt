@@ -64,7 +64,7 @@ function refetchRootField(clientRef: React.RefObject<urql.Client>, query: RootQu
 const evolveCached = (transformations: any) =>
   R.unless(R.isNil, R.evolve(transformations))
 
-function handlePackageCreation(result: any, cache: GraphCache.Cache) {
+export function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
   const { bucket, name } = result.package
   const revList = cache.resolve({ __typename: 'Package', bucket, name }, 'revisions')
@@ -84,7 +84,23 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
     { bucket, name },
     { __typename: 'Package', bucket, name },
   )
+  // The lock dialog locks the latest revision, which this push just moved.
+  cache.invalidate({ __typename: 'Package', bucket, name }, 'revision', {
+    hashOrTag: 'latest',
+  })
   invalidateRootField(cache, 'packages')
+}
+
+// "Already locked" means the cached lock is stale too, so the page can show the real one.
+export function handlePackageLock(
+  result: any,
+  { bucket, name }: GraphCache.Variables,
+  cache: Pick<GraphCache.Cache, 'invalidate'>,
+) {
+  const alreadyLocked =
+    result.__typename === 'OperationError' && result.name === 'PackageLocked'
+  if (result.__typename !== 'PackageLock' && !alreadyLocked) return
+  cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
 }
 
 function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
@@ -170,6 +186,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           PackageDir: () => null,
           PackageFile: () => null,
           PackageList: () => null,
+          PackageLock: () => null,
           PackageRevision: (r) =>
             r.hash ? `${r.hash}:${r.modified?.valueOf() || ''}` : null, // XXX: is r.modified a string here?
           PackageRevisionList: () => null,
@@ -421,6 +438,13 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               if ((result.packageDelete as any).__typename !== 'Ok') return
               cache.invalidate({ __typename: 'Package', bucket, name })
               invalidateRootField(cache, 'packages')
+            },
+            packageLock: (result, args, cache) => {
+              handlePackageLock(result.packageLock, args, cache)
+            },
+            packageUnlock: (result, { bucket, name }, cache) => {
+              if ((result.packageUnlock as any).__typename !== 'Ok') return
+              cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
             },
             packageConstruct: (result, _vars, cache) => {
               handlePackageCreation(result.packageConstruct, cache)
