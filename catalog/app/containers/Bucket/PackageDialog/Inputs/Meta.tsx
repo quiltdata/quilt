@@ -27,6 +27,7 @@ import { humanizeError, invalidKeys, requiredFields, topKey } from '../State/met
 import { hasLossyToken, newErrorsFrom, useMetaSuggestions } from '../State/metaSuggest'
 
 import MetaForm, { FreeFields } from './MetaForm'
+import PasteFields from './PasteFields'
 import SectionRail from './SectionRail'
 import type { Section } from './SectionRail'
 import { SuggestBar } from './Suggest'
@@ -559,6 +560,7 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
+  const [pasting, setPasting] = React.useState(false)
 
   const onChangeFullscreen = React.useCallback(
     (json: JsonRecord) => {
@@ -805,6 +807,18 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
             </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
           <div className={classes.toolbarActions}>
+            {!formView && (
+              <M.Button
+                // a non-object root has no fields to paste into; Table view shows its error
+                disabled={editLocked || (value !== undefined && !objectRoot)}
+                onClick={() => setPasting(true)}
+                size="small"
+                startIcon={<M.Icon fontSize="small">content_paste</M.Icon>}
+                title="Paste field names and values copied from a spreadsheet"
+              >
+                Paste from Excel
+              </M.Button>
+            )}
             <M.Button
               disabled={editLocked}
               onClick={openFile}
@@ -851,6 +865,17 @@ const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(function Meta
         </div>
       )}
 
+      <PasteFields
+        onClose={() => setPasting(false)}
+        // pasted rows replace the same fields; the rest of the metadata stays
+        onPaste={(fields) => {
+          onChangeInline({ ...(value || {}), ...fields } as JsonRecord)
+          // the table reads its value once; a new key makes it show the pasted rows
+          setJsonInlineEditorKey(R.inc)
+        }}
+        open={pasting}
+        schema={schema}
+      />
       <Dialog
         schema={schema}
         key={jsonFullscreenEditorKey}
