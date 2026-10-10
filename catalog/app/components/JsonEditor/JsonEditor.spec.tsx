@@ -6,6 +6,18 @@ import { describe, expect, it, vi } from 'vitest'
 import JsonEditor from './JsonEditor'
 import { typeLabel } from './Row'
 
+// use-resize-observer requires the ResizeObserver global, which jsdom lacks
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  },
+)
+
 const schema = {
   type: 'object',
   required: ['project'],

@@ -196,6 +196,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
   toolbarActions: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: t.spacing(0.5),
     marginLeft: 'auto',
   },
