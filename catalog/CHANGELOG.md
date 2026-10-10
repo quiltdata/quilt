@@ -50,6 +50,7 @@ complete sentence without it.
 - [Added] Qurator opens as a full-page chat at `/qurator` that can be installed to a phone's home screen, with an offline page when there is no connection ([#5436](https://github.com/quiltdata/quilt/pull/5436))
 - [Added] Qurator mode and the full-page Qurator get a compact composer with a + menu (save the session as a package, Agent or Ask mode, model, tools, MCP servers, instructions) that minimizes to one line on phones ([#5457](https://github.com/quiltdata/quilt/pull/5457))
 - [Fixed] Signed-in users get the admin-configured catalog settings (front door, theme, Qurator, feature flags) right after sign-in, without reloading the page ([#5371](https://github.com/quiltdata/quilt/pull/5371))
+- [Fixed] After a release, the catalog loads the new version on the next visit, and an open page reloads itself once instead of showing "Something went wrong" ([#5445](https://github.com/quiltdata/quilt/pull/5445))
 - [Fixed] Admin users and roles: the SSO role-mapping editor loads reliably instead of intermittently failing to open ([#5370](https://github.com/quiltdata/quilt/pull/5370))
 - [Fixed] Opening a folder or file your role cannot read shows Access Denied below the breadcrumbs instead of replacing the page with an error ([#5382](https://github.com/quiltdata/quilt/pull/5382))
 - [Fixed] Bucket directory listings keep their page in the URL, so Back from a file, a reload or a shared link returns to the same page instead of the first ([#5378](https://github.com/quiltdata/quilt/pull/5378))
