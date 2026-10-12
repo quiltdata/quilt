@@ -68,7 +68,7 @@ describe('Connectors/Mcp', () => {
      * `globalThis.fetch` lookup deterministically, no globalThis pollution.
      */
     const captureCalls = (
-      respond: (req: any) => Response,
+      respond: (req: any, init?: RequestInit) => Response,
     ): {
       fetchSpy: ReturnType<typeof vi.fn>
       calls: Array<{ url: string; init?: RequestInit; body?: any }>
@@ -85,7 +85,7 @@ describe('Connectors/Mcp', () => {
           body = JSON.parse(text)
         }
         calls.push({ url: String(url), init, body })
-        return respond(body)
+        return respond(body, init)
       })
       return { fetchSpy, calls }
     }
@@ -138,6 +138,112 @@ describe('Connectors/Mcp', () => {
 
       const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
       expect(headers.authorization).toBe('Bearer the-token')
+    })
+
+    it('sends NO Authorization header when getToken is omitted', async () => {
+      const { fetchSpy, calls } = captureCalls(okResponse)
+
+      const client = Mcp.make({ url: 'https://third-party.invalid/mcp' })
+      await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+
+      expect(calls).toHaveLength(1)
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      const keys = Object.keys(headers).map((k) => k.toLowerCase())
+      expect(keys).not.toContain('authorization')
+      // The rest of the envelope is unchanged — this is the same protocol, just
+      // unauthenticated.
+      expect(headers['mcp-protocol-version']).toBeTruthy()
+      expect(calls[0].body.method).toBe('tools/list')
+    })
+
+    it('anonymous backend reaches the wire without a token and adapts results', async () => {
+      const { fetchSpy, calls } = captureCalls(
+        (req: any) =>
+          new Response(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: req?.id,
+              result: {
+                tools: [
+                  { name: 'job_status', description: 'Job status', inputSchema: {} },
+                ],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+      )
+
+      const backend = Mcp.anonymous({ url: 'https://third-party.invalid/mcp' })
+      const tools = await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
+
+      expect(tools.map((t) => t.name)).toEqual(['job_status'])
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      expect(Object.keys(headers).map((k) => k.toLowerCase())).not.toContain(
+        'authorization',
+      )
+    })
+
+    it('replays the session id, and re-initializes on the ping after a 404', async () => {
+      // A stateful server: 400 without a session, 404 for an ended one.
+      let live = ''
+      let n = 0
+      const { fetchSpy, calls } = captureCalls((req: any, init?: RequestInit) => {
+        if (req?.method === 'initialize') {
+          live = `sess-${++n}`
+          return new Response(
+            JSON.stringify({ jsonrpc: '2.0', id: req.id, result: {} }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json', 'mcp-session-id': live },
+            },
+          )
+        }
+        const sent = ((init?.headers ?? {}) as Record<string, string>)['mcp-session-id']
+        if (!sent) return new Response('', { status: 400 })
+        if (sent !== live) return new Response('', { status: 404 })
+        if (!req?.id) return new Response(null, { status: 202 })
+        return okResponse(req)
+      })
+      const client = Mcp.make({ url: 'https://stateful.invalid/mcp' })
+      const sessionOf = (i: number) =>
+        ((calls[i].init?.headers ?? {}) as Record<string, string>)['mcp-session-id']
+      const run = <A, E>(eff: Eff.Effect.Effect<A, E>) =>
+        Eff.Effect.runPromiseExit(withFetch(eff, fetchSpy))
+
+      await run(client.initialize())
+      expect(Eff.Exit.isSuccess(await run(client.listTools()))).toBe(true)
+      expect(sessionOf(0)).toBeUndefined()
+      expect(sessionOf(1)).toBe('sess-1') // notifications/initialized
+      expect(sessionOf(2)).toBe('sess-1')
+
+      live = 'ended'
+      expect(Eff.Exit.isFailure(await run(client.listTools()))).toBe(true)
+      expect(Eff.Exit.isSuccess(await run(client.ping()))).toBe(true)
+      // Bootstrap's own initialize reuses the session the ping opened.
+      expect(Eff.Exit.isSuccess(await run(client.initialize()))).toBe(true)
+      expect(Eff.Exit.isSuccess(await run(client.listTools()))).toBe(true)
+      expect(n).toBe(2)
+      expect(sessionOf(calls.length - 1)).toBe('sess-2')
+
+      // Any request in between ends the hand-off: a later initialize is fresh.
+      live = 'ended'
+      await run(client.listTools())
+      await run(client.ping())
+      await run(client.ping())
+      await run(client.initialize())
+      expect(n).toBe(4)
+    })
+
+    it('withHeaders backend sends its fixed headers and no catalog token', async () => {
+      const { fetchSpy, calls } = captureCalls(okResponse)
+      const backend = Mcp.withHeaders({
+        url: 'https://third-party.invalid/mcp',
+        headers: { 'X-API-Key': 'k' },
+      })
+      await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      expect(headers['x-api-key']).toBe('k')
+      expect(Object.keys(headers)).not.toContain('authorization')
     })
 
     it('propagates McpAuthError without firing fetch when getToken fails', async () => {
