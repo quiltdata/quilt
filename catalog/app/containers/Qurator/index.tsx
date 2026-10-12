@@ -178,11 +178,7 @@ export default function Qurator() {
   const { urls } = NamedRoutes.use()
   useInstallable(!!api)
   Intercom.usePauseVisibilityWhen(true)
-  // The docked panel may still be marked open from before the jump here; it would reopen over the catalog.
-  const toCatalog = React.useCallback(() => {
-    api?.hide()
-    history.push(urls.home())
-  }, [api, history, urls])
+  const toCatalog = React.useCallback(() => history.push(urls.home()), [history, urls])
   const frame = useKeyboardFrame()
   const installHint = useInstallHint(classes.install)
   // Saving is Qurator mode's addition; the page itself stays unflagged.

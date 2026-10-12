@@ -389,6 +389,11 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   React.useLayoutEffect(() => {
     if (visible && qurator) help?.hide()
   }, [visible, qurator]) // eslint-disable-line react-hooks/exhaustive-deps
+  // A full-page chat takes over the conversation, so the dock stays closed when
+  // the user leaves it by any route (close, Back, a link).
+  React.useLayoutEffect(() => {
+    if (inlined && visible) api?.hide()
+  }, [inlined, visible]) // eslint-disable-line react-hooks/exhaustive-deps
   const present = qurator || !!help
   const mode = helpOpen ? 'help' : qurator && visible ? 'qurator' : null
   const [width, resize] = usePanelWidth()

@@ -151,6 +151,23 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     expect(getByTestId('reflow').textContent).toBe('null')
   })
 
+  it('closes the dock while an inline chat is active, so leaving it does not reopen the dock', () => {
+    inlined = true
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    render(<WithAssistantUI>{null}</WithAssistantUI>)
+    expect(api.hide).toHaveBeenCalled()
+  })
+
+  it('CONTROL: leaves an open dock alone without an inline chat', () => {
+    const api = makeAPI()
+    api.visible = true
+    useAssistantAPI.mockReturnValue(api)
+    render(<WithAssistantUI>{null}</WithAssistantUI>)
+    expect(api.hide).not.toHaveBeenCalled()
+  })
+
   it('expands to the full panel and widens the gutter when visible', () => {
     const api = makeAPI()
     api.visible = true
@@ -227,7 +244,6 @@ describe('components/Assistant/UI WithAssistantUI', () => {
     api.visible = true
     rerender(<WithAssistantUI />)
     expect(chat.hide).not.toHaveBeenCalled()
-    expect(api.hide).not.toHaveBeenCalled()
   })
 
   it('closes Help when Qurator opens', () => {
