@@ -60,24 +60,27 @@ changes a Tabulator table, it shows what it wants to do and waits:
 - **Don't run** — the tool does not run; Qurator is told you declined.
 
 Approval is asked for each call, including a repeat of one you already ran, and
-only you can give it: content Qurator reads cannot. In Ask mode only read-only
-tools are offered.
+only you can give it: content Qurator reads cannot.
 
-The prompt rests on the server's declaration, so a server that calls a write
-tool read-only gets no prompt, in Agent or Ask mode. A tool that declares nothing
-asks first, with a warning that it can replace or delete existing data. Tools
-the server marks non-destructive get the prompt without that warning; the
-Platform MCP Server marks package patches, S3 object writes and Tabulator table
-changes that way, even though they can remove entries, overwrite an object or
-delete a table. A server tool declared
-read-only is also retried once if the connection drops before it answers, so it
-can run twice.
+The prompt rests on what each tool's server declares:
+
+- A tool declared read-only gets no prompt, in Agent or Ask mode. A server that
+  calls a write tool read-only can therefore write without asking, and Ask mode,
+  which offers only read-only tools, does not stop it.
+- Any other tool asks first, with a warning that it can replace or delete
+  existing data, unless its server marks it non-destructive. The Platform MCP
+  Server marks package patches, S3 object writes and Tabulator table changes
+  that way, even though they can remove entries, overwrite an object or delete a
+  table.
+- A server tool declared read-only is retried once when its connection fails,
+  even if the server already ran it, so it can run twice.
 
 Athena queries run without asking because the Platform MCP Server declares them
 read-only. A server that includes the read-only SQL guard refuses statements
 that do not start as a read, such as `CREATE`, `INSERT` or `DROP`, and refuses
 `EXPLAIN ANALYZE`. On a stack whose server predates the guard those statements
-run. Either way, keep Athena write access out of roles that should only read.
+run, still without asking. Either way, keep Athena write access out of roles
+that should only read.
 
 ### Connector Status
 
