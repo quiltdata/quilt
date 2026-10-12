@@ -853,4 +853,176 @@ describe('tool-call limit', () => {
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
+
+  const limitHarness = (
+    toolUses: { id: string; name: string }[],
+    tools: Tool.Collection,
+    limitRef: Eff.Ref.Ref<number | null>,
+  ) =>
+    Eff.Effect.gen(function* () {
+      const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+      const responded = yield* Eff.Ref.make(false)
+      const llm: LLM.LLM['Type'] = {
+        converse: () =>
+          Eff.Effect.gen(function* () {
+            if (yield* Eff.Ref.getAndSet(responded, true)) {
+              return { content: Eff.Option.some([]), backendResponse: {} as never }
+            }
+            return {
+              content: Eff.Option.some(
+                toolUses.map(({ id, name }) =>
+                  Content.ResponseMessageContentBlock.ToolUse({
+                    toolUseId: id,
+                    name,
+                    input: {},
+                  }),
+                ),
+              ),
+              backendResponse: {} as never,
+            }
+          }),
+      }
+      const layer = Eff.Layer.mergeAll(
+        Eff.Layer.succeed(Connectors.Connectors, {
+          ...makeConnectorsStub(isBlockedRef),
+          contextContribution: Eff.Effect.succeed({ tools, messages: [] }),
+        }),
+        Eff.Layer.succeed(LLM.LLM, llm),
+        Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+        Eff.Layer.succeed(Conversation.ToolCallLimit, { limit: Eff.Ref.get(limitRef) }),
+      )
+      const actor = yield* Actor.start(
+        yield* Conversation.ConversationActor,
+        yield* Conversation.init,
+        Eff.Effect.succeed(layer),
+      )
+      yield* actor.dispatch(Conversation.Action.Ask({ content: 'go' }))
+      return actor
+    })
+
+  const counting = (
+    runs: Eff.Ref.Ref<Record<string, number>>,
+    name: string,
+    effect: Tool.Effect,
+  ): Tool.Descriptor<Record<string, unknown>> => ({
+    effect,
+    schema: {} as Eff.JSONSchema.JsonSchema7Root,
+    executor: () =>
+      Eff.Ref.update(runs, (r) => ({ ...r, [name]: (r[name] ?? 0) + 1 })).pipe(
+        Eff.Effect.as(
+          Eff.Option.some(
+            Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'ran' })),
+          ),
+        ),
+      ),
+  })
+
+  const keyOf = (s: Conversation.State, id: string) =>
+    (s._tag === 'ToolUse' && s.calls[id]?.key) || ''
+
+  it('does not run a held write after the lowered limit is used by an earlier approval', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const runs = yield* Eff.Ref.make<Record<string, number>>({})
+          const limitRef = yield* Eff.Ref.make<number | null>(2)
+          const actor = yield* limitHarness(
+            [
+              { id: 'a', name: 'putA' },
+              { id: 'b', name: 'putB' },
+            ],
+            {
+              putA: counting(runs, 'putA', 'write'),
+              putB: counting(runs, 'putB', 'write'),
+            },
+            limitRef,
+          )
+          const pending = yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && !!s.calls.a?.approval && !!s.calls.b?.approval,
+          )
+          yield* actor.dispatch(
+            Conversation.Action.Approve({ id: 'b', key: keyOf(pending, 'b') }),
+          )
+          yield* awaitState(actor, (s) => s._tag === 'ToolUse' && !('b' in s.calls))
+          yield* Eff.Ref.set(limitRef, 1)
+          yield* actor.dispatch(
+            Conversation.Action.Approve({ id: 'a', key: keyOf(pending, 'a') }),
+          )
+          yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(yield* Eff.Ref.get(runs)).toEqual({ putB: 1 })
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
+  it('does not run a held write after a read in its batch used the lowered limit', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const runs = yield* Eff.Ref.make<Record<string, number>>({})
+          const limitRef = yield* Eff.Ref.make<number | null>(2)
+          const actor = yield* limitHarness(
+            [
+              { id: 'w', name: 'put' },
+              { id: 'r', name: 'list' },
+            ],
+            { put: counting(runs, 'put', 'write'), list: counting(runs, 'list', 'read') },
+            limitRef,
+          )
+          const pending = yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && !('r' in s.calls) && !!s.calls.w?.approval,
+          )
+          yield* Eff.Ref.set(limitRef, 1)
+          yield* actor.dispatch(
+            Conversation.Action.Approve({ id: 'w', key: keyOf(pending, 'w') }),
+          )
+          yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(yield* Eff.Ref.get(runs)).toEqual({ list: 1 })
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
+  it('counts a read still running against the lowered limit at Run', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const runs = yield* Eff.Ref.make<Record<string, number>>({})
+          const limitRef = yield* Eff.Ref.make<number | null>(2)
+          const gate = yield* Eff.Deferred.make<void>()
+          const slowRead: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Ref.update(runs, (r) => ({ ...r, list: (r.list ?? 0) + 1 })).pipe(
+                Eff.Effect.zipRight(Eff.Deferred.await(gate)),
+                Eff.Effect.as(
+                  Eff.Option.some(
+                    Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'ran' })),
+                  ),
+                ),
+              ),
+          }
+          const actor = yield* limitHarness(
+            [
+              { id: 'w', name: 'put' },
+              { id: 'r', name: 'list' },
+            ],
+            { put: counting(runs, 'put', 'write'), list: slowRead },
+            limitRef,
+          )
+          const pending = yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && 'r' in s.calls && !!s.calls.w?.approval,
+          )
+          yield* Eff.Ref.set(limitRef, 1)
+          yield* actor.dispatch(
+            Conversation.Action.Approve({ id: 'w', key: keyOf(pending, 'w') }),
+          )
+          yield* Eff.Deferred.succeed(gate, undefined)
+          yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(yield* Eff.Ref.get(runs)).toEqual({ list: 1 })
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
 })

@@ -33,11 +33,8 @@ export interface ToolCall {
    * settle the card it was clicked on, even if the model reuses a tool-use id.
    */
   readonly key?: string
-  /**
-   * This call's place in the question's tool-call count, fixed when it was
-   * admitted; Run refuses it if the limit now in force is below it.
-   */
-  readonly slot?: number
+  /** Settled with a refusal by the limit, without running. */
+  readonly refused?: boolean
 }
 
 const sameTool = (a: Tool.Descriptor<any>, b: Tool.Descriptor<any> | undefined) =>
@@ -66,6 +63,8 @@ export type Event = Eff.Data.TaggedEnum<{
     readonly name: string
     readonly input: Record<string, any>
     readonly result: Tool.Result
+    /** The tool's executor was invoked (not refused or declined). */
+    readonly ran?: boolean
   }
 }>
 
@@ -220,6 +219,15 @@ export const toolCallsSinceAsk = (events: Event[]) => {
   return events.slice(lastAsk + 1).filter((e) => e._tag === 'ToolUse').length
 }
 
+/** Calls this question that actually ran: refusals and declines spend no budget. */
+const toolCallsRanSinceAsk = (events: Event[]) => {
+  const lastAsk = Eff.Array.findLastIndex(
+    events,
+    (e) => e._tag === 'Message' && e.role === 'user',
+  ).pipe(Eff.Option.getOrElse(() => -1))
+  return events.slice(lastAsk + 1).filter((e) => e._tag === 'ToolUse' && e.ran).length
+}
+
 const forkResult = (id: string, result: Tool.Result, dispatch: Actor.Dispatch<Action>) =>
   Eff.Effect.fork(
     Eff.Effect.asVoid(
@@ -311,6 +319,7 @@ const completeCall = (
         name: call.name,
         input: call.input,
         result: result.value,
+        ran: !!call.fiber && !call.refused,
       })
       events = events.concat(event)
     }
@@ -409,7 +418,6 @@ export const ConversationActor = Eff.Effect.succeed(
               })
             }
             let room = limit === null ? Infinity : limit - used
-            let admitted = 0
 
             const tools = yield* currentTools
             const calls: Record<string, ToolCall> = {}
@@ -424,11 +432,11 @@ export const ConversationActor = Eff.Effect.succeed(
                   name: tu.name,
                   input: tu.input,
                   fiber: yield* forkResult(tu.toolUseId, result, dispatch),
+                  refused: true,
                 }
                 continue
               }
               room--
-              admitted++
               const effect = Eff.Record.has(tools, tu.name)
                 ? tools[tu.name].effect
                 : undefined
@@ -439,7 +447,6 @@ export const ConversationActor = Eff.Effect.succeed(
                   approval: effect,
                   tool: tools[tu.name],
                   key: yield* genId,
-                  slot: used + admitted,
                 }
                 continue
               }
@@ -488,7 +495,11 @@ export const ConversationActor = Eff.Effect.succeed(
             // A card can wait while an admin lowers the limit, or while the
             // limit first loads.
             const limitNow = yield* toolCallLimit
-            if (limitNow !== null && (call.slot ?? Infinity) > limitNow) {
+            const ranEvents = toolCallsRanSinceAsk(state.events)
+            const running = Object.values(state.calls).filter(
+              (c) => c.fiber && !c.refused,
+            ).length
+            if (limitNow !== null && ranEvents + running + 1 > limitNow) {
               const result = Tool.fail(
                 Content.ToolResultContentBlock.Text({
                   text: `Tool-call limit for this question reached (${limitNow}); it was not run.`,
