@@ -17,10 +17,12 @@ function fakeViewport(height: number, offsetTop = 0) {
     addEventListener: (e: string, f: () => void) => {
       listeners[e] = f
     },
-    removeEventListener: () => {},
+    removeEventListener: (e: string, f: () => void) => {
+      if (listeners[e] === f) delete listeners[e]
+    },
   }
   vi.stubGlobal('visualViewport', vv)
-  return { vv, fire: (e: string) => listeners[e]?.() }
+  return { vv, listeners, fire: (e: string) => listeners[e]?.() }
 }
 
 describe('containers/Qurator useKeyboardFrame', () => {
@@ -42,6 +44,7 @@ describe('containers/Qurator useKeyboardFrame', () => {
     expect(result.current).toEqual({
       height: window.innerHeight - 300,
       transform: 'translateY(120px)',
+      '--safe-bottom': '0px',
     })
     act(() => {
       vv.height = window.innerHeight
@@ -60,6 +63,26 @@ describe('containers/Qurator useKeyboardFrame', () => {
       fire('resize')
     })
     expect(result.current).toBeUndefined()
+  })
+})
+
+describe('containers/Qurator useKeyboardFrame listeners', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('keeps the same frame across scroll ticks, and stops listening on unmount', () => {
+    const { vv, listeners, fire } = fakeViewport(window.innerHeight - 300, 120)
+    const { result, unmount } = renderHook(() => useKeyboardFrame())
+    const first = result.current
+    expect(first).toMatchObject({ '--safe-bottom': '0px' })
+    act(() => fire('scroll'))
+    expect(result.current).toBe(first)
+    act(() => {
+      vv.offsetTop = 80
+      fire('scroll')
+    })
+    expect(result.current).toMatchObject({ transform: 'translateY(80px)' })
+    unmount()
+    expect(Object.keys(listeners)).toEqual([])
   })
 })
 

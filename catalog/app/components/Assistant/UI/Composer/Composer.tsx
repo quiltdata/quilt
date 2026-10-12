@@ -38,7 +38,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
     [t.breakpoints.down('xs')]: {
       padding: t.spacing(0.75, 1, 0.5),
-      paddingBottom: `max(${t.spacing(0.5)}px, env(safe-area-inset-bottom))`,
+      paddingBottom: `max(${t.spacing(0.5)}px, var(--safe-bottom, env(safe-area-inset-bottom)))`,
     },
   },
   box: {

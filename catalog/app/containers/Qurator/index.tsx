@@ -44,13 +44,24 @@ export function useKeyboardFrame(): React.CSSProperties | undefined {
   React.useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
-    const update = () =>
-      setFrame(
-        // A pinch-zoom shrinks the visual viewport too; only the keyboard should.
+    const update = () => {
+      // A pinch-zoom shrinks the visual viewport too; only the keyboard should.
+      const next =
         vv.scale === 1 && vv.height < window.innerHeight - 1
-          ? { height: vv.height, transform: `translateY(${vv.offsetTop}px)` }
-          : undefined,
+          ? ({
+              height: vv.height,
+              transform: `translateY(${vv.offsetTop}px)`,
+              // iOS still reports the home-indicator inset under the keyboard.
+              '--safe-bottom': '0px',
+            } as React.CSSProperties)
+          : undefined
+      // Scroll ticks repeat the same frame; re-rendering the transcript on each janks.
+      setFrame((prev) =>
+        prev?.height === next?.height && prev?.transform === next?.transform
+          ? prev
+          : next,
       )
+    }
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)
     update()
@@ -68,6 +79,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 // Chrome offers install through this event; iOS Safari only through the Share sheet.
 function useInstallHint(): React.ReactNode {
+  const classes = useStyles()
   const [prompt, setPrompt] = React.useState<BeforeInstallPromptEvent | null>(null)
   React.useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -81,6 +93,7 @@ function useInstallHint(): React.ReactNode {
   if (prompt) {
     return (
       <M.Button
+        className={classes.install}
         size="small"
         color="primary"
         onClick={() => prompt.prompt().finally(() => setPrompt(null))}
@@ -117,8 +130,11 @@ const useStyles = M.makeStyles((t) => ({
     position: 'fixed',
     // On phones the composer pads the bottom inset itself.
     [t.breakpoints.up('sm')]: {
-      paddingBottom: 'env(safe-area-inset-bottom)',
+      paddingBottom: 'var(--safe-bottom, env(safe-area-inset-bottom))',
     },
+  },
+  install: {
+    [t.breakpoints.down('xs')]: { minHeight: 44 },
   },
   bar: {
     alignItems: 'center',
