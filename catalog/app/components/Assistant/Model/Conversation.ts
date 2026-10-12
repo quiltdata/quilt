@@ -33,8 +33,6 @@ export interface ToolCall {
    * settle the card it was clicked on, even if the model reuses a tool-use id.
    */
   readonly key?: string
-  /** The tool-call limit when the card was raised (`null`: none). */
-  readonly limit?: number | null
 }
 
 const sameTool = (a: Tool.Descriptor<any>, b: Tool.Descriptor<any> | undefined) =>
@@ -434,7 +432,6 @@ export const ConversationActor = Eff.Effect.succeed(
                   approval: effect,
                   tool: tools[tu.name],
                   key: yield* genId,
-                  limit,
                 }
                 continue
               }
@@ -480,13 +477,17 @@ export const ConversationActor = Eff.Effect.succeed(
               )
               return yield* completeCall(state, id, Eff.Option.some(result), dispatch)
             }
-            // A card can wait while an admin lowers the limit; do not run what
-            // the lowered cap no longer allows.
+            // A card can wait while an admin lowers the limit: count what this
+            // question has run or is running, plus this call, against the cap now.
             const limitNow = yield* toolCallLimit
-            if (limitNow !== null && limitNow < (call.limit ?? Infinity)) {
+            const running = Object.values(state.calls).filter((c) => c.fiber).length
+            if (
+              limitNow !== null &&
+              toolCallsSinceAsk(state.events) + running + 1 > limitNow
+            ) {
               const result = Tool.fail(
                 Content.ToolResultContentBlock.Text({
-                  text: `The tool-call limit was lowered to ${limitNow} while this waited; it was not run.`,
+                  text: `Tool-call limit for this question reached (${limitNow}); it was not run.`,
                 }),
               )
               return yield* completeCall(state, id, Eff.Option.some(result), dispatch)
