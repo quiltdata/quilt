@@ -91,16 +91,48 @@ export function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   invalidateRootField(cache, 'packages')
 }
 
-// "Already locked" means the cached lock is stale too, so the page can show the real one.
-export function handlePackageLock(
+// A `PackageLocked` refusal means the cached lock is stale, so the page can show the real one.
+export function handlePackageLocked(
   result: any,
   { bucket, name }: GraphCache.Variables,
   cache: Pick<GraphCache.Cache, 'invalidate'>,
 ) {
-  const alreadyLocked =
+  const refused =
     result.__typename === 'OperationError' && result.name === 'PackageLocked'
-  if (result.__typename !== 'PackageLock' && !alreadyLocked) return
+  if (result.__typename !== 'PackageLock' && !refused) return
   cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
+}
+
+// Package mutations; each refreshes the lock on a `PackageLocked` refusal.
+export const packageUpdates: GraphCache.UpdatesConfig['Mutation'] = {
+  packageRevisionDelete: (result, { bucket, name, hash }, cache) => {
+    const del = result.packageRevisionDelete as any
+    handlePackageLocked(del, { bucket, name }, cache)
+    if (del.__typename !== 'PackageRevisionDeleteSuccess') return
+    cache.invalidate({ __typename: 'PackageRevision', hash })
+    cache.invalidate({ __typename: 'Package', bucket, name }, 'revisions')
+  },
+  packageDelete: (result, { bucket, name }, cache) => {
+    handlePackageLocked(result.packageDelete, { bucket, name }, cache)
+    if ((result.packageDelete as any).__typename !== 'Ok') return
+    cache.invalidate({ __typename: 'Package', bucket, name })
+    invalidateRootField(cache, 'packages')
+  },
+  packageLock: (result, args, cache) => {
+    handlePackageLocked(result.packageLock, args, cache)
+  },
+  packageUnlock: (result, { bucket, name }, cache) => {
+    if ((result.packageUnlock as any).__typename !== 'Ok') return
+    cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
+  },
+  packageConstruct: (result, { params }, cache) => {
+    handlePackageLocked(result.packageConstruct, params as GraphCache.Variables, cache)
+    handlePackageCreation(result.packageConstruct, cache)
+  },
+  packagePromote: (result, { params }, cache) => {
+    handlePackageLocked(result.packagePromote, params as GraphCache.Variables, cache)
+    handlePackageCreation(result.packagePromote, cache)
+  },
 }
 
 function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
@@ -428,30 +460,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 defaultRole: { __typename: role.__typename, id: role.id },
               }))
             },
-            packageRevisionDelete: (result, { bucket, name, hash }, cache) => {
-              const del = result.packageRevisionDelete as any
-              if (del.__typename !== 'PackageRevisionDeleteSuccess') return
-              cache.invalidate({ __typename: 'PackageRevision', hash })
-              cache.invalidate({ __typename: 'Package', bucket, name }, 'revisions')
-            },
-            packageDelete: (result, { bucket, name }, cache) => {
-              if ((result.packageDelete as any).__typename !== 'Ok') return
-              cache.invalidate({ __typename: 'Package', bucket, name })
-              invalidateRootField(cache, 'packages')
-            },
-            packageLock: (result, args, cache) => {
-              handlePackageLock(result.packageLock, args, cache)
-            },
-            packageUnlock: (result, { bucket, name }, cache) => {
-              if ((result.packageUnlock as any).__typename !== 'Ok') return
-              cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
-            },
-            packageConstruct: (result, _vars, cache) => {
-              handlePackageCreation(result.packageConstruct, cache)
-            },
-            packagePromote: (result, _vars, cache) => {
-              handlePackageCreation(result.packagePromote, cache)
-            },
+            ...packageUpdates,
             admin: (result: any, _vars, cache, info) => {
               // XXX: newer versions of GraphCache support updaters on arbitrary types
               if (result.admin?.user?.create?.__typename === 'User') {

@@ -81,6 +81,8 @@ export function useNameExistence(
   disableRestore: boolean = false,
   // Callers without their own debounce check the name as typed.
   debouncedName: string | undefined = dst.name,
+  // Off for callers whose writes the registry alone guards.
+  checkLock: boolean = true,
 ): NameStatus {
   const isSrc = isSrcName(dst, src)
   const pause = !dst.bucket || !dst.name || isSrc
@@ -90,11 +92,11 @@ export function useNameExistence(
     { pause },
   )
   // The source package's lock is already loaded, so it skips the debounce.
-  const lockName = isSrc ? dst.name : debouncedName
+  const lockName = isSrc || !checkLock ? dst.name : debouncedName
   const lock = PackageLock.useLockStatus(
     dst.bucket,
     lockName ?? '',
-    !dst.bucket || !lockName,
+    !checkLock || !dst.bucket || !lockName,
   )
   return React.useMemo(() => {
     if (!dst.bucket || !dst.name) return { _tag: 'idle' }

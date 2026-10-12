@@ -44,9 +44,16 @@ describe('containers/Bucket/PackageTree/useCreateDialog', () => {
     expect(open).toHaveBeenCalled()
   })
 
-  it('closes on a locked package without opening', () => {
+  it('does not open on a locked package', () => {
     mount('locked')
     expect(open).not.toHaveBeenCalled()
-    expect(close).toHaveBeenCalled()
+  })
+
+  it('keeps an open dialog, and what was typed, when a lock arrives', () => {
+    const { rerender } = mount('unlocked')
+    expect(open).toHaveBeenCalledTimes(1)
+    rerender({ s: 'locked' })
+    expect(close).not.toHaveBeenCalled()
+    expect(open).toHaveBeenCalledTimes(1)
   })
 })

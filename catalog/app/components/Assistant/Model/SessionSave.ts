@@ -235,7 +235,8 @@ export function useSessionSave(api: API): SessionSave {
   const [savedTo, setSavedTo] = React.useState<readonly string[]>([])
   const dst = React.useMemo(() => ({ bucket, name }), [bucket, name])
   const mine = savedTo.includes(`${bucket}/${name}`)
-  const existence = useNameExistence(dst, mine ? dst : undefined)
+  // No lock wait: the registry refuses a save into a locked package.
+  const existence = useNameExistence(dst, mine ? dst : undefined, false, undefined, false)
   // A new conversation is a new package: drop what the last one typed and saved.
   const sid = SessionPackage.sessionId(events)
   // A save still in flight when a new session starts belongs to the old one.

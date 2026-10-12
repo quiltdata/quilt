@@ -69,6 +69,28 @@ describe('containers/Bucket/PackageTree/PackageLock', () => {
     expect(onLatestMoved).toHaveBeenCalled()
   })
 
+  it('names the refreshed latest after LatestMoved and locks that one', async () => {
+    const H2 = 'b'.repeat(64)
+    lock
+      .mockResolvedValueOnce({
+        packageLock: { __typename: 'OperationError', name: 'LatestMoved', message: 'x' },
+      })
+      .mockResolvedValueOnce({ packageLock: { __typename: 'PackageLock' } })
+    const props = { action: 'lock', bucket: 'b', name: 'team/ds', onClose: vi.fn() }
+    const dialog = mount(<PackageLock.Dialog {...(props as any)} hash={HASH} />)
+    fireEvent.click(dialog.getByRole('button', { name: 'Lock' }))
+    await dialog.findByText(/A new revision was pushed/)
+    dialog.rerender(
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <PackageLock.Dialog {...(props as any)} hash={H2} />
+      </M.MuiThemeProvider>,
+    )
+    dialog.getByText(`Latest is now ${'b'.repeat(10)}; lock again to lock it.`)
+    fireEvent.click(dialog.getByRole('button', { name: 'Lock' }))
+    await vi.waitFor(() => expect(props.onClose).toHaveBeenCalled())
+    expect(lock).toHaveBeenLastCalledWith(expect.objectContaining({ hash: H2 }))
+  })
+
   it('shows other errors as the registry words them', async () => {
     unlock
       .mockResolvedValueOnce({

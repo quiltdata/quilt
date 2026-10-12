@@ -93,6 +93,8 @@ export function Dialog({
   const [reason, setReason] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
+  // The hash a LatestMoved refusal named, so the refreshed one is shown, never swapped in silently.
+  const [movedFrom, setMovedFrom] = React.useState<string | null>(null)
 
   // A reply for a package the page no longer shows must not touch it or the page.
   const generation = React.useRef(0)
@@ -107,6 +109,7 @@ export function Dialog({
     const gen = generation.current
     setLoading(true)
     setError(null)
+    setMovedFrom(null)
     try {
       const r =
         action === 'lock'
@@ -116,7 +119,10 @@ export function Dialog({
       if (gen !== generation.current) return
       const msg = errorMessage(r)
       if (!msg) return onClose()
-      if (r.__typename === 'OperationError' && r.name === 'LatestMoved') onLatestMoved?.()
+      if (r.__typename === 'OperationError' && r.name === 'LatestMoved') {
+        setMovedFrom(hash ?? null)
+        onLatestMoved?.()
+      }
       setError(msg)
     } catch (e: any) {
       if (gen !== generation.current) return
@@ -126,6 +132,10 @@ export function Dialog({
   }, [bucket, name, action, hash, reason, lock, unlock, onClose, onLatestMoved])
 
   const verb = action === 'lock' ? 'Lock' : 'Unlock'
+  const shownError =
+    movedFrom && hash && hash !== movedFrom
+      ? `Latest is now ${shortenRevision(hash)}; lock again to lock it.`
+      : error
   return (
     <M.Dialog
       open
@@ -159,9 +169,9 @@ export function Dialog({
             value={reason}
           />
         )}
-        {error && (
+        {shownError && (
           <M.Box mt={2}>
-            <Lab.Alert severity="error">{error}</Lab.Alert>
+            <Lab.Alert severity="error">{shownError}</Lab.Alert>
           </M.Box>
         )}
       </M.DialogContent>

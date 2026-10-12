@@ -17,7 +17,7 @@ import {
   parse,
   validate,
 } from './BucketPreferences'
-import LocalProvider from './LocalProvider'
+import LocalProvider, { localModePreferences } from './LocalProvider'
 
 interface FetchBucketPreferencesArgs {
   s3: S3
@@ -155,14 +155,14 @@ export const useBucketPreferences = () => React.useContext(Ctx)
 // Another bucket's preferences, outside its own Provider.
 export function useForBucket(bucket: string, pause = false): Result {
   const s3 = AWS.S3.use()
-  const { prefs } = React.useContext(Ctx)
   const local = cfg.mode === 'LOCAL'
   const data = useData(
     fetchBucketPreferences,
     { s3, bucket, counter: 0 },
     { noAutoFetch: pause || local },
   )
-  return local ? prefs : toResult(data, bucket)
+  // Not the context's prefs: an Override there belongs to the viewed bucket.
+  return local ? localModePreferences.prefs : toResult(data, bucket)
 }
 
 export const use = useBucketPreferences

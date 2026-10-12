@@ -58,6 +58,8 @@ export interface FormInputs {
   workflow: WorkflowState
 }
 
+const CHECKING_NAME = 'Checking the package name…'
+
 export function useParams({
   dst,
   manifest,
@@ -91,6 +93,7 @@ export function useParams({
       const confirmedNew = name.status._tag === 'new'
       const confirmedSrc = name.status._tag === 'new-revision' && isSrc
       if (!confirmedNew && !confirmedSrc) {
+        if (name.status._tag === 'loading') return Invalid(new Error(CHECKING_NAME))
         return Invalid(new ERRORS.DestinationManifestMismatch())
       }
     }
@@ -105,7 +108,7 @@ export function useParams({
     }
     // A name whose lock is still unknown must not submit: a push uploads its files first.
     if (name.status._tag === 'loading') {
-      return Invalid(new Error('Checking the package name…'))
+      return Invalid(new Error(CHECKING_NAME))
     }
 
     if (metadataSchema._tag !== 'ready') {

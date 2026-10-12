@@ -39,16 +39,27 @@ export function usePackageDeletion(
     )
   }, [])
 
+  // Bumped on navigation and unmount, so a deletion resolving afterwards leaves the new page alone.
+  const generation = React.useRef(0)
+  React.useEffect(() => {
+    setDeletionState(R.mergeLeft({ error: undefined, loading: false, opened: false }))
+    return () => {
+      generation.current += 1
+    }
+  }, [bucket, name, hash])
+
   const deleteRevision = GQL.useMutation(DELETE_REVISION)
   const deletePackage = GQL.useMutation(DELETE_PACKAGE)
 
   const handlePackageDeletion = React.useCallback(async () => {
+    const gen = generation.current
     setDeletionState(R.assoc('loading', true))
     try {
       const r =
         deletionState.scope === 'package'
           ? (await deletePackage({ bucket, name })).packageDelete
           : (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
+      if (generation.current !== gen) return
       switch (r.__typename) {
         case 'Ok':
         case 'PackageRevisionDeleteSuccess':
@@ -64,6 +75,7 @@ export function usePackageDeletion(
           assertNever(r)
       }
     } catch (e: any) {
+      if (generation.current !== gen) return
       let error = 'Unexpected error'
       if (e.message) error = `${error}: ${e.message}`
       setDeletionState(R.mergeLeft({ error, loading: false }))

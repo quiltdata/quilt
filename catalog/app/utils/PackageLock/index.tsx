@@ -29,6 +29,7 @@ function toStatus(result: Result, bucket: string, name: string, pause: boolean):
   const { data, error, fetching } = result
   const pkg = currentPackage(result, bucket, name)
   if (pkg?.lock) return 'locked'
+  if (error) return 'unlocked'
   // A null package is known absent only when it answers these variables.
   const vars = result.operation?.variables as
     | { bucket?: string; name?: string }
@@ -38,7 +39,6 @@ function toStatus(result: Result, bucket: string, name: string, pause: boolean):
   const known = !GQL.isPartial(result) && !!data && (absent || !!pkg)
   // Known data keeps its status while it refetches; only unknown data waits.
   if (fetching && !known) return 'loading'
-  if (error) return 'unlocked'
   return known ? 'unlocked' : 'loading'
 }
 

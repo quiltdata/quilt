@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-import { handlePackageCreation, handlePackageLock } from './Provider'
+import { handlePackageCreation, handlePackageLocked, packageUpdates } from './Provider'
 
 describe('utils/GraphQL/Provider', () => {
   describe('handlePackageCreation', () => {
@@ -25,7 +25,7 @@ describe('utils/GraphQL/Provider', () => {
     })
   })
 
-  describe('handlePackageLock', () => {
+  describe('handlePackageLocked', () => {
     const vars = { bucket: 'b', name: 'team/ds' }
     const pkg = { __typename: 'Package', bucket: 'b', name: 'team/ds' }
 
@@ -34,18 +34,35 @@ describe('utils/GraphQL/Provider', () => {
       ['an existing lock', { __typename: 'OperationError', name: 'PackageLocked' }],
     ])('refreshes the cached lock after %s', (_label, result) => {
       const cache = { invalidate: vi.fn() }
-      handlePackageLock(result, vars, cache)
+      handlePackageLocked(result, vars, cache)
       expect(cache.invalidate).toHaveBeenCalledWith(pkg, 'lock')
     })
 
     it('leaves the cache alone on other errors', () => {
       const cache = { invalidate: vi.fn() }
-      handlePackageLock(
+      handlePackageLocked(
         { __typename: 'OperationError', name: 'LatestMoved' },
         vars,
         cache,
       )
       expect(cache.invalidate).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('packageUpdates', () => {
+    const refused = { __typename: 'OperationError', name: 'PackageLocked', message: 'x' }
+    const pkg = { __typename: 'Package', bucket: 'b', name: 'team/ds' }
+    const params = { bucket: 'b', name: 'team/ds' }
+
+    it.each([
+      ['packageConstruct', { params }],
+      ['packagePromote', { params }],
+      ['packageRevisionDelete', { ...params, hash: 'h' }],
+      ['packageDelete', params],
+    ])('refreshes the cached lock when %s is refused for it', (field, vars) => {
+      const cache = { invalidate: vi.fn() }
+      ;(packageUpdates as any)[field]({ [field]: refused }, vars, cache, {})
+      expect(cache.invalidate).toHaveBeenCalledWith(pkg, 'lock')
     })
   })
 })

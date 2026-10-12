@@ -125,6 +125,25 @@ describe('utils/PackageLock', () => {
       })
     })
 
+    it('fails open on an error even while a partial result refetches', () => {
+      useQueryResult({
+        data: pkg(null),
+        error: new Error('boom'),
+        fetching: true,
+        operation: { context: { meta: { cacheOutcome: 'partial' } } },
+      })
+      expect(run().status).toBe('unlocked')
+    })
+
+    it('keeps a lock the cache holds for this package despite an error', () => {
+      useQueryResult({
+        data: pkg({ hash: 'h' }),
+        error: new Error('boom'),
+        fetching: true,
+      })
+      expect(run().status).toBe('locked')
+    })
+
     it('reports a lock', () => {
       useQuery.mockReturnValueOnce({ data: pkg({ hash: 'h' }) })
       expect(run()).toMatchObject({ status: 'locked', lock: { hash: 'h' } })

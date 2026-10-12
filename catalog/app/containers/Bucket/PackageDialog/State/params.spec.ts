@@ -382,26 +382,39 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    it.each([
-      ['loading', { _tag: 'loading' as const }],
-      ['idle', { _tag: 'idle' as const }],
-    ])('is invalid while the destination is still unresolved (%s)', (_tag, status) => {
-      // The 300ms name debounce: submitting inside it published the loaded entries over
-      // whatever the retyped name turned out to name.
+    it('reports the name check, not a mismatch, while the name is loading', () => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'test-bucket', name: 'other' },
           manifest: MANIFEST_WITH_ENTRIES,
-          name: { ...name, value: 'other', status },
+          name: { ...name, value: 'other', status: { _tag: 'loading' as const } },
           src,
         }),
       )
 
-      expect(result.current._tag).toBe('invalid')
-      if (result.current._tag === 'invalid') {
-        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
-      }
+      expect(result.current).toEqual(Invalid(new Error('Checking the package name…')))
     })
+
+    it.each([['idle', { _tag: 'idle' as const }]])(
+      'is invalid while the destination is still unresolved (%s)',
+      (_tag, status) => {
+        // The 300ms name debounce: submitting inside it published the loaded entries over
+        // whatever the retyped name turned out to name.
+        const { result } = renderHook(() =>
+          useParamsWith({
+            dst: { bucket: 'test-bucket', name: 'other' },
+            manifest: MANIFEST_WITH_ENTRIES,
+            name: { ...name, value: 'other', status },
+            src,
+          }),
+        )
+
+        expect(result.current._tag).toBe('invalid')
+        if (result.current._tag === 'invalid') {
+          expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+        }
+      },
+    )
 
     it('reports an invalid name as such, not as a mismatch', () => {
       // A typed-out name that failed validation: it never reached the existence check, so

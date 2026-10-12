@@ -9,7 +9,7 @@ import {
   extendDefaults,
 } from './BucketPreferences'
 
-const localModePreferences = {
+export const localModePreferences = {
   handle: null,
   prefs: Result.Ok(
     extendDefaults({

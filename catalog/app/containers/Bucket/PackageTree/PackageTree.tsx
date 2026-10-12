@@ -236,8 +236,9 @@ export function useCreateDialog(
 
   const { open, close } = createDialog
 
-  // While the lock loads it neither opens nor closes, so it never opens only to close.
-  const shouldClose = !match || lock === 'locked'
+  // Only opening waits for the lock: a lock arriving later leaves a typed form to the
+  // submit-time check and the registry's refusal.
+  const shouldClose = !match
   const shouldOpen = !!match && lock === 'unlocked'
 
   React.useEffect(() => {

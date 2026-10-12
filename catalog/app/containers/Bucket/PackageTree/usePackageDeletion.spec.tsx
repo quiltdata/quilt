@@ -33,4 +33,25 @@ describe('containers/Bucket/PackageTree/usePackageDeletion', () => {
       opened: true,
     })
   })
+
+  it('leaves the next package alone when a deletion resolves after navigating', async () => {
+    let resolve: (v: unknown) => void = () => {}
+    mutate.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+    const onDeleted = vi.fn()
+    const { result, rerender } = renderHook((h) => usePackageDeletion(h, onDeleted), {
+      initialProps: handle,
+    })
+    act(() => result.current.confirmDelete())
+    let pending: Promise<void> = Promise.resolve()
+    act(() => {
+      pending = result.current.handlePackageDeletion()
+    })
+    rerender({ ...handle, name: 'team/other' })
+    await act(async () => {
+      resolve({ packageRevisionDelete: { __typename: 'PackageRevisionDeleteSuccess' } })
+      await pending
+    })
+    expect(onDeleted).not.toHaveBeenCalled()
+    expect(result.current.deletionState).toMatchObject({ loading: false, opened: false })
+  })
 })
