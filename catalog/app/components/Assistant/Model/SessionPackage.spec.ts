@@ -240,6 +240,29 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(JSON.stringify(json)).not.toContain('discarded prompt')
   })
 
+  it('records whether each saved call ran, even without its results', () => {
+    const refused = {
+      ...tool(
+        'platform__object_read',
+        { bucket: 'other', key: 'k' },
+        Tool.fail(
+          Content.ToolResultContentBlock.Text({
+            text: 'Tool-call limit for this question reached (2). Answer with what you have.',
+          }),
+        ),
+      ),
+      ran: false,
+    }
+    const read = {
+      ...tool('platform__package_browse', { name: 'a/b' }, Tool.succeed()),
+      ran: true,
+    }
+    const json = JSON.parse(
+      SessionPackage.toSessionJson([refused, read], { ...info, includeResults: false }),
+    )
+    expect(json.events.map((e: { ran: boolean }) => e.ran)).toEqual([false, true])
+  })
+
   it('truncates long tool results in the transcript only', () => {
     const t = SessionPackage.toTranscript(events, info)
     expect(t).toContain('… (truncated)')

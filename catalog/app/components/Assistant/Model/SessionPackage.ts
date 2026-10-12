@@ -263,6 +263,7 @@ export function toSessionJson(events: Conversation.Event[], info: SessionInfo) {
                 toolUseId: e.toolUseId,
                 name: e.name,
                 input: redact(e.input),
+                ran: ran(e),
                 result: {
                   status: e.result.status,
                   content: withResults
