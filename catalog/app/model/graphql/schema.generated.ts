@@ -481,6 +481,88 @@ export default {
             ],
           },
           {
+            name: 'mcpServerProbe',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'McpServerProbe',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'slug',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'mcpServerRemove',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'McpServerRemoveResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'slug',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'mcpServerSet',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'McpServerSetResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'slug',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'packager',
             type: {
               kind: 'NON_NULL',
@@ -590,6 +672,36 @@ export default {
           },
           {
             name: 'isDefaultRoleSettingDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'mcpServers',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'McpServerAdmin',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'mcpServersAvailable',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -2151,6 +2263,345 @@ export default {
                   },
                 },
               },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'McpServer',
+        fields: [
+          {
+            name: 'hint',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'slug',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'trusted',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'McpServerAdmin',
+        fields: [
+          {
+            name: 'auth',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'authHeader',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'authPrefix',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'enabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'forwardIdentity',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'hasSecret',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'hint',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'slug',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'trusted',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'updatedAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'updatedBy',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'url',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'McpServerProbe',
+        fields: [
+          {
+            name: 'failure',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'ok',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'tools',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'McpToolSummary',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'McpServerRemoveResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'McpServerSetResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'McpServerAdmin',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'McpToolSummary',
+        fields: [
+          {
+            name: 'description',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'destructive',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'openWorld',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'readOnly',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
             },
             args: [],
           },
@@ -5169,6 +5620,24 @@ export default {
               kind: 'UNION',
               name: 'Role',
               ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'mcpServers',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'McpServer',
+                    ofType: null,
+                  },
+                },
+              },
             },
             args: [],
           },

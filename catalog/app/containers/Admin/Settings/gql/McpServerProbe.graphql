@@ -1,0 +1,15 @@
+mutation ($slug: ID!) {
+  admin {
+    mcpServerProbe(slug: $slug) {
+      ok
+      failure
+      tools {
+        name
+        description
+        readOnly
+        destructive
+        openWorld
+      }
+    }
+  }
+}

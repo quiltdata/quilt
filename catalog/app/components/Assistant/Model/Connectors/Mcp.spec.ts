@@ -14,6 +14,10 @@ import * as Content from '../Content'
 
 import * as Mcp from './Mcp'
 
+vi.mock('constants/config', () => ({
+  default: { registryUrl: 'https://registry.invalid' },
+}))
+
 describe('Connectors/Mcp', () => {
   describe('mapContent', () => {
     it('maps text blocks directly', () => {
@@ -68,7 +72,7 @@ describe('Connectors/Mcp', () => {
      * `globalThis.fetch` lookup deterministically, no globalThis pollution.
      */
     const captureCalls = (
-      respond: (req: any) => Response,
+      respond: (req: any, init?: RequestInit) => Response,
     ): {
       fetchSpy: ReturnType<typeof vi.fn>
       calls: Array<{ url: string; init?: RequestInit; body?: any }>
@@ -85,7 +89,7 @@ describe('Connectors/Mcp', () => {
           body = JSON.parse(text)
         }
         calls.push({ url: String(url), init, body })
-        return respond(body)
+        return respond(body, init)
       })
       return { fetchSpy, calls }
     }
@@ -138,6 +142,130 @@ describe('Connectors/Mcp', () => {
 
       const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
       expect(headers.authorization).toBe('Bearer the-token')
+    })
+
+    it('sends NO Authorization header when getToken is omitted', async () => {
+      const { fetchSpy, calls } = captureCalls(okResponse)
+
+      const client = Mcp.make({ url: 'https://third-party.invalid/mcp' })
+      await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+
+      expect(calls).toHaveLength(1)
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      const keys = Object.keys(headers).map((k) => k.toLowerCase())
+      expect(keys).not.toContain('authorization')
+      // The rest of the envelope is unchanged — this is the same protocol, just
+      // unauthenticated.
+      expect(headers['mcp-protocol-version']).toBeTruthy()
+      expect(calls[0].body.method).toBe('tools/list')
+    })
+
+    it('relayed backend posts to the registry relay with the catalog token', async () => {
+      const { fetchSpy, calls } = captureCalls(okResponse)
+
+      const backend = Mcp.relayed({
+        slug: 'gpu',
+        getToken: () => Eff.Effect.succeed('catalog-jwt'),
+      })
+      await Eff.Effect.runPromise(withFetch(backend.listTools(), fetchSpy))
+
+      expect(calls[0].url).toBe('https://registry.invalid/api/mcp/gpu')
+      const headers = (calls[0].init?.headers ?? {}) as Record<string, string>
+      expect(headers.authorization).toBe('Bearer catalog-jwt')
+    })
+
+    it('replays the session id, and re-initializes on the ping after a 404', async () => {
+      // A stateful server: 400 without a session, 404 for an ended one.
+      let live = ''
+      let n = 0
+      const { fetchSpy, calls } = captureCalls((req: any, init?: RequestInit) => {
+        if (req?.method === 'initialize') {
+          live = `sess-${++n}`
+          return new Response(
+            JSON.stringify({ jsonrpc: '2.0', id: req.id, result: {} }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json', 'mcp-session-id': live },
+            },
+          )
+        }
+        const sent = ((init?.headers ?? {}) as Record<string, string>)['mcp-session-id']
+        if (!sent) return new Response('', { status: 400 })
+        if (sent !== live) return new Response('', { status: 404 })
+        if (!req?.id) return new Response(null, { status: 202 })
+        return okResponse(req)
+      })
+      const client = Mcp.make({ url: 'https://stateful.invalid/mcp' })
+      const sessionOf = (i: number) =>
+        ((calls[i].init?.headers ?? {}) as Record<string, string>)['mcp-session-id']
+      const run = <A, E>(eff: Eff.Effect.Effect<A, E>) =>
+        Eff.Effect.runPromiseExit(withFetch(eff, fetchSpy))
+
+      await run(client.initialize())
+      expect(Eff.Exit.isSuccess(await run(client.listTools()))).toBe(true)
+      expect(sessionOf(0)).toBeUndefined()
+      expect(sessionOf(1)).toBe('sess-1') // notifications/initialized
+      expect(sessionOf(2)).toBe('sess-1')
+
+      live = 'ended'
+      expect(Eff.Exit.isFailure(await run(client.listTools()))).toBe(true)
+      expect(Eff.Exit.isSuccess(await run(client.ping()))).toBe(true)
+      // Bootstrap's own initialize reuses the session the ping opened.
+      expect(Eff.Exit.isSuccess(await run(client.initialize()))).toBe(true)
+      expect(Eff.Exit.isSuccess(await run(client.listTools()))).toBe(true)
+      expect(n).toBe(2)
+      expect(sessionOf(calls.length - 1)).toBe('sess-2')
+
+      // Any request in between ends the hand-off: a later initialize is fresh.
+      live = 'ended'
+      await run(client.listTools())
+      await run(client.ping())
+      await run(client.ping())
+      await run(client.initialize())
+      expect(n).toBe(4)
+    })
+
+    it('resolves SSE on the answering event while the stream stays open', async () => {
+      // Some servers hold the stream open after answering, past the ping timeout.
+      const enc = new TextEncoder()
+      let cancelled = false
+      const { fetchSpy } = captureCalls(
+        (req) =>
+          new Response(
+            new ReadableStream({
+              start(c) {
+                const send = (msg: object) =>
+                  c.enqueue(enc.encode(`data: ${JSON.stringify(msg)}\n\n`))
+                send({ jsonrpc: '2.0', method: 'notifications/progress', params: {} })
+                send({ jsonrpc: '2.0', id: req.id, result: { tools: [] } })
+              },
+              cancel() {
+                cancelled = true
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'text/event-stream' } },
+          ),
+      )
+
+      const client = Mcp.make({ url: 'https://example.invalid/mcp' })
+      const tools = await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+
+      expect(tools).toEqual([])
+      expect(cancelled).toBe(true)
+    })
+
+    it('finds the answer after a notification when the stream ends mid-event', async () => {
+      const { fetchSpy } = captureCalls(
+        (req) =>
+          new Response(
+            `data: ${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/message' })}\r\n\r\n` +
+              `data: ${JSON.stringify({ jsonrpc: '2.0', id: req.id, result: { tools: [] } })}`,
+            { status: 200, headers: { 'content-type': 'text/event-stream' } },
+          ),
+      )
+      const client = Mcp.make({ url: 'https://example.invalid/mcp' })
+      const tools = await Eff.Effect.runPromise(withFetch(client.listTools(), fetchSpy))
+      expect(tools).toEqual([])
     })
 
     it('propagates McpAuthError without firing fetch when getToken fails', async () => {
@@ -250,6 +378,62 @@ describe('Connectors/Mcp', () => {
           expect(failure.value.cause).toBe('McpAuthError')
         }
       }
+    })
+
+    it.each([
+      [429, { error_code: 'Busy' }, 'Transport'],
+      [502, { error_code: 'UpstreamAuth' }, 'Application'],
+    ])(
+      'maps relay HTTP %i to %j as inert to health, not a session problem',
+      async (status, body, tag) => {
+        const { fetchSpy } = captureCalls(
+          () =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: { 'content-type': 'application/json' },
+            }),
+        )
+        const backend = Mcp.relayed({
+          slug: 'gpu',
+          getToken: () => Eff.Effect.succeed('t'),
+        })
+        const exit = await Eff.Effect.runPromiseExit(
+          withFetch(backend.callTool('foo', {}), fetchSpy),
+        )
+        const failure = Eff.Exit.isFailure(exit)
+          ? Eff.Cause.failureOption(exit.cause)
+          : Eff.Option.none()
+        expect(Eff.Option.isSome(failure)).toBe(true)
+        if (Eff.Option.isNone(failure)) return
+        expect(failure.value._tag).toBe(tag)
+        expect(failure.value.transient).toBe(false)
+        expect(failure.value.inertToHealth).toBe(true)
+      },
+    )
+
+    it('a relay 502 that is not UpstreamAuth still counts toward health', async () => {
+      const { fetchSpy } = captureCalls(
+        () =>
+          new Response(JSON.stringify({ error_code: 'UpstreamUnavailable' }), {
+            status: 502,
+            headers: { 'content-type': 'application/json' },
+          }),
+      )
+      const backend = Mcp.relayed({
+        slug: 'gpu',
+        getToken: () => Eff.Effect.succeed('t'),
+      })
+      const exit = await Eff.Effect.runPromiseExit(
+        withFetch(backend.callTool('foo', {}), fetchSpy),
+      )
+      const failure = Eff.Exit.isFailure(exit)
+        ? Eff.Cause.failureOption(exit.cause)
+        : Eff.Option.none()
+      expect(Eff.Option.isSome(failure)).toBe(true)
+      if (Eff.Option.isNone(failure)) return
+      expect(failure.value._tag).toBe('Transport')
+      expect(failure.value.transient).toBe(true)
+      expect(failure.value.inertToHealth).toBeUndefined()
     })
 
     it('decodes tools/list result via Schema; bad shape → McpProtocolError', async () => {

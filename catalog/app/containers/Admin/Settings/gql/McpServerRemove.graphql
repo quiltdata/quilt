@@ -1,0 +1,18 @@
+mutation ($slug: ID!) {
+  admin {
+    mcpServerRemove(slug: $slug) {
+      __typename
+      ... on InvalidInput {
+        errors {
+          path
+          name
+          message
+        }
+      }
+      ... on OperationError {
+        name
+        message
+      }
+    }
+  }
+}

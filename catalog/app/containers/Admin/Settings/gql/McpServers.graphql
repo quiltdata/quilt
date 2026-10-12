@@ -1,0 +1,19 @@
+query {
+  admin {
+    mcpServers {
+      slug
+      title
+      url
+      hint
+      enabled
+      trusted
+      auth
+      authHeader
+      authPrefix
+      hasSecret
+      forwardIdentity
+      updatedAt
+    }
+    mcpServersAvailable
+  }
+}
