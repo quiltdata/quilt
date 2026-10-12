@@ -13,6 +13,24 @@ vi.mock('utils/Buckets', () => ({
   useIsInStack: () => (bucket: string) => bucket === 'in-stack-bucket',
 }))
 
+// Stands in for the app's Router and NamedRoutes providers, at `location.path`.
+const location = vi.hoisted(() => ({ path: '/' }))
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return {
+    ...actual,
+    Link: ({ to, ...props }: { to: string }) => <a href={to} {...props} />,
+    useRouteMatch: (opts: object) => actual.matchPath(location.path, opts),
+  }
+})
+vi.mock('utils/NamedRoutes', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  use: () => ({
+    paths: { qurator: '/qurator', quratorMode: '/qurator-mode' },
+    urls: { qurator: () => '/qurator' },
+  }),
+}))
+
 import * as Model from '../../Model'
 
 import { ConnectorHelperLine, Menu, MessageEvent, ToolUseState, toolTitle } from './Chat'
@@ -179,6 +197,29 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText('Developer Tools')).toBeTruthy()
+  })
+
+  it('offers the full page from the panel', () => {
+    location.path = '/'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Open full page').closest('a')?.getAttribute('href')).toBe(
+      '/qurator',
+    )
+  })
+
+  it('does not offer the full page on the full page', () => {
+    location.path = '/qurator/'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
+  })
+
+  it('does not offer the full page inside Qurator mode', () => {
+    location.path = '/qurator-mode'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
   })
 })
 
