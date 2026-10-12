@@ -206,6 +206,13 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Checking the package name…')))
     })
 
+    it('lets a name whose existence check failed submit, for the registry to decide', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({ name: { ...name, status: { _tag: 'idle' as const } } }),
+      )
+      expect(result.current._tag).toBe('ok')
+    })
+
     it('reports a real message error over a name still being checked', () => {
       const { result } = renderHook(() =>
         useParamsWith({

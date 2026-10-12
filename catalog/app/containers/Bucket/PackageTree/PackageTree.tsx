@@ -246,13 +246,19 @@ export function useCreateDialog(
       close()
     }
   }, [shouldClose, close])
+  // Once per entry to the route, so a lock status blip does not reset the form.
+  const openedFor = React.useRef<string | null>(null)
   React.useEffect(() => {
-    if (shouldOpen) {
-      open({ files: parseFilesQueryString(location.search) })
-    }
-  }, [shouldOpen, open, location.search])
+    if (!match) openedFor.current = null
+    if (!shouldOpen || openedFor.current === location.search) return
+    openedFor.current = location.search
+    open({ files: parseFilesQueryString(location.search) })
+  }, [match, shouldOpen, open, location.search])
 
-  return createDialog
+  const notice =
+    match && lock === 'locked' ? <FileEditor.Requested requested="locked" /> : null
+
+  return { ...createDialog, notice }
 }
 
 const useDirDisplayStyles = M.makeStyles((t) => ({
@@ -362,6 +368,8 @@ function DirDisplay({
             : { type: 'revision', hash }
         }
       />
+
+      {updateDialog.notice}
 
       {updateDialog.render({
         resetFiles: 'Undo changes',

@@ -126,12 +126,12 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
     })
 
     it('withholds absence when the check itself failed', () => {
-      // Loading, not an error — see name.ts for why.
+      // Idle, neither an error nor loading — see name.ts for why.
       queryState = {
         data: { package: null },
         error: new Error('resolver failed'),
       }
-      expect(run()._tag).toBe('loading')
+      expect(run()._tag).toBe('idle')
     })
 
     it.each([

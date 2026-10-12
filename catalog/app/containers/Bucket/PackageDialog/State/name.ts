@@ -119,8 +119,9 @@ export function useNameExistence(
         if (fetching) return { _tag: 'loading' }
         // "new" is what permits publishing while the manifest is unavailable, so an
         // absence reported alongside an error must not pass for a confirmed one. Reported
-        // as still-loading, not a name error: only the gate in useParams needs to care.
-        if (!r && error) return { _tag: 'loading' }
+        // as idle, neither a name error nor a pending check, so only the manifest gate in
+        // useParams holds it and the registry decides the push.
+        if (!r && error) return { _tag: 'idle' }
         if (!r) return { _tag: 'new' }
         switch (r.__typename) {
           default:

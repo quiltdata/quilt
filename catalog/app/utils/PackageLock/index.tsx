@@ -42,17 +42,19 @@ function toStatus(result: Result, bucket: string, name: string, pause: boolean):
   return known ? 'unlocked' : 'loading'
 }
 
-// Its own query, so a registry without locks fails only this one.
+// Its own queries, so a registry without locks fails only these. The status reads the
+// lock alone, so a push invalidating `latest` refetches only `latestHash`.
 export function useLock(bucket: string, name: string, pause = false) {
-  const result = GQL.useQuery(LOCK_QUERY, { bucket, name }, { pause })
-  const { run } = result
+  const lockResult = GQL.useQuery(LOCK_STATE_QUERY, { bucket, name }, { pause })
+  const latestResult = GQL.useQuery(LOCK_QUERY, { bucket, name }, { pause })
+  const { run } = latestResult
   const refresh = React.useCallback(() => run({ requestPolicy: 'network-only' }), [run])
-  const status = toStatus(result, bucket, name, pause)
+  const status = toStatus(lockResult, bucket, name, pause)
   return {
     status,
-    lock: status === 'locked' ? (result.data?.package?.lock ?? null) : null,
-    latestHash: currentPackage(result, bucket, name)
-      ? result.data?.package?.latest?.hash
+    lock: status === 'locked' ? (lockResult.data?.package?.lock ?? null) : null,
+    latestHash: currentPackage(latestResult, bucket, name)
+      ? latestResult.data?.package?.latest?.hash
       : undefined,
     refresh,
   }

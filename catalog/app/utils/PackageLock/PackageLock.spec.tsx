@@ -17,7 +17,9 @@ vi.mock('utils/GraphQL', async () => ({
   useQuery,
 }))
 
-const useQueryResult = (r: object) => useQuery.mockReturnValueOnce(r)
+// useLock reads the lock and the latest revision through two queries.
+const useQueryResult = (r: object) =>
+  useQuery.mockReturnValueOnce(r).mockReturnValueOnce(r)
 
 const pkg = (lock: unknown) => ({ package: { bucket: 'b', name: 'team/ds', lock } })
 
@@ -26,12 +28,12 @@ describe('utils/PackageLock', () => {
     const run = () => renderHook(() => PackageLock.useLock('b', 'team/ds')).result.current
 
     it('is loading until the lock is known', () => {
-      useQuery.mockReturnValueOnce({ fetching: true })
+      useQueryResult({ fetching: true })
       expect(run()).toMatchObject({ status: 'loading', lock: null })
     })
 
     it('is loading on the previous package while the next is in flight', () => {
-      useQuery.mockReturnValueOnce({
+      useQueryResult({
         data: { package: { bucket: 'b', name: 'other', lock: null } },
         fetching: true,
       })
@@ -117,7 +119,7 @@ describe('utils/PackageLock', () => {
     })
 
     it('reads a registry without locks as unlocked with nothing to lock', () => {
-      useQuery.mockReturnValueOnce({ data: undefined, error: new Error('no lock field') })
+      useQueryResult({ data: undefined, error: new Error('no lock field') })
       expect(run()).toMatchObject({
         status: 'unlocked',
         lock: null,
@@ -145,15 +147,25 @@ describe('utils/PackageLock', () => {
     })
 
     it('reports a lock', () => {
-      useQuery.mockReturnValueOnce({ data: pkg({ hash: 'h' }) })
+      useQueryResult({ data: pkg({ hash: 'h' }) })
       expect(run()).toMatchObject({ status: 'locked', lock: { hash: 'h' } })
     })
 
     it('refreshes the latest hash from the network', () => {
       const r = vi.fn()
-      useQuery.mockReturnValueOnce({ data: pkg(null), run: r })
+      useQueryResult({ data: pkg(null), run: r })
       run().refresh()
       expect(r).toHaveBeenCalledWith({ requestPolicy: 'network-only' })
+    })
+
+    it('reads its status from the lock-only query, its latest hash from the other', () => {
+      useQuery
+        .mockReturnValueOnce({ data: pkg(null) })
+        .mockReturnValueOnce({ fetching: true })
+      const { result } = renderHook(() => PackageLock.useLock('b', 'team/ds'))
+      expect(result.current.status).toBe('unlocked')
+      expect(useQuery.mock.calls.at(-2)?.[0]).toBe(LOCK_STATE_QUERY)
+      expect(useQuery.mock.calls.at(-1)?.[0]).toBe(LOCK_QUERY)
     })
 
     it('keys the latest revision the way the revision query does', () => {

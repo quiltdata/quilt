@@ -426,8 +426,8 @@ export function useCreateDialog({
   const [waitingListing, setWaitingListing] = React.useState(false)
   const [resolveError, setResolveError] = React.useState<Error | null>(null)
   const resolveHandles = requests.useFilesListing()
-  // Bumped on close, so a listing that resolves after it neither reopens the dialog
-  // nor ends a newer listing's wait.
+  // Bumped on every open and close, so only the latest open's listing sets files,
+  // error or wait.
   const generation = React.useRef(0)
 
   const open = React.useCallback(
@@ -439,6 +439,10 @@ export function useCreateDialog({
         setDst((d) => ({ ...d, bucket: successor.slug }))
       }
 
+      generation.current += 1
+      const gen = generation.current
+      setWaitingListing(false)
+      setResolveError(null)
       setOpen(true)
       setExited(false)
 
@@ -447,7 +451,6 @@ export function useCreateDialog({
           setOpen(files.value)
         } else {
           setWaitingListing(true)
-          const gen = generation.current
           try {
             const resolved = await resolveHandles(files.value)
             if (gen === generation.current) setOpen(resolved)

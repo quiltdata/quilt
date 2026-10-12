@@ -6,6 +6,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { delay, filter, fromValue, mergeMap, pipe } from 'wonka'
 
 import schema from 'model/graphql/schema.generated'
+import { packageUpdates } from 'utils/GraphQL/Provider'
 
 import * as PackageLock from '.'
 
@@ -27,6 +28,20 @@ const UNLOCK = urql.gql`
   }
 `
 
+const PUSH = urql.gql`
+  mutation ($params: PackagePushParams!, $src: PackageConstructSource!) {
+    packageConstruct(params: $params, src: $src) {
+      __typename
+      ... on PackagePushSuccess {
+        package {
+          bucket
+          name
+        }
+      }
+    }
+  }
+`
+
 const packageFields = (op: urql.Operation): string[] =>
   (op.query.definitions[0] as any).selectionSet.selections[0].selectionSet.selections.map(
     (f: any) => (f.alias ?? f.name).value,
@@ -42,7 +57,14 @@ function setup(latency: (op: urql.Operation) => number) {
 
   const answer = (op: urql.Operation) => {
     if (op.kind === 'mutation') {
-      return { packageUnlock: { __typename: 'Ok' } }
+      return op.variables && 'params' in (op.variables as object)
+        ? {
+            packageConstruct: {
+              __typename: 'PackagePushSuccess',
+              package: { __typename: 'Package', bucket: 'b', name: 'team/ds' },
+            },
+          }
+        : { packageUnlock: { __typename: 'Ok' } }
     }
     const fields = packageFields(op)
     const pkg: Record<string, unknown> = {
@@ -81,13 +103,7 @@ function setup(latency: (op: urql.Operation) => number) {
           PackageRevision: (r: any) => `${r.hash}:${r.modified}`,
           Ok: () => null,
         },
-        updates: {
-          Mutation: {
-            packageUnlock: (_r, { bucket, name }, cache) => {
-              cache.invalidate({ __typename: 'Package', bucket, name }, 'lock')
-            },
-          },
-        },
+        updates: { Mutation: packageUpdates },
       }),
       fetchExchange,
     ],
@@ -145,4 +161,28 @@ describe('utils/PackageLock with Graphcache', () => {
       }
     },
   )
+
+  it('keeps the status while a push refetches the latest revision', async () => {
+    vi.useFakeTimers()
+    try {
+      const { client, hook, requests, statuses } = setup(() => 10)
+      await settle()
+      expect(hook.result.current).toEqual(['unlocked', 'unlocked'])
+
+      statuses.length = 0
+      requests.length = 0
+      await act(async () => {
+        client
+          .mutation(PUSH, { params: { bucket: 'b', name: 'team/ds' }, src: {} })
+          .toPromise()
+      })
+      await settle()
+
+      expect(requests).toContain('Lock')
+      expect(statuses.length).toBeGreaterThan(0)
+      expect(statuses.every((s) => s[0] === 'unlocked')).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
