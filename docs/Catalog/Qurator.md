@@ -48,10 +48,11 @@ The Developer Tools menu (upper right of the Qurator chat window) provides:
 
 ### Approving Actions
 
-Qurator runs tools that only read (search, browse, preview) on its
-own. Before it runs a tool that changes data, such as creating or updating a
-package, writing an S3 object, or changing a Tabulator table, it shows what it
-wants to do and waits:
+Qurator runs tools that their server declares read-only (search, browse,
+preview) on its own. Before it runs a tool the server declares as changing data,
+such as creating or updating a package, writing an S3 object, or changing a
+Tabulator table, it shows what it wants to do and waits. The prompt rests on that
+declaration: a tool that declares itself read-only is trusted to be.
 
 - **Run** — the tool runs under your own permissions.
 - **Don't run** — nothing is written; Qurator is told you declined.
@@ -59,8 +60,10 @@ wants to do and waits:
 Tools their server marks destructive carry a warning. Approval is
 asked for each call, and only you can give it: content Qurator reads cannot.
 
-Athena queries run without asking because they can only read: the Platform
-MCP Server refuses statements that create, change or delete tables or data.
+Athena queries run without asking, as tools that only read. The Platform MCP
+Server now refuses statements that create, change or delete tables or data, but
+a stack still running an older server accepts them, so keep Athena write access
+out of roles that should only read.
 
 ### Connector Status
 
