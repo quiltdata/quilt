@@ -84,6 +84,8 @@ describe('containers/Bucket/PackageDialog/State/name', () => {
       renderHook(() =>
         useNameExistence(
           { bucket: 'b', name: 'some/package' },
+          undefined,
+          false,
           debounced ?? 'some/package',
         ),
       ).result.current

@@ -77,9 +77,10 @@ const isSrcName = (dst: PackageDst, src?: PackageSrc) =>
 
 export function useNameExistence(
   dst: PackageDst,
-  debouncedName: string | undefined,
   src?: PackageSrc,
   disableRestore: boolean = false,
+  // Callers without their own debounce check the name as typed.
+  debouncedName: string | undefined = dst.name,
 ): NameStatus {
   const isSrc = isSrcName(dst, src)
   const pause = !dst.bucket || !dst.name || isSrc
@@ -176,7 +177,7 @@ function useNameStatus(
   disableRestore?: boolean,
 ): NameStatus {
   const [debouncedName] = useDebounce(dst.name, 300)
-  const existence = useNameExistence(dst, debouncedName, src, disableRestore)
+  const existence = useNameExistence(dst, src, disableRestore, debouncedName)
   const validation = useNameValidator(debouncedName)
   return React.useMemo(() => {
     if (form._tag === 'error' && form.fields?.name) {
