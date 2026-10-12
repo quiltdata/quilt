@@ -49,8 +49,9 @@ export function useKeyboardFrame(): React.CSSProperties | undefined {
       const next =
         vv.scale === 1 && vv.height < window.innerHeight - 1
           ? ({
-              height: vv.height,
-              transform: `translateY(${vv.offsetTop}px)`,
+              // iOS reports sub-pixel values on every pan tick; whole pixels let the frame repeat.
+              height: Math.round(vv.height),
+              transform: `translateY(${Math.round(vv.offsetTop)}px)`,
               // iOS still reports the home-indicator inset under the keyboard.
               '--safe-bottom': '0px',
             } as React.CSSProperties)

@@ -77,6 +77,11 @@ describe('containers/Qurator useKeyboardFrame listeners', () => {
     act(() => fire('scroll'))
     expect(result.current).toBe(first)
     act(() => {
+      vv.offsetTop = 120.4
+      fire('scroll')
+    })
+    expect(result.current).toBe(first)
+    act(() => {
       vv.offsetTop = 80
       fire('scroll')
     })
