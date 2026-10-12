@@ -1,0 +1,16 @@
+query ($bucket: String!, $name: String!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    lock {
+      hash
+      lockedAt
+      lockedBy
+      reason
+    }
+    latest: revision(hashOrTag: "latest") {
+      hash
+      modified
+    }
+  }
+}

@@ -196,8 +196,8 @@ function PackageDescription({
     [handlePattern, onChange, value],
   )
   const handleDelete = React.useCallback(
-    () => onDelete && onDelete(handlePattern),
-    [handlePattern, onDelete],
+    () => !disabled && onDelete && onDelete(handlePattern),
+    [disabled, handlePattern, onDelete],
   )
   return (
     <div className={cx(classes.root, className)}>
@@ -220,7 +220,12 @@ function PackageDescription({
         value={value.message}
       />
       {onDelete && (
-        <M.IconButton className={classes.close} onClick={handleDelete} size="small">
+        <M.IconButton
+          className={classes.close}
+          disabled={disabled}
+          onClick={handleDelete}
+          size="small"
+        >
           <M.Icon>close</M.Icon>
         </M.IconButton>
       )}

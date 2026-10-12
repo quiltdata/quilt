@@ -199,6 +199,30 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
+    it('should return invalid while the name and its lock are still being checked', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({ name: { ...name, status: { _tag: 'loading' as const } } }),
+      )
+      expect(result.current).toEqual(Invalid(new Error('Checking the package name…')))
+    })
+
+    it('lets a name whose existence check failed submit, for the registry to decide', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({ name: { ...name, status: { _tag: 'idle' as const } } }),
+      )
+      expect(result.current._tag).toBe('ok')
+    })
+
+    it('reports a real message error over a name still being checked', () => {
+      const { result } = renderHook(() =>
+        useParamsWith({
+          name: { ...name, status: { _tag: 'loading' as const } },
+          message: { ...message, value: '' },
+        }),
+      )
+      expect(result.current).toEqual(Invalid(new Error('Valid message required')))
+    })
+
     it('should return invalid when name status is error', () => {
       const nameError = {
         value: 'test-name',
@@ -365,26 +389,39 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       }
     })
 
-    it.each([
-      ['loading', { _tag: 'loading' as const }],
-      ['idle', { _tag: 'idle' as const }],
-    ])('is invalid while the destination is still unresolved (%s)', (_tag, status) => {
-      // The 300ms name debounce: submitting inside it published the loaded entries over
-      // whatever the retyped name turned out to name.
+    it('reports the name check, not a mismatch, while the name is loading', () => {
       const { result } = renderHook(() =>
         useParamsWith({
           dst: { bucket: 'test-bucket', name: 'other' },
           manifest: MANIFEST_WITH_ENTRIES,
-          name: { ...name, value: 'other', status },
+          name: { ...name, value: 'other', status: { _tag: 'loading' as const } },
           src,
         }),
       )
 
-      expect(result.current._tag).toBe('invalid')
-      if (result.current._tag === 'invalid') {
-        expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
-      }
+      expect(result.current).toEqual(Invalid(new Error('Checking the package name…')))
     })
+
+    it.each([['idle', { _tag: 'idle' as const }]])(
+      'is invalid while the destination is still unresolved (%s)',
+      (_tag, status) => {
+        // The 300ms name debounce: submitting inside it published the loaded entries over
+        // whatever the retyped name turned out to name.
+        const { result } = renderHook(() =>
+          useParamsWith({
+            dst: { bucket: 'test-bucket', name: 'other' },
+            manifest: MANIFEST_WITH_ENTRIES,
+            name: { ...name, value: 'other', status },
+            src,
+          }),
+        )
+
+        expect(result.current._tag).toBe('invalid')
+        if (result.current._tag === 'invalid') {
+          expect(result.current.error).toBeInstanceOf(ERRORS.DestinationManifestMismatch)
+        }
+      },
+    )
 
     it('reports an invalid name as such, not as a mismatch', () => {
       // A typed-out name that failed validation: it never reached the existence check, so
@@ -418,23 +455,23 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
       expect(result.current).toEqual(Invalid(new Error('Valid name required')))
     })
 
-    it.each([
-      ['while its name check is in flight', { _tag: 'loading' as const }],
-      ['when the name resolves elsewhere', { _tag: 'new-revision' as const }],
-    ])('permits a copy, which loads no entries to overwrite (%s)', (_tag, status) => {
-      // Copy fetches its manifest with skipEntries and promotes server-side by hash, so
-      // there is nothing loaded for this gate to protect.
-      const { result } = renderHook(() =>
-        useParamsWith({
-          dst: { bucket: 'other-bucket', name: 'test-package' },
-          manifest: MANIFEST_READY,
-          name: { ...name, status },
-          src,
-        }),
-      )
+    it.each([['when the name resolves elsewhere', { _tag: 'new-revision' as const }]])(
+      'permits a copy, which loads no entries to overwrite (%s)',
+      (_tag, status) => {
+        // Copy fetches its manifest with skipEntries and promotes server-side by hash, so
+        // there is nothing loaded for this gate to protect.
+        const { result } = renderHook(() =>
+          useParamsWith({
+            dst: { bucket: 'other-bucket', name: 'test-package' },
+            manifest: MANIFEST_READY,
+            name: { ...name, status },
+            src,
+          }),
+        )
 
-      expect(result.current._tag).toBe('ok')
-    })
+        expect(result.current._tag).toBe('ok')
+      },
+    )
 
     it('permits the plain revise, where dst and src name the same package', () => {
       const { result } = renderHook(() =>

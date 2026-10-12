@@ -87,12 +87,14 @@ interface FoldConfig<Data, OnData, OnFecthing, OnError>
  * })
  * ```
  */
+export const isPartial = (result: { operation?: urql.Operation }) =>
+  result.operation?.context?.meta?.cacheOutcome === 'partial'
+
 export function fold<Data, OnData, OnFetching, OnError = never>(
   result: ResultForData<Data>,
   config: FoldConfig<Data, OnData, OnFetching, OnError>,
 ): OnData | OnFetching | OnError {
-  const isPartial = result.operation?.context?.meta?.cacheOutcome === 'partial'
-  if (!config.partial && isPartial) return config.fetching(result)
+  if (!config.partial && isPartial(result)) return config.fetching(result)
 
   if (result.data) {
     if (!config.silent && result.error) {

@@ -426,6 +426,9 @@ export function useCreateDialog({
   const [waitingListing, setWaitingListing] = React.useState(false)
   const [resolveError, setResolveError] = React.useState<Error | null>(null)
   const resolveHandles = requests.useFilesListing()
+  // Bumped on every open and close, so only the latest open's listing sets files,
+  // error or wait.
+  const generation = React.useRef(0)
 
   const open = React.useCallback(
     async ({
@@ -436,6 +439,10 @@ export function useCreateDialog({
         setDst((d) => ({ ...d, bucket: successor.slug }))
       }
 
+      generation.current += 1
+      const gen = generation.current
+      setWaitingListing(false)
+      setResolveError(null)
       setOpen(true)
       setExited(false)
 
@@ -445,13 +452,16 @@ export function useCreateDialog({
         } else {
           setWaitingListing(true)
           try {
-            setOpen(await resolveHandles(files.value))
+            const resolved = await resolveHandles(files.value)
+            if (gen === generation.current) setOpen(resolved)
           } catch (e) {
             const errorMessage =
               e instanceof Error ? e.message || e.name : 'Unexpected error'
-            setResolveError(new ERRORS.FailedResolvingFiles(errorMessage))
+            if (gen === generation.current) {
+              setResolveError(new ERRORS.FailedResolvingFiles(errorMessage))
+            }
           }
-          setWaitingListing(false)
+          if (gen === generation.current) setWaitingListing(false)
         }
       }
     },
@@ -459,6 +469,8 @@ export function useCreateDialog({
   )
 
   const close = React.useCallback(() => {
+    generation.current += 1
+    setWaitingListing(false)
     setOpen(false)
     reset()
     setResolveError(null)

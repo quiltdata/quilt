@@ -50,6 +50,13 @@ describe('containers/Bucket/PackageTree/RevisionDeleteDialog', () => {
     expect(dialog.getByText(/Are you sure/).textContent).toContain('delete them?')
   })
 
+  it('cannot be confirmed while disabled', () => {
+    const onDelete = vi.fn()
+    const { getByText } = mount({ type: 'package' }, { onDelete, disabled: true })
+    fireEvent.click(getByText('Yes, delete it'))
+    expect(onDelete).not.toHaveBeenCalled()
+  })
+
   it('confirms and does not close while loading', () => {
     const onDelete = vi.fn()
     const onClose = vi.fn()

@@ -16,7 +16,11 @@ export type containers_Bucket_PackageTree_gql_DeleteRevisionMutationVariables = 
 export interface containers_Bucket_PackageTree_gql_DeleteRevisionMutation {
   readonly __typename: 'Mutation'
   readonly packageRevisionDelete:
-    | { readonly __typename: 'OperationError'; readonly message: string }
+    | {
+        readonly __typename: 'OperationError'
+        readonly message: string
+        readonly name: string
+      }
     | { readonly __typename: 'PackageRevisionDeleteSuccess' }
 }
 
@@ -90,6 +94,7 @@ export const containers_Bucket_PackageTree_gql_DeleteRevisionDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     ],
                   },
                 },

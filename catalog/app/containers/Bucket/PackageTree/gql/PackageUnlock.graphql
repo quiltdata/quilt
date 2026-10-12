@@ -1,0 +1,14 @@
+mutation ($bucket: String!, $name: String!) {
+  packageUnlock(bucket: $bucket, name: $name) {
+    __typename
+    ... on InvalidInput {
+      errors {
+        message
+      }
+    }
+    ... on OperationError {
+      message
+      name
+    }
+  }
+}

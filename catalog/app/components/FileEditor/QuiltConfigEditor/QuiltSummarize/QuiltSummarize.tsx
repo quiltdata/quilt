@@ -338,10 +338,11 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
 
   const onChangeValue = React.useCallback(
     (key: keyof FileExtended, value: FileExtended[keyof FileExtended]) => {
+      if (disabled) return
       const dispatch = State.changeValue(row.id, column.id)
       onChange(dispatch({ [key]: value }))
     },
-    [onChange, row.id, column.id],
+    [disabled, onChange, row.id, column.id],
   )
 
   const onChangeType = React.useCallback(
@@ -357,16 +358,23 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
   )
 
   const onRemove = React.useCallback(
-    () => onChange(State.removeColumn(row.id, column.id)),
-    [onChange, row.id, column.id],
+    () => !disabled && onChange(State.removeColumn(row.id, column.id)),
+    [disabled, onChange, row.id, column.id],
   )
 
+  // The picker dialog keeps the callback it opened with, so read `disabled` when it submits.
+  const disabledRef = React.useRef(disabled)
+  disabledRef.current = disabled
   const pickPath = React.useCallback(
     (path: string, close: () => void) => {
-      onChangeValue('path', relative(initialPath, path))
+      if (!disabledRef.current) {
+        onChange(
+          State.changeValue(row.id, column.id)({ path: relative(initialPath, path) }),
+        )
+      }
       close()
     },
-    [initialPath, onChangeValue],
+    [column.id, initialPath, onChange, row.id],
   )
 
   const openDialog = Dialogs.use()
@@ -405,7 +413,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
             InputProps={{
               startAdornment: (
                 <M.InputAdornment position="start">
-                  <M.IconButton size="small" onClick={handlePicker}>
+                  <M.IconButton disabled={disabled} size="small" onClick={handlePicker}>
                     <M.Icon fontSize="inherit">attach_file</M.Icon>
                   </M.IconButton>
                 </M.InputAdornment>
@@ -444,6 +452,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                 className={classes.expanded}
                 control={
                   <M.Checkbox
+                    disabled={disabled}
                     checked={file.expand || false}
                     onChange={(_e, expand) => onChangeValue('expand', expand)}
                     size="small"
@@ -473,6 +482,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                 <M.FormControl className={classes.field} fullWidth size="small">
                   <M.InputLabel>Renderer</M.InputLabel>
                   <M.Select
+                    disabled={disabled}
                     className={classes.select}
                     value={file.type?.name || ''}
                     onChange={(event) =>
@@ -525,6 +535,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                   <M.FormControlLabel
                     control={
                       <M.Checkbox
+                        disabled={disabled}
                         onChange={(_e, checked) => onChangeType('settings', checked)}
                         checked={file.type.settings || false}
                         size="small"
@@ -538,7 +549,12 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
             </M.FormControl>
           </div>
         )}
-        <M.IconButton size="small" className={classes.close} onClick={onRemove}>
+        <M.IconButton
+          disabled={disabled}
+          size="small"
+          className={classes.close}
+          onClick={onRemove}
+        >
           <M.Icon fontSize="inherit">close</M.Icon>
         </M.IconButton>
       </div>
@@ -641,7 +657,7 @@ function Placeholder({
         className,
       )}
     >
-      <div className={classes.inner} onClick={onClick}>
+      <div className={classes.inner} onClick={disabled ? undefined : onClick}>
         <M.Icon color="inherit" className={classes.icon}>
           add
         </M.Icon>

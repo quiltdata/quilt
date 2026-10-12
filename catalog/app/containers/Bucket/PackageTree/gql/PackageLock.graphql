@@ -1,0 +1,14 @@
+mutation ($bucket: String!, $name: String!, $hash: String!, $reason: String) {
+  packageLock(bucket: $bucket, name: $name, hash: $hash, reason: $reason) {
+    __typename
+    ... on InvalidInput {
+      errors {
+        message
+      }
+    }
+    ... on OperationError {
+      message
+      name
+    }
+  }
+}

@@ -94,6 +94,22 @@ describe('containers/Bucket/PackageDialog/State/create', () => {
     expect(status.fields).toEqual({})
   })
 
+  it('should say the package is locked when the registry refuses it as locked', async () => {
+    constructPackage.mockResolvedValue({
+      packageConstruct: {
+        __typename: 'OperationError',
+        message: "Package 'foo/bar' in bucket 'dst-bucket' is locked",
+        name: 'PackageLocked',
+      },
+    })
+    const { result } = renderHook(() => useTestHandler())
+    await act(() => result.current.create('allow'))
+    expect(result.current.formStatus).toMatchObject({
+      _tag: 'error',
+      error: new Error('This package is locked'),
+    })
+  })
+
   it('should surface an unexpected runtime error as a generic failure', async () => {
     constructPackage.mockRejectedValue(new Error('network down'))
 

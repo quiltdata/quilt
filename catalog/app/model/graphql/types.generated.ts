@@ -588,8 +588,10 @@ export interface Mutation {
   readonly bucketUpdate: BucketUpdateResult
   readonly packageConstruct: PackageConstructResult
   readonly packageDelete: PackageDeleteResult
+  readonly packageLock: PackageLockResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
+  readonly packageUnlock: PackageUnlockResult
   readonly policyCreateManaged: PolicyResult
   readonly policyCreateUnmanaged: PolicyResult
   readonly policyDelete: PolicyDeleteResult
@@ -663,6 +665,13 @@ export interface MutationpackageDeleteArgs {
   name: Scalars['String']['input']
 }
 
+export interface MutationpackageLockArgs {
+  bucket: Scalars['String']['input']
+  hash: Scalars['String']['input']
+  name: Scalars['String']['input']
+  reason: InputMaybe<Scalars['String']['input']>
+}
+
 export interface MutationpackagePromoteArgs {
   destPrefix: InputMaybe<Scalars['String']['input']>
   params: PackagePushParams
@@ -672,6 +681,11 @@ export interface MutationpackagePromoteArgs {
 export interface MutationpackageRevisionDeleteArgs {
   bucket: Scalars['String']['input']
   hash: Scalars['String']['input']
+  name: Scalars['String']['input']
+}
+
+export interface MutationpackageUnlockArgs {
+  bucket: Scalars['String']['input']
   name: Scalars['String']['input']
 }
 
@@ -831,6 +845,7 @@ export interface Package {
   readonly __typename: 'Package'
   readonly accessCounts: Maybe<AccessCounts>
   readonly bucket: Scalars['String']['output']
+  readonly lock: Maybe<PackageLock>
   readonly modified: Scalars['Datetime']['output']
   readonly name: Scalars['String']['output']
   readonly revision: Maybe<PackageRevision>
@@ -900,6 +915,16 @@ export enum PackageListOrder {
   MODIFIED = 'MODIFIED',
   NAME = 'NAME',
 }
+
+export interface PackageLock {
+  readonly __typename: 'PackageLock'
+  readonly hash: Scalars['String']['output']
+  readonly lockedAt: Scalars['Datetime']['output']
+  readonly lockedBy: Scalars['String']['output']
+  readonly reason: Maybe<Scalars['String']['output']>
+}
+
+export type PackageLockResult = InvalidInput | OperationError | PackageLock
 
 export type PackagePromoteResult = InvalidInput | OperationError | PackagePushSuccess
 
@@ -972,6 +997,8 @@ export interface PackageRevisionListpageArgs {
   number?: InputMaybe<Scalars['Int']['input']>
   perPage?: InputMaybe<Scalars['Int']['input']>
 }
+
+export type PackageUnlockResult = InvalidInput | Ok | OperationError
 
 export type PackageUserMetaFacet =
   | BooleanPackageUserMetaFacet

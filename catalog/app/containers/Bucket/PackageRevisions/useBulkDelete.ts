@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as GQL from 'utils/GraphQL'
+import * as PackageLock from 'utils/PackageLock'
 
 import DELETE_REVISION from '../PackageTree/gql/DeleteRevision.generated'
 
@@ -19,9 +20,15 @@ export function useBulkDelete(bucket: string, name: string) {
   // bucket and name are route params, so navigating to another package reuses
   // this hook; stale hashes would be deleted against the new package, and a
   // dialog left open would show the previous package's error.
+  // Bumped on every package change and on unmount, so a run finishing after
+  // A -> B -> A doesn't set the new page's state.
+  const generation = React.useRef(0)
   React.useEffect(() => {
     setSelected(new Set())
     setState({ error: undefined, loading: false, opened: false })
+    return () => {
+      generation.current += 1
+    }
   }, [bucket, name])
 
   const toggle = React.useCallback(
@@ -35,6 +42,8 @@ export function useBulkDelete(bucket: string, name: string) {
   )
 
   const run = React.useCallback(async () => {
+    const gen = generation.current
+    const samePackage = () => generation.current === gen
     setState(R.mergeLeft({ loading: true, error: undefined }))
     const done = new Set<string>()
     let error: React.ReactNode | undefined
@@ -42,7 +51,7 @@ export function useBulkDelete(bucket: string, name: string) {
       try {
         const r = (await deleteRevision({ bucket, name, hash })).packageRevisionDelete
         if (r.__typename === 'OperationError') {
-          error = `${r.message} (${hash})`
+          error = `${PackageLock.errorMessage(r)} (${hash})`
           break
         }
         done.add(hash)
@@ -51,6 +60,7 @@ export function useBulkDelete(bucket: string, name: string) {
         break
       }
     }
+    if (!samePackage()) return
     setSelected((s) => new Set([...s].filter((h) => !done.has(h))))
     // The dialog's title tracks the selection, which just shrank by whatever
     // succeeded, so the error carries the only record of the partial result.

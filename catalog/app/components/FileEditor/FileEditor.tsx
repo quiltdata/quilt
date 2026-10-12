@@ -2,15 +2,17 @@ import cx from 'classnames'
 import * as React from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import PreviewDisplay from 'components/Preview/Display'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import { QuickPreview } from 'components/Preview/quick'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
+import * as PackageLock from 'utils/PackageLock'
 
 import Skeleton from './Skeleton'
-import { EditorState } from './State'
+import { Blocked, EditorState, LOCKED_OUT } from './State'
 import TextEditor from './TextEditor'
 import QuiltConfigEditor from './QuiltConfigEditor'
 import { loadMode } from './loader'
@@ -32,7 +34,8 @@ interface EditorProps extends EditorState {
 
 function EditorSuspended({
   className,
-  saving: disabled,
+  saving,
+  writable,
   empty,
   error,
   handle,
@@ -48,6 +51,7 @@ function EditorSuspended({
   }
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
+  const disabled = saving || !writable
   const initialProps = {
     className,
     disabled,
@@ -119,6 +123,8 @@ export function Editor(props: EditorProps) {
     // `loadMode` throws its failure rather than re-suspending, so without a boundary
     // here a missing syntax-mode chunk takes down the page around the editor.
     <ErrorBoundary FallbackComponent={ModeFallback}>
+      {/* Here, not in the editors: config editors read `error` only on mount. */}
+      {props.lockedOut && <Notice>{LOCKED_OUT}</Notice>}
       <React.Suspense fallback={<Skeleton />}>
         <div className={cx(classes.tab, { [classes.active]: !props.preview })}>
           <EditorSuspended {...props} />
@@ -135,4 +141,24 @@ export function Editor(props: EditorProps) {
       </React.Suspense>
     </ErrorBoundary>
   )
+}
+
+function Notice({ children }: React.PropsWithChildren<{}>) {
+  return (
+    <Lab.Alert role="status" severity="info" icon={<M.Icon>lock</M.Icon>}>
+      {children}
+    </Lab.Alert>
+  )
+}
+
+const BLOCKED = {
+  locked: `${PackageLock.reason('locked')}; it can't be edited until an admin unlocks it.`,
+  invalid: "This file can't be edited: the link doesn't name a file in a package.",
+  forbidden: 'Editing files is turned off for this bucket.',
+}
+
+// In place of an editor the URL asked for that can't open.
+export function Requested({ requested }: { requested: Blocked }) {
+  if (requested === 'loading') return <Skeleton />
+  return <Notice>{BLOCKED[requested]}</Notice>
 }
