@@ -150,6 +150,23 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(out).not.toContain('TOKEN')
   })
 
+  it('trusts an event that says it did not run, whatever its text says', () => {
+    const refused = {
+      ...tool(
+        'platform__object_read',
+        { bucket: 'other', key: 'k' },
+        Tool.fail(
+          Content.ToolResultContentBlock.Text({
+            text: 'Tool-call limit for this question reached (2). Answer with what you have.',
+          }),
+        ),
+      ),
+      ran: false,
+    }
+    expect(SessionPackage.foreignBuckets([refused], 'quilt-dev')).toEqual([])
+    expect(SessionPackage.ran(refused)).toBe(false)
+  })
+
   it('counts a successful result as run, whatever its text says', () => {
     const e = [
       tool(

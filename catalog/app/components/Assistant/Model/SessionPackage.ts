@@ -70,17 +70,19 @@ const live = (events: Conversation.Event[]) => events.filter((e) => !e.discarded
  */
 export const ran = (e: Conversation.Event) =>
   e._tag === 'ToolUse' &&
-  // The markers are only ever failures; a successful result is data, whatever it says.
-  !(
-    e.result.status === 'error' &&
-    e.result.content.some(
-      (b) =>
-        b._tag === 'Text' &&
-        (b.text.startsWith('Declined by the user') ||
-          /it was not run\.$/.test(b.text) ||
-          /^Tool ".*" not found$/.test(b.text)),
-    )
-  )
+  (e.ran ??
+    // Events saved before `ran` existed: the markers are only ever failures; a
+    // successful result is data, whatever it says.
+    !(
+      e.result.status === 'error' &&
+      e.result.content.some(
+        (b) =>
+          b._tag === 'Text' &&
+          (b.text.startsWith('Declined by the user') ||
+            /it was not run\.$/.test(b.text) ||
+            /^Tool ".*" not found$/.test(b.text)),
+      )
+    ))
 
 /**
  * The first event's id, discarded or not: discarding a message must not make
