@@ -1,5 +1,9 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <!-- The query holds the authorization code; nothing this page opens may see it. -->
+    <meta name="referrer" content="no-referrer" />
+  </head>
   <body>
     <script>
       // Keys and TTL shared with utils/OIDC. An installed app signs in by
