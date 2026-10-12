@@ -130,6 +130,32 @@ type Config {
   Nullable so a refused read nulls this field alone rather than all of `config`.
   """
   quratorModels: QuratorModelConfig @authenticated
+  "The admin-approved Qurator skills. Nullable for the same reason as quratorModels."
+  quratorSkills: QuratorSkills @authenticated
+}
+
+enum QuratorSkillRunClass {
+  "Qurator can follow it with its own tools."
+  GUIDE
+  "It expects a shell, scripts or local compute; Qurator explains the steps instead."
+  SHELL
+}
+
+type QuratorSkill {
+  name: String!
+  description: String!
+  license: String
+  runClass: QuratorSkillRunClass!
+  "Where an admin took it from, as they gave it."
+  source: String
+  "Paths inside the skill, SKILL.md among them."
+  files: [String!]!
+}
+
+type QuratorSkills {
+  "The reserved package revision these skills were published as; null with none."
+  topHash: String
+  skills: [QuratorSkill!]!
 }
 
 """
@@ -749,6 +775,8 @@ type Query {
   me: Me
 
   config: Config!
+  "A file of an approved Qurator skill, as text; null when there is no such skill or file."
+  quratorSkillFile(name: String!, path: String!): String @authenticated
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
   buckets: [Bucket!]!
@@ -1159,6 +1187,18 @@ type QuratorConfig {
 
 union SetQuratorConfigResult = QuratorConfig | InvalidInput | OperationError
 
+input QuratorSkillFileInput {
+  path: String!
+  text: String!
+}
+
+input QuratorSkillInput {
+  files: [QuratorSkillFileInput!]!
+  source: String
+}
+
+union QuratorSkillsResult = QuratorSkills | InvalidInput | OperationError
+
 """
 A model this account's Bedrock can run for Qurator: a text model with on-demand
 inference, or a system inference profile over one.
@@ -1202,6 +1242,9 @@ type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
   setQuratorConfig(input: QuratorConfigInput!): SetQuratorConfigResult!
+  "Adds a skill, or replaces the one with its name, and publishes a new revision."
+  quratorSkillSet(input: QuratorSkillInput!): QuratorSkillsResult!
+  quratorSkillRemove(name: String!): QuratorSkillsResult!
   bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult! @deprecated
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult! @deprecated
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!

@@ -1,0 +1,19 @@
+mutation ($input: QuratorSkillInput!) {
+  admin {
+    quratorSkillSet(input: $input) {
+      __typename
+      ... on QuratorSkills {
+        topHash
+      }
+      ... on InvalidInput {
+        errors {
+          path
+          message
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}

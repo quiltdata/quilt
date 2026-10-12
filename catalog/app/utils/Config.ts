@@ -45,7 +45,6 @@ export interface ConfigJson {
 
   qurator?: boolean
   quratorDefaultModel?: string
-  quratorSkills?: string
 
   build_version?: string // not sure where this comes from
   stackVersion: string

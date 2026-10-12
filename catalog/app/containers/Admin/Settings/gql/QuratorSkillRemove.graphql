@@ -1,0 +1,19 @@
+mutation ($name: String!) {
+  admin {
+    quratorSkillRemove(name: $name) {
+      __typename
+      ... on QuratorSkills {
+        topHash
+      }
+      ... on InvalidInput {
+        errors {
+          path
+          message
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}
