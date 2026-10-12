@@ -25,7 +25,10 @@ vi.mock('react-router-dom', async (importOriginal) => {
 })
 vi.mock('utils/NamedRoutes', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  use: () => ({ paths: { qurator: '/qurator' }, urls: { qurator: () => '/qurator' } }),
+  use: () => ({
+    paths: { qurator: '/qurator', quratorMode: '/qurator-mode' },
+    urls: { qurator: () => '/qurator' },
+  }),
 }))
 
 import * as Model from '../../Model'
@@ -207,6 +210,13 @@ describe('components/Assistant/UI/Chat/Menu', () => {
 
   it('does not offer the full page on the full page', () => {
     location.path = '/qurator/'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
+  })
+
+  it('does not offer the full page inside Qurator mode', () => {
+    location.path = '/qurator-mode'
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.queryByText('Open full page')).toBeNull()

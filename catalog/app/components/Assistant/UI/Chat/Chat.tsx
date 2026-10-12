@@ -616,7 +616,10 @@ export function Menu({
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
   const { paths, urls } = NamedRoutes.use()
-  const fullPage = !!useRouteMatch({ path: paths.qurator, exact: true })
+  const fullPage = !!useRouteMatch({
+    path: [paths.qurator, paths.quratorMode],
+    exact: true,
+  })
 
   const isIdle = state._tag === 'Idle'
 
