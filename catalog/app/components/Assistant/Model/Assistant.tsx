@@ -296,7 +296,7 @@ function useConstructAssistantAPI() {
       () =>
         mode === 'ask'
           ? { markers: { [Context.ASK_MODE]: true }, messages: [ASK_MODE_PROMPT] }
-          : {},
+          : { messages: [GlobalContext.WRITE_GUIDANCE] },
       [mode],
     ),
   )
@@ -310,6 +310,7 @@ function useConstructAssistantAPI() {
   const passThru = usePassThru({
     context: Context.useLayer(),
     connectors,
+    toolCallLimit: ModelChoice.useToolCallLimit(),
   })
 
   const [busy, setBusy] = React.useState(false)
@@ -325,6 +326,9 @@ function useConstructAssistantAPI() {
       llm,
       passThru.current.context,
       Eff.Layer.succeed(Connectors.Connectors, passThru.current.connectors),
+      Eff.Layer.succeed(Conversation.ToolCallLimit, {
+        limit: Eff.Effect.sync(() => passThru.current.toolCallLimit),
+      }),
     ),
   )
 

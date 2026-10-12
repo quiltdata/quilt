@@ -150,6 +150,23 @@ describe('components/Assistant/Model/SessionPackage', () => {
     expect(out).not.toContain('TOKEN')
   })
 
+  it('trusts an event that says it did not run, whatever its text says', () => {
+    const refused = {
+      ...tool(
+        'platform__object_read',
+        { bucket: 'other', key: 'k' },
+        Tool.fail(
+          Content.ToolResultContentBlock.Text({
+            text: 'Tool-call limit for this question reached (2). Answer with what you have.',
+          }),
+        ),
+      ),
+      ran: false,
+    }
+    expect(SessionPackage.foreignBuckets([refused], 'quilt-dev')).toEqual([])
+    expect(SessionPackage.ran(refused)).toBe(false)
+  })
+
   it('counts a successful result as run, whatever its text says', () => {
     const e = [
       tool(
@@ -221,6 +238,29 @@ describe('components/Assistant/Model/SessionPackage', () => {
     ])
     expect(JSON.stringify(json)).not.toContain('BYTES')
     expect(JSON.stringify(json)).not.toContain('discarded prompt')
+  })
+
+  it('records whether each saved call ran, even without its results', () => {
+    const refused = {
+      ...tool(
+        'platform__object_read',
+        { bucket: 'other', key: 'k' },
+        Tool.fail(
+          Content.ToolResultContentBlock.Text({
+            text: 'Tool-call limit for this question reached (2). Answer with what you have.',
+          }),
+        ),
+      ),
+      ran: false,
+    }
+    const read = {
+      ...tool('platform__package_browse', { name: 'a/b' }, Tool.succeed()),
+      ran: true,
+    }
+    const json = JSON.parse(
+      SessionPackage.toSessionJson([refused, read], { ...info, includeResults: false }),
+    )
+    expect(json.events.map((e: { ran: boolean }) => e.ran)).toEqual([false, true])
   })
 
   it('truncates long tool results in the transcript only', () => {
