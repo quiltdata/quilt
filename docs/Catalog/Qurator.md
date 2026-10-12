@@ -49,27 +49,30 @@ The Developer Tools menu (upper right of the Qurator chat window) provides:
 ### Approving Actions
 
 Qurator runs read-only tools on its own: the catalog's own tools (navigation,
-preview, summarize) and any tool its server declares read-only (search, browse).
-Before it runs any other tool, such as one that creates or updates a package,
-writes an S3 object, or changes a Tabulator table, it shows what it wants to do
-and waits. The prompt rests on that declaration: a tool that declares itself
-read-only is trusted to be, and is also retried once on a network error, while
-a tool that declares nothing asks first. In Ask mode only read-only tools are
-offered at all.
+which can move you to another page, plus preview and summarize) and any tool its
+server declares read-only (search, browse, Athena). Before it runs any other
+tool, such as one that creates or updates a package, writes an S3 object, or
+changes a Tabulator table, it shows what it wants to do and waits.
 
-- **Run** — the tool runs under your own permissions. If the tool changed or
-  went away while it waited, Qurator says so and does not run it.
+The prompt rests on the server's declaration, so a server that calls a write
+tool read-only gets no prompt, in Agent or Ask mode. A tool that declares nothing
+asks first. A server tool declared read-only is also retried once if the
+connection drops before it answers, so it can run twice.
+
+- **Run** — the tool runs under your own permissions. If its declared
+  description or inputs changed while it waited, or it is no longer offered
+  (for example after switching to Ask mode), Qurator says so and does not run it.
 - **Don't run** — the tool does not run; Qurator is told you declined.
 
 A tool that is not declared read-only carries a warning unless its server
 marks it non-destructive. Approval is asked for each call, and only you can give
-it: content Qurator reads cannot.
+it: content Qurator reads cannot. In Ask mode only read-only tools are offered.
 
 Athena queries run without asking because the Platform MCP Server declares them
 read-only. A server that includes the read-only SQL guard refuses statements
-that do not start as a read, such as `CREATE`, `INSERT` or `DROP`. On a stack
-whose server predates the guard those statements run. Either way, keep Athena
-write access out of roles that should only read.
+that do not start as a read, such as `CREATE`, `INSERT` or `DROP`, and refuses
+`EXPLAIN ANALYZE`. On a stack whose server predates the guard those statements
+run. Either way, keep Athena write access out of roles that should only read.
 
 ### Connector Status
 
