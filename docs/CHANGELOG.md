@@ -18,6 +18,10 @@ Entries inside each section should be ordered by type:
 
 ## unreleased - YYYY-MM-DD
 
+### Docs
+
+* [Changed] The EventBridge guide wires a bucket through native S3 EventBridge from the Admin panel, with no CloudTrail data events and with bulk deletes captured; the CloudTrail recipe moves to an appendix for older stacks ([#5451](https://github.com/quiltdata/quilt/pull/5451))
+
 ### CI
 
 * [Changed] Python CI runs quilt3 checks when the shared Package URI compatibility corpus changes ([#5255](https://github.com/quiltdata/quilt/pull/5255))

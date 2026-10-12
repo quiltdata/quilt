@@ -481,6 +481,54 @@ export default {
             ],
           },
           {
+            name: 'eventBridgeAccountAdmit',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'EventBridgeAccountResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'accountId',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'eventBridgeAccountRemove',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'EventBridgeAccountResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'accountId',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'packager',
             type: {
               kind: 'NON_NULL',
@@ -583,6 +631,18 @@ export default {
               ofType: {
                 kind: 'OBJECT',
                 name: 'APIKeyAdminQueries',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'eventBridgeAccounts',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'EventBridgeAccounts',
                 ofType: null,
               },
             },
@@ -1083,6 +1143,15 @@ export default {
             type: {
               kind: 'SCALAR',
               name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'eventBridgeWiring',
+            type: {
+              kind: 'OBJECT',
+              name: 'EventBridgeWiring',
               ofType: null,
             },
             args: [],
@@ -1817,6 +1886,172 @@ export default {
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'EventBridgeAccountInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'EventBridgeAccountResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'EventBridgeAccountInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'EventBridgeAccountsSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'EventBridgeAccounts',
+        fields: [
+          {
+            name: 'admitted',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'EventBridgeAccountsSuccess',
+        fields: [
+          {
+            name: 'accounts',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'EventBridgeAccounts',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'EventBridgeWiring',
+        fields: [
+          {
+            name: 'eventPattern',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Json',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'eventsLast24h',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'forwardingRoleArn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'ruleName',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'stackAccountId',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'stackBusArn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'stackRegion',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },

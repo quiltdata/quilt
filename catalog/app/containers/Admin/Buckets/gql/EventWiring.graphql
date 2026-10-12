@@ -1,0 +1,19 @@
+query ($bucket: String!) {
+  bucketConfig(name: $bucket) {
+    name
+    eventBridgeWiring {
+      ruleName
+      eventPattern
+      stackBusArn
+      stackAccountId
+      stackRegion
+      forwardingRoleArn
+      eventsLast24h
+    }
+  }
+  admin {
+    eventBridgeAccounts {
+      admitted
+    }
+  }
+}

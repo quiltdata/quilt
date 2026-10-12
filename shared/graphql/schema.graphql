@@ -257,7 +257,35 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   tabulatorTables: [TabulatorTable!]!
+  eventBridgeWiring: EventBridgeWiring @admin
 }
+
+type EventBridgeWiring {
+  ruleName: String!
+  eventPattern: Json!
+  stackBusArn: String!
+  stackAccountId: String!
+  stackRegion: String!
+  "Stack-account forwarding role; use it only when the bucket is in the stack account"
+  forwardingRoleArn: String!
+  "Sum of EventsReceived for this bucket over the last 24h; null when the metric can't be read"
+  eventsLast24h: Int
+}
+
+type EventBridgeAccounts {
+  "Account IDs admitted to put events on the stack bus (from its policy statement ids)"
+  admitted: [String!]!
+}
+
+type EventBridgeAccountsSuccess {
+  accounts: EventBridgeAccounts!
+}
+
+type EventBridgeAccountInvalid {
+  _: Boolean
+}
+
+union EventBridgeAccountResult = EventBridgeAccountsSuccess | EventBridgeAccountInvalid | OperationError
 
 # Role-scoped view of a bucket, surfaced via `buckets` / `bucket` queries.
 # Subject to the caller's active role — no admin bypass (unlike
@@ -727,6 +755,7 @@ type AdminQueries {
   tabulatorOpenQuery: Boolean!
   packager: PackagerAdminQueries!
   apiKeys: APIKeyAdminQueries!
+  eventBridgeAccounts: EventBridgeAccounts!
 }
 
 type MyRole {
@@ -1207,6 +1236,8 @@ type AdminMutations {
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
   apiKeys: APIKeyAdminMutations!
+  eventBridgeAccountAdmit(accountId: String!): EventBridgeAccountResult!
+  eventBridgeAccountRemove(accountId: String!): EventBridgeAccountResult!
 }
 
 type Mutation {

@@ -1,0 +1,15 @@
+mutation ($accountId: String!) {
+  admin {
+    eventBridgeAccountAdmit(accountId: $accountId) {
+      __typename
+      ... on EventBridgeAccountsSuccess {
+        accounts {
+          admitted
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}
