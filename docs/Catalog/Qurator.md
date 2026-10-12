@@ -56,16 +56,18 @@ declares itself read-only is trusted to be, and a tool that declares nothing
 asks first.
 
 - **Run** — the tool runs under your own permissions.
-- **Don't run** — nothing is written; Qurator is told you declined.
+- **Don't run** — the tool does not run; Qurator is told you declined.
 
-Tools their server marks destructive carry a warning. Approval is
-asked for each call, and only you can give it: content Qurator reads cannot.
+Tools their server marks destructive, or that declare nothing, carry a warning.
+Approval is asked for each call, and only you can give it: content Qurator reads
+cannot. Connect an MCP server only if you trust what it declares, since a tool it
+calls read-only runs without asking.
 
-Athena queries run without asking, as tools that only read. A Platform MCP
-Server that includes the read-only SQL guard refuses statements that create,
-change or delete tables or data. On a stack whose server predates the guard
-those statements run, so keep Athena write access out of roles that should only
-read.
+Athena queries run without asking because the Platform MCP Server declares them
+read-only. A server that includes the read-only SQL guard refuses statements
+that create, change or delete tables or data. On a stack whose server predates
+the guard those statements run, so keep Athena write access out of roles that
+should only read.
 
 ### Connector Status
 
