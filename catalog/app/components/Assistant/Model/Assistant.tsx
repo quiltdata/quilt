@@ -296,7 +296,7 @@ function useConstructAssistantAPI() {
       () =>
         mode === 'ask'
           ? { markers: { [Context.ASK_MODE]: true }, messages: [ASK_MODE_PROMPT] }
-          : {},
+          : { messages: [GlobalContext.WRITE_GUIDANCE] },
       [mode],
     ),
   )

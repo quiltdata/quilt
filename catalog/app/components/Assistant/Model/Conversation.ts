@@ -33,6 +33,11 @@ export interface ToolCall {
    * settle the card it was clicked on, even if the model reuses a tool-use id.
    */
   readonly key?: string
+  /**
+   * This call's place in the question's tool-call count, fixed when it was
+   * admitted; Run refuses it if the limit now in force is below it.
+   */
+  readonly slot?: number
 }
 
 const sameTool = (a: Tool.Descriptor<any>, b: Tool.Descriptor<any> | undefined) =>
@@ -404,6 +409,7 @@ export const ConversationActor = Eff.Effect.succeed(
               })
             }
             let room = limit === null ? Infinity : limit - used
+            let admitted = 0
 
             const tools = yield* currentTools
             const calls: Record<string, ToolCall> = {}
@@ -422,6 +428,7 @@ export const ConversationActor = Eff.Effect.succeed(
                 continue
               }
               room--
+              admitted++
               const effect = Eff.Record.has(tools, tu.name)
                 ? tools[tu.name].effect
                 : undefined
@@ -432,6 +439,7 @@ export const ConversationActor = Eff.Effect.succeed(
                   approval: effect,
                   tool: tools[tu.name],
                   key: yield* genId,
+                  slot: used + admitted,
                 }
                 continue
               }
@@ -477,14 +485,10 @@ export const ConversationActor = Eff.Effect.succeed(
               )
               return yield* completeCall(state, id, Eff.Option.some(result), dispatch)
             }
-            // A card can wait while an admin lowers the limit: count what this
-            // question has run or is running, plus this call, against the cap now.
+            // A card can wait while an admin lowers the limit, or while the
+            // limit first loads.
             const limitNow = yield* toolCallLimit
-            const running = Object.values(state.calls).filter((c) => c.fiber).length
-            if (
-              limitNow !== null &&
-              toolCallsSinceAsk(state.events) + running + 1 > limitNow
-            ) {
+            if (limitNow !== null && (call.slot ?? Infinity) > limitNow) {
               const result = Tool.fail(
                 Content.ToolResultContentBlock.Text({
                   text: `Tool-call limit for this question reached (${limitNow}); it was not run.`,

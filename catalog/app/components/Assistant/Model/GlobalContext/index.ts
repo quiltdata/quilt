@@ -26,7 +26,8 @@ const READ_GUIDANCE = [
   '</reading-objects>',
 ].join('\n')
 
-const WRITE_GUIDANCE = [
+/** Pushed in Agent mode only: Ask mode offers no write tools. */
+export const WRITE_GUIDANCE = [
   '<writing-packages>',
   'Before platform__package_create or platform__package_patch in a bucket, read',
   's3://<bucket>/.quilt/workflows/config.yml with platform__object_read. If it exists,',
@@ -34,7 +35,7 @@ const WRITE_GUIDANCE = [
   'exist, omit workflow; if the read fails any other way, tell the user and do not write.',
   "The read counts toward this question's tool-call limit, so skip it when",
   'you have already read that config in this conversation. Each write asks the user for',
-  'approval, so get it right the first time. Without these write tools, ignore this section.',
+  'approval, so get it right the first time.',
   '</writing-packages>',
 ].join('\n')
 
@@ -45,7 +46,7 @@ export function useGlobalContext(llm: Eff.Layer.Layer<LLM.LLM>) {
       catalog_preview: useCatalogPreview(),
       catalog_summarize: useCatalogSummarize(llm),
     },
-    messages: [useStackInfo(), useRouteContext(), READ_GUIDANCE, WRITE_GUIDANCE],
+    messages: [useStackInfo(), useRouteContext(), READ_GUIDANCE],
   })
 }
 

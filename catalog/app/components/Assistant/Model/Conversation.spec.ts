@@ -773,4 +773,84 @@ describe('tool-call limit', () => {
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
+
+  it('runs an admitted write even after an over-limit call in its batch is refused', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const runs = yield* Eff.Ref.make<Record<string, number>>({})
+          const responded = yield* Eff.Ref.make(false)
+          const make = (
+            name: string,
+            effect: Tool.Effect,
+          ): Tool.Descriptor<Record<string, unknown>> => ({
+            effect,
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Ref.update(runs, (r) => ({ ...r, [name]: (r[name] ?? 0) + 1 })).pipe(
+                Eff.Effect.as(
+                  Eff.Option.some(
+                    Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'ran' })),
+                  ),
+                ),
+              ),
+          })
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                if (yield* Eff.Ref.getAndSet(responded, true)) {
+                  return { content: Eff.Option.some([]), backendResponse: {} as never }
+                }
+                return {
+                  content: Eff.Option.some([
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'w',
+                      name: 'put',
+                      input: {},
+                    }),
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'r',
+                      name: 'list',
+                      input: {},
+                    }),
+                  ]),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, {
+              ...makeConnectorsStub(isBlockedRef),
+              contextContribution: Eff.Effect.succeed({
+                tools: { put: make('put', 'write'), list: make('list', 'read') },
+                messages: [],
+              }),
+            }),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+            Eff.Layer.succeed(Conversation.ToolCallLimit, {
+              limit: Eff.Effect.succeed(1),
+            }),
+          )
+          const actor = yield* Actor.start(
+            yield* Conversation.ConversationActor,
+            yield* Conversation.init,
+            Eff.Effect.succeed(layer),
+          )
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'go' }))
+          // The refused read settles first, leaving only the write's card.
+          const pending = yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && !('r' in s.calls) && !!s.calls.w?.approval,
+          )
+          if (pending._tag !== 'ToolUse') throw new Error('not pending')
+          yield* actor.dispatch(
+            Conversation.Action.Approve({ id: 'w', key: pending.calls.w.key ?? '' }),
+          )
+          yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(yield* Eff.Ref.get(runs)).toEqual({ put: 1 })
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
 })
