@@ -1025,4 +1025,32 @@ describe('tool-call limit', () => {
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
+
+  it('does not spend Run-time budget on a call to an unknown tool', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const runs = yield* Eff.Ref.make<Record<string, number>>({})
+          const limitRef = yield* Eff.Ref.make<number | null>(2)
+          const actor = yield* limitHarness(
+            [
+              { id: 'x', name: 'no_such_tool' },
+              { id: 'w', name: 'put' },
+            ],
+            { put: counting(runs, 'put', 'write') },
+            limitRef,
+          )
+          const pending = yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && !('x' in s.calls) && !!s.calls.w?.approval,
+          )
+          yield* Eff.Ref.set(limitRef, 1)
+          yield* actor.dispatch(
+            Conversation.Action.Approve({ id: 'w', key: keyOf(pending, 'w') }),
+          )
+          yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(yield* Eff.Ref.get(runs)).toEqual({ put: 1 })
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
 })

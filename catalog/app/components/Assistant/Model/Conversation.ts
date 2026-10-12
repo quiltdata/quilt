@@ -33,7 +33,7 @@ export interface ToolCall {
    * settle the card it was clicked on, even if the model reuses a tool-use id.
    */
   readonly key?: string
-  /** Settled with a refusal by the limit, without running. */
+  /** Settles without running any executor: over the limit, or no such tool. */
   readonly refused?: boolean
 }
 
@@ -454,6 +454,7 @@ export const ConversationActor = Eff.Effect.succeed(
                 name: tu.name,
                 input: tu.input,
                 fiber: yield* forkCall(tools, tu.toolUseId, tu.name, tu.input, dispatch),
+                refused: !effect,
               }
             }
 
