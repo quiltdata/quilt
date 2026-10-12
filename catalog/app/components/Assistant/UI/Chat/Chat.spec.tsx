@@ -4,15 +4,36 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
+// Its styles read the app theme's monospace font, absent here.
+vi.mock('components/JsonDisplay', () => ({ default: () => null }))
+
 // `useIsInStack` normally suspends on the buckets query; the link rewrite only
 // needs the membership predicate.
 vi.mock('utils/Buckets', () => ({
   useIsInStack: () => (bucket: string) => bucket === 'in-stack-bucket',
 }))
 
+// Stands in for the app's Router and NamedRoutes providers, at `location.path`.
+const location = vi.hoisted(() => ({ path: '/' }))
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return {
+    ...actual,
+    Link: ({ to, ...props }: { to: string }) => <a href={to} {...props} />,
+    useRouteMatch: (opts: object) => actual.matchPath(location.path, opts),
+  }
+})
+vi.mock('utils/NamedRoutes', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  use: () => ({
+    paths: { qurator: '/qurator', quratorMode: '/qurator-mode' },
+    urls: { qurator: () => '/qurator' },
+  }),
+}))
+
 import * as Model from '../../Model'
 
-import { ConnectorHelperLine, Menu, MessageEvent } from './Chat'
+import { ConnectorHelperLine, Menu, MessageEvent, ToolUseState, toolTitle } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
 // any block element there is invalid DOM nesting.
@@ -176,5 +197,69 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText('Developer Tools')).toBeTruthy()
+  })
+
+  it('offers the full page from the panel', () => {
+    location.path = '/'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Open full page').closest('a')?.getAttribute('href')).toBe(
+      '/qurator',
+    )
+  })
+
+  it('does not offer the full page on the full page', () => {
+    location.path = '/qurator/'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
+  })
+
+  it('does not offer the full page inside Qurator mode', () => {
+    location.path = '/qurator-mode'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
+  })
+})
+
+describe('components/Assistant/UI/Chat/ToolUseState', () => {
+  afterEach(cleanup)
+
+  it('names tools without the connector prefix', () => {
+    expect(toolTitle('platform__s3_object_put')).toBe('s3 object put')
+    expect(toolTitle('navigate')).toBe('navigate')
+  })
+
+  it('asks before a pending write and dispatches the answer', () => {
+    const dispatch = vi.fn()
+    render(
+      <ToolUseState
+        dispatch={dispatch}
+        timestamp={new Date()}
+        calls={{
+          w: {
+            name: 'platform__object_delete',
+            input: { bucket: 'b', key: 'k.txt' },
+            approval: 'destructive',
+            key: 'k1',
+          },
+        }}
+      />,
+    )
+    expect(screen.getByText(/object delete/)).toBeTruthy()
+    expect(screen.getByText(/replace or delete existing data/)).toBeTruthy()
+    expect(screen.getByText('key: k.txt')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Run'))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Approve({ id: 'w', key: 'k1' }),
+    )
+    fireEvent.click(screen.getByText("Don't run"))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Deny({ id: 'w', key: 'k1' }),
+    )
+    fireEvent.click(screen.getByText('abort'))
+    expect(dispatch).toHaveBeenCalledWith(Model.Conversation.Action.Abort())
   })
 })

@@ -46,6 +46,22 @@ The Developer Tools menu (upper right of the Qurator chat window) provides:
   (or clear) the resulting JSON log. Useful for tuning or debugging prompts
   and capturing structured results.
 
+### Approving Actions
+
+Qurator runs tools that only read (search, browse, preview) on its
+own. Before it runs a tool that changes data, such as creating or updating a
+package, writing an S3 object, or changing a Tabulator table, it shows what it
+wants to do and waits:
+
+- **Run** — the tool runs under your own permissions.
+- **Don't run** — nothing is written; Qurator is told you declined.
+
+Tools their server marks destructive carry a warning. Approval is
+asked for each call, and only you can give it: content Qurator reads cannot.
+
+Athena queries run without asking because they can only read: the Platform
+MCP Server refuses statements that create, change or delete tables or data.
+
 ### Connector Status
 
 Qurator's chat input shows the live connection status of each tool backend
@@ -123,3 +139,30 @@ To enable Qurator Omni:
   summaries.
 - **Streamlined Collaboration**: Leveraging AI chat to provide background and
   context when working across disciplines.
+
+## Qurator mode (preview)
+
+Qurator mode makes the chat the main page instead of a side panel. An admin
+turns it on under **Admin > Settings > Preview features > Qurator mode**; a
+**Qurator mode** row then appears in the left-hand navigation. It continues
+the same conversation as the side panel.
+
+Beside the chat, a pane lists the packages, files and buckets the session's
+tools have touched, and **Save session as package** writes the conversation,
+as you, to a bucket you choose. The package holds:
+
+- `README.md`: the first prompt, counts of prompts and tool calls, and what was
+  touched in the target bucket
+- `transcript.md`: the conversation, readable
+- `session.json`: every event, replayable
+- package metadata under `qurator`: model, session id, counts and references
+
+Images and documents are left out. Tool inputs that look like credentials are
+redacted, and presigned links are removed from every message and result. When
+the session read other buckets, or ran a search or query that named no bucket,
+the form says so and warns that readers of the target bucket will see what you
+save; the README and metadata count other buckets without naming them, and tool
+results are left out unless you tick **Include tool results**. Apart from that
+redaction, the transcript and `session.json` keep every message and tool input.
+Saving again from the same page adds a revision; a name that belongs to another
+package is refused.

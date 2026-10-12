@@ -256,5 +256,6 @@ export function useNavigate() {
         Eff.Effect.map(Eff.Option.some),
       ),
     [history, markers],
+    'read',
   )
 }
