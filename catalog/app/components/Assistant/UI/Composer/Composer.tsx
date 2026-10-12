@@ -38,7 +38,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
     [t.breakpoints.down('xs')]: {
       padding: t.spacing(0.75, 1, 0.5),
-      paddingBottom: `max(${t.spacing(0.5)}px, env(safe-area-inset-bottom))`,
+      paddingBottom: `max(${t.spacing(0.5)}px, var(--safe-bottom, env(safe-area-inset-bottom)))`,
     },
   },
   box: {
@@ -162,7 +162,14 @@ const useMenuStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
   },
-  body: { display: 'flex', flexDirection: 'column', minHeight: 0, outline: 'none' },
+  body: {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 0,
+    outline: 'none',
+    // Same floor for the Save form's fields (bucket, name).
+    ['@media (pointer: coarse)']: { '& input, & select': { fontSize: 16 } },
+  },
   scroll: { minHeight: 0, overflowY: 'auto' },
   grab: {
     background: t.palette.divider,
@@ -186,6 +193,8 @@ const useMenuStyles = M.makeStyles((t) => ({
       font: 'inherit',
       outline: 'none',
       padding: 0,
+      // iOS zooms the page into a focused field under 16px.
+      ['@media (pointer: coarse)']: { fontSize: 16 },
     },
   },
   searchIcon: { color: t.palette.text.secondary, fontSize: 18 },
