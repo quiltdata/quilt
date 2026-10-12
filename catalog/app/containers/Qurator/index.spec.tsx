@@ -77,10 +77,26 @@ describe('containers/Qurator useKeyboardFrame listeners', () => {
     act(() => fire('scroll'))
     expect(result.current).toBe(first)
     act(() => {
+      vv.offsetTop = 0.5
+      vv.height = window.innerHeight - 300.5
+      fire('scroll')
+    })
+    // The bottom edge, not the size, is what lands on the keyboard.
+    expect(result.current).toMatchObject({
+      height: window.innerHeight - 301,
+      transform: 'translateY(1px)',
+    })
+    act(() => {
+      vv.offsetTop = 120
+      vv.height = window.innerHeight - 300
+      fire('scroll')
+    })
+    const settled = result.current
+    act(() => {
       vv.offsetTop = 120.4
       fire('scroll')
     })
-    expect(result.current).toBe(first)
+    expect(result.current).toBe(settled)
     act(() => {
       vv.offsetTop = 80
       fire('scroll')
@@ -94,7 +110,10 @@ describe('containers/Qurator useKeyboardFrame listeners', () => {
 describe('containers/Qurator useInstallable', () => {
   const installTags = () => document.head.querySelectorAll('link[rel="manifest"]').length
 
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    document.head.querySelectorAll('link[rel="manifest"]').forEach((l) => l.remove())
+  })
 
   it('adds nothing and registers no worker without the assistant', () => {
     const register = vi.fn(() => Promise.resolve())

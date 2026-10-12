@@ -46,12 +46,14 @@ export function useKeyboardFrame(): React.CSSProperties | undefined {
     if (!vv) return
     const update = () => {
       // A pinch-zoom shrinks the visual viewport too; only the keyboard should.
+      // Round the edges, not the size, so the bottom stays on the keyboard's top.
+      const top = Math.round(vv.offsetTop)
       const next =
         vv.scale === 1 && vv.height < window.innerHeight - 1
           ? ({
               // iOS reports sub-pixel values on every pan tick; whole pixels let the frame repeat.
-              height: Math.round(vv.height),
-              transform: `translateY(${Math.round(vv.offsetTop)}px)`,
+              height: Math.round(vv.offsetTop + vv.height) - top,
+              transform: `translateY(${top}px)`,
               // iOS still reports the home-indicator inset under the keyboard.
               '--safe-bottom': '0px',
             } as React.CSSProperties)
@@ -79,8 +81,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 // Chrome offers install through this event; iOS Safari only through the Share sheet.
-function useInstallHint(): React.ReactNode {
-  const classes = useStyles()
+function useInstallHint(className: string): React.ReactNode {
   const [prompt, setPrompt] = React.useState<BeforeInstallPromptEvent | null>(null)
   React.useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -94,7 +95,7 @@ function useInstallHint(): React.ReactNode {
   if (prompt) {
     return (
       <M.Button
-        className={classes.install}
+        className={className}
         size="small"
         color="primary"
         onClick={() => prompt.prompt().finally(() => setPrompt(null))}
@@ -179,7 +180,7 @@ export default function Qurator() {
   Intercom.usePauseVisibilityWhen(true)
   const toCatalog = React.useCallback(() => history.push(urls.home()), [history, urls])
   const frame = useKeyboardFrame()
-  const installHint = useInstallHint()
+  const installHint = useInstallHint(classes.install)
   // Saving is Qurator mode's addition; the page itself stays unflagged.
   const saving = useFeature('qurator-mode')
 
