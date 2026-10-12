@@ -691,4 +691,76 @@ describe('tool-call limit', () => {
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
+
+  it('does not run a held write after the limit is lowered', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const limitRef = yield* Eff.Ref.make<number | null>(3)
+          const runs = yield* Eff.Ref.make(0)
+          const responded = yield* Eff.Ref.make(false)
+          const put: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'write',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Ref.update(runs, (n) => n + 1).pipe(
+                Eff.Effect.as(
+                  Eff.Option.some(
+                    Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'ran' })),
+                  ),
+                ),
+              ),
+          }
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                if (yield* Eff.Ref.getAndSet(responded, true)) {
+                  return { content: Eff.Option.some([]), backendResponse: {} as never }
+                }
+                return {
+                  content: Eff.Option.some([
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'w',
+                      name: 'put',
+                      input: {},
+                    }),
+                  ]),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, {
+              ...makeConnectorsStub(isBlockedRef),
+              contextContribution: Eff.Effect.succeed({ tools: { put }, messages: [] }),
+            }),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+            Eff.Layer.succeed(Conversation.ToolCallLimit, {
+              limit: Eff.Ref.get(limitRef),
+            }),
+          )
+          const actor = yield* Actor.start(
+            yield* Conversation.ConversationActor,
+            yield* Conversation.init,
+            Eff.Effect.succeed(layer),
+          )
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'go' }))
+          const pending = yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && Object.values(s.calls).some((c) => c.approval),
+          )
+          if (pending._tag !== 'ToolUse') throw new Error('not pending')
+          yield* Eff.Ref.set(limitRef, 1)
+          yield* actor.dispatch(
+            Conversation.Action.Approve({ id: 'w', key: pending.calls.w.key ?? '' }),
+          )
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(yield* Eff.Ref.get(runs)).toBe(0)
+          const event = final.events.find((e) => e._tag === 'ToolUse')
+          expect(JSON.stringify(event)).toContain('lowered to 1')
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
 })
