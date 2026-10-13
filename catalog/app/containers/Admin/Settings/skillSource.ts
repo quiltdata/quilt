@@ -72,7 +72,11 @@ export async function fetchGitHubSkill(
         throw new Error(`${rel} is over ${MAX_FILE_BYTES / 1024} KiB`)
       const body = await fetchImpl(e.download_url)
       if (!body.ok) throw new Error(`GitHub answered ${body.status} for ${rel}`)
-      files.push({ path: rel, text: await body.text() })
+      const text = await body.text()
+      // The listing's size can be stale if the branch moved since it was read.
+      if (new TextEncoder().encode(text).length > MAX_FILE_BYTES)
+        throw new Error(`${rel} is over ${MAX_FILE_BYTES / 1024} KiB`)
+      files.push({ path: rel, text })
     }
   }
 

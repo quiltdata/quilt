@@ -107,10 +107,18 @@ describe('components/Assistant/Model/Skills', () => {
     const r = await load({ skill: 'pkg-curation', file: './references/api.md' })
     expect(r.status).toBe('success')
     expect(r.content[0].text).toBe('# ref')
-    expect(fileQuery).toHaveBeenCalledWith(expect.anything(), {
-      name: 'pkg-curation',
-      path: 'references/api.md',
-    })
+    expect(fileQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      { name: 'pkg-curation', path: 'references/api.md' },
+      // A replaced skill keeps its name, so a cached body would outlive the replacement.
+      { requestPolicy: 'network-only' },
+    )
+  })
+
+  it('stays available in Ask mode, which keeps only read tools', () => {
+    query.current = loaded()
+    setup()
+    expect(pushed.current.tools.skill_load.effect).toBe('read')
   })
 
   it('refuses a file the skill does not list, without asking the registry', async () => {

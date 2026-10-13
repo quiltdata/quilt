@@ -88,5 +88,16 @@ describe('containers/Admin/Settings/skillSource', () => {
       ).rejects.toThrow(/over 64 KiB/)
       expect(fetchImpl).toHaveBeenCalledTimes(1)
     })
+
+    it('refuses a file whose real body is larger than the listing said', async () => {
+      const fetchImpl = vi.fn(async (url: string) =>
+        url.includes('/contents/')
+          ? json([{ type: 'file', path: 's/SKILL.md', size: 10, download_url: 'raw' }])
+          : text('x'.repeat(70_000)),
+      )
+      await expect(
+        Source.fetchGitHubSkill({ owner: 'o', repo: 'r', path: 's' }, fetchImpl as any),
+      ).rejects.toThrow(/over 64 KiB/)
+    })
   })
 })

@@ -124,7 +124,14 @@ export function useSkills() {
             ),
           )
         const result = yield* Eff.Effect.promise(() =>
-          client.query(QURATOR_SKILL_FILE_QUERY, { name: skill, path }).toPromise(),
+          client
+            // An admin may replace a skill under the same name; a cached body would outlive it.
+            .query(
+              QURATOR_SKILL_FILE_QUERY,
+              { name: skill, path },
+              { requestPolicy: 'network-only' },
+            )
+            .toPromise(),
         )
         const body = result.data?.quratorSkillFile
         if (result.error || body == null)
@@ -138,6 +145,7 @@ export function useSkills() {
         return Eff.Option.some(Tool.succeed(text(body)))
       }),
     [enabled, client],
+    'read',
   )
 
   Context.usePushContext(
