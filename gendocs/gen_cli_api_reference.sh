@@ -21,6 +21,7 @@ quilt3 catalog --detailed-help >> cli.md
 gen_cmd_docs 'config'
 gen_cmd_docs 'config-default-remote-registry'
 gen_cmd_docs 'disable-telemetry'
+gen_cmd_docs 'graphql'
 gen_cmd_docs 'install'
 gen_cmd_docs 'list-packages'
 gen_cmd_docs 'login'
