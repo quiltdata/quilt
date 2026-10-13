@@ -58,6 +58,14 @@ export const connectAuthorize = route('/connect/authorize')
 // Qurator full-page chat; the start URL of the installable app
 export const qurator = route('/qurator')
 
+// Resume an in-progress attempt after a reload or on another device.
+export const attempt = route(
+  '/attempts/:attemptId',
+  (attemptId: string) => `/attempts/${attemptId}`,
+)
+
+export type AttemptArgs = Parameters<typeof attempt.url>
+
 // Profile
 export const profile = route('/profile')
 

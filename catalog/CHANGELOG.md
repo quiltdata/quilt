@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] `/attempts/:attemptId`, behind sign-in, shows a user's progress through a challenge and a button to advance it one step, so a challenge attempt survives a reload or a switch to another device (#TBD)
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))

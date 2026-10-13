@@ -741,7 +741,53 @@ type Me {
   roles: [MyRole!]!
   apiKeys(name: String, fingerprint: String, status: APIKeyStatus): [APIKey!]!
   apiKey(id: ID!): APIKey
+  "Null for an id this user does not own, or that does not exist."
+  attempt(id: ID!): Attempt
 }
+
+"""
+quilt-specs changes/resume-state: one user's run through one challenge, visible
+only to the owner. Not a QuratorSession.
+"""
+type Attempt {
+  id: ID!
+  challenge: String!
+  state: AttemptState!
+  version: Int!
+  createdAt: Datetime!
+  stateChangedAt: Datetime!
+}
+
+enum AttemptState {
+  AUTHENTICATED
+  CONTEXTUALIZED
+  QUALIFIED
+  RUNNING
+  RESULT_READY
+  REVIEWED
+  SUBMITTED
+  VALIDATING
+  PROMOTED
+  ELIGIBLE
+  CLAIMED
+  RUN_FAILED
+  REJECTED
+}
+
+"""
+`to` must be one of CONTEXTUALIZED, QUALIFIED, REVIEWED, SUBMITTED or ELIGIBLE —
+the only edges this mutation drives. The job record and the promoter apply the
+other edges from registry code; no caller reaches those through GraphQL.
+"""
+input AttemptTransitionInput {
+  challenge: String!
+  to: AttemptState!
+  "The version last read; a stale value is refused as `Conflict`."
+  baseVersion: Int!
+}
+
+"`InvalidInput` names one of `NotFound` (no such attempt), `BadEdge` (not a slice edge, or not reachable from the current state) or `Conflict` (context `currentVersion`)."
+union AttemptTransitionResult = Attempt | InvalidInput
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
 
@@ -1211,6 +1257,9 @@ type AdminMutations {
 
 type Mutation {
   switchRole(roleName: String!): SwitchRoleResult!
+
+  "Creates the caller's attempt at `challenge` if none exists yet, at `AUTHENTICATED`, then applies `to`."
+  attemptTransition(input: AttemptTransitionInput!): AttemptTransitionResult!
 
   apiKeyCreate(input: APIKeyCreateInput!): APIKeyCreateResult!
   apiKeyRevoke(id: ID, secret: String): APIKeyRevokeResult!

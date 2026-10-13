@@ -673,6 +673,98 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'Attempt',
+        fields: [
+          {
+            name: 'challenge',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'createdAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'state',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'stateChangedAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'version',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'AttemptTransitionResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Attempt',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+        ],
+      },
+      {
         kind: 'SCALAR',
         name: 'Boolean',
       },
@@ -2225,6 +2317,27 @@ export default {
             ],
           },
           {
+            name: 'attempt',
+            type: {
+              kind: 'OBJECT',
+              name: 'Attempt',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'email',
             type: {
               kind: 'NON_NULL',
@@ -2577,6 +2690,29 @@ export default {
                   kind: 'SCALAR',
                   name: 'String',
                   ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'attemptTransition',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'AttemptTransitionResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
                 },
               },
             ],
