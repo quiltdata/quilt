@@ -146,7 +146,7 @@ type QuratorSkill {
   description: String!
   license: String
   runClass: QuratorSkillRunClass!
-  "Where an admin took it from, as they gave it."
+  "Where an admin took it from, trimmed; null when none was given."
   source: String
   "Paths inside the skill, SKILL.md among them."
   files: [String!]!
