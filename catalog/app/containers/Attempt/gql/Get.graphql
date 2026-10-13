@@ -1,0 +1,10 @@
+query ($id: ID!) {
+  me {
+    attempt(id: $id) {
+      id
+      challenge
+      state
+      version
+    }
+  }
+}

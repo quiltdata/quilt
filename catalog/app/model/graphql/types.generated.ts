@@ -188,6 +188,51 @@ export interface AdminQueries {
   readonly user: UserAdminQueries
 }
 
+/**
+ * quilt-specs changes/resume-state: one user's run through one challenge, visible
+ * only to the owner. Not a QuratorSession.
+ */
+export interface Attempt {
+  readonly __typename: 'Attempt'
+  readonly challenge: Scalars['String']['output']
+  readonly createdAt: Scalars['Datetime']['output']
+  readonly id: Scalars['ID']['output']
+  readonly state: AttemptState
+  readonly stateChangedAt: Scalars['Datetime']['output']
+  readonly version: Scalars['Int']['output']
+}
+
+export enum AttemptState {
+  AUTHENTICATED = 'AUTHENTICATED',
+  CLAIMED = 'CLAIMED',
+  CONTEXTUALIZED = 'CONTEXTUALIZED',
+  ELIGIBLE = 'ELIGIBLE',
+  PROMOTED = 'PROMOTED',
+  QUALIFIED = 'QUALIFIED',
+  REJECTED = 'REJECTED',
+  RESULT_READY = 'RESULT_READY',
+  REVIEWED = 'REVIEWED',
+  RUNNING = 'RUNNING',
+  RUN_FAILED = 'RUN_FAILED',
+  SUBMITTED = 'SUBMITTED',
+  VALIDATING = 'VALIDATING',
+}
+
+/**
+ * `to` must be one of CONTEXTUALIZED, QUALIFIED, REVIEWED, SUBMITTED or ELIGIBLE —
+ * the only edges this mutation drives. The job record and the promoter apply the
+ * other edges from registry code; no caller reaches those through GraphQL.
+ */
+export interface AttemptTransitionInput {
+  /** The version last read; a stale value is refused as `Conflict`. */
+  readonly baseVersion: Scalars['Int']['input']
+  readonly challenge: Scalars['String']['input']
+  readonly to: AttemptState
+}
+
+/** `InvalidInput` names one of `NotFound` (no such attempt), `BadEdge` (not a slice edge, or not reachable from the current state) or `Conflict` (context `currentVersion`). */
+export type AttemptTransitionResult = Attempt | InvalidInput
+
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'BooleanPackageUserMetaFacet'
   readonly path: Scalars['String']['output']
@@ -517,6 +562,8 @@ export interface Me {
   readonly __typename: 'Me'
   readonly apiKey: Maybe<APIKey>
   readonly apiKeys: ReadonlyArray<APIKey>
+  /** Null for an id this user does not own, or that does not exist. */
+  readonly attempt: Maybe<Attempt>
   readonly email: Scalars['String']['output']
   readonly isAdmin: Scalars['Boolean']['output']
   readonly name: Scalars['String']['output']
@@ -532,6 +579,10 @@ export interface MeapiKeysArgs {
   fingerprint: InputMaybe<Scalars['String']['input']>
   name: InputMaybe<Scalars['String']['input']>
   status: InputMaybe<APIKeyStatus>
+}
+
+export interface MeattemptArgs {
+  id: Scalars['ID']['input']
 }
 
 export interface MutateUserAdminMutations {
@@ -578,6 +629,8 @@ export interface Mutation {
   readonly admin: AdminMutations
   readonly apiKeyCreate: APIKeyCreateResult
   readonly apiKeyRevoke: APIKeyRevokeResult
+  /** Creates the caller's attempt at `challenge` if none exists yet, at `AUTHENTICATED`, then applies `to`. */
+  readonly attemptTransition: AttemptTransitionResult
   readonly browsingSessionCreate: BrowsingSessionCreateResult
   readonly browsingSessionDispose: BrowsingSessionDisposeResult
   readonly browsingSessionRefresh: BrowsingSessionRefreshResult
@@ -612,6 +665,10 @@ export interface MutationapiKeyCreateArgs {
 export interface MutationapiKeyRevokeArgs {
   id: InputMaybe<Scalars['ID']['input']>
   secret: InputMaybe<Scalars['String']['input']>
+}
+
+export interface MutationattemptTransitionArgs {
+  input: AttemptTransitionInput
 }
 
 export interface MutationbrowsingSessionCreateArgs {

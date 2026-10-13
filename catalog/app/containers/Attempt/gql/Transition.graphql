@@ -1,0 +1,18 @@
+mutation ($input: AttemptTransitionInput!) {
+  attemptTransition(input: $input) {
+    __typename
+    ... on Attempt {
+      id
+      challenge
+      state
+      version
+    }
+    ... on InvalidInput {
+      errors {
+        name
+        path
+        message
+      }
+    }
+  }
+}
