@@ -252,7 +252,7 @@ export function SkillsMenu({ skills, disabled }: SkillsMenuProps) {
         className={pickerClasses.button}
         aria-haspopup="menu"
         aria-expanded={!!anchor}
-        aria-label={`Skills ${on} (${on} of ${skills.all.length} on)`}
+        aria-label={`Skills, ${on} of ${skills.all.length} on`}
         disabled={disabled}
         onClick={(e) => setAnchor(e.currentTarget)}
         size="small"

@@ -332,7 +332,7 @@ const statusText = (s: Connectors.ConnectorState, tools: number) =>
 
 type Page = 'main' | 'model' | 'tools' | 'mcp' | 'skills' | 'save' | 'instructions'
 
-interface Row {
+export interface Row {
   key: string
   icon?: string
   name: string
@@ -352,6 +352,32 @@ interface Row {
   opens?: Page
   divider?: boolean
   heading?: boolean
+}
+
+/** One checkbox row per skill; the icon and `checked` both follow the skill's own state. */
+export function skillRows(skills: API['skills'], tagClass?: string): Row[] {
+  return skills.all.map((s) => {
+    const enabled = !skills.disabled.has(s.name)
+    return {
+      key: `skill-${s.name}`,
+      name: s.name,
+      keywords: s.description,
+      sub: s.description,
+      role: 'menuitemcheckbox' as const,
+      checked: enabled,
+      end: (
+        <>
+          <span className={tagClass}>
+            {s.runClass === 'shell' ? 'needs shell · explains only' : 'guide'}
+          </span>
+          <M.Icon fontSize="small">
+            {enabled ? 'check_box' : 'check_box_outline_blank'}
+          </M.Icon>
+        </>
+      ),
+      onSelect: () => skills.toggle(s.name),
+    }
+  })
 }
 
 const matches = (r: Row, q: string) =>
@@ -852,28 +878,7 @@ function PlusMenu({
     ],
     skills: [
       back,
-      ...api.skills.all.map((s) => {
-        const enabled = !api.skills.disabled.has(s.name)
-        return {
-          key: `skill-${s.name}`,
-          name: s.name,
-          keywords: s.description,
-          sub: s.description,
-          role: 'menuitemcheckbox' as const,
-          checked: enabled,
-          end: (
-            <>
-              <span className={classes.tag}>
-                {s.runClass === 'shell' ? 'needs shell · explains only' : 'guide'}
-              </span>
-              <M.Icon fontSize="small">
-                {on ? 'check_box' : 'check_box_outline_blank'}
-              </M.Icon>
-            </>
-          ),
-          onSelect: () => api.skills.toggle(s.name),
-        }
-      }),
+      ...skillRows(api.skills, classes.tag),
       ...(isAdmin
         ? [
             { key: 'd3', name: '', divider: true },
