@@ -1322,7 +1322,7 @@ export interface QuratorSkill {
   readonly license: Maybe<Scalars['String']['output']>
   readonly name: Scalars['String']['output']
   readonly runClass: QuratorSkillRunClass
-  /** Where an admin took it from, as they gave it. */
+  /** Where an admin took it from, trimmed; null when none was given. */
   readonly source: Maybe<Scalars['String']['output']>
 }
 
