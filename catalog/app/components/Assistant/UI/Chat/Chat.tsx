@@ -864,6 +864,7 @@ interface ChatProps {
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
+  skills: Model.Assistant.API['skills']
   mode?: Model.Assistant.API['mode']
   setMode?: Model.Assistant.API['setMode']
   busy?: boolean
@@ -901,6 +902,7 @@ export default function Chat({
   connectors,
   instructions,
   model,
+  skills,
   mode = 'agent',
   setMode,
   busy,
@@ -1085,7 +1087,7 @@ export default function Chat({
       </div>
       {composer === 'compact' && setMode ? (
         <Composer
-          api={{ model, connectors, instructions, mode, setMode }}
+          api={{ model, connectors, instructions, mode, setMode, skills }}
           disabled={inputDisabled}
           helperText={helperText}
           helperSeverity={helperSeverity}
@@ -1099,6 +1101,7 @@ export default function Chat({
           <Input
             disabled={inputDisabled}
             model={model}
+            skills={skills}
             helperText={helperText}
             helperSeverity={helperSeverity}
             onSubmit={ask}

@@ -23,7 +23,7 @@ import Instructions from '../Chat/Instructions'
 /** The slice of the assistant the composer reads; hosts pass the whole API. */
 export type ComposerAPI = Pick<
   Model.Assistant.API,
-  'model' | 'connectors' | 'instructions' | 'mode' | 'setMode'
+  'model' | 'connectors' | 'instructions' | 'mode' | 'setMode' | 'skills'
 >
 type API = ComposerAPI
 
@@ -330,9 +330,9 @@ const statusText = (s: Connectors.ConnectorState, tools: number) =>
 
 // --- menu model ------------------------------------------------------------
 
-type Page = 'main' | 'model' | 'tools' | 'mcp' | 'save' | 'instructions'
+type Page = 'main' | 'model' | 'tools' | 'mcp' | 'skills' | 'save' | 'instructions'
 
-interface Row {
+export interface Row {
   key: string
   icon?: string
   name: string
@@ -345,13 +345,39 @@ interface Row {
   /** Text the search box matches, beyond `name`. */
   keywords?: string
   disabled?: boolean
-  role?: 'menuitem' | 'menuitemradio'
+  role?: 'menuitem' | 'menuitemradio' | 'menuitemcheckbox'
   checked?: boolean
   onSelect?: () => void
   /** `→` and Enter open this page. */
   opens?: Page
   divider?: boolean
   heading?: boolean
+}
+
+/** One checkbox row per skill; the icon and `checked` both follow the skill's own state. */
+export function skillRows(skills: API['skills'], tagClass?: string): Row[] {
+  return skills.all.map((s) => {
+    const enabled = !skills.disabled.has(s.name)
+    return {
+      key: `skill-${s.name}`,
+      name: s.name,
+      keywords: s.description,
+      sub: s.description,
+      role: 'menuitemcheckbox' as const,
+      checked: enabled,
+      end: (
+        <>
+          <span className={tagClass}>
+            {s.runClass === 'shell' ? 'needs shell · explains only' : 'guide'}
+          </span>
+          <M.Icon fontSize="small">
+            {enabled ? 'check_box' : 'check_box_outline_blank'}
+          </M.Icon>
+        </>
+      ),
+      onSelect: () => skills.toggle(s.name),
+    }
+  })
 }
 
 const matches = (r: Row, q: string) =>
@@ -612,6 +638,7 @@ function PlusMenu({
   const toolCount = views.reduce((n, v) => n + toolsOf(v.state).length, 0)
   const failed = servers.filter((v) => v.state._tag === 'Failed').length
   const on = servers.filter((v) => v.state._tag === 'Ready').length
+  const skillsOn = api.skills.all.filter((s) => !api.skills.disabled.has(s.name)).length
 
   const pick = (fn: () => void) => () => {
     fn()
@@ -733,6 +760,19 @@ function PlusMenu({
         opens: 'instructions',
         end: <M.Icon fontSize="small">chevron_right</M.Icon>,
       },
+      ...(api.skills.all.length || isAdmin
+        ? [
+            {
+              key: 'skills',
+              icon: 'extension',
+              name: 'Skills',
+              keywords: api.skills.all.map((s) => s.name).join(' '),
+              detail: `${skillsOn} of ${api.skills.all.length} on`,
+              opens: 'skills' as Page,
+              end: <M.Icon fontSize="small">chevron_right</M.Icon>,
+            },
+          ]
+        : []),
       ...(next
         ? [
             {
@@ -828,6 +868,24 @@ function PlusMenu({
               key: 'add',
               icon: 'add',
               name: 'Add server…',
+              detail: 'Admin → Settings',
+              onSelect: pick(() => {
+                window.location.assign(urls.adminSettings())
+              }),
+            },
+          ]
+        : []),
+    ],
+    skills: [
+      back,
+      ...skillRows(api.skills, classes.tag),
+      ...(isAdmin
+        ? [
+            { key: 'd3', name: '', divider: true },
+            {
+              key: 'add-skill',
+              icon: 'add',
+              name: 'Add skill…',
               detail: 'Admin → Settings',
               onSelect: pick(() => {
                 window.location.assign(urls.adminSettings())
@@ -1062,7 +1120,7 @@ function MenuRow({ row, id, active, onActivate, onHover }: MenuRowProps) {
       id={id}
       className={cx(classes.row, active && classes.active)}
       role={row.role ?? 'menuitem'}
-      aria-checked={row.role === 'menuitemradio' ? !!row.checked : undefined}
+      aria-checked={row.role && row.role !== 'menuitem' ? !!row.checked : undefined}
       aria-disabled={row.disabled || undefined}
       aria-haspopup={row.opens ? 'menu' : undefined}
       tabIndex={-1}

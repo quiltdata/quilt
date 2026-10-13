@@ -19,6 +19,7 @@ import * as ContextFiles from './ContextFiles'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
 import * as ModelChoice from './ModelChoice'
+import * as Skills from './Skills'
 import * as UserInstructions from './UserInstructions'
 import useIsEnabled from './enabled'
 
@@ -301,6 +302,7 @@ function useConstructAssistantAPI() {
     ),
   )
   const instructions = useDualInstructionsContext()
+  const skills = Skills.useSkills()
 
   const platformConfig = usePlatformConnectorConfig()
   const connectorConfigs = React.useMemo(() => [platformConfig], [platformConfig])
@@ -360,6 +362,7 @@ function useConstructAssistantAPI() {
     connectors,
     instructions,
     model,
+    skills,
     mode,
     setMode,
     devTools: { recording, modelIdOverride },
