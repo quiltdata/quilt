@@ -295,7 +295,7 @@ __Arguments__
 * __signup__:  Access-code signup page for the role.
 
 
-## update\_managed(id\_or\_name: str, \*, name: str, policies: list[str], default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>) -> quilt3.admin.types.ManagedRole  {#update\_managed}
+## update\_managed(id\_or\_name: str, \*, name: str, policies: list[str], default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>) -> quilt3.admin.types.ManagedRole  {#update\_managed}
 
 Update a managed role in the registry (full replacement of name and policies).
 
@@ -310,7 +310,7 @@ __Arguments__
     specified; `None` removes it.
 
 
-## update\_unmanaged(id\_or\_name: str, \*, name: str, arn: str, default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>) -> quilt3.admin.types.UnmanagedRole  {#update\_unmanaged}
+## update\_unmanaged(id\_or\_name: str, \*, name: str, arn: str, default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>) -> quilt3.admin.types.UnmanagedRole  {#update\_unmanaged}
 
 Update an unmanaged role in the registry (full replacement of name and ARN).
 
@@ -325,7 +325,7 @@ __Arguments__
     specified; `None` removes it.
 
 
-## patch\_managed(id\_or\_name: str, \*, name: str | None = None, policies: list[str] | None = None, default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
+## patch\_managed(id\_or\_name: str, \*, name: str | None = None, policies: list[str] | None = None, default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
 
 Partially update a managed role — only specified fields are changed.
 
@@ -340,7 +340,7 @@ __Arguments__
     `None` removes it).
 
 
-## patch\_unmanaged(id\_or\_name: str, \*, name: str | None = None, arn: str | None = None, default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x106ba9fd0>) -> quilt3.admin.types.UnmanagedRole  {#patch\_unmanaged}
+## patch\_unmanaged(id\_or\_name: str, \*, name: str | None = None, arn: str | None = None, default\_bucket: str | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>, signup: quilt3.admin.types.RoleSignup | None | quilt3.\_graphql\_client.base\_model.UnsetType = <quilt3.\_graphql\_client.base\_model.UnsetType object at 0x107f49fd0>) -> quilt3.admin.types.UnmanagedRole  {#patch\_unmanaged}
 
 Partially update an unmanaged role — only specified fields are changed.
 
