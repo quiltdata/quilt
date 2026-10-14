@@ -380,6 +380,12 @@ export function* codeSignupComplete({ page, ticket, username, email, password })
     }
     const mapped = registrationError(e)
     if (mapped) throw mapped
+    // Account creation on this path can also trigger the welcome/set-link email;
+    // registrationError doesn't cover this since /register's own SMTP check isn't
+    // shared, but the failure mode (and the registry's error shape) is the same.
+    if (HTTPError.is(e, 500) && /SMTP.*invalid/.test(e.json?.message || '')) {
+      throw new errors.SMTPError({ originalError: e })
+    }
     throw new errors.AuthError({
       message: 'unable to complete signup',
       originalError: e,

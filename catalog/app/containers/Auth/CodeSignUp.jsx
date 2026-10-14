@@ -188,6 +188,10 @@ function CompleteForm({ page, ticket, mutex, onDone, onExpired }) {
           // eslint-disable-next-line consistent-return
           return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
         }
+        if (e instanceof errors.SMTPError) {
+          // eslint-disable-next-line consistent-return
+          return { [FF.FORM_ERROR]: 'smtp' }
+        }
         sentry('captureException', e)
         // eslint-disable-next-line consistent-return
         return { [FF.FORM_ERROR]: 'unexpected' }
@@ -262,6 +266,7 @@ function CompleteForm({ page, ticket, mutex, onDone, onExpired }) {
                 'Email signup is not enabled on this Quilt. Ask your administrator for an invitation.',
               subscriptionInvalid:
                 'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
+              smtp: 'SMTP error: contact your Quilt administrator',
             }}
           />
           <Layout.Actions>
@@ -349,7 +354,7 @@ export default function CodeSignUp() {
     // without creating a new account -- not yet implemented in this component; the
     // registry's redeem endpoint supports it (mockup screen 6), the catalog UI for it is
     // a follow-up, not built here.
-    return <Redirect to="/" />
+    return <Redirect to={urls.home()} />
   }
 
   if (done === 'emailed') {

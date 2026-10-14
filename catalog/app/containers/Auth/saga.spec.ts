@@ -119,6 +119,16 @@ describe('containers/Auth/saga: signup', () => {
       expect(thrown).toBeInstanceOf(errors.SignupTicketInvalid)
     })
 
+    it('maps an SMTP-invalid 500 to SMTPError (not covered by registrationError)', () => {
+      const gen = codeSignupComplete(params)
+      start(gen)
+      const { thrown } = throwInto(
+        gen,
+        httpError(500, { message: 'SMTP config invalid' }),
+      )
+      expect(thrown).toBeInstanceOf(errors.SMTPError)
+    })
+
     it('maps a password-auth-disabled 401 to PasswordAuthDisabled (shared registrationError)', () => {
       const gen = codeSignupComplete(params)
       start(gen)
