@@ -220,6 +220,24 @@ describe('components/Assistant/UI/Chat/roundKeyOf, assignRoundKeys, lookupExpand
     expect(roundKeys.get('a')).toBe('a')
     expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['b', 'c']))).toBe(true)
   })
+
+  // The bug this pins: a call joins the round *between* toggles, so it's
+  // never registered by a toggle itself -- registration must happen on
+  // every observation of the round's ids (Chat does this every render),
+  // or a later discard of the originally-keyed call orphans the entry.
+  it('keeps expand state reachable when a call joins after the toggle, then the original id is discarded', () => {
+    // Toggled while only 'a' was live.
+    let roundKeys = assignRoundKeys(new Map(), ['a'])
+    const expanded = toggleExpandedEntry(new Map(), roundKeyOf(roundKeys, ['a']))
+
+    // 'b' joins the round (observed, not toggled) -- registration must
+    // run here too, independent of any toggle.
+    roundKeys = assignRoundKeys(roundKeys, ['a', 'b'])
+
+    // 'a' discarded; the round is now looked up only by 'b'.
+    roundKeys = assignRoundKeys(roundKeys, ['b'])
+    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['b']))).toBe(true)
+  })
 })
 
 describe('components/Assistant/UI/Chat/ToolCallGroup', () => {

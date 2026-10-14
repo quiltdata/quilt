@@ -993,6 +993,28 @@ export default function Chat({
     AwaitingConnector: () => undefined,
   })
 
+  // Every ToolCallGroup this render will show, by the ids it's currently
+  // known by -- computed up front so each round's registration (below) can
+  // run on every render that observes it, not only when it's toggled.
+  // Without that, a call joining the round between toggles is never
+  // assigned a key, and a later discard of the originally-keyed call would
+  // leave it keyed under itself with no path back to the real entry.
+  const toolCallGroupIds: readonly string[][] = toolCallRuns
+    .filter((run) => run[0]._tag !== 'Message')
+    .map((run, i) => {
+      const toolUseIds = (
+        run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+      ).map((e) => e.toolUseId)
+      const liveIds =
+        i === toolCallRuns.length - 1 && liveToolUse ? Object.keys(liveToolUse.calls) : []
+      return toolUseIds.concat(liveIds)
+    })
+    .concat(
+      liveToolUse && toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse'
+        ? [Object.keys(liveToolUse.calls)]
+        : [],
+    )
+
   // One round's tool calls can render through several different
   // ToolCallGroup mounts across its life (live-only, before any result;
   // merged into the trailing history run once one lands; history-only once
@@ -1006,19 +1028,29 @@ export default function Chat({
   const [expandedByRoundKey, setExpandedByRoundKey] = React.useState<
     ReadonlyMap<string, boolean>
   >(new Map())
+
+  // Registered every render (the "adjust state during render" pattern:
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders),
+  // not only on toggle, so a round's key assignment never lags its ids.
+  let registeredRoundKeys = roundKeyByToolUseId
+  for (const ids of toolCallGroupIds) {
+    registeredRoundKeys = assignRoundKeys(registeredRoundKeys, ids)
+  }
+  if (registeredRoundKeys !== roundKeyByToolUseId) {
+    setRoundKeyByToolUseId(registeredRoundKeys)
+  }
+
   const toolCallExpanded = React.useCallback(
     (toolUseIds: readonly string[]) =>
-      lookupExpanded(expandedByRoundKey, roundKeyOf(roundKeyByToolUseId, toolUseIds)),
-    [expandedByRoundKey, roundKeyByToolUseId],
+      lookupExpanded(expandedByRoundKey, roundKeyOf(registeredRoundKeys, toolUseIds)),
+    [expandedByRoundKey, registeredRoundKeys],
   )
   const toggleToolCallExpanded = React.useCallback(
-    (toolUseIds: readonly string[]) => {
-      setRoundKeyByToolUseId((prev) => assignRoundKeys(prev, toolUseIds))
+    (toolUseIds: readonly string[]) =>
       setExpandedByRoundKey((prev) =>
-        toggleExpandedEntry(prev, roundKeyOf(roundKeyByToolUseId, toolUseIds)),
-      )
-    },
-    [roundKeyByToolUseId],
+        toggleExpandedEntry(prev, roundKeyOf(registeredRoundKeys, toolUseIds)),
+      ),
+    [registeredRoundKeys],
   )
 
   return (
@@ -1064,45 +1096,49 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
-          {toolCallRuns.map((run, i) =>
-            run[0]._tag === 'Message' ? (
-              <MessageEvent
-                key={run[0].id}
-                dispatch={dispatch}
-                state={state._tag}
-                {...(run[0] as ReturnType<typeof Model.Conversation.Event.Message>)}
-              />
-            ) : (
-              // Keyed by the first call's toolUseId, not its event id: the
-              // event id is reminted on each result, so keying on it would
-              // remount the group (and lose its expanded state) the moment
-              // any call in it resolves. Live calls join the trailing
-              // ToolUse run (same round, partially settled) rather than
-              // getting their own group, so a call that finishes while
-              // others are still running doesn't fall out of an open toggle.
-              (() => {
-                const toolUseIds = (
-                  run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
-                ).map((e) => e.toolUseId)
-                const liveIds =
-                  i === toolCallRuns.length - 1 && liveToolUse
-                    ? Object.keys(liveToolUse.calls)
-                    : []
-                const allIds = toolUseIds.concat(liveIds)
-                return (
-                  <ToolCallGroup
-                    key={toolUseIds[0]}
-                    dispatch={dispatch}
-                    state={state._tag}
-                    events={run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]}
-                    live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
-                    expanded={toolCallExpanded(allIds)}
-                    onToggleExpanded={() => toggleToolCallExpanded(allIds)}
-                  />
-                )
-              })()
-            ),
-          )}
+          {(() => {
+            // Indexes toolCallGroupIds in step with the non-Message runs
+            // below, so the ids used to look up expand state here are the
+            // exact ones already registered above, not a second
+            // computation that could drift from it.
+            let groupIndex = -1
+            return toolCallRuns.map((run, i) =>
+              run[0]._tag === 'Message' ? (
+                <MessageEvent
+                  key={run[0].id}
+                  dispatch={dispatch}
+                  state={state._tag}
+                  {...(run[0] as ReturnType<typeof Model.Conversation.Event.Message>)}
+                />
+              ) : (
+                // Keyed by the first call's toolUseId, not its event id:
+                // the event id is reminted on each result, so keying on it
+                // would remount the group (and lose its expanded state)
+                // the moment any call in it resolves. Live calls join the
+                // trailing ToolUse run (same round, partially settled)
+                // rather than getting their own group, so a call that
+                // finishes while others are still running doesn't fall
+                // out of an open toggle.
+                (() => {
+                  groupIndex += 1
+                  const allIds = toolCallGroupIds[groupIndex]
+                  return (
+                    <ToolCallGroup
+                      key={allIds[0]}
+                      dispatch={dispatch}
+                      state={state._tag}
+                      events={
+                        run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+                      }
+                      live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
+                      expanded={toolCallExpanded(allIds)}
+                      onToggleExpanded={() => toggleToolCallExpanded(allIds)}
+                    />
+                  )
+                })()
+              ),
+            )
+          })()}
           {/* A tool-only turn (no text) leaves `events` unchanged, so the
               trailing run above can be a Message, or there can be no run at
               all -- liveToolUse then has nowhere to attach above and needs
@@ -1110,7 +1146,7 @@ export default function Chat({
           {liveToolUse &&
             toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse' &&
             (() => {
-              const liveIds = Object.keys(liveToolUse.calls)
+              const liveIds = toolCallGroupIds[toolCallGroupIds.length - 1]
               return (
                 <ToolCallGroup
                   dispatch={dispatch}
