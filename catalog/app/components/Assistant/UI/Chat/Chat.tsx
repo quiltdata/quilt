@@ -894,6 +894,33 @@ export function toggleExpandedEntry(
   return next
 }
 
+// The id set for every ToolCallGroup a render of `toolCallRuns` will show.
+// `isTrailing` is computed from each run's position in the *unfiltered*
+// array before the Message runs are filtered out -- comparing a filtered
+// array's own index against the unfiltered array's length would mismatch
+// whenever a Message run comes before the trailing ToolUse run (e.g.
+// [Message, ToolUse]), silently dropping live ids from the trailing group.
+export function toolCallGroupIdsOf(
+  toolCallRuns: readonly Model.Conversation.Event[][],
+  liveToolUse: { calls: Model.Conversation.ToolCalls } | undefined,
+): readonly string[][] {
+  const toolUseRunIds = toolCallRuns
+    .map((run, i) => ({ run, isTrailing: i === toolCallRuns.length - 1 }))
+    .filter(({ run }) => run[0]._tag !== 'Message')
+    .map(({ run, isTrailing }) => {
+      const toolUseIds = (
+        run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+      ).map((e) => e.toolUseId)
+      const liveIds = isTrailing && liveToolUse ? Object.keys(liveToolUse.calls) : []
+      return toolUseIds.concat(liveIds)
+    })
+  const standaloneLiveIds =
+    liveToolUse && toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse'
+      ? [Object.keys(liveToolUse.calls)]
+      : []
+  return toolUseRunIds.concat(standaloneLiveIds)
+}
+
 interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
@@ -999,21 +1026,7 @@ export default function Chat({
   // Without that, a call joining the round between toggles is never
   // assigned a key, and a later discard of the originally-keyed call would
   // leave it keyed under itself with no path back to the real entry.
-  const toolCallGroupIds: readonly string[][] = toolCallRuns
-    .filter((run) => run[0]._tag !== 'Message')
-    .map((run, i) => {
-      const toolUseIds = (
-        run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
-      ).map((e) => e.toolUseId)
-      const liveIds =
-        i === toolCallRuns.length - 1 && liveToolUse ? Object.keys(liveToolUse.calls) : []
-      return toolUseIds.concat(liveIds)
-    })
-    .concat(
-      liveToolUse && toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse'
-        ? [Object.keys(liveToolUse.calls)]
-        : [],
-    )
+  const toolCallGroupIds = toolCallGroupIdsOf(toolCallRuns, liveToolUse)
 
   // One round's tool calls can render through several different
   // ToolCallGroup mounts across its life (live-only, before any result;

@@ -43,6 +43,7 @@ import {
   lookupExpanded,
   roundKeyOf,
   toggleExpandedEntry,
+  toolCallGroupIdsOf,
 } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
@@ -237,6 +238,43 @@ describe('components/Assistant/UI/Chat/roundKeyOf, assignRoundKeys, lookupExpand
     // 'a' discarded; the round is now looked up only by 'b'.
     roundKeys = assignRoundKeys(roundKeys, ['b'])
     expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['b']))).toBe(true)
+  })
+})
+
+describe('components/Assistant/UI/Chat/toolCallGroupIdsOf', () => {
+  function toolUseEventFor(id: string, toolUseId: string): Model.Conversation.Event {
+    return {
+      _tag: 'ToolUse',
+      id,
+      timestamp: new Date(),
+      toolUseId,
+      name: 'search_packages',
+      input: {},
+      result: { status: 'success', content: [] },
+    }
+  }
+
+  function messageEventFor(id: string): Model.Conversation.Event {
+    return {
+      _tag: 'Message',
+      id,
+      timestamp: new Date(),
+      role: 'assistant',
+      content: Model.Content.MessageContentBlock.Text({ text: 'ok' }),
+    }
+  }
+
+  // The bug this pins: computing the trailing-run flag from the array
+  // *after* Message runs are filtered out compares a filtered index
+  // against the unfiltered length, so a Message run ahead of the
+  // trailing ToolUse run throws off the comparison and drops the live
+  // ids from the group that's actually displaying them.
+  it('includes live ids in the trailing ToolUse run even when a Message run precedes it', () => {
+    const toolCallRuns = [[messageEventFor('m1')], [toolUseEventFor('t1', 'use-1')]]
+    const ids = toolCallGroupIdsOf(toolCallRuns, {
+      calls: { 'use-2': { name: 'object_read', input: {}, fiber: {} as any } },
+    })
+    expect(ids).toEqual([['use-1', 'use-2']])
   })
 })
 
