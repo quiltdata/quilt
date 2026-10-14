@@ -5,12 +5,14 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as Assistant from 'components/Assistant'
+import * as HubSpot from 'components/HubSpot'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import * as Features from 'utils/features'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
 import isTypingTarget from 'utils/isTypingTarget'
@@ -514,7 +516,7 @@ interface NavRowProps {
   collapsed: boolean
   selected?: boolean
   disabled?: boolean
-  to?: string
+  to?: string | { pathname: string; state?: unknown }
   onClick?: () => void
 }
 
@@ -783,6 +785,7 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
   const subscription = Subscription.useState()
   const bookmarks = Bookmarks.use()
   const assistant = Assistant.Model.useAssistantAPI()
+  const chat = HubSpot.useChat()
   const auth = NavMenu.useAuthState()
   const switchRole = useRoleSwitcher()
   const [collapsedPref, toggleCollapsed] = useCollapsed()
@@ -808,6 +811,8 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
   const searchActive = !!useRouteMatch(paths.search)
   const queriesActive = !!useRouteMatch(paths.queries)
   const adminActive = !!useRouteMatch(paths.admin)
+  const quratorModeActive = !!useRouteMatch(paths.quratorMode)
+  const quratorMode = Features.isEnabled(settings, 'qurator-mode')
 
   // When already on the search page, "Search" keeps the live query string
   // (q, filters, ordering) instead of resetting to bare /search -- the query
@@ -1013,12 +1018,40 @@ export function Sidebar({ compact = false, open = false, onClose }: SidebarProps
                 collapsed={collapsed}
               />
             )}
+            {assistant && quratorMode && (
+              <NavRow
+                icon={<OutlinedIcon>forum</OutlinedIcon>}
+                label="Qurator mode"
+                to={{
+                  pathname: urls.quratorMode(),
+                  state: {
+                    from: quratorModeActive
+                      ? (location.state as { from?: string } | undefined)?.from
+                      : location.pathname + location.search,
+                  },
+                }}
+                selected={quratorModeActive}
+                collapsed={collapsed}
+              />
+            )}
             {user?.isAdmin && (
               <NavRow
                 icon={<OutlinedIcon>security</OutlinedIcon>}
                 label="Admin"
                 to={urls.admin()}
                 selected={adminActive}
+                collapsed={collapsed}
+              />
+            )}
+            {chat && (
+              <NavRow
+                icon={<OutlinedIcon>support_agent</OutlinedIcon>}
+                label="Help"
+                onClick={() => {
+                  // The compact sidebar is a modal drawer stacked above the Help panel.
+                  onClose?.()
+                  chat.show()
+                }}
                 collapsed={collapsed}
               />
             )}

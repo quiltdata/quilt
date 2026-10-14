@@ -23,6 +23,11 @@ export interface containers_Admin_Settings_gql_QuratorConfigQuery {
         readonly default: string | null
         readonly requestTimeoutSeconds: number | null
         readonly maxToolCallsPerTurn: number | null
+        readonly names: ReadonlyArray<{
+          readonly __typename: 'QuratorModelName'
+          readonly id: string
+          readonly name: string
+        }> | null
       }
       readonly gateway: {
         readonly __typename: 'QuratorGatewayConfig'
@@ -70,6 +75,20 @@ export const containers_Admin_Settings_gql_QuratorConfigDocument = {
                             {
                               kind: 'Field',
                               name: { kind: 'Name', value: 'maxToolCallsPerTurn' },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'names' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'name' },
+                                  },
+                                ],
+                              },
                             },
                           ],
                         },

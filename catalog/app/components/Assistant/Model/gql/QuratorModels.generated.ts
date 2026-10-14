@@ -19,6 +19,11 @@ export interface components_Assistant_Model_gql_QuratorModelsQuery {
       readonly __typename: 'QuratorModelConfig'
       readonly allowlist: ReadonlyArray<string> | null
       readonly default: string | null
+      readonly names: ReadonlyArray<{
+        readonly __typename: 'QuratorModelName'
+        readonly id: string
+        readonly name: string
+      }> | null
     } | null
   }
 }
@@ -47,6 +52,17 @@ export const components_Assistant_Model_gql_QuratorModelsDocument = {
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'allowlist' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'default' } },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'names' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                          ],
+                        },
+                      },
                     ],
                   },
                 },
