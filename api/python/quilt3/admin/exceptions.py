@@ -47,6 +47,10 @@ class RoleSsoConfigConflictError(Quilt3AdminError):
     pass
 
 
+class RoleSignupPageConflictError(Quilt3AdminError):
+    """The signup page is already owned by another role."""
+
+
 class RoleTypeMismatchError(Quilt3AdminError):
     pass
 

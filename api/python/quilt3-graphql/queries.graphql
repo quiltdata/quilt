@@ -1,8 +1,18 @@
+fragment RoleSignupSelection on RoleSignup {
+  page
+  title
+  description
+  accessCode
+}
 fragment UnmanagedRoleSelection on UnmanagedRole {
   __typename
   id
   name
   arn
+  defaultBucket
+  signup {
+    ...RoleSignupSelection
+  }
 }
 fragment PolicySummarySelection on Policy {
   id
@@ -29,6 +39,10 @@ fragment ManagedRoleSelection on ManagedRole {
   }
   permissions {
     ...RoleBucketPermissionSelection
+  }
+  defaultBucket
+  signup {
+    ...RoleSignupSelection
   }
 }
 fragment RoleSelection on Role {

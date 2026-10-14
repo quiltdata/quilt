@@ -4,6 +4,10 @@ fragment RoleSelection on Role {
     id
     name
     arn
+    defaultBucket
+    signup {
+      ...RoleSignupSelection
+    }
   }
   ... on ManagedRole {
     id
@@ -29,5 +33,16 @@ fragment RoleSelection on Role {
         id
       }
     }
+    defaultBucket
+    signup {
+      ...RoleSignupSelection
+    }
   }
+}
+
+fragment RoleSignupSelection on RoleSignup {
+  page
+  accessCode
+  title
+  description
 }

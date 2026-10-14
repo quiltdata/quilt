@@ -515,15 +515,19 @@ export interface ManagedPolicyInput {
 export interface ManagedRole {
   readonly __typename: 'ManagedRole'
   readonly arn: Scalars['String']['output']
+  readonly defaultBucket: Maybe<Scalars['String']['output']>
   readonly id: Scalars['ID']['output']
   readonly name: Scalars['String']['output']
   readonly permissions: ReadonlyArray<RoleBucketPermission>
   readonly policies: ReadonlyArray<Policy>
+  readonly signup: Maybe<RoleSignup>
 }
 
 export interface ManagedRoleInput {
+  readonly defaultBucket: InputMaybe<Scalars['String']['input']>
   readonly name: Scalars['String']['input']
   readonly policies: ReadonlyArray<Scalars['ID']['input']>
+  readonly signup: InputMaybe<RoleSignupInput>
 }
 
 export interface Me {
@@ -1379,6 +1383,7 @@ export type RoleCreateResult =
   | RoleNameExists
   | RoleNameInvalid
   | RoleNameReserved
+  | RoleSignupPageConflict
 
 export interface RoleCreateSuccess {
   readonly __typename: 'RoleCreateSuccess'
@@ -1453,6 +1458,26 @@ export interface RoleSetDefaultSuccess {
   readonly role: Role
 }
 
+export interface RoleSignup {
+  readonly __typename: 'RoleSignup'
+  readonly accessCode: Scalars['String']['output']
+  readonly description: Maybe<Scalars['String']['output']>
+  readonly page: Scalars['String']['output']
+  readonly title: Maybe<Scalars['String']['output']>
+}
+
+export interface RoleSignupInput {
+  readonly accessCode: Scalars['String']['input']
+  readonly description: InputMaybe<Scalars['String']['input']>
+  readonly page: Scalars['String']['input']
+  readonly title: InputMaybe<Scalars['String']['input']>
+}
+
+export interface RoleSignupPageConflict {
+  readonly __typename: 'RoleSignupPageConflict'
+  readonly _: Maybe<Scalars['Boolean']['output']>
+}
+
 export type RoleUpdateResult =
   | RoleHasTooManyPoliciesToAttach
   | RoleIsManaged
@@ -1461,6 +1486,7 @@ export type RoleUpdateResult =
   | RoleNameInvalid
   | RoleNameReserved
   | RoleNameUsedBySsoConfig
+  | RoleSignupPageConflict
   | RoleUpdateSuccess
 
 export interface RoleUpdateSuccess {
@@ -1662,13 +1688,17 @@ export interface UnmanagedPolicyInput {
 export interface UnmanagedRole {
   readonly __typename: 'UnmanagedRole'
   readonly arn: Scalars['String']['output']
+  readonly defaultBucket: Maybe<Scalars['String']['output']>
   readonly id: Scalars['ID']['output']
   readonly name: Scalars['String']['output']
+  readonly signup: Maybe<RoleSignup>
 }
 
 export interface UnmanagedRoleInput {
   readonly arn: Scalars['String']['input']
+  readonly defaultBucket: InputMaybe<Scalars['String']['input']>
   readonly name: Scalars['String']['input']
+  readonly signup: InputMaybe<RoleSignupInput>
 }
 
 export interface User {

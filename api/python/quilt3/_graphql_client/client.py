@@ -127,6 +127,7 @@ from .role_create_managed import (
     RoleCreateManagedRoleCreateManagedRoleNameExists,
     RoleCreateManagedRoleCreateManagedRoleNameInvalid,
     RoleCreateManagedRoleCreateManagedRoleNameReserved,
+    RoleCreateManagedRoleCreateManagedRoleSignupPageConflict,
 )
 from .role_create_unmanaged import (
     RoleCreateUnmanaged,
@@ -135,6 +136,7 @@ from .role_create_unmanaged import (
     RoleCreateUnmanagedRoleCreateUnmanagedRoleNameExists,
     RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid,
     RoleCreateUnmanagedRoleCreateUnmanagedRoleNameReserved,
+    RoleCreateUnmanagedRoleCreateUnmanagedRoleSignupPageConflict,
 )
 from .role_delete import (
     RoleDelete,
@@ -161,6 +163,7 @@ from .role_update_managed import (
     RoleUpdateManagedRoleUpdateManagedRoleNameInvalid,
     RoleUpdateManagedRoleUpdateManagedRoleNameReserved,
     RoleUpdateManagedRoleUpdateManagedRoleNameUsedBySsoConfig,
+    RoleUpdateManagedRoleUpdateManagedRoleSignupPageConflict,
     RoleUpdateManagedRoleUpdateManagedRoleUpdateSuccess,
 )
 from .role_update_unmanaged import (
@@ -172,6 +175,7 @@ from .role_update_unmanaged import (
     RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameInvalid,
     RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameReserved,
     RoleUpdateUnmanagedRoleUpdateUnmanagedRoleNameUsedBySsoConfig,
+    RoleUpdateUnmanagedRoleUpdateUnmanagedRoleSignupPageConflict,
     RoleUpdateUnmanagedRoleUpdateUnmanagedRoleUpdateSuccess,
 )
 from .roles_list import (
@@ -231,6 +235,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -263,11 +271,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -296,6 +315,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -328,11 +351,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -361,6 +395,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -398,6 +436,13 @@ class Client(BaseClient):
                 name
               }
               level
+            }
+
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
             }
             """
         )
@@ -426,6 +471,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -463,6 +512,13 @@ class Client(BaseClient):
                 name
               }
               level
+            }
+
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
             }
             """
         )
@@ -493,6 +549,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -525,11 +585,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -546,6 +617,7 @@ class Client(BaseClient):
         RoleCreateManagedRoleCreateManagedRoleNameExists,
         RoleCreateManagedRoleCreateManagedRoleNameInvalid,
         RoleCreateManagedRoleCreateManagedRoleHasTooManyPoliciesToAttach,
+        RoleCreateManagedRoleCreateManagedRoleSignupPageConflict,
     ]:
         query = gql(
             """
@@ -571,6 +643,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -603,11 +679,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -624,6 +711,7 @@ class Client(BaseClient):
         RoleCreateUnmanagedRoleCreateUnmanagedRoleNameExists,
         RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid,
         RoleCreateUnmanagedRoleCreateUnmanagedRoleHasTooManyPoliciesToAttach,
+        RoleCreateUnmanagedRoleCreateUnmanagedRoleSignupPageConflict,
     ]:
         query = gql(
             """
@@ -649,6 +737,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -681,11 +773,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -705,6 +808,7 @@ class Client(BaseClient):
         RoleUpdateManagedRoleUpdateManagedRoleIsManaged,
         RoleUpdateManagedRoleUpdateManagedRoleIsUnmanaged,
         RoleUpdateManagedRoleUpdateManagedRoleHasTooManyPoliciesToAttach,
+        RoleUpdateManagedRoleUpdateManagedRoleSignupPageConflict,
     ]:
         query = gql(
             """
@@ -730,6 +834,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -762,11 +870,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -786,6 +905,7 @@ class Client(BaseClient):
         RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsManaged,
         RoleUpdateUnmanagedRoleUpdateUnmanagedRoleIsUnmanaged,
         RoleUpdateUnmanagedRoleUpdateUnmanagedRoleHasTooManyPoliciesToAttach,
+        RoleUpdateUnmanagedRoleUpdateUnmanagedRoleSignupPageConflict,
     ]:
         query = gql(
             """
@@ -811,6 +931,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -843,11 +967,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -911,6 +1046,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -943,11 +1082,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
             """
         )
@@ -994,6 +1144,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1037,6 +1191,13 @@ class Client(BaseClient):
                 name
               }
               level
+            }
+
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
             }
             """
         )
@@ -1083,6 +1244,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1126,6 +1291,13 @@ class Client(BaseClient):
                 name
               }
               level
+            }
+
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
             }
             """
         )
@@ -1172,6 +1344,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1215,6 +1391,13 @@ class Client(BaseClient):
                 name
               }
               level
+            }
+
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
             }
             """
         )
@@ -1261,6 +1444,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1304,6 +1491,13 @@ class Client(BaseClient):
                 name
               }
               level
+            }
+
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
             }
             """
         )
@@ -1374,6 +1568,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -1406,11 +1604,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserSelection on User {
@@ -1460,6 +1669,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -1492,11 +1705,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserSelection on User {
@@ -1562,6 +1786,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1600,11 +1828,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserMutationSelection on UserResult {
@@ -1710,6 +1949,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1748,11 +1991,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserMutationSelection on UserResult {
@@ -1820,6 +2074,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1858,11 +2116,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserMutationSelection on UserResult {
@@ -1930,6 +2199,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -1968,11 +2241,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserMutationSelection on UserResult {
@@ -2087,6 +2371,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -2125,11 +2413,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserSelection on User {
@@ -2198,6 +2497,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -2236,11 +2539,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserSelection on User {
@@ -2306,6 +2620,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -2344,11 +2662,22 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment UnmanagedRoleSelection on UnmanagedRole {
               __typename
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserSelection on User {
@@ -2400,6 +2729,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment PermissionSelection on PolicyBucketPermission {
@@ -2432,6 +2765,13 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment SsoConfigSelection on SsoConfig {
               text
               timestamp
@@ -2445,6 +2785,10 @@ class Client(BaseClient):
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserSelection on User {
@@ -2512,6 +2856,10 @@ class Client(BaseClient):
               permissions {
                 ...RoleBucketPermissionSelection
               }
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment OperationErrorSelection on OperationError {
@@ -2550,6 +2898,13 @@ class Client(BaseClient):
               ...ManagedRoleSelection
             }
 
+            fragment RoleSignupSelection on RoleSignup {
+              page
+              title
+              description
+              accessCode
+            }
+
             fragment SsoConfigSelection on SsoConfig {
               text
               timestamp
@@ -2563,6 +2918,10 @@ class Client(BaseClient):
               id
               name
               arn
+              defaultBucket
+              signup {
+                ...RoleSignupSelection
+              }
             }
 
             fragment UserSelection on User {

@@ -2151,6 +2151,15 @@ export default {
             args: [],
           },
           {
+            name: 'defaultBucket',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'id',
             type: {
               kind: 'NON_NULL',
@@ -2207,6 +2216,15 @@ export default {
                   },
                 },
               },
+            },
+            args: [],
+          },
+          {
+            name: 'signup',
+            type: {
+              kind: 'OBJECT',
+              name: 'RoleSignup',
+              ofType: null,
             },
             args: [],
           },
@@ -6157,6 +6175,10 @@ export default {
             kind: 'OBJECT',
             name: 'RoleNameReserved',
           },
+          {
+            kind: 'OBJECT',
+            name: 'RoleSignupPageConflict',
+          },
         ],
       },
       {
@@ -6406,6 +6428,71 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'RoleSignup',
+        fields: [
+          {
+            name: 'accessCode',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'description',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'page',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'title',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleSignupPageConflict',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
         kind: 'UNION',
         name: 'RoleUpdateResult',
         possibleTypes: [
@@ -6436,6 +6523,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'RoleNameUsedBySsoConfig',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleSignupPageConflict',
           },
           {
             kind: 'OBJECT',
@@ -7532,6 +7623,15 @@ export default {
             args: [],
           },
           {
+            name: 'defaultBucket',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'id',
             type: {
               kind: 'NON_NULL',
@@ -7552,6 +7652,15 @@ export default {
                 name: 'String',
                 ofType: null,
               },
+            },
+            args: [],
+          },
+          {
+            name: 'signup',
+            type: {
+              kind: 'OBJECT',
+              name: 'RoleSignup',
+              ofType: null,
             },
             args: [],
           },

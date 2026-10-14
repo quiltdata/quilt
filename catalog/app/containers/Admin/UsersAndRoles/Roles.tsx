@@ -217,11 +217,13 @@ function Create({ close }: CreateProps) {
     async (values) => {
       try {
         let data
+        // no signup page or default bucket from this form
+        const passthrough = { defaultBucket: null, signup: null }
         if (managed) {
-          const input = R.applySpec(managedRoleFormSpec)(values)
+          const input = { ...R.applySpec(managedRoleFormSpec)(values), ...passthrough }
           data = await createManaged({ input })
         } else {
-          const input = R.applySpec(unmanagedRoleFormSpec)(values)
+          const input = { ...R.applySpec(unmanagedRoleFormSpec)(values), ...passthrough }
           data = await createUnmanaged({ input })
         }
         const r = data.roleCreate
@@ -238,6 +240,9 @@ function Create({ close }: CreateProps) {
             return { name: 'invalid' }
           case 'RoleHasTooManyPoliciesToAttach':
             return { policies: 'Too many policies to attach' }
+          case 'RoleSignupPageConflict':
+            // this form never sets a signup page
+            throw new Error(r.__typename)
           default:
             return assertNever(r)
         }
@@ -482,7 +487,14 @@ export function SetDefault({ role, close }: SetDefaultProps) {
   )
 }
 
-const unmanagedRoleFormSpec: FormSpec<Model.GQLTypes.UnmanagedRoleInput> = {
+// The role editor has no fields for `defaultBucket` or `signup` (the quiltx ACL file is
+// the only interface for those), so the form specs cover the remaining input keys and
+// `Edit` passes the role's current values through unchanged.
+type RoleSignupInputKeys = 'defaultBucket' | 'signup'
+
+const unmanagedRoleFormSpec: FormSpec<
+  Omit<Model.GQLTypes.UnmanagedRoleInput, RoleSignupInputKeys>
+> = {
   name: R.pipe(
     R.prop('name'),
     Types.decode(IO.string),
@@ -497,7 +509,9 @@ const unmanagedRoleFormSpec: FormSpec<Model.GQLTypes.UnmanagedRoleInput> = {
   ),
 }
 
-const managedRoleFormSpec: FormSpec<Model.GQLTypes.ManagedRoleInput> = {
+const managedRoleFormSpec: FormSpec<
+  Omit<Model.GQLTypes.ManagedRoleInput, RoleSignupInputKeys>
+> = {
   name: R.pipe(
     R.prop('name'),
     Types.decode(IO.string),
@@ -529,11 +543,24 @@ export function Edit({ role, close }: EditProps) {
     async (values) => {
       try {
         let data
+        // Role updates are full replacements: omitting `defaultBucket` or `signup`
+        // would clear them, so carry the current values through.
+        const passthrough = {
+          defaultBucket: role.defaultBucket ?? null,
+          signup: role.signup
+            ? {
+                page: role.signup.page,
+                accessCode: role.signup.accessCode,
+                title: role.signup.title ?? null,
+                description: role.signup.description ?? null,
+              }
+            : null,
+        }
         if (managed) {
-          const input = R.applySpec(managedRoleFormSpec)(values)
+          const input = { ...R.applySpec(managedRoleFormSpec)(values), ...passthrough }
           data = await updateManaged({ input, id: role.id })
         } else {
-          const input = R.applySpec(unmanagedRoleFormSpec)(values)
+          const input = { ...R.applySpec(unmanagedRoleFormSpec)(values), ...passthrough }
           data = await updateUnmanaged({ input, id: role.id })
         }
         const r = data.roleUpdate
@@ -552,6 +579,7 @@ export function Edit({ role, close }: EditProps) {
           case 'RoleIsManaged':
           case 'RoleIsUnmanaged':
           case 'RoleNameUsedBySsoConfig':
+          case 'RoleSignupPageConflict':
             throw new Error(r.__typename)
           default:
             return assertNever(r)
@@ -564,7 +592,7 @@ export function Edit({ role, close }: EditProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [managed, role.id, updateManaged, updateUnmanaged, close],
+    [managed, role, updateManaged, updateUnmanaged, close],
   )
 
   const classes = useStyles()

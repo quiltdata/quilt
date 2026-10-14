@@ -13,6 +13,8 @@ UNMANAGED_ROLE = {
     "id": "d7d15bef-c482-4086-ae6b-d0372b6145d2",
     "name": "UnmanagedRole",
     "arn": "arn:aws:iam::000000000000:role/UnmanagedRole",
+    "defaultBucket": None,
+    "signup": None,
 }
 MANAGED_ROLE = {
     "__typename": "ManagedRole",
@@ -29,6 +31,19 @@ MANAGED_ROLE = {
         }
     ],
     "permissions": [{"bucket": {"name": "example-bucket"}, "level": "READ"}],
+    "defaultBucket": None,
+    "signup": None,
+}
+SIGNUP = {
+    "page": "benchtalk",
+    "title": "BenchTalk",
+    "description": "Five minutes of your attention.",
+    "accessCode": "BENCHTALK26",
+}
+SIGNUP_ROLE = {
+    **MANAGED_ROLE,
+    "defaultBucket": "quilt-benchtalk",
+    "signup": SIGNUP,
 }
 PERMISSION = {
     "bucket": {
@@ -57,6 +72,22 @@ EXPECTED_UNMANAGED_ROLE = admin.UnmanagedRole(
     name="UnmanagedRole",
     arn="arn:aws:iam::000000000000:role/UnmanagedRole",
     typename__="UnmanagedRole",
+)
+EXPECTED_SIGNUP = admin.RoleSignup(
+    page="benchtalk",
+    access_code="BENCHTALK26",
+    title="BenchTalk",
+    description="Five minutes of your attention.",
+)
+EXPECTED_SIGNUP_ROLE = admin.ManagedRole(
+    id=MANAGED_ROLE["id"],
+    name="ManagedRole",
+    arn="arn:aws:iam::000000000000:role/ManagedRole",
+    policies=[EXPECTED_POLICY_SUMMARY],
+    permissions=[EXPECTED_PERMISSION],
+    typename__="ManagedRole",
+    default_bucket="quilt-benchtalk",
+    signup=EXPECTED_SIGNUP,
 )
 POLICY = {
     "__typename": "Policy",
@@ -150,6 +181,7 @@ ROLE_CREATE_ERRORS = (
     ({"__typename": "RoleNameExists"}, admin.RoleNameExistsError),
     ({"__typename": "RoleNameInvalid"}, admin.RoleNameInvalidError),
     ({"__typename": "RoleHasTooManyPoliciesToAttach"}, admin.RoleTooManyPoliciesError),
+    ({"__typename": "RoleSignupPageConflict"}, admin.RoleSignupPageConflictError),
 )
 ROLE_UPDATE_ERRORS = (
     *ROLE_CREATE_ERRORS,
@@ -523,6 +555,126 @@ def test_patch_managed_role():
     ):
         result = admin.roles.patch_managed(MANAGED_ROLE["id"], name="NewName")
         assert result.name == "NewName"
+
+
+def test_get_role_with_signup():
+    with mock_client({"role": SIGNUP_ROLE}, "roleGet", variables={"id": SIGNUP_ROLE["id"]}):
+        assert admin.roles.get(SIGNUP_ROLE["id"]) == EXPECTED_SIGNUP_ROLE
+
+
+def test_create_managed_role_with_signup():
+    with mock_client(
+        {"role_create_managed": {"__typename": "RoleCreateSuccess", "role": SIGNUP_ROLE}},
+        "roleCreateManaged",
+        variables={
+            "input": _graphql_client.ManagedRoleInput(
+                name="ManagedRole",
+                policies=[],
+                default_bucket="quilt-benchtalk",
+                signup=_graphql_client.RoleSignupInput(
+                    page="benchtalk",
+                    access_code="BENCHTALK26",
+                    title="BenchTalk",
+                    description="Five minutes of your attention.",
+                ),
+            )
+        },
+    ):
+        assert (
+            admin.roles.create_managed("ManagedRole", [], default_bucket="quilt-benchtalk", signup=EXPECTED_SIGNUP)
+            == EXPECTED_SIGNUP_ROLE
+        )
+
+
+def test_create_unmanaged_role_with_default_bucket():
+    role = {**UNMANAGED_ROLE, "defaultBucket": "quilt-benchtalk"}
+    with mock_client(
+        {"role_create_unmanaged": {"__typename": "RoleCreateSuccess", "role": role}},
+        "roleCreateUnmanaged",
+        variables={
+            "input": _graphql_client.UnmanagedRoleInput(
+                name="UnmanagedRole",
+                arn=UNMANAGED_ROLE["arn"],
+                default_bucket="quilt-benchtalk",
+                signup=None,
+            )
+        },
+    ):
+        result = admin.roles.create_unmanaged("UnmanagedRole", UNMANAGED_ROLE["arn"], default_bucket="quilt-benchtalk")
+        assert result.default_bucket == "quilt-benchtalk"
+        assert result.signup is None
+
+
+def test_update_managed_role_removes_signup():
+    """update_* is a full replacement: omitting signup/default_bucket clears them."""
+    with mock_client_multi(
+        ({"role": SIGNUP_ROLE}, "roleGet", {"id": SIGNUP_ROLE["id"]}),
+        (
+            {"role_update_managed": {"__typename": "RoleUpdateSuccess", "role": MANAGED_ROLE}},
+            "roleUpdateManaged",
+            {
+                "id": SIGNUP_ROLE["id"],
+                "input": _graphql_client.ManagedRoleInput(
+                    name="ManagedRole", policies=[], default_bucket=None, signup=None
+                ),
+            },
+        ),
+    ):
+        assert admin.roles.update_managed(SIGNUP_ROLE["id"], name="ManagedRole", policies=[]) == EXPECTED_MANAGED_ROLE
+
+
+def test_patch_managed_role_keeps_signup():
+    """patch_* re-sends the current signup and default_bucket when not specified."""
+    with mock_client_multi(
+        ({"role": SIGNUP_ROLE}, "roleGet", {"id": SIGNUP_ROLE["id"]}),
+        (
+            {"role_update_managed": {"__typename": "RoleUpdateSuccess", "role": SIGNUP_ROLE}},
+            "roleUpdateManaged",
+            {
+                "id": SIGNUP_ROLE["id"],
+                "input": _graphql_client.ManagedRoleInput(
+                    name="ManagedRole",
+                    policies=[MANAGED_ROLE["policies"][0]["id"]],
+                    default_bucket="quilt-benchtalk",
+                    signup=_graphql_client.RoleSignupInput(
+                        page="benchtalk",
+                        access_code="BENCHTALK26",
+                        title="BenchTalk",
+                        description="Five minutes of your attention.",
+                    ),
+                ),
+            },
+        ),
+    ):
+        assert admin.roles.patch_managed(SIGNUP_ROLE["id"], policies=None) == EXPECTED_SIGNUP_ROLE
+
+
+def test_patch_managed_role_sets_signup():
+    with mock_client_multi(
+        ({"role": MANAGED_ROLE}, "roleGet", {"id": MANAGED_ROLE["id"]}),
+        (
+            {"role_update_managed": {"__typename": "RoleUpdateSuccess", "role": SIGNUP_ROLE}},
+            "roleUpdateManaged",
+            {
+                "id": MANAGED_ROLE["id"],
+                "input": _graphql_client.ManagedRoleInput(
+                    name="ManagedRole",
+                    policies=[MANAGED_ROLE["policies"][0]["id"]],
+                    default_bucket="quilt-benchtalk",
+                    signup=_graphql_client.RoleSignupInput(
+                        page="benchtalk",
+                        access_code="BENCHTALK26",
+                        title="BenchTalk",
+                        description="Five minutes of your attention.",
+                    ),
+                ),
+            },
+        ),
+    ):
+        result = admin.roles.patch_managed(
+            MANAGED_ROLE["id"], default_bucket="quilt-benchtalk", signup=EXPECTED_SIGNUP
+        )
+        assert result == EXPECTED_SIGNUP_ROLE
 
 
 def test_patch_managed_role_type_mismatch():
