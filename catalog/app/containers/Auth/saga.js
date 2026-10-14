@@ -302,7 +302,7 @@ function* getCode() {
  *
  * @param {string} page
  *
- * @returns {{title: ?string, description: ?string}}
+ * @returns {Generator<import('redux-saga/effects').CallEffect, {title: ?string, description: ?string}, {title: ?string, description: ?string}>}
  *
  * @throws {SignupPageNotFound}
  * @throws {AuthError}
@@ -327,7 +327,7 @@ export function* getSignupPage(page) {
  *
  * @param {{page: string, code: string}} params
  *
- * @returns {string} The signup ticket.
+ * @returns {Generator<import('redux-saga/effects').CallEffect, string, {ticket: string}>} Returns the signup ticket.
  *
  * @throws {SignupCodeInvalid}
  * @throws {AuthError}
