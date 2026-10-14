@@ -34,18 +34,6 @@ export function* getTokens() {
 }
 
 /**
- * Make a sign-up request.
- *
- * @param {Object} credentials
- *
- * @throws {InvalidUsername}
- * @throws {InvalidEmail}
- * @throws {InvalidPassword}
- * @throws {UsernameTaken}
- * @throws {EmailTaken}
- * @throws {AuthError}
- */
-/**
  * Map a registry account-creation failure (shared by /register and the access-code
  * /signup/:page/complete) to a typed error, or return undefined when it is not one.
  */
@@ -76,6 +64,18 @@ export function registrationError(e) {
   return undefined
 }
 
+/**
+ * Make a sign-up request.
+ *
+ * @param {Object} credentials
+ *
+ * @throws {InvalidUsername}
+ * @throws {InvalidEmail}
+ * @throws {InvalidPassword}
+ * @throws {UsernameTaken}
+ * @throws {EmailTaken}
+ * @throws {AuthError}
+ */
 function* signUp(credentials) {
   try {
     yield call(apiRequest, {

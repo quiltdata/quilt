@@ -56,12 +56,15 @@ const throwInto = (gen: Generator<any, any, any>, error: any) => {
 
 describe('containers/Auth/saga: signup', () => {
   describe('getSignupPage', () => {
-    it('yields a call to the signup page endpoint', () => {
+    it('calls the signup page endpoint and returns its result', () => {
       const gen = getSignupPage('benchtalk')
       const step = start(gen)
       expect(step.value.payload.args).toEqual([
         { auth: false, endpoint: '/signup/benchtalk' },
       ])
+      const info = { title: 'BenchTalk', description: 'Hi' }
+      const final = gen.next(info)
+      expect(final).toEqual({ value: info, done: true })
     })
 
     it('maps a 404 to SignupPageNotFound', () => {
@@ -152,17 +155,40 @@ describe('containers/Auth/saga: signup', () => {
       return { meta: { resolve, reject }, resolve, reject }
     }
 
+    it('handleGetSignupPage calls resolve on success', () => {
+      const { meta, resolve, reject } = makeMeta()
+      const gen = handleGetSignupPage({ payload: 'benchtalk', meta } as any)
+      gen.next()
+      const info = { title: 'BenchTalk', description: null }
+      const step = gen.next(info)
+      expect(step.value).toEqual(call(resolve, info))
+      expect(reject).not.toHaveBeenCalled()
+    })
+
     it('handleGetSignupPage calls reject on failure', () => {
-      const { meta, reject } = makeMeta()
+      const { meta, resolve, reject } = makeMeta()
       const gen = handleGetSignupPage({ payload: 'benchtalk', meta } as any)
       gen.next()
       const err = new errors.SignupPageNotFound({})
       const step = gen.throw(err)
       expect(step.value).toEqual(call(reject, err))
+      expect(resolve).not.toHaveBeenCalled()
+    })
+
+    it('handleCodeSignupRedeem calls resolve on success', () => {
+      const { meta, resolve, reject } = makeMeta()
+      const gen = handleCodeSignupRedeem({
+        payload: { page: 'benchtalk', code: 'x' },
+        meta,
+      } as any)
+      gen.next()
+      const step = gen.next('ticket-value')
+      expect(step.value).toEqual(call(resolve, 'ticket-value'))
+      expect(reject).not.toHaveBeenCalled()
     })
 
     it('handleCodeSignupRedeem calls reject on failure', () => {
-      const { meta, reject } = makeMeta()
+      const { meta, resolve, reject } = makeMeta()
       const gen = handleCodeSignupRedeem({
         payload: { page: 'benchtalk', code: 'x' },
         meta,
@@ -171,10 +197,23 @@ describe('containers/Auth/saga: signup', () => {
       const err = new errors.SignupCodeInvalid({})
       const step = gen.throw(err)
       expect(step.value).toEqual(call(reject, err))
+      expect(resolve).not.toHaveBeenCalled()
+    })
+
+    it('handleCodeSignupComplete calls resolve on success', () => {
+      const { meta, resolve, reject } = makeMeta()
+      const gen = handleCodeSignupComplete({
+        payload: { page: 'benchtalk', ticket: 't', username: 'u', email: 'e@x.com' },
+        meta,
+      } as any)
+      gen.next()
+      const step = gen.next(undefined)
+      expect(step.value).toEqual(call(resolve))
+      expect(reject).not.toHaveBeenCalled()
     })
 
     it('handleCodeSignupComplete calls reject on failure', () => {
-      const { meta, reject } = makeMeta()
+      const { meta, resolve, reject } = makeMeta()
       const gen = handleCodeSignupComplete({
         payload: { page: 'benchtalk', ticket: 't', username: 'u', email: 'e@x.com' },
         meta,
@@ -183,6 +222,7 @@ describe('containers/Auth/saga: signup', () => {
       const err = new errors.SignupTicketInvalid({})
       const step = gen.throw(err)
       expect(step.value).toEqual(call(reject, err))
+      expect(resolve).not.toHaveBeenCalled()
     })
   })
 })
