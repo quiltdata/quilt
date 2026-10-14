@@ -677,6 +677,25 @@ def test_patch_managed_role_sets_signup():
         assert result == EXPECTED_SIGNUP_ROLE
 
 
+def test_role_input_sends_explicit_nulls():
+    """The registry keeps a role's default_bucket/signup when the input key is omitted and
+    clears them on an explicit null. update_* always sends both keys, so the mock-equality
+    checks above (pydantic ignores fields_set) are backed by the serialized variables here."""
+    from quilt3._graphql_client.base_client import BaseClient
+
+    serialize = BaseClient.__new__(BaseClient)._convert_value
+    cleared = _graphql_client.ManagedRoleInput(name="r", policies=[], default_bucket=None, signup=None)
+    assert serialize(cleared) == {"name": "r", "policies": [], "defaultBucket": None, "signup": None}
+    kept = _graphql_client.ManagedRoleInput(name="r", policies=[])
+    assert serialize(kept) == {"name": "r", "policies": []}
+    assert serialize(EXPECTED_SIGNUP._to_gql()) == {
+        "page": "benchtalk",
+        "accessCode": "BENCHTALK26",
+        "title": "BenchTalk",
+        "description": "Five minutes of your attention.",
+    }
+
+
 def test_patch_managed_role_type_mismatch():
     with mock_client({"role": UNMANAGED_ROLE}, "roleGet", variables={"id": UNMANAGED_ROLE["id"]}):
         with pytest.raises(admin.RoleTypeMismatchError):
