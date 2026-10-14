@@ -63,7 +63,7 @@ class _Unset:
 _UNSET = _Unset()
 
 
-def _signup_kwargs(default_bucket, signup) -> dict:
+def _signup_kwargs(default_bucket: str | None | _Unset, signup: types.RoleSignup | None | _Unset) -> dict:
     kwargs = {}
     if not isinstance(default_bucket, _Unset):
         kwargs["default_bucket"] = default_bucket
@@ -76,8 +76,8 @@ def create_managed(
     name: str,
     policies: builtins.list[str] = (),
     *,
-    default_bucket: str | None = None,
-    signup: types.RoleSignup | None = None,
+    default_bucket: str | None | _Unset = _UNSET,
+    signup: types.RoleSignup | None | _Unset = _UNSET,
 ) -> types.ManagedRole:
     """
     Create a managed role in the registry.
@@ -89,7 +89,7 @@ def create_managed(
         signup: Access-code signup page for the role.
     """
     result = util.get_client().role_create_managed(
-        input=_graphql_client.ManagedRoleInput(name=name, policies=policies, **_signup_kwargs(default_bucket, signup))
+        input=_graphql_client.ManagedRoleInput(name=name, policies=policies, **_signup_kwargs(default_bucket, signup)),
     )
     return _handle_role_mutation_result(result)
 
@@ -98,8 +98,8 @@ def create_unmanaged(
     name: str,
     arn: str,
     *,
-    default_bucket: str | None = None,
-    signup: types.RoleSignup | None = None,
+    default_bucket: str | None | _Unset = _UNSET,
+    signup: types.RoleSignup | None | _Unset = _UNSET,
 ) -> types.UnmanagedRole:
     """
     Create an unmanaged role in the registry.
@@ -111,7 +111,7 @@ def create_unmanaged(
         signup: Access-code signup page for the role.
     """
     result = util.get_client().role_create_unmanaged(
-        input=_graphql_client.UnmanagedRoleInput(name=name, arn=arn, **_signup_kwargs(default_bucket, signup))
+        input=_graphql_client.UnmanagedRoleInput(name=name, arn=arn, **_signup_kwargs(default_bucket, signup)),
     )
     return _handle_role_mutation_result(result)
 

@@ -702,6 +702,38 @@ def test_role_input_sends_explicit_nulls():
     }
 
 
+def test_create_managed_role_omits_unset_signup_fields():
+    """Fixed per code review: create_managed/create_unmanaged defaulted default_bucket/signup
+    to None instead of _UNSET, so a caller who never mentioned them got defaultBucket: null,
+    signup: null on the wire instead of the keys being omitted entirely. A regression here is
+    invisible to test_create_managed_role/test_create_unmanaged_role's own mock_client check:
+    pydantic's `==` compares field values, not which fields were actually set, so this inspects
+    the real call's `input` object's own exclude_unset serialization instead."""
+
+    def serialize(model):
+        return model.model_dump(by_alias=True, exclude_unset=True)
+
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
+            with mock.patch(
+                "quilt3._graphql_client.Client.get_data",
+                return_value={"role_create_managed": {"__typename": "RoleCreateSuccess", "role": MANAGED_ROLE}},
+            ):
+                admin.roles.create_managed("ManagedRole")
+    sent_input = execute_mock.call_args.kwargs["variables"]["input"]
+    assert serialize(sent_input) == {"name": "ManagedRole", "policies": []}
+
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
+            with mock.patch(
+                "quilt3._graphql_client.Client.get_data",
+                return_value={"role_create_unmanaged": {"__typename": "RoleCreateSuccess", "role": UNMANAGED_ROLE}},
+            ):
+                admin.roles.create_unmanaged("UnmanagedRole", UNMANAGED_ROLE["arn"])
+    sent_input = execute_mock.call_args.kwargs["variables"]["input"]
+    assert serialize(sent_input) == {"name": "UnmanagedRole", "arn": UNMANAGED_ROLE["arn"]}
+
+
 def test_patch_managed_role_type_mismatch():
     with mock_client({"role": UNMANAGED_ROLE}, "roleGet", variables={"id": UNMANAGED_ROLE["id"]}):
         with pytest.raises(admin.RoleTypeMismatchError):
