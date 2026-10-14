@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as GQL from 'utils/GraphQL'
 
 import QURATOR_MODELS_QUERY from './gql/QuratorModels.generated'
+import * as LLM from './LLM'
 
 /** The models an admin has approved for Qurator on this stack, and their default. */
 export interface Governed {
@@ -69,11 +70,9 @@ const TIERS: readonly [RegExp, string][] = [
   [/haiku/i, 'Light'],
 ]
 
-const SAGEMAKER_ENDPOINT = /^arn:aws[a-z-]*:sagemaker:[^:]*:\d{12}:endpoint\/(.+)$/
-
 /** A coarse weight class for a Bedrock model id, when its family name implies one. */
 export function tier(id: string): string | null {
-  if (SAGEMAKER_ENDPOINT.test(id)) return null
+  if (LLM.isSageMakerEndpoint(id)) return null
   return TIERS.find(([re]) => re.test(id))?.[1] ?? null
 }
 
@@ -85,7 +84,7 @@ export function tier(id: string): string | null {
  */
 export function displayName(id: string): string {
   const base =
-    id.match(SAGEMAKER_ENDPOINT)?.[1] ??
+    id.match(LLM.SAGEMAKER_ENDPOINT)?.[1] ??
     id
       // Every dot-terminated leading segment: `us.`, `us-gov.`, `global.`, the vendor.
       .replace(/^(?:[a-z0-9-]+\.)*/, '')

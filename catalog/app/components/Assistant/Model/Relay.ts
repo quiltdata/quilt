@@ -17,6 +17,13 @@ const RETRY_AFTER_CAP_S = 15
 // does not expose Retry-After, so the browser cannot read the header.
 const BUSY_RETRY_AFTER_S = 10
 const BUSY_MESSAGE = 'Qurator is busy with other requests. Try again in a minute.'
+// Leaving maxTokens unset lets the backend's own default govern it; on a
+// reasoning model served via a SageMaker endpoint that default can be too
+// small to finish hidden reasoning. A Bedrock model's own default is usually
+// already generous, so the floor below applies only to SageMaker endpoints. A
+// caller that needs a different budget overrides it (see
+// GlobalContext/summarize.ts).
+const DEFAULT_MAX_TOKENS = 4096
 
 class Failure {
   readonly _tag = 'Failure'
@@ -234,6 +241,15 @@ export function LLMRelay(options: RelayOptions) {
           messages,
           toolConfig: prompt.toolConfig && encodeToolConfig(prompt.toolConfig),
           ...opts,
+          // ?? rather than a spread-after-default so an explicit
+          // `maxTokens: undefined` can't silently drop the floor
+          // (JSON.stringify omits undefined keys).
+          ...(LLM.isSageMakerEndpoint(modelId) && {
+            inferenceConfig: {
+              ...opts?.inferenceConfig,
+              maxTokens: opts?.inferenceConfig?.maxTokens ?? DEFAULT_MAX_TOKENS,
+            },
+          }),
         }
 
         // Re-read per attempt: a Busy wait can outlast the session token.

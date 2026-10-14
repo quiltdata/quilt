@@ -52,6 +52,11 @@ export interface Options {
   additionalModelResponseFieldPaths?: BedrockRuntime.ConverseRequestAdditionalModelResponseFieldPathsList
 }
 
+/** A model id that is a SageMaker endpoint ARN rather than a Bedrock model id. */
+export const SAGEMAKER_ENDPOINT = /^arn:aws[a-z-]*:sagemaker:[^:]*:\d{12}:endpoint\/(.+)$/
+
+export const isSageMakerEndpoint = (id: string): boolean => SAGEMAKER_ENDPOINT.test(id)
+
 interface ConverseResponse {
   content: Eff.Option.Option<Content.ResponseMessageContentBlock[]>
   backendResponse: BedrockRuntime.ConverseResponse
