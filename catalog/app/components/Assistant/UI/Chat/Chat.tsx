@@ -845,30 +845,52 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// A round's expand state is looked up by any toolUseId it's currently known
-// by (it can gain and lose ids across its life as calls join or resolve),
-// and stored under whichever of those ids the map already has, or the
-// first one otherwise -- so a round keeps one entry across the live-only,
-// merged, and settled renders of it, instead of each getting its own.
-export function lookupExpanded(
-  expandedByToolUseId: ReadonlyMap<string, boolean>,
+// A round's set of toolUseIds is not fixed: calls join as they start,
+// leave `live` as they resolve into history, and can leave `events`
+// entirely once discarded -- so no single toolUseId is guaranteed to stay
+// in a round's id list for its whole life. `roundKeyOf` instead assigns
+// each round one permanent key (its first-ever-seen toolUseId) the moment
+// any of its ids is first observed, and never retracts that assignment,
+// so a later id (merging in) or a missing one (discarded away) both still
+// resolve to the same round.
+export function roundKeyOf(
+  roundKeyByToolUseId: ReadonlyMap<string, string>,
   toolUseIds: readonly string[],
-): boolean {
+): string | undefined {
   for (const id of toolUseIds) {
-    const v = expandedByToolUseId.get(id)
-    if (v !== undefined) return v
+    const key = roundKeyByToolUseId.get(id)
+    if (key !== undefined) return key
   }
-  return false
+  return toolUseIds[0]
+}
+
+export function assignRoundKeys(
+  roundKeyByToolUseId: ReadonlyMap<string, string>,
+  toolUseIds: readonly string[],
+): ReadonlyMap<string, string> {
+  const key = roundKeyOf(roundKeyByToolUseId, toolUseIds)
+  if (key === undefined) return roundKeyByToolUseId
+  const unassigned = toolUseIds.filter((id) => !roundKeyByToolUseId.has(id))
+  if (!unassigned.length) return roundKeyByToolUseId
+  const next = new Map(roundKeyByToolUseId)
+  for (const id of unassigned) next.set(id, key)
+  return next
+}
+
+export function lookupExpanded(
+  expandedByRoundKey: ReadonlyMap<string, boolean>,
+  roundKey: string | undefined,
+): boolean {
+  return roundKey !== undefined && (expandedByRoundKey.get(roundKey) ?? false)
 }
 
 export function toggleExpandedEntry(
-  expandedByToolUseId: ReadonlyMap<string, boolean>,
-  toolUseIds: readonly string[],
+  expandedByRoundKey: ReadonlyMap<string, boolean>,
+  roundKey: string | undefined,
 ): ReadonlyMap<string, boolean> {
-  const key = toolUseIds.find((id) => expandedByToolUseId.has(id)) ?? toolUseIds[0]
-  if (!key) return expandedByToolUseId
-  const next = new Map(expandedByToolUseId)
-  next.set(key, !lookupExpanded(expandedByToolUseId, toolUseIds))
+  if (roundKey === undefined) return expandedByRoundKey
+  const next = new Map(expandedByRoundKey)
+  next.set(roundKey, !lookupExpanded(expandedByRoundKey, roundKey))
   return next
 }
 
@@ -971,23 +993,32 @@ export default function Chat({
     AwaitingConnector: () => undefined,
   })
 
-  // One round's tool calls can render through three different ToolCallGroup
-  // mounts across its life (live-only, before any result; merged into the
-  // trailing history run once one lands; history-only once all are
-  // discarded or that run is reread) -- none of them share a stable key by
-  // themselves, so the toggle lives here, looked up by any toolUseId the
-  // round is currently known by and (re)keyed under the first one seen.
-  const [expandedByToolUseId, setExpandedByToolUseId] = React.useState<
+  // One round's tool calls can render through several different
+  // ToolCallGroup mounts across its life (live-only, before any result;
+  // merged into the trailing history run once one lands; history-only once
+  // settled), and its set of toolUseIds isn't fixed either (a call can
+  // leave it entirely once discarded) -- so the toggle lives here, under a
+  // permanent key assigned the moment any of the round's ids is first seen
+  // and never retracted, rather than under a toolUseId directly.
+  const [roundKeyByToolUseId, setRoundKeyByToolUseId] = React.useState<
+    ReadonlyMap<string, string>
+  >(new Map())
+  const [expandedByRoundKey, setExpandedByRoundKey] = React.useState<
     ReadonlyMap<string, boolean>
   >(new Map())
   const toolCallExpanded = React.useCallback(
-    (toolUseIds: readonly string[]) => lookupExpanded(expandedByToolUseId, toolUseIds),
-    [expandedByToolUseId],
+    (toolUseIds: readonly string[]) =>
+      lookupExpanded(expandedByRoundKey, roundKeyOf(roundKeyByToolUseId, toolUseIds)),
+    [expandedByRoundKey, roundKeyByToolUseId],
   )
   const toggleToolCallExpanded = React.useCallback(
-    (toolUseIds: readonly string[]) =>
-      setExpandedByToolUseId((prev) => toggleExpandedEntry(prev, toolUseIds)),
-    [],
+    (toolUseIds: readonly string[]) => {
+      setRoundKeyByToolUseId((prev) => assignRoundKeys(prev, toolUseIds))
+      setExpandedByRoundKey((prev) =>
+        toggleExpandedEntry(prev, roundKeyOf(roundKeyByToolUseId, toolUseIds)),
+      )
+    },
+    [roundKeyByToolUseId],
   )
 
   return (

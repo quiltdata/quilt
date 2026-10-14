@@ -39,7 +39,9 @@ import {
   Menu,
   MessageEvent,
   ToolCallGroup,
+  assignRoundKeys,
   lookupExpanded,
+  roundKeyOf,
   toggleExpandedEntry,
 } from './Chat'
 
@@ -168,41 +170,55 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
   })
 })
 
-// A round's set of known toolUseIds changes as it moves from live-only
-// (before any result) through merged-with-history (once one lands) to
-// settled -- the expand map must track that one round by whichever of its
-// ids it's looked up with, not create a fresh entry at each stage.
-describe('components/Assistant/UI/Chat/lookupExpanded and toggleExpandedEntry', () => {
+// A round's set of toolUseIds isn't fixed: calls join as they start, leave
+// `live` once resolved, and can leave `events` entirely once discarded --
+// so a round's expand state must survive under a permanent key, not under
+// any one toolUseId that might later vanish from its id list.
+describe('components/Assistant/UI/Chat/roundKeyOf, assignRoundKeys, lookupExpanded and toggleExpandedEntry', () => {
+  it('has no round key before any of its ids has been assigned one', () => {
+    expect(roundKeyOf(new Map(), ['a', 'b'])).toBe('a')
+  })
+
+  it('assigns every unassigned id in a round to the same key', () => {
+    const assigned = assignRoundKeys(new Map(), ['a', 'b', 'c'])
+    expect(roundKeyOf(assigned, ['b'])).toBe('a')
+    expect(roundKeyOf(assigned, ['c'])).toBe('a')
+  })
+
+  it('keeps a round under its original key once a new id joins it', () => {
+    const assigned = assignRoundKeys(new Map([['a', 'a']]), ['a', 'b'])
+    expect(roundKeyOf(assigned, ['b'])).toBe('a')
+  })
+
   it('defaults an unknown round to collapsed', () => {
-    expect(lookupExpanded(new Map(), ['a', 'b'])).toBe(false)
+    expect(lookupExpanded(new Map(), roundKeyOf(new Map(), ['a', 'b']))).toBe(false)
   })
 
-  it('finds an entry by any id the round is currently known by', () => {
-    const map = new Map([['b', true]])
-    expect(lookupExpanded(map, ['a', 'b', 'c'])).toBe(true)
+  it('toggles a round open under its permanent key', () => {
+    const roundKeys = assignRoundKeys(new Map(), ['a', 'b'])
+    const expanded = toggleExpandedEntry(new Map(), roundKeyOf(roundKeys, ['a', 'b']))
+    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['a', 'b']))).toBe(true)
   })
 
-  it('toggles a new round in under its first id', () => {
-    const next = toggleExpandedEntry(new Map(), ['a', 'b'])
-    expect(next.get('a')).toBe(true)
-    expect(lookupExpanded(next, ['a', 'b'])).toBe(true)
-  })
+  // The bug this pins: expand live calls a, b, c (keyed under 'a'); once
+  // all finish, discarding a drops it from the round's id list entirely --
+  // the saved state must still be reachable through b or c.
+  it('keeps expand state reachable after the id it was keyed under is discarded', () => {
+    let roundKeys = assignRoundKeys(new Map(), ['a', 'b', 'c'])
+    const expanded = toggleExpandedEntry(
+      new Map(),
+      roundKeyOf(roundKeys, ['a', 'b', 'c']),
+    )
+    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['a', 'b', 'c']))).toBe(true)
 
-  it('finds a round under its first id even when later looked up by a different one first', () => {
-    // Opened while keyed under 'a' (its first id at the time); a later call
-    // joining the round shuffles which id comes first in the lookup list.
-    const expanded = toggleExpandedEntry(new Map(), ['a', 'b'])
-    expect(lookupExpanded(expanded, ['c', 'a', 'b'])).toBe(true)
-  })
-
-  it('does not open a second entry for a round already tracked by a later id', () => {
-    // The round is already tracked under 'b' (e.g. from its live phase);
-    // toggling it again by a different id order must flip that one entry,
-    // not create a fresh one under whichever id happens to come first now.
-    const alreadyOpen = new Map([['b', true]])
-    const closed = toggleExpandedEntry(alreadyOpen, ['a', 'b'])
-    expect(closed.size).toBe(1)
-    expect(lookupExpanded(closed, ['a', 'b'])).toBe(false)
+    // 'a' discarded: assignRoundKeys is now called with only ['b', 'c'],
+    // the shape a naive rebuild-from-current-ids implementation would use.
+    roundKeys = assignRoundKeys(roundKeys, ['b', 'c'])
+    // The 'a' -> 'a' assignment, made while all three ids were present,
+    // must still be in the map -- not dropped just because 'a' is absent
+    // from this call's id list.
+    expect(roundKeys.get('a')).toBe('a')
+    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['b', 'c']))).toBe(true)
   })
 })
 
