@@ -388,6 +388,9 @@ function ToolCallRollup({ calls, timestamp, actions }: ToolCallRollupProps) {
                     aria-label="Running"
                   />
                 )}
+                {call.discard && (
+                  <MessageAction onClick={call.discard}>discard</MessageAction>
+                )}
               </div>
               <div className={rollupClasses.entryDetails}>
                 <JsonDisplay defaultExpanded={1} name="details" value={call.details} />
@@ -458,13 +461,9 @@ export function ToolCallGroup({ state, events, live, dispatch }: ToolCallGroupPr
   )
 
   const calls: ToolCallEntry[] = React.useMemo(() => {
-    // Keyed by toolUseId, not e.id: today each toolUseId appears at most once
-    // in `events` (the reducer dispatches exactly one ToolResult per call),
-    // but a future retry could add a second ToolUse event for the same
-    // toolUseId. Map.set keeps the later entry on a key collision, so the
-    // rollup's failure count always reflects the final attempt, never one
-    // that was retried away -- not a stacked case to spell out separately,
-    // just a count that stays correct if retries ever land.
+    // Deduped by toolUseId (stable identity), not event id (reminted per
+    // result): keeps the rollup's failure count correct if a retry ever
+    // adds a second ToolUse event for the same call.
     const byToolUseId = new Map<string, ToolCallEntry>()
     for (const e of events) {
       byToolUseId.set(e.toolUseId, {
@@ -948,7 +947,7 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
-          {toolCallRuns.map((run, i) =>
+          {toolCallRuns.map((run) =>
             run[0]._tag === 'Message' ? (
               <MessageEvent
                 key={run[0].id}
@@ -957,10 +956,10 @@ export default function Chat({
                 {...(run[0] as ReturnType<typeof Model.Conversation.Event.Message>)}
               />
             ) : (
-              // Keyed by the first call's toolUseId, not its event id: a
-              // run's first call stays the same tool call across a discard
-              // of a later entry, and toolUseId survives completion where
-              // the event's own id doesn't (it's reminted on each result).
+              // Keyed by the first call's toolUseId, not its event id: the
+              // event id is reminted on each result, so keying on it would
+              // remount the group (and lose its expanded state) the moment
+              // any call in it resolves.
               <ToolCallGroup
                 key={
                   (run[0] as ReturnType<typeof Model.Conversation.Event.ToolUse>)
@@ -969,11 +968,16 @@ export default function Chat({
                 dispatch={dispatch}
                 state={state._tag}
                 events={run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]}
-                live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
               />
             ),
           )}
-          {!toolCallRuns.length && liveToolUse && (
+          {/* Live calls are always their own group, never folded into a
+              historical run: a toolUseId is either resolved (in `events`,
+              rendered above) or still running (in `live.calls`), never
+              both, and a tool-only turn leaves `events` unchanged entirely
+              -- so the trailing history run can be a stale, already-settled
+              group with no relation to what's running now. */}
+          {liveToolUse && (
             <ToolCallGroup
               dispatch={dispatch}
               state={state._tag}

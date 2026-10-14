@@ -252,6 +252,29 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
     expect(screen.getByText('object_read')).toBeTruthy()
   })
 
+  // Each finished call keeps its own discard control once expanded, not just
+  // when it's the sole call rendered as a plain row.
+  it('offers a discard action for each finished call once expanded', () => {
+    const dispatch = vi.fn()
+    render(
+      <ThemeProvider theme={theme}>
+        <ToolCallGroup
+          dispatch={dispatch}
+          state="Idle"
+          events={[
+            toolUseEvent('1', 'search_packages'),
+            toolUseEvent('2', 'object_read'),
+          ]}
+        />
+      </ThemeProvider>,
+    )
+    fireEvent.click(screen.getByRole('button'))
+    const discards = screen.getAllByText('discard')
+    expect(discards).toHaveLength(2)
+    fireEvent.click(discards[0])
+    expect(dispatch).toHaveBeenCalledWith(Model.Conversation.Action.Discard({ id: '1' }))
+  })
+
   // A retry isn't representable in today's event stream (the reducer
   // dispatches exactly one ToolResult per toolUseId), but the rollup counts
   // by toolUseId specifically so a future retry's earlier failed attempt
