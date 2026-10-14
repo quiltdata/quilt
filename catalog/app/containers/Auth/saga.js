@@ -371,7 +371,15 @@ function* codeSignupComplete({ page, ticket, username, email, password }) {
       if (e.status === 400 && e.json && e.json.message === 'Invalid email.') {
         throw new errors.InvalidEmail({ originalError: e })
       }
-      if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
+      // Fixed per code review: e.json.message may be undefined (e.g. a 400 whose body is
+      // {error_code: ...} only), and .match() on undefined throws instead of falling
+      // through -- guard with typeof first, same as the other branches' safe === checks.
+      if (
+        e.status === 400 &&
+        e.json &&
+        typeof e.json.message === 'string' &&
+        e.json.message.match(/Password must be/)
+      ) {
         throw new errors.InvalidPassword({ originalError: e })
       }
       if (e.status === 409 && e.json && e.json.message === 'Username already taken.') {

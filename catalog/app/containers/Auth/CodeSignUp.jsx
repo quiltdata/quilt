@@ -16,7 +16,6 @@ import * as redux from 'react-redux'
 import { useLocation, useParams, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
@@ -137,7 +136,18 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
           ),
         )
         await result.promise
-        onDone(!!password)
+        if (!password) {
+          onDone()
+          return
+        }
+        // Fixed per code review: a Redirect to /signin?next=...#done was dead -- nothing
+        // reads location.hash, so the "done" state never rendered. The account is already
+        // active (registry side), so sign in directly with the credentials just submitted
+        // rather than bouncing through a sign-in page at all. CodeSignUp's own
+        // `authenticated` check picks this up on the next render and redirects home.
+        const signInResult = defer()
+        dispatch(actions.signIn({ username, password }, signInResult.resolver))
+        await signInResult.promise
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {
           // eslint-disable-next-line consistent-return
@@ -252,7 +262,6 @@ export default function CodeSignUp() {
   const { page } = useParams()
   const { search } = useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
-  const { urls } = NamedRoutes.use()
   const mutex = useMutex()
 
   const { code: initialCode } = parseSearch(search, true)
@@ -260,7 +269,9 @@ export default function CodeSignUp() {
   const [pageInfo, setPageInfo] = React.useState(null)
   const [pageError, setPageError] = React.useState(false)
   const [ticket, setTicket] = React.useState(null)
-  const [done, setDone] = React.useState(null) // null | 'active' | 'pending'
+  // Set only on the blank-password branch: the password branch signs in directly inside
+  // CompleteForm, and the `authenticated` check above then redirects home on its own.
+  const [pending, setPending] = React.useState(false)
 
   const dispatch = redux.useDispatch()
 
@@ -278,14 +289,9 @@ export default function CodeSignUp() {
     }
   }, [dispatch, page])
 
-  if (authenticated) {
-    // An already-signed-in visitor redeems through the same page, which adds the role
-    // without creating a new account -- not yet implemented in this component; the
-    // registry's redeem endpoint supports it (mockup screen 6), the catalog UI for it is
-    // a follow-up, not built here.
-    return <Redirect to="/" />
-  }
-
+  // Fixed per code review: pageError must be checked before authenticated, or a signed-in
+  // visitor hitting a stale/mistyped page is silently bounced to `/` instead of seeing
+  // "This signup page does not exist."
   if (pageError) {
     return (
       <Container title="Page not found">
@@ -294,13 +300,17 @@ export default function CodeSignUp() {
     )
   }
 
-  if (!pageInfo) return null
-
-  if (done === 'active') {
-    return <Redirect to={urls.signIn(`${urls.codeSignup(page)}#done`)} />
+  if (authenticated) {
+    // An already-signed-in visitor redeems through the same page, which adds the role
+    // without creating a new account -- not yet implemented in this component; the
+    // registry's redeem endpoint supports it (mockup screen 6), the catalog UI for it is
+    // a follow-up, not built here.
+    return <Redirect to="/" />
   }
 
-  if (done === 'pending') {
+  if (!pageInfo) return null
+
+  if (pending) {
     return (
       <Container title={pageInfo.title}>
         <Layout.Message>
@@ -313,12 +323,7 @@ export default function CodeSignUp() {
   return (
     <Container title={pageInfo.title}>
       {ticket ? (
-        <CompleteForm
-          page={page}
-          ticket={ticket}
-          mutex={mutex}
-          onDone={(hasPassword) => setDone(hasPassword ? 'active' : 'pending')}
-        />
+        <CompleteForm page={page} ticket={ticket} mutex={mutex} onDone={() => setPending(true)} />
       ) : (
         <CodeEntry
           page={page}
