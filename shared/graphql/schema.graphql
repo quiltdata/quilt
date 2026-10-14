@@ -753,7 +753,18 @@ type AdminQueries {
   tabulatorOpenQuery: Boolean!
   packager: PackagerAdminQueries!
   apiKeys: APIKeyAdminQueries!
+  "The URL to send an admin's browser to, to install this stack's Slack app. Null if the stack has no Slack app client configured."
+  slackInstallAuthorizeUrl: String
 }
+
+"The Slack workspace this stack's admin has authorized, if any."
+type SlackWorkspaceInstall {
+  teamId: ID!
+  teamName: String
+  installedAt: Datetime!
+}
+
+union SlackInstallCompleteResult = SlackWorkspaceInstall | OperationError
 
 type MyRole {
   name: String!
@@ -1250,6 +1261,8 @@ type AdminMutations {
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
   packager: PackagerAdminMutations!
   apiKeys: APIKeyAdminMutations!
+  "Completes the Slack app install flow: exchanges the OAuth code Slack redirected back with."
+  slackInstallComplete(code: String!, state: String!): SlackInstallCompleteResult!
 }
 
 type Mutation {

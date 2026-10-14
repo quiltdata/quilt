@@ -152,6 +152,8 @@ export interface AdminMutations {
   readonly setQuratorConfig: SetQuratorConfigResult
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
+  /** Completes the Slack app install flow: exchanges the OAuth code Slack redirected back with. */
+  readonly slackInstallComplete: SlackInstallCompleteResult
   readonly user: UserAdminMutations
 }
 
@@ -187,6 +189,11 @@ export interface AdminMutationssetTabulatorOpenQueryArgs {
   enabled: Scalars['Boolean']['input']
 }
 
+export interface AdminMutationsslackInstallCompleteArgs {
+  code: Scalars['String']['input']
+  state: Scalars['String']['input']
+}
+
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly apiKeys: APIKeyAdminQueries
@@ -194,6 +201,8 @@ export interface AdminQueries {
   readonly packager: PackagerAdminQueries
   readonly quratorAvailableModels: QuratorAvailableModels
   readonly quratorConfig: QuratorConfig
+  /** The URL to send an admin's browser to, to install this stack's Slack app. Null if the stack has no Slack app client configured. */
+  readonly slackInstallAuthorizeUrl: Maybe<Scalars['String']['output']>
   readonly ssoConfig: Maybe<SsoConfig>
   readonly tabulatorOpenQuery: Scalars['Boolean']['output']
   readonly user: UserAdminQueries
@@ -1535,6 +1544,16 @@ export enum SearchResultOrder {
 export type SetQuratorConfigResult = InvalidInput | OperationError | QuratorConfig
 
 export type SetSsoConfigResult = InvalidInput | OperationError | SsoConfig
+
+export type SlackInstallCompleteResult = OperationError | SlackWorkspaceInstall
+
+/** The Slack workspace this stack's admin has authorized, if any. */
+export interface SlackWorkspaceInstall {
+  readonly __typename: 'SlackWorkspaceInstall'
+  readonly installedAt: Scalars['Datetime']['output']
+  readonly teamId: Scalars['ID']['output']
+  readonly teamName: Maybe<Scalars['String']['output']>
+}
 
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
