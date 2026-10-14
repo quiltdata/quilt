@@ -23,6 +23,13 @@ export const authenticated = createSelector(username, Boolean)
 
 export const isAdmin = createSelector(getIn([REDUX_KEY, 'user', 'is_staff']), R.identity)
 
+// The active role's config.default_bucket (quilt-specs changes/access-code-signup):
+// where `/` sends this user after login. Null when the role sets none.
+export const defaultBucket = createSelector(
+  getIn([REDUX_KEY, 'user', 'default_bucket']),
+  R.identity,
+)
+
 export const email = createSelector(getIn([REDUX_KEY, 'user', 'email']), R.identity)
 
 export const tokens = createSelector(getIn([REDUX_KEY, 'tokens']), toJS())
