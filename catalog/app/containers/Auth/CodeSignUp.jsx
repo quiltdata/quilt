@@ -207,7 +207,11 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
             validate={validators.required}
             disabled={!!mutex.current || submitting}
             floatingLabelText="Username"
-            errors={{ required: 'Enter a username', taken: 'Username taken', invalid: 'Username invalid' }}
+            errors={{
+              required: 'Enter a username',
+              taken: 'Username taken',
+              invalid: 'Username invalid',
+            }}
           />
           <RF.Field
             component={Layout.Field}
@@ -215,7 +219,11 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
             validate={validators.required}
             disabled={!!mutex.current || submitting}
             floatingLabelText="Email"
-            errors={{ required: 'Enter your email', taken: 'Email taken', invalid: 'Enter a valid email address' }}
+            errors={{
+              required: 'Enter your email',
+              taken: 'Email taken',
+              invalid: 'Enter a valid email address',
+            }}
           />
           <RF.Field
             component={Layout.Field}
@@ -235,7 +243,8 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
             }}
             errors={{
               unexpected: 'Something went wrong. Try again later.',
-              ticketExpired: 'This signup link has expired. Go back and enter the code again.',
+              ticketExpired:
+                'This signup link has expired. Go back and enter the code again.',
               subscriptionInvalid:
                 'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
             }}
@@ -323,7 +332,12 @@ export default function CodeSignUp() {
   return (
     <Container title={pageInfo.title}>
       {ticket ? (
-        <CompleteForm page={page} ticket={ticket} mutex={mutex} onDone={() => setPending(true)} />
+        <CompleteForm
+          page={page}
+          ticket={ticket}
+          mutex={mutex}
+          onDone={() => setPending(true)}
+        />
       ) : (
         <CodeEntry
           page={page}

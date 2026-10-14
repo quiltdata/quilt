@@ -362,7 +362,11 @@ function* codeSignupComplete({ page, ticket, username, email, password }) {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
-      if (e.status === 401 && e.json && /invalid or expired signup ticket/i.test(e.json.message)) {
+      if (
+        e.status === 401 &&
+        e.json &&
+        /invalid or expired signup ticket/i.test(e.json.message)
+      ) {
         throw new errors.SignupTicketInvalid({ originalError: e })
       }
       if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
