@@ -543,8 +543,10 @@ export function Edit({ role, close }: EditProps) {
     async (values) => {
       try {
         let data
-        // Role updates are full replacements: omitting `defaultBucket` or `signup`
-        // would clear them, so carry the current values through.
+        // The registry keeps `defaultBucket` / `signup` when the input omits them, but the
+        // generated input types require the keys, so re-send the values this dialog loaded.
+        // A concurrent change to them elsewhere (quiltx) between opening and saving the
+        // dialog would be overwritten; the dialog is the only place that races it.
         const passthrough = {
           defaultBucket: role.defaultBucket ?? null,
           signup: role.signup

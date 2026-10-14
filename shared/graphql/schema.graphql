@@ -302,7 +302,7 @@ type Bucket {
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
 # quilt-specs changes/access-code-signup#registry-work. signup is admin-only (it carries the
-# access code); defaultBucket is public, read by the catalog's post-login redirect.
+# access code); defaultBucket is public (the catalog lands users on it after login, via /api/me).
 type RoleSignup {
   page: String!
   title: String

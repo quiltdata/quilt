@@ -1,6 +1,7 @@
 import builtins
 
 from .. import _graphql_client
+from .._graphql_client import base_model as _base_model
 from . import exceptions, types, util
 
 
@@ -50,8 +51,20 @@ def list() -> builtins.list[types.Role]:
     return [types._parse_role(role) for role in util.get_client().roles_list()]
 
 
-def _signup_input(signup: types.RoleSignup | None) -> _graphql_client.RoleSignupInput | None:
-    return None if signup is None else signup._to_gql()
+# Not passed is not the same as None: the registry keeps `defaultBucket` / `signup` when the
+# input omits the key and clears them on an explicit null, and the generated client only
+# serializes the fields it was given.
+_UNSET = _base_model.UNSET
+_Unset = _base_model.UnsetType
+
+
+def _signup_kwargs(default_bucket, signup) -> dict:
+    kwargs = {}
+    if not isinstance(default_bucket, _Unset):
+        kwargs["default_bucket"] = default_bucket
+    if not isinstance(signup, _Unset):
+        kwargs["signup"] = None if signup is None else signup._to_gql()
+    return kwargs
 
 
 def create_managed(
@@ -71,12 +84,7 @@ def create_managed(
         signup: Access-code signup page for the role.
     """
     result = util.get_client().role_create_managed(
-        input=_graphql_client.ManagedRoleInput(
-            name=name,
-            policies=policies,
-            default_bucket=default_bucket,
-            signup=_signup_input(signup),
-        )
+        input=_graphql_client.ManagedRoleInput(name=name, policies=policies, **_signup_kwargs(default_bucket, signup))
     )
     return _handle_role_mutation_result(result)
 
@@ -98,12 +106,7 @@ def create_unmanaged(
         signup: Access-code signup page for the role.
     """
     result = util.get_client().role_create_unmanaged(
-        input=_graphql_client.UnmanagedRoleInput(
-            name=name,
-            arn=arn,
-            default_bucket=default_bucket,
-            signup=_signup_input(signup),
-        )
+        input=_graphql_client.UnmanagedRoleInput(name=name, arn=arn, **_signup_kwargs(default_bucket, signup))
     )
     return _handle_role_mutation_result(result)
 
@@ -113,28 +116,25 @@ def update_managed(
     *,
     name: str,
     policies: builtins.list[str],
-    default_bucket: str | None = None,
-    signup: types.RoleSignup | None = None,
+    default_bucket: str | None | _Unset = _UNSET,
+    signup: types.RoleSignup | None | _Unset = _UNSET,
 ) -> types.ManagedRole:
     """
-    Update a managed role in the registry (full replacement).
+    Update a managed role in the registry (full replacement of name and policies).
 
     Args:
         id_or_name: Role ID or name.
         name: New role name.
         policies: Policy IDs to attach to the role.
-        default_bucket: Bucket the role's users land on after login; `None` clears it.
-        signup: Access-code signup page for the role; `None` removes it.
+        default_bucket: Bucket the role's users land on after login. Keeps the current value
+            if not specified; `None` clears it.
+        signup: Access-code signup page for the role. Keeps the current page if not
+            specified; `None` removes it.
     """
     role = _resolve_role(id_or_name)
     result = util.get_client().role_update_managed(
         id=role.id,
-        input=_graphql_client.ManagedRoleInput(
-            name=name,
-            policies=policies,
-            default_bucket=default_bucket,
-            signup=_signup_input(signup),
-        ),
+        input=_graphql_client.ManagedRoleInput(name=name, policies=policies, **_signup_kwargs(default_bucket, signup)),
     )
     return _handle_role_mutation_result(result)
 
@@ -144,28 +144,25 @@ def update_unmanaged(
     *,
     name: str,
     arn: str,
-    default_bucket: str | None = None,
-    signup: types.RoleSignup | None = None,
+    default_bucket: str | None | _Unset = _UNSET,
+    signup: types.RoleSignup | None | _Unset = _UNSET,
 ) -> types.UnmanagedRole:
     """
-    Update an unmanaged role in the registry (full replacement).
+    Update an unmanaged role in the registry (full replacement of name and ARN).
 
     Args:
         id_or_name: Role ID or name.
         name: New role name.
         arn: Existing IAM role ARN.
-        default_bucket: Bucket the role's users land on after login; `None` clears it.
-        signup: Access-code signup page for the role; `None` removes it.
+        default_bucket: Bucket the role's users land on after login. Keeps the current value
+            if not specified; `None` clears it.
+        signup: Access-code signup page for the role. Keeps the current page if not
+            specified; `None` removes it.
     """
     role = _resolve_role(id_or_name)
     result = util.get_client().role_update_unmanaged(
         id=role.id,
-        input=_graphql_client.UnmanagedRoleInput(
-            name=name,
-            arn=arn,
-            default_bucket=default_bucket,
-            signup=_signup_input(signup),
-        ),
+        input=_graphql_client.UnmanagedRoleInput(name=name, arn=arn, **_signup_kwargs(default_bucket, signup)),
     )
     return _handle_role_mutation_result(result)
 
@@ -175,19 +172,20 @@ def patch_managed(
     *,
     name: str | None = None,
     policies: builtins.list[str] | None = None,
-    default_bucket: str | None = None,
-    signup: types.RoleSignup | None = None,
+    default_bucket: str | None | _Unset = _UNSET,
+    signup: types.RoleSignup | None | _Unset = _UNSET,
 ) -> types.ManagedRole:
     """
     Partially update a managed role — only specified fields are changed.
-    Use `update_managed()` to clear `default_bucket` or remove `signup`.
 
     Args:
         id_or_name: Role ID or name.
         name: New role name (keeps current if not specified).
         policies: Policy IDs to attach (keeps current if not specified).
-        default_bucket: Bucket the role's users land on after login (keeps current if not specified).
-        signup: Access-code signup page for the role (keeps current if not specified).
+        default_bucket: Bucket the role's users land on after login (keeps current if not
+            specified; `None` clears it).
+        signup: Access-code signup page for the role (keeps current if not specified;
+            `None` removes it).
     """
     current = _resolve_role(id_or_name)
     if not isinstance(current, types.ManagedRole):
@@ -197,8 +195,7 @@ def patch_managed(
         input=_graphql_client.ManagedRoleInput(
             name=name if name is not None else current.name,
             policies=policies if policies is not None else [p.id for p in current.policies],
-            default_bucket=default_bucket if default_bucket is not None else current.default_bucket,
-            signup=_signup_input(signup if signup is not None else current.signup),
+            **_signup_kwargs(default_bucket, signup),
         ),
     )
     return _handle_role_mutation_result(result)
@@ -209,19 +206,20 @@ def patch_unmanaged(
     *,
     name: str | None = None,
     arn: str | None = None,
-    default_bucket: str | None = None,
-    signup: types.RoleSignup | None = None,
+    default_bucket: str | None | _Unset = _UNSET,
+    signup: types.RoleSignup | None | _Unset = _UNSET,
 ) -> types.UnmanagedRole:
     """
     Partially update an unmanaged role — only specified fields are changed.
-    Use `update_unmanaged()` to clear `default_bucket` or remove `signup`.
 
     Args:
         id_or_name: Role ID or name.
         name: New role name (keeps current if not specified).
         arn: New IAM role ARN (keeps current if not specified).
-        default_bucket: Bucket the role's users land on after login (keeps current if not specified).
-        signup: Access-code signup page for the role (keeps current if not specified).
+        default_bucket: Bucket the role's users land on after login (keeps current if not
+            specified; `None` clears it).
+        signup: Access-code signup page for the role (keeps current if not specified;
+            `None` removes it).
     """
     current = _resolve_role(id_or_name)
     if not isinstance(current, types.UnmanagedRole):
@@ -231,8 +229,7 @@ def patch_unmanaged(
         input=_graphql_client.UnmanagedRoleInput(
             name=name if name is not None else current.name,
             arn=arn if arn is not None else current.arn,
-            default_bucket=default_bucket if default_bucket is not None else current.default_bucket,
-            signup=_signup_input(signup if signup is not None else current.signup),
+            **_signup_kwargs(default_bucket, signup),
         ),
     )
     return _handle_role_mutation_result(result)

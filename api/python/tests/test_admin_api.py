@@ -606,7 +606,7 @@ def test_create_unmanaged_role_with_default_bucket():
 
 
 def test_update_managed_role_removes_signup():
-    """update_* is a full replacement: omitting signup/default_bucket clears them."""
+    """An explicit None clears signup/default_bucket (the registry treats null as clear)."""
     with mock_client_multi(
         ({"role": SIGNUP_ROLE}, "roleGet", {"id": SIGNUP_ROLE["id"]}),
         (
@@ -620,33 +620,39 @@ def test_update_managed_role_removes_signup():
             },
         ),
     ):
-        assert admin.roles.update_managed(SIGNUP_ROLE["id"], name="ManagedRole", policies=[]) == EXPECTED_MANAGED_ROLE
+        assert (
+            admin.roles.update_managed(
+                SIGNUP_ROLE["id"], name="ManagedRole", policies=[], default_bucket=None, signup=None
+            )
+            == EXPECTED_MANAGED_ROLE
+        )
 
 
-def test_patch_managed_role_keeps_signup():
-    """patch_* re-sends the current signup and default_bucket when not specified."""
-    with mock_client_multi(
-        ({"role": SIGNUP_ROLE}, "roleGet", {"id": SIGNUP_ROLE["id"]}),
-        (
-            {"role_update_managed": {"__typename": "RoleUpdateSuccess", "role": SIGNUP_ROLE}},
-            "roleUpdateManaged",
-            {
-                "id": SIGNUP_ROLE["id"],
-                "input": _graphql_client.ManagedRoleInput(
-                    name="ManagedRole",
-                    policies=[MANAGED_ROLE["policies"][0]["id"]],
-                    default_bucket="quilt-benchtalk",
-                    signup=_graphql_client.RoleSignupInput(
-                        page="benchtalk",
-                        access_code="BENCHTALK26",
-                        title="BenchTalk",
-                        description="Five minutes of your attention.",
-                    ),
-                ),
-            },
-        ),
+def test_update_and_patch_omit_unspecified_signup_fields():
+    """Not passing signup/default_bucket leaves the keys out of the input, which the registry
+    treats as keep. Checked on the serialized variables: pydantic equality ignores fields_set."""
+    sent = []
+
+    def capture(_self, *, input, **_kwargs):
+        sent.append(input.model_dump(by_alias=True, exclude_unset=True))
+        return _graphql_client.RoleUpdateManaged.model_validate(
+            {"roleUpdateManaged": {"__typename": "RoleUpdateSuccess", "role": SIGNUP_ROLE}}
+        ).role_update_managed
+
+    with (
+        mock.patch.object(_graphql_client.Client, "role_update_managed", capture),
+        mock_client({"role": SIGNUP_ROLE}, "roleGet", variables={"id": SIGNUP_ROLE["id"]}),
     ):
-        assert admin.roles.patch_managed(SIGNUP_ROLE["id"], policies=None) == EXPECTED_SIGNUP_ROLE
+        admin.roles.update_managed(SIGNUP_ROLE["id"], name="ManagedRole", policies=[])
+    with (
+        mock.patch.object(_graphql_client.Client, "role_update_managed", capture),
+        mock_client({"role": SIGNUP_ROLE}, "roleGet", variables={"id": SIGNUP_ROLE["id"]}),
+    ):
+        admin.roles.patch_managed(SIGNUP_ROLE["id"], name="Renamed")
+    assert sent == [
+        {"name": "ManagedRole", "policies": []},
+        {"name": "Renamed", "policies": [MANAGED_ROLE["policies"][0]["id"]]},
+    ]
 
 
 def test_patch_managed_role_sets_signup():
@@ -679,11 +685,11 @@ def test_patch_managed_role_sets_signup():
 
 def test_role_input_sends_explicit_nulls():
     """The registry keeps a role's default_bucket/signup when the input key is omitted and
-    clears them on an explicit null. update_* always sends both keys, so the mock-equality
-    checks above (pydantic ignores fields_set) are backed by the serialized variables here."""
-    from quilt3._graphql_client.base_client import BaseClient
+    clears them on an explicit null; the generated client serializes exactly the fields set."""
 
-    serialize = BaseClient.__new__(BaseClient)._convert_value
+    def serialize(model):
+        return model.model_dump(by_alias=True, exclude_unset=True)
+
     cleared = _graphql_client.ManagedRoleInput(name="r", policies=[], default_bucket=None, signup=None)
     assert serialize(cleared) == {"name": "r", "policies": [], "defaultBucket": None, "signup": None}
     kept = _graphql_client.ManagedRoleInput(name="r", policies=[])
