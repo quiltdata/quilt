@@ -469,15 +469,25 @@ export function MessageEvent({
 interface ToolCallGroupProps extends ConversationDispatchProps, ConversationStateProps {
   events: ReturnType<typeof Model.Conversation.Event.ToolUse>[]
   live?: { timestamp: Date; calls: Model.Conversation.ToolCalls }
+  // Controlled by Chat, which outlives every ToolCallGroup remount a round
+  // goes through (standalone live-only -> merged into history -> settled):
+  // defaults to an internal, uncontrolled toggle for callers that render a
+  // group in isolation (e.g. tests) and don't need it to survive a remount.
+  expanded?: boolean
+  onToggleExpanded?: () => void
 }
 
-export function ToolCallGroup({ state, events, live, dispatch }: ToolCallGroupProps) {
-  // Owned here, not inside ToolCallRollup: this component stays mounted
-  // (stable key) across the single-call/multi-call and live/history
-  // transitions that remount ToolCallRollup's own subtree, so the toggle
-  // survives those transitions instead of resetting to collapsed.
-  const [expanded, setExpanded] = React.useState(false)
-  const toggleExpanded = React.useCallback(() => setExpanded((prev) => !prev), [])
+export function ToolCallGroup({
+  state,
+  events,
+  live,
+  dispatch,
+  expanded: expandedProp,
+  onToggleExpanded: onToggleExpandedProp,
+}: ToolCallGroupProps) {
+  const [expandedState, setExpandedState] = React.useState(false)
+  const expanded = expandedProp ?? expandedState
+  const toggleExpanded = onToggleExpandedProp ?? (() => setExpandedState((prev) => !prev))
 
   const discard = React.useCallback(
     (id: string) => dispatch(Model.Conversation.Action.Discard({ id })),
@@ -835,6 +845,33 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// A round's expand state is looked up by any toolUseId it's currently known
+// by (it can gain and lose ids across its life as calls join or resolve),
+// and stored under whichever of those ids the map already has, or the
+// first one otherwise -- so a round keeps one entry across the live-only,
+// merged, and settled renders of it, instead of each getting its own.
+export function lookupExpanded(
+  expandedByToolUseId: ReadonlyMap<string, boolean>,
+  toolUseIds: readonly string[],
+): boolean {
+  for (const id of toolUseIds) {
+    const v = expandedByToolUseId.get(id)
+    if (v !== undefined) return v
+  }
+  return false
+}
+
+export function toggleExpandedEntry(
+  expandedByToolUseId: ReadonlyMap<string, boolean>,
+  toolUseIds: readonly string[],
+): ReadonlyMap<string, boolean> {
+  const key = toolUseIds.find((id) => expandedByToolUseId.has(id)) ?? toolUseIds[0]
+  if (!key) return expandedByToolUseId
+  const next = new Map(expandedByToolUseId)
+  next.set(key, !lookupExpanded(expandedByToolUseId, toolUseIds))
+  return next
+}
+
 interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
@@ -934,6 +971,25 @@ export default function Chat({
     AwaitingConnector: () => undefined,
   })
 
+  // One round's tool calls can render through three different ToolCallGroup
+  // mounts across its life (live-only, before any result; merged into the
+  // trailing history run once one lands; history-only once all are
+  // discarded or that run is reread) -- none of them share a stable key by
+  // themselves, so the toggle lives here, looked up by any toolUseId the
+  // round is currently known by and (re)keyed under the first one seen.
+  const [expandedByToolUseId, setExpandedByToolUseId] = React.useState<
+    ReadonlyMap<string, boolean>
+  >(new Map())
+  const toolCallExpanded = React.useCallback(
+    (toolUseIds: readonly string[]) => lookupExpanded(expandedByToolUseId, toolUseIds),
+    [expandedByToolUseId],
+  )
+  const toggleToolCallExpanded = React.useCallback(
+    (toolUseIds: readonly string[]) =>
+      setExpandedByToolUseId((prev) => toggleExpandedEntry(prev, toolUseIds)),
+    [],
+  )
+
   return (
     <div className={classes.chat}>
       <div className={classes.header}>
@@ -993,16 +1049,27 @@ export default function Chat({
               // ToolUse run (same round, partially settled) rather than
               // getting their own group, so a call that finishes while
               // others are still running doesn't fall out of an open toggle.
-              <ToolCallGroup
-                key={
-                  (run[0] as ReturnType<typeof Model.Conversation.Event.ToolUse>)
-                    .toolUseId
-                }
-                dispatch={dispatch}
-                state={state._tag}
-                events={run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]}
-                live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
-              />
+              (() => {
+                const toolUseIds = (
+                  run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+                ).map((e) => e.toolUseId)
+                const liveIds =
+                  i === toolCallRuns.length - 1 && liveToolUse
+                    ? Object.keys(liveToolUse.calls)
+                    : []
+                const allIds = toolUseIds.concat(liveIds)
+                return (
+                  <ToolCallGroup
+                    key={toolUseIds[0]}
+                    dispatch={dispatch}
+                    state={state._tag}
+                    events={run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]}
+                    live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
+                    expanded={toolCallExpanded(allIds)}
+                    onToggleExpanded={() => toggleToolCallExpanded(allIds)}
+                  />
+                )
+              })()
             ),
           )}
           {/* A tool-only turn (no text) leaves `events` unchanged, so the
@@ -1010,14 +1077,20 @@ export default function Chat({
               all -- liveToolUse then has nowhere to attach above and needs
               its own group. */}
           {liveToolUse &&
-            toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse' && (
-              <ToolCallGroup
-                dispatch={dispatch}
-                state={state._tag}
-                events={[]}
-                live={liveToolUse}
-              />
-            )}
+            toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse' &&
+            (() => {
+              const liveIds = Object.keys(liveToolUse.calls)
+              return (
+                <ToolCallGroup
+                  dispatch={dispatch}
+                  state={state._tag}
+                  events={[]}
+                  live={liveToolUse}
+                  expanded={toolCallExpanded(liveIds)}
+                  onToggleExpanded={() => toggleToolCallExpanded(liveIds)}
+                />
+              )
+            })()}
           {Model.Conversation.State.$match(state, {
             Idle: (s) =>
               Eff.Option.match(s.error, {

@@ -34,7 +34,14 @@ vi.mock('utils/Buckets', () => ({
 
 import * as Model from '../../Model'
 
-import { ConnectorHelperLine, Menu, MessageEvent, ToolCallGroup } from './Chat'
+import {
+  ConnectorHelperLine,
+  Menu,
+  MessageEvent,
+  ToolCallGroup,
+  lookupExpanded,
+  toggleExpandedEntry,
+} from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
 // any block element there is invalid DOM nesting.
@@ -158,6 +165,44 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
     renderMessage('assistant', `[open it](${href})`)
     const link = await screen.findByRole('link')
     expect(link.getAttribute('href')).toBe(href)
+  })
+})
+
+// A round's set of known toolUseIds changes as it moves from live-only
+// (before any result) through merged-with-history (once one lands) to
+// settled -- the expand map must track that one round by whichever of its
+// ids it's looked up with, not create a fresh entry at each stage.
+describe('components/Assistant/UI/Chat/lookupExpanded and toggleExpandedEntry', () => {
+  it('defaults an unknown round to collapsed', () => {
+    expect(lookupExpanded(new Map(), ['a', 'b'])).toBe(false)
+  })
+
+  it('finds an entry by any id the round is currently known by', () => {
+    const map = new Map([['b', true]])
+    expect(lookupExpanded(map, ['a', 'b', 'c'])).toBe(true)
+  })
+
+  it('toggles a new round in under its first id', () => {
+    const next = toggleExpandedEntry(new Map(), ['a', 'b'])
+    expect(next.get('a')).toBe(true)
+    expect(lookupExpanded(next, ['a', 'b'])).toBe(true)
+  })
+
+  it('finds a round under its first id even when later looked up by a different one first', () => {
+    // Opened while keyed under 'a' (its first id at the time); a later call
+    // joining the round shuffles which id comes first in the lookup list.
+    const expanded = toggleExpandedEntry(new Map(), ['a', 'b'])
+    expect(lookupExpanded(expanded, ['c', 'a', 'b'])).toBe(true)
+  })
+
+  it('does not open a second entry for a round already tracked by a later id', () => {
+    // The round is already tracked under 'b' (e.g. from its live phase);
+    // toggling it again by a different id order must flip that one entry,
+    // not create a fresh one under whichever id happens to come first now.
+    const alreadyOpen = new Map([['b', true]])
+    const closed = toggleExpandedEntry(alreadyOpen, ['a', 'b'])
+    expect(closed.size).toBe(1)
+    expect(lookupExpanded(closed, ['a', 'b'])).toBe(false)
   })
 })
 
