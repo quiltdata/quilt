@@ -228,7 +228,7 @@ function ToolMessage({
         onClick={toggleExpanded}
         aria-expanded={expanded}
       >
-        <M.Icon className={classes.icon}>build</M.Icon>
+        <M.Icon className={classes.icon}>bolt</M.Icon>
         <span className={classes.toolName}>{name}</span>
         {status === 'success' && (
           <M.Icon className={cx(classes.icon, classes.success)} aria-label="Succeeded">
@@ -357,7 +357,7 @@ function ToolCallRollup({
         onClick={toggleExpanded}
         aria-expanded={expanded}
       >
-        <M.Icon className={classes.icon}>build</M.Icon>
+        <M.Icon className={classes.icon}>bolt</M.Icon>
         <span className={cx(classes.toolName, rollupClasses.summary)}>{summary}</span>
         <span className={rollupClasses.count}>
           {running.length ? `${calls.length - running.length}/${calls.length}` : null}
@@ -386,7 +386,7 @@ function ToolCallRollup({
           {calls.map((call) => (
             <div key={call.key}>
               <div className={rollupClasses.entryHeader}>
-                <M.Icon className={classes.icon}>build</M.Icon>
+                <M.Icon className={classes.icon}>bolt</M.Icon>
                 <span className={rollupClasses.entryName}>{call.name}</span>
                 {call.status === 'success' && (
                   <M.Icon
