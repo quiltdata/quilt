@@ -199,15 +199,27 @@ interface ToolMessageProps {
   details: Record<string, any>
   timestamp: Date
   actions?: React.ReactNode
+  // Controlled by the caller when it must survive this component
+  // unmounting (e.g. ToolCallRollup's single-call branch, so a toggle set
+  // before a second call lands isn't lost when that branch stops rendering
+  // this component at all). Defaults to an internal, uncontrolled toggle.
+  expanded?: boolean
+  onToggleExpanded?: () => void
 }
 
-function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageProps) {
+function ToolMessage({
+  name,
+  status,
+  details,
+  timestamp,
+  actions,
+  expanded: expandedProp,
+  onToggleExpanded,
+}: ToolMessageProps) {
   const classes = useToolMessageStyles()
-  const [expanded, setExpanded] = React.useState(false)
-
-  const toggleExpanded = React.useCallback(() => {
-    setExpanded((prev) => !prev)
-  }, [])
+  const [expandedState, setExpandedState] = React.useState(false)
+  const expanded = expandedProp ?? expandedState
+  const toggleExpanded = onToggleExpanded ?? (() => setExpandedState((prev) => !prev))
 
   return (
     <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
@@ -288,6 +300,12 @@ interface ToolCallRollupProps {
   calls: readonly ToolCallEntry[]
   timestamp: Date
   actions?: React.ReactNode
+  // Controlled by ToolCallGroup, which owns this across the single-call
+  // (ToolMessage) and multi-call (this component's own markup) branches
+  // below -- those are different subtrees, so internal state here would
+  // reset whenever a group crosses the 1/2+ call boundary.
+  expanded: boolean
+  onToggleExpanded: () => void
 }
 
 // A run of tool calls (one response can trigger many) as one row instead of
@@ -295,14 +313,15 @@ interface ToolCallRollupProps {
 // running — or, once everything has settled, how many ran and whether any
 // failed — with the familiar per-call detail view available behind a toggle
 // so no error or payload is lost, just deferred.
-function ToolCallRollup({ calls, timestamp, actions }: ToolCallRollupProps) {
+function ToolCallRollup({
+  calls,
+  timestamp,
+  actions,
+  expanded,
+  onToggleExpanded: toggleExpanded,
+}: ToolCallRollupProps) {
   const classes = useToolMessageStyles()
   const rollupClasses = useRollupStyles()
-  const [expanded, setExpanded] = React.useState(false)
-
-  const toggleExpanded = React.useCallback(() => {
-    setExpanded((prev) => !prev)
-  }, [])
 
   const running = calls.filter((c) => c.status === 'running')
   const failed = calls.filter((c) => c.status === 'error')
@@ -321,6 +340,8 @@ function ToolCallRollup({ calls, timestamp, actions }: ToolCallRollupProps) {
           actions ??
           (call.discard && <MessageAction onClick={call.discard}>discard</MessageAction>)
         }
+        expanded={expanded}
+        onToggleExpanded={toggleExpanded}
       />
     )
   }
@@ -451,6 +472,13 @@ interface ToolCallGroupProps extends ConversationDispatchProps, ConversationStat
 }
 
 export function ToolCallGroup({ state, events, live, dispatch }: ToolCallGroupProps) {
+  // Owned here, not inside ToolCallRollup: this component stays mounted
+  // (stable key) across the single-call/multi-call and live/history
+  // transitions that remount ToolCallRollup's own subtree, so the toggle
+  // survives those transitions instead of resetting to collapsed.
+  const [expanded, setExpanded] = React.useState(false)
+  const toggleExpanded = React.useCallback(() => setExpanded((prev) => !prev), [])
+
   const discard = React.useCallback(
     (id: string) => dispatch(Model.Conversation.Action.Discard({ id })),
     [dispatch],
@@ -497,6 +525,8 @@ export function ToolCallGroup({ state, events, live, dispatch }: ToolCallGroupPr
       calls={calls}
       timestamp={timestamp}
       actions={live ? <MessageAction onClick={abort}>abort</MessageAction> : undefined}
+      expanded={expanded}
+      onToggleExpanded={toggleExpanded}
     />
   )
 }
@@ -947,7 +977,7 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
-          {toolCallRuns.map((run) =>
+          {toolCallRuns.map((run, i) =>
             run[0]._tag === 'Message' ? (
               <MessageEvent
                 key={run[0].id}
@@ -959,7 +989,10 @@ export default function Chat({
               // Keyed by the first call's toolUseId, not its event id: the
               // event id is reminted on each result, so keying on it would
               // remount the group (and lose its expanded state) the moment
-              // any call in it resolves.
+              // any call in it resolves. Live calls join the trailing
+              // ToolUse run (same round, partially settled) rather than
+              // getting their own group, so a call that finishes while
+              // others are still running doesn't fall out of an open toggle.
               <ToolCallGroup
                 key={
                   (run[0] as ReturnType<typeof Model.Conversation.Event.ToolUse>)
@@ -968,23 +1001,23 @@ export default function Chat({
                 dispatch={dispatch}
                 state={state._tag}
                 events={run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]}
+                live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
               />
             ),
           )}
-          {/* Live calls are always their own group, never folded into a
-              historical run: a toolUseId is either resolved (in `events`,
-              rendered above) or still running (in `live.calls`), never
-              both, and a tool-only turn leaves `events` unchanged entirely
-              -- so the trailing history run can be a stale, already-settled
-              group with no relation to what's running now. */}
-          {liveToolUse && (
-            <ToolCallGroup
-              dispatch={dispatch}
-              state={state._tag}
-              events={[]}
-              live={liveToolUse}
-            />
-          )}
+          {/* A tool-only turn (no text) leaves `events` unchanged, so the
+              trailing run above can be a Message, or there can be no run at
+              all -- liveToolUse then has nowhere to attach above and needs
+              its own group. */}
+          {liveToolUse &&
+            toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse' && (
+              <ToolCallGroup
+                dispatch={dispatch}
+                state={state._tag}
+                events={[]}
+                live={liveToolUse}
+              />
+            )}
           {Model.Conversation.State.$match(state, {
             Idle: (s) =>
               Eff.Option.match(s.error, {

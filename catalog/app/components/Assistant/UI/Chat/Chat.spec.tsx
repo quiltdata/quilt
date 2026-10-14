@@ -199,6 +199,39 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
     expect(screen.queryByText(/tool calls/)).toBeNull()
   })
 
+  // ToolCallRollup's single-call branch (ToolMessage) and multi-call branch
+  // are different subtrees; the toggle must live above both so it survives
+  // a group growing from one call to two.
+  it('keeps a call expanded after a second call joins its group', () => {
+    const { rerender } = render(
+      <ThemeProvider theme={theme}>
+        <ToolCallGroup
+          dispatch={vi.fn()}
+          state="Idle"
+          events={[toolUseEvent('1', 'search_packages')]}
+        />
+      </ThemeProvider>,
+    )
+    const toggle = () =>
+      screen.getAllByRole('button').find((b) => b.hasAttribute('aria-expanded'))!
+    fireEvent.click(toggle())
+    expect(toggle().getAttribute('aria-expanded')).toBe('true')
+
+    rerender(
+      <ThemeProvider theme={theme}>
+        <ToolCallGroup
+          dispatch={vi.fn()}
+          state="Idle"
+          events={[
+            toolUseEvent('1', 'search_packages'),
+            toolUseEvent('2', 'object_read'),
+          ]}
+        />
+      </ThemeProvider>,
+    )
+    expect(toggle().getAttribute('aria-expanded')).toBe('true')
+  })
+
   it('summarizes multiple finished calls into one count, collapsed by default', () => {
     renderGroup({
       state: 'Idle',
