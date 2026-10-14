@@ -49,7 +49,7 @@ export function* getTokens() {
  * Map a registry account-creation failure (shared by /register and the access-code
  * /signup/:page/complete) to a typed error, or return undefined when it is not one.
  */
-function registrationError(e) {
+export function registrationError(e) {
   if (!(e instanceof HTTPError)) return undefined
   const message = typeof e.json?.message === 'string' ? e.json.message : ''
   if (e.status === 400 && message === 'Invalid username.') {
@@ -307,7 +307,7 @@ function* getCode() {
  * @throws {SignupPageNotFound}
  * @throws {AuthError}
  */
-function* getSignupPage(page) {
+export function* getSignupPage(page) {
   try {
     return yield call(apiRequest, { auth: false, endpoint: `/signup/${page}` })
   } catch (e) {
@@ -332,7 +332,7 @@ function* getSignupPage(page) {
  * @throws {SignupCodeInvalid}
  * @throws {AuthError}
  */
-function* codeSignupRedeem({ page, code }) {
+export function* codeSignupRedeem({ page, code }) {
   try {
     const { ticket } = yield call(apiRequest, {
       auth: false,
@@ -366,7 +366,7 @@ function* codeSignupRedeem({ page, code }) {
  * @throws {SignupTicketInvalid}
  * @throws {AuthError}
  */
-function* codeSignupComplete({ page, ticket, username, email, password }) {
+export function* codeSignupComplete({ page, ticket, username, email, password }) {
   try {
     yield call(apiRequest, {
       auth: false,
@@ -636,7 +636,7 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  *
  * @param {Action} action
  */
-function* handleGetSignupPage({ payload: page, meta: { resolve, reject } }) {
+export function* handleGetSignupPage({ payload: page, meta: { resolve, reject } }) {
   try {
     const info = yield call(getSignupPage, page)
     yield call(resolve, info)
@@ -650,7 +650,7 @@ function* handleGetSignupPage({ payload: page, meta: { resolve, reject } }) {
  *
  * @param {Action} action
  */
-function* handleCodeSignupRedeem({ payload: params, meta: { resolve, reject } }) {
+export function* handleCodeSignupRedeem({ payload: params, meta: { resolve, reject } }) {
   try {
     const ticket = yield call(codeSignupRedeem, params)
     yield call(resolve, ticket)
@@ -664,7 +664,10 @@ function* handleCodeSignupRedeem({ payload: params, meta: { resolve, reject } })
  *
  * @param {Action} action
  */
-function* handleCodeSignupComplete({ payload: params, meta: { resolve, reject } }) {
+export function* handleCodeSignupComplete({
+  payload: params,
+  meta: { resolve, reject },
+}) {
   try {
     yield call(codeSignupComplete, params)
     yield call(resolve)
