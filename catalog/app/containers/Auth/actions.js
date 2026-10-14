@@ -173,15 +173,6 @@ export const authLost = actionCreator(actions.AUTH_LOST, (payload) => ({
 }))
 
 /**
- * Create a CODE_SIGNUP_REDEEM action (quilt-specs changes/access-code-signup#catalog-work).
- *
- * @param {{page: string, code: string}} params
- *
- * @param {{resolve: function, reject: function}} resolver
- *
- * @returns {Action}
- */
-/**
  * Create a GET_SIGNUP_PAGE action (quilt-specs changes/access-code-signup#catalog-work).
  *
  * @param {string} page
@@ -195,6 +186,15 @@ export const getSignupPage = actionCreator(actions.GET_SIGNUP_PAGE, (page, resol
   meta: { ...resolver },
 }))
 
+/**
+ * Create a CODE_SIGNUP_REDEEM action (quilt-specs changes/access-code-signup#catalog-work).
+ *
+ * @param {{page: string, code: string}} params
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
 export const codeSignupRedeem = actionCreator(
   actions.CODE_SIGNUP_REDEEM,
   (params, resolver) => ({

@@ -45,6 +45,37 @@ export function* getTokens() {
  * @throws {EmailTaken}
  * @throws {AuthError}
  */
+/**
+ * Map a registry account-creation failure (shared by /register and the access-code
+ * /signup/:page/complete) to a typed error, or return undefined when it is not one.
+ */
+function registrationError(e) {
+  if (!(e instanceof HTTPError)) return undefined
+  const message = typeof e.json?.message === 'string' ? e.json.message : ''
+  if (e.status === 400 && message === 'Invalid username.') {
+    return new errors.InvalidUsername({ originalError: e })
+  }
+  if (e.status === 400 && message === 'Invalid email.') {
+    return new errors.InvalidEmail({ originalError: e })
+  }
+  if (e.status === 400 && /Password must be/.test(message)) {
+    return new errors.InvalidPassword({ originalError: e })
+  }
+  if (e.status === 409 && message === 'Username already taken.') {
+    return new errors.UsernameTaken({ originalError: e })
+  }
+  if (e.status === 409 && message === 'Email already taken.') {
+    return new errors.EmailTaken({ originalError: e })
+  }
+  if (e.status === 401 && /password authentication disabled/i.test(message)) {
+    return new errors.PasswordAuthDisabled({ originalError: e })
+  }
+  if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
+    return new errors.SubscriptionInvalid({ originalError: e })
+  }
+  return undefined
+}
+
 function* signUp(credentials) {
   try {
     yield call(apiRequest, {
@@ -54,35 +85,19 @@ function* signUp(credentials) {
       body: credentials,
     })
   } catch (e) {
+    const mapped = registrationError(e)
+    if (mapped) throw mapped
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
       if (e.status === 400 && e.json && e.json.message === 'Default role not set') {
         throw new errors.NoDefaultRole({ originalError: e })
       }
-      if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
-        throw new errors.InvalidUsername({ originalError: e })
-      }
-      if (e.status === 400 && e.json && e.json.message === 'Invalid email.') {
-        throw new errors.InvalidEmail({ originalError: e })
-      }
-      if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
-        throw new errors.InvalidPassword({ originalError: e })
-      }
-      if (e.status === 409 && e.json && e.json.message === 'Username already taken.') {
-        throw new errors.UsernameTaken({ originalError: e })
-      }
-      if (e.status === 409 && e.json && e.json.message === 'Email already taken.') {
-        throw new errors.EmailTaken({ originalError: e })
-      }
       if (HTTPError.is(e, 401, /domain \S+ is not allowed/i)) {
         const domain = e.json.message.match(/domain (\S+) is/i)[1]
         throw new errors.EmailDomainNotAllowed({ domain, originalError: e })
       }
-      if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
+      if (e.status === 500 && e.json && /SMTP.*invalid/.test(e.json.message || '')) {
         throw new errors.SMTPError({ originalError: e })
-      }
-      if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
-        throw new errors.SubscriptionInvalid({ originalError: e })
       }
     }
     throw new errors.AuthError({
@@ -360,42 +375,11 @@ function* codeSignupComplete({ page, ticket, username, email, password }) {
       body: { ticket, username, email, ...(password ? { password } : {}) },
     })
   } catch (e) {
-    /* istanbul ignore else */
-    if (e instanceof HTTPError) {
-      if (
-        e.status === 401 &&
-        e.json &&
-        /invalid or expired signup ticket/i.test(e.json.message)
-      ) {
-        throw new errors.SignupTicketInvalid({ originalError: e })
-      }
-      if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
-        throw new errors.InvalidUsername({ originalError: e })
-      }
-      if (e.status === 400 && e.json && e.json.message === 'Invalid email.') {
-        throw new errors.InvalidEmail({ originalError: e })
-      }
-      // Fixed per code review: e.json.message may be undefined (e.g. a 400 whose body is
-      // {error_code: ...} only), and .match() on undefined throws instead of falling
-      // through -- guard with typeof first, same as the other branches' safe === checks.
-      if (
-        e.status === 400 &&
-        e.json &&
-        typeof e.json.message === 'string' &&
-        e.json.message.match(/Password must be/)
-      ) {
-        throw new errors.InvalidPassword({ originalError: e })
-      }
-      if (e.status === 409 && e.json && e.json.message === 'Username already taken.') {
-        throw new errors.UsernameTaken({ originalError: e })
-      }
-      if (e.status === 409 && e.json && e.json.message === 'Email already taken.') {
-        throw new errors.EmailTaken({ originalError: e })
-      }
-      if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
-        throw new errors.SubscriptionInvalid({ originalError: e })
-      }
+    if (HTTPError.is(e, 401, /invalid or expired signup ticket/i)) {
+      throw new errors.SignupTicketInvalid({ originalError: e })
     }
+    const mapped = registrationError(e)
+    if (mapped) throw mapped
     throw new errors.AuthError({
       message: 'unable to complete signup',
       originalError: e,

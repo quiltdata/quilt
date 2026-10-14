@@ -16,11 +16,14 @@ import * as redux from 'react-redux'
 import { useLocation, useParams, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
 import useMutex from 'utils/useMutex'
 import * as validators from 'utils/validators'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 
 import * as Layout from './Layout'
 import * as actions from './actions'
@@ -32,7 +35,7 @@ const MUTEX_SIGNUP = 'signup'
 
 const Container = Layout.mkLayout(({ title }) => title || 'Join Quilt')
 
-function CodeEntry({ page, title, description, initialCode, mutex, onRedeemed }) {
+function CodeEntry({ page, description, notice, initialCode, mutex, onRedeemed }) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
 
@@ -62,7 +65,7 @@ function CodeEntry({ page, title, description, initialCode, mutex, onRedeemed })
 
   return (
     <>
-      {!!title && <M.Typography variant="h5">{title}</M.Typography>}
+      {!!notice && <Layout.Message>{notice}</Layout.Message>}
       {!!description && (
         <M.Typography variant="body2" color="textSecondary">
           {description}
@@ -117,7 +120,7 @@ function CodeEntry({ page, title, description, initialCode, mutex, onRedeemed })
   )
 }
 
-function CompleteForm({ page, ticket, mutex, onDone }) {
+function CompleteForm({ page, ticket, mutex, onDone, onExpired }) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
 
@@ -137,17 +140,21 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
         )
         await result.promise
         if (!password) {
-          onDone()
+          onDone('emailed')
           return
         }
-        // Fixed per code review: a Redirect to /signin?next=...#done was dead -- nothing
-        // reads location.hash, so the "done" state never rendered. The account is already
-        // active (registry side), so sign in directly with the credentials just submitted
-        // rather than bouncing through a sign-in page at all. CodeSignUp's own
-        // `authenticated` check picks this up on the next render and redirects home.
-        const signInResult = defer()
-        dispatch(actions.signIn({ username, password }, signInResult.resolver))
-        await signInResult.promise
+        // The account is active (registry side), so sign in with the credentials just
+        // submitted; CodeSignUp's `authenticated` check then redirects home. A sign-in
+        // failure after the account exists is not a signup failure: say so instead of
+        // "try again", which would only produce "Username taken".
+        try {
+          const signInResult = defer()
+          dispatch(actions.signIn({ username, password }, signInResult.resolver))
+          await signInResult.promise
+        } catch (e) {
+          sentry('captureException', e)
+          onDone('created')
+        }
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {
           // eslint-disable-next-line consistent-return
@@ -170,8 +177,12 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
           return { password: 'invalid' }
         }
         if (e instanceof errors.SignupTicketInvalid) {
+          onExpired()
+          return
+        }
+        if (e instanceof errors.PasswordAuthDisabled) {
           // eslint-disable-next-line consistent-return
-          return { [FF.FORM_ERROR]: 'ticketExpired' }
+          return { [FF.FORM_ERROR]: 'passwordAuthDisabled' }
         }
         if (e instanceof errors.SubscriptionInvalid) {
           // eslint-disable-next-line consistent-return
@@ -184,7 +195,7 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
         mutex.release(MUTEX_SIGNUP)
       }
     },
-    [dispatch, mutex, onDone, page, sentry, ticket],
+    [dispatch, mutex, onDone, onExpired, page, sentry, ticket],
   )
 
   return (
@@ -225,17 +236,21 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
               invalid: 'Enter a valid email address',
             }}
           />
-          <RF.Field
-            component={Layout.Field}
-            name="password"
-            type="password"
-            disabled={!!mutex.current || submitting}
-            floatingLabelText="Password (optional)"
-            errors={{ invalid: 'Password must be between 8 and 64 characters long' }}
-          />
-          <Layout.Hint>
-            Leave the password blank and we&apos;ll email you a link to set one.
-          </Layout.Hint>
+          {cfg.passwordAuth === true && (
+            <>
+              <RF.Field
+                component={Layout.Field}
+                name="password"
+                type="password"
+                disabled={!!mutex.current || submitting}
+                floatingLabelText="Password (optional)"
+                errors={{ invalid: 'Password must be between 8 and 64 characters long' }}
+              />
+              <Layout.Hint>
+                Leave the password blank and we&apos;ll email you a link to set one.
+              </Layout.Hint>
+            </>
+          )}
           <Layout.Error
             {...{
               submitFailed,
@@ -243,8 +258,8 @@ function CompleteForm({ page, ticket, mutex, onDone }) {
             }}
             errors={{
               unexpected: 'Something went wrong. Try again later.',
-              ticketExpired:
-                'This signup link has expired. Go back and enter the code again.',
+              passwordAuthDisabled:
+                'Email signup is not enabled on this Quilt. Ask your administrator for an invitation.',
               subscriptionInvalid:
                 'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
             }}
@@ -275,39 +290,59 @@ export default function CodeSignUp() {
 
   const { code: initialCode } = parseSearch(search, true)
 
+  const { urls } = NamedRoutes.use()
+
   const [pageInfo, setPageInfo] = React.useState(null)
-  const [pageError, setPageError] = React.useState(false)
+  // null | 'notFound' | 'failed'
+  const [pageError, setPageError] = React.useState(null)
+  const [attempt, setAttempt] = React.useState(0)
   const [ticket, setTicket] = React.useState(null)
-  // Set only on the blank-password branch: the password branch signs in directly inside
-  // CompleteForm, and the `authenticated` check above then redirects home on its own.
-  const [pending, setPending] = React.useState(false)
+  const [notice, setNotice] = React.useState(null)
+  // 'emailed' (blank password: a set-link was sent) or 'created' (the account exists but
+  // the follow-up sign-in failed). The password branch otherwise signs in inside
+  // CompleteForm, and the `authenticated` check below redirects home on its own.
+  const [done, setDone] = React.useState(null)
 
   const dispatch = redux.useDispatch()
 
   React.useEffect(() => {
     let cancelled = false
+    setPageError(null)
     const resolve = (info) => {
       if (!cancelled) setPageInfo(info)
     }
-    const reject = () => {
-      if (!cancelled) setPageError(true)
+    const reject = (e) => {
+      if (!cancelled)
+        setPageError(e instanceof errors.SignupPageNotFound ? 'notFound' : 'failed')
     }
     dispatch(actions.getSignupPage(page, { resolve, reject }))
     return () => {
       cancelled = true
     }
-  }, [dispatch, page])
+  }, [dispatch, page, attempt])
 
-  // Fixed per code review: pageError must be checked before authenticated, or a signed-in
-  // visitor hitting a stale/mistyped page is silently bounced to `/` instead of seeing
-  // "This signup page does not exist."
-  if (pageError) {
+  if (pageError === 'notFound') {
     return (
       <Container title="Page not found">
         <Layout.Message>This signup page does not exist.</Layout.Message>
       </Container>
     )
   }
+
+  if (pageError === 'failed') {
+    return (
+      <Container title="Join Quilt">
+        <Layout.Message>
+          Could not load this signup page.{' '}
+          <StyledLink onClick={() => setAttempt((n) => n + 1)}>Try again</StyledLink>
+        </Layout.Message>
+      </Container>
+    )
+  }
+
+  // Wait for the page before deciding anything about a signed-in visitor, so a stale or
+  // mistyped page shows "does not exist" instead of silently bouncing them home.
+  if (!pageInfo) return null
 
   if (authenticated) {
     // An already-signed-in visitor redeems through the same page, which adds the role
@@ -317,13 +352,23 @@ export default function CodeSignUp() {
     return <Redirect to="/" />
   }
 
-  if (!pageInfo) return null
-
-  if (pending) {
+  if (done === 'emailed') {
     return (
       <Container title={pageInfo.title}>
         <Layout.Message>
           Check your email for a link to set your password, then sign in.
+        </Layout.Message>
+      </Container>
+    )
+  }
+
+  if (done === 'created') {
+    return (
+      <Container title={pageInfo.title}>
+        <Layout.Message>
+          Your account is ready, but signing you in failed.{' '}
+          <StyledLink to={urls.signIn()}>Sign in</StyledLink> with the username and
+          password you just chose.
         </Layout.Message>
       </Container>
     )
@@ -336,16 +381,23 @@ export default function CodeSignUp() {
           page={page}
           ticket={ticket}
           mutex={mutex}
-          onDone={() => setPending(true)}
+          onDone={setDone}
+          onExpired={() => {
+            setTicket(null)
+            setNotice('This signup link has expired. Enter the access code again.')
+          }}
         />
       ) : (
         <CodeEntry
           page={page}
-          title={null}
           description={pageInfo.description}
+          notice={notice}
           initialCode={initialCode}
           mutex={mutex}
-          onRedeemed={setTicket}
+          onRedeemed={(t) => {
+            setNotice(null)
+            setTicket(t)
+          }}
         />
       )}
     </Container>

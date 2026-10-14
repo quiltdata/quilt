@@ -159,6 +159,14 @@ export class SignupCodeInvalid extends AuthError {
   }
 }
 
+export class PasswordAuthDisabled extends AuthError {
+  static displayName = 'PasswordAuthDisabled'
+
+  constructor(props) {
+    super(withDefaultMessage('password authentication disabled', props))
+  }
+}
+
 export class SignupTicketInvalid extends AuthError {
   static displayName = 'SignupTicketInvalid'
 
