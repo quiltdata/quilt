@@ -246,6 +246,160 @@ function ToolMessage({ name, status, details, timestamp, actions }: ToolMessageP
   )
 }
 
+// One call, resolved for display regardless of whether it's a completed
+// history event or still running in `State.ToolUse`: this is the unit a
+// rollup lists once expanded.
+interface ToolCallEntry {
+  readonly key: string
+  readonly name: string
+  readonly status: 'success' | 'error' | 'running'
+  readonly timestamp: Date
+  readonly details: Record<string, any>
+  readonly discard?: () => void
+}
+
+const useRollupStyles = M.makeStyles((t) => ({
+  summary: {
+    color: 'inherit',
+  },
+  count: {
+    color: t.palette.text.hint,
+  },
+  entries: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(1),
+    marginTop: t.spacing(1),
+  },
+  entryHeader: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+  },
+  entryName: {
+    flexGrow: 1,
+  },
+  entryDetails: {
+    marginTop: t.spacing(0.5),
+  },
+}))
+
+interface ToolCallRollupProps {
+  calls: readonly ToolCallEntry[]
+  timestamp: Date
+  actions?: React.ReactNode
+}
+
+// A run of tool calls (one response can trigger many) as one row instead of
+// a stacked card per call: a summary that names whichever call is still
+// running — or, once everything has settled, how many ran and whether any
+// failed — with the familiar per-call detail view available behind a toggle
+// so no error or payload is lost, just deferred.
+function ToolCallRollup({ calls, timestamp, actions }: ToolCallRollupProps) {
+  const classes = useToolMessageStyles()
+  const rollupClasses = useRollupStyles()
+  const [expanded, setExpanded] = React.useState(false)
+
+  const toggleExpanded = React.useCallback(() => {
+    setExpanded((prev) => !prev)
+  }, [])
+
+  const running = calls.filter((c) => c.status === 'running')
+  const failed = calls.filter((c) => c.status === 'error')
+
+  // Single call: the per-call row already carries everything a rollup would
+  // summarize, so skip the extra wrapper and render it directly.
+  if (calls.length === 1) {
+    const [call] = calls
+    return (
+      <ToolMessage
+        name={call.name}
+        status={call.status}
+        details={call.details}
+        timestamp={call.timestamp}
+        actions={
+          actions ??
+          (call.discard && <MessageAction onClick={call.discard}>discard</MessageAction>)
+        }
+      />
+    )
+  }
+
+  const summary = running.length
+    ? `Running: ${running.map((c) => c.name).join(', ')}`
+    : `${calls.length} tool calls${failed.length ? `, ${failed.length} failed` : ''}`
+
+  return (
+    <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
+      <M.ButtonBase
+        className={classes.header}
+        onClick={toggleExpanded}
+        aria-expanded={expanded}
+      >
+        <M.Icon className={classes.icon}>build</M.Icon>
+        <span className={cx(classes.toolName, rollupClasses.summary)}>{summary}</span>
+        <span className={rollupClasses.count}>
+          {running.length ? `${calls.length - running.length}/${calls.length}` : null}
+        </span>
+        {!running.length && !failed.length && (
+          <M.Icon className={cx(classes.icon, classes.success)} aria-label="Succeeded">
+            check_circle_outline
+          </M.Icon>
+        )}
+        {!running.length && !!failed.length && (
+          <M.Icon className={cx(classes.icon, classes.error)} aria-label="Failed">
+            error_outline
+          </M.Icon>
+        )}
+        {!!running.length && (
+          <M.CircularProgress
+            size={14}
+            thickness={4}
+            className={classes.running}
+            aria-label="Running"
+          />
+        )}
+      </M.ButtonBase>
+      <M.Collapse in={expanded}>
+        <div className={rollupClasses.entries}>
+          {calls.map((call) => (
+            <div key={call.key}>
+              <div className={rollupClasses.entryHeader}>
+                <M.Icon className={classes.icon}>build</M.Icon>
+                <span className={rollupClasses.entryName}>{call.name}</span>
+                {call.status === 'success' && (
+                  <M.Icon
+                    className={cx(classes.icon, classes.success)}
+                    aria-label="Succeeded"
+                  >
+                    check_circle_outline
+                  </M.Icon>
+                )}
+                {call.status === 'error' && (
+                  <M.Icon className={cx(classes.icon, classes.error)} aria-label="Failed">
+                    error_outline
+                  </M.Icon>
+                )}
+                {call.status === 'running' && (
+                  <M.CircularProgress
+                    size={14}
+                    thickness={4}
+                    className={classes.running}
+                    aria-label="Running"
+                  />
+                )}
+              </div>
+              <div className={rollupClasses.entryDetails}>
+                <JsonDisplay defaultExpanded={1} name="details" value={call.details} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </M.Collapse>
+    </MessageContainer>
+  )
+}
+
 type MessageEventProps = ConversationDispatchProps &
   ConversationStateProps &
   ReturnType<typeof Model.Conversation.Event.Message>
@@ -285,65 +439,65 @@ export function MessageEvent({
   )
 }
 
-type ToolUseEventProps = ConversationDispatchProps &
-  ConversationStateProps &
-  ReturnType<typeof Model.Conversation.Event.ToolUse>
-
-function ToolUseEvent({
-  state,
-  id,
-  timestamp,
-  toolUseId,
-  name,
-  input,
-  result,
-  dispatch,
-}: ToolUseEventProps) {
-  const discard = React.useMemo(
-    () =>
-      state === 'Idle' ? () => dispatch(Model.Conversation.Action.Discard({ id })) : null,
-    [dispatch, id, state],
-  )
-  const details = React.useMemo(
-    () => ({ toolUseId, input, result }),
-    [toolUseId, input, result],
-  )
-  return (
-    <ToolMessage
-      name={name}
-      status={result.status}
-      details={details}
-      timestamp={timestamp}
-      actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
-    />
-  )
+// A maximal run of consecutive history `ToolUse` events, plus the live
+// `State.ToolUse` calls when the run is still in progress: one rollup, one
+// discard per finished call, one abort for whatever's still running.
+interface ToolCallGroupProps extends ConversationDispatchProps, ConversationStateProps {
+  events: ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+  live?: { timestamp: Date; calls: Model.Conversation.ToolCalls }
 }
 
-interface ToolUseStateProps extends ConversationDispatchProps {
-  timestamp: Date
-  calls: Model.Conversation.ToolCalls
-}
-
-function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
+export function ToolCallGroup({ state, events, live, dispatch }: ToolCallGroupProps) {
+  const discard = React.useCallback(
+    (id: string) => dispatch(Model.Conversation.Action.Discard({ id })),
+    [dispatch],
+  )
   const abort = React.useCallback(
     () => dispatch(Model.Conversation.Action.Abort()),
     [dispatch],
   )
 
-  const details = React.useMemo(
-    () => Eff.Record.map(calls, Eff.Struct.pick('name', 'input')),
-    [calls],
-  )
+  const calls: ToolCallEntry[] = React.useMemo(() => {
+    // Keyed by toolUseId, not e.id: today each toolUseId appears at most once
+    // in `events` (the reducer dispatches exactly one ToolResult per call),
+    // but a future retry could add a second ToolUse event for the same
+    // toolUseId. Map.set keeps the later entry on a key collision, so the
+    // rollup's failure count always reflects the final attempt, never one
+    // that was retried away -- not a stacked case to spell out separately,
+    // just a count that stays correct if retries ever land.
+    const byToolUseId = new Map<string, ToolCallEntry>()
+    for (const e of events) {
+      byToolUseId.set(e.toolUseId, {
+        key: e.toolUseId,
+        name: e.name,
+        status: e.result.status,
+        timestamp: e.timestamp,
+        details: { toolUseId: e.toolUseId, input: e.input, result: e.result },
+        discard: state === 'Idle' ? () => discard(e.id) : undefined,
+      })
+    }
+    const finished = Array.from(byToolUseId.values())
 
-  const names = Eff.Record.collect(calls, (_k, v) => v.name)
+    const running: ToolCallEntry[] = live
+      ? Eff.Record.collect(live.calls, (toolUseId, call) => ({
+          key: toolUseId,
+          name: call.name,
+          status: 'running' as const,
+          timestamp: live.timestamp,
+          details: { name: call.name, input: call.input },
+        }))
+      : []
+
+    return finished.concat(running)
+  }, [events, live, state, discard])
+
+  const timestamp = live?.timestamp ?? events[events.length - 1]?.timestamp ?? new Date()
 
   return (
-    <ToolMessage
-      name={names.join(', ')}
-      status="running"
-      details={details}
+    <ToolCallRollup
+      calls={calls}
       timestamp={timestamp}
-      actions={<MessageAction onClick={abort}>abort</MessageAction>}
+      actions={live ? <MessageAction onClick={abort}>abort</MessageAction> : undefined}
     />
   )
 }
@@ -733,6 +887,24 @@ export default function Chat({
     [setDevToolsOpen],
   )
 
+  // Consecutive ToolUse events roll up into one group; a Message in between
+  // breaks the run (and never merges with another Message), since a rollup
+  // only reads as "this answer's tool calls" while nothing else has happened
+  // since.
+  const liveEvents = state.events.filter((e) => !e.discarded)
+  const toolCallRuns: Model.Conversation.Event[][] = Eff.Array.isNonEmptyArray(liveEvents)
+    ? Eff.Array.groupWith(
+        liveEvents,
+        (a, b) => a._tag === 'ToolUse' && b._tag === 'ToolUse',
+      )
+    : []
+  const liveToolUse = Model.Conversation.State.$match(state, {
+    Idle: () => undefined,
+    WaitingForAssistant: () => undefined,
+    ToolUse: (s) => ({ timestamp: s.timestamp, calls: s.calls }),
+    AwaitingConnector: () => undefined,
+  })
+
   return (
     <div className={classes.chat}>
       <div className={classes.header}>
@@ -776,28 +948,39 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
-          {state.events
-            .filter((e) => !e.discarded)
-            .map(
-              Model.Conversation.Event.$match({
-                Message: (event) => (
-                  <MessageEvent
-                    key={event.id}
-                    dispatch={dispatch}
-                    state={state._tag}
-                    {...event}
-                  />
-                ),
-                ToolUse: (event) => (
-                  <ToolUseEvent
-                    key={event.id}
-                    dispatch={dispatch}
-                    state={state._tag}
-                    {...event}
-                  />
-                ),
-              }),
-            )}
+          {toolCallRuns.map((run, i) =>
+            run[0]._tag === 'Message' ? (
+              <MessageEvent
+                key={run[0].id}
+                dispatch={dispatch}
+                state={state._tag}
+                {...(run[0] as ReturnType<typeof Model.Conversation.Event.Message>)}
+              />
+            ) : (
+              // Keyed by the first call's toolUseId, not its event id: a
+              // run's first call stays the same tool call across a discard
+              // of a later entry, and toolUseId survives completion where
+              // the event's own id doesn't (it's reminted on each result).
+              <ToolCallGroup
+                key={
+                  (run[0] as ReturnType<typeof Model.Conversation.Event.ToolUse>)
+                    .toolUseId
+                }
+                dispatch={dispatch}
+                state={state._tag}
+                events={run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]}
+                live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
+              />
+            ),
+          )}
+          {!toolCallRuns.length && liveToolUse && (
+            <ToolCallGroup
+              dispatch={dispatch}
+              state={state._tag}
+              events={[]}
+              live={liveToolUse}
+            />
+          )}
           {Model.Conversation.State.$match(state, {
             Idle: (s) =>
               Eff.Option.match(s.error, {
@@ -813,9 +996,7 @@ export default function Chat({
             WaitingForAssistant: (s) => (
               <WaitingState dispatch={dispatch} timestamp={s.timestamp} busy={busy} />
             ),
-            ToolUse: (s) => (
-              <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
-            ),
+            ToolUse: () => null,
             AwaitingConnector: (s) => (
               <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),

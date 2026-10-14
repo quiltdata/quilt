@@ -1,8 +1,30 @@
 import * as React from 'react'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 
 vi.mock('constants/config', () => ({ default: {} }))
+
+// ToolCallGroup renders tool-call details via JsonDisplay, whose styles use
+// the app theme's `typography.monospace` extension (absent from MUI's default).
+const theme = createMuiTheme({
+  typography: {
+    monospace: {
+      fontFamily: 'monospace',
+    },
+  } as ThemeOptions['typography'],
+})
+
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  },
+)
 
 // `useIsInStack` normally suspends on the buckets query; the link rewrite only
 // needs the membership predicate.
@@ -12,7 +34,7 @@ vi.mock('utils/Buckets', () => ({
 
 import * as Model from '../../Model'
 
-import { ConnectorHelperLine, Menu, MessageEvent } from './Chat'
+import { ConnectorHelperLine, Menu, MessageEvent, ToolCallGroup } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
 // any block element there is invalid DOM nesting.
@@ -136,6 +158,115 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
     renderMessage('assistant', `[open it](${href})`)
     const link = await screen.findByRole('link')
     expect(link.getAttribute('href')).toBe(href)
+  })
+})
+
+describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
+  afterEach(cleanup)
+
+  function toolUseEvent(
+    id: string,
+    name: string,
+    status: 'success' | 'error' = 'success',
+    toolUseId = `${id}-use`,
+  ): ReturnType<typeof Model.Conversation.Event.ToolUse> {
+    return {
+      _tag: 'ToolUse',
+      id,
+      timestamp: new Date(),
+      toolUseId,
+      name,
+      input: { q: id },
+      result: { status, content: [] },
+    }
+  }
+
+  function renderGroup(
+    props: Omit<React.ComponentProps<typeof ToolCallGroup>, 'dispatch'>,
+  ) {
+    return render(
+      <ThemeProvider theme={theme}>
+        <ToolCallGroup dispatch={vi.fn()} {...props} />
+      </ThemeProvider>,
+    )
+  }
+
+  // One call carries nothing a rollup would summarize, so it stays as the
+  // plain per-call row (matches today's single-tool-call rendering).
+  it('renders a single call as a plain row, not a rollup', () => {
+    renderGroup({ state: 'Idle', events: [toolUseEvent('1', 'search_packages')] })
+    expect(screen.getByText('search_packages')).toBeTruthy()
+    expect(screen.queryByText(/tool calls/)).toBeNull()
+  })
+
+  it('summarizes multiple finished calls into one count, collapsed by default', () => {
+    renderGroup({
+      state: 'Idle',
+      events: [
+        toolUseEvent('1', 'search_packages'),
+        toolUseEvent('2', 'package_revision'),
+        toolUseEvent('3', 'object_read'),
+      ],
+    })
+    expect(screen.getByText('3 tool calls')).toBeTruthy()
+    // M.Collapse keeps collapsed content in the DOM (height-animated, not
+    // unmounted) -- the toggle button's aria-expanded is the real signal.
+    expect(screen.getByRole('button').getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('names the actively running call in the summary line', () => {
+    renderGroup({
+      state: 'ToolUse',
+      events: [toolUseEvent('1', 'search_packages')],
+      live: {
+        timestamp: new Date(),
+        calls: {
+          'call-2': { name: 'package_revision', input: {}, fiber: {} as any },
+        },
+      },
+    })
+    expect(screen.getByText('Running: package_revision')).toBeTruthy()
+  })
+
+  it('surfaces a failed call in the summary without expanding', () => {
+    renderGroup({
+      state: 'Idle',
+      events: [
+        toolUseEvent('1', 'search_packages', 'success'),
+        toolUseEvent('2', 'object_read', 'error'),
+      ],
+    })
+    expect(screen.getByText('2 tool calls, 1 failed')).toBeTruthy()
+  })
+
+  it('expands to reveal every call, including the failed one', () => {
+    renderGroup({
+      state: 'Idle',
+      events: [
+        toolUseEvent('1', 'search_packages', 'success'),
+        toolUseEvent('2', 'object_read', 'error'),
+      ],
+    })
+    fireEvent.click(screen.getByRole('button'))
+    expect(screen.getByText('search_packages')).toBeTruthy()
+    expect(screen.getByText('object_read')).toBeTruthy()
+  })
+
+  // A retry isn't representable in today's event stream (the reducer
+  // dispatches exactly one ToolResult per toolUseId), but the rollup counts
+  // by toolUseId specifically so a future retry's earlier failed attempt
+  // never inflates the failure count once the same call later succeeds.
+  it('counts a call once by its final status, not once per event sharing its toolUseId', () => {
+    renderGroup({
+      state: 'Idle',
+      events: [
+        toolUseEvent('1', 'object_read', 'error', 'shared-use'),
+        toolUseEvent('2', 'object_read', 'success', 'shared-use'),
+        toolUseEvent('3', 'search_packages', 'success'),
+      ],
+    })
+    expect(screen.getByText('2 tool calls')).toBeTruthy()
+    expect(screen.queryByText(/failed/)).toBeNull()
   })
 })
 
