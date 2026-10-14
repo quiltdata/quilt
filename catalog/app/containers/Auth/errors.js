@@ -140,3 +140,29 @@ export class SubscriptionInvalid extends AuthError {
     super(withDefaultMessage('Subscription invalid', props))
   }
 }
+
+// quilt-specs changes/access-code-signup#catalog-work. Thrown by name, not just displayed:
+// CodeSignUp.jsx catches this specifically to show its "page not found" screen.
+export class SignupPageNotFound extends AuthError {
+  static displayName = 'SignupPageNotFound'
+
+  constructor(props) {
+    super(withDefaultMessage('unknown signup page', props))
+  }
+}
+
+export class SignupCodeInvalid extends AuthError {
+  static displayName = 'SignupCodeInvalid'
+
+  constructor(props) {
+    super(withDefaultMessage('invalid access code', props))
+  }
+}
+
+export class SignupTicketInvalid extends AuthError {
+  static displayName = 'SignupTicketInvalid'
+
+  constructor(props) {
+    super(withDefaultMessage('invalid or expired signup ticket', props))
+  }
+}

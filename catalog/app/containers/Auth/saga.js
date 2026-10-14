@@ -282,6 +282,116 @@ function* getCode() {
 }
 
 /**
+ * Get a signup page's title/description (quilt-specs
+ * changes/access-code-signup#catalog-work).
+ *
+ * @param {string} page
+ *
+ * @returns {{title: ?string, description: ?string}}
+ *
+ * @throws {SignupPageNotFound}
+ * @throws {AuthError}
+ */
+function* getSignupPage(page) {
+  try {
+    return yield call(apiRequest, { auth: false, endpoint: `/signup/${page}` })
+  } catch (e) {
+    if (e instanceof HTTPError && e.status === 404) {
+      throw new errors.SignupPageNotFound({ originalError: e })
+    }
+    throw new errors.AuthError({
+      message: 'unable to fetch signup page',
+      originalError: e,
+    })
+  }
+}
+
+/**
+ * Redeem a role's access code for a signup ticket (quilt-specs
+ * changes/access-code-signup#catalog-work).
+ *
+ * @param {{page: string, code: string}} params
+ *
+ * @returns {string} The signup ticket.
+ *
+ * @throws {SignupCodeInvalid}
+ * @throws {AuthError}
+ */
+function* codeSignupRedeem({ page, code }) {
+  try {
+    const { ticket } = yield call(apiRequest, {
+      auth: false,
+      endpoint: `/signup/${page}/redeem`,
+      method: 'POST',
+      body: { code },
+    })
+    return ticket
+  } catch (e) {
+    if (HTTPError.is(e, 401, /invalid code/i)) {
+      throw new errors.SignupCodeInvalid({ originalError: e })
+    }
+    throw new errors.AuthError({
+      message: 'unable to redeem access code',
+      originalError: e,
+    })
+  }
+}
+
+/**
+ * Complete a code signup: create the account, optionally with the given password
+ * (quilt-specs changes/access-code-signup#catalog-work, #password-decision).
+ *
+ * @param {{page: string, ticket: string, username: string, email: string, password: ?string}} params
+ *
+ * @throws {InvalidUsername}
+ * @throws {InvalidEmail}
+ * @throws {InvalidPassword}
+ * @throws {UsernameTaken}
+ * @throws {EmailTaken}
+ * @throws {SignupTicketInvalid}
+ * @throws {AuthError}
+ */
+function* codeSignupComplete({ page, ticket, username, email, password }) {
+  try {
+    yield call(apiRequest, {
+      auth: false,
+      endpoint: `/signup/${page}/complete`,
+      method: 'POST',
+      body: { ticket, username, email, ...(password ? { password } : {}) },
+    })
+  } catch (e) {
+    /* istanbul ignore else */
+    if (e instanceof HTTPError) {
+      if (e.status === 401 && e.json && /invalid or expired signup ticket/i.test(e.json.message)) {
+        throw new errors.SignupTicketInvalid({ originalError: e })
+      }
+      if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
+        throw new errors.InvalidUsername({ originalError: e })
+      }
+      if (e.status === 400 && e.json && e.json.message === 'Invalid email.') {
+        throw new errors.InvalidEmail({ originalError: e })
+      }
+      if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
+        throw new errors.InvalidPassword({ originalError: e })
+      }
+      if (e.status === 409 && e.json && e.json.message === 'Username already taken.') {
+        throw new errors.UsernameTaken({ originalError: e })
+      }
+      if (e.status === 409 && e.json && e.json.message === 'Email already taken.') {
+        throw new errors.EmailTaken({ originalError: e })
+      }
+      if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
+        throw new errors.SubscriptionInvalid({ originalError: e })
+      }
+    }
+    throw new errors.AuthError({
+      message: 'unable to complete signup',
+      originalError: e,
+    })
+  }
+}
+
+/**
  * Refresh auth tokens.
  *
  * @param {number} latency
@@ -526,6 +636,48 @@ function* handleGetCode({ meta: { resolve, reject } }) {
 }
 
 /**
+ * Handle GET_SIGNUP_PAGE action (quilt-specs changes/access-code-signup#catalog-work).
+ *
+ * @param {Action} action
+ */
+function* handleGetSignupPage({ payload: page, meta: { resolve, reject } }) {
+  try {
+    const info = yield call(getSignupPage, page)
+    yield call(resolve, info)
+  } catch (e) {
+    yield call(reject, e)
+  }
+}
+
+/**
+ * Handle CODE_SIGNUP_REDEEM action (quilt-specs changes/access-code-signup#catalog-work).
+ *
+ * @param {Action} action
+ */
+function* handleCodeSignupRedeem({ payload: params, meta: { resolve, reject } }) {
+  try {
+    const ticket = yield call(codeSignupRedeem, params)
+    yield call(resolve, ticket)
+  } catch (e) {
+    yield call(reject, e)
+  }
+}
+
+/**
+ * Handle CODE_SIGNUP_COMPLETE action (quilt-specs changes/access-code-signup#catalog-work).
+ *
+ * @param {Action} action
+ */
+function* handleCodeSignupComplete({ payload: params, meta: { resolve, reject } }) {
+  try {
+    yield call(codeSignupComplete, params)
+    yield call(resolve)
+  } catch (e) {
+    yield call(reject, e)
+  }
+}
+
+/**
  * Main Auth saga.
  * Handles auth actions and fires CHECK action on specified condition.
  *
@@ -561,4 +713,7 @@ export default function* Saga({
   yield takeEvery(actions.resetPassword.type, handleResetPassword)
   yield takeEvery(actions.changePassword.type, handleChangePassword)
   yield takeEvery(actions.getCode.type, handleGetCode)
+  yield takeEvery(actions.getSignupPage.type, handleGetSignupPage)
+  yield takeEvery(actions.codeSignupRedeem.type, handleCodeSignupRedeem)
+  yield takeEvery(actions.codeSignupComplete.type, handleCodeSignupComplete)
 }

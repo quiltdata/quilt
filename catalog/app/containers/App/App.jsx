@@ -68,6 +68,10 @@ const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Place
 const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
+// quilt-specs changes/access-code-signup#catalog-work: unconditional, unlike the gate on
+// AuthSignUp below -- a code-signup page is inert on its own (404s via api_signup_page)
+// unless a role actually declares a code, independent of the stack's general signup config.
+const AuthCodeSignUp = RT.mkLazy(() => import('containers/Auth/CodeSignUp'), Placeholder)
 const ConnectAuthorize = requireAuth()(
   RT.mkLazy(() => import('containers/Connect'), Placeholder),
 )
@@ -176,6 +180,9 @@ export default function App() {
           <AuthSignUp />
         </Route>
       )}
+      <Route path={paths.codeSignup} exact>
+        <AuthCodeSignUp />
+      </Route>
       {!!cfg.passwordAuth && (
         <Route path={paths.passReset} exact>
           <AuthPassReset />

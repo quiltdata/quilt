@@ -171,3 +171,51 @@ refresh.resolve = actionCreator(actions.REFRESH_RESULT, (payload) => ({
 export const authLost = actionCreator(actions.AUTH_LOST, (payload) => ({
   payload,
 }))
+
+/**
+ * Create a CODE_SIGNUP_REDEEM action (quilt-specs changes/access-code-signup#catalog-work).
+ *
+ * @param {{page: string, code: string}} params
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
+/**
+ * Create a GET_SIGNUP_PAGE action (quilt-specs changes/access-code-signup#catalog-work).
+ *
+ * @param {string} page
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
+export const getSignupPage = actionCreator(actions.GET_SIGNUP_PAGE, (page, resolver) => ({
+  payload: page,
+  meta: { ...resolver },
+}))
+
+export const codeSignupRedeem = actionCreator(
+  actions.CODE_SIGNUP_REDEEM,
+  (params, resolver) => ({
+    payload: params,
+    meta: { ...resolver },
+  }),
+)
+
+/**
+ * Create a CODE_SIGNUP_COMPLETE action (quilt-specs changes/access-code-signup#catalog-work).
+ *
+ * @param {{page: string, ticket: string, username: string, email: string, password: ?string}} params
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
+export const codeSignupComplete = actionCreator(
+  actions.CODE_SIGNUP_COMPLETE,
+  (params, resolver) => ({
+    payload: params,
+    meta: { ...resolver },
+  }),
+)
