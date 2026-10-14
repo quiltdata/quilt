@@ -1,7 +1,6 @@
 import builtins
 
 from .. import _graphql_client
-from .._graphql_client import base_model as _base_model
 from . import exceptions, types, util
 
 
@@ -54,8 +53,14 @@ def list() -> builtins.list[types.Role]:
 # Not passed is not the same as None: the registry keeps `defaultBucket` / `signup` when the
 # input omits the key and clears them on an explicit null, and the generated client only
 # serializes the fields it was given.
-_UNSET = _base_model.UNSET
-_Unset = _base_model.UnsetType
+class _Unset:
+    """Marks a keyword argument the caller did not pass (stable repr for the generated docs)."""
+
+    def __repr__(self) -> str:
+        return "UNSET"
+
+
+_UNSET = _Unset()
 
 
 def _signup_kwargs(default_bucket, signup) -> dict:
