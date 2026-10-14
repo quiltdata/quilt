@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Editing a role's name or policies in Admin → Users and roles no longer clears the role's default bucket or access-code signup page ([#5470](https://github.com/quiltdata/quilt/pull/5470))
 - [Added] Qurator: admins add skills from GitHub in Admin → Settings → Qurator skills, kept in a package only admins can change, and users turn each one on or off from Skills in the + menu ([#5411](https://github.com/quiltdata/quilt/pull/5411))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
