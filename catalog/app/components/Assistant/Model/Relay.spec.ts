@@ -14,11 +14,11 @@ const install = (impl: (input: string, init: RequestInit) => Promise<Response>) 
   return spy
 }
 
-const run = (layer: Eff.Layer.Layer<LLM.LLM>, prompt: LLM.Prompt) =>
+const run = (layer: Eff.Layer.Layer<LLM.LLM>, prompt: LLM.Prompt, opts?: LLM.Options) =>
   Eff.Effect.runPromise(
     Eff.Effect.gen(function* () {
       const llm = yield* LLM.LLM
-      return yield* llm.converse(prompt)
+      return yield* llm.converse(prompt, opts)
     }).pipe(Eff.Effect.provide(layer)),
   )
 
@@ -100,6 +100,50 @@ describe('Relay', () => {
     expect(Eff.Option.getOrThrow(res.content)).toEqual([
       Content.ResponseMessageContentBlock.Text({ text: 'hi' }),
     ])
+  })
+
+  describe('a SageMaker endpoint', () => {
+    const sagemakerLayer = layer({
+      modelId: Eff.Effect.succeed(
+        'arn:aws:sagemaker:us-east-1:123456789012:endpoint/qurator-nemotron',
+      ),
+    })
+
+    it('gets a default maxTokens when the caller sets none', async () => {
+      const spy = install(async () => new Response(okBody('hi'), { status: 200 }))
+      await run(sagemakerLayer, { system: 'sys', messages: [userText('hello')] })
+      const body = JSON.parse(spy.mock.calls[0][1].body as string)
+      expect(body.inferenceConfig).toEqual({ maxTokens: 4096 })
+    })
+
+    it("lets a caller's own maxTokens override the default", async () => {
+      const spy = install(async () => new Response(okBody('hi'), { status: 200 }))
+      await run(
+        sagemakerLayer,
+        { system: 'sys', messages: [userText('hello')] },
+        { inferenceConfig: { maxTokens: 2048 } },
+      )
+      const body = JSON.parse(spy.mock.calls[0][1].body as string)
+      expect(body.inferenceConfig).toEqual({ maxTokens: 2048 })
+    })
+
+    it('keeps the default when a caller sets maxTokens to undefined', async () => {
+      const spy = install(async () => new Response(okBody('hi'), { status: 200 }))
+      await run(
+        sagemakerLayer,
+        { system: 'sys', messages: [userText('hello')] },
+        { inferenceConfig: { maxTokens: undefined, temperature: 0.2 } },
+      )
+      const body = JSON.parse(spy.mock.calls[0][1].body as string)
+      expect(body.inferenceConfig).toEqual({ maxTokens: 4096, temperature: 0.2 })
+    })
+  })
+
+  it('does not cap a Bedrock model that is not a SageMaker endpoint', async () => {
+    const spy = install(async () => new Response(okBody('hi'), { status: 200 }))
+    await run(layer(), { system: 'sys', messages: [userText('hello')] })
+    const body = JSON.parse(spy.mock.calls[0][1].body as string)
+    expect(body.inferenceConfig).toBeUndefined()
   })
 
   it('base64-encodes document bytes exactly as the SDK would have', async () => {
