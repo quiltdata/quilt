@@ -1584,5 +1584,7 @@ def test_registry_too_old_on_schema_mismatch(message, error_type):
     with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
         with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE):
             with mock.patch("quilt3._graphql_client.Client.get_data", side_effect=gql_error):
-                with pytest.raises(error_type):
+                with pytest.raises(error_type) as exc_info:
                     admin.roles.list()
+    if error_type is admin.RegistryTooOldError:
+        assert message in str(exc_info.value)
