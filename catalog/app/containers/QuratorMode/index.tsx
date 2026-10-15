@@ -89,24 +89,19 @@ function RefLink({ r }: { r: SessionPackage.Reference }) {
   )
 }
 
-const useRefs = (api: API) => {
-  const { events } = api.state
-  return React.useMemo(() => SessionPackage.references(events), [events])
-}
-
 interface ContextPaneProps {
   api: API
+  refs: SessionPackage.Reference[]
   /** Wide layout only; in the sheet the chat's own close does this. */
   onCatalog?: () => void
   onClose?: () => void
   className?: string
 }
 
-function ContextPane({ api, onCatalog, onClose, className }: ContextPaneProps) {
+function ContextPane({ api, refs, onCatalog, onClose, className }: ContextPaneProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const { events } = api.state
-  const refs = useRefs(api)
   const used = React.useMemo(() => {
     const counts = new Map<string, { ok: number; failed: number }>()
     events.forEach((e) => {
@@ -223,7 +218,9 @@ function Workspace({
   }, [single])
   const openSheet = React.useCallback(() => setSheetOpen(true), [])
   const closeSheet = React.useCallback(() => setSheetOpen(false), [])
-  const touched = useRefs(withSave).length
+  const { events } = api.state
+  const refs = React.useMemo(() => SessionPackage.references(events), [events])
+  const touched = refs.length
   const details = single ? (
     <M.Tooltip title="Session details">
       <M.IconButton
@@ -264,12 +261,13 @@ function Workspace({
         >
           <ContextPane
             api={withSave}
+            refs={refs}
             onClose={closeSheet}
             className={classes.sheetPane}
           />
         </M.SwipeableDrawer>
       ) : (
-        <ContextPane api={withSave} onCatalog={toCatalog} />
+        <ContextPane api={withSave} refs={refs} onCatalog={toCatalog} />
       )}
     </div>
   )

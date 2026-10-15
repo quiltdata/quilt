@@ -73,6 +73,7 @@ describe('components/Layout/Layout (shell adaptation)', () => {
     renderShell(<Layout>content</Layout>)
     expect(last(sidebarProps).compact).toBe(false)
     expect(last(contentBarProps).onMenu).toBeUndefined()
+    expect(last(contentBarProps).compact).toBe(false)
   })
 
   // Narrow: there is no room for a 256px column beside the content, so the rail
@@ -86,6 +87,7 @@ describe('components/Layout/Layout (shell adaptation)', () => {
     expect(last(sidebarProps).open).toBe(false)
     expect(typeof last(sidebarProps).onClose).toBe('function')
     expect(typeof last(contentBarProps).onMenu).toBe('function')
+    expect(last(contentBarProps).compact).toBe(true)
   })
 
   it('opens the overlay when the header button asks, and can close it again', () => {

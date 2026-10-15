@@ -152,13 +152,19 @@ function Section({
   emptyReadOnly,
   readOnlyHint,
   instructions,
+  layer,
   onDirtyChange,
-}: SectionProps & { onDirtyChange?: (dirty: boolean) => void }) {
+}: SectionProps & {
+  layer?: Layer
+  onDirtyChange?: (layer: Layer, dirty: boolean) => void
+}) {
   const classes = useStyles()
   const { text, enabled, canEdit } = instructions
   const { draft, setDraft, dirty, pending, error, save, toggle, onClear } =
     UserInstructions.useInstructionsEditor(instructions)
-  React.useEffect(() => onDirtyChange?.(dirty), [onDirtyChange, dirty])
+  React.useEffect(() => {
+    if (layer) onDirtyChange?.(layer, dirty)
+  }, [layer, onDirtyChange, dirty])
 
   return (
     <div className={classes.section}>
@@ -352,33 +358,21 @@ export function InstructionsPanel({
   const lastOpen = React.useRef<Layer>('global')
   if (open) lastOpen.current = open
   const shown = open ?? lastOpen.current
-  const onGlobalDirty = React.useCallback(
-    (dirty: boolean) => onDirtyChange?.('global', dirty),
-    [onDirtyChange],
-  )
-  const onPersonalDirty = React.useCallback(
-    (dirty: boolean) => onDirtyChange?.('personal', dirty),
-    [onDirtyChange],
-  )
   return (
     // The hairline lives inside the Collapse, so a closed panel leaves no line behind.
     <M.Collapse in={!!open} className={className}>
       <div className={cx(classes.root, classes.body, classes.panelBody)}>
         {/* Both stay mounted, so switching layers keeps a draft and a save's error. */}
-        <div hidden={shown !== 'global'}>
-          <Section
-            {...LAYERS.global}
-            instructions={instructions.global}
-            onDirtyChange={onGlobalDirty}
-          />
-        </div>
-        <div hidden={shown !== 'personal'}>
-          <Section
-            {...LAYERS.personal}
-            instructions={instructions.personal}
-            onDirtyChange={onPersonalDirty}
-          />
-        </div>
+        {(Object.keys(LAYERS) as Layer[]).map((layer) => (
+          <div key={layer} hidden={shown !== layer}>
+            <Section
+              {...LAYERS[layer]}
+              instructions={instructions[layer]}
+              layer={layer}
+              onDirtyChange={onDirtyChange}
+            />
+          </div>
+        ))}
       </div>
     </M.Collapse>
   )
@@ -396,8 +390,8 @@ export default function Instructions({ className, instructions }: InstructionsPr
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((prev) => !prev), [])
 
-  const globalMuted = !global.enabled && !!global.text.trim()
-  const personalMuted = !personal.enabled && !!personal.text.trim()
+  const globalMuted = layerState(global) === 'muted'
+  const personalMuted = layerState(personal) === 'muted'
 
   return (
     <div className={cx(classes.root, className)}>
@@ -440,25 +434,8 @@ export default function Instructions({ className, instructions }: InstructionsPr
       </M.ButtonBase>
       <M.Collapse in={expanded}>
         <div className={classes.body}>
-          <Section
-            label="Global — this stack"
-            fieldLabel="Global Qurator instructions"
-            placeholder={GLOBAL_PLACEHOLDER}
-            hint={HINT_GLOBAL_ADMIN}
-            emptyReadOnly={EMPTY_GLOBAL_READ_ONLY}
-            readOnlyHint={HINT_GLOBAL_READ_ONLY}
-            instructions={global}
-          />
-          <Section
-            label="Personal — my notes"
-            fieldLabel="Personal Qurator notes"
-            placeholder={PERSONAL_PLACEHOLDER}
-            hint={HINT_PERSONAL}
-            // Personal notes are always editable, so these never render.
-            emptyReadOnly=""
-            readOnlyHint=""
-            instructions={personal}
-          />
+          <Section {...LAYERS.global} instructions={global} />
+          <Section {...LAYERS.personal} instructions={personal} />
         </div>
       </M.Collapse>
     </div>

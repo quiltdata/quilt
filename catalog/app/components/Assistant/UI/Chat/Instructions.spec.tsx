@@ -250,79 +250,63 @@ describe('components/Assistant/UI/Chat/Instructions', () => {
 describe('components/Assistant/UI/Chat/Instructions InstructionsToggles', () => {
   afterEach(cleanup)
 
-  it('names each layer and its state', () => {
-    const { getByLabelText } = render(
+  const toggles = (
+    instructions: ReturnType<typeof dual>,
+    props: Partial<React.ComponentProps<typeof InstructionsToggles>> = {},
+  ) =>
+    render(
       <InstructionsToggles
-        instructions={dual(
-          { text: 'Be terse', enabled: false },
-          { text: 'Prefer Parquet' },
-        )}
+        instructions={instructions}
         open={null}
         onToggle={vi.fn()}
+        {...props}
       />,
+    )
+
+  const glyph = (button: HTMLElement) => button.querySelector('.MuiIcon-root')!
+
+  it('names each layer and its state', () => {
+    const { getByLabelText } = toggles(
+      dual({ text: 'Be terse', enabled: false }, { text: 'Prefer Parquet' }),
     )
     expect(getByLabelText('Global instructions: muted')).toBeTruthy()
     expect(getByLabelText('Personal notes: on')).toBeTruthy()
   })
 
   it('says when a layer is not set', () => {
-    const { getByLabelText } = render(
-      <InstructionsToggles instructions={dual()} open={null} onToggle={vi.fn()} />,
-    )
+    const { getByLabelText } = toggles(dual())
     expect(getByLabelText('Global instructions: not set')).toBeTruthy()
     expect(getByLabelText('Personal notes: not set')).toBeTruthy()
   })
 
   // State is in the shape, not just the color: filled, slashed, or hollow.
   it('draws each state with its own glyph', () => {
-    const { getByLabelText } = render(
-      <InstructionsToggles
-        instructions={dual({ text: 'Be terse', enabled: false })}
-        open={null}
-        onToggle={vi.fn()}
-      />,
+    const { getByLabelText } = toggles(
+      dual({ text: 'Be terse', enabled: false }, { text: 'Prefer Parquet' }),
     )
-    const muted = getByLabelText('Global instructions: muted').querySelector(
-      '.material-icons, .MuiIcon-root',
-    )!
-    expect(muted.textContent).toBe('public_off')
-    const unset = getByLabelText('Personal notes: not set').querySelector(
-      '.MuiIcon-root',
-    )!
-    expect(unset.textContent).toBe('person')
-    expect(unset.classList.contains('material-icons-outlined')).toBe(true)
-    cleanup()
-    const on = render(
-      <InstructionsToggles
-        instructions={dual({ text: 'Be terse' })}
-        open={null}
-        onToggle={vi.fn()}
-      />,
+    expect(glyph(getByLabelText('Global instructions: muted')).textContent).toBe(
+      'public_off',
     )
-      .getByLabelText('Global instructions: on')
-      .querySelector('.MuiIcon-root')!
-    expect(on.textContent).toBe('public')
+    const on = glyph(getByLabelText('Personal notes: on'))
+    expect(on.textContent).toBe('person')
     expect(on.classList.contains('material-icons-outlined')).toBe(false)
   })
 
+  it('draws a layer that is not set hollow', () => {
+    const unset = glyph(toggles(dual()).getByLabelText('Personal notes: not set'))
+    expect(unset.textContent).toBe('person')
+    expect(unset.classList.contains('material-icons-outlined')).toBe(true)
+  })
+
   it('names a layer with unsaved changes', () => {
-    const { getByLabelText } = render(
-      <InstructionsToggles
-        instructions={dual()}
-        open={null}
-        onToggle={vi.fn()}
-        unsaved={{ global: true }}
-      />,
-    )
+    const { getByLabelText } = toggles(dual(), { unsaved: { global: true } })
     expect(getByLabelText('Global instructions: not set, unsaved changes')).toBeTruthy()
     expect(getByLabelText('Personal notes: not set')).toBeTruthy()
   })
 
   it('toggles the clicked layer and marks the open one expanded', () => {
     const onToggle = vi.fn()
-    const { getByLabelText } = render(
-      <InstructionsToggles instructions={dual()} open="personal" onToggle={onToggle} />,
-    )
+    const { getByLabelText } = toggles(dual(), { open: 'personal', onToggle })
     const global = getByLabelText('Global instructions: not set')
     const personal = getByLabelText('Personal notes: not set')
     expect(global.getAttribute('aria-expanded')).toBe('false')

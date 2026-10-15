@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as Assistant from 'components/Assistant'
-import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import * as Column from 'components/Layout/Column'
 import * as Pointer from 'components/Layout/Pointer'
 import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
@@ -132,16 +131,14 @@ export interface ContentBarProps {
   // button is the way to reach it. Absent on wide viewports, where the rail is
   // always on screen and a menu button would toggle nothing.
   onMenu?: () => void
+  // The compact shell has no Qurator rail, so the bar's actions give way to
+  // Qurator's door there.
+  compact?: boolean
 }
 
-export function ContentBar({ onMenu }: ContentBarProps = {}) {
+export function ContentBar({ onMenu, compact = false }: ContentBarProps = {}) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const assistant = Assistant.Model.useAssistantAPI()
-  // Qurator mode renders the chat inline, and the dock refuses to open over it.
-  const inlined = InlinePresence.useInlined()
-  // `onMenu` arrives only in the compact shell (see ContentBarProps).
-  const compact = !!onMenu
   const bucket = Buckets.useCurrentBucket()
   // Non-null only on the search page, where the model is provided above the Layout.
   const searchModel = SearchUIModel.useUnsafe()
@@ -262,23 +259,10 @@ export function ContentBar({ onMenu }: ContentBarProps = {}) {
               </div>
             </M.Popper>
           </div>
-          {/* Compact has no Qurator rail, so the bar is its door. It stays
-              mounted while the overlay is open: closing it returns focus here. */}
           {compact ? (
-            !!assistant &&
-            !inlined && (
-              <div className={classes.actions}>
-                <M.Tooltip arrow title="Ask Qurator">
-                  <M.IconButton
-                    aria-label="Ask Qurator"
-                    className={classes.action}
-                    onClick={assistant.show}
-                  >
-                    <M.Icon className="material-icons-outlined">assistant</M.Icon>
-                  </M.IconButton>
-                </M.Tooltip>
-              </div>
-            )
+            <div className={classes.actions}>
+              <Assistant.UI.Trigger className={classes.action} />
+            </div>
           ) : (
             <div className={classes.actions}>
               <M.Tooltip arrow title="Resolve a Quilt URI">

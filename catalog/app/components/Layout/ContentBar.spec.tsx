@@ -38,17 +38,9 @@ vi.mock('components/SearchBar/State', () => ({
 // agreement unfalsifiable.
 vi.mock('utils/Buckets', () => ({ useCurrentBucket: () => null }))
 
-const { assistantShow, presence } = vi.hoisted(() => ({
-  assistantShow: vi.fn(),
-  presence: { inlined: false, visible: false },
-}))
+// The bar only places Qurator's door; when it shows is the Trigger's own spec.
 vi.mock('components/Assistant', () => ({
-  Model: {
-    useAssistantAPI: () => ({ show: assistantShow, visible: presence.visible }),
-  },
-}))
-vi.mock('components/Assistant/UI/InlinePresence', () => ({
-  useInlined: () => presence.inlined,
+  UI: { Trigger: () => <button type="button" aria-label="Ask Qurator" /> },
 }))
 
 import { ContentBar } from './ContentBar'
@@ -195,7 +187,6 @@ describe('components/Layout/ContentBar (header field registration)', () => {
     expect(document.activeElement).toBe(button)
   })
 
-  // Compact has no Qurator rail, so the bar's action slot becomes its door.
   it('swaps the URI and docs links for Ask Qurator in the compact shell', () => {
     const wide = renderBoth()
     expect(wide.container.querySelector('a[href="https://docs.quilt.bio"]')).toBeTruthy()
@@ -206,59 +197,14 @@ describe('components/Layout/ContentBar (header field registration)', () => {
         <MemoryRouter>
           <NamedRoutes.Provider routes={{ uriResolver }}>
             <SearchInputProvider>
-              <ContentBar onMenu={() => {}} />
+              <ContentBar onMenu={() => {}} compact />
             </SearchInputProvider>
           </NamedRoutes.Provider>
         </MemoryRouter>
       </M.MuiThemeProvider>,
     )
     expect(compact.container.querySelectorAll('a')).toHaveLength(0)
-    const ask = compact.container.querySelector('[aria-label="Ask Qurator"]')!
-    expect(ask).toBeTruthy()
-    ;(ask as HTMLElement).click()
-    expect(assistantShow).toHaveBeenCalled()
-  })
-
-  // On Qurator mode the chat is the page; the dock would close the moment it opened.
-  it('offers no Ask Qurator where the chat is already inline', () => {
-    presence.inlined = true
-    try {
-      const { container } = render(
-        <M.MuiThemeProvider theme={style.appTheme}>
-          <MemoryRouter>
-            <NamedRoutes.Provider routes={{ uriResolver }}>
-              <SearchInputProvider>
-                <ContentBar onMenu={() => {}} />
-              </SearchInputProvider>
-            </NamedRoutes.Provider>
-          </MemoryRouter>
-        </M.MuiThemeProvider>,
-      )
-      expect(container.querySelector('[aria-label="Ask Qurator"]')).toBeNull()
-    } finally {
-      presence.inlined = false
-    }
-  })
-
-  // The overlay's modal returns focus to its opener on close, so it must still exist.
-  it('keeps Ask Qurator mounted while the overlay is open', () => {
-    presence.visible = true
-    try {
-      const { container } = render(
-        <M.MuiThemeProvider theme={style.appTheme}>
-          <MemoryRouter>
-            <NamedRoutes.Provider routes={{ uriResolver }}>
-              <SearchInputProvider>
-                <ContentBar onMenu={() => {}} />
-              </SearchInputProvider>
-            </NamedRoutes.Provider>
-          </MemoryRouter>
-        </M.MuiThemeProvider>,
-      )
-      expect(container.querySelector('[aria-label="Ask Qurator"]')).toBeTruthy()
-    } finally {
-      presence.visible = false
-    }
+    expect(compact.container.querySelector('[aria-label="Ask Qurator"]')).toBeTruthy()
   })
 
   it('names the highlighted row, and that row is the one marked selected', () => {

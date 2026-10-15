@@ -165,7 +165,7 @@ export function Layout({
           <Column.Provider target={mainEl}>
             {/* The menu button exists only in the compact shell: on a wide
                 viewport the rail is always on screen, so it would toggle nothing. */}
-            <ContentBar onMenu={compact ? openNav : undefined} />
+            <ContentBar onMenu={compact ? openNav : undefined} compact={compact} />
             <div className={cx(classes.content, !flush && classes.padded)}>
               <Container.FullWidthProvider>
                 {!!pre && pre}

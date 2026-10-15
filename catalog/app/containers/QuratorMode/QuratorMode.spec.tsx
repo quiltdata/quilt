@@ -67,14 +67,16 @@ vi.mock('utils/NamedRoutes', () => ({
 
 import QuratorMode from './index'
 
-const renderPage = () =>
-  render(
-    <M.MuiThemeProvider theme={style.appTheme}>
-      <MemoryRouter>
-        <QuratorMode />
-      </MemoryRouter>
-    </M.MuiThemeProvider>,
-  )
+// A fresh element each call: rerendering the same one would let React skip it.
+const page = () => (
+  <M.MuiThemeProvider theme={style.appTheme}>
+    <MemoryRouter>
+      <QuratorMode />
+    </MemoryRouter>
+  </M.MuiThemeProvider>
+)
+
+const renderPage = () => render(page())
 
 describe('containers/QuratorMode', () => {
   afterEach(() => {
@@ -119,14 +121,7 @@ describe('containers/QuratorMode', () => {
     media.single = true
     const { rerender } = renderPage()
     fireEvent.click(screen.getByLabelText(/^Session details/))
-    const again = () =>
-      rerender(
-        <M.MuiThemeProvider theme={style.appTheme}>
-          <MemoryRouter>
-            <QuratorMode />
-          </MemoryRouter>
-        </M.MuiThemeProvider>,
-      )
+    const again = () => rerender(page())
     media.single = false
     again()
     media.single = true

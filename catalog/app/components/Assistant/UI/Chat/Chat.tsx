@@ -791,8 +791,9 @@ const useStyles = M.makeStyles((t) => ({
       outlineOffset: -2,
     },
   },
-  trailing: {
-    marginLeft: 'auto',
+  // Grows to push the header's buttons, whichever there are, to the end.
+  heading: {
+    flexGrow: 1,
   },
   devTools: {
     height: '50%',
@@ -996,17 +997,17 @@ export default function Chat({
         <span className={classes.qicon}>
           <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>
         </span>
-        <div>
+        <div className={classes.heading}>
           <div className={classes.title}>Qurator</div>
           <div className={classes.subtitle}>Your AI assistant, with your permissions</div>
         </div>
-        {!!headerActions && <span className={classes.trailing}>{headerActions}</span>}
+        {headerActions}
         <Menu
           state={state}
           dispatch={dispatch}
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
-          className={cx(classes.headerButton, !headerActions && classes.trailing)}
+          className={classes.headerButton}
         />
         <M.IconButton
           className={classes.headerButton}
