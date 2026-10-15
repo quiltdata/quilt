@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as Assistant from 'components/Assistant'
+import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
 import * as Column from 'components/Layout/Column'
 import * as Pointer from 'components/Layout/Pointer'
 import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
@@ -137,6 +138,8 @@ export function ContentBar({ onMenu }: ContentBarProps = {}) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const assistant = Assistant.Model.useAssistantAPI()
+  // Qurator mode renders the chat inline, and the dock refuses to open over it.
+  const inlined = InlinePresence.useInlined()
   // `onMenu` arrives only in the compact shell (see ContentBarProps).
   const compact = !!onMenu
   const bucket = Buckets.useCurrentBucket()
@@ -262,7 +265,9 @@ export function ContentBar({ onMenu }: ContentBarProps = {}) {
           {/* Compact has no Qurator rail on the right edge, so the bar is
               its door; the URI resolver and docs links give up the room. */}
           {compact ? (
-            !!assistant && (
+            !!assistant &&
+            !inlined &&
+            !assistant.visible && (
               <div className={classes.actions}>
                 <M.Tooltip arrow title="Ask Qurator">
                   <M.IconButton

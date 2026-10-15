@@ -974,6 +974,16 @@ export default function Chat({
     (layer: Layer) => setInstructionsOpen((prev) => (prev === layer ? null : layer)),
     [],
   )
+  const [unsavedInstructions, setUnsavedInstructions] = React.useState<
+    Partial<Record<Layer, boolean>>
+  >({})
+  const markUnsaved = React.useCallback(
+    (layer: Layer, dirty: boolean) =>
+      setUnsavedInstructions((prev) =>
+        !!prev[layer] === dirty ? prev : { ...prev, [layer]: dirty },
+      ),
+    [],
+  )
 
   const toggleDevTools = React.useCallback(
     () => setDevToolsOpen((prev) => !prev),
@@ -1107,7 +1117,11 @@ export default function Chat({
         />
       ) : (
         <>
-          <InstructionsPanel instructions={instructions} open={instructionsOpen} />
+          <InstructionsPanel
+            instructions={instructions}
+            open={instructionsOpen}
+            onDirtyChange={markUnsaved}
+          />
           <Input
             disabled={inputDisabled}
             model={model}
@@ -1117,6 +1131,7 @@ export default function Chat({
                 instructions={instructions}
                 open={instructionsOpen}
                 onToggle={toggleInstructions}
+                unsaved={unsavedInstructions}
               />
             }
             helperText={helperText}

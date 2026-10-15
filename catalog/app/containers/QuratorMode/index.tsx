@@ -225,7 +225,8 @@ function Workspace({
         size="small"
         aria-label={`Session details, ${touched} touched`}
       >
-        <M.Badge badgeContent={touched} color="secondary">
+        {/* Midnight, not amber: the Indicator Rule keeps amber off fills. */}
+        <M.Badge badgeContent={touched} color="primary">
           <M.Icon className="material-icons-outlined">info</M.Icon>
         </M.Badge>
       </M.IconButton>

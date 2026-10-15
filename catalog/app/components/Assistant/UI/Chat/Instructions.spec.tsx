@@ -273,6 +273,51 @@ describe('components/Assistant/UI/Chat/Instructions InstructionsToggles', () => 
     expect(getByLabelText('Personal notes: not set')).toBeTruthy()
   })
 
+  // State is in the shape, not just the color: filled, slashed, or hollow.
+  it('draws each state with its own glyph', () => {
+    const { getByLabelText } = render(
+      <InstructionsToggles
+        instructions={dual({ text: 'Be terse', enabled: false })}
+        open={null}
+        onToggle={vi.fn()}
+      />,
+    )
+    const muted = getByLabelText('Global instructions: muted').querySelector(
+      '.material-icons, .MuiIcon-root',
+    )!
+    expect(muted.textContent).toBe('public_off')
+    const unset = getByLabelText('Personal notes: not set').querySelector(
+      '.MuiIcon-root',
+    )!
+    expect(unset.textContent).toBe('person')
+    expect(unset.classList.contains('material-icons-outlined')).toBe(true)
+    cleanup()
+    const on = render(
+      <InstructionsToggles
+        instructions={dual({ text: 'Be terse' })}
+        open={null}
+        onToggle={vi.fn()}
+      />,
+    )
+      .getByLabelText('Global instructions: on')
+      .querySelector('.MuiIcon-root')!
+    expect(on.textContent).toBe('public')
+    expect(on.classList.contains('material-icons-outlined')).toBe(false)
+  })
+
+  it('names a layer with unsaved changes', () => {
+    const { getByLabelText } = render(
+      <InstructionsToggles
+        instructions={dual()}
+        open={null}
+        onToggle={vi.fn()}
+        unsaved={{ global: true }}
+      />,
+    )
+    expect(getByLabelText('Global instructions: not set, unsaved changes')).toBeTruthy()
+    expect(getByLabelText('Personal notes: not set')).toBeTruthy()
+  })
+
   it('toggles the clicked layer and marks the open one expanded', () => {
     const onToggle = vi.fn()
     const { getByLabelText } = render(
@@ -290,24 +335,55 @@ describe('components/Assistant/UI/Chat/Instructions InstructionsToggles', () => 
 describe('components/Assistant/UI/Chat/Instructions InstructionsPanel', () => {
   afterEach(cleanup)
 
+  // Both editors stay mounted (see the draft test below); only the open one shows.
+  const hidden = (el: HTMLElement) => !!el.closest('[hidden]')
+
   it('shows only the open layer', () => {
-    const { getByLabelText, queryByLabelText } = render(
+    const { getByLabelText } = render(
       <InstructionsPanel instructions={dual()} open="personal" />,
     )
-    expect(getByLabelText(PERSONAL_FIELD)).toBeTruthy()
-    expect(queryByLabelText(GLOBAL_FIELD)).toBeNull()
+    expect(hidden(getByLabelText(PERSONAL_FIELD))).toBe(false)
+    expect(hidden(getByLabelText(GLOBAL_FIELD))).toBe(true)
   })
 
   it('saves to the open layer only', async () => {
     const instructions = dual()
-    const { getByLabelText, getByText } = render(
+    const { getByLabelText, getAllByText } = render(
       <InstructionsPanel instructions={instructions} open="global" />,
     )
     fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'Be terse' } })
+    const save = getAllByText('Save').find((b) => !hidden(b))!
     await act(async () => {
-      fireEvent.click(getByText('Save'))
+      fireEvent.click(save)
     })
     expect(instructions.global.setText).toHaveBeenCalledWith('Be terse')
     expect(instructions.personal.setText).not.toHaveBeenCalled()
+  })
+
+  // Remounting per layer threw a draft away when the user peeked at the other one.
+  it('keeps an unsaved draft across a switch to the other layer', () => {
+    const instructions = dual()
+    const { getByLabelText, rerender } = render(
+      <InstructionsPanel instructions={instructions} open="global" />,
+    )
+    fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'Draft' } })
+    rerender(<InstructionsPanel instructions={instructions} open="personal" />)
+    rerender(<InstructionsPanel instructions={instructions} open="global" />)
+    expect((getByLabelText(GLOBAL_FIELD) as HTMLTextAreaElement).value).toBe('Draft')
+  })
+
+  it('reports which layer has unsaved changes', () => {
+    const onDirtyChange = vi.fn()
+    const { getByLabelText } = render(
+      <InstructionsPanel
+        instructions={dual()}
+        open="personal"
+        onDirtyChange={onDirtyChange}
+      />,
+    )
+    fireEvent.change(getByLabelText(PERSONAL_FIELD), { target: { value: 'x' } })
+    expect(onDirtyChange).toHaveBeenLastCalledWith('personal', true)
+    fireEvent.change(getByLabelText(PERSONAL_FIELD), { target: { value: '' } })
+    expect(onDirtyChange).toHaveBeenLastCalledWith('personal', false)
   })
 })

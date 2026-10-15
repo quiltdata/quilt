@@ -38,9 +38,15 @@ vi.mock('components/SearchBar/State', () => ({
 // agreement unfalsifiable.
 vi.mock('utils/Buckets', () => ({ useCurrentBucket: () => null }))
 
-const { assistantShow } = vi.hoisted(() => ({ assistantShow: vi.fn() }))
+const { assistantShow, presence } = vi.hoisted(() => ({
+  assistantShow: vi.fn(),
+  presence: { inlined: false },
+}))
 vi.mock('components/Assistant', () => ({
-  Model: { useAssistantAPI: () => ({ show: assistantShow }) },
+  Model: { useAssistantAPI: () => ({ show: assistantShow, visible: false }) },
+}))
+vi.mock('components/Assistant/UI/InlinePresence', () => ({
+  useInlined: () => presence.inlined,
 }))
 
 import { ContentBar } from './ContentBar'
@@ -209,6 +215,27 @@ describe('components/Layout/ContentBar (header field registration)', () => {
     expect(ask).toBeTruthy()
     ;(ask as HTMLElement).click()
     expect(assistantShow).toHaveBeenCalled()
+  })
+
+  // On Qurator mode the chat is the page; the dock would close the moment it opened.
+  it('offers no Ask Qurator where the chat is already inline', () => {
+    presence.inlined = true
+    try {
+      const { container } = render(
+        <M.MuiThemeProvider theme={style.appTheme}>
+          <MemoryRouter>
+            <NamedRoutes.Provider routes={{ uriResolver }}>
+              <SearchInputProvider>
+                <ContentBar onMenu={() => {}} />
+              </SearchInputProvider>
+            </NamedRoutes.Provider>
+          </MemoryRouter>
+        </M.MuiThemeProvider>,
+      )
+      expect(container.querySelector('[aria-label="Ask Qurator"]')).toBeNull()
+    } finally {
+      presence.inlined = false
+    }
   })
 
   it('names the highlighted row, and that row is the one marked selected', () => {

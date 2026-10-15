@@ -152,11 +152,13 @@ function Section({
   emptyReadOnly,
   readOnlyHint,
   instructions,
-}: SectionProps) {
+  onDirtyChange,
+}: SectionProps & { onDirtyChange?: (dirty: boolean) => void }) {
   const classes = useStyles()
   const { text, enabled, canEdit } = instructions
   const { draft, setDraft, dirty, pending, error, save, toggle, onClear } =
     UserInstructions.useInstructionsEditor(instructions)
+  React.useEffect(() => onDirtyChange?.(dirty), [onDirtyChange, dirty])
 
   return (
     <div className={classes.section}>
@@ -255,12 +257,19 @@ const LAYERS: Record<
   },
 }
 
-const layerState = ({ active, text }: UserInstructions.Instructions) =>
+type LayerState = 'on' | 'muted' | 'not set'
+
+const layerState = ({ active, text }: UserInstructions.Instructions): LayerState =>
   active ? 'on' : text.trim() ? 'muted' : 'not set'
 
 const useTogglesStyles = M.makeStyles((t) => ({
-  toggle: {
-    color: t.palette.text.secondary,
+  // Shape carries the state and color only reinforces it, so it never rests on
+  // color alone: filled when on, slashed when muted, hollow when not set.
+  'not set': {
+    color: t.palette.text.disabled,
+  },
+  muted: {
+    color: t.palette.text.primary,
   },
   // The Indicator Rule: amber marks a layer that rides along with every message.
   on: {
@@ -271,38 +280,52 @@ const useTogglesStyles = M.makeStyles((t) => ({
   },
 }))
 
+const glyph = (icon: string, state: LayerState) =>
+  state === 'muted' ? (
+    <M.Icon fontSize="small">{`${icon}_off`}</M.Icon>
+  ) : (
+    <M.Icon
+      className={state === 'not set' ? 'material-icons-outlined' : undefined}
+      fontSize="small"
+    >
+      {icon}
+    </M.Icon>
+  )
+
 interface InstructionsTogglesProps {
   instructions: UserInstructions.DualInstructions
   open: Layer | null
   onToggle: (layer: Layer) => void
+  /** Layers whose editor holds a draft that differs from what's stored. */
+  unsaved?: Partial<Record<Layer, boolean>>
 }
 
-/** One icon per layer for the docked composer's toolbar; amber while the layer is on. */
+/** One icon per layer for the docked composer's toolbar. */
 export function InstructionsToggles({
   instructions,
   open,
   onToggle,
+  unsaved = {},
 }: InstructionsTogglesProps) {
   const classes = useTogglesStyles()
   return (
     <>
       {(Object.keys(LAYERS) as Layer[]).map((layer) => {
         const { icon, name } = LAYERS[layer]
-        const label = `${name}: ${layerState(instructions[layer])}`
+        const state = layerState(instructions[layer])
+        const label = `${name}: ${state}${unsaved[layer] ? ', unsaved changes' : ''}`
         return (
           <M.Tooltip key={layer} title={label}>
             <M.IconButton
-              className={cx(
-                classes.toggle,
-                instructions[layer].active && classes.on,
-                open === layer && classes.open,
-              )}
+              className={cx(classes[state], open === layer && classes.open)}
               aria-label={label}
               aria-expanded={open === layer}
               onClick={() => onToggle(layer)}
               size="small"
             >
-              <M.Icon fontSize="small">{icon}</M.Icon>
+              <M.Badge variant="dot" color="primary" invisible={!unsaved[layer]}>
+                {glyph(icon, state)}
+              </M.Badge>
             </M.IconButton>
           </M.Tooltip>
         )
@@ -315,6 +338,7 @@ interface InstructionsPanelProps {
   className?: string
   instructions: UserInstructions.DualInstructions
   open: Layer | null
+  onDirtyChange?: (layer: Layer, dirty: boolean) => void
 }
 
 /** The editor for the layer picked in InstructionsToggles; nothing while none is. */
@@ -322,22 +346,41 @@ export function InstructionsPanel({
   className,
   instructions,
   open,
+  onDirtyChange,
 }: InstructionsPanelProps) {
   const classes = useStyles()
   // Keep the closing layer's editor on screen while the panel collapses.
   const lastOpen = React.useRef<Layer>('global')
   if (open) lastOpen.current = open
-  const layer = open ?? lastOpen.current
+  const shown = open ?? lastOpen.current
+  const onGlobalDirty = React.useCallback(
+    (dirty: boolean) => onDirtyChange?.('global', dirty),
+    [onDirtyChange],
+  )
+  const onPersonalDirty = React.useCallback(
+    (dirty: boolean) => onDirtyChange?.('personal', dirty),
+    [onDirtyChange],
+  )
   return (
     // The hairline lives inside the Collapse, so a closed panel leaves no line behind.
     <M.Collapse in={!!open} className={className}>
       <div className={cx(classes.root, classes.body, classes.panelBody)}>
-        <Section
-          // Remount per layer so one layer's unsaved draft never shows in the other.
-          key={layer}
-          {...LAYERS[layer]}
-          instructions={instructions[layer]}
-        />
+        {/* Both stay mounted: switching layers keeps a draft and a pending
+            save's error, where unmounting would drop both without a word. */}
+        <div hidden={shown !== 'global'}>
+          <Section
+            {...LAYERS.global}
+            instructions={instructions.global}
+            onDirtyChange={onGlobalDirty}
+          />
+        </div>
+        <div hidden={shown !== 'personal'}>
+          <Section
+            {...LAYERS.personal}
+            instructions={instructions.personal}
+            onDirtyChange={onPersonalDirty}
+          />
+        </div>
       </div>
     </M.Collapse>
   )
