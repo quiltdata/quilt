@@ -40,10 +40,12 @@ vi.mock('utils/Buckets', () => ({ useCurrentBucket: () => null }))
 
 const { assistantShow, presence } = vi.hoisted(() => ({
   assistantShow: vi.fn(),
-  presence: { inlined: false },
+  presence: { inlined: false, visible: false },
 }))
 vi.mock('components/Assistant', () => ({
-  Model: { useAssistantAPI: () => ({ show: assistantShow, visible: false }) },
+  Model: {
+    useAssistantAPI: () => ({ show: assistantShow, visible: presence.visible }),
+  },
 }))
 vi.mock('components/Assistant/UI/InlinePresence', () => ({
   useInlined: () => presence.inlined,
@@ -235,6 +237,27 @@ describe('components/Layout/ContentBar (header field registration)', () => {
       expect(container.querySelector('[aria-label="Ask Qurator"]')).toBeNull()
     } finally {
       presence.inlined = false
+    }
+  })
+
+  // The overlay's modal returns focus to its opener on close, so it must still exist.
+  it('keeps Ask Qurator mounted while the overlay is open', () => {
+    presence.visible = true
+    try {
+      const { container } = render(
+        <M.MuiThemeProvider theme={style.appTheme}>
+          <MemoryRouter>
+            <NamedRoutes.Provider routes={{ uriResolver }}>
+              <SearchInputProvider>
+                <ContentBar onMenu={() => {}} />
+              </SearchInputProvider>
+            </NamedRoutes.Provider>
+          </MemoryRouter>
+        </M.MuiThemeProvider>,
+      )
+      expect(container.querySelector('[aria-label="Ask Qurator"]')).toBeTruthy()
+    } finally {
+      presence.visible = false
     }
   })
 

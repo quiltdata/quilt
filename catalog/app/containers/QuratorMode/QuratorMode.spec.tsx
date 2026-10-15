@@ -90,7 +90,6 @@ describe('containers/QuratorMode', () => {
     expect(screen.queryByLabelText(/^Session details/)).toBeNull()
   })
 
-  // Stacked under the chat, the pane took up to 40% of a phone's height.
   it('keeps the pane behind a header button in single column', () => {
     media.single = true
     refs.list = [
@@ -112,6 +111,26 @@ describe('containers/QuratorMode', () => {
     expect(screen.getByText('Touched in this session')).toBeTruthy()
     expect(screen.queryByText('Back to catalog view')).toBeNull()
     fireEvent.click(screen.getByLabelText('Close session details'))
+    await waitFor(() => expect(screen.queryByLabelText('Session context')).toBeNull())
+  })
+
+  // A tablet rotated to wide and back must not find the sheet open by itself.
+  it('does not reopen the sheet on a return to single column', async () => {
+    media.single = true
+    const { rerender } = renderPage()
+    fireEvent.click(screen.getByLabelText(/^Session details/))
+    const again = () =>
+      rerender(
+        <M.MuiThemeProvider theme={style.appTheme}>
+          <MemoryRouter>
+            <QuratorMode />
+          </MemoryRouter>
+        </M.MuiThemeProvider>,
+      )
+    media.single = false
+    again()
+    media.single = true
+    again()
     await waitFor(() => expect(screen.queryByLabelText('Session context')).toBeNull())
   })
 })

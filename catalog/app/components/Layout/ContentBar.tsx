@@ -262,12 +262,11 @@ export function ContentBar({ onMenu }: ContentBarProps = {}) {
               </div>
             </M.Popper>
           </div>
-          {/* Compact has no Qurator rail on the right edge, so the bar is
-              its door; the URI resolver and docs links give up the room. */}
+          {/* Compact has no Qurator rail, so the bar is its door. It stays
+              mounted while the overlay is open: closing it returns focus here. */}
           {compact ? (
             !!assistant &&
-            !inlined &&
-            !assistant.visible && (
+            !inlined && (
               <div className={classes.actions}>
                 <M.Tooltip arrow title="Ask Qurator">
                   <M.IconButton

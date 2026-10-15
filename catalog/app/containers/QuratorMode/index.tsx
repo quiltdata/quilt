@@ -47,7 +47,11 @@ const useStyles = M.makeStyles((t) => ({
     borderTopRightRadius: t.shape.borderRadius * 2,
     maxHeight: '80%',
   },
+  // Portaled past Layout's safe-area padding, so the sheet owes its own.
   sheetPane: {
+    paddingBottom: `max(${t.spacing(2)}px, env(safe-area-inset-bottom))`,
+    paddingLeft: `max(${t.spacing(2)}px, env(safe-area-inset-left))`,
+    paddingRight: `max(${t.spacing(2)}px, env(safe-area-inset-right))`,
     width: 'auto',
   },
   sheetHeader: {
@@ -209,11 +213,14 @@ function Workspace({
   )
   const save = SessionSave.useSessionSave(api)
   const withSave = { ...api, save }
-  // Below md a stacked pane took up to 40% of a phone's height, mostly empty
-  // states; there it waits behind a header button as a bottom sheet.
+  // Single column has no room for the pane beside the chat.
   const t = M.useTheme()
   const single = M.useMediaQuery(t.breakpoints.down('sm'))
   const [sheetOpen, setSheetOpen] = React.useState(false)
+  // A sheet left open in single column must not reappear on the way back to it.
+  React.useEffect(() => {
+    if (!single) setSheetOpen(false)
+  }, [single])
   const openSheet = React.useCallback(() => setSheetOpen(true), [])
   const closeSheet = React.useCallback(() => setSheetOpen(false), [])
   const touched = useRefs(withSave).length

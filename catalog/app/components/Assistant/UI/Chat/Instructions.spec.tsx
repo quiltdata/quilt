@@ -360,7 +360,6 @@ describe('components/Assistant/UI/Chat/Instructions InstructionsPanel', () => {
     expect(instructions.personal.setText).not.toHaveBeenCalled()
   })
 
-  // Remounting per layer threw a draft away when the user peeked at the other one.
   it('keeps an unsaved draft across a switch to the other layer', () => {
     const instructions = dual()
     const { getByLabelText, rerender } = render(

@@ -263,8 +263,7 @@ const layerState = ({ active, text }: UserInstructions.Instructions): LayerState
   active ? 'on' : text.trim() ? 'muted' : 'not set'
 
 const useTogglesStyles = M.makeStyles((t) => ({
-  // Shape carries the state and color only reinforces it, so it never rests on
-  // color alone: filled when on, slashed when muted, hollow when not set.
+  // The shape carries the state (filled, slashed, hollow); color only reinforces it.
   'not set': {
     color: t.palette.text.disabled,
   },
@@ -365,8 +364,7 @@ export function InstructionsPanel({
     // The hairline lives inside the Collapse, so a closed panel leaves no line behind.
     <M.Collapse in={!!open} className={className}>
       <div className={cx(classes.root, classes.body, classes.panelBody)}>
-        {/* Both stay mounted: switching layers keeps a draft and a pending
-            save's error, where unmounting would drop both without a word. */}
+        {/* Both stay mounted, so switching layers keeps a draft and a save's error. */}
         <div hidden={shown !== 'global'}>
           <Section
             {...LAYERS.global}

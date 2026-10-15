@@ -168,8 +168,6 @@ describe('components/Assistant/UI/Chat/Input toolbar', () => {
     select: vi.fn(),
   }
 
-  // In the docked panel the pickers shared the field's end adornment, which
-  // squeezed the text to nothing and put the label over the Skills button.
   it('keeps the pickers out of the text field, and Send in it', () => {
     render(
       <Input

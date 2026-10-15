@@ -15,8 +15,8 @@ const useStyles = M.makeStyles((t) => ({
     paddingLeft: `${t.spacing(2)}px`,
     paddingRight: `${t.spacing(2)}px`,
   },
-  // The pickers get their own row: inside the field's end adornment they
-  // squeezed the text to nothing in the docked panel and overlapped the label.
+  // Not the field's end adornment: in a narrow panel the pickers would leave
+  // no room for text and sit under the floating label.
   toolbar: {
     alignItems: 'center',
     color: t.palette.text.secondary,
