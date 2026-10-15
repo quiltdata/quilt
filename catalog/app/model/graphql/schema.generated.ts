@@ -3556,6 +3556,17 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'source',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },

@@ -7,6 +7,12 @@ export type Incremental<T> =
 import * as Types from '../../../model/graphql/types.generated'
 
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+/**
+ * How this role was granted to the user. Write-once-sticky: a role already held keeps its
+ * original source even if granted again through a different door later.
+ */
+export type UserRoleSource = 'ACCESS_CODE' | 'ADMIN' | 'SSO'
+
 export type containers_Sidebar_gql_MeQueryVariables = Exact<{ [key: string]: never }>
 
 export interface containers_Sidebar_gql_MeQuery {
@@ -16,10 +22,15 @@ export interface containers_Sidebar_gql_MeQuery {
     readonly name: string
     readonly email: string
     readonly isAdmin: boolean
-    readonly role: { readonly __typename: 'MyRole'; readonly name: string }
+    readonly role: {
+      readonly __typename: 'MyRole'
+      readonly name: string
+      readonly source: Types.UserRoleSource
+    }
     readonly roles: ReadonlyArray<{
       readonly __typename: 'MyRole'
       readonly name: string
+      readonly source: Types.UserRoleSource
     }>
   } | null
 }
@@ -50,6 +61,7 @@ export const containers_Sidebar_gql_MeDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'source' } },
                     ],
                   },
                 },
@@ -60,6 +72,7 @@ export const containers_Sidebar_gql_MeDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'source' } },
                     ],
                   },
                 },

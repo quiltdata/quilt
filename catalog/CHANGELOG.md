@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] The sidebar's `Me` query now fetches `source` on the current user's active role and all of their roles, showing how each was granted (SSO, admin, or access code) ([#5486](https://github.com/quiltdata/quilt/pull/5486))
 - [Changed] Qurator reads the fixed text of its prompt, and the descriptions and input schemas of its document tools, from the registry's `config.quratorPrompt` instead of keeping its own copy; Qurator needs a registry that serves it ([#5484](https://github.com/quiltdata/quilt/pull/5484))
 - [Added] The `packagePatch` and `packagePatchAsync` GraphQL mutations let API clients change a package without resending its unchanged entries; the catalog UI does not use them ([#5453](https://github.com/quiltdata/quilt/pull/5453))
 - [Added] After an access code is accepted, `/signup/<page>` offers the stack's SSO providers, which grant the code's role, and shows the email form only where password signup is enabled ([#5478](https://github.com/quiltdata/quilt/pull/5478))

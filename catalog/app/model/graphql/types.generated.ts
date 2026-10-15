@@ -769,6 +769,7 @@ export interface MutationswitchRoleArgs {
 export interface MyRole {
   readonly __typename: 'MyRole'
   readonly name: Scalars['String']['output']
+  readonly source: UserRoleSource
 }
 
 export interface NotificationConfigurationError {
@@ -1818,3 +1819,13 @@ export interface UserInput {
 }
 
 export type UserResult = InvalidInput | OperationError | User
+
+/**
+ * How this role was granted to the user. Write-once-sticky: a role already held keeps its
+ * original source even if granted again through a different door later.
+ */
+export enum UserRoleSource {
+  ACCESS_CODE = 'ACCESS_CODE',
+  ADMIN = 'ADMIN',
+  SSO = 'SSO',
+}
