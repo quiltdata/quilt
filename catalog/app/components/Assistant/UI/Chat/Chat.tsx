@@ -1110,11 +1110,16 @@ export function assignRoundKeys(
   const anchorKeys = group.ids.map((id) => registryKey(group.anchor, id))
   const unassigned = anchorKeys.filter((id) => !roundKeyByToolUseId.has(id))
   // The round's first settled event has just given it a real anchor: move
-  // its ids off the anchorless key they were first seen under, or a later,
-  // unrelated live round that reuses one of them would find this round's
-  // stale entry instead of registering its own.
+  // its own ids off the anchorless key they were first seen under, or a
+  // later, unrelated live round that reuses one of them would find this
+  // round's stale entry instead of registering its own. Only an anchorless
+  // entry that still resolves to *this* round's key is this round's own --
+  // an id that belongs to a different, still-live round (reusing one of
+  // this round's historical ids) must survive, or deleting it here would
+  // flip that other round onto a fresh key on every render, looping Chat's
+  // registration effect forever.
   const liveKeys = group.anchor !== undefined ? group.ids.map(liveKeyOf) : []
-  const staleLiveKeys = liveKeys.filter((id) => roundKeyByToolUseId.has(id))
+  const staleLiveKeys = liveKeys.filter((id) => roundKeyByToolUseId.get(id) === key)
   if (!unassigned.length && !staleLiveKeys.length) return roundKeyByToolUseId
   const next = new Map(roundKeyByToolUseId)
   for (const id of unassigned) next.set(id, key)
@@ -1437,22 +1442,24 @@ export default function Chat({
                   {...(run[0] as ReturnType<typeof Model.Conversation.Event.Message>)}
                 />
               ) : (
-                // Keyed by the group's anchor (a settled event's own id,
-                // unique across the conversation) when it has one, else its
-                // first live toolUseId -- not the event id, which is
-                // reminted on each result and would remount the group (and
-                // lose its expanded state and any focus inside it) the
-                // moment any call in it resolves. Live calls join the
-                // trailing ToolUse run (same round, partially settled)
-                // rather than getting their own group, so a call that
-                // finishes while others are still running doesn't fall out
-                // of an open toggle.
+                // Keyed by the registered permanent round key, not the
+                // group's own fields directly: a group's anchor changes
+                // (undefined -> a real event id) the moment its first call
+                // resolves, so keying on `group.anchor ?? group.ids[0]`
+                // still changed the React key -- and therefore remounted
+                // the group, losing its expanded state and any focus
+                // inside it -- on that same transition. `roundKeyOf` reads
+                // the one key already registered for this round and never
+                // changes it. Live calls join the trailing ToolUse run
+                // (same round, partially settled) rather than getting
+                // their own group, so a call that finishes while others
+                // are still running doesn't fall out of an open toggle.
                 (() => {
                   groupIndex += 1
                   const group = toolCallGroupIds[groupIndex]
                   return (
                     <ToolCallGroup
-                      key={group.anchor ?? group.ids[0]}
+                      key={roundKeyOf(registeredRoundKeys, group)}
                       dispatch={dispatch}
                       state={state._tag}
                       events={
@@ -1475,7 +1482,7 @@ export default function Chat({
               const liveGroup = toolCallGroupIds[toolCallGroupIds.length - 1]
               items.push(
                 <ToolCallGroup
-                  key={liveGroup.anchor ?? liveGroup.ids[0]}
+                  key={roundKeyOf(registeredRoundKeys, liveGroup)}
                   dispatch={dispatch}
                   state={state._tag}
                   events={[]}

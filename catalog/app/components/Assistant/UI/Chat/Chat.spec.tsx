@@ -33,6 +33,7 @@ vi.mock('utils/NamedRoutes', async (importOriginal) => ({
 
 import * as Model from '../../Model'
 
+import type { ToolCallGroupIds } from './Chat'
 import {
   ConnectorHelperLine,
   Menu,
@@ -295,6 +296,56 @@ describe('components/Assistant/UI/Chat/roundKeyOf, assignRoundKeys, lookupExpand
     // live. It must not resolve to the first round's key.
     const laterKey = roundKeyOf(roundKeys, live(['reused-id']))
     expect(laterKey).not.toBe(liveKey)
+  })
+
+  // The bug this pins: a *concurrently* live round (not merely a later
+  // one) can share an id with an already-historical round. Registering
+  // the historical round used to delete any anchorless entry for that id,
+  // including the live round's own -- which then re-registered under a
+  // fresh key next render, got deleted again, and so on forever. Chat
+  // calls assignRoundKeys for every group on every render, so this must
+  // reach a fixed point (the same map, by reference) once both rounds are
+  // registered, not keep producing a new one.
+  it('reaches a fixed point when a historical and a concurrently live round share a toolUseId', () => {
+    const historical = settled('event-a', ['reused-id'])
+    const concurrentLive = live(['reused-id'])
+
+    let roundKeys = assignRoundKeys(new Map(), historical)
+    roundKeys = assignRoundKeys(roundKeys, concurrentLive)
+    const historicalKey = roundKeyOf(roundKeys, historical)
+    const liveKey = roundKeyOf(roundKeys, concurrentLive)
+    expect(historicalKey).not.toBe(liveKey)
+
+    // Registering both again, as Chat does every render, must not change
+    // the map or either round's key -- a changed reference would re-fire
+    // Chat's setState and loop.
+    const settled1 = assignRoundKeys(roundKeys, historical)
+    const settled2 = assignRoundKeys(settled1, concurrentLive)
+    expect(settled2).toBe(roundKeys)
+    expect(roundKeyOf(settled2, historical)).toBe(historicalKey)
+    expect(roundKeyOf(settled2, concurrentLive)).toBe(liveKey)
+  })
+
+  // The bug this pins: Chat used to key each rendered ToolCallGroup by
+  // `group.anchor ?? group.ids[0]` directly. A group's anchor changes
+  // (undefined -> a real event id) the instant its first call resolves,
+  // so that React key still changed on the live-to-history transition
+  // even after the standalone and merged render paths were unified into
+  // one list -- remounting the group and dropping focus. This simulates
+  // Chat's own per-render registration loop (the one in its render body,
+  // run once per group in toolCallGroupIds every render) across that
+  // exact transition and asserts the key Chat would pass to React stays
+  // the same.
+  it("gives Chat's render loop the same React key across a round's live-to-history transition", () => {
+    let registeredRoundKeys: ReadonlyMap<string, string> = new Map()
+    const registerRenderOf = (group: ToolCallGroupIds) => {
+      registeredRoundKeys = assignRoundKeys(registeredRoundKeys, group)
+      return roundKeyOf(registeredRoundKeys, group)
+    }
+
+    const liveOnlyRender = registerRenderOf(live(['reused-id']))
+    const mergedIntoHistoryRender = registerRenderOf(settled('event-a', ['reused-id']))
+    expect(mergedIntoHistoryRender).toBe(liveOnlyRender)
   })
 })
 
