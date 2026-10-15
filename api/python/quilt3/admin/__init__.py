@@ -14,6 +14,7 @@ from .exceptions import (
     PolicyNotFoundError,
     PolicyTitleExistsError,
     Quilt3AdminError,
+    RegistryTooOldError,
     RoleAssignedError,
     RoleNameExistsError,
     RoleNameInvalidError,

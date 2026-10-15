@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 
 from quilt3 import _graphql_client, admin
+from quilt3._graphql_client import exceptions as gql_exceptions
 
 from .utils import as_dataclass_kwargs
 
@@ -1564,3 +1565,34 @@ def test_api_keys_revoke_errors(data, error_type):
     ):
         with pytest.raises(error_type):
             admin.api_keys.revoke("key-123")
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Cannot query field 'defaultBucket' on type 'Role'.",
+        "Unknown argument 'signupPage' on field 'Mutation.login'.",
+        "Unknown type 'RoleSignupInput'.",
+    ],
+)
+def test_registry_too_old_on_schema_mismatch(message):
+    """A registry older than this quilt3 version's admin schema answers with a GraphQL schema
+    validation error; quilt3 should translate that into a clean RegistryTooOldError instead of
+    letting the raw GraphQLClientGraphQLMultiError escape."""
+    gql_error = gql_exceptions.GraphQLClientGraphQLMultiError.from_errors_dicts([{"message": message}])
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE):
+            with mock.patch("quilt3._graphql_client.Client.get_data", side_effect=gql_error):
+                with pytest.raises(admin.RegistryTooOldError):
+                    admin.roles.list()
+
+
+def test_other_graphql_errors_pass_through_unchanged():
+    """A GraphQL error that isn't a schema mismatch (e.g. a server-side bug) must not be
+    misreported as a registry-too-old error."""
+    gql_error = gql_exceptions.GraphQLClientGraphQLMultiError.from_errors_dicts([{"message": "Internal server error"}])
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE):
+            with mock.patch("quilt3._graphql_client.Client.get_data", side_effect=gql_error):
+                with pytest.raises(gql_exceptions.GraphQLClientGraphQLMultiError):
+                    admin.roles.list()
