@@ -41,6 +41,14 @@ export const signOut = route('/signout')
 
 export const signUp = route('/signup', (next?: string) => `/signup${mkSearch({ next })}`)
 
+// quilt-specs changes/access-code-signup#catalog-work. A role-owned cohort landing page,
+// distinct from the plain /signup above (unchanged). `?code=` prefills the field for links
+// sent by email or printed on a QR poster.
+export const codeSignup = route(
+  '/signup/:page',
+  (page: string, code?: string) => `/signup/${page}${mkSearch({ code })}`,
+)
+
 export const passReset = route('/reset_password')
 
 export const passChange = route(
