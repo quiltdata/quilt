@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator fails fast with an actionable message when a page's fixed context (package files, instructions, enabled connectors) alone leaves no room for conversation, instead of silently sending a doomed prompt and surfacing only the model's own context-length error ([#5477](https://github.com/quiltdata/quilt/pull/5477))
 - [Fixed] Qurator: in the side panel, the Skills and model menus sit in their own row above the message box instead of covering its label and pushing Send out of view, and global and personal instructions open from globe and person icons in that row instead of a separate Instructions strip ([#5474](https://github.com/quiltdata/quilt/pull/5474))
 - [Changed] On screens narrower than 960px, the top bar offers Ask Qurator in place of the Quilt URI and documentation links, and Qurator mode opens its session details from a button in the chat header as a bottom sheet instead of stacking them under the chat ([#5474](https://github.com/quiltdata/quilt/pull/5474))
 - [Fixed] Qurator trims the oldest conversation history before it would overflow the model's context window instead of failing the same oversized request forever, a tool call that throws no longer leaves the conversation stuck waiting for it, and the reading-objects guidance no longer implies `catalog_preview`/`catalog_summarize` take the `platform__` connector prefix ([#5475](https://github.com/quiltdata/quilt/pull/5475))

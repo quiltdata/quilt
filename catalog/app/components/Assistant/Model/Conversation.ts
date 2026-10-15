@@ -274,6 +274,28 @@ const llmRequest = (events: Event[]) =>
       // guidance text can be a large, mostly-fixed share of it on its own.
       const reservedChars =
         JSON.stringify(ctx.messages).length + JSON.stringify(ctx.tools).length
+      // trimEventsToBudget can only shrink `events`; it has no lever over
+      // ctx.messages/tools themselves (package READMEs up a long directory
+      // chain, long admin/personal instructions, many connectors' schemas --
+      // none of those are owned by this file). If reservedChars alone
+      // already fills the budget, trimming events to the one always-kept
+      // entry still sends a prompt the model will 424 on -- a single-turn
+      // overflow that can happen on the very first Ask, independent of
+      // conversation length. Fail here instead: a wasted LLM round-trip for
+      // a doomed-from-construction prompt helps no one, and the user sees
+      // "Error while interacting with LLM" with no indication the problem
+      // is this page's fixed context rather than the conversation itself.
+      if (reservedChars >= MAX_PROMPT_CHARS) {
+        return yield* Eff.Effect.fail(
+          new LLM.LLMError({
+            message:
+              'This page has too much fixed context (package files, instructions, or ' +
+              'enabled connectors) for the model to leave any room for conversation. ' +
+              'Try a smaller package directory, shorter admin/personal instructions, or ' +
+              'fewer connectors.',
+          }),
+        )
+      }
       const filteredEvents = trimEventsToBudget(
         events.filter((e) => !e.discarded),
         MAX_PROMPT_CHARS,
