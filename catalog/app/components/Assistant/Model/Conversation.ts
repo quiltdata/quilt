@@ -167,12 +167,10 @@ export const init = Eff.Effect.gen(function* () {
 // just enough to break the stuck-retry loop below before the model errors.
 const MAX_PROMPT_CHARS = 120_000
 
-// A deliberately generous floor for "one small event's worth of room" --
-// real events are rarely this small once JSON-wrapped, so a reservedChars
-// close enough to MAX_PROMPT_CHARS to leave less than this is already
-// headed for the same doomed-prompt failure trimEventsToBudget's own
-// always-keep-one-event guarantee can't prevent on its own.
-const MIN_EVENT_ROOM = 2_000
+// Floor for "room for one small event plus constructPrompt's own fixed
+// text" (SYSTEM/TASK_CONTEXT/TASK_DESCRIPTION/IMMEDIATE_TASK/CONVERSATION_
+// START/END, none individually counted) -- generous on purpose.
+const MIN_EVENT_ROOM = 3_000
 
 /**
  * byteLength of a content block's binary source, or 0 for a string (counted
@@ -281,19 +279,9 @@ const llmRequest = (events: Event[]) =>
       // guidance text can be a large, mostly-fixed share of it on its own.
       const reservedChars =
         JSON.stringify(ctx.messages).length + JSON.stringify(ctx.tools).length
-      // trimEventsToBudget can only shrink `events`; it has no lever over
-      // ctx.messages/tools themselves (package READMEs up a long directory
-      // chain, long admin/personal instructions, many connectors' schemas --
-      // none of those are owned by this file). If reservedChars leaves too
-      // little room, trimEventsToBudget's own "always keep the most recent
-      // event" guarantee still returns that one event even when it alone
-      // doesn't fit the sliver of budget left -- so checking only the exact
-      // reservedChars >= MAX_PROMPT_CHARS boundary leaves a band just below
-      // it where the same doomed prompt still goes out (/code-review on
-      // #5477). MIN_EVENT_ROOM is a floor for "enough room for one small
-      // event", not a tight bound -- a real event is rarely under a few
-      // hundred chars once JSON-wrapped, so this errs toward failing fast
-      // over sending something likely to 424 anyway.
+      // trimEventsToBudget can only shrink `events`, never ctx.messages/
+      // tools -- so if reservedChars alone leaves less than MIN_EVENT_ROOM,
+      // the always-keep-one-event guarantee still sends a doomed prompt.
       if (reservedChars + MIN_EVENT_ROOM > MAX_PROMPT_CHARS) {
         return yield* Eff.Effect.fail(
           new LLM.LLMError({
