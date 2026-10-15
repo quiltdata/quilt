@@ -303,6 +303,8 @@ interface InstructionsTogglesProps {
   onToggle: (layer: Layer) => void
   /** Layers whose editor holds a draft that differs from what's stored. */
   unsaved?: Partial<Record<Layer, boolean>>
+  /** The InstructionsPanel's id, which the toggles control. */
+  panelId?: string
 }
 
 /** One icon per layer for the docked composer's toolbar. */
@@ -311,6 +313,7 @@ export function InstructionsToggles({
   open,
   onToggle,
   unsaved = {},
+  panelId,
 }: InstructionsTogglesProps) {
   const classes = useTogglesStyles()
   return (
@@ -325,6 +328,7 @@ export function InstructionsToggles({
               className={cx(classes[state], open === layer && classes.open)}
               aria-label={label}
               aria-expanded={open === layer}
+              aria-controls={panelId}
               onClick={() => onToggle(layer)}
               size="small"
             >
@@ -344,6 +348,7 @@ interface InstructionsPanelProps {
   instructions: UserInstructions.DualInstructions
   open: Layer | null
   onDirtyChange?: (layer: Layer, dirty: boolean) => void
+  id?: string
 }
 
 /** The editor for the layer picked in InstructionsToggles; nothing while none is. */
@@ -352,6 +357,7 @@ export function InstructionsPanel({
   instructions,
   open,
   onDirtyChange,
+  id,
 }: InstructionsPanelProps) {
   const classes = useStyles()
   // The panel holds both drafts, so switching layers keeps one, and a pending
@@ -362,14 +368,15 @@ export function InstructionsPanel({
   }
   const globalDirty = editors.global.dirty
   const personalDirty = editors.personal.dirty
-  React.useEffect(
-    () => onDirtyChange?.('global', globalDirty),
-    [onDirtyChange, globalDirty],
-  )
-  React.useEffect(
-    () => onDirtyChange?.('personal', personalDirty),
-    [onDirtyChange, personalDirty],
-  )
+  // Cleared on the way out, so an unmounted panel leaves no unsaved mark behind.
+  React.useEffect(() => {
+    onDirtyChange?.('global', globalDirty)
+    return () => onDirtyChange?.('global', false)
+  }, [onDirtyChange, globalDirty])
+  React.useEffect(() => {
+    onDirtyChange?.('personal', personalDirty)
+    return () => onDirtyChange?.('personal', false)
+  }, [onDirtyChange, personalDirty])
   // Keep the closing layer's editor on screen while the panel collapses.
   const lastOpen = React.useRef<Layer>('global')
   if (open) lastOpen.current = open
@@ -377,8 +384,15 @@ export function InstructionsPanel({
   return (
     // The hairline lives inside the Collapse, so a closed panel leaves no line behind.
     <M.Collapse in={!!open} className={className}>
-      <div className={cx(classes.root, classes.body, classes.panelBody)}>
+      <div
+        className={cx(classes.root, classes.body, classes.panelBody)}
+        id={id}
+        role="region"
+        aria-label={LAYERS[shown].name}
+      >
         <Section
+          // One field per layer, so one layer's undo history never reaches the other.
+          key={shown}
           {...LAYERS[shown]}
           instructions={instructions[shown]}
           editor={editors[shown]}

@@ -11,6 +11,7 @@ import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
+import useId from 'utils/useId'
 
 import * as Model from '../../Model'
 
@@ -975,6 +976,7 @@ export default function Chat({
     (layer: Layer) => setInstructionsOpen((prev) => (prev === layer ? null : layer)),
     [],
   )
+  const instructionsPanelId = useId()
   const [unsavedInstructions, setUnsavedInstructions] = React.useState<
     Partial<Record<Layer, boolean>>
   >({})
@@ -1122,6 +1124,7 @@ export default function Chat({
             instructions={instructions}
             open={instructionsOpen}
             onDirtyChange={markUnsaved}
+            id={instructionsPanelId}
           />
           <Input
             disabled={inputDisabled}
@@ -1133,6 +1136,7 @@ export default function Chat({
                 open={instructionsOpen}
                 onToggle={toggleInstructions}
                 unsaved={unsavedInstructions}
+                panelId={instructionsPanelId}
               />
             }
             helperText={helperText}

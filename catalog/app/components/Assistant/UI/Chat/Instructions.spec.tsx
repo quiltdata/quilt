@@ -351,6 +351,46 @@ describe('components/Assistant/UI/Chat/Instructions InstructionsPanel', () => {
     expect((getByLabelText(GLOBAL_FIELD) as HTMLTextAreaElement).value).toBe('Draft')
   })
 
+  it('clears its unsaved marks when it unmounts', () => {
+    const onDirtyChange = vi.fn()
+    const { getByLabelText, unmount } = render(
+      <InstructionsPanel
+        instructions={dual()}
+        open="global"
+        onDirtyChange={onDirtyChange}
+      />,
+    )
+    fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'x' } })
+    unmount()
+    expect(onDirtyChange).toHaveBeenLastCalledWith('personal', false)
+    expect(onDirtyChange).toHaveBeenCalledWith('global', false)
+    const calls = onDirtyChange.mock.calls.map((c) => c.join(':'))
+    expect(calls.lastIndexOf('global:false')).toBeGreaterThan(
+      calls.lastIndexOf('global:true'),
+    )
+  })
+
+  it('names the region its toggles control', () => {
+    const { getByRole } = render(
+      <>
+        <InstructionsToggles
+          instructions={dual()}
+          open="global"
+          onToggle={vi.fn()}
+          panelId="p"
+        />
+        <InstructionsPanel instructions={dual()} open="global" id="p" />
+      </>,
+    )
+    const region = getByRole('region', { name: 'Global instructions' })
+    expect(region.id).toBe('p')
+    expect(
+      getByRole('button', { name: 'Global instructions: not set' }).getAttribute(
+        'aria-controls',
+      ),
+    ).toBe('p')
+  })
+
   it('reports which layer has unsaved changes', () => {
     const onDirtyChange = vi.fn()
     const { getByLabelText } = render(
