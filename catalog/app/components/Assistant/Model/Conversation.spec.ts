@@ -796,4 +796,31 @@ describe('trimEventsToBudget', () => {
     expect(trimmed).toHaveLength(1)
     expect(trimmed[0].id).toBe('2')
   })
+
+  /**
+   * /code-review on #5475: JSON.stringify on a Blob emits `{}`, so a
+   * multi-MB image event would read as near-free and never get trimmed --
+   * reproducing the exact stuck-retry bug this function fixes, just via
+   * attachment size instead of conversation length. eventSize must size a
+   * Blob-backed Image/Document block by its real byte size, not its
+   * stringified shape.
+   */
+  it('sizes a Blob-backed image by its real byte size, not JSON.stringify({})', () => {
+    const bigImage: Conversation.Event = Conversation.Event.Message({
+      id: 'img',
+      timestamp: new Date(),
+      role: 'user',
+      content: Content.MessageContentBlock.Image({
+        format: 'png',
+        source: new Blob([new Uint8Array(10_000)]),
+      }),
+    })
+    const smallText = makeMessage('text', 'hi')
+    // A budget well under the image's real size but well over its
+    // JSON.stringify({}) size (which rounds to ~0) -- if the image were
+    // still mis-sized as near-free, both events would survive untrimmed.
+    const trimmed = Conversation.trimEventsToBudget([smallText, bigImage], 500)
+    expect(trimmed).toHaveLength(1)
+    expect(trimmed[0].id).toBe('img')
+  })
 })
