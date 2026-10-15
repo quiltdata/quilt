@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -22,7 +23,6 @@ const useStyles = M.makeStyles((t) => ({
     // Outgrows Layout's trailing flex spacer, so the chat owns the column's height.
     flex: '999 1 0',
     minHeight: 0,
-    [t.breakpoints.down('sm')]: { flexDirection: 'column' },
   },
   chat: {
     borderRight: `1px solid ${t.palette.divider}`,
@@ -39,11 +39,24 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     padding: t.spacing(2),
     width: 320,
-    [t.breakpoints.down('sm')]: {
-      borderTop: `1px solid ${t.palette.divider}`,
-      maxHeight: '40%',
-      width: 'auto',
-    },
+  },
+  // Single column: the pane is a bottom sheet, so it spans the width and its
+  // own header carries the close.
+  sheet: {
+    borderTopLeftRadius: t.shape.borderRadius * 2,
+    borderTopRightRadius: t.shape.borderRadius * 2,
+    maxHeight: '80%',
+  },
+  sheetPane: {
+    width: 'auto',
+  },
+  sheetHeader: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  detailsButton: {
+    color: t.palette.text.secondary,
   },
   count: { color: t.palette.text.secondary },
   mono: {
@@ -72,11 +85,24 @@ function RefLink({ r }: { r: SessionPackage.Reference }) {
   )
 }
 
-function ContextPane({ api, onCatalog }: { api: API; onCatalog: () => void }) {
+const useRefs = (api: API) => {
+  const { events } = api.state
+  return React.useMemo(() => SessionPackage.references(events), [events])
+}
+
+interface ContextPaneProps {
+  api: API
+  /** Wide layout only; in the sheet the chat's own close does this. */
+  onCatalog?: () => void
+  onClose?: () => void
+  className?: string
+}
+
+function ContextPane({ api, onCatalog, onClose, className }: ContextPaneProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const { events } = api.state
-  const refs = React.useMemo(() => SessionPackage.references(events), [events])
+  const refs = useRefs(api)
   const used = React.useMemo(() => {
     const counts = new Map<string, { ok: number; failed: number }>()
     events.forEach((e) => {
@@ -90,10 +116,20 @@ function ContextPane({ api, onCatalog }: { api: API; onCatalog: () => void }) {
   }, [events])
   const saved = api.save?.status._tag === 'saved' ? api.save.status : null
   return (
-    <aside className={classes.pane} aria-label="Session context">
-      <M.Button variant="outlined" size="small" onClick={onCatalog}>
-        Back to catalog view
-      </M.Button>
+    <aside className={cx(classes.pane, className)} aria-label="Session context">
+      {onCatalog && (
+        <M.Button variant="outlined" size="small" onClick={onCatalog}>
+          Back to catalog view
+        </M.Button>
+      )}
+      {onClose && (
+        <div className={classes.sheetHeader}>
+          <M.Typography variant="subtitle1">Session details</M.Typography>
+          <M.IconButton size="small" onClick={onClose} aria-label="Close session details">
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </div>
+      )}
       <div>
         <M.Typography variant="subtitle2" gutterBottom>
           Touched in this session
@@ -172,15 +208,61 @@ function Workspace({
     [history, from, urls],
   )
   const save = SessionSave.useSessionSave(api)
+  const withSave = { ...api, save }
+  // Below md a stacked pane took up to 40% of a phone's height, mostly empty
+  // states; there it waits behind a header button as a bottom sheet.
+  const t = M.useTheme()
+  const single = M.useMediaQuery(t.breakpoints.down('sm'))
+  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const openSheet = React.useCallback(() => setSheetOpen(true), [])
+  const closeSheet = React.useCallback(() => setSheetOpen(false), [])
+  const touched = useRefs(withSave).length
+  const details = single ? (
+    <M.Tooltip title="Session details">
+      <M.IconButton
+        className={classes.detailsButton}
+        onClick={openSheet}
+        size="small"
+        aria-label={`Session details, ${touched} touched`}
+      >
+        <M.Badge badgeContent={touched} color="secondary">
+          <M.Icon className="material-icons-outlined">info</M.Icon>
+        </M.Badge>
+      </M.IconButton>
+    </M.Tooltip>
+  ) : undefined
   return (
     <div className={classes.root}>
       {/* Registered presence drops the docked panel: one conversation, one place. */}
       <InlinePresence.Provide value>
         <div className={classes.chat}>
-          <Chat {...api} composer="compact" save={save} onClose={toCatalog} />
+          <Chat
+            {...api}
+            composer="compact"
+            save={save}
+            onClose={toCatalog}
+            headerActions={details}
+          />
         </div>
       </InlinePresence.Provide>
-      <ContextPane api={{ ...api, save }} onCatalog={toCatalog} />
+      {single ? (
+        <M.SwipeableDrawer
+          anchor="bottom"
+          open={sheetOpen}
+          onOpen={openSheet}
+          onClose={closeSheet}
+          disableSwipeToOpen
+          classes={{ paper: classes.sheet }}
+        >
+          <ContextPane
+            api={withSave}
+            onClose={closeSheet}
+            className={classes.sheetPane}
+          />
+        </M.SwipeableDrawer>
+      ) : (
+        <ContextPane api={withSave} onCatalog={toCatalog} />
+      )}
     </div>
   )
 }

@@ -873,6 +873,8 @@ interface ChatProps {
   composer?: 'classic' | 'compact'
   /** Save target for the + menu's Save row; the row is hidden without it. */
   save?: SessionSave
+  /** Host buttons for the header, ahead of the menu. */
+  headerActions?: React.ReactNode
 }
 
 interface Starter {
@@ -909,6 +911,7 @@ export default function Chat({
   onClose,
   composer = 'classic',
   save,
+  headerActions,
 }: ChatProps) {
   const classes = useStyles()
   const [draft, setDraft] = React.useState<{ text: string; at: number }>()
@@ -987,12 +990,13 @@ export default function Chat({
           <div className={classes.title}>Qurator</div>
           <div className={classes.subtitle}>Your AI assistant, with your permissions</div>
         </div>
+        {!!headerActions && <span className={classes.trailing}>{headerActions}</span>}
         <Menu
           state={state}
           dispatch={dispatch}
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
-          className={cx(classes.headerButton, classes.trailing)}
+          className={cx(classes.headerButton, !headerActions && classes.trailing)}
         />
         <M.IconButton
           className={classes.headerButton}
