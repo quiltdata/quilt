@@ -10,10 +10,23 @@ import useId from 'utils/useId'
 
 const useStyles = M.makeStyles((t) => ({
   input: {
-    alignItems: 'center',
     display: 'flex',
+    flexDirection: 'column',
     paddingLeft: `${t.spacing(2)}px`,
     paddingRight: `${t.spacing(2)}px`,
+  },
+  // The pickers get their own row: inside the field's end adornment they
+  // squeezed the text to nothing in the docked panel and overlapped the label.
+  toolbar: {
+    color: t.palette.text.secondary,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(0.5),
+    justifyContent: 'flex-end',
+    marginBottom: t.spacing(0.5),
+    '&:empty': {
+      display: 'none',
+    },
   },
   textField: {
     marginTop: 0,
@@ -186,15 +199,6 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
 }
 
 const useSkillsStyles = M.makeStyles((t) => ({
-  // Below sm the text field would shrink to a few characters beside both menus.
-  wideOnly: {
-    [t.breakpoints.down('xs')]: { display: 'none' },
-  },
-  narrowOnly: {
-    fontSize: 16,
-    marginRight: t.spacing(0.5),
-    [t.breakpoints.up('sm')]: { display: 'none' },
-  },
   item: {
     alignItems: 'flex-start',
     maxWidth: t.spacing(48),
@@ -256,16 +260,11 @@ export function SkillsMenu({ skills, disabled }: SkillsMenuProps) {
         disabled={disabled}
         onClick={(e) => setAnchor(e.currentTarget)}
         size="small"
-        endIcon={
-          <M.Icon className={classes.wideOnly} fontSize="small">
-            expand_more
-          </M.Icon>
-        }
+        startIcon={<M.Icon fontSize="small">extension</M.Icon>}
+        endIcon={<M.Icon fontSize="small">expand_more</M.Icon>}
       >
-        <M.Icon className={classes.narrowOnly}>extension</M.Icon>
         <span className={pickerClasses.label}>
-          <span className={classes.wideOnly}>Skills </span>
-          {on}
+          Skills {on}/{skills.all.length}
         </span>
       </M.Button>
       <M.MuiThemeProvider theme={style.appTheme}>
@@ -368,6 +367,10 @@ export default function ChatInput({
 
   return (
     <form className={cx(classes.input, className)} onSubmit={handleSubmit}>
+      <div className={classes.toolbar}>
+        {skills && <SkillsMenu skills={skills} disabled={disabled} />}
+        {model && <ModelPicker model={model} disabled={disabled} />}
+      </div>
       <M.ThemeProvider theme={darkTheme}>
         <M.TextField
           className={classes.textField}
@@ -385,8 +388,6 @@ export default function ChatInput({
             classes: useInputStyles(),
             endAdornment: (
               <M.InputAdornment position="end">
-                {skills && <SkillsMenu skills={skills} disabled={disabled} />}
-                {model && <ModelPicker model={model} disabled={disabled} />}
                 <M.IconButton
                   aria-label="Send"
                   disabled={disabled || !value}
