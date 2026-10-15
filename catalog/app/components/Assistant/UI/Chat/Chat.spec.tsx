@@ -177,50 +177,59 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
 // so a round's expand state must survive under a permanent key, not under
 // any one toolUseId that might later vanish from its id list.
 describe('components/Assistant/UI/Chat/roundKeyOf, assignRoundKeys, lookupExpanded and toggleExpandedEntry', () => {
+  // Most of these rounds are still fully live (no settled event yet), so
+  // they have no anchor -- matching how toolCallGroupIdsOf reports them.
+  const live = (ids: readonly string[]) => ({ anchor: undefined, ids })
+  const settled = (anchor: string, ids: readonly string[]) => ({ anchor, ids })
+
   it('has no round key before any of its ids has been assigned one', () => {
-    expect(roundKeyOf(new Map(), ['a', 'b'])).toBe('a')
+    expect(roundKeyOf(new Map(), live(['a', 'b']))).toBeUndefined()
   })
 
   it('assigns every unassigned id in a round to the same key', () => {
-    const assigned = assignRoundKeys(new Map(), ['a', 'b', 'c'])
-    expect(roundKeyOf(assigned, ['b'])).toBe('a')
-    expect(roundKeyOf(assigned, ['c'])).toBe('a')
+    const assigned = assignRoundKeys(new Map(), live(['a', 'b', 'c']))
+    const key = roundKeyOf(assigned, live(['a']))
+    expect(key).toBeDefined()
+    expect(roundKeyOf(assigned, live(['b']))).toBe(key)
+    expect(roundKeyOf(assigned, live(['c']))).toBe(key)
   })
 
   it('keeps a round under its original key once a new id joins it', () => {
-    const assigned = assignRoundKeys(new Map([['a', 'a']]), ['a', 'b'])
-    expect(roundKeyOf(assigned, ['b'])).toBe('a')
+    const assigned = assignRoundKeys(new Map(), live(['a']))
+    const rejoined = assignRoundKeys(assigned, live(['a', 'b']))
+    expect(roundKeyOf(rejoined, live(['b']))).toBe(roundKeyOf(assigned, live(['a'])))
   })
 
   it('defaults an unknown round to collapsed', () => {
-    expect(lookupExpanded(new Map(), roundKeyOf(new Map(), ['a', 'b']))).toBe(false)
+    expect(lookupExpanded(new Map(), roundKeyOf(new Map(), live(['a', 'b'])))).toBe(false)
   })
 
   it('toggles a round open under its permanent key', () => {
-    const roundKeys = assignRoundKeys(new Map(), ['a', 'b'])
-    const expanded = toggleExpandedEntry(new Map(), roundKeyOf(roundKeys, ['a', 'b']))
-    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['a', 'b']))).toBe(true)
+    const roundKeys = assignRoundKeys(new Map(), live(['a', 'b']))
+    const expanded = toggleExpandedEntry(
+      new Map(),
+      roundKeyOf(roundKeys, live(['a', 'b'])),
+    )
+    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, live(['a', 'b'])))).toBe(true)
   })
 
   // The bug this pins: expand live calls a, b, c (keyed under 'a'); once
   // all finish, discarding a drops it from the round's id list entirely --
   // the saved state must still be reachable through b or c.
   it('keeps expand state reachable after the id it was keyed under is discarded', () => {
-    let roundKeys = assignRoundKeys(new Map(), ['a', 'b', 'c'])
-    const expanded = toggleExpandedEntry(
-      new Map(),
-      roundKeyOf(roundKeys, ['a', 'b', 'c']),
-    )
-    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['a', 'b', 'c']))).toBe(true)
+    let roundKeys = assignRoundKeys(new Map(), live(['a', 'b', 'c']))
+    const key = roundKeyOf(roundKeys, live(['a', 'b', 'c']))
+    const expanded = toggleExpandedEntry(new Map(), key)
+    expect(lookupExpanded(expanded, key)).toBe(true)
 
     // 'a' discarded: assignRoundKeys is now called with only ['b', 'c'],
     // the shape a naive rebuild-from-current-ids implementation would use.
-    roundKeys = assignRoundKeys(roundKeys, ['b', 'c'])
-    // The 'a' -> 'a' assignment, made while all three ids were present,
-    // must still be in the map -- not dropped just because 'a' is absent
-    // from this call's id list.
-    expect(roundKeys.get('a')).toBe('a')
-    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['b', 'c']))).toBe(true)
+    roundKeys = assignRoundKeys(roundKeys, live(['b', 'c']))
+    // The 'a' assignment, made while all three ids were present, must
+    // still be in the map -- not dropped just because 'a' is absent from
+    // this call's id list.
+    expect(roundKeyOf(roundKeys, live(['a']))).toBe(key)
+    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, live(['b', 'c'])))).toBe(true)
   })
 
   // The bug this pins: a call joins the round *between* toggles, so it's
@@ -229,16 +238,63 @@ describe('components/Assistant/UI/Chat/roundKeyOf, assignRoundKeys, lookupExpand
   // or a later discard of the originally-keyed call orphans the entry.
   it('keeps expand state reachable when a call joins after the toggle, then the original id is discarded', () => {
     // Toggled while only 'a' was live.
-    let roundKeys = assignRoundKeys(new Map(), ['a'])
-    const expanded = toggleExpandedEntry(new Map(), roundKeyOf(roundKeys, ['a']))
+    let roundKeys = assignRoundKeys(new Map(), live(['a']))
+    const key = roundKeyOf(roundKeys, live(['a']))
+    const expanded = toggleExpandedEntry(new Map(), key)
 
     // 'b' joins the round (observed, not toggled) -- registration must
     // run here too, independent of any toggle.
-    roundKeys = assignRoundKeys(roundKeys, ['a', 'b'])
+    roundKeys = assignRoundKeys(roundKeys, live(['a', 'b']))
 
     // 'a' discarded; the round is now looked up only by 'b'.
-    roundKeys = assignRoundKeys(roundKeys, ['b'])
-    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, ['b']))).toBe(true)
+    roundKeys = assignRoundKeys(roundKeys, live(['b']))
+    expect(lookupExpanded(expanded, roundKeyOf(roundKeys, live(['b'])))).toBe(true)
+  })
+
+  // The bug this pins: the model only guarantees a toolUseId is unique
+  // within its own response (Model/Conversation.ts:353-357), so two
+  // different, Message-separated rounds can share one. Without the
+  // anchor, the second round's lookup finds the first round's entry and
+  // inherits its permanent key -- toggling the first round's expand state
+  // would then also flip the second round's.
+  it('keeps two different rounds separate even when they share a toolUseId', () => {
+    const roundA = settled('event-a', ['reused-id'])
+    const roundB = settled('event-b', ['reused-id'])
+
+    let roundKeys = assignRoundKeys(new Map(), roundA)
+    roundKeys = assignRoundKeys(roundKeys, roundB)
+
+    const keyA = roundKeyOf(roundKeys, roundA)
+    const keyB = roundKeyOf(roundKeys, roundB)
+    expect(keyA).not.toBe(keyB)
+
+    const expanded = toggleExpandedEntry(new Map(), keyA)
+    expect(lookupExpanded(expanded, keyA)).toBe(true)
+    expect(lookupExpanded(expanded, keyB)).toBe(false)
+  })
+
+  // The bug this pins: a round observed while still fully live has no
+  // anchor yet, so it first registers under the anchorless key. Once its
+  // first call resolves, toolCallGroupIdsOf reports it with a real
+  // anchor -- that transition must resolve to the same permanent key
+  // (not mint a fresh one and lose the toggle), and must not leave the
+  // anchorless entry behind for an unrelated later round to collide
+  // through.
+  it('keeps the same key when a live round gets its first settled event, without leaking the id to a later round', () => {
+    let roundKeys = assignRoundKeys(new Map(), live(['reused-id']))
+    const liveKey = roundKeyOf(roundKeys, live(['reused-id']))
+    const expanded = toggleExpandedEntry(new Map(), liveKey)
+
+    // The round's first call resolves: it now has a real anchor.
+    roundKeys = assignRoundKeys(roundKeys, settled('event-a', ['reused-id']))
+    const settledKey = roundKeyOf(roundKeys, settled('event-a', ['reused-id']))
+    expect(settledKey).toBe(liveKey)
+    expect(lookupExpanded(expanded, settledKey)).toBe(true)
+
+    // A later, unrelated round reuses the same toolUseId while still
+    // live. It must not resolve to the first round's key.
+    const laterKey = roundKeyOf(roundKeys, live(['reused-id']))
+    expect(laterKey).not.toBe(liveKey)
   })
 })
 
@@ -272,10 +328,28 @@ describe('components/Assistant/UI/Chat/toolCallGroupIdsOf', () => {
   // ids from the group that's actually displaying them.
   it('includes live ids in the trailing ToolUse run even when a Message run precedes it', () => {
     const toolCallRuns = [[messageEventFor('m1')], [toolUseEventFor('t1', 'use-1')]]
-    const ids = toolCallGroupIdsOf(toolCallRuns, {
+    const groups = toolCallGroupIdsOf(toolCallRuns, {
       calls: { 'use-2': { name: 'object_read', input: {}, fiber: {} as any } },
     })
-    expect(ids).toEqual([['use-1', 'use-2']])
+    expect(groups).toEqual([{ anchor: 't1', ids: ['use-1', 'use-2'] }])
+  })
+
+  // The bug this pins: two different, Message-separated runs can carry
+  // the same toolUseId (the model only guarantees uniqueness within one
+  // response). Each group's anchor must still distinguish them -- it's
+  // the run's own first event id, never shared across runs.
+  it('gives two runs that share a toolUseId different anchors', () => {
+    const toolCallRuns = [
+      [toolUseEventFor('event-1', 'reused-id')],
+      [messageEventFor('m1')],
+      [toolUseEventFor('event-2', 'reused-id')],
+    ]
+    const groups = toolCallGroupIdsOf(toolCallRuns, undefined)
+    expect(groups).toEqual([
+      { anchor: 'event-1', ids: ['reused-id'] },
+      { anchor: 'event-2', ids: ['reused-id'] },
+    ])
+    expect(groups[0].anchor).not.toBe(groups[1].anchor)
   })
 })
 
@@ -639,5 +713,68 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
       />,
     )
     expect(screen.getByText('abort')).toBeTruthy()
+  })
+
+  // The bug this pins: when a running read finishes while a write still
+  // awaits approval, Chat used to render the standalone (live-only) and
+  // merged-into-history cases at two different JSX call sites, so this
+  // transition always remounted ToolCallGroup from scratch -- dropping
+  // focus from whichever approval button the user had focused. One
+  // ToolCallGroup instance, rerendered in place as its read's result
+  // moves from `live` into `events` (same props shape Chat now produces
+  // from its one unified list), must keep that focus.
+  it('keeps the approval card focused when a concurrent read finishes', () => {
+    const { rerender } = render(
+      <ToolCallGroup
+        dispatch={vi.fn()}
+        state="ToolUse"
+        events={[]}
+        live={{
+          timestamp: new Date(),
+          calls: {
+            w: {
+              name: 'platform__object_delete',
+              input: { bucket: 'b', key: 'k.txt' },
+              approval: 'destructive',
+              key: 'k1',
+            },
+            r: { name: 'search_packages', input: {}, fiber: {} as any },
+          },
+        }}
+      />,
+    )
+    const runButton = screen.getByRole('button', { name: 'Run' })
+    runButton.focus()
+    expect(document.activeElement).toBe(runButton)
+
+    rerender(
+      <ToolCallGroup
+        dispatch={vi.fn()}
+        state="ToolUse"
+        events={[
+          {
+            _tag: 'ToolUse',
+            id: '1',
+            timestamp: new Date(),
+            toolUseId: 'r',
+            name: 'search_packages',
+            input: {},
+            result: { status: 'success', content: [] },
+          },
+        ]}
+        live={{
+          timestamp: new Date(),
+          calls: {
+            w: {
+              name: 'platform__object_delete',
+              input: { bucket: 'b', key: 'k.txt' },
+              approval: 'destructive',
+              key: 'k1',
+            },
+          },
+        }}
+      />,
+    )
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Run' }))
   })
 })

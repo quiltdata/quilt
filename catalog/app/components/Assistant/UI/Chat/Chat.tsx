@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import { Link, useRouteMatch } from 'react-router-dom'
+import * as uuid from 'uuid'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
@@ -1055,32 +1056,69 @@ const useStyles = M.makeStyles((t) => ({
 // A round's set of toolUseIds is not fixed: calls join as they start,
 // leave `live` as they resolve into history, and can leave `events`
 // entirely once discarded -- so no single toolUseId is guaranteed to stay
-// in a round's id list for its whole life. `roundKeyOf` instead assigns
-// each round one permanent key (its first-ever-seen toolUseId) the moment
-// any of its ids is first observed, and never retracts that assignment,
-// so a later id (merging in) or a missing one (discarded away) both still
-// resolve to the same round.
+// in a round's id list for its whole life. `assignRoundKeys` instead gives
+// each round one permanent key, freshly minted (never derived from a
+// toolUseId) the moment any of its ids is first observed, and never
+// retracted, so a later id (merging in) or a missing one (discarded away)
+// both still resolve to the same round. `roundKeyOf` only reports a key
+// that's actually registered; minting happens nowhere else, so looking a
+// round up can never be mistaken for creating one.
+//
+// Looked up and registered by `(anchor, toolUseId)`, not bare toolUseId:
+// the model only guarantees a toolUseId is unique within its own response
+// (Model/Conversation.ts:353-357), so two different, Message-separated
+// rounds can share one. Namespacing by the group's own anchor (its first
+// settled event's event id, from toolCallGroupIdsOf) keeps a later round's
+// reused id from resolving to an earlier round's key.
+const registryKey = (anchor: string | undefined, toolUseId: string) =>
+  `${anchor ?? ''}\u0000${toolUseId}`
+
+// A round observed while still fully live has no anchor yet (its first
+// settled event doesn't exist until a call resolves), so its ids are first
+// registered under the anchorless key. The moment that happens, `anchor`
+// stops being undefined on every later render -- `roundKeyOf` also checks
+// the anchorless key so that one transition still resolves to the same
+// permanent key, without letting a *different*, already-historical round's
+// bare id resolve through it (that round was given its real anchor the
+// first time it was ever observed, so it has no anchorless entry left to
+// collide through).
+const liveKeyOf = (toolUseId: string) => registryKey(undefined, toolUseId)
+
 export function roundKeyOf(
   roundKeyByToolUseId: ReadonlyMap<string, string>,
-  toolUseIds: readonly string[],
+  group: ToolCallGroupIds,
 ): string | undefined {
-  for (const id of toolUseIds) {
-    const key = roundKeyByToolUseId.get(id)
+  for (const id of group.ids) {
+    const key =
+      roundKeyByToolUseId.get(registryKey(group.anchor, id)) ??
+      roundKeyByToolUseId.get(liveKeyOf(id))
     if (key !== undefined) return key
   }
-  return toolUseIds[0]
+  return undefined
 }
 
 export function assignRoundKeys(
   roundKeyByToolUseId: ReadonlyMap<string, string>,
-  toolUseIds: readonly string[],
+  group: ToolCallGroupIds,
 ): ReadonlyMap<string, string> {
-  const key = roundKeyOf(roundKeyByToolUseId, toolUseIds)
-  if (key === undefined) return roundKeyByToolUseId
-  const unassigned = toolUseIds.filter((id) => !roundKeyByToolUseId.has(id))
-  if (!unassigned.length) return roundKeyByToolUseId
+  if (!group.ids.length) return roundKeyByToolUseId
+  // Fresh, not derived from a toolUseId: a round's own key must never be
+  // reconstructable from its ids alone, or two different unregistered
+  // rounds sharing an id would compute the identical "new" key before
+  // either is ever stored.
+  const key = roundKeyOf(roundKeyByToolUseId, group) ?? uuid.v4()
+  const anchorKeys = group.ids.map((id) => registryKey(group.anchor, id))
+  const unassigned = anchorKeys.filter((id) => !roundKeyByToolUseId.has(id))
+  // The round's first settled event has just given it a real anchor: move
+  // its ids off the anchorless key they were first seen under, or a later,
+  // unrelated live round that reuses one of them would find this round's
+  // stale entry instead of registering its own.
+  const liveKeys = group.anchor !== undefined ? group.ids.map(liveKeyOf) : []
+  const staleLiveKeys = liveKeys.filter((id) => roundKeyByToolUseId.has(id))
+  if (!unassigned.length && !staleLiveKeys.length) return roundKeyByToolUseId
   const next = new Map(roundKeyByToolUseId)
   for (const id of unassigned) next.set(id, key)
+  for (const id of staleLiveKeys) next.delete(id)
   return next
 }
 
@@ -1120,7 +1158,22 @@ export function toolCallRunsOf(
     .filter((run) => run.length > 0)
 }
 
-// The id set for every ToolCallGroup a render of `toolCallRuns` will show.
+/**
+ * One rollup's identity: `anchor` disambiguates it from every other rollup
+ * that happens to share a `toolUseId` (the model only guarantees a
+ * `toolUseId` is unique within its own response, not across the
+ * conversation -- Model/Conversation.ts:353-357), and `ids` are the
+ * `toolUseId`s it's currently known by. The anchor is the run's first
+ * settled event's own event id (minted fresh per completed call, so it
+ * can't collide with another run's), or `undefined` for a round that's
+ * still entirely live and has no settled event yet -- there can be only
+ * one such round at a time, so no anchor is needed until it has one.
+ */
+export interface ToolCallGroupIds {
+  readonly anchor: string | undefined
+  readonly ids: readonly string[]
+}
+
 // `isTrailing` is computed from each run's position in the *unfiltered*
 // array before the Message runs are filtered out -- comparing a filtered
 // array's own index against the unfiltered array's length would mismatch
@@ -1129,20 +1182,23 @@ export function toolCallRunsOf(
 export function toolCallGroupIdsOf(
   toolCallRuns: readonly Model.Conversation.Event[][],
   liveToolUse: { calls: Model.Conversation.ToolCalls } | undefined,
-): readonly string[][] {
+): readonly ToolCallGroupIds[] {
   const toolUseRunIds = toolCallRuns
     .map((run, i) => ({ run, isTrailing: i === toolCallRuns.length - 1 }))
     .filter(({ run }) => run[0]._tag !== 'Message')
     .map(({ run, isTrailing }) => {
-      const toolUseIds = (
-        run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
-      ).map((e) => e.toolUseId)
+      const toolUseEvents = run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+      const toolUseIds = toolUseEvents.map((e) => e.toolUseId)
       const liveIds = isTrailing && liveToolUse ? Object.keys(liveToolUse.calls) : []
-      return toolUseIds.concat(liveIds)
+      const group: ToolCallGroupIds = {
+        anchor: toolUseEvents[0].id,
+        ids: toolUseIds.concat(liveIds),
+      }
+      return group
     })
-  const standaloneLiveIds =
+  const standaloneLiveIds: ToolCallGroupIds[] =
     liveToolUse && toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse'
-      ? [Object.keys(liveToolUse.calls)]
+      ? [{ anchor: undefined, ids: Object.keys(liveToolUse.calls) }]
       : []
   return toolUseRunIds.concat(standaloneLiveIds)
 }
@@ -1295,22 +1351,22 @@ export default function Chat({
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders),
   // not only on toggle, so a round's key assignment never lags its ids.
   let registeredRoundKeys = roundKeyByToolUseId
-  for (const ids of toolCallGroupIds) {
-    registeredRoundKeys = assignRoundKeys(registeredRoundKeys, ids)
+  for (const group of toolCallGroupIds) {
+    registeredRoundKeys = assignRoundKeys(registeredRoundKeys, group)
   }
   if (registeredRoundKeys !== roundKeyByToolUseId) {
     setRoundKeyByToolUseId(registeredRoundKeys)
   }
 
   const toolCallExpanded = React.useCallback(
-    (toolUseIds: readonly string[]) =>
-      lookupExpanded(expandedByRoundKey, roundKeyOf(registeredRoundKeys, toolUseIds)),
+    (group: ToolCallGroupIds) =>
+      lookupExpanded(expandedByRoundKey, roundKeyOf(registeredRoundKeys, group)),
     [expandedByRoundKey, registeredRoundKeys],
   )
   const toggleToolCallExpanded = React.useCallback(
-    (toolUseIds: readonly string[]) =>
+    (group: ToolCallGroupIds) =>
       setExpandedByRoundKey((prev) =>
-        toggleExpandedEntry(prev, roundKeyOf(registeredRoundKeys, toolUseIds)),
+        toggleExpandedEntry(prev, roundKeyOf(registeredRoundKeys, group)),
       ),
     [registeredRoundKeys],
   )
@@ -1359,12 +1415,20 @@ export default function Chat({
             data — I can search, query and summarize them for you.
           </MessageContainer>
           {(() => {
-            // Indexes toolCallGroupIds in step with the non-Message runs
-            // below, so the ids used to look up expand state here are the
-            // exact ones already registered above, not a second
-            // computation that could drift from it.
+            // One list, not two: a standalone live-only round (no history
+            // run yet) used to render at a separate JSX call site below
+            // this map, so when its first result landed and it became the
+            // trailing history run instead, React saw a different element
+            // and remounted it from scratch -- dropping focus from
+            // whichever ApprovalCard button the user had focused. Folding
+            // every rendered item (Message, history ToolCallGroup, and the
+            // standalone live-only ToolCallGroup) into one list, each with
+            // its own stable key, lets React match the live round to its
+            // later history mount by key instead of by position.
+            const hasTrailingRun =
+              toolCallRuns[toolCallRuns.length - 1]?.[0]._tag === 'ToolUse'
             let groupIndex = -1
-            return toolCallRuns.map((run, i) =>
+            const items = toolCallRuns.map((run, i) =>
               run[0]._tag === 'Message' ? (
                 <MessageEvent
                   key={run[0].id}
@@ -1373,53 +1437,56 @@ export default function Chat({
                   {...(run[0] as ReturnType<typeof Model.Conversation.Event.Message>)}
                 />
               ) : (
-                // Keyed by the first call's toolUseId, not its event id:
-                // the event id is reminted on each result, so keying on it
-                // would remount the group (and lose its expanded state)
-                // the moment any call in it resolves. Live calls join the
+                // Keyed by the group's anchor (a settled event's own id,
+                // unique across the conversation) when it has one, else its
+                // first live toolUseId -- not the event id, which is
+                // reminted on each result and would remount the group (and
+                // lose its expanded state and any focus inside it) the
+                // moment any call in it resolves. Live calls join the
                 // trailing ToolUse run (same round, partially settled)
                 // rather than getting their own group, so a call that
-                // finishes while others are still running doesn't fall
-                // out of an open toggle.
+                // finishes while others are still running doesn't fall out
+                // of an open toggle.
                 (() => {
                   groupIndex += 1
-                  const allIds = toolCallGroupIds[groupIndex]
+                  const group = toolCallGroupIds[groupIndex]
                   return (
                     <ToolCallGroup
-                      key={allIds[0]}
+                      key={group.anchor ?? group.ids[0]}
                       dispatch={dispatch}
                       state={state._tag}
                       events={
                         run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
                       }
                       live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
-                      expanded={toolCallExpanded(allIds)}
-                      onToggleExpanded={() => toggleToolCallExpanded(allIds)}
+                      expanded={toolCallExpanded(group)}
+                      onToggleExpanded={() => toggleToolCallExpanded(group)}
                     />
                   )
                 })()
               ),
             )
-          })()}
-          {/* A tool-only turn (no text) leaves `events` unchanged, so the
-              trailing run above can be a Message, or there can be no run at
-              all -- liveToolUse then has nowhere to attach above and needs
-              its own group. */}
-          {liveToolUse &&
-            toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse' &&
-            (() => {
-              const liveIds = toolCallGroupIds[toolCallGroupIds.length - 1]
-              return (
+            // A tool-only turn (no text) leaves `events` unchanged, so the
+            // trailing run above can be a Message, or there can be no run
+            // at all -- liveToolUse then has nowhere to attach above and
+            // needs its own entry in the same list, under the same kind of
+            // key its eventual history mount will use.
+            if (liveToolUse && !hasTrailingRun) {
+              const liveGroup = toolCallGroupIds[toolCallGroupIds.length - 1]
+              items.push(
                 <ToolCallGroup
+                  key={liveGroup.anchor ?? liveGroup.ids[0]}
                   dispatch={dispatch}
                   state={state._tag}
                   events={[]}
                   live={liveToolUse}
-                  expanded={toolCallExpanded(liveIds)}
-                  onToggleExpanded={() => toggleToolCallExpanded(liveIds)}
-                />
+                  expanded={toolCallExpanded(liveGroup)}
+                  onToggleExpanded={() => toggleToolCallExpanded(liveGroup)}
+                />,
               )
-            })()}
+            }
+            return items
+          })()}
           {Model.Conversation.State.$match(state, {
             Idle: (s) =>
               Eff.Option.match(s.error, {
