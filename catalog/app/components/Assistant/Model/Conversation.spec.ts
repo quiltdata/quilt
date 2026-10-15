@@ -365,6 +365,85 @@ describe('Conversation actor — connector gating', () => {
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
 
+  /**
+   * forkCall uses catchAllDefect, not catchAllCause, specifically because
+   * catchAllCause's documented contract also intercepts Interrupt causes --
+   * catchAllDefect excludes interruption by design (effect's own docs:
+   * "it does not handle expected errors ... or execution interruptions").
+   * This confirms Abort on a running call fiber still reaches Idle and
+   * never appends a stray ToolUse event for the interrupted call.
+   */
+  it('Abort on a running tool call fiber reaches Idle with no stray ToolUse event', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const executorRan = yield* Eff.Deferred.make<void>()
+          const neverFinish = yield* Eff.Deferred.make<void>()
+
+          const hangingTool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(executorRan, undefined)
+                // Never resolves on its own -- only interruption ends this.
+                yield* Eff.Deferred.await(neverFinish)
+                return Eff.Option.some(Tool.succeed())
+              }),
+          }
+          const connectorsStub: Connectors.ConnectorsService = {
+            ...makeConnectorsStub(isBlockedRef),
+            contextContribution: Eff.Effect.succeed({
+              tools: { hang__tool: hangingTool },
+              messages: [],
+            }),
+          }
+          // One LLM round that returns the hanging tool-use, no settling round
+          // needed -- the test ends at Idle via Abort, not via a second converse.
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.succeed({
+                content: Eff.Option.some([
+                  Content.ResponseMessageContentBlock.ToolUse({
+                    toolUseId: 'tu1',
+                    name: 'hang__tool',
+                    input: {},
+                  }),
+                ]),
+                backendResponse: {} as never,
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, connectorsStub),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'use hanging tool' }))
+          yield* awaitState(actor, (s) => s._tag === 'ToolUse')
+          // Make sure the call fiber is actually inside the tool executor
+          // (past Tool.execute, mid-await) before we abort it.
+          yield* Eff.Deferred.await(executorRan)
+
+          yield* actor.dispatch(Conversation.Action.Abort())
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(final._tag).toBe('Idle')
+          // No ToolResult was ever dispatched for the interrupted call --
+          // if catchAllDefect regressed back to catchAllCause, the fiber
+          // would run to completion once unblocked and append a ToolUse
+          // event even after the actor moved on.
+          yield* Eff.Deferred.succeed(neverFinish, undefined)
+          yield* TestClock.adjust(Eff.Duration.millis(10))
+          const latest = yield* Eff.SubscriptionRef.get(actor.state)
+          expect(latest.events.some((e) => e._tag === 'ToolUse')).toBe(false)
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
   it('LLMResponse executes connector-contributed tools', () =>
     Eff.Effect.runPromise(
       Eff.Effect.scoped(
