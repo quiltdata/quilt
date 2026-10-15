@@ -21,6 +21,8 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Qurator rolls up a sequence of tool calls into one collapsed summary row — naming whichever call is running, or how many ran and whether any failed once done — with a toggle to see each call's own detail, instead of stacking a card per call ([#5472](https://github.com/quiltdata/quilt/pull/5472))
+- [Fixed] Qurator sends a token budget with every chat request, so a reasoning model can no longer spend it all on hidden reasoning and answer with nothing ([#5471](https://github.com/quiltdata/quilt/pull/5471))
 - [Added] Qurator: admins add skills from GitHub in Admin → Settings → Qurator skills, kept in a package only admins can change, and users turn each one on or off from Skills in the + menu ([#5411](https://github.com/quiltdata/quilt/pull/5411))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))

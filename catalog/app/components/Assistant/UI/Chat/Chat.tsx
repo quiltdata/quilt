@@ -214,6 +214,12 @@ interface ToolMessageProps {
   details: Record<string, any>
   timestamp: Date
   actions?: React.ReactNode
+  // Controlled by the caller when it must survive this component
+  // unmounting (e.g. ToolCallRollup's single-call branch, so a toggle set
+  // before a second call lands isn't lost when that branch stops rendering
+  // this component at all). Defaults to an internal, uncontrolled toggle.
+  expanded?: boolean
+  onToggleExpanded?: () => void
 }
 
 function ToolMessage({
@@ -223,13 +229,13 @@ function ToolMessage({
   details,
   timestamp,
   actions,
+  expanded: expandedProp,
+  onToggleExpanded,
 }: ToolMessageProps) {
   const classes = useToolMessageStyles()
-  const [expanded, setExpanded] = React.useState(false)
-
-  const toggleExpanded = React.useCallback(() => {
-    setExpanded((prev) => !prev)
-  }, [])
+  const [expandedState, setExpandedState] = React.useState(false)
+  const expanded = expandedProp ?? expandedState
+  const toggleExpanded = onToggleExpanded ?? (() => setExpandedState((prev) => !prev))
 
   return (
     <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
@@ -238,7 +244,7 @@ function ToolMessage({
         onClick={toggleExpanded}
         aria-expanded={expanded}
       >
-        <M.Icon className={classes.icon}>build</M.Icon>
+        <M.Icon className={classes.icon}>bolt</M.Icon>
         <span className={classes.toolName}>{name}</span>
         {status === 'success' && (
           <M.Icon className={cx(classes.icon, classes.success)} aria-label="Succeeded">
@@ -263,6 +269,175 @@ function ToolMessage({
       <M.Collapse in={expanded}>
         <div className={classes.details}>
           <JsonDisplay defaultExpanded={2} name="details" value={details} />
+        </div>
+      </M.Collapse>
+    </MessageContainer>
+  )
+}
+
+// One call, resolved for display regardless of whether it's a completed
+// history event or still running in `State.ToolUse`: this is the unit a
+// rollup lists once expanded.
+interface ToolCallEntry {
+  readonly key: string
+  readonly name: string
+  readonly status: 'success' | 'error' | 'running'
+  readonly reason?: string
+  readonly timestamp: Date
+  readonly details: Record<string, any>
+  readonly discard?: () => void
+}
+
+const useRollupStyles = M.makeStyles((t) => ({
+  summary: {
+    color: 'inherit',
+  },
+  count: {
+    color: t.palette.text.hint,
+  },
+  entries: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: t.spacing(1),
+    marginTop: t.spacing(1),
+  },
+  entryHeader: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+  },
+  entryName: {
+    flexGrow: 1,
+  },
+  entryDetails: {
+    marginTop: t.spacing(0.5),
+  },
+}))
+
+interface ToolCallRollupProps {
+  calls: readonly ToolCallEntry[]
+  timestamp: Date
+  actions?: React.ReactNode
+  // Controlled by ToolCallGroup, which owns this across the single-call
+  // (ToolMessage) and multi-call (this component's own markup) branches
+  // below -- those are different subtrees, so internal state here would
+  // reset whenever a group crosses the 1/2+ call boundary.
+  expanded: boolean
+  onToggleExpanded: () => void
+}
+
+// A run of tool calls (one response can trigger many) as one row instead of
+// a stacked card per call: a summary that names whichever call is still
+// running — or, once everything has settled, how many ran and whether any
+// failed — with the familiar per-call detail view available behind a toggle
+// so no error or payload is lost, just deferred.
+function ToolCallRollup({
+  calls,
+  timestamp,
+  actions,
+  expanded,
+  onToggleExpanded: toggleExpanded,
+}: ToolCallRollupProps) {
+  const classes = useToolMessageStyles()
+  const rollupClasses = useRollupStyles()
+
+  const running = calls.filter((c) => c.status === 'running')
+  const failed = calls.filter((c) => c.status === 'error')
+
+  // Single call: the per-call row already carries everything a rollup would
+  // summarize, so skip the extra wrapper and render it directly.
+  if (calls.length === 1) {
+    const [call] = calls
+    return (
+      <ToolMessage
+        name={call.name}
+        status={call.status}
+        reason={call.reason}
+        details={call.details}
+        timestamp={call.timestamp}
+        actions={
+          actions ??
+          (call.discard && <MessageAction onClick={call.discard}>discard</MessageAction>)
+        }
+        expanded={expanded}
+        onToggleExpanded={toggleExpanded}
+      />
+    )
+  }
+
+  const summary = running.length
+    ? `Running: ${running.map((c) => c.name).join(', ')}`
+    : `${calls.length} tool calls${failed.length ? `, ${failed.length} failed` : ''}`
+
+  return (
+    <MessageContainer color="faint" timestamp={timestamp} actions={actions}>
+      <M.ButtonBase
+        className={classes.header}
+        onClick={toggleExpanded}
+        aria-expanded={expanded}
+      >
+        <M.Icon className={classes.icon}>bolt</M.Icon>
+        <span className={cx(classes.toolName, rollupClasses.summary)}>{summary}</span>
+        <span className={rollupClasses.count}>
+          {running.length ? `${calls.length - running.length}/${calls.length}` : null}
+        </span>
+        {!running.length && !failed.length && (
+          <M.Icon className={cx(classes.icon, classes.success)} aria-label="Succeeded">
+            check_circle_outline
+          </M.Icon>
+        )}
+        {!running.length && !!failed.length && (
+          <M.Icon className={cx(classes.icon, classes.error)} aria-label="Failed">
+            error_outline
+          </M.Icon>
+        )}
+        {!!running.length && (
+          <M.CircularProgress
+            size={14}
+            thickness={4}
+            className={classes.running}
+            aria-label="Running"
+          />
+        )}
+      </M.ButtonBase>
+      <M.Collapse in={expanded}>
+        <div className={rollupClasses.entries}>
+          {calls.map((call) => (
+            <div key={call.key}>
+              <div className={rollupClasses.entryHeader}>
+                <M.Icon className={classes.icon}>bolt</M.Icon>
+                <span className={rollupClasses.entryName}>{call.name}</span>
+                {call.status === 'success' && (
+                  <M.Icon
+                    className={cx(classes.icon, classes.success)}
+                    aria-label="Succeeded"
+                  >
+                    check_circle_outline
+                  </M.Icon>
+                )}
+                {call.status === 'error' && (
+                  <M.Icon className={cx(classes.icon, classes.error)} aria-label="Failed">
+                    error_outline
+                  </M.Icon>
+                )}
+                {call.status === 'running' && (
+                  <M.CircularProgress
+                    size={14}
+                    thickness={4}
+                    className={classes.running}
+                    aria-label="Running"
+                  />
+                )}
+                {call.discard && (
+                  <MessageAction onClick={call.discard}>discard</MessageAction>
+                )}
+              </div>
+              {call.reason && <div className={classes.reason}>{call.reason}</div>}
+              <div className={rollupClasses.entryDetails}>
+                <JsonDisplay defaultExpanded={1} name="details" value={call.details} />
+              </div>
+            </div>
+          ))}
         </div>
       </M.Collapse>
     </MessageContainer>
@@ -308,91 +483,111 @@ export function MessageEvent({
   )
 }
 
-type ToolUseEventProps = ConversationDispatchProps &
-  ConversationStateProps &
-  ReturnType<typeof Model.Conversation.Event.ToolUse>
+// A maximal run of consecutive history `ToolUse` events, plus the live
+// `State.ToolUse` calls when the run is still in progress: one rollup, one
+// discard per finished call, one abort for whatever's still running.
+interface ToolCallGroupProps extends ConversationDispatchProps, ConversationStateProps {
+  events: ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+  live?: { timestamp: Date; calls: Model.Conversation.ToolCalls }
+  // Controlled by Chat, which outlives every ToolCallGroup remount a round
+  // goes through (standalone live-only -> merged into history -> settled):
+  // defaults to an internal, uncontrolled toggle for callers that render a
+  // group in isolation (e.g. tests) and don't need it to survive a remount.
+  expanded?: boolean
+  onToggleExpanded?: () => void
+}
 
-function ToolUseEvent({
+export function ToolCallGroup({
   state,
-  id,
-  timestamp,
-  toolUseId,
-  name,
-  input,
-  result,
+  events,
+  live,
   dispatch,
-}: ToolUseEventProps) {
-  const discard = React.useMemo(
-    () =>
-      state === 'Idle' ? () => dispatch(Model.Conversation.Action.Discard({ id })) : null,
-    [dispatch, id, state],
-  )
-  const details = React.useMemo(
-    () => ({ toolUseId, input, result }),
-    [toolUseId, input, result],
-  )
-  const reason = React.useMemo(() => {
-    if (result.status !== 'error') return undefined
-    const text = result.content.find((c) => c._tag === 'Text')
-    return text?._tag === 'Text' ? text.text : undefined
-  }, [result])
-  return (
-    <ToolMessage
-      name={toolTitle(name)}
-      status={result.status}
-      reason={reason}
-      details={details}
-      timestamp={timestamp}
-      actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
-    />
-  )
-}
+  expanded: expandedProp,
+  onToggleExpanded: onToggleExpandedProp,
+}: ToolCallGroupProps) {
+  const [expandedState, setExpandedState] = React.useState(false)
+  const expanded = expandedProp ?? expandedState
+  const toggleExpanded = onToggleExpandedProp ?? (() => setExpandedState((prev) => !prev))
 
-interface ToolUseStateProps extends ConversationDispatchProps {
-  timestamp: Date
-  calls: Model.Conversation.ToolCalls
-}
-
-export function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
+  const discard = React.useCallback(
+    (id: string) => dispatch(Model.Conversation.Action.Discard({ id })),
+    [dispatch],
+  )
   const abort = React.useCallback(
     () => dispatch(Model.Conversation.Action.Abort()),
     [dispatch],
   )
 
-  const running = React.useMemo(
-    () => Eff.Record.filter(calls, (c) => !c.approval),
-    [calls],
-  )
-  const details = React.useMemo(
-    () => Eff.Record.map(running, Eff.Struct.pick('name', 'input')),
-    [running],
+  // A call awaiting approval isn't running yet, so it never joins the
+  // rollup: it needs the user's direct attention, not a collapsed summary
+  // line, and stays its own ApprovalCard until approved or denied.
+  const liveRunning = React.useMemo(
+    () => (live ? Eff.Record.filter(live.calls, (c) => !c.approval) : {}),
+    [live],
   )
 
-  const names = Eff.Record.collect(running, (_k, v) => toolTitle(v.name))
+  const calls: ToolCallEntry[] = React.useMemo(() => {
+    // Deduped by toolUseId (stable identity), not event id (reminted per
+    // result): keeps the rollup's failure count correct if a retry ever
+    // adds a second ToolUse event for the same call.
+    const byToolUseId = new Map<string, ToolCallEntry>()
+    for (const e of events) {
+      const reason =
+        e.result.status === 'error'
+          ? e.result.content.find((c) => c._tag === 'Text')
+          : undefined
+      byToolUseId.set(e.toolUseId, {
+        key: e.toolUseId,
+        name: toolTitle(e.name),
+        status: e.result.status,
+        reason: reason?._tag === 'Text' ? reason.text : undefined,
+        timestamp: e.timestamp,
+        details: { toolUseId: e.toolUseId, input: e.input, result: e.result },
+        discard: state === 'Idle' ? () => discard(e.id) : undefined,
+      })
+    }
+    const finished = Array.from(byToolUseId.values())
+
+    const running: ToolCallEntry[] = Eff.Record.collect(
+      liveRunning,
+      (toolUseId, call) => ({
+        key: toolUseId,
+        name: toolTitle(call.name),
+        status: 'running' as const,
+        timestamp: live!.timestamp,
+        details: { name: call.name, input: call.input },
+      }),
+    )
+
+    return finished.concat(running)
+  }, [events, live, liveRunning, state, discard])
+
+  const timestamp = live?.timestamp ?? events[events.length - 1]?.timestamp ?? new Date()
   const abortAction = <MessageAction onClick={abort}>abort</MessageAction>
 
   return (
     <>
-      {Eff.Record.collect(calls, (id, call) =>
-        call.approval ? (
-          <ApprovalCard
-            key={id}
-            id={id}
-            call={call}
-            approval={call.approval}
-            dispatch={dispatch}
-            timestamp={timestamp}
-            actions={names.length ? undefined : abortAction}
-          />
-        ) : null,
-      )}
-      {names.length > 0 && (
-        <ToolMessage
-          name={names.join(', ')}
-          status="running"
-          details={details}
+      {live &&
+        Eff.Record.collect(live.calls, (id, call) =>
+          call.approval ? (
+            <ApprovalCard
+              key={id}
+              id={id}
+              call={call}
+              approval={call.approval}
+              dispatch={dispatch}
+              timestamp={live.timestamp}
+              actions={Object.keys(liveRunning).length ? undefined : abortAction}
+            />
+          ) : null,
+        )}
+      {calls.length > 0 && (
+        <ToolCallRollup
+          calls={calls}
           timestamp={timestamp}
-          actions={abortAction}
+          actions={Object.keys(liveRunning).length ? abortAction : undefined}
+          expanded={expanded}
+          onToggleExpanded={toggleExpanded}
         />
       )}
     </>
@@ -857,6 +1052,101 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// A round's set of toolUseIds is not fixed: calls join as they start,
+// leave `live` as they resolve into history, and can leave `events`
+// entirely once discarded -- so no single toolUseId is guaranteed to stay
+// in a round's id list for its whole life. `roundKeyOf` instead assigns
+// each round one permanent key (its first-ever-seen toolUseId) the moment
+// any of its ids is first observed, and never retracts that assignment,
+// so a later id (merging in) or a missing one (discarded away) both still
+// resolve to the same round.
+export function roundKeyOf(
+  roundKeyByToolUseId: ReadonlyMap<string, string>,
+  toolUseIds: readonly string[],
+): string | undefined {
+  for (const id of toolUseIds) {
+    const key = roundKeyByToolUseId.get(id)
+    if (key !== undefined) return key
+  }
+  return toolUseIds[0]
+}
+
+export function assignRoundKeys(
+  roundKeyByToolUseId: ReadonlyMap<string, string>,
+  toolUseIds: readonly string[],
+): ReadonlyMap<string, string> {
+  const key = roundKeyOf(roundKeyByToolUseId, toolUseIds)
+  if (key === undefined) return roundKeyByToolUseId
+  const unassigned = toolUseIds.filter((id) => !roundKeyByToolUseId.has(id))
+  if (!unassigned.length) return roundKeyByToolUseId
+  const next = new Map(roundKeyByToolUseId)
+  for (const id of unassigned) next.set(id, key)
+  return next
+}
+
+export function lookupExpanded(
+  expandedByRoundKey: ReadonlyMap<string, boolean>,
+  roundKey: string | undefined,
+): boolean {
+  return roundKey !== undefined && (expandedByRoundKey.get(roundKey) ?? false)
+}
+
+export function toggleExpandedEntry(
+  expandedByRoundKey: ReadonlyMap<string, boolean>,
+  roundKey: string | undefined,
+): ReadonlyMap<string, boolean> {
+  if (roundKey === undefined) return expandedByRoundKey
+  const next = new Map(expandedByRoundKey)
+  next.set(roundKey, !lookupExpanded(expandedByRoundKey, roundKey))
+  return next
+}
+
+// Consecutive ToolUse events roll up into one group; a Message in between
+// breaks the run (and never merges with another Message), since a rollup
+// only reads as "this answer's tool calls" while nothing else has happened
+// since. Grouping runs on the *unfiltered* event stream and discards are
+// dropped from each run afterward -- filtering first would erase a
+// discarded Message's run boundary and wrongly merge the ToolUse runs on
+// either side of it into one.
+export function toolCallRunsOf(
+  events: Model.Conversation.Event[],
+): Model.Conversation.Event[][] {
+  if (!Eff.Array.isNonEmptyArray(events)) return []
+  return Eff.Array.groupWith(
+    events,
+    (a, b) => a._tag === 'ToolUse' && b._tag === 'ToolUse',
+  )
+    .map((run) => run.filter((e) => !e.discarded))
+    .filter((run) => run.length > 0)
+}
+
+// The id set for every ToolCallGroup a render of `toolCallRuns` will show.
+// `isTrailing` is computed from each run's position in the *unfiltered*
+// array before the Message runs are filtered out -- comparing a filtered
+// array's own index against the unfiltered array's length would mismatch
+// whenever a Message run comes before the trailing ToolUse run (e.g.
+// [Message, ToolUse]), silently dropping live ids from the trailing group.
+export function toolCallGroupIdsOf(
+  toolCallRuns: readonly Model.Conversation.Event[][],
+  liveToolUse: { calls: Model.Conversation.ToolCalls } | undefined,
+): readonly string[][] {
+  const toolUseRunIds = toolCallRuns
+    .map((run, i) => ({ run, isTrailing: i === toolCallRuns.length - 1 }))
+    .filter(({ run }) => run[0]._tag !== 'Message')
+    .map(({ run, isTrailing }) => {
+      const toolUseIds = (
+        run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+      ).map((e) => e.toolUseId)
+      const liveIds = isTrailing && liveToolUse ? Object.keys(liveToolUse.calls) : []
+      return toolUseIds.concat(liveIds)
+    })
+  const standaloneLiveIds =
+    liveToolUse && toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse'
+      ? [Object.keys(liveToolUse.calls)]
+      : []
+  return toolUseRunIds.concat(standaloneLiveIds)
+}
+
 interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
@@ -971,6 +1261,60 @@ export default function Chat({
     [setDevToolsOpen],
   )
 
+  const toolCallRuns = toolCallRunsOf(state.events)
+  const liveToolUse = Model.Conversation.State.$match(state, {
+    Idle: () => undefined,
+    WaitingForAssistant: () => undefined,
+    ToolUse: (s) => ({ timestamp: s.timestamp, calls: s.calls }),
+    AwaitingConnector: () => undefined,
+  })
+
+  // Every ToolCallGroup this render will show, by the ids it's currently
+  // known by -- computed up front so each round's registration (below) can
+  // run on every render that observes it, not only when it's toggled.
+  // Without that, a call joining the round between toggles is never
+  // assigned a key, and a later discard of the originally-keyed call would
+  // leave it keyed under itself with no path back to the real entry.
+  const toolCallGroupIds = toolCallGroupIdsOf(toolCallRuns, liveToolUse)
+
+  // One round's tool calls can render through several different
+  // ToolCallGroup mounts across its life (live-only, before any result;
+  // merged into the trailing history run once one lands; history-only once
+  // settled), and its set of toolUseIds isn't fixed either (a call can
+  // leave it entirely once discarded) -- so the toggle lives here, under a
+  // permanent key assigned the moment any of the round's ids is first seen
+  // and never retracted, rather than under a toolUseId directly.
+  const [roundKeyByToolUseId, setRoundKeyByToolUseId] = React.useState<
+    ReadonlyMap<string, string>
+  >(new Map())
+  const [expandedByRoundKey, setExpandedByRoundKey] = React.useState<
+    ReadonlyMap<string, boolean>
+  >(new Map())
+
+  // Registered every render (the "adjust state during render" pattern:
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders),
+  // not only on toggle, so a round's key assignment never lags its ids.
+  let registeredRoundKeys = roundKeyByToolUseId
+  for (const ids of toolCallGroupIds) {
+    registeredRoundKeys = assignRoundKeys(registeredRoundKeys, ids)
+  }
+  if (registeredRoundKeys !== roundKeyByToolUseId) {
+    setRoundKeyByToolUseId(registeredRoundKeys)
+  }
+
+  const toolCallExpanded = React.useCallback(
+    (toolUseIds: readonly string[]) =>
+      lookupExpanded(expandedByRoundKey, roundKeyOf(registeredRoundKeys, toolUseIds)),
+    [expandedByRoundKey, registeredRoundKeys],
+  )
+  const toggleToolCallExpanded = React.useCallback(
+    (toolUseIds: readonly string[]) =>
+      setExpandedByRoundKey((prev) =>
+        toggleExpandedEntry(prev, roundKeyOf(registeredRoundKeys, toolUseIds)),
+      ),
+    [registeredRoundKeys],
+  )
+
   return (
     <div className={classes.chat}>
       <div className={classes.header}>
@@ -1014,28 +1358,68 @@ export default function Chat({
             Hi! I'm Qurator, your AI assistant. Ask me about your packages, buckets and
             data — I can search, query and summarize them for you.
           </MessageContainer>
-          {state.events
-            .filter((e) => !e.discarded)
-            .map(
-              Model.Conversation.Event.$match({
-                Message: (event) => (
-                  <MessageEvent
-                    key={event.id}
-                    dispatch={dispatch}
-                    state={state._tag}
-                    {...event}
-                  />
-                ),
-                ToolUse: (event) => (
-                  <ToolUseEvent
-                    key={event.id}
-                    dispatch={dispatch}
-                    state={state._tag}
-                    {...event}
-                  />
-                ),
-              }),
-            )}
+          {(() => {
+            // Indexes toolCallGroupIds in step with the non-Message runs
+            // below, so the ids used to look up expand state here are the
+            // exact ones already registered above, not a second
+            // computation that could drift from it.
+            let groupIndex = -1
+            return toolCallRuns.map((run, i) =>
+              run[0]._tag === 'Message' ? (
+                <MessageEvent
+                  key={run[0].id}
+                  dispatch={dispatch}
+                  state={state._tag}
+                  {...(run[0] as ReturnType<typeof Model.Conversation.Event.Message>)}
+                />
+              ) : (
+                // Keyed by the first call's toolUseId, not its event id:
+                // the event id is reminted on each result, so keying on it
+                // would remount the group (and lose its expanded state)
+                // the moment any call in it resolves. Live calls join the
+                // trailing ToolUse run (same round, partially settled)
+                // rather than getting their own group, so a call that
+                // finishes while others are still running doesn't fall
+                // out of an open toggle.
+                (() => {
+                  groupIndex += 1
+                  const allIds = toolCallGroupIds[groupIndex]
+                  return (
+                    <ToolCallGroup
+                      key={allIds[0]}
+                      dispatch={dispatch}
+                      state={state._tag}
+                      events={
+                        run as ReturnType<typeof Model.Conversation.Event.ToolUse>[]
+                      }
+                      live={i === toolCallRuns.length - 1 ? liveToolUse : undefined}
+                      expanded={toolCallExpanded(allIds)}
+                      onToggleExpanded={() => toggleToolCallExpanded(allIds)}
+                    />
+                  )
+                })()
+              ),
+            )
+          })()}
+          {/* A tool-only turn (no text) leaves `events` unchanged, so the
+              trailing run above can be a Message, or there can be no run at
+              all -- liveToolUse then has nowhere to attach above and needs
+              its own group. */}
+          {liveToolUse &&
+            toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse' &&
+            (() => {
+              const liveIds = toolCallGroupIds[toolCallGroupIds.length - 1]
+              return (
+                <ToolCallGroup
+                  dispatch={dispatch}
+                  state={state._tag}
+                  events={[]}
+                  live={liveToolUse}
+                  expanded={toolCallExpanded(liveIds)}
+                  onToggleExpanded={() => toggleToolCallExpanded(liveIds)}
+                />
+              )
+            })()}
           {Model.Conversation.State.$match(state, {
             Idle: (s) =>
               Eff.Option.match(s.error, {
@@ -1051,9 +1435,7 @@ export default function Chat({
             WaitingForAssistant: (s) => (
               <WaitingState dispatch={dispatch} timestamp={s.timestamp} busy={busy} />
             ),
-            ToolUse: (s) => (
-              <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
-            ),
+            ToolUse: () => null,
             AwaitingConnector: (s) => (
               <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),

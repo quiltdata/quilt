@@ -17,6 +17,11 @@ const RETRY_AFTER_CAP_S = 15
 // does not expose Retry-After, so the browser cannot read the header.
 const BUSY_RETRY_AFTER_S = 10
 const BUSY_MESSAGE = 'Qurator is busy with other requests. Try again in a minute.'
+// Leaving maxTokens unset lets the backend's own default govern it, which
+// can be too small for a reasoning model's hidden reasoning on a SageMaker
+// endpoint. A caller that needs a different budget overrides it (see
+// GlobalContext/summarize.ts).
+const DEFAULT_MAX_TOKENS = 4096
 
 class Failure {
   readonly _tag = 'Failure'
@@ -234,6 +239,10 @@ export function LLMRelay(options: RelayOptions) {
           messages,
           toolConfig: prompt.toolConfig && encodeToolConfig(prompt.toolConfig),
           ...opts,
+          // Merged after the opts spread so DEFAULT_MAX_TOKENS applies even
+          // when opts carries no inferenceConfig, and a caller's own
+          // maxTokens still overrides it.
+          inferenceConfig: { maxTokens: DEFAULT_MAX_TOKENS, ...opts?.inferenceConfig },
         }
 
         // Re-read per attempt: a Busy wait can outlast the session token.
