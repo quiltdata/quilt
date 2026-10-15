@@ -147,7 +147,8 @@ turns it on under **Admin > Settings > Preview features > Qurator mode**; a
 **Qurator mode** row then appears in the left-hand navigation. It continues
 the same conversation as the side panel.
 
-Beside the chat, a pane lists the packages, files and buckets the session's
+Beside the chat (on a narrow screen, behind the **Session details** button in
+the chat header), a pane lists the packages, files and buckets the session's
 tools have touched, and **Save session as package** writes the conversation,
 as you, to a bucket you choose. The package holds:
 
