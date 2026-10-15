@@ -377,7 +377,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
   // plain per-call row (matches today's single-tool-call rendering).
   it('renders a single call as a plain row, not a rollup', () => {
     renderGroup({ state: 'Idle', events: [toolUseEvent('1', 'search_packages')] })
-    expect(screen.getByText('search_packages')).toBeTruthy()
+    expect(screen.getByText('search packages')).toBeTruthy()
     expect(screen.queryByText(/tool calls/)).toBeNull()
   })
 
@@ -433,7 +433,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
         },
       },
     })
-    expect(screen.getByText('Running: package_revision')).toBeTruthy()
+    expect(screen.getByText('Running: package revision')).toBeTruthy()
   })
 
   it('surfaces a failed call in the summary without expanding', () => {
@@ -456,8 +456,8 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
       ],
     })
     fireEvent.click(screen.getByRole('button'))
-    expect(screen.getByText('search_packages')).toBeTruthy()
-    expect(screen.getByText('object_read')).toBeTruthy()
+    expect(screen.getByText('search packages')).toBeTruthy()
+    expect(screen.getByText('object read')).toBeTruthy()
   })
 
   // Each finished call keeps its own discard control once expanded, not just
@@ -604,5 +604,40 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
     expect(dispatch).toHaveBeenCalledWith(
       Model.Conversation.Action.Deny({ id: 'w', key: 'k1' }),
     )
+  })
+
+  // A finished call makes the rollup render alongside the approval card, but
+  // it isn't running, so it offers no abort of its own -- the approval card
+  // must still carry it, or the turn becomes uncancellable.
+  it('still offers abort when a finished call sits beside a pending approval', () => {
+    render(
+      <ToolCallGroup
+        dispatch={vi.fn()}
+        state="ToolUse"
+        events={[
+          {
+            _tag: 'ToolUse',
+            id: '1',
+            timestamp: new Date(),
+            toolUseId: '1-use',
+            name: 'search_packages',
+            input: {},
+            result: { status: 'success', content: [] },
+          },
+        ]}
+        live={{
+          timestamp: new Date(),
+          calls: {
+            w: {
+              name: 'platform__object_delete',
+              input: { bucket: 'b', key: 'k.txt' },
+              approval: 'destructive',
+              key: 'k1',
+            },
+          },
+        }}
+      />,
+    )
+    expect(screen.getByText('abort')).toBeTruthy()
   })
 })

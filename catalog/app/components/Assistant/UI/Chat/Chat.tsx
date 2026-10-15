@@ -538,7 +538,7 @@ export function ToolCallGroup({
           : undefined
       byToolUseId.set(e.toolUseId, {
         key: e.toolUseId,
-        name: e.name,
+        name: toolTitle(e.name),
         status: e.result.status,
         reason: reason?._tag === 'Text' ? reason.text : undefined,
         timestamp: e.timestamp,
@@ -552,7 +552,7 @@ export function ToolCallGroup({
       liveRunning,
       (toolUseId, call) => ({
         key: toolUseId,
-        name: call.name,
+        name: toolTitle(call.name),
         status: 'running' as const,
         timestamp: live!.timestamp,
         details: { name: call.name, input: call.input },
@@ -577,7 +577,7 @@ export function ToolCallGroup({
               approval={call.approval}
               dispatch={dispatch}
               timestamp={live.timestamp}
-              actions={calls.length ? undefined : abortAction}
+              actions={Object.keys(liveRunning).length ? undefined : abortAction}
             />
           ) : null,
         )}
