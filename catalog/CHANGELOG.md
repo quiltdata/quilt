@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Fixed] Qurator trims the oldest conversation history before it would overflow the model's context window instead of failing the same oversized request forever, a tool call that throws no longer leaves the conversation stuck waiting for it, and the reading-objects guidance no longer implies `catalog_preview`/`catalog_summarize` take the `platform__` connector prefix ([#5474](https://github.com/quiltdata/quilt/pull/5474))
 - [Added] `/signup/<page>` lets a visitor redeem a role's access code and sign up by email, landing on that role's default bucket; signed-in users land on their active role's default bucket from `/` ([#5469](https://github.com/quiltdata/quilt/pull/5469))
 - [Added] Qurator: admins add skills from GitHub in Admin → Settings → Qurator skills, kept in a package only admins can change, and users turn each one on or off from Skills in the + menu ([#5411](https://github.com/quiltdata/quilt/pull/5411))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
