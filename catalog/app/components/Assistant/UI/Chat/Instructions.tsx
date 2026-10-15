@@ -269,16 +269,18 @@ const layerState = ({ active, text }: UserInstructions.Instructions): LayerState
   active ? 'on' : text.trim() ? 'muted' : 'not set'
 
 const useTogglesStyles = M.makeStyles((t) => ({
-  // The shape carries the state (filled, slashed, hollow); color only reinforces it.
+  // The shape carries the state (filled, slashed, hollow); color only reinforces
+  // it. Each shade clears 3:1 on the light toolbar: these are enabled buttons.
   'not set': {
-    color: t.palette.text.disabled,
+    color: t.palette.text.secondary,
   },
   muted: {
     color: t.palette.text.primary,
   },
-  // The Indicator Rule: amber marks a layer that rides along with every message.
+  // The Indicator Rule: amber marks a layer that rides along with every message,
+  // in its darker shade, since the indicator's own amber is below 3:1 on light.
   on: {
-    color: t.palette.secondary.main,
+    color: t.palette.secondary.dark,
   },
   open: {
     backgroundColor: t.palette.action.selected,
