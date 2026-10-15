@@ -38,6 +38,11 @@ vi.mock('components/SearchBar/State', () => ({
 // agreement unfalsifiable.
 vi.mock('utils/Buckets', () => ({ useCurrentBucket: () => null }))
 
+const { assistantShow } = vi.hoisted(() => ({ assistantShow: vi.fn() }))
+vi.mock('components/Assistant', () => ({
+  Model: { useAssistantAPI: () => ({ show: assistantShow }) },
+}))
+
 import { ContentBar } from './ContentBar'
 import { SearchInputProvider, useSearchInput } from './SearchInput'
 
@@ -180,6 +185,30 @@ describe('components/Layout/ContentBar (header field registration)', () => {
     // Reachable by keyboard, not just present: this is the sole path to the nav.
     ;(button as HTMLElement).focus()
     expect(document.activeElement).toBe(button)
+  })
+
+  // Compact has no Qurator rail, so the bar's action slot becomes its door.
+  it('swaps the URI and docs links for Ask Qurator in the compact shell', () => {
+    const wide = renderBoth()
+    expect(wide.container.querySelector('a[href="https://docs.quilt.bio"]')).toBeTruthy()
+    expect(wide.container.querySelector('[aria-label="Ask Qurator"]')).toBeNull()
+    cleanup()
+    const compact = render(
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <MemoryRouter>
+          <NamedRoutes.Provider routes={{ uriResolver }}>
+            <SearchInputProvider>
+              <ContentBar onMenu={() => {}} />
+            </SearchInputProvider>
+          </NamedRoutes.Provider>
+        </MemoryRouter>
+      </M.MuiThemeProvider>,
+    )
+    expect(compact.container.querySelectorAll('a')).toHaveLength(0)
+    const ask = compact.container.querySelector('[aria-label="Ask Qurator"]')!
+    expect(ask).toBeTruthy()
+    ;(ask as HTMLElement).click()
+    expect(assistantShow).toHaveBeenCalled()
   })
 
   it('names the highlighted row, and that row is the one marked selected', () => {

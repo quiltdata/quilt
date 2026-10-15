@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Assistant from 'components/Assistant'
 import * as Column from 'components/Layout/Column'
 import * as Pointer from 'components/Layout/Pointer'
 import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
@@ -135,6 +136,9 @@ export interface ContentBarProps {
 export function ContentBar({ onMenu }: ContentBarProps = {}) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const assistant = Assistant.Model.useAssistantAPI()
+  // `onMenu` arrives only in the compact shell (see ContentBarProps).
+  const compact = !!onMenu
   const bucket = Buckets.useCurrentBucket()
   // Non-null only on the search page, where the model is provided above the Layout.
   const searchModel = SearchUIModel.useUnsafe()
@@ -255,28 +259,46 @@ export function ContentBar({ onMenu }: ContentBarProps = {}) {
               </div>
             </M.Popper>
           </div>
-          <div className={classes.actions}>
-            <M.Tooltip arrow title="Resolve a Quilt URI">
-              <M.IconButton
-                className={classes.action}
-                component={Link}
-                to={urls.uriResolver('')}
-              >
-                <M.Icon className="material-icons-outlined">link</M.Icon>
-              </M.IconButton>
-            </M.Tooltip>
-            <M.Tooltip arrow title="Documentation">
-              <M.IconButton
-                className={classes.action}
-                component="a"
-                href={URLS.docs}
-                target="_blank"
-                rel="noopener"
-              >
-                <M.Icon className="material-icons-outlined">menu_book</M.Icon>
-              </M.IconButton>
-            </M.Tooltip>
-          </div>
+          {/* Compact has no Qurator rail on the right edge, so the bar is
+              its door; the URI resolver and docs links give up the room. */}
+          {compact ? (
+            !!assistant && (
+              <div className={classes.actions}>
+                <M.Tooltip arrow title="Ask Qurator">
+                  <M.IconButton
+                    aria-label="Ask Qurator"
+                    className={classes.action}
+                    onClick={assistant.show}
+                  >
+                    <M.Icon className="material-icons-outlined">assistant</M.Icon>
+                  </M.IconButton>
+                </M.Tooltip>
+              </div>
+            )
+          ) : (
+            <div className={classes.actions}>
+              <M.Tooltip arrow title="Resolve a Quilt URI">
+                <M.IconButton
+                  className={classes.action}
+                  component={Link}
+                  to={urls.uriResolver('')}
+                >
+                  <M.Icon className="material-icons-outlined">link</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+              <M.Tooltip arrow title="Documentation">
+                <M.IconButton
+                  className={classes.action}
+                  component="a"
+                  href={URLS.docs}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <M.Icon className="material-icons-outlined">menu_book</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            </div>
+          )}
         </M.Toolbar>
       </M.AppBar>
     </M.MuiThemeProvider>
