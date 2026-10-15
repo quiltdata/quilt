@@ -187,14 +187,28 @@ const binarySourceSize = (block: {
   return source.byteLength
 }
 
+// Events are never mutated after creation (ToolUse.ToolResult and Idle.Ask
+// only ever concat a new Event; Discard replaces with a new object via
+// spread) -- so each event's size is stable for its whole lifetime, and
+// caching by identity is safe. Without this, llmRequest would re-stringify
+// `state.events` on every round, and state.events itself is never trimmed
+// (only the local, trimmed copy passed to constructPrompt is) -- so an
+// uncached eventSize would redo JSON.stringify over the whole,
+// ever-growing history on every single turn of a long session.
+const eventSizeCache = new WeakMap<Event, number>()
+
 /** Rough serialized-size estimate for one event, correcting for binary content. */
 const eventSize = (e: Event): number => {
+  const cached = eventSizeCache.get(e)
+  if (cached !== undefined) return cached
   const blocks = e._tag === 'Message' ? [e.content] : e.result.content
   const binary = blocks.reduce((sum, b) => sum + binarySourceSize(b), 0)
   // JSON.stringify of a Buffer/Uint8Array/Blob source is also included in
   // this total, but it's small relative to `binary` either way (over- or
   // under-counting by the same byte source), so no need to strip it out.
-  return JSON.stringify(e).length + binary
+  const size = JSON.stringify(e).length + binary
+  eventSizeCache.set(e, size)
+  return size
 }
 
 /**
@@ -227,10 +241,11 @@ export const trimEventsToBudget = (
   if (!events.length) return events
   const budget = Math.max(0, maxChars - reservedChars)
   let total = 0
-  // Re-computes every event's size on every call -- a per-event size cache
-  // would avoid redoing this for events whose content never changes turn
-  // over turn, but conversations are bounded by this same trim, so the
-  // work stays proportional to a capped history, not unbounded growth.
+  // eventSize is cached per-event (see eventSizeCache above), so mapping
+  // the whole array here costs a WeakMap lookup per already-seen event,
+  // not a re-stringify -- `events` itself (state.events) is never
+  // trimmed, so this would otherwise redo the full history's JSON.stringify
+  // on every single Ask/ToolResult of a long session.
   const sizes = events.map(eventSize)
   // Always keep at least the most recent event, even if it alone exceeds
   // budget on its own -- an empty prompt is worse than an oversized one.
