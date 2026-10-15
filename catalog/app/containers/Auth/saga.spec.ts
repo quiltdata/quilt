@@ -36,6 +36,7 @@ import {
   handleGetSignupPage,
   handleCodeSignupRedeem,
   handleCodeSignupComplete,
+  signIn,
 } from './saga'
 
 const httpError = (status: number, json: any = {}) => new (HTTPError as any)(status, json)
@@ -155,6 +156,33 @@ describe('containers/Auth/saga: signup', () => {
       const { thrown } = throwInto(gen, httpError(500))
       expect(thrown).toBeInstanceOf(errors.AuthError)
       expect(thrown).not.toBeInstanceOf(errors.SignupTicketInvalid)
+    })
+  })
+
+  describe('signIn with a signup ticket', () => {
+    const credentials = {
+      provider: 'google',
+      code: 'oidc-code',
+      signup_page: 'benchtalk',
+      signup_ticket: 't',
+    }
+
+    it('posts the signup page and ticket with the SSO login', () => {
+      const gen = signIn(credentials)
+      const step = start(gen)
+      expect(step.value.payload.args).toEqual([
+        { auth: false, endpoint: '/login', method: 'POST', body: credentials },
+      ])
+    })
+
+    it('maps an invalid/expired ticket 401 to SignupTicketInvalid', () => {
+      const gen = signIn(credentials)
+      start(gen)
+      const { thrown } = throwInto(
+        gen,
+        httpError(401, { message: 'Invalid or expired signup ticket' }),
+      )
+      expect(thrown).toBeInstanceOf(errors.SignupTicketInvalid)
     })
   })
 

@@ -1,14 +1,7 @@
 // quilt-specs changes/access-code-signup#catalog-work. A role-owned cohort landing page at
 // /signup/:page, distinct from the plain /signup (SignUp.jsx, unchanged).
-//
-// Known gap, not silently dropped: the Google button is omitted here. The spec
-// (proposal.md "Password or Google signup with the ticket is otherwise the existing flow")
-// means for the Google path to also carry the redeemed ticket through _api_login_oauth, but
-// that composition (an SSO login endpoint running on every Google sign-in, against a
-// ticket that only applies at first-time account creation) isn't designed yet -- see this
-// PR's description. Shipping a Google button that silently signs the user in without
-// granting the code's role would look correct while failing to do the one thing this
-// feature exists for, so it's left out rather than guessed at.
+// SSO runs in a popup (utils/OIDC), so the redeemed ticket stays in this page's state and
+// rides along with the SSO login (#sso-redeem-work).
 import * as FF from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
@@ -26,12 +19,23 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
 import * as Layout from './Layout'
+import SSOAzure from './SSOAzure'
+import SSOGoogle from './SSOGoogle'
+import SSOOkta from './SSOOkta'
+import SSOOneLogin from './SSOOneLogin'
 import * as actions from './actions'
 import * as errors from './errors'
 import * as selectors from './selectors'
 
 const MUTEX_CODE = 'code'
 const MUTEX_SIGNUP = 'signup'
+
+const SSO_BUTTONS = [
+  ['google', SSOGoogle],
+  ['okta', SSOOkta],
+  ['onelogin', SSOOneLogin],
+  ['azure', SSOAzure],
+]
 
 const Container = Layout.mkLayout(({ title }) => title || 'Join Quilt')
 
@@ -215,7 +219,6 @@ function CompleteForm({ page, ticket, mutex, onDone, onExpired }) {
         submitting,
       }) => (
         <form onSubmit={handleSubmit}>
-          <Layout.Message>Access code accepted</Layout.Message>
           <RF.Field
             component={Layout.Field}
             name="username"
@@ -240,21 +243,17 @@ function CompleteForm({ page, ticket, mutex, onDone, onExpired }) {
               invalid: 'Enter a valid email address',
             }}
           />
-          {cfg.passwordAuth === true && (
-            <>
-              <RF.Field
-                component={Layout.Field}
-                name="password"
-                type="password"
-                disabled={!!mutex.current || submitting}
-                floatingLabelText="Password (optional)"
-                errors={{ invalid: 'Password must be between 8 and 64 characters long' }}
-              />
-              <Layout.Hint>
-                Leave the password blank and we&apos;ll email you a link to set one.
-              </Layout.Hint>
-            </>
-          )}
+          <RF.Field
+            component={Layout.Field}
+            name="password"
+            type="password"
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Password (optional)"
+            errors={{ invalid: 'Password must be between 8 and 64 characters long' }}
+          />
+          <Layout.Hint>
+            Leave the password blank and we&apos;ll email you a link to set one.
+          </Layout.Hint>
           <Layout.Error
             {...{
               submitFailed,
@@ -350,10 +349,9 @@ export default function CodeSignUp() {
   if (!pageInfo) return null
 
   if (authenticated) {
-    // An already-signed-in visitor redeems through the same page, which adds the role
-    // without creating a new account -- not yet implemented in this component; the
-    // registry's redeem endpoint supports it (mockup screen 6), the catalog UI for it is
-    // a follow-up, not built here.
+    // Also where a successful signup lands. Redeeming a code while signed in, to add the
+    // role to an existing account, is not built in the registry or here
+    // (#signed-in-redeem-work).
     return <Redirect to={urls.home()} />
   }
 
@@ -379,19 +377,59 @@ export default function CodeSignUp() {
     )
   }
 
+  const ssoButtons = cfg.ssoAuth
+    ? SSO_BUTTONS.filter(([provider]) => cfg.ssoProviders.includes(provider))
+    : []
+  const passwordSignup = cfg.passwordAuth === true
+
+  if (!ssoButtons.length && !passwordSignup) {
+    return (
+      <Container title={pageInfo.title}>
+        <Layout.Message>
+          No signup method is enabled on this Quilt. Contact your Quilt administrator.
+        </Layout.Message>
+      </Container>
+    )
+  }
+
+  const onExpired = () => {
+    setTicket(null)
+    setNotice('This signup link has expired. Enter the access code again.')
+  }
+
   return (
     <Container title={pageInfo.title}>
       {ticket ? (
-        <CompleteForm
-          page={page}
-          ticket={ticket}
-          mutex={mutex}
-          onDone={setDone}
-          onExpired={() => {
-            setTicket(null)
-            setNotice('This signup link has expired. Enter the access code again.')
-          }}
-        />
+        <>
+          <Layout.Message>Access code accepted</Layout.Message>
+          {ssoButtons.length > 0 && (
+            <M.Box display="flex" flexDirection="column" mt={2} alignItems="center">
+              <M.Box display="flex" flexDirection="column">
+                {ssoButtons.map(([provider, SSOButton]) => (
+                  <React.Fragment key={provider}>
+                    <M.Box mt={2} />
+                    <SSOButton
+                      mutex={mutex}
+                      signup={{ page, ticket }}
+                      onSignupTicketInvalid={onExpired}
+                      style={{ justifyContent: 'flex-start' }}
+                    />
+                  </React.Fragment>
+                ))}
+              </M.Box>
+            </M.Box>
+          )}
+          {ssoButtons.length > 0 && passwordSignup && <Layout.Or />}
+          {passwordSignup && (
+            <CompleteForm
+              page={page}
+              ticket={ticket}
+              mutex={mutex}
+              onDone={setDone}
+              onExpired={onExpired}
+            />
+          )}
+        </>
       ) : (
         <CodeEntry
           page={page}
