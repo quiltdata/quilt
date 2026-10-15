@@ -18,6 +18,7 @@ const useStyles = M.makeStyles((t) => ({
   // The pickers get their own row: inside the field's end adornment they
   // squeezed the text to nothing in the docked panel and overlapped the label.
   toolbar: {
+    alignItems: 'center',
     color: t.palette.text.secondary,
     display: 'flex',
     flexWrap: 'wrap',
@@ -335,6 +336,8 @@ interface ChatInputProps {
   helperSeverity?: 'warning' | 'error'
   model?: Model.Assistant.API['model']
   skills?: Model.Assistant.API['skills']
+  /** Extra toolbar controls, after the pickers. */
+  toolbarEnd?: React.ReactNode
   onSubmit: (value: string) => void
 }
 
@@ -347,6 +350,7 @@ export default function ChatInput({
   helperSeverity,
   model,
   skills,
+  toolbarEnd,
   onSubmit,
 }: ChatInputProps) {
   const classes = useStyles()
@@ -370,6 +374,7 @@ export default function ChatInput({
       <div className={classes.toolbar}>
         {skills && <SkillsMenu skills={skills} disabled={disabled} />}
         {model && <ModelPicker model={model} disabled={disabled} />}
+        {toolbarEnd}
       </div>
       <M.ThemeProvider theme={darkTheme}>
         <M.TextField

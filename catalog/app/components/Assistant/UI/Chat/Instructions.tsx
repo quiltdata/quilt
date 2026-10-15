@@ -74,6 +74,10 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(2),
     padding: t.spacing(0, 2, 1.5),
   },
+  // Headerless, so the body needs its own top inset.
+  panelBody: {
+    paddingTop: t.spacing(1.5),
+  },
   section: {
     display: 'flex',
     flexDirection: 'column',
@@ -219,6 +223,123 @@ function Section({
         </>
       )}
     </div>
+  )
+}
+
+export type Layer = 'global' | 'personal'
+
+const LAYERS: Record<
+  Layer,
+  { icon: string; name: string } & Omit<SectionProps, 'instructions'>
+> = {
+  global: {
+    icon: 'public',
+    name: 'Global instructions',
+    label: 'Global — this stack',
+    fieldLabel: 'Global Qurator instructions',
+    placeholder: GLOBAL_PLACEHOLDER,
+    hint: HINT_GLOBAL_ADMIN,
+    emptyReadOnly: EMPTY_GLOBAL_READ_ONLY,
+    readOnlyHint: HINT_GLOBAL_READ_ONLY,
+  },
+  personal: {
+    icon: 'person',
+    name: 'Personal notes',
+    label: 'Personal — my notes',
+    fieldLabel: 'Personal Qurator notes',
+    placeholder: PERSONAL_PLACEHOLDER,
+    hint: HINT_PERSONAL,
+    // Personal notes are always editable, so these never render.
+    emptyReadOnly: '',
+    readOnlyHint: '',
+  },
+}
+
+const layerState = ({ active, text }: UserInstructions.Instructions) =>
+  active ? 'on' : text.trim() ? 'muted' : 'not set'
+
+const useTogglesStyles = M.makeStyles((t) => ({
+  toggle: {
+    color: t.palette.text.secondary,
+  },
+  // The Indicator Rule: amber marks a layer that rides along with every message.
+  on: {
+    color: t.palette.secondary.main,
+  },
+  open: {
+    backgroundColor: t.palette.action.selected,
+  },
+}))
+
+interface InstructionsTogglesProps {
+  instructions: UserInstructions.DualInstructions
+  open: Layer | null
+  onToggle: (layer: Layer) => void
+}
+
+/** One icon per layer for the docked composer's toolbar; amber while the layer is on. */
+export function InstructionsToggles({
+  instructions,
+  open,
+  onToggle,
+}: InstructionsTogglesProps) {
+  const classes = useTogglesStyles()
+  return (
+    <>
+      {(Object.keys(LAYERS) as Layer[]).map((layer) => {
+        const { icon, name } = LAYERS[layer]
+        const label = `${name}: ${layerState(instructions[layer])}`
+        return (
+          <M.Tooltip key={layer} title={label}>
+            <M.IconButton
+              className={cx(
+                classes.toggle,
+                instructions[layer].active && classes.on,
+                open === layer && classes.open,
+              )}
+              aria-label={label}
+              aria-expanded={open === layer}
+              onClick={() => onToggle(layer)}
+              size="small"
+            >
+              <M.Icon fontSize="small">{icon}</M.Icon>
+            </M.IconButton>
+          </M.Tooltip>
+        )
+      })}
+    </>
+  )
+}
+
+interface InstructionsPanelProps {
+  className?: string
+  instructions: UserInstructions.DualInstructions
+  open: Layer | null
+}
+
+/** The editor for the layer picked in InstructionsToggles; nothing while none is. */
+export function InstructionsPanel({
+  className,
+  instructions,
+  open,
+}: InstructionsPanelProps) {
+  const classes = useStyles()
+  // Keep the closing layer's editor on screen while the panel collapses.
+  const lastOpen = React.useRef<Layer>('global')
+  if (open) lastOpen.current = open
+  const layer = open ?? lastOpen.current
+  return (
+    // The hairline lives inside the Collapse, so a closed panel leaves no line behind.
+    <M.Collapse in={!!open} className={className}>
+      <div className={cx(classes.root, classes.body, classes.panelBody)}>
+        <Section
+          // Remount per layer so one layer's unsaved draft never shows in the other.
+          key={layer}
+          {...LAYERS[layer]}
+          instructions={instructions[layer]}
+        />
+      </div>
+    </M.Collapse>
   )
 }
 

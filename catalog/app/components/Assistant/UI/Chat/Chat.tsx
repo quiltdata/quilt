@@ -18,7 +18,7 @@ import DevTools from './DevTools'
 import Input from './Input'
 import Composer from '../Composer/Composer'
 import type { SessionSave } from '../../Model/SessionSave'
-import Instructions from './Instructions'
+import { InstructionsPanel, InstructionsToggles, type Layer } from './Instructions'
 import MessageAction from './MessageAction'
 import { toCurrentStack } from './links'
 
@@ -966,6 +966,12 @@ export default function Chat({
 
   const [devToolsOpen, setDevToolsOpen] = React.useState(false)
 
+  const [instructionsOpen, setInstructionsOpen] = React.useState<Layer | null>(null)
+  const toggleInstructions = React.useCallback(
+    (layer: Layer) => setInstructionsOpen((prev) => (prev === layer ? null : layer)),
+    [],
+  )
+
   const toggleDevTools = React.useCallback(
     () => setDevToolsOpen((prev) => !prev),
     [setDevToolsOpen],
@@ -1097,11 +1103,18 @@ export default function Chat({
         />
       ) : (
         <>
-          <Instructions instructions={instructions} />
+          <InstructionsPanel instructions={instructions} open={instructionsOpen} />
           <Input
             disabled={inputDisabled}
             model={model}
             skills={skills}
+            toolbarEnd={
+              <InstructionsToggles
+                instructions={instructions}
+                open={instructionsOpen}
+                onToggle={toggleInstructions}
+              />
+            }
             helperText={helperText}
             helperSeverity={helperSeverity}
             onSubmit={ask}

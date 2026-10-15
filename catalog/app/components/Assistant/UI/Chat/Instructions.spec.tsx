@@ -8,7 +8,7 @@ import { SettingsConflictError } from 'utils/CatalogSettings'
 
 import type * as Model from '../../Model'
 
-import Instructions from './Instructions'
+import Instructions, { InstructionsPanel, InstructionsToggles } from './Instructions'
 
 type Layer = Model.UserInstructions.Instructions
 type Overrides = Partial<Layer>
@@ -244,5 +244,70 @@ describe('components/Assistant/UI/Chat/Instructions', () => {
         'Prefer Parquet',
       )
     })
+  })
+})
+
+describe('components/Assistant/UI/Chat/Instructions InstructionsToggles', () => {
+  afterEach(cleanup)
+
+  it('names each layer and its state', () => {
+    const { getByLabelText } = render(
+      <InstructionsToggles
+        instructions={dual(
+          { text: 'Be terse', enabled: false },
+          { text: 'Prefer Parquet' },
+        )}
+        open={null}
+        onToggle={vi.fn()}
+      />,
+    )
+    expect(getByLabelText('Global instructions: muted')).toBeTruthy()
+    expect(getByLabelText('Personal notes: on')).toBeTruthy()
+  })
+
+  it('says when a layer is not set', () => {
+    const { getByLabelText } = render(
+      <InstructionsToggles instructions={dual()} open={null} onToggle={vi.fn()} />,
+    )
+    expect(getByLabelText('Global instructions: not set')).toBeTruthy()
+    expect(getByLabelText('Personal notes: not set')).toBeTruthy()
+  })
+
+  it('toggles the clicked layer and marks the open one expanded', () => {
+    const onToggle = vi.fn()
+    const { getByLabelText } = render(
+      <InstructionsToggles instructions={dual()} open="personal" onToggle={onToggle} />,
+    )
+    const global = getByLabelText('Global instructions: not set')
+    const personal = getByLabelText('Personal notes: not set')
+    expect(global.getAttribute('aria-expanded')).toBe('false')
+    expect(personal.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(global)
+    expect(onToggle).toHaveBeenCalledWith('global')
+  })
+})
+
+describe('components/Assistant/UI/Chat/Instructions InstructionsPanel', () => {
+  afterEach(cleanup)
+
+  it('shows only the open layer', () => {
+    const { getByLabelText, queryByLabelText } = render(
+      <InstructionsPanel instructions={dual()} open="personal" />,
+    )
+    expect(getByLabelText(PERSONAL_FIELD)).toBeTruthy()
+    expect(queryByLabelText(GLOBAL_FIELD)).toBeNull()
+  })
+
+  it('saves to the open layer only', async () => {
+    const instructions = dual()
+    const { getByLabelText, getByText } = render(
+      <InstructionsPanel instructions={instructions} open="global" />,
+    )
+    fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'Be terse' } })
+    await act(async () => {
+      fireEvent.click(getByText('Save'))
+    })
+    expect(instructions.global.setText).toHaveBeenCalledWith('Be terse')
+    expect(instructions.personal.setText).not.toHaveBeenCalled()
   })
 })
