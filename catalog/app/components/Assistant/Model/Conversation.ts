@@ -182,6 +182,10 @@ export const trimEventsToBudget = (
 ): Event[] => {
   if (!events.length) return events
   let total = 0
+  // Re-stringifies every event on every call -- a per-event size cache
+  // would avoid redoing this for events whose content never changes turn
+  // over turn, but conversations are bounded by this same trim, so the
+  // work stays proportional to a capped history, not unbounded growth.
   const sizes = events.map((e) => JSON.stringify(e).length)
   // Always keep at least the most recent event, even if it alone exceeds
   // budget on its own -- an empty prompt is worse than an oversized one.
@@ -243,23 +247,32 @@ const forkCall = (
       // Eff.Effect.suspend, not a direct call: Tool.execute runs the
       // executor synchronously (it's a plain function, not Effect.sync/try),
       // so a throwing executor would otherwise throw before any Effect
-      // value exists for catchAllCause to attach to -- suspend defers that
+      // value exists for catchAllDefect to attach to -- suspend defers that
       // call into the Effect's own execution so the throw becomes a defect
       // this fiber can actually catch, instead of an unhandled synchronous
-      // exception. catchAllCause (not catchAll): Tool.execute's own tools
-      // already catch typed failures, but a defect here would otherwise
-      // leave this toolUseId's `calls` entry stuck forever -- nothing else
-      // ever removes it, so the conversation hangs in ToolUse with no error
+      // exception. catchAllDefect (not catchAll, and not catchAllCause):
+      // Tool.execute's own tools already catch typed failures, and
+      // catchAllCause would also swallow Abort's Eff.Fiber.interruptFork on
+      // this same fiber, turning a real interruption into a normal
+      // ToolResult dispatch instead of letting the fiber actually die.
+      // Without this guard, a defect here would otherwise leave this
+      // toolUseId's `calls` entry stuck forever -- nothing else ever
+      // removes it, so the conversation hangs in ToolUse with no error
       // surfaced (qhq-62tw).
       const result = yield* Eff.Effect.suspend(() =>
         Tool.execute(tools, name, input),
       ).pipe(
-        Eff.Effect.catchAllCause((cause) =>
+        Eff.Effect.catchAllDefect((defect) =>
           Eff.Effect.succeed(
             Eff.Option.some(
               Tool.fail(
                 Content.ToolResultContentBlock.Text({
-                  text: `Tool "${name}" failed unexpectedly: ${Eff.Cause.pretty(cause)}`,
+                  // Only .message, never the full defect/cause: this text
+                  // renders directly in the user-visible ToolMessage UI, and
+                  // a defect can carry a stack trace or internal values.
+                  text: `Tool "${name}" failed unexpectedly: ${
+                    defect instanceof Error ? defect.message : String(defect)
+                  }`,
                 }),
               ),
             ),
