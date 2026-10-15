@@ -349,8 +349,7 @@ export default function CodeSignUp() {
   if (!pageInfo) return null
 
   if (authenticated) {
-    // Also where a successful signup lands. Redeeming a code while signed in, to add the
-    // role to an existing account, is not built in the registry or here
+    // Also where a successful signup lands. Redeeming a code while signed in is not built
     // (#signed-in-redeem-work).
     return <Redirect to={urls.home()} />
   }
