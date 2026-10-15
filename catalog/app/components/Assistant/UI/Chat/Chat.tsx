@@ -1101,6 +1101,25 @@ export function toggleExpandedEntry(
   return next
 }
 
+// Consecutive ToolUse events roll up into one group; a Message in between
+// breaks the run (and never merges with another Message), since a rollup
+// only reads as "this answer's tool calls" while nothing else has happened
+// since. Grouping runs on the *unfiltered* event stream and discards are
+// dropped from each run afterward -- filtering first would erase a
+// discarded Message's run boundary and wrongly merge the ToolUse runs on
+// either side of it into one.
+export function toolCallRunsOf(
+  events: Model.Conversation.Event[],
+): Model.Conversation.Event[][] {
+  if (!Eff.Array.isNonEmptyArray(events)) return []
+  return Eff.Array.groupWith(
+    events,
+    (a, b) => a._tag === 'ToolUse' && b._tag === 'ToolUse',
+  )
+    .map((run) => run.filter((e) => !e.discarded))
+    .filter((run) => run.length > 0)
+}
+
 // The id set for every ToolCallGroup a render of `toolCallRuns` will show.
 // `isTrailing` is computed from each run's position in the *unfiltered*
 // array before the Message runs are filtered out -- comparing a filtered
@@ -1242,17 +1261,7 @@ export default function Chat({
     [setDevToolsOpen],
   )
 
-  // Consecutive ToolUse events roll up into one group; a Message in between
-  // breaks the run (and never merges with another Message), since a rollup
-  // only reads as "this answer's tool calls" while nothing else has happened
-  // since.
-  const liveEvents = state.events.filter((e) => !e.discarded)
-  const toolCallRuns: Model.Conversation.Event[][] = Eff.Array.isNonEmptyArray(liveEvents)
-    ? Eff.Array.groupWith(
-        liveEvents,
-        (a, b) => a._tag === 'ToolUse' && b._tag === 'ToolUse',
-      )
-    : []
+  const toolCallRuns = toolCallRunsOf(state.events)
   const liveToolUse = Model.Conversation.State.$match(state, {
     Idle: () => undefined,
     WaitingForAssistant: () => undefined,

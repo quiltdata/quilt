@@ -43,6 +43,7 @@ import {
   roundKeyOf,
   toggleExpandedEntry,
   toolCallGroupIdsOf,
+  toolCallRunsOf,
   toolTitle,
 } from './Chat'
 
@@ -275,6 +276,74 @@ describe('components/Assistant/UI/Chat/toolCallGroupIdsOf', () => {
       calls: { 'use-2': { name: 'object_read', input: {}, fiber: {} as any } },
     })
     expect(ids).toEqual([['use-1', 'use-2']])
+  })
+})
+
+describe('components/Assistant/UI/Chat/toolCallRunsOf', () => {
+  const TS = new Date()
+
+  function toolUseEventFor(id: string, toolUseId: string): Model.Conversation.Event {
+    return {
+      _tag: 'ToolUse',
+      id,
+      timestamp: TS,
+      toolUseId,
+      name: 'search_packages',
+      input: {},
+      result: { status: 'success', content: [] },
+    }
+  }
+
+  function messageEventFor(id: string, discarded?: boolean): Model.Conversation.Event {
+    return {
+      _tag: 'Message',
+      id,
+      discarded,
+      timestamp: TS,
+      role: 'assistant',
+      content: Model.Content.MessageContentBlock.Text({ text: 'ok' }),
+    }
+  }
+
+  // The bug this pins: filtering discarded events out of the stream before
+  // grouping it erases a discarded Message's run boundary along with the
+  // Message itself, so the ToolUse runs on either side of it wrongly merge
+  // into one. Grouping must run on the raw stream first, with discards
+  // dropped from the resulting runs afterward.
+  it('keeps two ToolUse runs separate across a discarded Message between them', () => {
+    const runs = toolCallRunsOf([
+      toolUseEventFor('1', 'use-1'),
+      messageEventFor('m1', true),
+      toolUseEventFor('2', 'use-2'),
+    ])
+    expect(runs).toEqual([
+      [toolUseEventFor('1', 'use-1')],
+      [toolUseEventFor('2', 'use-2')],
+    ])
+  })
+
+  it('still merges adjacent ToolUse events with no Message between them', () => {
+    const runs = toolCallRunsOf([
+      toolUseEventFor('1', 'use-1'),
+      toolUseEventFor('2', 'use-2'),
+    ])
+    expect(runs).toEqual([[toolUseEventFor('1', 'use-1'), toolUseEventFor('2', 'use-2')]])
+  })
+
+  it('drops a discarded ToolUse from its run without dropping the run', () => {
+    const discardedCall = { ...toolUseEventFor('1', 'use-1'), discarded: true }
+    const runs = toolCallRunsOf([discardedCall, toolUseEventFor('2', 'use-2')])
+    expect(runs).toEqual([[toolUseEventFor('2', 'use-2')]])
+  })
+
+  it('drops a run that becomes empty once its only event is discarded', () => {
+    const runs = toolCallRunsOf([
+      toolUseEventFor('1', 'use-1'),
+      messageEventFor('m1', true),
+      toolUseEventFor('2', 'use-2'),
+    ])
+    expect(runs).toHaveLength(2)
+    expect(runs.some((run) => run.length === 0)).toBe(false)
   })
 })
 
