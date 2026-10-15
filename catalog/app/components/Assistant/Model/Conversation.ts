@@ -167,6 +167,11 @@ export const init = Eff.Effect.gen(function* () {
 // just enough to break the stuck-retry loop below before the model errors.
 const MAX_PROMPT_CHARS = 120_000
 
+// Floor for "room for one small event plus constructPrompt's own fixed
+// text" (SYSTEM/TASK_CONTEXT/TASK_DESCRIPTION/IMMEDIATE_TASK/CONVERSATION_
+// START/END, none individually counted) -- generous on purpose.
+const MIN_EVENT_ROOM = 3_000
+
 /**
  * byteLength of a content block's binary source, or 0 for a string (counted
  * by JSON.stringify instead). JSON.stringify on a Buffer/Uint8Array emits
@@ -274,6 +279,20 @@ const llmRequest = (events: Event[]) =>
       // guidance text can be a large, mostly-fixed share of it on its own.
       const reservedChars =
         JSON.stringify(ctx.messages).length + JSON.stringify(ctx.tools).length
+      // trimEventsToBudget can only shrink `events`, never ctx.messages/
+      // tools -- so if reservedChars alone leaves less than MIN_EVENT_ROOM,
+      // the always-keep-one-event guarantee still sends a doomed prompt.
+      if (reservedChars + MIN_EVENT_ROOM > MAX_PROMPT_CHARS) {
+        return yield* Eff.Effect.fail(
+          new LLM.LLMError({
+            message:
+              'This page has too much fixed context (package files, instructions, or ' +
+              'enabled connectors) for the model to leave any room for conversation. ' +
+              'Try a smaller package directory, shorter admin/personal instructions, or ' +
+              'fewer connectors.',
+          }),
+        )
+      }
       const filteredEvents = trimEventsToBudget(
         events.filter((e) => !e.discarded),
         MAX_PROMPT_CHARS,

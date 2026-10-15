@@ -824,3 +824,64 @@ describe('trimEventsToBudget', () => {
     expect(trimmed[0].id).toBe('img')
   })
 })
+
+describe('llmRequest -- single-turn context overflow', () => {
+  /**
+   * Live incident, 2026-10-15: opening a package with a long README/AGENTS.md
+   * directory chain (loaded into context.messages, not events) overflowed on
+   * the very first Ask, before trimEventsToBudget ever had multiple events to
+   * drop -- trimEventsToBudget can only shrink `events`; it has no lever over
+   * context.messages/tools, which are owned by hooks outside this file. This
+   * confirms llmRequest fails fast with an actionable message instead of
+   * sending a doomed prompt and letting the model's own 424 be the only
+   * signal.
+   */
+  it('fails fast when context.messages alone fills the budget, before calling the LLM', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const llmCalled = yield* Eff.Deferred.make<void>()
+          const hugeContextStub = {
+            context: Eff.Effect.succeed({
+              tools: {},
+              // One huge "README" message, simulating a package's long
+              // directory chain of context files -- big enough alone to
+              // exceed MAX_PROMPT_CHARS (120_000) once JSON.stringify'd.
+              messages: ['x'.repeat(130_000)],
+              markers: {},
+            }),
+          }
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(llmCalled, undefined)
+                yield* Eff.Effect.never
+                return { content: Eff.Option.some([]), backendResponse: {} as never }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, makeConnectorsStub(isBlockedRef)),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, hugeContextStub),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'hi' }))
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(final._tag).toBe('Idle')
+          if (final._tag !== 'Idle') return
+          expect(Eff.Option.isSome(final.error)).toBe(true)
+          const errorDetails = Eff.Option.getOrThrow(final.error).details
+          expect(errorDetails).toMatch(/too much fixed context/)
+
+          // The point of failing fast: never actually called the LLM with a
+          // doomed-from-construction prompt.
+          const llmFired = yield* Eff.Deferred.isDone(llmCalled)
+          expect(llmFired).toBe(false)
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+})
