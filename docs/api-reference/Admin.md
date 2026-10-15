@@ -271,7 +271,7 @@ Get the default role from the registry. Return `None` if no default role is set.
 Get a list of all roles in the registry.
 
 
-## create\_managed(name: str, policies: list[str] = (), \*, default\_bucket: str | None = None, signup: quilt3.admin.types.RoleSignup | None = None) -> quilt3.admin.types.ManagedRole  {#create\_managed}
+## create\_managed(name: str, policies: list[str] = (), \*, default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.ManagedRole  {#create\_managed}
 
 Create a managed role in the registry.
 
@@ -283,7 +283,7 @@ __Arguments__
 * __signup__:  Access-code signup page for the role.
 
 
-## create\_unmanaged(name: str, arn: str, \*, default\_bucket: str | None = None, signup: quilt3.admin.types.RoleSignup | None = None) -> quilt3.admin.types.UnmanagedRole  {#create\_unmanaged}
+## create\_unmanaged(name: str, arn: str, \*, default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.UnmanagedRole  {#create\_unmanaged}
 
 Create an unmanaged role in the registry.
 
