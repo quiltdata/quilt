@@ -319,26 +319,22 @@ describe('components/Assistant/UI/Chat/Instructions InstructionsToggles', () => 
 describe('components/Assistant/UI/Chat/Instructions InstructionsPanel', () => {
   afterEach(cleanup)
 
-  // Both editors stay mounted (see the draft test below); only the open one shows.
-  const hidden = (el: HTMLElement) => !!el.closest('[hidden]')
-
   it('shows only the open layer', () => {
-    const { getByLabelText } = render(
+    const { getByLabelText, queryByLabelText } = render(
       <InstructionsPanel instructions={dual()} open="personal" />,
     )
-    expect(hidden(getByLabelText(PERSONAL_FIELD))).toBe(false)
-    expect(hidden(getByLabelText(GLOBAL_FIELD))).toBe(true)
+    expect(getByLabelText(PERSONAL_FIELD)).toBeTruthy()
+    expect(queryByLabelText(GLOBAL_FIELD)).toBeNull()
   })
 
   it('saves to the open layer only', async () => {
     const instructions = dual()
-    const { getByLabelText, getAllByText } = render(
+    const { getByLabelText, getByText } = render(
       <InstructionsPanel instructions={instructions} open="global" />,
     )
     fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'Be terse' } })
-    const save = getAllByText('Save').find((b) => !hidden(b))!
     await act(async () => {
-      fireEvent.click(save)
+      fireEvent.click(getByText('Save'))
     })
     expect(instructions.global.setText).toHaveBeenCalledWith('Be terse')
     expect(instructions.personal.setText).not.toHaveBeenCalled()

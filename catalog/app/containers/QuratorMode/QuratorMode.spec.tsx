@@ -8,20 +8,16 @@ import * as style from 'constants/style'
 
 vi.mock('constants/config', () => ({ default: {}, registryUrl: '' }))
 
-// jsdom has no matchMedia, so the layout breakpoint is driven directly.
+// jsdom has no matchMedia, so the shell's breakpoint is driven directly.
 const { media, refs } = vi.hoisted(() => ({
   media: { single: false },
   refs: { list: [] as { kind: 'bucket'; bucket: string }[] },
 }))
 
-vi.mock('@material-ui/core', async () => ({
-  ...(await vi.importActual('@material-ui/core')),
-  useMediaQuery: () => media.single,
-}))
-
 // The page's own claim is where the session pane goes; the chat and the shell
 // have their own specs, so they stand in and only surface the header slot.
 vi.mock('components/Layout', () => ({
+  useCompactShell: () => media.single,
   default: ({ pre, children }: { pre?: React.ReactNode; children?: React.ReactNode }) => (
     <>
       {pre}

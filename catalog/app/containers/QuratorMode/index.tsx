@@ -7,7 +7,7 @@ import * as Assistant from 'components/Assistant'
 import * as SessionPackage from 'components/Assistant/Model/SessionPackage'
 import Chat from 'components/Assistant/UI/Chat'
 import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
-import Layout from 'components/Layout'
+import Layout, { useCompactShell } from 'components/Layout'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { title as toolTitle } from 'components/Assistant/Model/Tool'
@@ -25,7 +25,6 @@ const useStyles = M.makeStyles((t) => ({
     minHeight: 0,
   },
   chat: {
-    borderRight: `1px solid ${t.palette.divider}`,
     display: 'flex',
     flexGrow: 1,
     minHeight: 0,
@@ -59,8 +58,17 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'space-between',
   },
+  // The pane's divider; in single column nothing sits beside the chat.
+  chatBeside: {
+    borderRight: `1px solid ${t.palette.divider}`,
+  },
   detailsButton: {
     color: t.palette.text.secondary,
+    // The Focus Ring Rule, as the chat header's other buttons wear it.
+    '&&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
   },
   count: { color: t.palette.text.secondary },
   mono: {
@@ -209,8 +217,7 @@ function Workspace({
   const save = SessionSave.useSessionSave(api)
   const withSave = { ...api, save }
   // Single column has no room for the pane beside the chat.
-  const t = M.useTheme()
-  const single = M.useMediaQuery(t.breakpoints.down('sm'))
+  const single = useCompactShell()
   const [sheetOpen, setSheetOpen] = React.useState(false)
   // A sheet left open in single column must not reappear on the way back to it.
   React.useEffect(() => {
@@ -240,7 +247,7 @@ function Workspace({
     <div className={classes.root}>
       {/* Registered presence drops the docked panel: one conversation, one place. */}
       <InlinePresence.Provide value>
-        <div className={classes.chat}>
+        <div className={cx(classes.chat, !single && classes.chatBeside)}>
           <Chat
             {...api}
             composer="compact"

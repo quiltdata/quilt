@@ -144,6 +144,14 @@ interface SectionProps {
   instructions: UserInstructions.Instructions
 }
 
+type Editor = ReturnType<typeof UserInstructions.useInstructionsEditor>
+
+/** A Section that owns its draft, for hosts that keep every layer on screen. */
+function OwnSection(props: SectionProps) {
+  const editor = UserInstructions.useInstructionsEditor(props.instructions)
+  return <Section {...props} editor={editor} />
+}
+
 function Section({
   label,
   fieldLabel,
@@ -152,19 +160,11 @@ function Section({
   emptyReadOnly,
   readOnlyHint,
   instructions,
-  layer,
-  onDirtyChange,
-}: SectionProps & {
-  layer?: Layer
-  onDirtyChange?: (layer: Layer, dirty: boolean) => void
-}) {
+  editor,
+}: SectionProps & { editor: Editor }) {
   const classes = useStyles()
   const { text, enabled, canEdit } = instructions
-  const { draft, setDraft, dirty, pending, error, save, toggle, onClear } =
-    UserInstructions.useInstructionsEditor(instructions)
-  React.useEffect(() => {
-    if (layer) onDirtyChange?.(layer, dirty)
-  }, [layer, onDirtyChange, dirty])
+  const { draft, setDraft, dirty, pending, error, save, toggle, onClear } = editor
 
   return (
     <div className={classes.section}>
@@ -354,6 +354,22 @@ export function InstructionsPanel({
   onDirtyChange,
 }: InstructionsPanelProps) {
   const classes = useStyles()
+  // The panel holds both drafts, so switching layers keeps one, and a pending
+  // save's error, while only the open layer's editor is on screen.
+  const editors: Record<Layer, Editor> = {
+    global: UserInstructions.useInstructionsEditor(instructions.global),
+    personal: UserInstructions.useInstructionsEditor(instructions.personal),
+  }
+  const globalDirty = editors.global.dirty
+  const personalDirty = editors.personal.dirty
+  React.useEffect(
+    () => onDirtyChange?.('global', globalDirty),
+    [onDirtyChange, globalDirty],
+  )
+  React.useEffect(
+    () => onDirtyChange?.('personal', personalDirty),
+    [onDirtyChange, personalDirty],
+  )
   // Keep the closing layer's editor on screen while the panel collapses.
   const lastOpen = React.useRef<Layer>('global')
   if (open) lastOpen.current = open
@@ -362,17 +378,11 @@ export function InstructionsPanel({
     // The hairline lives inside the Collapse, so a closed panel leaves no line behind.
     <M.Collapse in={!!open} className={className}>
       <div className={cx(classes.root, classes.body, classes.panelBody)}>
-        {/* Both stay mounted, so switching layers keeps a draft and a save's error. */}
-        {(Object.keys(LAYERS) as Layer[]).map((layer) => (
-          <div key={layer} hidden={shown !== layer}>
-            <Section
-              {...LAYERS[layer]}
-              instructions={instructions[layer]}
-              layer={layer}
-              onDirtyChange={onDirtyChange}
-            />
-          </div>
-        ))}
+        <Section
+          {...LAYERS[shown]}
+          instructions={instructions[shown]}
+          editor={editors[shown]}
+        />
       </div>
     </M.Collapse>
   )
@@ -434,8 +444,8 @@ export default function Instructions({ className, instructions }: InstructionsPr
       </M.ButtonBase>
       <M.Collapse in={expanded}>
         <div className={classes.body}>
-          <Section {...LAYERS.global} instructions={global} />
-          <Section {...LAYERS.personal} instructions={personal} />
+          <OwnSection {...LAYERS.global} instructions={global} />
+          <OwnSection {...LAYERS.personal} instructions={personal} />
         </div>
       </M.Collapse>
     </div>
