@@ -167,6 +167,13 @@ export const init = Eff.Effect.gen(function* () {
 // just enough to break the stuck-retry loop below before the model errors.
 const MAX_PROMPT_CHARS = 120_000
 
+// A deliberately generous floor for "one small event's worth of room" --
+// real events are rarely this small once JSON-wrapped, so a reservedChars
+// close enough to MAX_PROMPT_CHARS to leave less than this is already
+// headed for the same doomed-prompt failure trimEventsToBudget's own
+// always-keep-one-event guarantee can't prevent on its own.
+const MIN_EVENT_ROOM = 2_000
+
 /**
  * byteLength of a content block's binary source, or 0 for a string (counted
  * by JSON.stringify instead). JSON.stringify on a Buffer/Uint8Array emits
@@ -277,15 +284,17 @@ const llmRequest = (events: Event[]) =>
       // trimEventsToBudget can only shrink `events`; it has no lever over
       // ctx.messages/tools themselves (package READMEs up a long directory
       // chain, long admin/personal instructions, many connectors' schemas --
-      // none of those are owned by this file). If reservedChars alone
-      // already fills the budget, trimming events to the one always-kept
-      // entry still sends a prompt the model will 424 on -- a single-turn
-      // overflow that can happen on the very first Ask, independent of
-      // conversation length. Fail here instead: a wasted LLM round-trip for
-      // a doomed-from-construction prompt helps no one, and the user sees
-      // "Error while interacting with LLM" with no indication the problem
-      // is this page's fixed context rather than the conversation itself.
-      if (reservedChars >= MAX_PROMPT_CHARS) {
+      // none of those are owned by this file). If reservedChars leaves too
+      // little room, trimEventsToBudget's own "always keep the most recent
+      // event" guarantee still returns that one event even when it alone
+      // doesn't fit the sliver of budget left -- so checking only the exact
+      // reservedChars >= MAX_PROMPT_CHARS boundary leaves a band just below
+      // it where the same doomed prompt still goes out (/code-review on
+      // #5477). MIN_EVENT_ROOM is a floor for "enough room for one small
+      // event", not a tight bound -- a real event is rarely under a few
+      // hundred chars once JSON-wrapped, so this errs toward failing fast
+      // over sending something likely to 424 anyway.
+      if (reservedChars + MIN_EVENT_ROOM > MAX_PROMPT_CHARS) {
         return yield* Eff.Effect.fail(
           new LLM.LLMError({
             message:
