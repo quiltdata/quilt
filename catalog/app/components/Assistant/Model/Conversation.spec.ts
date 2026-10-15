@@ -295,6 +295,76 @@ describe('Conversation actor — connector gating', () => {
    * from the React context only. Every connector tool round-tripped as a
    * synthetic "Tool ... not found" without ever hitting the wire.
    */
+  /**
+   * qhq-62tw: a tool executor that throws (a defect, not Effect.fail) must
+   * not leave its toolUseId stuck in `calls` forever. Before the fix,
+   * nothing observed the forked call fiber's outcome, so a defect here hung
+   * the conversation in ToolUse with no error ever surfaced.
+   */
+  it('a tool executor that throws still resolves and settles the conversation', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const responded = yield* Eff.Ref.make(false)
+
+          const throwingTool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () => {
+              throw new Error('boom')
+            },
+          }
+          const connectorsStub: Connectors.ConnectorsService = {
+            ...makeConnectorsStub(isBlockedRef),
+            contextContribution: Eff.Effect.succeed({
+              tools: { bad__tool: throwingTool },
+              messages: [],
+            }),
+          }
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                if (yield* Eff.Ref.getAndSet(responded, true)) {
+                  return { content: Eff.Option.some([]), backendResponse: {} as never }
+                }
+                return {
+                  content: Eff.Option.some([
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'tu1',
+                      name: 'bad__tool',
+                      input: {},
+                    }),
+                  ]),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, connectorsStub),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'use bad tool' }))
+          // Without the fix, this hangs past the vitest timeout: the call
+          // fiber dies on the thrown error and nothing ever dispatches
+          // ToolResult for 'tu1', so the actor never leaves ToolUse.
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(final._tag).toBe('Idle')
+          const event = final.events.find(
+            (e) => e._tag === 'ToolUse' && e.toolUseId === 'tu1',
+          )
+          expect(event?._tag).toBe('ToolUse')
+          if (event?._tag !== 'ToolUse') return
+          expect(event.result.status).toBe('error')
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
   it('LLMResponse executes connector-contributed tools', () =>
     Eff.Effect.runPromise(
       Eff.Effect.scoped(
@@ -606,4 +676,43 @@ describe('write approval', () => {
         yield* awaitState(actor, settled)
       }),
     ))
+})
+
+describe('trimEventsToBudget', () => {
+  // No Event.Message/ToolUse construction precedent elsewhere in this file
+  // (events are only ever observed as actor output), but Event is a plain
+  // Eff.Data.taggedEnum export, so building fixtures directly is the
+  // simplest way to exercise a pure function in isolation.
+  const makeMessage = (id: string, text: string): Conversation.Event =>
+    Conversation.Event.Message({
+      id,
+      timestamp: new Date(),
+      role: 'user',
+      content: Content.text(text),
+    })
+
+  it('leaves events untouched when under budget', () => {
+    const events = [makeMessage('1', 'hi'), makeMessage('2', 'there')]
+    expect(Conversation.trimEventsToBudget(events, 10_000)).toEqual(events)
+  })
+
+  it('drops the oldest events first when over budget, keeping the most recent', () => {
+    const events = [
+      makeMessage('1', 'x'.repeat(100)),
+      makeMessage('2', 'y'.repeat(100)),
+      makeMessage('3', 'z'.repeat(100)),
+    ]
+    // Budget fits roughly the last event's serialized size, not all three.
+    const trimmed = Conversation.trimEventsToBudget(events, 150)
+    expect(trimmed.length).toBeLessThan(events.length)
+    expect(trimmed[trimmed.length - 1].id).toBe('3')
+    expect(trimmed.some((e) => e.id === '1')).toBe(false)
+  })
+
+  it('keeps at least the single most recent event even if it alone exceeds budget', () => {
+    const events = [makeMessage('1', 'short'), makeMessage('2', 'z'.repeat(1000))]
+    const trimmed = Conversation.trimEventsToBudget(events, 10)
+    expect(trimmed).toHaveLength(1)
+    expect(trimmed[0].id).toBe('2')
+  })
 })

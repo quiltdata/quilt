@@ -160,6 +160,38 @@ export const init = Eff.Effect.gen(function* () {
   })
 })
 
+// Rough chars-not-tokens proxy -- no tokenizer exists in this codebase, and
+// Nemotron Lightning's 65536-token limit is only ever learned from the error
+// body (qhq-pvw9), not declared anywhere locally. Sized with real headroom
+// (a token averages several chars) so the estimate doesn't need to be exact,
+// just enough to break the stuck-retry loop below before the model errors.
+const MAX_PROMPT_CHARS = 120_000
+
+/**
+ * Drop the oldest events until the serialized total fits MAX_PROMPT_CHARS,
+ * keeping the most recent ones (the ones most likely to matter for the next
+ * reply). Without this, a long tool-call retry loop fills `events` past the
+ * model's context window; the LLM call fails (qhq-pvw9), degrades to Idle,
+ * but `events` is unchanged -- so every subsequent Ask rebuilds the identical
+ * oversized prompt and fails identically, forever. Trimming here, not just
+ * once after an error, means it never gets that far.
+ */
+export const trimEventsToBudget = (
+  events: Event[],
+  maxChars: number = MAX_PROMPT_CHARS,
+): Event[] => {
+  if (!events.length) return events
+  let total = 0
+  const sizes = events.map((e) => JSON.stringify(e).length)
+  // Always keep at least the most recent event, even if it alone exceeds
+  // budget on its own -- an empty prompt is worse than an oversized one.
+  for (let i = sizes.length - 1; i > 0; i -= 1) {
+    total += sizes[i]
+    if (total + sizes[i - 1] > maxChars) return events.slice(i)
+  }
+  return events
+}
+
 const llmRequest = (events: Event[]) =>
   Log.scoped({
     name: `${MODULE}.llmRequest`,
@@ -172,7 +204,7 @@ const llmRequest = (events: Event[]) =>
       const connectors = yield* Connectors.Connectors
       const connectorsCtx = yield* connectors.contextContribution
       const ctx = Context.forMode(Context.merge(reactCtx, connectorsCtx))
-      const filteredEvents = events.filter((e) => !e.discarded)
+      const filteredEvents = trimEventsToBudget(events.filter((e) => !e.discarded))
       const prompt = yield* constructPrompt(filteredEvents, ctx)
 
       const response = yield* llm.converse(prompt)
@@ -208,7 +240,32 @@ const forkCall = (
 ) =>
   Eff.Effect.fork(
     Eff.Effect.gen(function* () {
-      const result = yield* Tool.execute(tools, name, input)
+      // Eff.Effect.suspend, not a direct call: Tool.execute runs the
+      // executor synchronously (it's a plain function, not Effect.sync/try),
+      // so a throwing executor would otherwise throw before any Effect
+      // value exists for catchAllCause to attach to -- suspend defers that
+      // call into the Effect's own execution so the throw becomes a defect
+      // this fiber can actually catch, instead of an unhandled synchronous
+      // exception. catchAllCause (not catchAll): Tool.execute's own tools
+      // already catch typed failures, but a defect here would otherwise
+      // leave this toolUseId's `calls` entry stuck forever -- nothing else
+      // ever removes it, so the conversation hangs in ToolUse with no error
+      // surfaced (qhq-62tw).
+      const result = yield* Eff.Effect.suspend(() =>
+        Tool.execute(tools, name, input),
+      ).pipe(
+        Eff.Effect.catchAllCause((cause) =>
+          Eff.Effect.succeed(
+            Eff.Option.some(
+              Tool.fail(
+                Content.ToolResultContentBlock.Text({
+                  text: `Tool "${name}" failed unexpectedly: ${Eff.Cause.pretty(cause)}`,
+                }),
+              ),
+            ),
+          ),
+        ),
+      )
       yield* dispatch(Action.ToolResult({ id, result }))
     }),
   )
