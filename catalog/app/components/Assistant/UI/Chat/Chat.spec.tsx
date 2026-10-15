@@ -1,35 +1,34 @@
 import * as React from 'react'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ThemeOptions, ThemeProvider, createMuiTheme } from '@material-ui/core/styles'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-// ToolCallGroup renders tool-call details via JsonDisplay, whose styles use
-// the app theme's `typography.monospace` extension (absent from MUI's default).
-const theme = createMuiTheme({
-  typography: {
-    monospace: {
-      fontFamily: 'monospace',
-    },
-  } as ThemeOptions['typography'],
-})
-
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    observe() {}
-
-    unobserve() {}
-
-    disconnect() {}
-  },
-)
+// Its styles read the app theme's monospace font, absent here.
+vi.mock('components/JsonDisplay', () => ({ default: () => null }))
 
 // `useIsInStack` normally suspends on the buckets query; the link rewrite only
 // needs the membership predicate.
 vi.mock('utils/Buckets', () => ({
   useIsInStack: () => (bucket: string) => bucket === 'in-stack-bucket',
+}))
+
+// Stands in for the app's Router and NamedRoutes providers, at `location.path`.
+const location = vi.hoisted(() => ({ path: '/' }))
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return {
+    ...actual,
+    Link: ({ to, ...props }: { to: string }) => <a href={to} {...props} />,
+    useRouteMatch: (opts: object) => actual.matchPath(location.path, opts),
+  }
+})
+vi.mock('utils/NamedRoutes', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  use: () => ({
+    paths: { qurator: '/qurator', quratorMode: '/qurator-mode' },
+    urls: { qurator: () => '/qurator' },
+  }),
 }))
 
 import * as Model from '../../Model'
@@ -44,6 +43,7 @@ import {
   roundKeyOf,
   toggleExpandedEntry,
   toolCallGroupIdsOf,
+  toolTitle,
 } from './Chat'
 
 // Rendered inside `FormHelperText` (a <p>), so the line must stay inline-only:
@@ -301,11 +301,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
   function renderGroup(
     props: Omit<React.ComponentProps<typeof ToolCallGroup>, 'dispatch'>,
   ) {
-    return render(
-      <ThemeProvider theme={theme}>
-        <ToolCallGroup dispatch={vi.fn()} {...props} />
-      </ThemeProvider>,
-    )
+    return render(<ToolCallGroup dispatch={vi.fn()} {...props} />)
   }
 
   // One call carries nothing a rollup would summarize, so it stays as the
@@ -321,13 +317,11 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
   // a group growing from one call to two.
   it('keeps a call expanded after a second call joins its group', () => {
     const { rerender } = render(
-      <ThemeProvider theme={theme}>
-        <ToolCallGroup
-          dispatch={vi.fn()}
-          state="Idle"
-          events={[toolUseEvent('1', 'search_packages')]}
-        />
-      </ThemeProvider>,
+      <ToolCallGroup
+        dispatch={vi.fn()}
+        state="Idle"
+        events={[toolUseEvent('1', 'search_packages')]}
+      />,
     )
     const toggle = () =>
       screen.getAllByRole('button').find((b) => b.hasAttribute('aria-expanded'))!
@@ -335,16 +329,11 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
     expect(toggle().getAttribute('aria-expanded')).toBe('true')
 
     rerender(
-      <ThemeProvider theme={theme}>
-        <ToolCallGroup
-          dispatch={vi.fn()}
-          state="Idle"
-          events={[
-            toolUseEvent('1', 'search_packages'),
-            toolUseEvent('2', 'object_read'),
-          ]}
-        />
-      </ThemeProvider>,
+      <ToolCallGroup
+        dispatch={vi.fn()}
+        state="Idle"
+        events={[toolUseEvent('1', 'search_packages'), toolUseEvent('2', 'object_read')]}
+      />,
     )
     expect(toggle().getAttribute('aria-expanded')).toBe('true')
   })
@@ -407,16 +396,11 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
   it('offers a discard action for each finished call once expanded', () => {
     const dispatch = vi.fn()
     render(
-      <ThemeProvider theme={theme}>
-        <ToolCallGroup
-          dispatch={dispatch}
-          state="Idle"
-          events={[
-            toolUseEvent('1', 'search_packages'),
-            toolUseEvent('2', 'object_read'),
-          ]}
-        />
-      </ThemeProvider>,
+      <ToolCallGroup
+        dispatch={dispatch}
+        state="Idle"
+        events={[toolUseEvent('1', 'search_packages'), toolUseEvent('2', 'object_read')]}
+      />,
     )
     fireEvent.click(screen.getByRole('button'))
     const discards = screen.getAllByText('discard')
@@ -480,5 +464,76 @@ describe('components/Assistant/UI/Chat/Menu', () => {
     renderMenu(false)
     fireEvent.click(screen.getByLabelText('Qurator menu'))
     expect(screen.getByText('Developer Tools')).toBeTruthy()
+  })
+
+  it('offers the full page from the panel', () => {
+    location.path = '/'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.getByText('Open full page').closest('a')?.getAttribute('href')).toBe(
+      '/qurator',
+    )
+  })
+
+  it('does not offer the full page on the full page', () => {
+    location.path = '/qurator/'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
+  })
+
+  it('does not offer the full page inside Qurator mode', () => {
+    location.path = '/qurator-mode'
+    renderMenu(false)
+    fireEvent.click(screen.getByLabelText('Qurator menu'))
+    expect(screen.queryByText('Open full page')).toBeNull()
+  })
+})
+
+describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
+  afterEach(cleanup)
+
+  it('names tools without the connector prefix', () => {
+    expect(toolTitle('platform__s3_object_put')).toBe('s3 object put')
+    expect(toolTitle('navigate')).toBe('navigate')
+  })
+
+  // A call awaiting approval never joins the rollup: it needs the user's
+  // direct attention as its own card, not a collapsed "Running" summary.
+  it('asks before a pending write and dispatches the answer', () => {
+    const dispatch = vi.fn()
+    render(
+      <ToolCallGroup
+        dispatch={dispatch}
+        state="ToolUse"
+        events={[]}
+        live={{
+          timestamp: new Date(),
+          calls: {
+            w: {
+              name: 'platform__object_delete',
+              input: { bucket: 'b', key: 'k.txt' },
+              approval: 'destructive',
+              key: 'k1',
+            },
+          },
+        }}
+      />,
+    )
+    expect(screen.getByText(/object delete/)).toBeTruthy()
+    expect(screen.getByText(/replace or delete existing data/)).toBeTruthy()
+    expect(screen.getByText('key: k.txt')).toBeTruthy()
+    // No rollup to carry the abort action, since the only live call is
+    // awaiting approval -- the approval card offers it instead.
+    expect(screen.getByText('abort')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Run'))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Approve({ id: 'w', key: 'k1' }),
+    )
+    fireEvent.click(screen.getByText("Don't run"))
+    expect(dispatch).toHaveBeenCalledWith(
+      Model.Conversation.Action.Deny({ id: 'w', key: 'k1' }),
+    )
   })
 })

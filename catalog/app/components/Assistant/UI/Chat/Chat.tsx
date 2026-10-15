@@ -1,12 +1,14 @@
 import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
+import { Link, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 import * as Actor from 'utils/Actor'
 import * as Buckets from 'utils/Buckets'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
 
@@ -14,6 +16,8 @@ import * as Model from '../../Model'
 
 import DevTools from './DevTools'
 import Input from './Input'
+import Composer from '../Composer/Composer'
+import type { SessionSave } from '../../Model/SessionSave'
 import Instructions from './Instructions'
 import MessageAction from './MessageAction'
 import { toCurrentStack } from './links'
@@ -183,6 +187,13 @@ const useToolMessageStyles = M.makeStyles((t) => ({
   details: {
     marginTop: t.spacing(1),
   },
+  reason: {
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 2,
+    color: t.palette.text.secondary,
+    display: '-webkit-box',
+    overflow: 'hidden',
+  },
 }))
 
 interface ConversationDispatchProps {
@@ -193,9 +204,13 @@ interface ConversationStateProps {
   state: Model.Conversation.State['_tag']
 }
 
+/** `platform__package_patch` → `package patch` */
+export const toolTitle = Model.Tool.title
+
 interface ToolMessageProps {
   name: string
   status?: 'success' | 'error' | 'running'
+  reason?: string
   details: Record<string, any>
   timestamp: Date
   actions?: React.ReactNode
@@ -210,6 +225,7 @@ interface ToolMessageProps {
 function ToolMessage({
   name,
   status,
+  reason,
   details,
   timestamp,
   actions,
@@ -249,6 +265,7 @@ function ToolMessage({
           />
         )}
       </M.ButtonBase>
+      {reason && !expanded && <div className={classes.reason}>{reason}</div>}
       <M.Collapse in={expanded}>
         <div className={classes.details}>
           <JsonDisplay defaultExpanded={2} name="details" value={details} />
@@ -265,6 +282,7 @@ interface ToolCallEntry {
   readonly key: string
   readonly name: string
   readonly status: 'success' | 'error' | 'running'
+  readonly reason?: string
   readonly timestamp: Date
   readonly details: Record<string, any>
   readonly discard?: () => void
@@ -334,6 +352,7 @@ function ToolCallRollup({
       <ToolMessage
         name={call.name}
         status={call.status}
+        reason={call.reason}
         details={call.details}
         timestamp={call.timestamp}
         actions={
@@ -413,6 +432,7 @@ function ToolCallRollup({
                   <MessageAction onClick={call.discard}>discard</MessageAction>
                 )}
               </div>
+              {call.reason && <div className={classes.reason}>{call.reason}</div>}
               <div className={rollupClasses.entryDetails}>
                 <JsonDisplay defaultExpanded={1} name="details" value={call.details} />
               </div>
@@ -498,16 +518,29 @@ export function ToolCallGroup({
     [dispatch],
   )
 
+  // A call awaiting approval isn't running yet, so it never joins the
+  // rollup: it needs the user's direct attention, not a collapsed summary
+  // line, and stays its own ApprovalCard until approved or denied.
+  const liveRunning = React.useMemo(
+    () => (live ? Eff.Record.filter(live.calls, (c) => !c.approval) : {}),
+    [live],
+  )
+
   const calls: ToolCallEntry[] = React.useMemo(() => {
     // Deduped by toolUseId (stable identity), not event id (reminted per
     // result): keeps the rollup's failure count correct if a retry ever
     // adds a second ToolUse event for the same call.
     const byToolUseId = new Map<string, ToolCallEntry>()
     for (const e of events) {
+      const reason =
+        e.result.status === 'error'
+          ? e.result.content.find((c) => c._tag === 'Text')
+          : undefined
       byToolUseId.set(e.toolUseId, {
         key: e.toolUseId,
         name: e.name,
         status: e.result.status,
+        reason: reason?._tag === 'Text' ? reason.text : undefined,
         timestamp: e.timestamp,
         details: { toolUseId: e.toolUseId, input: e.input, result: e.result },
         discard: state === 'Idle' ? () => discard(e.id) : undefined,
@@ -515,29 +548,151 @@ export function ToolCallGroup({
     }
     const finished = Array.from(byToolUseId.values())
 
-    const running: ToolCallEntry[] = live
-      ? Eff.Record.collect(live.calls, (toolUseId, call) => ({
-          key: toolUseId,
-          name: call.name,
-          status: 'running' as const,
-          timestamp: live.timestamp,
-          details: { name: call.name, input: call.input },
-        }))
-      : []
+    const running: ToolCallEntry[] = Eff.Record.collect(
+      liveRunning,
+      (toolUseId, call) => ({
+        key: toolUseId,
+        name: call.name,
+        status: 'running' as const,
+        timestamp: live!.timestamp,
+        details: { name: call.name, input: call.input },
+      }),
+    )
 
     return finished.concat(running)
-  }, [events, live, state, discard])
+  }, [events, live, liveRunning, state, discard])
 
   const timestamp = live?.timestamp ?? events[events.length - 1]?.timestamp ?? new Date()
+  const abortAction = <MessageAction onClick={abort}>abort</MessageAction>
 
   return (
-    <ToolCallRollup
-      calls={calls}
-      timestamp={timestamp}
-      actions={live ? <MessageAction onClick={abort}>abort</MessageAction> : undefined}
-      expanded={expanded}
-      onToggleExpanded={toggleExpanded}
-    />
+    <>
+      {live &&
+        Eff.Record.collect(live.calls, (id, call) =>
+          call.approval ? (
+            <ApprovalCard
+              key={id}
+              id={id}
+              call={call}
+              approval={call.approval}
+              dispatch={dispatch}
+              timestamp={live.timestamp}
+              actions={calls.length ? undefined : abortAction}
+            />
+          ) : null,
+        )}
+      {calls.length > 0 && (
+        <ToolCallRollup
+          calls={calls}
+          timestamp={timestamp}
+          actions={Object.keys(liveRunning).length ? abortAction : undefined}
+          expanded={expanded}
+          onToggleExpanded={toggleExpanded}
+        />
+      )}
+    </>
+  )
+}
+
+const useApprovalStyles = M.makeStyles((t) => ({
+  heading: {
+    alignItems: 'center',
+    display: 'flex',
+    fontWeight: t.typography.fontWeightMedium,
+    gap: t.spacing(0.5),
+  },
+  destructive: {
+    color: t.palette.error.dark,
+  },
+  icon: {
+    fontSize: t.typography.body1.fontSize,
+  },
+  args: {
+    color: t.palette.text.secondary,
+    listStyle: 'none',
+    margin: t.spacing(0.5, 0),
+    overflowWrap: 'anywhere',
+    padding: 0,
+    // An inline file body must not push Run / Don't run off-screen; the full
+    // input is in the expander below.
+    '& li': {
+      WebkitBoxOrient: 'vertical',
+      WebkitLineClamp: 3,
+      display: '-webkit-box',
+      overflow: 'hidden',
+    },
+  },
+  buttons: {
+    display: 'flex',
+    gap: t.spacing(1),
+    marginTop: t.spacing(1),
+  },
+}))
+
+const isScalar = (v: unknown) =>
+  typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+
+interface ApprovalCardProps extends ConversationDispatchProps {
+  id: string
+  call: Model.Conversation.ToolCall
+  approval: NonNullable<Model.Conversation.ToolCall['approval']>
+  timestamp: Date
+  actions?: React.ReactNode
+}
+
+// A write waits here until the user says so: content Qurator has read can
+// steer the model, so the user's role permitting a write is not consent.
+function ApprovalCard({
+  id,
+  call,
+  approval,
+  dispatch,
+  timestamp,
+  actions,
+}: ApprovalCardProps) {
+  const classes = useApprovalStyles()
+  const approve = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Approve({ id, key: call.key ?? '' })),
+    [dispatch, id, call.key],
+  )
+  const deny = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Deny({ id, key: call.key ?? '' })),
+    [dispatch, id, call.key],
+  )
+  const destructive = approval === 'destructive'
+  // A model can send no input at all; the card must still render.
+  const input = call.input ?? {}
+  const args = Object.entries(input).filter(([, v]) => isScalar(v))
+  return (
+    <MessageContainer timestamp={timestamp} actions={actions}>
+      <div className={cx(classes.heading, destructive && classes.destructive)}>
+        <M.Icon className={classes.icon}>{destructive ? 'warning' : 'edit'}</M.Icon>
+        Qurator wants to run “{toolTitle(call.name)}”
+      </div>
+      {destructive && <div>This can replace or delete existing data.</div>}
+      {args.length > 0 && (
+        <ul className={classes.args}>
+          {args.map(([k, v]) => (
+            <li key={k}>
+              {k}: {String(v)}
+            </li>
+          ))}
+        </ul>
+      )}
+      <JsonDisplay
+        defaultExpanded={args.length < Object.keys(input).length ? 2 : 0}
+        name="input"
+        value={input}
+      />
+      <div className={classes.buttons}>
+        <M.Button size="small" variant="contained" color="primary" onClick={approve}>
+          Run
+        </M.Button>
+        <M.Button size="small" variant="outlined" onClick={deny}>
+          Don't run
+        </M.Button>
+      </div>
+    </MessageContainer>
   )
 }
 
@@ -655,6 +810,11 @@ export function Menu({
   className,
 }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
+  const { paths, urls } = NamedRoutes.use()
+  const fullPage = !!useRouteMatch({
+    path: [paths.qurator, paths.quratorMode],
+    exact: true,
+  })
 
   const isIdle = state._tag === 'Idle'
 
@@ -698,6 +858,12 @@ export function Menu({
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>
+        {!fullPage && (
+          // The conversation lives in the app-wide provider, so it carries over.
+          <M.MenuItem component={Link} to={urls.qurator()} onClick={closeMenu}>
+            Open full page
+          </M.MenuItem>
+        )}
         <M.MenuItem onClick={showDevTools}>
           {devToolsOpen ? 'Hide Developer Tools' : 'Developer Tools'}
         </M.MenuItem>
@@ -827,6 +993,47 @@ const useStyles = M.makeStyles((t) => ({
     height: '50%',
     position: 'relative',
   },
+  starters: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `${t.spacing(1.5)}px`,
+    margin: '0 auto',
+    maxWidth: 640,
+    width: '100%',
+  },
+  starterGrid: {
+    display: 'grid',
+    gap: `${t.spacing(1)}px`,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+  },
+  starter: {
+    ...t.typography.body2,
+    alignItems: 'flex-start',
+    background: t.palette.background.paper,
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius * 2,
+    display: 'flex',
+    gap: `${t.spacing(1.25)}px`,
+    justifyContent: 'flex-start',
+    minHeight: 44,
+    padding: t.spacing(1.25, 1.5),
+    textAlign: 'left',
+    '&:hover': { borderColor: t.palette.text.disabled },
+    '&.Mui-focusVisible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: 1,
+    },
+  },
+  starterIcon: { color: t.palette.text.secondary, fontSize: 18, marginTop: 1 },
+  starterHint: {
+    ...t.typography.caption,
+    background: M.fade(t.palette.warning.main, 0.1),
+    borderRadius: 10,
+    color: t.palette.warning.dark,
+    marginLeft: t.spacing(0.75),
+    padding: t.spacing(0, 0.75),
+    whiteSpace: 'nowrap',
+  },
   historyContainer: {
     flexGrow: 1,
     overflowY: 'auto',
@@ -928,9 +1135,36 @@ interface ChatProps {
   connectors: Model.Assistant.API['connectors']
   instructions: Model.Assistant.API['instructions']
   model: Model.Assistant.API['model']
+  skills: Model.Assistant.API['skills']
+  mode?: Model.Assistant.API['mode']
+  setMode?: Model.Assistant.API['setMode']
   busy?: boolean
   onClose: () => void
+  /** `compact`: the + menu composer (Qurator mode, /qurator); `classic`: the docked panel's input. */
+  composer?: 'classic' | 'compact'
+  /** Save target for the + menu's Save row; the row is hidden without it. */
+  save?: SessionSave
 }
+
+interface Starter {
+  icon: string
+  text: string
+  hint?: string
+}
+
+const STARTERS: Starter[] = [
+  { icon: 'search', text: 'Search my buckets for CSV files from this month' },
+  {
+    icon: 'hub',
+    text: "Using DeepWiki, what does the quiltdata/quilt repo's catalog do?",
+  },
+  { icon: 'swap_horiz', text: 'Summarize the most recently updated package' },
+  {
+    icon: 'edit_note',
+    text: 'Create a package qurator-demo/hello with a README that says hello',
+    hint: 'asks first',
+  },
+]
 
 export default function Chat({
   state,
@@ -939,10 +1173,16 @@ export default function Chat({
   connectors,
   instructions,
   model,
+  skills,
+  mode = 'agent',
+  setMode,
   busy,
   onClose,
+  composer = 'classic',
+  save,
 }: ChatProps) {
   const classes = useStyles()
+  const [draft, setDraft] = React.useState<{ text: string; at: number }>()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const blocked = Model.Connectors.useIsBlocked(connectors)
@@ -1191,17 +1431,56 @@ export default function Chat({
               <AwaitingConnectorState dispatch={dispatch} timestamp={s.timestamp} />
             ),
           })}
+          {composer === 'compact' && !state.events.some((e) => !e.discarded) && (
+            <div className={classes.starterGrid}>
+              {STARTERS.filter(
+                (s) =>
+                  (s.icon !== 'hub' ||
+                    Object.values(connectors.byId).some((c) =>
+                      /deepwiki/i.test(`${c.id} ${c.config.title}`),
+                    )) &&
+                  (s.icon !== 'edit_note' || mode !== 'ask'),
+              ).map((s) => (
+                <M.ButtonBase
+                  key={s.text}
+                  className={classes.starter}
+                  onClick={() => setDraft({ text: s.text, at: Date.now() })}
+                >
+                  <M.Icon className={classes.starterIcon}>{s.icon}</M.Icon>
+                  <span>
+                    {s.text}
+                    {s.hint && <span className={classes.starterHint}>{s.hint}</span>}
+                  </span>
+                </M.ButtonBase>
+              ))}
+            </div>
+          )}
           <div ref={scrollRef} />
         </div>
       </div>
-      <Instructions instructions={instructions} />
-      <Input
-        disabled={inputDisabled}
-        model={model}
-        helperText={helperText}
-        helperSeverity={helperSeverity}
-        onSubmit={ask}
-      />
+      {composer === 'compact' && setMode ? (
+        <Composer
+          api={{ model, connectors, instructions, mode, setMode, skills }}
+          disabled={inputDisabled}
+          helperText={helperText}
+          helperSeverity={helperSeverity}
+          onSubmit={ask}
+          save={save}
+          draft={draft}
+        />
+      ) : (
+        <>
+          <Instructions instructions={instructions} />
+          <Input
+            disabled={inputDisabled}
+            model={model}
+            skills={skills}
+            helperText={helperText}
+            helperSeverity={helperSeverity}
+            onSubmit={ask}
+          />
+        </>
+      )}
     </div>
   )
 }

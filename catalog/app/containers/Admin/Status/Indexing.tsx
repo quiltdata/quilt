@@ -18,6 +18,8 @@ type ScannerJob = {
   time_created: string
   next_key_marker?: string | null
   next_version_id_marker?: string | null
+  // A registry that omits this cannot create missing-only jobs.
+  missing_only?: boolean | null
 }
 
 const POLL_MS = 10_000
@@ -50,7 +52,8 @@ function isScannerJob(job: unknown): job is ScannerJob {
     typeof j.retries_remaining === 'number' &&
     typeof j.time_created === 'string' &&
     isNullableString(j.next_key_marker) &&
-    isNullableString(j.next_version_id_marker)
+    isNullableString(j.next_version_id_marker) &&
+    (j.missing_only == null || typeof j.missing_only === 'boolean')
   )
 }
 
@@ -130,10 +133,12 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function scopeLabel(job: ScannerJob): string {
-  if (!job.prefix) {
-    return job.ignore_dirs ? 'top-level keys only' : 'whole bucket'
-  }
-  return `prefix ${job.prefix}`
+  const scope = job.prefix
+    ? `prefix ${job.prefix}`
+    : job.ignore_dirs
+      ? 'top-level keys only'
+      : 'whole bucket'
+  return job.missing_only ? `${scope} · missing-only` : scope
 }
 
 function useBulkScannerJobs(pollMs: number) {
@@ -293,9 +298,9 @@ export default function Indexing() {
     const live = new Set<string>()
     const stalled = new Set<string>()
     for (const job of jobs ?? []) {
-      // Full-bucket wipe only: a prefix or top-level-only scan leaves the rest
-      // of the index in place.
-      if (job.prefix || job.ignore_dirs) continue
+      // Prefix and missing-only re-indexes keep the index. A sharded full re-index
+      // wipes it as prefix and top-level-only jobs; sharded buckets go unwarned (below).
+      if (job.missing_only || job.prefix || job.ignore_dirs) continue
       // Skip until shard config for this bucket is known — unknown must not warn.
       if (!Object.prototype.hasOwnProperty.call(shardDepths, job.name)) continue
       const depth = shardDepths[job.name]
@@ -305,8 +310,8 @@ export default function Indexing() {
       else stalled.add(job.name)
     }
     return {
-      // A bucket with another job still trying is covered by the live warning;
-      // it must not also read as abandoned.
+      // A bucket with another full re-index still trying is covered by the live
+      // warning; it must not also read as abandoned.
       stalled: [...stalled].filter((n) => !live.has(n)).sort(),
       live: [...live].sort(),
     }

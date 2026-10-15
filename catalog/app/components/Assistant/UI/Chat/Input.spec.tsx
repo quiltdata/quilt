@@ -31,6 +31,7 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
       <ModelPicker
         model={{
           allowlist: [HAIKU, OPUS],
+          names: {},
           readFailed: false,
           current: OPUS,
           select: vi.fn(),
@@ -54,11 +55,39 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
     expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true'])
   })
 
+  it("prefers an admin's display name over the derived label", () => {
+    const ARN = 'arn:aws:sagemaker:us-east-1:123456789012:endpoint/nemotron-super'
+    render(
+      <ModelPicker
+        model={{
+          allowlist: [HAIKU, ARN],
+          names: { [ARN]: 'Nemotron (on-prem)' },
+          readFailed: false,
+          current: ARN,
+          select: vi.fn(),
+        }}
+      />,
+    )
+    const button = screen.getByLabelText('Model: Nemotron (on-prem)')
+    expect(button.textContent).toContain('Nemotron (on-prem)')
+    fireEvent.click(button)
+    const items = screen.getAllByRole('menuitemradio')
+    expect(items[0].textContent).toContain('Light · Claude Haiku 4.5')
+    expect(items[1].textContent).toContain('Nemotron (on-prem)')
+    expect(items[1].textContent).toContain(ARN)
+  })
+
   it('selects a model', () => {
     const select = vi.fn()
     render(
       <ModelPicker
-        model={{ allowlist: [HAIKU, OPUS], readFailed: false, current: OPUS, select }}
+        model={{
+          allowlist: [HAIKU, OPUS],
+          names: {},
+          readFailed: false,
+          current: OPUS,
+          select,
+        }}
       />,
     )
     fireEvent.click(screen.getByLabelText(/^Model:/))
@@ -69,7 +98,13 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
   it('is absent on a stack with no approved set', () => {
     render(
       <ModelPicker
-        model={{ allowlist: null, readFailed: false, current: OPUS, select: vi.fn() }}
+        model={{
+          allowlist: null,
+          names: {},
+          readFailed: false,
+          current: OPUS,
+          select: vi.fn(),
+        }}
       />,
     )
     expect(screen.queryByLabelText(/^Model:/)).toBeNull()
@@ -80,6 +115,7 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
       <ModelPicker
         model={{
           allowlist: [HAIKU, OPUS],
+          names: {},
           readFailed: false,
           current: OPUS,
           select: vi.fn(),
@@ -93,6 +129,7 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
   it('closes an open menu when a turn starts', () => {
     const model = {
       allowlist: [HAIKU, OPUS],
+      names: {},
       readFailed: false,
       current: OPUS,
       select: vi.fn(),

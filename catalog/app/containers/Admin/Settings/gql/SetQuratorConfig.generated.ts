@@ -17,7 +17,14 @@ export interface QuratorConfigInput {
   readonly gatewayAccountId: string | null | undefined
   readonly gatewayEndpointUrl: string | null | undefined
   readonly maxToolCallsPerTurn: number | null | undefined
+  /** Each id must be in `allowlist`; each name is 1 to 64 characters. */
+  readonly names: Array<QuratorModelNameInput> | null | undefined
   readonly requestTimeoutSeconds: number | null | undefined
+}
+
+export interface QuratorModelNameInput {
+  readonly id: string
+  readonly name: string
 }
 
 export type containers_Admin_Settings_gql_SetQuratorConfigMutationVariables = Exact<{
@@ -46,6 +53,11 @@ export interface containers_Admin_Settings_gql_SetQuratorConfigMutation {
             readonly default: string | null
             readonly requestTimeoutSeconds: number | null
             readonly maxToolCallsPerTurn: number | null
+            readonly names: ReadonlyArray<{
+              readonly __typename: 'QuratorModelName'
+              readonly id: string
+              readonly name: string
+            }> | null
           }
           readonly gateway: {
             readonly __typename: 'QuratorGatewayConfig'
@@ -132,6 +144,23 @@ export const containers_Admin_Settings_gql_SetQuratorConfigDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'maxToolCallsPerTurn' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'names' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'id' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                      ],
+                                    },
                                   },
                                 ],
                               },

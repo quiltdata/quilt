@@ -6,6 +6,10 @@ query {
         default
         requestTimeoutSeconds
         maxToolCallsPerTurn
+        names {
+          id
+          name
+        }
       }
       gateway {
         endpointUrl

@@ -8,6 +8,7 @@ import QURATOR_MODELS_QUERY from './gql/QuratorModels.generated'
 export interface Governed {
   allowlist: readonly string[]
   default: string | null
+  names?: Readonly<Record<string, string>>
 }
 
 /**
@@ -26,7 +27,13 @@ export function useGoverned(): {
     () =>
       GQL.fold(query, {
         data: ({ config: { quratorModels: m } }) => ({
-          governed: m?.allowlist ? { allowlist: m.allowlist, default: m.default } : null,
+          governed: m?.allowlist
+            ? {
+                allowlist: m.allowlist,
+                default: m.default,
+                names: Object.fromEntries((m.names ?? []).map((n) => [n.id, n.name])),
+              }
+            : null,
           settled: true,
           failed: false,
         }),
@@ -104,8 +111,16 @@ export function displayName(id: string): string {
   return words.join(' ') || id
 }
 
-/** "Medium · Claude Sonnet 4.5", or just the name when no tier applies. */
-export function label(id: string): string {
+// Own keys only: an id such as `constructor` must not find a prototype method.
+export const nameIn = (names: Readonly<Record<string, string>>, id: string) =>
+  Object.prototype.hasOwnProperty.call(names, id) ? names[id] : undefined
+
+/**
+ * "Medium · Claude Sonnet 4.5", or just the name when no tier applies. An
+ * admin's display name stands alone: the admin chose it whole.
+ */
+export function label(id: string, name?: string): string {
+  if (name) return name
   const t = tier(id)
   return t ? `${t} · ${displayName(id)}` : displayName(id)
 }
