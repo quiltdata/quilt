@@ -365,6 +365,87 @@ describe('Conversation actor — connector gating', () => {
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))
 
+  /**
+   * Smoke test: Abort on a call fiber still mid-executor reaches Idle
+   * cleanly with no stray ToolUse event. Note this passes under both
+   * catchAllDefect and catchAllCause (interruptFork's own interruption
+   * happens upstream of either handler in this exact timing), so it does
+   * NOT discriminate forkCall's catchAllDefect choice from catchAllCause --
+   * that choice is justified by effect's own documented contract
+   * (catchAllDefect "does not handle ... execution interruptions"), traced
+   * against the library's actual compiled dispatch, not proven by this test.
+   */
+  it('Abort on a running tool call fiber reaches Idle with no stray ToolUse event', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const executorRan = yield* Eff.Deferred.make<void>()
+          const neverFinish = yield* Eff.Deferred.make<void>()
+
+          const hangingTool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(executorRan, undefined)
+                // Never resolves on its own -- only interruption ends this.
+                yield* Eff.Deferred.await(neverFinish)
+                return Eff.Option.some(Tool.succeed())
+              }),
+          }
+          const connectorsStub: Connectors.ConnectorsService = {
+            ...makeConnectorsStub(isBlockedRef),
+            contextContribution: Eff.Effect.succeed({
+              tools: { hang__tool: hangingTool },
+              messages: [],
+            }),
+          }
+          // One LLM round that returns the hanging tool-use, no settling round
+          // needed -- the test ends at Idle via Abort, not via a second converse.
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.succeed({
+                content: Eff.Option.some([
+                  Content.ResponseMessageContentBlock.ToolUse({
+                    toolUseId: 'tu1',
+                    name: 'hang__tool',
+                    input: {},
+                  }),
+                ]),
+                backendResponse: {} as never,
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, connectorsStub),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'use hanging tool' }))
+          yield* awaitState(actor, (s) => s._tag === 'ToolUse')
+          // Make sure the call fiber is actually inside the tool executor
+          // (past Tool.execute, mid-await) before we abort it.
+          yield* Eff.Deferred.await(executorRan)
+
+          yield* actor.dispatch(Conversation.Action.Abort())
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(final._tag).toBe('Idle')
+          // No ToolResult was ever dispatched for the interrupted call --
+          // if catchAllDefect regressed back to catchAllCause, the fiber
+          // would run to completion once unblocked and append a ToolUse
+          // event even after the actor moved on.
+          yield* Eff.Deferred.succeed(neverFinish, undefined)
+          yield* TestClock.adjust(Eff.Duration.millis(10))
+          const latest = yield* Eff.SubscriptionRef.get(actor.state)
+          expect(latest.events.some((e) => e._tag === 'ToolUse')).toBe(false)
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
   it('LLMResponse executes connector-contributed tools', () =>
     Eff.Effect.runPromise(
       Eff.Effect.scoped(
@@ -714,5 +795,32 @@ describe('trimEventsToBudget', () => {
     const trimmed = Conversation.trimEventsToBudget(events, 10)
     expect(trimmed).toHaveLength(1)
     expect(trimmed[0].id).toBe('2')
+  })
+
+  /**
+   * /code-review on #5475: JSON.stringify on a Blob emits `{}`, so a
+   * multi-MB image event would read as near-free and never get trimmed --
+   * reproducing the exact stuck-retry bug this function fixes, just via
+   * attachment size instead of conversation length. eventSize must size a
+   * Blob-backed Image/Document block by its real byte size, not its
+   * stringified shape.
+   */
+  it('sizes a Blob-backed image by its real byte size, not JSON.stringify({})', () => {
+    const bigImage: Conversation.Event = Conversation.Event.Message({
+      id: 'img',
+      timestamp: new Date(),
+      role: 'user',
+      content: Content.MessageContentBlock.Image({
+        format: 'png',
+        source: new Blob([new Uint8Array(10_000)]),
+      }),
+    })
+    const smallText = makeMessage('text', 'hi')
+    // A budget well under the image's real size but well over its
+    // JSON.stringify({}) size (which rounds to ~0) -- if the image were
+    // still mis-sized as near-free, both events would survive untrimmed.
+    const trimmed = Conversation.trimEventsToBudget([smallText, bigImage], 500)
+    expect(trimmed).toHaveLength(1)
+    expect(trimmed[0].id).toBe('img')
   })
 })

@@ -168,26 +168,90 @@ export const init = Eff.Effect.gen(function* () {
 const MAX_PROMPT_CHARS = 120_000
 
 /**
- * Drop the oldest events until the serialized total fits MAX_PROMPT_CHARS,
+ * byteLength of a content block's binary source, or 0 for a string (counted
+ * by JSON.stringify instead). JSON.stringify on a Buffer/Uint8Array emits
+ * one key per byte (wildly overcounting); on a Blob it emits `{}` (wildly
+ * undercounting -- a multi-MB image would read as near-free and never get
+ * trimmed, defeating the point). Image/Document blocks have the same
+ * {source} shape in both MessageContentBlock and ToolResultContentBlock, so
+ * this is typed structurally rather than against either union specifically.
+ */
+const binarySourceSize = (block: {
+  _tag: string
+  source?: Buffer | Uint8Array | Blob | string
+}): number => {
+  if ((block._tag !== 'Image' && block._tag !== 'Document') || !block.source) return 0
+  const { source } = block
+  if (typeof source === 'string') return 0
+  if (source instanceof Blob) return source.size
+  return source.byteLength
+}
+
+// Events are never mutated after creation (ToolUse.ToolResult and Idle.Ask
+// only ever concat a new Event; Discard replaces with a new object via
+// spread) -- so each event's size is stable for its whole lifetime, and
+// caching by identity is safe. Without this, llmRequest would re-stringify
+// `state.events` on every round, and state.events itself is never trimmed
+// (only the local, trimmed copy passed to constructPrompt is) -- so an
+// uncached eventSize would redo JSON.stringify over the whole,
+// ever-growing history on every single turn of a long session.
+const eventSizeCache = new WeakMap<Event, number>()
+
+/** Rough serialized-size estimate for one event, correcting for binary content. */
+const eventSize = (e: Event): number => {
+  const cached = eventSizeCache.get(e)
+  if (cached !== undefined) return cached
+  const blocks = e._tag === 'Message' ? [e.content] : e.result.content
+  const binary = blocks.reduce((sum, b) => sum + binarySourceSize(b), 0)
+  // JSON.stringify of a Buffer/Uint8Array/Blob source is also included in
+  // this total, but it's small relative to `binary` either way (over- or
+  // under-counting by the same byte source), so no need to strip it out.
+  const size = JSON.stringify(e).length + binary
+  eventSizeCache.set(e, size)
+  return size
+}
+
+/**
+ * Drop the oldest events until the estimated total fits MAX_PROMPT_CHARS,
  * keeping the most recent ones (the ones most likely to matter for the next
  * reply). Without this, a long tool-call retry loop fills `events` past the
  * model's context window; the LLM call fails (qhq-pvw9), degrades to Idle,
  * but `events` is unchanged -- so every subsequent Ask rebuilds the identical
  * oversized prompt and fails identically, forever. Trimming here, not just
  * once after an error, means it never gets that far.
+ *
+ * Trims whole Events, so a ToolUse's call and result (one record here) can
+ * never be split apart. constructPrompt's own pre-existing msgEvents/
+ * toolMessages split (unrelated to this trim, true on master before it)
+ * means the surviving suffix's true chronological order isn't fully
+ * reflected in the assembled prompt either way -- a known, pre-existing
+ * property of constructPrompt, not something this trim introduces or fixes.
+ *
+ * Pass `reservedChars` for context.messages/context.tools (stack info,
+ * guidance text, connector schemas) -- without it, a workspace with many
+ * connectors or long guidance could exceed the model's real limit even
+ * with `events` comfortably under maxChars on its own, since those feed
+ * into the same prompt alongside events.
  */
 export const trimEventsToBudget = (
   events: Event[],
   maxChars: number = MAX_PROMPT_CHARS,
+  reservedChars = 0,
 ): Event[] => {
   if (!events.length) return events
+  const budget = Math.max(0, maxChars - reservedChars)
   let total = 0
-  const sizes = events.map((e) => JSON.stringify(e).length)
+  // eventSize is cached per-event (see eventSizeCache above), so mapping
+  // the whole array here costs a WeakMap lookup per already-seen event,
+  // not a re-stringify -- `events` itself (state.events) is never
+  // trimmed, so this would otherwise redo the full history's JSON.stringify
+  // on every single Ask/ToolResult of a long session.
+  const sizes = events.map(eventSize)
   // Always keep at least the most recent event, even if it alone exceeds
   // budget on its own -- an empty prompt is worse than an oversized one.
   for (let i = sizes.length - 1; i > 0; i -= 1) {
     total += sizes[i]
-    if (total + sizes[i - 1] > maxChars) return events.slice(i)
+    if (total + sizes[i - 1] > budget) return events.slice(i)
   }
   return events
 }
@@ -204,7 +268,17 @@ const llmRequest = (events: Event[]) =>
       const connectors = yield* Connectors.Connectors
       const connectorsCtx = yield* connectors.contextContribution
       const ctx = Context.forMode(Context.merge(reactCtx, connectorsCtx))
-      const filteredEvents = trimEventsToBudget(events.filter((e) => !e.discarded))
+      // Reserve room for context.messages/tools (stack info, guidance text,
+      // connector schemas) so the budget below reflects the whole prompt,
+      // not just events -- a workspace with many connectors or long
+      // guidance text can be a large, mostly-fixed share of it on its own.
+      const reservedChars =
+        JSON.stringify(ctx.messages).length + JSON.stringify(ctx.tools).length
+      const filteredEvents = trimEventsToBudget(
+        events.filter((e) => !e.discarded),
+        MAX_PROMPT_CHARS,
+        reservedChars,
+      )
       const prompt = yield* constructPrompt(filteredEvents, ctx)
 
       const response = yield* llm.converse(prompt)
@@ -243,23 +317,32 @@ const forkCall = (
       // Eff.Effect.suspend, not a direct call: Tool.execute runs the
       // executor synchronously (it's a plain function, not Effect.sync/try),
       // so a throwing executor would otherwise throw before any Effect
-      // value exists for catchAllCause to attach to -- suspend defers that
+      // value exists for catchAllDefect to attach to -- suspend defers that
       // call into the Effect's own execution so the throw becomes a defect
       // this fiber can actually catch, instead of an unhandled synchronous
-      // exception. catchAllCause (not catchAll): Tool.execute's own tools
-      // already catch typed failures, but a defect here would otherwise
-      // leave this toolUseId's `calls` entry stuck forever -- nothing else
-      // ever removes it, so the conversation hangs in ToolUse with no error
+      // exception. catchAllDefect (not catchAll, and not catchAllCause):
+      // Tool.execute's own tools already catch typed failures, and
+      // catchAllCause would also swallow Abort's Eff.Fiber.interruptFork on
+      // this same fiber, turning a real interruption into a normal
+      // ToolResult dispatch instead of letting the fiber actually die.
+      // Without this guard, a defect here would otherwise leave this
+      // toolUseId's `calls` entry stuck forever -- nothing else ever
+      // removes it, so the conversation hangs in ToolUse with no error
       // surfaced (qhq-62tw).
       const result = yield* Eff.Effect.suspend(() =>
         Tool.execute(tools, name, input),
       ).pipe(
-        Eff.Effect.catchAllCause((cause) =>
+        Eff.Effect.catchAllDefect((defect) =>
           Eff.Effect.succeed(
             Eff.Option.some(
               Tool.fail(
                 Content.ToolResultContentBlock.Text({
-                  text: `Tool "${name}" failed unexpectedly: ${Eff.Cause.pretty(cause)}`,
+                  // Only .message, never the full defect/cause: this text
+                  // renders directly in the user-visible ToolMessage UI, and
+                  // a defect can carry a stack trace or internal values.
+                  text: `Tool "${name}" failed unexpectedly: ${
+                    defect instanceof Error ? defect.message : String(defect)
+                  }`,
                 }),
               ),
             ),
