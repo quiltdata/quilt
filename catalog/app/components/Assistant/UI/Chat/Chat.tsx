@@ -1055,88 +1055,98 @@ const useStyles = M.makeStyles((t) => ({
 
 // A round's permanent key is decided the moment it's first observed and
 // never changes again. A round first seen already settled uses its own
-// `anchor` (its first event's id, from `toolCallGroupIdsOf`) -- a
-// permanent, conversation-wide-unique identity on its own, since
-// `genId`/`uuid.v4()` mints it fresh per completed call, so no two rounds
-// can ever share one. A round first seen still live has no anchor yet, so
-// it's minted its own key up front (see `PendingRound`/`advancePendingRound`
-// below); once its anchor appears, that key must go on being its permanent
-// key, not be replaced by the now-available anchor, so `resolvedKey` (that
-// remembered key, or `undefined` once a *different* round has claimed the
-// anchor being looked up) takes priority over it here. No map of
-// toolUseIds to keys, and nothing to garbage-collect: a key is never
-// derived from model-controlled data (a toolUseId is unique only within
-// its own response, never across the conversation -- Model/Conversation.ts
-// :353-357), so two rounds reusing one can't collide here.
+// `anchor` (its first event's id, from `toolCallGroupIdsOf`) directly, with
+// no lookup needed -- a permanent, conversation-wide-unique identity on its
+// own, since `genId`/`uuid.v4()` mints it fresh per completed call, so no
+// two rounds can ever share one. A round first seen still live has no
+// anchor yet, so it's minted its own key up front and that pairing is
+// recorded in `anchorKeys` (see `advanceAnchorKeys` below) the moment its
+// anchor appears, so every later render -- however many *other* rounds
+// have since come and gone -- keeps resolving this one anchor to its own
+// pre-anchor key. `anchorKeys` is never derived from a toolUseId, so a
+// toolUseId reused across rounds (the model only guarantees uniqueness
+// within one response -- Model/Conversation.ts:353-357) can't collide here
+// or anywhere in this scheme.
 export function roundKeyOf(
-  resolvedKey: string | undefined,
+  anchorKeys: ReadonlyMap<string, string>,
+  pendingLive: PendingLive | undefined,
   group: ToolCallGroupIds,
 ): string | undefined {
-  return resolvedKey ?? group.anchor
+  if (group.anchor === undefined) return pendingLive?.key
+  return anchorKeys.get(group.anchor) ?? group.anchor
 }
 
 /**
- * The one round that was still live, now possibly settled: `anchor` is
- * `undefined` while it has no settled call yet, or the real anchor once
- * one lands. `key` is minted once, the moment the round is first observed
- * live, and never changes.
+ * The one round that's still live and has no anchor yet. `ids` is its
+ * last-observed set of toolUseIds -- the only fact that survives into the
+ * render where it settles (`anchor` doesn't exist until then) and lets
+ * that render recognize its own round's trailing group, rather than
+ * guessing from the group's absence of a prior map entry (which an
+ * always-historical round, never observed live, also lacks).
  */
-export interface PendingRound {
-  readonly anchor: string | undefined
+export interface PendingLive {
   readonly key: string
+  readonly ids: readonly string[]
 }
 
 // `toolCallGroupIdsOf` never produces more than one anchorless group per
 // call (only the trailing run can be anchorless, and there's at most one
-// trailing run), so one slot is enough to track it across renders.
-// `mintKey` is injected (rather than calling `uuid.v4()` here directly) so
-// a test can supply a predictable key instead of asserting against a
-// random one.
+// trailing run), so one slot holds it. `mintKey` is injected (rather than
+// calling `uuid.v4()` here directly) so a test can supply a predictable key
+// instead of asserting against a random one.
 //
-// React compares the key it's given between *consecutive* renders, not
-// against the original pre-transition value -- once a round is minted a
-// key while still live, every later render (the one where its anchor
-// first appears, and every render after that) must keep producing that
-// same key, or React sees a changed key between two renders and remounts
-// right there. So the claim is never cleared just because the transition
-// render has passed; it only drops once this round is no longer the
-// trailing one at all (a new Ask started a different round, or this one
-// was fully discarded) -- there is then no live round left that could
-// reuse the slot and collide with it.
-export function advancePendingRound(
-  pending: PendingRound | undefined,
+// `anchorKeys` grows by exactly one entry per round that was ever live and
+// has since settled -- recorded once, the render its anchor first appears,
+// and never touched again after that (an anchor is permanent and globally
+// unique on its own, so there is nothing to update or garbage-collect).
+// Earlier designs tried to track only the single *currently relevant*
+// pairing in one slot and recompute whether it still applied each render;
+// that single slot can hold at most one round's claim, so a second round
+// settling, or the live round simply vanishing (an abort before any call
+// resolves leaves `events` unchanged -- Conversation.ts's Abort handler
+// returns State.Idle with no new ToolUse event -- so there's no settling
+// event to attach the claim to, and the next render's trailing group is
+// just whatever older round happened to be there), both evicted or
+// misdirected an unrelated round's claim. A full map has no such ceiling:
+// every round that ever settles keeps its own entry, forever, independent
+// of how many other rounds come after it.
+export function advanceAnchorKeys(
+  anchorKeys: ReadonlyMap<string, string>,
+  pendingLive: PendingLive | undefined,
   toolCallGroupIds: readonly ToolCallGroupIds[],
   mintKey: () => string,
-): PendingRound | undefined {
+): { anchorKeys: ReadonlyMap<string, string>; pendingLive: PendingLive | undefined } {
   const liveGroup = toolCallGroupIds.find((g) => g.anchor === undefined)
   if (liveGroup) {
-    // Still anchorless: keep the same pending round (and its key) across
-    // renders rather than minting a new one on every render -- unless the
-    // slot is already claimed (`pending.anchor` set, not undefined). A
-    // claimed round is no longer live by definition, so this liveGroup
-    // must be a new, different round starting after it; reusing the old
-    // claim here would hand the new round someone else's permanent key.
-    const stillPending = pending?.anchor === undefined ? pending : undefined
-    return stillPending ?? { anchor: undefined, key: mintKey() }
+    // Still anchorless: keep minting nothing further once a key already
+    // exists for it, but keep its own `ids` current -- the ids this round
+    // settles with are the ones the next render needs to recognize it by.
+    return {
+      anchorKeys,
+      pendingLive: { key: pendingLive?.key ?? mintKey(), ids: liveGroup.ids },
+    }
   }
+  if (!pendingLive) return { anchorKeys, pendingLive: undefined }
+  // The round that was pending has no anchorless group anymore: either it
+  // just settled (its first call resolved into the new trailing group,
+  // which still carries at least one of this round's own `ids` -- the
+  // live tail concatenated onto it, from `toolCallGroupIdsOf`), or it was
+  // aborted away with no event at all (no new group carries its ids
+  // anywhere -- the trailing group, if any, is an unrelated older round
+  // with none of them). Checking for shared ids, not merely an unclaimed
+  // anchor, also correctly rejects a round that was always historical and
+  // never observed live at all (it has no entry to claim through either,
+  // but it never had a `pendingLive.ids` overlap to begin with).
   const [trailingGroup] = toolCallGroupIds.slice(-1)
-  if (pending?.anchor === undefined && pending && trailingGroup) {
-    // The pending round just got its first anchor: claim it so every
-    // later render resolves this anchor to the pending round's own key,
-    // not the anchor itself.
-    return { anchor: trailingGroup.anchor, key: pending.key }
+  const settledHere =
+    trailingGroup?.anchor !== undefined &&
+    pendingLive.ids.some((id) => trailingGroup.ids.includes(id))
+  if (settledHere) {
+    const next = new Map(anchorKeys)
+    next.set(trailingGroup.anchor, pendingLive.key)
+    return { anchorKeys: next, pendingLive: undefined }
   }
-  if (!trailingGroup || trailingGroup.anchor !== pending?.anchor) {
-    // Either there's no trailing round left to claim this key (it was
-    // fully discarded), or a *different* round is now trailing (a new Ask
-    // started a fresh round after this one settled) -- either way the
-    // claim is stale and must not resolve a future live round reusing the
-    // same toolUseId.
-    return undefined
-  }
-  // Already claimed on an earlier render and still the trailing round:
-  // nothing to change.
-  return pending
+  return { anchorKeys, pendingLive: undefined }
 }
 
 // Consecutive ToolUse events roll up into one group; a Message in between
@@ -1337,46 +1347,47 @@ export default function Chat({
   // ToolCallGroup mounts across its life (live-only, before any result;
   // merged into the trailing history run once one lands; history-only once
   // settled) -- the toggle lives here, under the round's own permanent key
-  // (`advancePendingRound`), rather than under a toolUseId directly (the
-  // model only guarantees a toolUseId is unique within its own response,
-  // never across the conversation -- Model/Conversation.ts:353-357 -- so
-  // two different rounds can share one).
-  const pendingRoundRef = React.useRef<PendingRound>()
-  pendingRoundRef.current = advancePendingRound(
-    pendingRoundRef.current,
+  // (`roundKeyOf`/`advanceAnchorKeys`), rather than under a toolUseId
+  // directly (the model only guarantees a toolUseId is unique within its
+  // own response, never across the conversation -- Model/Conversation.ts:
+  // 353-357 -- so two different rounds can share one).
+  const anchorKeysRef = React.useRef<ReadonlyMap<string, string>>(new Map())
+  const pendingLiveRef = React.useRef<PendingLive>()
+  const advanced = advanceAnchorKeys(
+    anchorKeysRef.current,
+    pendingLiveRef.current,
     toolCallGroupIds,
     uuid.v4,
   )
-  const pendingRound = pendingRoundRef.current
-  const pendingKeyFor = React.useCallback(
-    (group: ToolCallGroupIds) =>
-      group.anchor === pendingRound?.anchor ? pendingRound?.key : undefined,
-    [pendingRound],
-  )
+  anchorKeysRef.current = advanced.anchorKeys
+  pendingLiveRef.current = advanced.pendingLive
+  // Not memoized: it reads mutable refs directly, so a stale closure would
+  // still read their current value correctly, and memoizing buys nothing a
+  // plain function recreated each render doesn't already give for free.
+  const roundKeyFor = (group: ToolCallGroupIds) =>
+    roundKeyOf(anchorKeysRef.current, pendingLiveRef.current, group)
 
   const [expandedByRoundKey, setExpandedByRoundKey] = React.useState<
     ReadonlyMap<string, boolean>
   >(new Map())
 
-  const toolCallExpanded = React.useCallback(
-    (group: ToolCallGroupIds) => {
-      const key = roundKeyOf(pendingKeyFor(group), group)
-      return key !== undefined && (expandedByRoundKey.get(key) ?? false)
-    },
-    [expandedByRoundKey, pendingKeyFor],
-  )
-  const toggleToolCallExpanded = React.useCallback(
-    (group: ToolCallGroupIds) => {
-      const key = roundKeyOf(pendingKeyFor(group), group)
-      if (key === undefined) return
-      setExpandedByRoundKey((prev) => {
-        const next = new Map(prev)
-        next.set(key, !(prev.get(key) ?? false))
-        return next
-      })
-    },
-    [pendingKeyFor],
-  )
+  // Plain functions, not memoized: both close over `roundKeyFor` (itself
+  // reading mutable refs, not state) and `setExpandedByRoundKey` (whose
+  // setter identity React itself guarantees stable), so there is no stale
+  // closure risk here to buy back with `useCallback`.
+  const toolCallExpanded = (group: ToolCallGroupIds) => {
+    const key = roundKeyFor(group)
+    return key !== undefined && (expandedByRoundKey.get(key) ?? false)
+  }
+  const toggleToolCallExpanded = (group: ToolCallGroupIds) => {
+    const key = roundKeyFor(group)
+    if (key === undefined) return
+    setExpandedByRoundKey((prev) => {
+      const next = new Map(prev)
+      next.set(key, !(prev.get(key) ?? false))
+      return next
+    })
+  }
 
   return (
     <div className={classes.chat}>
@@ -1461,7 +1472,7 @@ export default function Chat({
                   const group = toolCallGroupIds[groupIndex]
                   return (
                     <ToolCallGroup
-                      key={roundKeyOf(pendingKeyFor(group), group)}
+                      key={roundKeyFor(group)}
                       dispatch={dispatch}
                       state={state._tag}
                       events={
@@ -1484,7 +1495,7 @@ export default function Chat({
               const liveGroup = toolCallGroupIds[toolCallGroupIds.length - 1]
               items.push(
                 <ToolCallGroup
-                  key={roundKeyOf(pendingKeyFor(liveGroup), liveGroup)}
+                  key={roundKeyFor(liveGroup)}
                   dispatch={dispatch}
                   state={state._tag}
                   events={[]}

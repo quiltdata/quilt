@@ -33,13 +33,13 @@ vi.mock('utils/NamedRoutes', async (importOriginal) => ({
 
 import * as Model from '../../Model'
 
-import type { ToolCallGroupIds } from './Chat'
+import type { PendingLive, ToolCallGroupIds } from './Chat'
 import {
   ConnectorHelperLine,
   Menu,
   MessageEvent,
   ToolCallGroup,
-  advancePendingRound,
+  advanceAnchorKeys,
   roundKeyOf,
   toolCallGroupIdsOf,
   toolCallRunsOf,
@@ -175,33 +175,44 @@ describe('components/Assistant/UI/Chat/roundKeyOf', () => {
   const live = (ids: readonly string[]) => ({ anchor: undefined, ids })
   const settled = (anchor: string, ids: readonly string[]) => ({ anchor, ids })
 
-  it('has no round key when nothing has resolved one and the round has no anchor', () => {
-    expect(roundKeyOf(undefined, live(['a', 'b']))).toBeUndefined()
+  it('resolves a live round to the pending live key', () => {
+    expect(roundKeyOf(new Map(), { key: 'pending-1', ids: ['a'] }, live(['a']))).toBe(
+      'pending-1',
+    )
   })
 
-  it("falls back to the group's own anchor when the caller resolved no key", () => {
-    expect(roundKeyOf(undefined, settled('event-a', ['a', 'b']))).toBe('event-a')
+  it('has no key for a live round when nothing is pending', () => {
+    expect(roundKeyOf(new Map(), undefined, live(['a']))).toBeUndefined()
   })
 
-  // The whole reason a resolved key exists: a round first seen live is
-  // minted its own key, and once its first call resolves, that key must
-  // go on being the round's permanent identity -- not be displaced by the
-  // anchor that's now available. The caller (`advancePendingRound`)
-  // decides when a resolved key applies; this function just has to prefer
-  // it over the anchor whenever one is given.
-  it('prefers an explicitly resolved key over the anchor, even once the round is settled', () => {
-    expect(roundKeyOf('pending-1', settled('event-a', ['a', 'b']))).toBe('pending-1')
+  it("falls back to the group's own anchor when it has no recorded key", () => {
+    expect(roundKeyOf(new Map(), undefined, settled('event-a', ['a']))).toBe('event-a')
+  })
+
+  // The whole reason anchorKeys exists: a round first seen live is minted
+  // its own key, and once its first call resolves, that key must go on
+  // being the round's permanent identity -- not be displaced by the anchor
+  // that's now available.
+  it('prefers a recorded key over the anchor once one is recorded', () => {
+    const anchorKeys = new Map([['event-a', 'pending-1']])
+    expect(roundKeyOf(anchorKeys, undefined, settled('event-a', ['a']))).toBe('pending-1')
   })
 })
 
-// This is the logic that took three review rounds to get right: a round
+// This is the logic that took four review rounds to get right: a round
 // first seen live has no anchor yet, so it needs a key minted up front;
 // once its first call resolves, that *same* key must survive the
 // transition rather than being displaced by the new anchor (a changed key
-// remounts the round, dropping any focus inside it); and a *different*
-// round reusing a toolUseId, or a *later* live round after this one has
-// fully settled, must never resolve through the stale pending slot.
-describe('components/Assistant/UI/Chat/advancePendingRound', () => {
+// remounts the round, dropping any focus inside it); a *different* round
+// reusing a toolUseId must never resolve through a stale pending slot; and
+// -- the two bugs the fourth round found in the single-slot design this
+// replaced -- a later, *different* live round starting while an earlier
+// round is still visible in history must not evict that earlier round's
+// own recorded key, and an abort before any call resolves (which leaves no
+// trace in `events` at all -- Conversation.ts's Abort handler returns
+// State.Idle with `events` unchanged) must not misattribute the aborted
+// round's pending key to whatever older round happens to be trailing next.
+describe('components/Assistant/UI/Chat/advanceAnchorKeys', () => {
   const live = (ids: readonly string[]) => ({ anchor: undefined, ids })
   const settled = (anchor: string, ids: readonly string[]) => ({ anchor, ids })
   let nextKey = 0
@@ -211,76 +222,154 @@ describe('components/Assistant/UI/Chat/advancePendingRound', () => {
     nextKey = 0
   })
 
-  it('mints a key for a round first seen live', () => {
-    const pending = advancePendingRound(undefined, [live(['a'])], mintKey)
-    expect(pending).toEqual({ anchor: undefined, key: 'minted-0' })
-  })
-
-  it('keeps minting the same key across renders while still live', () => {
-    let pending = advancePendingRound(undefined, [live(['a'])], mintKey)
-    pending = advancePendingRound(pending, [live(['a', 'b'])], mintKey)
-    expect(pending).toEqual({ anchor: undefined, key: 'minted-0' })
-  })
-
-  // The bug `b85a3aca7` fixed, and the bug my first fix for it
-  // reintroduced: the pending round's key must survive its own anchor
-  // appearing, not be replaced by it.
-  it("keeps the pending round's own key once its first call resolves", () => {
-    let pending = advancePendingRound(undefined, [live(['a'])], mintKey)
-    pending = advancePendingRound(pending, [settled('event-a', ['a'])], mintKey)
-    expect(pending).toEqual({ anchor: 'event-a', key: 'minted-0' })
-  })
-
-  // React compares keys between *consecutive* renders, not against the
-  // original pre-transition value -- so the claim must stay in force on
-  // every render after the transition too, not just the one render where
-  // it happens, or a later render switching to the anchor would still
-  // remount the round at that point instead.
-  it('keeps resolving the claimed anchor to the same key on later renders', () => {
-    let pending = advancePendingRound(undefined, [live(['a'])], mintKey)
-    pending = advancePendingRound(pending, [settled('event-a', ['a'])], mintKey)
-    pending = advancePendingRound(pending, [settled('event-a', ['a', 'b'])], mintKey)
-    expect(pending).toEqual({ anchor: 'event-a', key: 'minted-0' })
-  })
-
-  // The bug this pins: once this round is fully settled and gone from the
-  // trailing position (a new Ask started a fresh round), the claim must
-  // be dropped -- or a later live round reusing a toolUseId this round
-  // once had would find a stale pending slot that isn't its own.
-  it('drops the claim once a different round becomes trailing', () => {
-    let pending = advancePendingRound(undefined, [live(['a'])], mintKey)
-    pending = advancePendingRound(pending, [settled('event-a', ['a'])], mintKey)
-    // A new Ask: the old round is still in history, but a fresh live round
-    // (not the one this slot was tracking) is now the trailing group --
-    // `toolCallGroupIdsOf` never produces more than one anchorless group
-    // per call, so this is the only shape a "different round" can take.
-    pending = advancePendingRound(
-      pending,
-      [settled('event-a', ['a']), live(['b'])],
+  it('mints a pending key for a round first seen live', () => {
+    const { pendingLive } = advanceAnchorKeys(
+      new Map(),
+      undefined,
+      [live(['a'])],
       mintKey,
     )
-    expect(pending).toEqual({ anchor: undefined, key: 'minted-1' })
+    expect(pendingLive).toEqual({ key: 'minted-0', ids: ['a'] })
+  })
+
+  it('keeps minting nothing further while still live, but keeps its ids current', () => {
+    let { anchorKeys, pendingLive } = advanceAnchorKeys(
+      new Map(),
+      undefined,
+      [live(['a'])],
+      mintKey,
+    )
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [live(['a', 'b'])],
+      mintKey,
+    ))
+    expect(pendingLive).toEqual({ key: 'minted-0', ids: ['a', 'b'] })
+    expect(anchorKeys.size).toBe(0)
+  })
+
+  // The bug `b85a3aca7` fixed, and the two bugs each attempted fix for it
+  // reintroduced in turn: the pending round's key must survive its own
+  // anchor appearing, recorded against that anchor rather than displaced
+  // by it.
+  it("records the pending round's own key against its anchor once its first call resolves", () => {
+    let { anchorKeys, pendingLive } = advanceAnchorKeys(
+      new Map(),
+      undefined,
+      [live(['a'])],
+      mintKey,
+    )
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [settled('event-a', ['a'])],
+      mintKey,
+    ))
+    expect(anchorKeys.get('event-a')).toBe('minted-0')
+    expect(pendingLive).toBeUndefined()
+  })
+
+  // The bug the fourth review round found in the single-slot predecessor
+  // of this function: a *different*, later live round starting while an
+  // earlier round is still visible in history must not disturb that
+  // earlier round's own recorded key -- there's nothing to disturb here,
+  // since `anchorKeys` only ever grows, never evicted by a later round.
+  it("leaves an earlier round's recorded key alone when a different round starts live", () => {
+    let { anchorKeys, pendingLive } = advanceAnchorKeys(
+      new Map(),
+      undefined,
+      [live(['a'])],
+      mintKey,
+    )
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [settled('event-a', ['a'])],
+      mintKey,
+    ))
+    const beforeSecondRound = anchorKeys.get('event-a')
+    // A new Ask: round A is still in history: round B starts live.
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [settled('event-a', ['a']), live(['b'])],
+      mintKey,
+    ))
+    expect(anchorKeys.get('event-a')).toBe(beforeSecondRound)
+    expect(pendingLive).toEqual({ key: 'minted-1', ids: ['b'] })
+  })
+
+  // The other bug the fourth round found: an abort before any call
+  // resolves leaves no new event at all, so the render right after sees
+  // whatever older, already-settled round is now trailing. That older
+  // round's anchor is already in `anchorKeys` (or needs no entry at all),
+  // so it must not be mistaken for the aborted round settling.
+  it('drops the pending key on an abort instead of attributing it to an older trailing round', () => {
+    let { anchorKeys, pendingLive } = advanceAnchorKeys(
+      new Map(),
+      undefined,
+      [settled('event-a', ['a'])], // an older round, already settled
+      mintKey,
+    )
+    expect(pendingLive).toBeUndefined()
+    // A second round starts live, then is aborted before any call
+    // resolves: no new event, so the render after the abort sees only the
+    // older round again, now trailing with nothing live.
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [settled('event-a', ['a']), live(['b'])],
+      mintKey,
+    ))
+    const beforeAbort = pendingLive
+    expect(beforeAbort).toEqual({ key: 'minted-0', ids: ['b'] })
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [settled('event-a', ['a'])],
+      mintKey,
+    ))
+    expect(pendingLive).toBeUndefined()
+    // The aborted round's key must not have been attributed to 'event-a'.
+    expect(anchorKeys.get('event-a')).toBeUndefined()
   })
 
   it('stays empty once the round is fully discarded away before ever settling', () => {
-    let pending = advancePendingRound(undefined, [live(['a'])], mintKey)
-    pending = advancePendingRound(pending, [], mintKey)
-    expect(pending).toBeUndefined()
+    let { anchorKeys, pendingLive } = advanceAnchorKeys(
+      new Map(),
+      undefined,
+      [live(['a'])],
+      mintKey,
+    )
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [],
+      mintKey,
+    ))
+    expect(pendingLive).toBeUndefined()
+    expect(anchorKeys.size).toBe(0)
   })
 
-  // Composition check: this is exactly the two-line sequence Chat's own
-  // render body runs every render (advancePendingRound to update the ref,
-  // then roundKeyOf per group to get the React key) -- unit-tested here
-  // without mounting the whole component, closing the gap the ToolCallGroup
-  // focus test below can't reach (it rerenders ToolCallGroup directly with
+  // Composition check: this is exactly the sequence Chat's own render body
+  // runs every render (advanceAnchorKeys to update both refs, then
+  // roundKeyOf per group to get the React key) -- unit-tested here without
+  // mounting the whole component, closing the gap the ToolCallGroup focus
+  // test below can't reach (it rerenders ToolCallGroup directly with
   // `expanded` held constant by its caller, so it never exercises Chat's
   // own key computation that decides whether ToolCallGroup remounts at all).
   it("gives Chat's own per-render key computation the same key across a round's live-to-history transition", () => {
-    let pending: ReturnType<typeof advancePendingRound>
+    let anchorKeys: ReadonlyMap<string, string> = new Map()
+    let pendingLive: PendingLive | undefined
     const keyForRenderOf = (group: ToolCallGroupIds) => {
-      pending = advancePendingRound(pending, [group], mintKey)
-      const resolved = group.anchor === pending?.anchor ? pending?.key : undefined
-      return roundKeyOf(resolved, group)
+      ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+        anchorKeys,
+        pendingLive,
+        [group],
+        mintKey,
+      ))
+      return roundKeyOf(anchorKeys, pendingLive, group)
     }
 
     const liveOnlyKey = keyForRenderOf(live(['reused-id']))
@@ -289,10 +378,8 @@ describe('components/Assistant/UI/Chat/advancePendingRound', () => {
     // happens (that's what would remount the round and drop its focus).
     expect(mergedIntoHistoryKey).toBe(liveOnlyKey)
 
-    // The claim stays in force on every later render too, not just the one
-    // transition render -- React compares keys between *consecutive*
-    // renders, so switching to the anchor on some later render would still
-    // remount it, even though the transition itself is long past.
+    // The recorded key stays in force on every later render too, not just
+    // the one transition render.
     const laterRenderKey = keyForRenderOf(settled('event-a', ['reused-id', 'id-2']))
     expect(laterRenderKey).toBe(mergedIntoHistoryKey)
   })
