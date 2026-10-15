@@ -130,14 +130,13 @@ function* signOut() {
 /**
  * Make a sign-in request.
  *
- * @param {Object} credentials
- * @param {string} credentials.username
- * @param {string} credentials.password
+ * @param {{username: string, password: string} | {provider: string, code: string, signup_page?: string, signup_ticket?: string}} credentials
  *
  * @throws {InvalidCredentials}
+ * @throws {SignupTicketInvalid}
  * @throws {AuthError}
  */
-function* signIn(credentials) {
+export function* signIn(credentials) {
   if (typeof credentials.token === 'string' && typeof credentials.exp === 'number') {
     return { token: credentials.token, exp: credentials.exp }
   }
@@ -151,6 +150,9 @@ function* signIn(credentials) {
     })
     return { token, exp }
   } catch (e) {
+    if (HTTPError.is(e, 401, /invalid or expired signup ticket/i)) {
+      throw new errors.SignupTicketInvalid({ originalError: e })
+    }
     if (HTTPError.is(e, 401, /user does not exist/i)) {
       throw new errors.SSOUserNotFound()
     }
