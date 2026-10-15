@@ -11,6 +11,8 @@ import { useCatalogSummarize } from './summarize'
 const READ_GUIDANCE = [
   '<reading-objects>',
   'Reading S3 objects:',
+  'platform__ prefixes a tool from the platform MCP server; catalog_preview and',
+  'catalog_summarize are catalog-native and have no prefix -- do not add one.',
   '1. Call platform__s3_object_info first to inspect ContentLength and ContentType.',
   '2. For interpretable content use catalog_preview — images of any size, and PDFs,',
   `   Office docs or prose up to ${THRESHOLD / 1024} KiB. It returns thumbnail-resized`,
