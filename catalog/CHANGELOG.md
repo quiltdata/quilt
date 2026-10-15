@@ -21,8 +21,8 @@ complete sentence without it.
 
 ## Changes
 
-- [Fixed] Qurator: in the side panel, the Skills and model menus sit in their own row above the message box instead of covering its label and pushing Send out of view, and global and personal instructions open from globe and person icons in that row instead of a separate Instructions strip ([#PR](https://github.com/quiltdata/quilt/pull/PR))
-- [Changed] On screens narrower than 960px, the top bar offers Ask Qurator in place of the Quilt URI and documentation links, and Qurator mode opens its session details from a button in the chat header as a bottom sheet instead of stacking them under the chat ([#PR](https://github.com/quiltdata/quilt/pull/PR))
+- [Fixed] Qurator: in the side panel, the Skills and model menus sit in their own row above the message box instead of covering its label and pushing Send out of view, and global and personal instructions open from globe and person icons in that row instead of a separate Instructions strip ([#5474](https://github.com/quiltdata/quilt/pull/5474))
+- [Changed] On screens narrower than 960px, the top bar offers Ask Qurator in place of the Quilt URI and documentation links, and Qurator mode opens its session details from a button in the chat header as a bottom sheet instead of stacking them under the chat ([#5474](https://github.com/quiltdata/quilt/pull/5474))
 - [Added] `/signup/<page>` lets a visitor redeem a role's access code and sign up by email, landing on that role's default bucket; signed-in users land on their active role's default bucket from `/` ([#5469](https://github.com/quiltdata/quilt/pull/5469))
 - [Added] Qurator: admins add skills from GitHub in Admin → Settings → Qurator skills, kept in a package only admins can change, and users turn each one on or off from Skills in the + menu ([#5411](https://github.com/quiltdata/quilt/pull/5411))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
