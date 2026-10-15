@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -6,7 +7,7 @@ import * as Assistant from 'components/Assistant'
 import * as SessionPackage from 'components/Assistant/Model/SessionPackage'
 import Chat from 'components/Assistant/UI/Chat'
 import * as InlinePresence from 'components/Assistant/UI/InlinePresence'
-import Layout from 'components/Layout'
+import Layout, { useCompactShell } from 'components/Layout'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import { title as toolTitle } from 'components/Assistant/Model/Tool'
@@ -22,10 +23,8 @@ const useStyles = M.makeStyles((t) => ({
     // Outgrows Layout's trailing flex spacer, so the chat owns the column's height.
     flex: '999 1 0',
     minHeight: 0,
-    [t.breakpoints.down('sm')]: { flexDirection: 'column' },
   },
   chat: {
-    borderRight: `1px solid ${t.palette.divider}`,
     display: 'flex',
     flexGrow: 1,
     minHeight: 0,
@@ -39,10 +38,36 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     padding: t.spacing(2),
     width: 320,
-    [t.breakpoints.down('sm')]: {
-      borderTop: `1px solid ${t.palette.divider}`,
-      maxHeight: '40%',
-      width: 'auto',
+  },
+  // Single column: the pane is a bottom sheet, so it spans the width and its
+  // own header carries the close.
+  sheet: {
+    borderTopLeftRadius: t.shape.borderRadius * 2,
+    borderTopRightRadius: t.shape.borderRadius * 2,
+    maxHeight: '80%',
+  },
+  // Portaled past Layout's safe-area padding, so the sheet owes its own.
+  sheetPane: {
+    paddingBottom: `max(${t.spacing(2)}px, env(safe-area-inset-bottom))`,
+    paddingLeft: `max(${t.spacing(2)}px, env(safe-area-inset-left))`,
+    paddingRight: `max(${t.spacing(2)}px, env(safe-area-inset-right))`,
+    width: 'auto',
+  },
+  sheetHeader: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  // The pane's divider; in single column nothing sits beside the chat.
+  chatBeside: {
+    borderRight: `1px solid ${t.palette.divider}`,
+  },
+  detailsButton: {
+    color: t.palette.text.secondary,
+    // The Focus Ring Rule, as the chat header's other buttons wear it.
+    '&&:focus-visible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
     },
   },
   count: { color: t.palette.text.secondary },
@@ -72,11 +97,19 @@ function RefLink({ r }: { r: SessionPackage.Reference }) {
   )
 }
 
-function ContextPane({ api, onCatalog }: { api: API; onCatalog: () => void }) {
+interface ContextPaneProps {
+  api: API
+  refs: SessionPackage.Reference[]
+  /** Wide layout only; in the sheet the chat's own close does this. */
+  onCatalog?: () => void
+  onClose?: () => void
+  className?: string
+}
+
+function ContextPane({ api, refs, onCatalog, onClose, className }: ContextPaneProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const { events } = api.state
-  const refs = React.useMemo(() => SessionPackage.references(events), [events])
   const used = React.useMemo(() => {
     const counts = new Map<string, { ok: number; failed: number }>()
     events.forEach((e) => {
@@ -90,10 +123,20 @@ function ContextPane({ api, onCatalog }: { api: API; onCatalog: () => void }) {
   }, [events])
   const saved = api.save?.status._tag === 'saved' ? api.save.status : null
   return (
-    <aside className={classes.pane} aria-label="Session context">
-      <M.Button variant="outlined" size="small" onClick={onCatalog}>
-        Back to catalog view
-      </M.Button>
+    <aside className={cx(classes.pane, className)} aria-label="Session context">
+      {onCatalog && (
+        <M.Button variant="outlined" size="small" onClick={onCatalog}>
+          Back to catalog view
+        </M.Button>
+      )}
+      {onClose && (
+        <div className={classes.sheetHeader}>
+          <M.Typography variant="subtitle1">Session details</M.Typography>
+          <M.IconButton size="small" onClick={onClose} aria-label="Close session details">
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </div>
+      )}
       <div>
         <M.Typography variant="subtitle2" gutterBottom>
           Touched in this session
@@ -172,15 +215,67 @@ function Workspace({
     [history, from, urls],
   )
   const save = SessionSave.useSessionSave(api)
+  const withSave = { ...api, save }
+  // Single column has no room for the pane beside the chat.
+  const single = useCompactShell()
+  const [sheetOpen, setSheetOpen] = React.useState(false)
+  // A sheet left open in single column must not reappear on the way back to it.
+  React.useEffect(() => {
+    if (!single) setSheetOpen(false)
+  }, [single])
+  const openSheet = React.useCallback(() => setSheetOpen(true), [])
+  const closeSheet = React.useCallback(() => setSheetOpen(false), [])
+  const { events } = api.state
+  const refs = React.useMemo(() => SessionPackage.references(events), [events])
+  const touched = refs.length
+  const details = single ? (
+    <M.Tooltip title="Session details">
+      <M.IconButton
+        className={classes.detailsButton}
+        onClick={openSheet}
+        size="small"
+        aria-label={`Session details, ${touched} touched`}
+      >
+        {/* Midnight, not amber: the Indicator Rule keeps amber off fills. */}
+        <M.Badge badgeContent={touched} color="primary">
+          <M.Icon className="material-icons-outlined">info</M.Icon>
+        </M.Badge>
+      </M.IconButton>
+    </M.Tooltip>
+  ) : undefined
   return (
     <div className={classes.root}>
       {/* Registered presence drops the docked panel: one conversation, one place. */}
       <InlinePresence.Provide value>
-        <div className={classes.chat}>
-          <Chat {...api} composer="compact" save={save} onClose={toCatalog} />
+        <div className={cx(classes.chat, !single && classes.chatBeside)}>
+          <Chat
+            {...api}
+            composer="compact"
+            save={save}
+            onClose={toCatalog}
+            headerActions={details}
+          />
         </div>
       </InlinePresence.Provide>
-      <ContextPane api={{ ...api, save }} onCatalog={toCatalog} />
+      {single ? (
+        <M.SwipeableDrawer
+          anchor="bottom"
+          open={sheetOpen}
+          onOpen={openSheet}
+          onClose={closeSheet}
+          disableSwipeToOpen
+          classes={{ paper: classes.sheet }}
+        >
+          <ContextPane
+            api={withSave}
+            refs={refs}
+            onClose={closeSheet}
+            className={classes.sheetPane}
+          />
+        </M.SwipeableDrawer>
+      ) : (
+        <ContextPane api={withSave} refs={refs} onCatalog={toCatalog} />
+      )}
     </div>
   )
 }

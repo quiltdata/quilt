@@ -10,10 +10,29 @@ import useId from 'utils/useId'
 
 const useStyles = M.makeStyles((t) => ({
   input: {
-    alignItems: 'center',
     display: 'flex',
+    flexDirection: 'column',
     paddingLeft: `${t.spacing(2)}px`,
     paddingRight: `${t.spacing(2)}px`,
+  },
+  // Not the field's end adornment: in a narrow panel the pickers would leave
+  // no room for text and sit under the floating label.
+  toolbar: {
+    alignItems: 'center',
+    color: t.palette.text.secondary,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: t.spacing(0.5),
+    justifyContent: 'flex-end',
+    marginBottom: t.spacing(0.5),
+    '&:empty': {
+      display: 'none',
+    },
+    // The Focus Ring Rule on the light ground the row sits on.
+    '& .Mui-focusVisible': {
+      outline: `2px solid ${t.palette.primary.main}`,
+      outlineOffset: -2,
+    },
   },
   textField: {
     marginTop: 0,
@@ -144,57 +163,45 @@ export function ModelPicker({ model, disabled }: ModelPickerProps) {
           </M.Button>
         </span>
       </M.Tooltip>
-      {/* The input sits on the dark chat ground; its menu is light, like every other menu. */}
-      <M.MuiThemeProvider theme={style.appTheme}>
-        <M.Menu
-          anchorEl={anchor}
-          open={!!anchor && !disabled}
-          onClose={close}
-          getContentAnchorEl={null}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          {model.allowlist.map((id) => (
-            <M.MenuItem
-              key={id}
-              onClick={() => {
-                model.select(id)
-                close()
-              }}
-              selected={id === model.current}
-              aria-checked={id === model.current}
-              role="menuitemradio"
-            >
-              <M.ListItemIcon className={classes.check}>
-                <M.Icon
-                  fontSize="small"
-                  style={{ visibility: id === model.current ? 'visible' : 'hidden' }}
-                >
-                  check
-                </M.Icon>
-              </M.ListItemIcon>
-              <span>
-                {ModelChoice.label(id, ModelChoice.nameIn(model.names, id))}
-                <span className={classes.itemId}>{id}</span>
-              </span>
-            </M.MenuItem>
-          ))}
-        </M.Menu>
-      </M.MuiThemeProvider>
+      <M.Menu
+        anchorEl={anchor}
+        open={!!anchor && !disabled}
+        onClose={close}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        {model.allowlist.map((id) => (
+          <M.MenuItem
+            key={id}
+            onClick={() => {
+              model.select(id)
+              close()
+            }}
+            selected={id === model.current}
+            aria-checked={id === model.current}
+            role="menuitemradio"
+          >
+            <M.ListItemIcon className={classes.check}>
+              <M.Icon
+                fontSize="small"
+                style={{ visibility: id === model.current ? 'visible' : 'hidden' }}
+              >
+                check
+              </M.Icon>
+            </M.ListItemIcon>
+            <span>
+              {ModelChoice.label(id, ModelChoice.nameIn(model.names, id))}
+              <span className={classes.itemId}>{id}</span>
+            </span>
+          </M.MenuItem>
+        ))}
+      </M.Menu>
     </>
   )
 }
 
 const useSkillsStyles = M.makeStyles((t) => ({
-  // Below sm the text field would shrink to a few characters beside both menus.
-  wideOnly: {
-    [t.breakpoints.down('xs')]: { display: 'none' },
-  },
-  narrowOnly: {
-    fontSize: 16,
-    marginRight: t.spacing(0.5),
-    [t.breakpoints.up('sm')]: { display: 'none' },
-  },
   item: {
     alignItems: 'flex-start',
     maxWidth: t.spacing(48),
@@ -256,59 +263,48 @@ export function SkillsMenu({ skills, disabled }: SkillsMenuProps) {
         disabled={disabled}
         onClick={(e) => setAnchor(e.currentTarget)}
         size="small"
-        endIcon={
-          <M.Icon className={classes.wideOnly} fontSize="small">
-            expand_more
-          </M.Icon>
-        }
+        startIcon={<M.Icon fontSize="small">extension</M.Icon>}
+        endIcon={<M.Icon fontSize="small">expand_more</M.Icon>}
       >
-        <M.Icon className={classes.narrowOnly}>extension</M.Icon>
         <span className={pickerClasses.label}>
-          <span className={classes.wideOnly}>Skills </span>
-          {on}
+          Skills {on}/{skills.all.length}
         </span>
       </M.Button>
-      <M.MuiThemeProvider theme={style.appTheme}>
-        <M.Menu
-          anchorEl={anchor}
-          open={!!anchor && !disabled}
-          onClose={close}
-          getContentAnchorEl={null}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          {skills.all.map((s) => {
-            const checked = !skills.disabled.has(s.name)
-            const runClass = RUN_CLASS_LABEL[s.runClass]
-            return (
-              <M.MenuItem
-                key={s.name}
-                className={classes.item}
-                onClick={() => skills.toggle(s.name)}
-                aria-checked={checked}
-                role="menuitemcheckbox"
-              >
-                <M.ListItemIcon className={classes.check}>
-                  <M.Icon fontSize="small">
-                    {checked ? 'check_box' : 'check_box_outline_blank'}
-                  </M.Icon>
-                </M.ListItemIcon>
-                <span>
-                  <span className={classes.name}>{s.name}</span>
-                  <M.Tooltip title={runClass.title}>
-                    <M.Chip
-                      className={classes.badge}
-                      label={runClass.label}
-                      size="small"
-                    />
-                  </M.Tooltip>
-                  <span className={classes.description}>{s.description}</span>
-                </span>
-              </M.MenuItem>
-            )
-          })}
-        </M.Menu>
-      </M.MuiThemeProvider>
+      <M.Menu
+        anchorEl={anchor}
+        open={!!anchor && !disabled}
+        onClose={close}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        {skills.all.map((s) => {
+          const checked = !skills.disabled.has(s.name)
+          const runClass = RUN_CLASS_LABEL[s.runClass]
+          return (
+            <M.MenuItem
+              key={s.name}
+              className={classes.item}
+              onClick={() => skills.toggle(s.name)}
+              aria-checked={checked}
+              role="menuitemcheckbox"
+            >
+              <M.ListItemIcon className={classes.check}>
+                <M.Icon fontSize="small">
+                  {checked ? 'check_box' : 'check_box_outline_blank'}
+                </M.Icon>
+              </M.ListItemIcon>
+              <span>
+                <span className={classes.name}>{s.name}</span>
+                <M.Tooltip title={runClass.title}>
+                  <M.Chip className={classes.badge} label={runClass.label} size="small" />
+                </M.Tooltip>
+                <span className={classes.description}>{s.description}</span>
+              </span>
+            </M.MenuItem>
+          )
+        })}
+      </M.Menu>
     </>
   )
 }
@@ -336,6 +332,8 @@ interface ChatInputProps {
   helperSeverity?: 'warning' | 'error'
   model?: Model.Assistant.API['model']
   skills?: Model.Assistant.API['skills']
+  /** Extra toolbar controls, after the pickers. */
+  toolbarEnd?: React.ReactNode
   onSubmit: (value: string) => void
 }
 
@@ -348,6 +346,7 @@ export default function ChatInput({
   helperSeverity,
   model,
   skills,
+  toolbarEnd,
   onSubmit,
 }: ChatInputProps) {
   const classes = useStyles()
@@ -368,6 +367,11 @@ export default function ChatInput({
 
   return (
     <form className={cx(classes.input, className)} onSubmit={handleSubmit}>
+      <div className={classes.toolbar}>
+        {skills && <SkillsMenu skills={skills} disabled={disabled} />}
+        {model && <ModelPicker model={model} disabled={disabled} />}
+        {toolbarEnd}
+      </div>
       <M.ThemeProvider theme={darkTheme}>
         <M.TextField
           className={classes.textField}
@@ -385,8 +389,6 @@ export default function ChatInput({
             classes: useInputStyles(),
             endAdornment: (
               <M.InputAdornment position="end">
-                {skills && <SkillsMenu skills={skills} disabled={disabled} />}
-                {model && <ModelPicker model={model} disabled={disabled} />}
                 <M.IconButton
                   aria-label="Send"
                   disabled={disabled || !value}

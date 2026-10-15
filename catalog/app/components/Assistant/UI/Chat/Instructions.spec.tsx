@@ -8,7 +8,7 @@ import { SettingsConflictError } from 'utils/CatalogSettings'
 
 import type * as Model from '../../Model'
 
-import Instructions from './Instructions'
+import Instructions, { InstructionsPanel, InstructionsToggles } from './Instructions'
 
 type Layer = Model.UserInstructions.Instructions
 type Overrides = Partial<Layer>
@@ -244,5 +244,165 @@ describe('components/Assistant/UI/Chat/Instructions', () => {
         'Prefer Parquet',
       )
     })
+  })
+})
+
+describe('components/Assistant/UI/Chat/Instructions InstructionsToggles', () => {
+  afterEach(cleanup)
+
+  const toggles = (
+    instructions: ReturnType<typeof dual>,
+    props: Partial<React.ComponentProps<typeof InstructionsToggles>> = {},
+  ) =>
+    render(
+      <InstructionsToggles
+        instructions={instructions}
+        open={null}
+        onToggle={vi.fn()}
+        {...props}
+      />,
+    )
+
+  const glyph = (button: HTMLElement) => button.querySelector('.MuiIcon-root')!
+
+  it('names each layer and its state', () => {
+    const { getByLabelText } = toggles(
+      dual({ text: 'Be terse', enabled: false }, { text: 'Prefer Parquet' }),
+    )
+    expect(getByLabelText('Global instructions: muted')).toBeTruthy()
+    expect(getByLabelText('Personal notes: on')).toBeTruthy()
+  })
+
+  it('says when a layer is not set', () => {
+    const { getByLabelText } = toggles(dual())
+    expect(getByLabelText('Global instructions: not set')).toBeTruthy()
+    expect(getByLabelText('Personal notes: not set')).toBeTruthy()
+  })
+
+  // State is in the shape, not just the color: filled, slashed, or hollow.
+  it('draws each state with its own glyph', () => {
+    const { getByLabelText } = toggles(
+      dual({ text: 'Be terse', enabled: false }, { text: 'Prefer Parquet' }),
+    )
+    expect(glyph(getByLabelText('Global instructions: muted')).textContent).toBe(
+      'public_off',
+    )
+    const on = glyph(getByLabelText('Personal notes: on'))
+    expect(on.textContent).toBe('person')
+    expect(on.classList.contains('material-icons-outlined')).toBe(false)
+  })
+
+  it('draws a layer that is not set hollow', () => {
+    const unset = glyph(toggles(dual()).getByLabelText('Personal notes: not set'))
+    expect(unset.textContent).toBe('person')
+    expect(unset.classList.contains('material-icons-outlined')).toBe(true)
+  })
+
+  it('names a layer with unsaved changes', () => {
+    const { getByLabelText } = toggles(dual(), { unsaved: { global: true } })
+    expect(getByLabelText('Global instructions: not set, unsaved changes')).toBeTruthy()
+    expect(getByLabelText('Personal notes: not set')).toBeTruthy()
+  })
+
+  it('toggles the clicked layer and marks the open one expanded', () => {
+    const onToggle = vi.fn()
+    const { getByLabelText } = toggles(dual(), { open: 'personal', onToggle })
+    const global = getByLabelText('Global instructions: not set')
+    const personal = getByLabelText('Personal notes: not set')
+    expect(global.getAttribute('aria-expanded')).toBe('false')
+    expect(personal.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(global)
+    expect(onToggle).toHaveBeenCalledWith('global')
+  })
+})
+
+describe('components/Assistant/UI/Chat/Instructions InstructionsPanel', () => {
+  afterEach(cleanup)
+
+  it('shows only the open layer', () => {
+    const { getByLabelText, queryByLabelText } = render(
+      <InstructionsPanel instructions={dual()} open="personal" />,
+    )
+    expect(getByLabelText(PERSONAL_FIELD)).toBeTruthy()
+    expect(queryByLabelText(GLOBAL_FIELD)).toBeNull()
+  })
+
+  it('saves to the open layer only', async () => {
+    const instructions = dual()
+    const { getByLabelText, getByText } = render(
+      <InstructionsPanel instructions={instructions} open="global" />,
+    )
+    fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'Be terse' } })
+    await act(async () => {
+      fireEvent.click(getByText('Save'))
+    })
+    expect(instructions.global.setText).toHaveBeenCalledWith('Be terse')
+    expect(instructions.personal.setText).not.toHaveBeenCalled()
+  })
+
+  it('keeps an unsaved draft across a switch to the other layer', () => {
+    const instructions = dual()
+    const { getByLabelText, rerender } = render(
+      <InstructionsPanel instructions={instructions} open="global" />,
+    )
+    fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'Draft' } })
+    rerender(<InstructionsPanel instructions={instructions} open="personal" />)
+    rerender(<InstructionsPanel instructions={instructions} open="global" />)
+    expect((getByLabelText(GLOBAL_FIELD) as HTMLTextAreaElement).value).toBe('Draft')
+  })
+
+  it('clears its unsaved marks when it unmounts', () => {
+    const onDirtyChange = vi.fn()
+    const { getByLabelText, unmount } = render(
+      <InstructionsPanel
+        instructions={dual()}
+        open="global"
+        onDirtyChange={onDirtyChange}
+      />,
+    )
+    fireEvent.change(getByLabelText(GLOBAL_FIELD), { target: { value: 'x' } })
+    unmount()
+    expect(onDirtyChange).toHaveBeenLastCalledWith('personal', false)
+    expect(onDirtyChange).toHaveBeenCalledWith('global', false)
+    const calls = onDirtyChange.mock.calls.map((c) => c.join(':'))
+    expect(calls.lastIndexOf('global:false')).toBeGreaterThan(
+      calls.lastIndexOf('global:true'),
+    )
+  })
+
+  it('names the region its toggles control', () => {
+    const { getByRole } = render(
+      <>
+        <InstructionsToggles
+          instructions={dual()}
+          open="global"
+          onToggle={vi.fn()}
+          panelId="p"
+        />
+        <InstructionsPanel instructions={dual()} open="global" id="p" />
+      </>,
+    )
+    const region = getByRole('region', { name: 'Global instructions' })
+    expect(region.id).toBe('p')
+    expect(
+      getByRole('button', { name: 'Global instructions: not set' }).getAttribute(
+        'aria-controls',
+      ),
+    ).toBe('p')
+  })
+
+  it('reports which layer has unsaved changes', () => {
+    const onDirtyChange = vi.fn()
+    const { getByLabelText } = render(
+      <InstructionsPanel
+        instructions={dual()}
+        open="personal"
+        onDirtyChange={onDirtyChange}
+      />,
+    )
+    fireEvent.change(getByLabelText(PERSONAL_FIELD), { target: { value: 'x' } })
+    expect(onDirtyChange).toHaveBeenLastCalledWith('personal', true)
+    fireEvent.change(getByLabelText(PERSONAL_FIELD), { target: { value: '' } })
+    expect(onDirtyChange).toHaveBeenLastCalledWith('personal', false)
   })
 })

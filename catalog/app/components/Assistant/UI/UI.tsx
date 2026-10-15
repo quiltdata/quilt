@@ -78,9 +78,10 @@ function usePanelWidth() {
 
 // The left rail drops to an overlay at the same threshold: under 960px a
 // 40rem panel would leave no content column to reflow.
+// `noSsr`, as the shell's: both must agree from the first render.
 const useCompact = () => {
   const t = M.useTheme()
-  return M.useMediaQuery(t.breakpoints.down('sm'))
+  return M.useMediaQuery(t.breakpoints.down('sm'), { noSsr: true })
 }
 
 // The overlay's Slide gets its transition inline from JS, which no media query
@@ -417,18 +418,26 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   )
 }
 
-export function Trigger() {
+/**
+ * Opens the docked chat. Absent where a page renders the chat inline, since the
+ * dock refuses to open over it; kept while the dock is open, so a modal dock
+ * returns focus here on close.
+ */
+export function Trigger({ className }: { className?: string }) {
   const api = Model.useAssistantAPI()
   const inlined = InlinePresence.useInlined()
-  if (!api || inlined || api.visible) return null
+  if (!api || inlined) return null
   return (
-    <M.IconButton
-      color="inherit"
-      onClick={api.show}
-      aria-label="Open Qurator AI assistant"
-    >
-      <M.Icon>auto_awesome</M.Icon>
-    </M.IconButton>
+    <M.Tooltip arrow title="Ask Qurator">
+      <M.IconButton
+        className={className}
+        color="inherit"
+        onClick={api.show}
+        aria-label="Ask Qurator"
+      >
+        <M.Icon className="material-icons-outlined">assistant</M.Icon>
+      </M.IconButton>
+    </M.Tooltip>
   )
 }
 

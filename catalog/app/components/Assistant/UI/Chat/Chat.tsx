@@ -11,6 +11,7 @@ import * as Buckets from 'utils/Buckets'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { runtime } from 'utils/Effect'
 import usePrevious from 'utils/usePrevious'
+import useId from 'utils/useId'
 
 import * as Model from '../../Model'
 
@@ -18,7 +19,7 @@ import DevTools from './DevTools'
 import Input from './Input'
 import Composer from '../Composer/Composer'
 import type { SessionSave } from '../../Model/SessionSave'
-import Instructions from './Instructions'
+import { InstructionsPanel, InstructionsToggles, type Layer } from './Instructions'
 import MessageAction from './MessageAction'
 import { toCurrentStack } from './links'
 
@@ -791,8 +792,9 @@ const useStyles = M.makeStyles((t) => ({
       outlineOffset: -2,
     },
   },
-  trailing: {
-    marginLeft: 'auto',
+  // Grows to push the header's buttons, whichever there are, to the end.
+  heading: {
+    flexGrow: 1,
   },
   devTools: {
     height: '50%',
@@ -873,6 +875,8 @@ interface ChatProps {
   composer?: 'classic' | 'compact'
   /** Save target for the + menu's Save row; the row is hidden without it. */
   save?: SessionSave
+  /** Host buttons for the header, ahead of the menu. */
+  headerActions?: React.ReactNode
 }
 
 interface Starter {
@@ -909,6 +913,7 @@ export default function Chat({
   onClose,
   composer = 'classic',
   save,
+  headerActions,
 }: ChatProps) {
   const classes = useStyles()
   const [draft, setDraft] = React.useState<{ text: string; at: number }>()
@@ -966,6 +971,23 @@ export default function Chat({
 
   const [devToolsOpen, setDevToolsOpen] = React.useState(false)
 
+  const [instructionsOpen, setInstructionsOpen] = React.useState<Layer | null>(null)
+  const toggleInstructions = React.useCallback(
+    (layer: Layer) => setInstructionsOpen((prev) => (prev === layer ? null : layer)),
+    [],
+  )
+  const instructionsPanelId = useId()
+  const [unsavedInstructions, setUnsavedInstructions] = React.useState<
+    Partial<Record<Layer, boolean>>
+  >({})
+  const markUnsaved = React.useCallback(
+    (layer: Layer, dirty: boolean) =>
+      setUnsavedInstructions((prev) =>
+        !!prev[layer] === dirty ? prev : { ...prev, [layer]: dirty },
+      ),
+    [],
+  )
+
   const toggleDevTools = React.useCallback(
     () => setDevToolsOpen((prev) => !prev),
     [setDevToolsOpen],
@@ -977,16 +999,17 @@ export default function Chat({
         <span className={classes.qicon}>
           <M.Icon className={classes.qiconGlyph}>auto_awesome</M.Icon>
         </span>
-        <div>
+        <div className={classes.heading}>
           <div className={classes.title}>Qurator</div>
           <div className={classes.subtitle}>Your AI assistant, with your permissions</div>
         </div>
+        {headerActions}
         <Menu
           state={state}
           dispatch={dispatch}
           onToggleDevTools={toggleDevTools}
           devToolsOpen={devToolsOpen}
-          className={cx(classes.headerButton, classes.trailing)}
+          className={classes.headerButton}
         />
         <M.IconButton
           className={classes.headerButton}
@@ -1097,11 +1120,25 @@ export default function Chat({
         />
       ) : (
         <>
-          <Instructions instructions={instructions} />
+          <InstructionsPanel
+            instructions={instructions}
+            open={instructionsOpen}
+            onDirtyChange={markUnsaved}
+            id={instructionsPanelId}
+          />
           <Input
             disabled={inputDisabled}
             model={model}
             skills={skills}
+            toolbarEnd={
+              <InstructionsToggles
+                instructions={instructions}
+                open={instructionsOpen}
+                onToggle={toggleInstructions}
+                unsaved={unsavedInstructions}
+                panelId={instructionsPanelId}
+              />
+            }
             helperText={helperText}
             helperSeverity={helperSeverity}
             onSubmit={ask}

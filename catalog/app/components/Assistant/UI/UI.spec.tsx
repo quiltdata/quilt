@@ -83,12 +83,21 @@ describe('components/Assistant/UI Trigger', () => {
     expect(queryByRole('button')).toBeFalsy()
   })
 
-  it('hides the trigger button when assistant is already visible', () => {
+  // A modal dock returns focus to its opener on close, so the opener must remain.
+  it('keeps the trigger button while the assistant is visible', () => {
     const api = makeAPI()
     api.visible = true
     useAssistantAPI.mockReturnValue(api)
     const { queryByRole } = render(<Trigger />)
-    expect(queryByRole('button')).toBeFalsy()
+    expect(queryByRole('button', { name: 'Ask Qurator' })).toBeTruthy()
+  })
+
+  it('opens the assistant', () => {
+    const api = makeAPI()
+    useAssistantAPI.mockReturnValue(api)
+    const { getByRole } = render(<Trigger />)
+    fireEvent.click(getByRole('button', { name: 'Ask Qurator' }))
+    expect(api.show).toHaveBeenCalled()
   })
 })
 
