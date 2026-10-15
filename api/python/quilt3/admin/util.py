@@ -7,7 +7,8 @@ from . import exceptions, types
 
 # Standard graphql-core validation wording for a query referencing a field, argument, or type
 # the registry's schema doesn't have -- the signature of talking to a registry too old for this
-# quilt3 version's admin API.
+# quilt3 version's admin API. graphql-core carries no structured error code for this, so matching
+# on its English wording is a stopgap tied to its exact phrasing across versions.
 _SCHEMA_MISMATCH_RE = re.compile(r"Cannot query field |Unknown argument |Unknown type ")
 
 
