@@ -301,10 +301,21 @@ type Bucket {
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
+# quilt-specs changes/access-code-signup#registry-work. signup is admin-only (it carries the
+# access code); defaultBucket is public (the catalog lands users on it after login, via /api/me).
+type RoleSignup {
+  page: String!
+  title: String
+  description: String
+  accessCode: String!
+}
+
 type UnmanagedRole {
   id: ID!
   name: String!
   arn: String!
+  defaultBucket: String
+  signup: RoleSignup @admin
 }
 
 type ManagedRole {
@@ -313,6 +324,8 @@ type ManagedRole {
   arn: String!
   policies: [Policy!]!
   permissions: [RoleBucketPermission!]!
+  defaultBucket: String
+  signup: RoleSignup @admin
 }
 
 union Role = UnmanagedRole | ManagedRole
@@ -940,11 +953,23 @@ input PermissionInput {
 input UnmanagedRoleInput {
   name: String!
   arn: String!
+  defaultBucket: String
+  signup: RoleSignupInput
 }
 
 input ManagedRoleInput {
   name: String!
   policies: [ID!]!
+  defaultBucket: String
+  signup: RoleSignupInput
+}
+
+# quilt-specs changes/access-code-signup#registry-work. null removes the page.
+input RoleSignupInput {
+  page: String!
+  accessCode: String!
+  title: String
+  description: String
 }
 
 # XXX: consider making these `OperationError`s
@@ -980,6 +1005,11 @@ type RoleHasTooManyPoliciesToAttach {
   _: Boolean
 }
 
+# quilt-specs changes/access-code-signup#registry-work
+type RoleSignupPageConflict {
+  _: Boolean
+}
+
 type RoleCreateSuccess {
   role: Role!
 }
@@ -990,6 +1020,7 @@ union RoleCreateResult =
   | RoleNameExists
   | RoleNameInvalid
   | RoleHasTooManyPoliciesToAttach
+  | RoleSignupPageConflict
 
 type RoleUpdateSuccess {
   role: Role!
@@ -1004,6 +1035,7 @@ union RoleUpdateResult =
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
+  | RoleSignupPageConflict
 
 type RoleDeleteSuccess {
   _: Boolean

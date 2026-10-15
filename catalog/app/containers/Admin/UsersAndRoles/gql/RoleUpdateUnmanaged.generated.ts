@@ -9,9 +9,18 @@ import * as Types from '../../../../model/graphql/types.generated'
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 export type BucketPermissionLevel = 'READ' | 'READ_WRITE'
 
+export interface RoleSignupInput {
+  readonly accessCode: string
+  readonly description: string | null | undefined
+  readonly page: string
+  readonly title: string | null | undefined
+}
+
 export interface UnmanagedRoleInput {
   readonly arn: string
+  readonly defaultBucket: string | null | undefined
   readonly name: string
+  readonly signup: RoleSignupInput | null | undefined
 }
 
 export type containers_Admin_UsersAndRoles_gql_RoleUpdateUnmanagedMutationVariables =
@@ -30,6 +39,7 @@ export interface containers_Admin_UsersAndRoles_gql_RoleUpdateUnmanagedMutation 
     | { readonly __typename: 'RoleNameInvalid' }
     | { readonly __typename: 'RoleNameReserved' }
     | { readonly __typename: 'RoleNameUsedBySsoConfig' }
+    | { readonly __typename: 'RoleSignupPageConflict' }
     | {
         readonly __typename: 'RoleUpdateSuccess'
         readonly role:
@@ -38,6 +48,7 @@ export interface containers_Admin_UsersAndRoles_gql_RoleUpdateUnmanagedMutation 
               readonly id: string
               readonly name: string
               readonly arn: string
+              readonly defaultBucket: string | null
               readonly permissions: ReadonlyArray<{
                 readonly __typename: 'RoleBucketPermission'
                 readonly level: Types.BucketPermissionLevel
@@ -64,12 +75,27 @@ export interface containers_Admin_UsersAndRoles_gql_RoleUpdateUnmanagedMutation 
                   readonly id: string
                 }>
               }>
+              readonly signup: {
+                readonly __typename: 'RoleSignup'
+                readonly page: string
+                readonly accessCode: string
+                readonly title: string | null
+                readonly description: string | null
+              } | null
             }
           | {
               readonly __typename: 'UnmanagedRole'
               readonly id: string
               readonly name: string
               readonly arn: string
+              readonly defaultBucket: string | null
+              readonly signup: {
+                readonly __typename: 'RoleSignup'
+                readonly page: string
+                readonly accessCode: string
+                readonly title: string | null
+                readonly description: string | null
+              } | null
             }
       }
 }
@@ -160,6 +186,20 @@ export const containers_Admin_UsersAndRoles_gql_RoleUpdateUnmanagedDocument = {
     },
     {
       kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'RoleSignupSelection' },
+      typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'RoleSignup' } },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'page' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'accessCode' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+        ],
+      },
+    },
+    {
+      kind: 'FragmentDefinition',
       name: { kind: 'Name', value: 'RoleSelection' },
       typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'Role' } },
       selectionSet: {
@@ -178,6 +218,20 @@ export const containers_Admin_UsersAndRoles_gql_RoleUpdateUnmanagedDocument = {
                 { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'arn' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'defaultBucket' } },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'signup' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'FragmentSpread',
+                        name: { kind: 'Name', value: 'RoleSignupSelection' },
+                      },
+                    ],
+                  },
+                },
               ],
             },
           },
@@ -254,6 +308,20 @@ export const containers_Admin_UsersAndRoles_gql_RoleUpdateUnmanagedDocument = {
                             { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                           ],
                         },
+                      },
+                    ],
+                  },
+                },
+                { kind: 'Field', name: { kind: 'Name', value: 'defaultBucket' } },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'signup' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'FragmentSpread',
+                        name: { kind: 'Name', value: 'RoleSignupSelection' },
                       },
                     ],
                   },

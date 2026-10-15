@@ -19,6 +19,7 @@ class RoleUpdateManaged(BaseModel):
         "RoleUpdateManagedRoleUpdateManagedRoleIsManaged",
         "RoleUpdateManagedRoleUpdateManagedRoleIsUnmanaged",
         "RoleUpdateManagedRoleUpdateManagedRoleHasTooManyPoliciesToAttach",
+        "RoleUpdateManagedRoleUpdateManagedRoleSignupPageConflict",
     ] = Field(alias="roleUpdateManaged", discriminator="typename__")
 
 
@@ -64,6 +65,10 @@ class RoleUpdateManagedRoleUpdateManagedRoleIsUnmanaged(BaseModel):
 
 class RoleUpdateManagedRoleUpdateManagedRoleHasTooManyPoliciesToAttach(BaseModel):
     typename__: Literal["RoleHasTooManyPoliciesToAttach"] = Field(alias="__typename")
+
+
+class RoleUpdateManagedRoleUpdateManagedRoleSignupPageConflict(BaseModel):
+    typename__: Literal["RoleSignupPageConflict"] = Field(alias="__typename")
 
 
 RoleUpdateManaged.model_rebuild()
