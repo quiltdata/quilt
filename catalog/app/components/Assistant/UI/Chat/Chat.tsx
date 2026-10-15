@@ -528,17 +528,27 @@ export function ToolCallGroup({
   )
 
   const calls: ToolCallEntry[] = React.useMemo(() => {
-    // Deduped by toolUseId (stable identity), not event id (reminted per
-    // result): keeps the rollup's failure count correct if a retry ever
-    // adds a second ToolUse event for the same call.
-    const byToolUseId = new Map<string, ToolCallEntry>()
+    // Deduped by (responseId, toolUseId), not bare toolUseId: a toolUseId
+    // is only guaranteed unique within its own response's batch
+    // (Model/Conversation.ts's own uniqueness check is scoped to that one
+    // batch), so two unrelated calls from different, consecutive
+    // tool-only responses (toolCallRunsOf merges them into one run, since
+    // there's no Message between tool-only replies to break it) can
+    // legitimately share a toolUseId -- keying on it alone would let the
+    // later call's result silently overwrite the earlier one's, including
+    // a failure. Namespacing by responseId also still keeps the dedup's
+    // original purpose intact: a genuine retry (same response, same
+    // toolUseId, a second ToolUse event) still collapses to one entry, so
+    // the rollup's failure count stays correct if that case ever appears.
+    const byCallKey = new Map<string, ToolCallEntry>()
     for (const e of events) {
       const reason =
         e.result.status === 'error'
           ? e.result.content.find((c) => c._tag === 'Text')
           : undefined
-      byToolUseId.set(e.toolUseId, {
-        key: e.toolUseId,
+      const callKey = `${e.responseId}\u0000${e.toolUseId}`
+      byCallKey.set(callKey, {
+        key: callKey,
         name: toolTitle(e.name),
         status: e.result.status,
         reason: reason?._tag === 'Text' ? reason.text : undefined,
@@ -547,7 +557,7 @@ export function ToolCallGroup({
         discard: state === 'Idle' ? () => discard(e.id) : undefined,
       })
     }
-    const finished = Array.from(byToolUseId.values())
+    const finished = Array.from(byCallKey.values())
 
     const running: ToolCallEntry[] = Eff.Record.collect(
       liveRunning,
@@ -1077,16 +1087,16 @@ export function roundKeyOf(
 }
 
 /**
- * The one round that's still live and has no anchor yet. `ids` is its
- * last-observed set of toolUseIds -- the only fact that survives into the
- * render where it settles (`anchor` doesn't exist until then) and lets
- * that render recognize its own round's trailing group, rather than
- * guessing from the group's absence of a prior map entry (which an
- * always-historical round, never observed live, also lacks).
+ * The one round that's still live and has no anchor yet. `responseId` is
+ * the one fact that survives into the render where it settles (`anchor`
+ * doesn't exist until then) and safely identifies its own round's
+ * trailing group once it appears -- unlike its `toolUseId`s, which the
+ * model only guarantees unique within their own response and so can
+ * collide with an unrelated round's.
  */
 export interface PendingLive {
   readonly key: string
-  readonly ids: readonly string[]
+  readonly responseId: string
 }
 
 // `toolCallGroupIdsOf` never produces more than one anchorless group per
@@ -1110,6 +1120,15 @@ export interface PendingLive {
 // misdirected an unrelated round's claim. A full map has no such ceiling:
 // every round that ever settles keeps its own entry, forever, independent
 // of how many other rounds come after it.
+//
+// An earlier version of this discriminated "did this round just settle"
+// by checking for shared `toolUseId`s between the pending round and the
+// new trailing group -- but a toolUseId is only guaranteed unique within
+// its own response (Model/Conversation.ts:353-357), so a *different*,
+// Message-separated round reusing one could still pass that check and
+// steal its key. `responseId` (now carried on every ToolCall/ToolUse
+// event, minted fresh per LLMResponse batch) is the real, collision-safe
+// identity to check instead.
 export function advanceAnchorKeys(
   anchorKeys: ReadonlyMap<string, string>,
   pendingLive: PendingLive | undefined,
@@ -1119,28 +1138,27 @@ export function advanceAnchorKeys(
   const liveGroup = toolCallGroupIds.find((g) => g.anchor === undefined)
   if (liveGroup) {
     // Still anchorless: keep minting nothing further once a key already
-    // exists for it, but keep its own `ids` current -- the ids this round
-    // settles with are the ones the next render needs to recognize it by.
+    // exists for it.
     return {
       anchorKeys,
-      pendingLive: { key: pendingLive?.key ?? mintKey(), ids: liveGroup.ids },
+      pendingLive: {
+        key: pendingLive?.key ?? mintKey(),
+        responseId: liveGroup.responseId,
+      },
     }
   }
   if (!pendingLive) return { anchorKeys, pendingLive: undefined }
   // The round that was pending has no anchorless group anymore: either it
   // just settled (its first call resolved into the new trailing group,
-  // which still carries at least one of this round's own `ids` -- the
-  // live tail concatenated onto it, from `toolCallGroupIdsOf`), or it was
-  // aborted away with no event at all (no new group carries its ids
-  // anywhere -- the trailing group, if any, is an unrelated older round
-  // with none of them). Checking for shared ids, not merely an unclaimed
-  // anchor, also correctly rejects a round that was always historical and
-  // never observed live at all (it has no entry to claim through either,
-  // but it never had a `pendingLive.ids` overlap to begin with).
+  // which carries this exact responseId -- `toolCallRunsOf` now only ever
+  // merges events sharing one, and the live tail always comes from the
+  // single response in flight), or it was aborted away with no event at
+  // all (no new group carries this responseId anywhere -- the trailing
+  // group, if any, is an unrelated older round with a different one).
   const [trailingGroup] = toolCallGroupIds.slice(-1)
   const settledHere =
     trailingGroup?.anchor !== undefined &&
-    pendingLive.ids.some((id) => trailingGroup.ids.includes(id))
+    trailingGroup.responseId === pendingLive.responseId
   if (settledHere) {
     const next = new Map(anchorKeys)
     next.set(trailingGroup.anchor, pendingLive.key)
@@ -1156,13 +1174,22 @@ export function advanceAnchorKeys(
 // dropped from each run afterward -- filtering first would erase a
 // discarded Message's run boundary and wrongly merge the ToolUse runs on
 // either side of it into one.
+// Two adjacent ToolUse events merge into one run only when they also share
+// a responseId: two consecutive tool-only replies (no Message between
+// them, since neither had text) are otherwise indistinguishable from one
+// multi-call turn by tag alone, so without this a later response's calls
+// would visually merge into an earlier, unrelated one's rollup -- not just
+// risk losing a result to it (ToolCallGroup's own dedup is namespaced by
+// responseId for that), but display two different turns as if they were
+// one.
 export function toolCallRunsOf(
   events: Model.Conversation.Event[],
 ): Model.Conversation.Event[][] {
   if (!Eff.Array.isNonEmptyArray(events)) return []
   return Eff.Array.groupWith(
     events,
-    (a, b) => a._tag === 'ToolUse' && b._tag === 'ToolUse',
+    (a, b) =>
+      a._tag === 'ToolUse' && b._tag === 'ToolUse' && a.responseId === b.responseId,
   )
     .map((run) => run.filter((e) => !e.discarded))
     .filter((run) => run.length > 0)
@@ -1173,7 +1200,11 @@ export function toolCallRunsOf(
  * that happens to share a `toolUseId` (the model only guarantees a
  * `toolUseId` is unique within its own response, not across the
  * conversation -- Model/Conversation.ts:353-357), and `ids` are the
- * `toolUseId`s it's currently known by. The anchor is the run's first
+ * `toolUseId`s it's currently known by. `responseId` is the one response
+ * every event (and live call) in this group was created by -- a single
+ * value, not one per id, since `toolCallRunsOf` now only ever merges
+ * events that already share one, and the live tail always comes from the
+ * single currently in-flight response. The anchor is the run's first
  * settled event's own event id (minted fresh per completed call, so it
  * can't collide with another run's), or `undefined` for a round that's
  * still entirely live and has no settled event yet -- there can be only
@@ -1181,6 +1212,7 @@ export function toolCallRunsOf(
  */
 export interface ToolCallGroupIds {
   readonly anchor: string | undefined
+  readonly responseId: string
   readonly ids: readonly string[]
 }
 
@@ -1202,14 +1234,27 @@ export function toolCallGroupIdsOf(
       const liveIds = isTrailing && liveToolUse ? Object.keys(liveToolUse.calls) : []
       const group: ToolCallGroupIds = {
         anchor: toolUseEvents[0].id,
+        responseId: toolUseEvents[0].responseId,
         ids: toolUseIds.concat(liveIds),
       }
       return group
     })
-  const standaloneLiveIds: ToolCallGroupIds[] =
+  const liveCalls =
     liveToolUse && toolCallRuns[toolCallRuns.length - 1]?.[0]._tag !== 'ToolUse'
-      ? [{ anchor: undefined, ids: Object.keys(liveToolUse.calls) }]
+      ? Object.values(liveToolUse.calls)
       : []
+  // Every call in one `live.calls` record comes from the single response
+  // currently in flight (Conversation.ts never has two concurrently), so
+  // any one of them names the whole group's responseId.
+  const standaloneLiveIds: ToolCallGroupIds[] = liveCalls.length
+    ? [
+        {
+          anchor: undefined,
+          responseId: liveCalls[0].responseId,
+          ids: Object.keys(liveToolUse!.calls),
+        },
+      ]
+    : []
   return toolUseRunIds.concat(standaloneLiveIds)
 }
 

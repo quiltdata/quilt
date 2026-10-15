@@ -172,13 +172,21 @@ describe('components/Assistant/UI/Chat/MessageEvent link rewriting', () => {
 })
 
 describe('components/Assistant/UI/Chat/roundKeyOf', () => {
-  const live = (ids: readonly string[]) => ({ anchor: undefined, ids })
-  const settled = (anchor: string, ids: readonly string[]) => ({ anchor, ids })
+  const live = (ids: readonly string[], responseId = 'r') => ({
+    anchor: undefined,
+    responseId,
+    ids,
+  })
+  const settled = (anchor: string, ids: readonly string[], responseId = 'r') => ({
+    anchor,
+    responseId,
+    ids,
+  })
 
   it('resolves a live round to the pending live key', () => {
-    expect(roundKeyOf(new Map(), { key: 'pending-1', ids: ['a'] }, live(['a']))).toBe(
-      'pending-1',
-    )
+    expect(
+      roundKeyOf(new Map(), { key: 'pending-1', responseId: 'r' }, live(['a'])),
+    ).toBe('pending-1')
   })
 
   it('has no key for a live round when nothing is pending', () => {
@@ -213,8 +221,16 @@ describe('components/Assistant/UI/Chat/roundKeyOf', () => {
 // State.Idle with `events` unchanged) must not misattribute the aborted
 // round's pending key to whatever older round happens to be trailing next.
 describe('components/Assistant/UI/Chat/advanceAnchorKeys', () => {
-  const live = (ids: readonly string[]) => ({ anchor: undefined, ids })
-  const settled = (anchor: string, ids: readonly string[]) => ({ anchor, ids })
+  const live = (ids: readonly string[], responseId = 'r') => ({
+    anchor: undefined,
+    responseId,
+    ids,
+  })
+  const settled = (anchor: string, ids: readonly string[], responseId = 'r') => ({
+    anchor,
+    responseId,
+    ids,
+  })
   let nextKey = 0
   const mintKey = () => `minted-${nextKey++}`
 
@@ -229,10 +245,10 @@ describe('components/Assistant/UI/Chat/advanceAnchorKeys', () => {
       [live(['a'])],
       mintKey,
     )
-    expect(pendingLive).toEqual({ key: 'minted-0', ids: ['a'] })
+    expect(pendingLive).toEqual({ key: 'minted-0', responseId: 'r' })
   })
 
-  it('keeps minting nothing further while still live, but keeps its ids current', () => {
+  it('keeps minting nothing further while still live', () => {
     let { anchorKeys, pendingLive } = advanceAnchorKeys(
       new Map(),
       undefined,
@@ -245,7 +261,7 @@ describe('components/Assistant/UI/Chat/advanceAnchorKeys', () => {
       [live(['a', 'b'])],
       mintKey,
     ))
-    expect(pendingLive).toEqual({ key: 'minted-0', ids: ['a', 'b'] })
+    expect(pendingLive).toEqual({ key: 'minted-0', responseId: 'r' })
     expect(anchorKeys.size).toBe(0)
   })
 
@@ -279,13 +295,13 @@ describe('components/Assistant/UI/Chat/advanceAnchorKeys', () => {
     let { anchorKeys, pendingLive } = advanceAnchorKeys(
       new Map(),
       undefined,
-      [live(['a'])],
+      [live(['a'], 'response-a')],
       mintKey,
     )
     ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
       anchorKeys,
       pendingLive,
-      [settled('event-a', ['a'])],
+      [settled('event-a', ['a'], 'response-a')],
       mintKey,
     ))
     const beforeSecondRound = anchorKeys.get('event-a')
@@ -293,11 +309,11 @@ describe('components/Assistant/UI/Chat/advanceAnchorKeys', () => {
     ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
       anchorKeys,
       pendingLive,
-      [settled('event-a', ['a']), live(['b'])],
+      [settled('event-a', ['a'], 'response-a'), live(['b'], 'response-b')],
       mintKey,
     ))
     expect(anchorKeys.get('event-a')).toBe(beforeSecondRound)
-    expect(pendingLive).toEqual({ key: 'minted-1', ids: ['b'] })
+    expect(pendingLive).toEqual({ key: 'minted-1', responseId: 'response-b' })
   })
 
   // The other bug the fourth round found: an abort before any call
@@ -309,29 +325,67 @@ describe('components/Assistant/UI/Chat/advanceAnchorKeys', () => {
     let { anchorKeys, pendingLive } = advanceAnchorKeys(
       new Map(),
       undefined,
-      [settled('event-a', ['a'])], // an older round, already settled
+      [settled('event-a', ['a'], 'response-a')], // an older round, already settled
       mintKey,
     )
     expect(pendingLive).toBeUndefined()
-    // A second round starts live, then is aborted before any call
-    // resolves: no new event, so the render after the abort sees only the
-    // older round again, now trailing with nothing live.
+    // A second round (a different response) starts live, then is aborted
+    // before any call resolves: no new event, so the render after the
+    // abort sees only the older round again, now trailing with nothing
+    // live.
     ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
       anchorKeys,
       pendingLive,
-      [settled('event-a', ['a']), live(['b'])],
+      [settled('event-a', ['a'], 'response-a'), live(['b'], 'response-b')],
       mintKey,
     ))
     const beforeAbort = pendingLive
-    expect(beforeAbort).toEqual({ key: 'minted-0', ids: ['b'] })
+    expect(beforeAbort).toEqual({ key: 'minted-0', responseId: 'response-b' })
     ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
       anchorKeys,
       pendingLive,
-      [settled('event-a', ['a'])],
+      [settled('event-a', ['a'], 'response-a')],
       mintKey,
     ))
     expect(pendingLive).toBeUndefined()
     // The aborted round's key must not have been attributed to 'event-a'.
+    expect(anchorKeys.get('event-a')).toBeUndefined()
+  })
+
+  // The bug Copilot's round-5 review found in this check's predecessor
+  // (toolUseId overlap, not responseId): if the ABORTED round's own
+  // toolUseId happened to collide with an older HISTORICAL round's
+  // toolUseId -- not just "whatever happens to be trailing" -- the old
+  // overlap check would wrongly match and misattribute the key anyway.
+  // responseId can't have this problem: it's minted fresh per
+  // LLMResponse batch (Model/Conversation.ts), never derived from or
+  // equal to a toolUseId.
+  it('does not misattribute an aborted key even when its toolUseId collides with an older round', () => {
+    let { anchorKeys, pendingLive } = advanceAnchorKeys(
+      new Map(),
+      undefined,
+      [settled('event-a', ['reused-id'], 'response-a')],
+      mintKey,
+    )
+    // The second, live round reuses 'reused-id' -- the exact collision
+    // the old overlap check was vulnerable to.
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [
+        settled('event-a', ['reused-id'], 'response-a'),
+        live(['reused-id'], 'response-b'),
+      ],
+      mintKey,
+    ))
+    // Aborted: no new event, back to just the older round trailing.
+    ;({ anchorKeys, pendingLive } = advanceAnchorKeys(
+      anchorKeys,
+      pendingLive,
+      [settled('event-a', ['reused-id'], 'response-a')],
+      mintKey,
+    ))
+    expect(pendingLive).toBeUndefined()
     expect(anchorKeys.get('event-a')).toBeUndefined()
   })
 
@@ -392,6 +446,7 @@ describe('components/Assistant/UI/Chat/toolCallGroupIdsOf', () => {
       id,
       timestamp: new Date(),
       toolUseId,
+      responseId: `${id}-response`,
       name: 'search_packages',
       input: {},
       result: { status: 'success', content: [] },
@@ -416,9 +471,18 @@ describe('components/Assistant/UI/Chat/toolCallGroupIdsOf', () => {
   it('includes live ids in the trailing ToolUse run even when a Message run precedes it', () => {
     const toolCallRuns = [[messageEventFor('m1')], [toolUseEventFor('t1', 'use-1')]]
     const groups = toolCallGroupIdsOf(toolCallRuns, {
-      calls: { 'use-2': { name: 'object_read', input: {}, fiber: {} as any } },
+      calls: {
+        'use-2': {
+          name: 'object_read',
+          input: {},
+          responseId: 't1-response',
+          fiber: {} as any,
+        },
+      },
     })
-    expect(groups).toEqual([{ anchor: 't1', ids: ['use-1', 'use-2'] }])
+    expect(groups).toEqual([
+      { anchor: 't1', responseId: 't1-response', ids: ['use-1', 'use-2'] },
+    ])
   })
 
   // The bug this pins: two different, Message-separated runs can carry
@@ -433,8 +497,8 @@ describe('components/Assistant/UI/Chat/toolCallGroupIdsOf', () => {
     ]
     const groups = toolCallGroupIdsOf(toolCallRuns, undefined)
     expect(groups).toEqual([
-      { anchor: 'event-1', ids: ['reused-id'] },
-      { anchor: 'event-2', ids: ['reused-id'] },
+      { anchor: 'event-1', responseId: 'event-1-response', ids: ['reused-id'] },
+      { anchor: 'event-2', responseId: 'event-2-response', ids: ['reused-id'] },
     ])
     expect(groups[0].anchor).not.toBe(groups[1].anchor)
   })
@@ -443,12 +507,17 @@ describe('components/Assistant/UI/Chat/toolCallGroupIdsOf', () => {
 describe('components/Assistant/UI/Chat/toolCallRunsOf', () => {
   const TS = new Date()
 
-  function toolUseEventFor(id: string, toolUseId: string): Model.Conversation.Event {
+  function toolUseEventFor(
+    id: string,
+    toolUseId: string,
+    responseId = 'shared-response',
+  ): Model.Conversation.Event {
     return {
       _tag: 'ToolUse',
       id,
       timestamp: TS,
       toolUseId,
+      responseId,
       name: 'search_packages',
       input: {},
       result: { status: 'success', content: [] },
@@ -483,12 +552,33 @@ describe('components/Assistant/UI/Chat/toolCallRunsOf', () => {
     ])
   })
 
-  it('still merges adjacent ToolUse events with no Message between them', () => {
+  it('still merges adjacent ToolUse events from the same response with no Message between them', () => {
     const runs = toolCallRunsOf([
       toolUseEventFor('1', 'use-1'),
       toolUseEventFor('2', 'use-2'),
     ])
     expect(runs).toEqual([[toolUseEventFor('1', 'use-1'), toolUseEventFor('2', 'use-2')]])
+  })
+
+  // The bug Greptile's round-5 review found: two consecutive tool-only
+  // replies (no text, so no Message event between them) are
+  // indistinguishable from one multi-call turn by ToolUse-tag adjacency
+  // alone. Without checking responseId too, a later, unrelated response
+  // reusing a toolUseId would land in the SAME run as an earlier,
+  // unrelated call -- then ToolCallGroup's own dedup (keyed by
+  // (responseId, toolUseId) after this round's fix) would correctly keep
+  // both calls, but they'd still display as one merged rollup for two
+  // different turns. Splitting the run here, at the source, is the actual
+  // fix: unrelated responses never share one run, or one rollup, at all.
+  it('does not merge adjacent ToolUse events from different responses, even with no Message between them', () => {
+    const runs = toolCallRunsOf([
+      toolUseEventFor('1', 'reused-use', 'response-a'),
+      toolUseEventFor('2', 'reused-use', 'response-b'),
+    ])
+    expect(runs).toEqual([
+      [toolUseEventFor('1', 'reused-use', 'response-a')],
+      [toolUseEventFor('2', 'reused-use', 'response-b')],
+    ])
   })
 
   it('drops a discarded ToolUse from its run without dropping the run', () => {
@@ -516,12 +606,14 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
     name: string,
     status: 'success' | 'error' = 'success',
     toolUseId = `${id}-use`,
+    responseId = `${id}-response`,
   ): ReturnType<typeof Model.Conversation.Event.ToolUse> {
     return {
       _tag: 'ToolUse',
       id,
       timestamp: new Date(),
       toolUseId,
+      responseId,
       name,
       input: { q: id },
       result: { status, content: [] },
@@ -590,7 +682,12 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
       live: {
         timestamp: new Date(),
         calls: {
-          'call-2': { name: 'package_revision', input: {}, fiber: {} as any },
+          'call-2': {
+            name: 'package_revision',
+            input: {},
+            responseId: 'r2',
+            fiber: {} as any,
+          },
         },
       },
     })
@@ -647,13 +744,34 @@ describe('components/Assistant/UI/Chat/ToolCallGroup', () => {
     renderGroup({
       state: 'Idle',
       events: [
-        toolUseEvent('1', 'object_read', 'error', 'shared-use'),
-        toolUseEvent('2', 'object_read', 'success', 'shared-use'),
+        // Same responseId: this is a genuine retry within one response,
+        // the only case toolUseId reuse is actually safe to collapse.
+        toolUseEvent('1', 'object_read', 'error', 'shared-use', 'shared-response'),
+        toolUseEvent('2', 'object_read', 'success', 'shared-use', 'shared-response'),
         toolUseEvent('3', 'search_packages', 'success'),
       ],
     })
     expect(screen.getByText('2 tool calls')).toBeTruthy()
     expect(screen.queryByText(/failed/)).toBeNull()
+  })
+
+  // The bug Greptile's round-5 review found: toolUseId is only unique
+  // within one response (Model/Conversation.ts's own uniqueness check is
+  // scoped to one LLMResponse's batch), so two UNRELATED calls from
+  // different, consecutive tool-only responses (no Message event between
+  // them, since neither response had text) can legitimately share a
+  // toolUseId. The dedup must key by (responseId, toolUseId), not bare
+  // toolUseId, or the earlier call's result -- including a failure --
+  // silently vanishes under the later one.
+  it('keeps two unrelated calls separate when they reuse a toolUseId across different responses', () => {
+    renderGroup({
+      state: 'Idle',
+      events: [
+        toolUseEvent('1', 'object_read', 'error', 'reused-use', 'response-a'),
+        toolUseEvent('2', 'search_packages', 'success', 'reused-use', 'response-b'),
+      ],
+    })
+    expect(screen.getByText('2 tool calls, 1 failed')).toBeTruthy()
   })
 })
 
@@ -743,6 +861,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
             w: {
               name: 'platform__object_delete',
               input: { bucket: 'b', key: 'k.txt' },
+              responseId: 'rw',
               approval: 'destructive',
               key: 'k1',
             },
@@ -781,6 +900,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
             id: '1',
             timestamp: new Date(),
             toolUseId: '1-use',
+            responseId: 'r1',
             name: 'search_packages',
             input: {},
             result: { status: 'success', content: [] },
@@ -792,6 +912,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
             w: {
               name: 'platform__object_delete',
               input: { bucket: 'b', key: 'k.txt' },
+              responseId: 'rw',
               approval: 'destructive',
               key: 'k1',
             },
@@ -822,10 +943,16 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
             w: {
               name: 'platform__object_delete',
               input: { bucket: 'b', key: 'k.txt' },
+              responseId: 'rw',
               approval: 'destructive',
               key: 'k1',
             },
-            r: { name: 'search_packages', input: {}, fiber: {} as any },
+            r: {
+              name: 'search_packages',
+              input: {},
+              responseId: 'rr',
+              fiber: {} as any,
+            },
           },
         }}
       />,
@@ -844,6 +971,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
             id: '1',
             timestamp: new Date(),
             toolUseId: 'r',
+            responseId: 'rr',
             name: 'search_packages',
             input: {},
             result: { status: 'success', content: [] },
@@ -855,6 +983,7 @@ describe('components/Assistant/UI/Chat/ToolCallGroup approval', () => {
             w: {
               name: 'platform__object_delete',
               input: { bucket: 'b', key: 'k.txt' },
+              responseId: 'rw',
               approval: 'destructive',
               key: 'k1',
             },

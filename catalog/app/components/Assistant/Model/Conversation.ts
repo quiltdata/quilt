@@ -22,6 +22,15 @@ const getNow = Eff.Clock.currentTimeMillis.pipe(Eff.Effect.map((t) => new Date(t
 export interface ToolCall {
   readonly name: string
   readonly input: Record<string, any>
+  /**
+   * Shared by every call from the same LLMResponse: `toolUseId` is only
+   * guaranteed unique within that one batch (the uniqueness check below
+   * is scoped to it), never across the conversation, so two unrelated
+   * calls in different responses can legitimately share a toolUseId. The
+   * UI's own run-grouping (`toolCallRunsOf`) uses this, not toolUseId, to
+   * tell two adjacent ToolUse events apart when they do.
+   */
+  readonly responseId: string
   /** Absent while the call waits for the user's approval. */
   readonly fiber?: Eff.Fiber.RuntimeFiber<void>
   /** Set while the call waits for the user's approval. */
@@ -58,6 +67,8 @@ export type Event = Eff.Data.TaggedEnum<{
   }
   ToolUse: EventBase & {
     readonly toolUseId: string
+    /** See `ToolCall.responseId`: distinguishes this call from an unrelated one in a different response that happens to reuse the same toolUseId. */
+    readonly responseId: string
     readonly name: string
     readonly input: Record<string, any>
     readonly result: Tool.Result
@@ -272,6 +283,7 @@ const completeCall = (
         id: yield* genId,
         timestamp: yield* getNow,
         toolUseId: id,
+        responseId: call.responseId,
         name: call.name,
         input: call.input,
         result: result.value,
@@ -362,6 +374,10 @@ export const ConversationActor = Eff.Effect.succeed(
             }
 
             const tools = yield* currentTools
+            // One id for the whole batch: toolUseId is only unique within
+            // it (the check above), so this is what tells two calls from
+            // *different* batches apart when they happen to reuse one.
+            const responseId = yield* genId
             const calls: Record<string, ToolCall> = {}
             for (const tu of toolUses) {
               const effect = Eff.Record.has(tools, tu.name)
@@ -371,6 +387,7 @@ export const ConversationActor = Eff.Effect.succeed(
                 calls[tu.toolUseId] = {
                   name: tu.name,
                   input: tu.input,
+                  responseId,
                   approval: effect,
                   tool: tools[tu.name],
                   key: yield* genId,
@@ -380,6 +397,7 @@ export const ConversationActor = Eff.Effect.succeed(
               calls[tu.toolUseId] = {
                 name: tu.name,
                 input: tu.input,
+                responseId,
                 fiber: yield* forkCall(tools, tu.toolUseId, tu.name, tu.input, dispatch),
               }
             }
@@ -424,7 +442,12 @@ export const ConversationActor = Eff.Effect.succeed(
               ...state,
               calls: {
                 ...state.calls,
-                [id]: { name: call.name, input: call.input, fiber },
+                [id]: {
+                  name: call.name,
+                  input: call.input,
+                  responseId: call.responseId,
+                  fiber,
+                },
               },
             }
           }),
