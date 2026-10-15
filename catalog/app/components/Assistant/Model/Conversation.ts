@@ -175,6 +175,13 @@ const MAX_PROMPT_CHARS = 120_000
  * but `events` is unchanged -- so every subsequent Ask rebuilds the identical
  * oversized prompt and fails identically, forever. Trimming here, not just
  * once after an error, means it never gets that far.
+ *
+ * Trims whole Events, so a ToolUse's call and result (one record here) can
+ * never be split apart. constructPrompt's own pre-existing msgEvents/
+ * toolMessages split (unrelated to this trim, true on master before it)
+ * means the surviving suffix's true chronological order isn't fully
+ * reflected in the assembled prompt either way -- a known, pre-existing
+ * property of constructPrompt, not something this trim introduces or fixes.
  */
 export const trimEventsToBudget = (
   events: Event[],

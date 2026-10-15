@@ -366,12 +366,14 @@ describe('Conversation actor — connector gating', () => {
     ))
 
   /**
-   * forkCall uses catchAllDefect, not catchAllCause, specifically because
-   * catchAllCause's documented contract also intercepts Interrupt causes --
-   * catchAllDefect excludes interruption by design (effect's own docs:
-   * "it does not handle expected errors ... or execution interruptions").
-   * This confirms Abort on a running call fiber still reaches Idle and
-   * never appends a stray ToolUse event for the interrupted call.
+   * Smoke test: Abort on a call fiber still mid-executor reaches Idle
+   * cleanly with no stray ToolUse event. Note this passes under both
+   * catchAllDefect and catchAllCause (interruptFork's own interruption
+   * happens upstream of either handler in this exact timing), so it does
+   * NOT discriminate forkCall's catchAllDefect choice from catchAllCause --
+   * that choice is justified by effect's own documented contract
+   * (catchAllDefect "does not handle ... execution interruptions"), traced
+   * against the library's actual compiled dispatch, not proven by this test.
    */
   it('Abort on a running tool call fiber reaches Idle with no stray ToolUse event', () =>
     Eff.Effect.runPromise(
