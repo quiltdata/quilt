@@ -894,16 +894,17 @@ def get_latest_pointer(registry: S3PackageRegistryV1, name: str) -> LatestPointe
     return LatestPointer(resp["Body"].read().decode(), resp["ETag"])
 
 
-def put_if(s3_client, pk: PhysicalKey, body: bytes, **precondition) -> bool:
-    """Put `body` at `pk` under an S3 precondition; return whether it was written."""
+def put_if(s3_client, pk: PhysicalKey, body: bytes, **precondition) -> str | None:
+    """Put `body` at `pk` under an S3 precondition; return the code it failed with, or None once written."""
     try:
         s3_client.put_object(Bucket=pk.bucket, Key=pk.path, Body=body, **precondition)
     except botocore.exceptions.ClientError as e:
         # 412: the precondition failed; 409: another conditional write to the key is in flight.
-        if e.response.get("Error", {}).get("Code") not in ("PreconditionFailed", "ConditionalRequestConflict"):
+        code = e.response.get("Error", {}).get("Code")
+        if code not in ("PreconditionFailed", "ConditionalRequestConflict"):
             raise PkgpushException.from_boto_error(e)
-        return False
-    return True
+        return code
+    return None
 
 
 def push_patch_manifest(
@@ -925,10 +926,13 @@ def push_patch_manifest(
     s3_client = get_user_s3_client()
 
     # The top hash does not cover physical keys, so never rewrite an existing revision's manifest.
-    put_if(s3_client, registry.manifest_pk(name, top_hash), manifest.getvalue(), IfNoneMatch="*")
+    manifest_pk = registry.manifest_pk(name, top_hash)
+    if put_if(s3_client, manifest_pk, manifest.getvalue(), IfNoneMatch="*") == "ConditionalRequestConflict":
+        # Another writer is creating it, so it did not exist: write it too rather than trust that write.
+        put_if(s3_client, manifest_pk, manifest.getvalue())
 
     precondition = {"IfNoneMatch": "*"} if base.etag is None else {"IfMatch": base.etag}
-    if not put_if(s3_client, registry.pointer_latest_pk(name), top_hash.encode(), **precondition):
+    if put_if(s3_client, registry.pointer_latest_pk(name), top_hash.encode(), **precondition) is not None:
         # The write that moved `latest` may be this one: a retried PUT, or a redelivered run.
         latest = get_latest_pointer(registry, name).top_hash
         if latest != top_hash:

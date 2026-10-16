@@ -129,7 +129,9 @@ def env(mocker):
 
     def built():
         """The revision `latest` now names, loaded from its manifest."""
-        return quilt3.Package.load(io.BytesIO(manifests[f".quilt/packages/{latest['value']}"]))
+        key = f".quilt/packages/{latest['value']}"
+        assert key in manifests, "`latest` names a revision with no manifest"
+        return quilt3.Package.load(io.BytesIO(manifests[key]))
 
     def run(*lines, max_files_to_hash=10**9):
         with t4_lambda_pkgpush.setup_user_boto_session(session):
@@ -289,6 +291,21 @@ def test_existing_manifest_is_not_rewritten(env):
     assert again.top_hash == first.top_hash
     assert env.latest["value"] == first.top_hash
     assert again["new.txt"].physical_key == PhysicalKey(BUCKET, "new.txt", "v1")
+
+
+def test_manifest_written_despite_concurrent_creation(env):
+    # Another writer's conditional PUT of the same new manifest is in flight, and may never land.
+    put_object = env.user_s3.put_object.side_effect
+
+    def conflict_on_first_manifest_put(**kwargs):
+        if kwargs["Key"].startswith(".quilt/packages/") and "IfNoneMatch" in kwargs:
+            raise client_error("ConditionalRequestConflict", "PutObject")
+        put_object(**kwargs)
+
+    env.user_s3.put_object.side_effect = conflict_on_first_manifest_put
+    pkg = env.run(header(), new_entry("new.txt"))
+
+    assert keys(pkg) == ["a.txt", "dir/b.txt", "dir/c.txt", "new.txt"]
 
 
 def test_new_package_latest_write_requires_absence(env):
