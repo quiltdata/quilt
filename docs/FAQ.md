@@ -194,7 +194,7 @@ export AWS_PROFILE=your_profile
 ```
 
 The S3 permissions needed by `quilt3` are similar to
-[this bucket policy](CrossAccount.md#step-2-create-cross-account-bucket-policy)
+[this bucket policy](CrossAccount.md#step-2-bucket-policy)
 but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
 
 ## How complex can my Athena queries be?
