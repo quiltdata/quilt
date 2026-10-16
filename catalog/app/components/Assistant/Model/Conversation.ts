@@ -147,6 +147,7 @@ export type Action = Eff.Data.TaggedEnum<{
   Clear: {}
   Discard: { readonly id: string }
   ConnectorReady: {}
+  Restore: { readonly events: Event[] }
 }>
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -469,6 +470,7 @@ export const ConversationActor = Eff.Effect.succeed(
             return yield* advanceFromEvents(events, dispatch)
           }),
         Clear: () => idle([]),
+        Restore: (_state, { events }) => idle(events),
         Discard: (state, { id }) =>
           Eff.Effect.succeed({
             ...state,
