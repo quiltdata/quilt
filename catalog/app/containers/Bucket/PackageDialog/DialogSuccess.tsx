@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
+import type { ApplyS3TagsResult } from '../requests'
 import StyledLink from 'utils/StyledLink'
 
 const useStyles = M.makeStyles({
@@ -23,6 +24,25 @@ const defaultRenderMessage = (props: DialogSuccessRenderMessageProps) => (
   </>
 )
 
+const files = (n: number) => `${n} ${n === 1 ? 'file' : 'files'}`
+
+function S3TagsSummary({ tagged, unchanged, skipped }: ApplyS3TagsResult) {
+  return (
+    <>
+      <M.Typography variant="body2">
+        S3 tags written to {files(tagged)}
+        {unchanged ? `, already current on ${files(unchanged)}` : ''}
+        {skipped.length ? `, ${skipped.length} skipped:` : ''}
+      </M.Typography>
+      {skipped.slice(0, 5).map(({ physicalKey, reason }) => (
+        <M.Typography key={physicalKey} variant="caption" component="p">
+          {physicalKey} — {reason}
+        </M.Typography>
+      ))}
+    </>
+  )
+}
+
 interface DialogSuccessProps {
   browseText?: React.ReactNode
   bucket: string
@@ -30,6 +50,7 @@ interface DialogSuccessProps {
   name: string
   onClose: () => void
   renderMessage?: (props: DialogSuccessRenderMessageProps) => React.ReactNode
+  s3Tags?: ApplyS3TagsResult
   title?: React.ReactNode
 }
 
@@ -41,6 +62,7 @@ export default function DialogSuccess({
   name,
   onClose,
   renderMessage,
+  s3Tags,
   title,
 }: DialogSuccessProps) {
   const classes = useStyles()
@@ -65,6 +87,7 @@ export default function DialogSuccess({
         <M.Typography>
           {(renderMessage || defaultRenderMessage)({ bucketLink, packageLink })}
         </M.Typography>
+        {s3Tags && <S3TagsSummary {...s3Tags} />}
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onClose}>Close</M.Button>

@@ -6,6 +6,7 @@ import { useCreateHandler } from './create'
 import type { FilesState } from './files'
 import { Ready, type FormStatus } from './form'
 import type { FormParams } from './params'
+import type { S3TagsConfig } from 'utils/s3Tags'
 
 vi.mock('constants/config', () => ({ default: { packageRoot: '' } }))
 
@@ -13,6 +14,14 @@ vi.mock('utils/Logging', () => ({ default: { error: vi.fn() } }))
 
 const constructPackage: Mock = vi.fn()
 vi.mock('utils/GraphQL', () => ({ useMutation: () => constructPackage }))
+
+const s3 = {}
+vi.mock('utils/AWS', () => ({ S3: { use: () => s3 } }))
+
+const applyS3Tags: Mock = vi.fn()
+vi.mock('../../requests', () => ({
+  applyS3Tags: (...args: any[]) => applyS3Tags(...args),
+}))
 
 const upload: Mock = vi.fn()
 vi.mock('../Uploads', () => ({
@@ -37,9 +46,13 @@ const FILES = {
   onChange: () => {},
 } as unknown as FilesState
 
-function useTestHandler(params: FormParams = PARAMS, files: FilesState = FILES) {
+function useTestHandler(
+  params: FormParams = PARAMS,
+  files: FilesState = FILES,
+  s3TagsConfig: S3TagsConfig | null = null,
+) {
   const [formStatus, setFormStatus] = React.useState<FormStatus>(Ready)
-  const { create } = useCreateHandler(params, files, setFormStatus)
+  const { create } = useCreateHandler(params, files, setFormStatus, s3TagsConfig)
   return { formStatus, create }
 }
 
@@ -163,6 +176,36 @@ describe('containers/Bucket/PackageDialog/State/create', () => {
     expect(result.current.formStatus).toEqual({
       _tag: 'success',
       handle: { bucket: 'dst-bucket', name: 'foo/bar', hash: 'deadbeef' },
+    })
+  })
+  it('should write S3 tags after the push when the bucket configures them', async () => {
+    constructPackage.mockResolvedValue({
+      packageConstruct: {
+        __typename: 'PackagePushSuccess',
+        revision: { hash: 'deadbeef' },
+      },
+    })
+    upload.mockResolvedValue({
+      'a.txt': { physicalKey: 's3://dst-bucket/a.txt?versionId=1' },
+    })
+    const s3Tags = { tagged: 1, unchanged: 0, skipped: [] }
+    applyS3Tags.mockResolvedValue(s3Tags)
+    const config = { tags: { any: '/any' } }
+
+    const { result } = renderHook(() => useTestHandler(PARAMS, FILES, config))
+    await act(() => result.current.create('allow'))
+
+    expect(applyS3Tags).toHaveBeenCalledWith({
+      s3,
+      config,
+      meta: { any: 'thing' },
+      bucket: 'dst-bucket',
+      physicalKeys: ['s3://dst-bucket/a.txt?versionId=1'],
+    })
+    expect(result.current.formStatus).toEqual({
+      _tag: 'success',
+      handle: { bucket: 'dst-bucket', name: 'foo/bar', hash: 'deadbeef' },
+      s3Tags,
     })
   })
 })

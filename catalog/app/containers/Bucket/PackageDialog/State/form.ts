@@ -2,6 +2,8 @@ import * as React from 'react'
 
 import type { PackageHandle } from 'utils/packageHandle'
 
+import type { ApplyS3TagsResult } from '../../requests'
+
 /**
  * Per-field errors returned by the backend when it rejects a package write.
  * Keys must match the inputs that read them, see `name`, `message`, `meta`,
@@ -26,7 +28,7 @@ export type FormStatus =
       error: Error
       fields?: FormFieldErrors
     }
-  | { _tag: 'success'; handle: PackageHandle }
+  | { _tag: 'success'; handle: PackageHandle; s3Tags?: ApplyS3TagsResult }
 
 export const Idle = { _tag: 'idle' as const }
 export const Ready = { _tag: 'ready' as const }
@@ -37,7 +39,11 @@ export const Err = (error: Error, fields?: FormFieldErrors) => ({
   error,
   fields,
 })
-export const Success = (handle: PackageHandle) => ({ _tag: 'success' as const, handle })
+export const Success = (handle: PackageHandle, s3Tags?: ApplyS3TagsResult) => ({
+  _tag: 'success' as const,
+  handle,
+  s3Tags,
+})
 
 export interface FormState {
   formStatus: FormStatus
