@@ -1335,8 +1335,9 @@ type Mutation {
   # params.userMeta omitted or null keeps the parent's metadata, {} clears it, and any
   # other value replaces it; params.workflow omitted uses the bucket's default workflow.
   packagePatch(params: PackagePushParams!, src: PackagePatchSource!): PackageConstructResult!
-  # packagePatch, queued. Confirm by reading the package's revisions: a queued patch
-  # that fails publishes nothing.
+  # packagePatch, queued; it runs later. Confirm by reading the package's latest revision.
+  # A failed patch leaves latest unchanged, unless it failed after moving latest but
+  # before recording the revision.
   packagePatchAsync(params: PackagePushParams!, src: PackagePatchSource!): PackagePatchAsyncResult!
   packageRevisionDelete(
     bucket: String!
