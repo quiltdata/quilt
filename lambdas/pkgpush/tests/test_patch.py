@@ -56,6 +56,13 @@ def request(*lines):
 LATEST_KEY = f".quilt/named_packages/{NAME}/latest"
 
 
+def copy_package(pkg):
+    buf = io.StringIO()
+    pkg.dump(buf)
+    buf.seek(0)
+    return quilt3.Package.load(buf)
+
+
 def client_error(code, op):
     return botocore.exceptions.ClientError({"Error": {"Code": code, "Message": code}}, op)
 
@@ -102,10 +109,7 @@ def env(mocker):
 
     def browse(name, registry, top_hash):
         assert name == NAME
-        buf = io.StringIO()
-        revisions[top_hash].dump(buf)
-        buf.seek(0)
-        return quilt3.Package.load(buf)
+        return copy_package(revisions[top_hash])
 
     hashed = []
 
@@ -242,17 +246,15 @@ def test_parent_not_latest_fails_before_hashing(env):
 def move_latest_while_hashing(env, mocker, times):
     """Another writer publishes a revision with `winner.txt` added while the patch hashes, `times` times."""
     hash_entries = t4_lambda_pkgpush.calculate_pkg_hashes
-    remaining = [times]
+    remaining = times
 
     def hash_while_latest_moves(*args):
+        nonlocal remaining
         hash_entries(*args)
-        if remaining[0]:
-            remaining[0] -= 1
-            buf = io.StringIO()
-            env.revisions[env.latest["value"]].dump(buf)
-            buf.seek(0)
-            winner = quilt3.Package.load(buf)
-            entry_hash = {"type": "SHA256", "value": str(remaining[0]) * 64}
+        if remaining:
+            remaining -= 1
+            winner = copy_package(env.revisions[env.latest["value"]])
+            entry_hash = {"type": "SHA256", "value": str(remaining) * 64}
             winner.set("winner.txt", quilt3.packages.PackageEntry(PhysicalKey(BUCKET, "w", "v0"), 1, entry_hash, None))
             env.revisions[winner.top_hash] = winner
             env.latest.update(value=winner.top_hash)
@@ -341,14 +343,15 @@ def test_existing_manifest_is_not_rewritten(env):
     assert again["new.txt"].physical_key == PhysicalKey(BUCKET, "new.txt", "v1")
 
 
-def conflict_on_manifest_puts(env, conflicts, on_conflict=lambda key: None):
-    """Fail the first `conflicts` manifest PUTs with a 409, as while another writer creates it."""
+def conflict_on_puts(env, conflicts, key_prefix, on_conflict=lambda key: None):
+    """Fail the first `conflicts` PUTs under `key_prefix` with a 409, as while another writer's is in flight."""
     put_object = env.user_s3.put_object.side_effect
-    remaining = [conflicts]
+    remaining = conflicts
 
     def put(**kwargs):
-        if kwargs["Key"].startswith(".quilt/packages/") and remaining[0]:
-            remaining[0] -= 1
+        nonlocal remaining
+        if kwargs["Key"].startswith(key_prefix) and remaining:
+            remaining -= 1
             on_conflict(kwargs["Key"])
             raise client_error("ConditionalRequestConflict", "PutObject")
         put_object(**kwargs)
@@ -362,7 +365,7 @@ def test_manifest_retried_after_concurrent_creation(env, other_lands):
         if other_lands:
             env.manifests[key] = b"the other writer's manifest"
 
-    conflict_on_manifest_puts(env, 1, other_writer)
+    conflict_on_puts(env, 1, ".quilt/packages/", other_writer)
     with t4_lambda_pkgpush.setup_user_boto_session(env.session):
         top_hash = t4_lambda_pkgpush.construct_package(
             request(header(), new_entry("new.txt")), patch=True, max_files_to_hash=10, max_bytes_to_hash=10**9
@@ -375,7 +378,7 @@ def test_manifest_retried_after_concurrent_creation(env, other_lands):
 
 
 def test_persistent_manifest_conflict_leaves_latest(env):
-    conflict_on_manifest_puts(env, 3)
+    conflict_on_puts(env, 3, ".quilt/packages/")
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
         env.run(header(), new_entry("new.txt"))
     assert exc.value.name == "ManifestWriteConflict"
@@ -384,16 +387,7 @@ def test_persistent_manifest_conflict_leaves_latest(env):
 
 
 def test_latest_write_retried_while_another_is_in_flight(env):
-    put_object = env.user_s3.put_object.side_effect
-    conflicts = [2]
-
-    def conflict_on_latest(**kwargs):
-        if kwargs["Key"] == LATEST_KEY and conflicts[0]:
-            conflicts[0] -= 1
-            raise client_error("ConditionalRequestConflict", "PutObject")
-        put_object(**kwargs)
-
-    env.user_s3.put_object.side_effect = conflict_on_latest
+    conflict_on_puts(env, 2, LATEST_KEY)
     pkg = env.run(header(parent=PARENT_HASH), new_entry("new.txt"))
 
     assert env.latest["value"] == pkg.top_hash
