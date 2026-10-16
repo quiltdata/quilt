@@ -605,6 +605,8 @@ export interface Mutation {
   readonly bucketUpdate: BucketUpdateResult
   readonly packageConstruct: PackageConstructResult
   readonly packageDelete: PackageDeleteResult
+  readonly packagePatch: PackageConstructResult
+  readonly packagePatchAsync: PackagePatchAsyncResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
   readonly policyCreateManaged: PolicyResult
@@ -678,6 +680,16 @@ export interface MutationpackageConstructArgs {
 export interface MutationpackageDeleteArgs {
   bucket: Scalars['String']['input']
   name: Scalars['String']['input']
+}
+
+export interface MutationpackagePatchArgs {
+  params: PackagePushParams
+  src: PackagePatchSource
+}
+
+export interface MutationpackagePatchAsyncArgs {
+  params: PackagePushParams
+  src: PackagePatchSource
 }
 
 export interface MutationpackagePromoteArgs {
@@ -916,6 +928,27 @@ export interface PackageListpageArgs {
 export enum PackageListOrder {
   MODIFIED = 'MODIFIED',
   NAME = 'NAME',
+}
+
+export type PackagePatchAsyncResult = InvalidInput | OperationError | PackagePatchQueued
+
+export interface PackagePatchEntry {
+  readonly logicalKey: Scalars['String']['input']
+  readonly meta: InputMaybe<Scalars['JsonRecord']['input']>
+  readonly physicalKey: Scalars['String']['input']
+}
+
+export interface PackagePatchQueued {
+  readonly __typename: 'PackagePatchQueued'
+  readonly bucket: Scalars['String']['output']
+  readonly name: Scalars['String']['output']
+  readonly parent: Maybe<Scalars['String']['output']>
+}
+
+export interface PackagePatchSource {
+  readonly delete: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
+  readonly parent: InputMaybe<Scalars['String']['input']>
+  readonly set: InputMaybe<ReadonlyArray<PackagePatchEntry>>
 }
 
 export type PackagePromoteResult = InvalidInput | OperationError | PackagePushSuccess

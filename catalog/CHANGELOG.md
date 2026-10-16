@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Added] The `packagePatch` and `packagePatchAsync` GraphQL mutations let API clients change a package without resending its unchanged entries; the catalog UI does not use them ([#5453](https://github.com/quiltdata/quilt/pull/5453))
 - [Added] After an access code is accepted, `/signup/<page>` offers the stack's SSO providers, which grant the code's role, and shows the email form only where password signup is enabled ([#5478](https://github.com/quiltdata/quilt/pull/5478))
 - [Fixed] Qurator fails fast with an actionable message when a page's fixed context (package files, instructions, enabled connectors) alone leaves no room for conversation, instead of silently sending a doomed prompt and surfacing only the model's own context-length error ([#5477](https://github.com/quiltdata/quilt/pull/5477))
 - [Fixed] Qurator: in the side panel, the Skills and model menus sit in their own row above the message box instead of covering its label and pushing Send out of view, and global and personal instructions open from globe and person icons in that row instead of a separate Instructions strip ([#5474](https://github.com/quiltdata/quilt/pull/5474))
