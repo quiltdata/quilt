@@ -45,6 +45,10 @@ describe('containers/Bucket/PackageDialog/State/dialogStatus', () => {
     expect(
       computeDialogStatus({ ...base, workflowsConfig: { _tag: 'loading', config } }),
     ).toEqual({ _tag: 'loading', waitListing: false })
+    expect(computeDialogStatus({ ...base, s3TagsLoading: true })).toEqual({
+      _tag: 'loading',
+      waitListing: false,
+    })
     expect(computeDialogStatus({ ...base, manifest: { _tag: 'loading' } })).toEqual({
       _tag: 'loading',
       waitListing: false,
