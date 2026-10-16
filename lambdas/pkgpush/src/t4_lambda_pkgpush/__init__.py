@@ -927,9 +927,12 @@ def push_patch_manifest(
 
     # The top hash does not cover physical keys, so never rewrite an existing revision's manifest.
     manifest_pk = registry.manifest_pk(name, top_hash)
-    if put_if(s3_client, manifest_pk, manifest.getvalue(), IfNoneMatch="*") == "ConditionalRequestConflict":
-        # Another writer is creating it, so it did not exist: write it too rather than trust that write.
-        put_if(s3_client, manifest_pk, manifest.getvalue())
+    for _ in range(2):
+        # 409: another writer's creation of it is in flight, and may not land; try once more.
+        if put_if(s3_client, manifest_pk, manifest.getvalue(), IfNoneMatch="*") != "ConditionalRequestConflict":
+            break
+    else:
+        raise PkgpushException("ManifestWriteConflict", {"top_hash": top_hash})
 
     precondition = {"IfNoneMatch": "*"} if base.etag is None else {"IfMatch": base.etag}
     if put_if(s3_client, registry.pointer_latest_pk(name), top_hash.encode(), **precondition) is not None:

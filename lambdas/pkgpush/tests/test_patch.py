@@ -146,6 +146,7 @@ def env(mocker):
         user_s3=user_s3,
         browse=browse_mock,
         writes=writes,
+        manifests=manifests,
         session=session,
         built=built,
         run=run,
@@ -293,19 +294,46 @@ def test_existing_manifest_is_not_rewritten(env):
     assert again["new.txt"].physical_key == PhysicalKey(BUCKET, "new.txt", "v1")
 
 
-def test_manifest_written_despite_concurrent_creation(env):
-    # Another writer's conditional PUT of the same new manifest is in flight, and may never land.
+def conflict_on_manifest_puts(env, conflicts, on_conflict=lambda key: None):
+    """Fail the first `conflicts` manifest PUTs with a 409, as while another writer creates it."""
     put_object = env.user_s3.put_object.side_effect
+    remaining = [conflicts]
 
-    def conflict_on_first_manifest_put(**kwargs):
-        if kwargs["Key"].startswith(".quilt/packages/") and "IfNoneMatch" in kwargs:
+    def put(**kwargs):
+        if kwargs["Key"].startswith(".quilt/packages/") and remaining[0]:
+            remaining[0] -= 1
+            on_conflict(kwargs["Key"])
             raise client_error("ConditionalRequestConflict", "PutObject")
         put_object(**kwargs)
 
-    env.user_s3.put_object.side_effect = conflict_on_first_manifest_put
-    pkg = env.run(header(), new_entry("new.txt"))
+    env.user_s3.put_object.side_effect = put
 
-    assert keys(pkg) == ["a.txt", "dir/b.txt", "dir/c.txt", "new.txt"]
+
+@pytest.mark.parametrize("other_lands", [True, False])
+def test_manifest_retried_once_after_concurrent_creation(env, other_lands):
+    def other_writer(key):
+        if other_lands:
+            env.manifests[key] = b"the other writer's manifest"
+
+    conflict_on_manifest_puts(env, 1, other_writer)
+    with t4_lambda_pkgpush.setup_user_boto_session(env.session):
+        top_hash = t4_lambda_pkgpush.construct_package(
+            request(header(), new_entry("new.txt")), patch=True, max_files_to_hash=10, max_bytes_to_hash=10**9
+        ).top_hash
+
+    # The other writer's manifest stands; if it never landed, this patch's own does.
+    assert env.latest["value"] == top_hash
+    assert f".quilt/packages/{top_hash}" in env.manifests
+    assert (env.manifests[f".quilt/packages/{top_hash}"] == b"the other writer's manifest") is other_lands
+
+
+def test_persistent_manifest_conflict_leaves_latest(env):
+    conflict_on_manifest_puts(env, 2)
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header(), new_entry("new.txt"))
+    assert exc.value.name == "ManifestWriteConflict"
+    assert env.latest["value"] == PARENT_HASH
+    assert env.writes == []
 
 
 def test_new_package_latest_write_requires_absence(env):
