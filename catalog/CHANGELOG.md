@@ -30,6 +30,7 @@ complete sentence without it.
 - [Added] `/signup/<page>` lets a visitor redeem a role's access code and sign up by email, landing on that role's default bucket; signed-in users land on their active role's default bucket from `/` ([#5469](https://github.com/quiltdata/quilt/pull/5469))
 - [Added] Qurator: admins add skills from GitHub in Admin → Settings → Qurator skills, kept in a package only admins can change, and users turn each one on or off from Skills in the + menu ([#5411](https://github.com/quiltdata/quilt/pull/5411))
 - [Changed] A Help panel that docks and opens like Qurator's lets users chat with Quilt support and sales, replacing HubSpot's floating chat bubble that covered pagination ([#5449](https://github.com/quiltdata/quilt/pull/5449))
+- [Fixed] Return visits load the catalog faster because browsers keep its content-hashed scripts, fonts and images cached for a year ([#5462](https://github.com/quiltdata/quilt/pull/5462))
 - [Added] Admin Status: the indexing panel labels missing-only re-index jobs, which keep the bucket's search index, and raises no empty-search warning for them ([#5425](https://github.com/quiltdata/quilt/pull/5425))
 - [Changed] The Volumes page's add button reads "Add volume" instead of "Add Bucket" ([#5410](https://github.com/quiltdata/quilt/pull/5410))
 - [Added] Qurator: admins can give a custom model a display name in Admin → Settings, and the model menu shows it in place of the derived label ([#5409](https://github.com/quiltdata/quilt/pull/5409))
