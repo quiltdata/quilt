@@ -21,6 +21,7 @@ const FILE_TYPE_TITLES_MAP = {
   [FileType.Text]: 'Plain Text',
   [FileType.Vega]: 'Vega',
   [FileType.Voila]: 'Voila',
+  [FileType.Zarr]: 'OME-Zarr',
 }
 
 export function viewModeToSelectOption(m: FileType): SelectOption
