@@ -71,6 +71,10 @@ PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ["PROMOTE_PKG_MAX_PKG_SIZE"])
 PROMOTE_PKG_MAX_FILES = int(os.environ["PROMOTE_PKG_MAX_FILES"])
 MAX_BYTES_TO_HASH = int(os.environ["MAX_BYTES_TO_HASH"])
 MAX_FILES_TO_HASH = int(os.environ["MAX_FILES_TO_HASH"])
+# Tries of an unpinned patch whose `latest` write keeps losing to other writers.
+PATCH_ATTEMPTS = 3
+# Seconds to wait before retrying a conditional write that another one to the same key is holding up (409).
+CONFLICT_BACKOFF = (0.2, 0.5)
 # To dispatch separate, stack-created lambda functions.
 S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
 S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
@@ -896,15 +900,19 @@ def get_latest_pointer(registry: S3PackageRegistryV1, name: str) -> LatestPointe
 
 def put_if(s3_client, pk: PhysicalKey, body: bytes, **precondition) -> str | None:
     """Put `body` at `pk` under an S3 precondition; return the code it failed with, or None once written."""
-    try:
-        s3_client.put_object(Bucket=pk.bucket, Key=pk.path, Body=body, **precondition)
-    except botocore.exceptions.ClientError as e:
-        # 412: the precondition failed; 409: another conditional write to the key is in flight.
-        code = e.response.get("Error", {}).get("Code")
-        if code not in ("PreconditionFailed", "ConditionalRequestConflict"):
-            raise PkgpushException.from_boto_error(e)
-        return code
-    return None
+    for delay in (*CONFLICT_BACKOFF, None):
+        try:
+            s3_client.put_object(Bucket=pk.bucket, Key=pk.path, Body=body, **precondition)
+            return None
+        except botocore.exceptions.ClientError as e:
+            # 412: the precondition failed; 409: another conditional write to the key is in flight,
+            # which may not land, so the same precondition is tried again.
+            code = e.response.get("Error", {}).get("Code")
+            if code not in ("PreconditionFailed", "ConditionalRequestConflict"):
+                raise PkgpushException.from_boto_error(e)
+            if code == "PreconditionFailed" or delay is None:
+                return code
+        time.sleep(delay)
 
 
 def push_patch_manifest(
@@ -927,11 +935,7 @@ def push_patch_manifest(
 
     # The top hash does not cover physical keys, so never rewrite an existing revision's manifest.
     manifest_pk = registry.manifest_pk(name, top_hash)
-    for _ in range(2):
-        # 409: another writer's creation of it is in flight, and may not land; try once more.
-        if put_if(s3_client, manifest_pk, manifest.getvalue(), IfNoneMatch="*") != "ConditionalRequestConflict":
-            break
-    else:
+    if put_if(s3_client, manifest_pk, manifest.getvalue(), IfNoneMatch="*") == "ConditionalRequestConflict":
         raise PkgpushException("ManifestWriteConflict", {"top_hash": top_hash})
 
     precondition = {"IfNoneMatch": "*"} if base.etag is None else {"IfMatch": base.etag}
@@ -945,6 +949,18 @@ def push_patch_manifest(
     return top_hash
 
 
+def has_revisions(registry: S3PackageRegistryV1, name: str) -> bool:
+    pk = registry.pointers_dir(name)
+    try:
+        resp = get_user_s3_client().list_objects_v2(Bucket=pk.bucket, Prefix=pk.path, MaxKeys=1)
+    except botocore.exceptions.ClientError as e:
+        error = e.response.get("Error", {})
+        if error.get("Code") == "AccessDenied":
+            raise PkgpushException("Forbidden", {"details": error.get("Message")})
+        raise PkgpushException.from_boto_error(e)
+    return resp.get("KeyCount", 0) > 0
+
+
 def load_patch_parent(
     registry: S3PackageRegistryV1,
     name: str,
@@ -955,6 +971,9 @@ def load_patch_parent(
         # Fail before hashing; the write of `latest` is guarded again.
         raise PkgpushException("ParentNotLatest", {"parent": patch.parent, "latest": base.top_hash})
     if base.top_hash is None:
+        if has_revisions(registry, name):
+            # Revisions without `latest` (a manual or half-finished delete): starting empty would drop them.
+            raise PkgpushException("LatestMissing", {"package": name})
         return quilt3.Package(), base
     try:
         pkg = quilt3.Package.browse(name, registry=registry, top_hash=base.top_hash)
@@ -1003,8 +1022,6 @@ def construct_package(
             pkg = quilt3.Package()
         else:
             pkg, base = load_patch_parent(package_registry, params.name, params.patch)
-        if params.user_meta is not None:
-            pkg.set_meta(params.user_meta)
 
         # Phase 1: Parse entries and create PackageEntry objects (store temporarily)
         logger.info("[PERF] Parsing entries and creating PackageEntry objects")
@@ -1068,6 +1085,53 @@ def construct_package(
 
         # Phase 2: Fetch missing metadata and precomputed checksums concurrently
         complete_entries_metadata(pkg_entries, checksum_algorithms)
+    except quilt3.util.QuiltException as qe:
+        raise PkgpushException.from_quilt_exception(qe)
+
+    # An unpinned patch applies to whichever revision is latest, so on a lost race it is re-applied
+    # to the new latest, reusing its entries (hashed by the first attempt) and prefix listings.
+    attempts = PATCH_ATTEMPTS if params.patch is not None and params.patch.parent is None else 1
+    for attempt in range(1, attempts + 1):
+        assemble_package(
+            pkg, pkg_entries, params, package_registry, checksum_algorithms, max_files_to_hash, max_bytes_to_hash
+        )
+        try:
+            logger.info("[PERF] pkg._build START")
+            if base is None:
+                top_hash = pkg._build(
+                    name=params.name,
+                    registry=registry_url,
+                    message=params.message,
+                )
+            else:
+                top_hash = push_patch_manifest(pkg, package_registry, params.name, params.message, base)
+            logger.info(f"[PERF] pkg._build END: top_hash={top_hash}")
+            break
+        except botocore.exceptions.ClientError as boto_error:
+            raise PkgpushException.from_boto_error(boto_error)
+        except PkgpushException as e:
+            if e.name != "ParentNotLatest" or attempt == attempts:
+                raise
+            assert params.patch is not None
+            pkg, base = load_patch_parent(package_registry, params.name, params.patch)
+
+    # XXX: return mtime?
+    logger.info(f"[PERF] create_package END: {params.bucket}/{params.name}")
+    return PackagePushResult(top_hash=TopHash(top_hash))
+
+
+def assemble_package(
+    pkg: quilt3.Package,
+    pkg_entries: dict[str, quilt3.packages.PackageEntry],
+    params: PackageConstructParams,
+    package_registry: S3PackageRegistryV1,
+    checksum_algorithms: list[ChecksumAlgorithm],
+    max_files_to_hash: float,
+    max_bytes_to_hash: float,
+):
+    try:
+        if params.user_meta is not None:
+            pkg.set_meta(params.user_meta)
 
         # Phase 3: Add fully-prepared entries to package and validate limits
         logger.info("[PERF] Adding entries to package and validating limits")
@@ -1111,24 +1175,6 @@ def construct_package(
         raise PkgpushException.from_quilt_exception(qe)
 
     calculate_pkg_hashes(pkg, params.scratch_buckets, checksum_algorithms)
-
-    try:
-        logger.info("[PERF] pkg._build START")
-        if base is None:
-            top_hash = pkg._build(
-                name=params.name,
-                registry=registry_url,
-                message=params.message,
-            )
-        else:
-            top_hash = push_patch_manifest(pkg, package_registry, params.name, params.message, base)
-        logger.info(f"[PERF] pkg._build END: top_hash={top_hash}")
-    except botocore.exceptions.ClientError as boto_error:
-        raise PkgpushException.from_boto_error(boto_error)
-
-    # XXX: return mtime?
-    logger.info(f"[PERF] create_package END: {params.bucket}/{params.name}")
-    return PackagePushResult(top_hash=TopHash(top_hash))
 
 
 class PackagerEvent(pydantic.v1.BaseModel):

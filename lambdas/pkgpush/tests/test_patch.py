@@ -97,10 +97,13 @@ def env(mocker):
         assert pk.bucket == BUCKET
         writes.append((pk.path, data, None))
 
+    # Revisions that can be browsed, by top hash.
+    revisions = {PARENT_HASH: PARENT}
+
     def browse(name, registry, top_hash):
-        assert (name, top_hash) == (NAME, PARENT_HASH)
+        assert name == NAME
         buf = io.StringIO()
-        PARENT.dump(buf)
+        revisions[top_hash].dump(buf)
         buf.seek(0)
         return quilt3.Package.load(buf)
 
@@ -116,6 +119,8 @@ def env(mocker):
     user_s3.head_object.side_effect = lambda **kw: {"ContentLength": 5, "VersionId": "v1"}
     user_s3.get_object.side_effect = get_object
     user_s3.put_object.side_effect = put_object
+    # The package's pointers directory: no timestamped revisions unless a test adds one.
+    user_s3.list_objects_v2.return_value = {"KeyCount": 0}
     session = mocker.MagicMock()
     session.client.return_value = user_s3
 
@@ -126,6 +131,7 @@ def env(mocker):
     )
     mocker.patch.object(t4_lambda_pkgpush, "calculate_pkg_hashes", side_effect=calculate_pkg_hashes)
     mocker.patch("quilt3.Package._validate_with_workflow")
+    sleep = mocker.patch("time.sleep")
 
     def built():
         """The revision `latest` now names, loaded from its manifest."""
@@ -147,7 +153,9 @@ def env(mocker):
         browse=browse_mock,
         writes=writes,
         manifests=manifests,
+        revisions=revisions,
         session=session,
+        sleep=sleep,
         built=built,
         run=run,
     )
@@ -231,23 +239,62 @@ def test_parent_not_latest_fails_before_hashing(env):
     assert env.writes == []
 
 
-@pytest.mark.parametrize("parent", [PARENT_HASH, None])
-def test_latest_moved_during_patch_is_parent_not_latest(env, mocker, parent):
-    # Another writer moves `latest` while the patch is hashing.
+def move_latest_while_hashing(env, mocker, times):
+    """Another writer publishes a revision with `winner.txt` added while the patch hashes, `times` times."""
     hash_entries = t4_lambda_pkgpush.calculate_pkg_hashes
+    remaining = [times]
 
     def hash_while_latest_moves(*args):
         hash_entries(*args)
-        env.latest.update(value=OTHER_HASH)
+        if remaining[0]:
+            remaining[0] -= 1
+            buf = io.StringIO()
+            env.revisions[env.latest["value"]].dump(buf)
+            buf.seek(0)
+            winner = quilt3.Package.load(buf)
+            entry_hash = {"type": "SHA256", "value": str(remaining[0]) * 64}
+            winner.set("winner.txt", quilt3.packages.PackageEntry(PhysicalKey(BUCKET, "w", "v0"), 1, entry_hash, None))
+            env.revisions[winner.top_hash] = winner
+            env.latest.update(value=winner.top_hash)
 
     mocker.patch.object(t4_lambda_pkgpush, "calculate_pkg_hashes", side_effect=hash_while_latest_moves)
-    params = header() if parent is None else header(parent=parent)
+
+
+def test_pinned_patch_fails_when_latest_moves(env, mocker):
+    move_latest_while_hashing(env, mocker, 1)
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
-        env.run(params, new_entry("new.txt"))
+        env.run(header(parent=PARENT_HASH), new_entry("new.txt"))
     assert exc.value.name == "ParentNotLatest"
-    assert exc.value.context == {"parent": PARENT_HASH, "latest": OTHER_HASH}
+    assert exc.value.context == {"parent": PARENT_HASH, "latest": env.latest["value"]}
     # The other writer's pointer stands, and no revision pointer (no package-revision event) was written.
-    assert env.latest["value"] == OTHER_HASH
+    assert env.latest["value"] != PARENT_HASH
+    assert [key for key, _, _ in env.writes if key.startswith(".quilt/named_packages/")] == []
+
+
+def test_unpinned_patch_reapplies_to_new_latest(env, mocker):
+    paginator = env.user_s3.get_paginator.return_value
+    paginator.paginate.return_value = [
+        {"Versions": [{"Key": "pre/x", "VersionId": "vx", "IsLatest": True, "Size": 3}]}
+    ]
+    move_latest_while_hashing(env, mocker, 1)
+
+    pkg = env.run(header(delete=["a.txt"]), new_entry("new.txt"), new_entry("data/", "s3://src/pre/"))
+
+    # The winner's entry is kept, and the patch's delete and sets are applied on top of it.
+    assert keys(pkg) == ["data/x", "dir/b.txt", "dir/c.txt", "new.txt", "winner.txt"]
+    # The patch's own entries were listed and hashed once, on the first attempt.
+    paginator.paginate.assert_called_once()
+    assert sorted(env.hashed) == ["data/x", "new.txt"]
+    assert env.browse.call_count == 2
+    assert [key for key, _, _ in env.writes if key.startswith(f".quilt/named_packages/{NAME}/1")] != []
+
+
+def test_unpinned_patch_gives_up_after_three_lost_races(env, mocker):
+    move_latest_while_hashing(env, mocker, 3)
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header(), new_entry("new.txt"))
+    assert exc.value.name == "ParentNotLatest"
+    assert env.browse.call_count == 3
     assert [key for key, _, _ in env.writes if key.startswith(".quilt/named_packages/")] == []
 
 
@@ -310,7 +357,7 @@ def conflict_on_manifest_puts(env, conflicts, on_conflict=lambda key: None):
 
 
 @pytest.mark.parametrize("other_lands", [True, False])
-def test_manifest_retried_once_after_concurrent_creation(env, other_lands):
+def test_manifest_retried_after_concurrent_creation(env, other_lands):
     def other_writer(key):
         if other_lands:
             env.manifests[key] = b"the other writer's manifest"
@@ -328,12 +375,50 @@ def test_manifest_retried_once_after_concurrent_creation(env, other_lands):
 
 
 def test_persistent_manifest_conflict_leaves_latest(env):
-    conflict_on_manifest_puts(env, 2)
+    conflict_on_manifest_puts(env, 3)
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
         env.run(header(), new_entry("new.txt"))
     assert exc.value.name == "ManifestWriteConflict"
     assert env.latest["value"] == PARENT_HASH
     assert env.writes == []
+
+
+def test_latest_write_retried_while_another_is_in_flight(env):
+    put_object = env.user_s3.put_object.side_effect
+    conflicts = [2]
+
+    def conflict_on_latest(**kwargs):
+        if kwargs["Key"] == LATEST_KEY and conflicts[0]:
+            conflicts[0] -= 1
+            raise client_error("ConditionalRequestConflict", "PutObject")
+        put_object(**kwargs)
+
+    env.user_s3.put_object.side_effect = conflict_on_latest
+    pkg = env.run(header(parent=PARENT_HASH), new_entry("new.txt"))
+
+    assert env.latest["value"] == pkg.top_hash
+    assert [c.args for c in env.sleep.call_args_list] == [(0.2,), (0.5,)]
+
+
+def test_unpinned_patch_refuses_revisions_without_latest(env):
+    env.latest["value"] = None
+    env.user_s3.list_objects_v2.return_value = {"KeyCount": 1}
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header(), new_entry("new.txt"))
+    assert exc.value.name == "LatestMissing"
+    assert exc.value.context == {"package": NAME}
+    env.user_s3.list_objects_v2.assert_called_once_with(
+        Bucket=BUCKET, Prefix=f".quilt/named_packages/{NAME}/", MaxKeys=1
+    )
+    assert env.writes == []
+
+
+def test_unlistable_revisions_are_forbidden(env):
+    env.latest["value"] = None
+    env.user_s3.list_objects_v2.side_effect = client_error("AccessDenied", "ListObjectsV2")
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header(), new_entry("new.txt"))
+    assert exc.value.name == "Forbidden"
 
 
 def test_new_package_latest_write_requires_absence(env):
