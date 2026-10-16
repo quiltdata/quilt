@@ -1,0 +1,20 @@
+query {
+  milestones {
+    __typename
+    ... on StackMilestones {
+      packages
+      largestPackageBytes
+      largestPackageFiles
+      totalPackagedBytes
+      bucketsWithPackages
+      mostRevisions
+      activeUsers
+      firstPackageAt
+      firstMultiTerabyteAt
+      firstWorkflowPackageAt
+    }
+    ... on OperationError {
+      message
+    }
+  }
+}
