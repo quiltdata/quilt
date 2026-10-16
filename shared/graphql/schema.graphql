@@ -1135,19 +1135,25 @@ union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 
 input PackagePatchEntry {
   logicalKey: String!
-  # s3:// URI of one object, or of a prefix ending in "/". A prefix sets every
-  # object under it at logicalKey + the key's remainder; logicalKey must then end in "/".
+  # s3:// URI of one object, or of a prefix ending in "/" (no versionId). A prefix sets
+  # every latest object version under it at logicalKey + the key's remainder; logicalKey
+  # must then end in "/". An entry listed explicitly wins over the same key from a prefix.
   physicalKey: String!
-  # full entry metadata (same shape as PackageConstructEntry.meta)
+  # full entry metadata (same shape as PackageConstructEntry.meta); a prefix entry's meta
+  # applies to every entry it sets
   meta: JsonRecord
 }
 
 input PackagePatchSource {
-  # Top hash to patch. Omitted: the latest revision at the time the patch runs
-  # (a package that doesn't exist yet starts empty).
+  # Concurrency guard: the top hash the caller read. The patch fails with
+  # ParentNotLatest unless it is still the latest revision when the patch is written.
+  # Omitted: the latest revision when the patch runs (a package that doesn't exist yet
+  # starts empty), and the write is guarded against that revision instead.
   parent: String
+  # entries to add or replace, applied after delete
   set: [PackagePatchEntry!]
-  # logical keys to remove; a key ending in "/" removes that directory
+  # logical keys to remove, applied before set; a key ending in "/" removes that
+  # directory, and a key that is absent or names the other kind is ignored
   delete: [String!]
 }
 
@@ -1325,7 +1331,12 @@ type Mutation {
     src: PackagePromoteSource!
     destPrefix: String
   ): PackagePromoteResult!
+  # Patch a package, keeping every entry of the parent the patch doesn't name.
+  # params.userMeta omitted or null keeps the parent's metadata, {} clears it, and any
+  # other value replaces it; params.workflow omitted uses the bucket's default workflow.
   packagePatch(params: PackagePushParams!, src: PackagePatchSource!): PackageConstructResult!
+  # packagePatch, queued. Confirm by reading the package's revisions: a queued patch
+  # that fails publishes nothing.
   packagePatchAsync(params: PackagePushParams!, src: PackagePatchSource!): PackagePatchAsyncResult!
   packageRevisionDelete(
     bucket: String!
