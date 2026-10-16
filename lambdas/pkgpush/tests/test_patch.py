@@ -53,16 +53,43 @@ def request(*lines):
     return io.BytesIO("\n".join(map(json.dumps, lines)).encode())
 
 
+LATEST_KEY = f".quilt/named_packages/{NAME}/latest"
+
+
+def client_error(code, op):
+    return botocore.exceptions.ClientError({"Error": {"Code": code, "Message": code}}, op)
+
+
 @pytest.fixture
 def env(mocker):
-    """Stub S3 at quilt3's and the user client's boundary; record what gets hashed and built."""
+    """Stub S3 at quilt3's and the user client's boundary; record what gets hashed and written."""
+    # The `latest` pointer, with an ETag that changes whenever it is written, as S3's does.
     latest = {"value": PARENT_HASH}
 
-    def get_bytes(pk):
-        assert pk == PhysicalKey(BUCKET, f".quilt/named_packages/{NAME}/latest", None)
+    def etag():
+        return f'"{latest["value"]}"'
+
+    def get_object(Bucket, Key):
+        assert (Bucket, Key) == (BUCKET, LATEST_KEY)
         if latest["value"] is None:
-            raise botocore.exceptions.ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject")
-        return latest["value"].encode()
+            raise client_error("NoSuchKey", "GetObject")
+        return {"Body": io.BytesIO(latest["value"].encode()), "ETag": etag()}
+
+    # Every object write, in order: (key, body, precondition).
+    writes = []
+
+    def put_object(Bucket, Key, Body, **precondition):
+        assert (Bucket, Key) == (BUCKET, LATEST_KEY)
+        if precondition.get("IfNoneMatch") == "*" and latest["value"] is not None:
+            raise client_error("PreconditionFailed", "PutObject")
+        if "IfMatch" in precondition and (latest["value"] is None or precondition["IfMatch"] != etag()):
+            raise client_error("PreconditionFailed", "PutObject")
+        writes.append((Key, Body, precondition))
+        latest["value"] = Body.decode()
+
+    def put_bytes(data, pk):
+        assert pk.bucket == BUCKET
+        writes.append((pk.path, data, None))
 
     def browse(name, registry, top_hash):
         assert (name, top_hash) == (NAME, PARENT_HASH)
@@ -81,33 +108,45 @@ def env(mocker):
 
     user_s3 = mocker.MagicMock()
     user_s3.head_object.side_effect = lambda **kw: {"ContentLength": 5, "VersionId": "v1"}
+    user_s3.get_object.side_effect = get_object
+    user_s3.put_object.side_effect = put_object
     session = mocker.MagicMock()
     session.client.return_value = user_s3
 
-    mocker.patch("quilt3.data_transfer.get_bytes", side_effect=get_bytes)
+    mocker.patch("quilt3.data_transfer.put_bytes", side_effect=put_bytes)
     browse_mock = mocker.patch.object(quilt3.Package, "browse", side_effect=browse)
     mocker.patch.object(
         t4_lambda_pkgpush, "get_checksum_algorithms", return_value=[t4_lambda_pkgpush.ChecksumAlgorithm.SHA256_CHUNKED]
     )
     mocker.patch.object(t4_lambda_pkgpush, "calculate_pkg_hashes", side_effect=calculate_pkg_hashes)
     mocker.patch("quilt3.Package._validate_with_workflow")
-    build = mocker.patch("quilt3.Package._build", autospec=True, return_value="0" * 64)
 
     class Env:
         pass
 
     e = Env()
-    e.latest, e.hashed, e.user_s3, e.browse, e.build, e.session = latest, hashed, user_s3, browse_mock, build, session
+    e.latest, e.hashed, e.user_s3, e.browse, e.writes, e.session = (
+        latest,
+        hashed,
+        user_s3,
+        browse_mock,
+        writes,
+        session,
+    )
+
+    def built():
+        """The revision `latest` now names, loaded from the manifest that was written."""
+        (manifest,) = [body for key, body, _ in writes if key == f".quilt/packages/{latest['value']}"]
+        return quilt3.Package.load(io.BytesIO(manifest))
 
     def run(*lines, max_files_to_hash=10**9):
         with t4_lambda_pkgpush.setup_user_boto_session(session):
             t4_lambda_pkgpush.construct_package(
                 request(*lines), max_files_to_hash=max_files_to_hash, max_bytes_to_hash=10**9
             )
-        (pkg,), _ = build.call_args
-        return pkg
+        return built()
 
-    e.run = run
+    e.built, e.run = built, run
     return e
 
 
@@ -186,7 +225,7 @@ def test_parent_not_latest_fails_before_hashing(env):
     assert exc.value.context == {"parent": PARENT_HASH, "latest": OTHER_HASH}
     env.browse.assert_not_called()
     assert env.hashed == []
-    env.build.assert_not_called()
+    assert env.writes == []
 
 
 def test_parent_not_latest_rechecked_before_build(env, mocker):
@@ -197,11 +236,50 @@ def test_parent_not_latest_rechecked_before_build(env, mocker):
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
         env.run(header(parent=PARENT_HASH))
     assert exc.value.name == "ParentNotLatest"
-    env.build.assert_not_called()
+    assert env.writes == []
 
 
-def test_unreadable_latest_pointer_is_forbidden(env, mocker):
-    mocker.patch("quilt3.data_transfer.get_bytes", side_effect=quilt3.data_transfer.S3NoValidClientError("denied"))
+@pytest.mark.parametrize("parent", [PARENT_HASH, None])
+def test_latest_moved_after_last_check_is_parent_not_latest(env, mocker, parent):
+    # Another writer wins between the final read of `latest` and the guarded write.
+    check = t4_lambda_pkgpush.check_latest_unchanged
+
+    def check_then_lose_race(*args):
+        check(*args)
+        env.latest.update(value=OTHER_HASH)
+
+    mocker.patch.object(t4_lambda_pkgpush, "check_latest_unchanged", side_effect=check_then_lose_race)
+    params = header() if parent is None else header(parent=parent)
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(params, new_entry("new.txt"))
+    assert exc.value.name == "ParentNotLatest"
+    assert exc.value.context == {"parent": PARENT_HASH, "latest": OTHER_HASH}
+    # The other writer's pointer stands, and no revision pointer (no package-revision event) was written.
+    assert env.latest["value"] == OTHER_HASH
+    assert [key for key, _, _ in env.writes if key.startswith(".quilt/named_packages/")] == []
+
+
+def test_latest_write_is_conditional_and_precedes_revision_pointer(env, mocker):
+    mocker.patch("time.time", return_value=1_700_000_000)
+    pkg = env.run(header(parent=PARENT_HASH), new_entry("new.txt"))
+
+    top_hash = pkg.top_hash
+    assert [(key, precondition) for key, _, precondition in env.writes] == [
+        (f".quilt/packages/{top_hash}", None),
+        (LATEST_KEY, {"IfMatch": f'"{PARENT_HASH}"'}),
+        (f".quilt/named_packages/{NAME}/1700000000", None),
+    ]
+    assert env.writes[-1][1] == top_hash.encode()
+
+
+def test_new_package_latest_write_requires_absence(env):
+    env.latest["value"] = None
+    env.run(header(), new_entry("new.txt"))
+    assert [precondition for key, _, precondition in env.writes if key == LATEST_KEY] == [{"IfNoneMatch": "*"}]
+
+
+def test_unreadable_latest_pointer_is_forbidden(env):
+    env.user_s3.get_object.side_effect = client_error("AccessDenied", "GetObject")
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
         env.run(header())
     assert exc.value.name == "Forbidden"
@@ -246,8 +324,7 @@ def test_async_patch_request(env, mocker):
         max_size=t4_lambda_pkgpush.LAMBDA_TMP_SPACE,
         logger=t4_lambda_pkgpush.logger,
     )
-    (pkg,), _ = env.build.call_args
-    assert keys(pkg) == ["dir/b.txt", "dir/c.txt", "new.txt"]
+    assert keys(env.built()) == ["dir/b.txt", "dir/c.txt", "new.txt"]
 
 
 @pytest.mark.parametrize(

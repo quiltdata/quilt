@@ -17,7 +17,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Build a revision as a patch of its parent, hashing only the entries it adds, both in `create_package` and from a packager-queue `patch_request` ([#5454](https://github.com/quiltdata/quilt/pull/5454))
+- [Added] Build a revision as a patch of its parent, hashing only the entries it adds, both in `create_package` and from a packager-queue `patch_request`. A patch moves `latest` with a conditional S3 write against the revision it started from, so a concurrent writer's revision is never overwritten: the loser gets `ParentNotLatest` and writes no revision pointer ([#5454](https://github.com/quiltdata/quilt/pull/5454))
 - [Changed] Build packages from RO-Crate contents and metadata as a consumer of the [Quilt RO-Crate profile](https://w3id.org/quilt/ro-crate) ([#5290](https://github.com/quiltdata/quilt/pull/5290))
 - [Fixed] Read the published revision off the package `_push()` returns instead of its private `_origin` bookkeeping, which quilt3 8 removes ([#5180](https://github.com/quiltdata/quilt/pull/5180))
 - [Changed] Switch to uv ([#4649](https://github.com/quiltdata/quilt/pull/4649))

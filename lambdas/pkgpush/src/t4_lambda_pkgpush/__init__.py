@@ -4,12 +4,14 @@ import base64
 import concurrent.futures
 import contextlib
 import functools
+import io
 import json
 import logging
 import math
 import os
 import re
 import tempfile
+import time
 import typing as T
 import warnings
 
@@ -842,30 +844,87 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     return construct_package(req_file, max_files_to_hash=MAX_FILES_TO_HASH, max_bytes_to_hash=MAX_BYTES_TO_HASH)
 
 
-def get_latest_top_hash(registry: S3PackageRegistryV1, name: str) -> str | None:
+class LatestPointer(T.NamedTuple):
+    # None when the package has no revision yet.
+    top_hash: str | None
+    etag: str | None
+
+
+def get_latest_pointer(registry: S3PackageRegistryV1, name: str) -> LatestPointer:
+    pk = registry.pointer_latest_pk(name)
     try:
-        return quilt3.data_transfer.get_bytes(registry.pointer_latest_pk(name)).decode()
+        resp = get_user_s3_client().get_object(Bucket=pk.bucket, Key=pk.path)
     except botocore.exceptions.ClientError as e:
-        if e.response.get("Error", {}).get("Code") == "NoSuchKey":
-            return None
+        error = e.response.get("Error", {})
+        if error.get("Code") == "NoSuchKey":
+            return LatestPointer(None, None)
+        if error.get("Code") == "AccessDenied":
+            raise PkgpushException("Forbidden", {"details": error.get("Message")})
         raise PkgpushException.from_boto_error(e)
-    except quilt3.data_transfer.S3NoValidClientError as e:
-        raise PkgpushException("Forbidden", {"details": e.message})
+    return LatestPointer(resp["Body"].read().decode(), resp["ETag"])
 
 
-def check_parent_is_latest(registry: S3PackageRegistryV1, name: str, parent: str):
-    latest = get_latest_top_hash(registry, name)
-    if latest != parent:
-        raise PkgpushException("ParentNotLatest", {"parent": parent, "latest": latest})
+def check_latest_unchanged(registry: S3PackageRegistryV1, name: str, base: LatestPointer):
+    latest = get_latest_pointer(registry, name)
+    if latest.top_hash != base.top_hash:
+        raise PkgpushException("ParentNotLatest", {"parent": base.top_hash, "latest": latest.top_hash})
 
 
-def load_patch_parent(registry: S3PackageRegistryV1, name: str, patch: PackagePatchBase) -> quilt3.Package:
-    if patch.parent is not None:
-        # Fail before hashing; construct_package checks again before writing.
-        check_parent_is_latest(registry, name, patch.parent)
-    top_hash = patch.parent or get_latest_top_hash(registry, name)
-    if top_hash is None:
-        return quilt3.Package()
+def push_patch_manifest(
+    pkg: quilt3.Package,
+    registry: S3PackageRegistryV1,
+    name: str,
+    message: str | None,
+    base: LatestPointer,
+) -> str:
+    """
+    Like `Package._build`, but advance `latest` only if it still holds `base`.
+
+    The manifest is content-addressed, so writing it first is harmless if the guarded write loses.
+    The timestamped pointer, whose creation emits the package-revision event, is written only after
+    the guarded write wins, so a lost race leaves no revision behind.
+    """
+    pkg._set_commit_message(message)
+    pkg._calculate_missing_hashes()
+    top_hash = pkg.top_hash
+    manifest = io.BytesIO()
+    pkg._dump(manifest)
+    quilt3.data_transfer.put_bytes(manifest.getvalue(), registry.manifest_pk(name, top_hash))
+
+    latest_pk = registry.pointer_latest_pk(name)
+    precondition = {"IfNoneMatch": "*"} if base.etag is None else {"IfMatch": base.etag}
+    try:
+        get_user_s3_client().put_object(
+            Bucket=latest_pk.bucket,
+            Key=latest_pk.path,
+            Body=top_hash.encode(),
+            **precondition,
+        )
+    except botocore.exceptions.ClientError as e:
+        # 412 when another writer moved `latest` first; 409 when one is moving it concurrently.
+        if e.response.get("Error", {}).get("Code") in ("PreconditionFailed", "ConditionalRequestConflict"):
+            raise PkgpushException(
+                "ParentNotLatest",
+                {"parent": base.top_hash, "latest": get_latest_pointer(registry, name).top_hash},
+            )
+        raise PkgpushException.from_boto_error(e)
+
+    quilt3.data_transfer.put_bytes(top_hash.encode(), registry.pointer_pk(name, str(int(time.time()))))
+    return top_hash
+
+
+def load_patch_parent(
+    registry: S3PackageRegistryV1,
+    name: str,
+    patch: PackagePatchBase,
+) -> tuple[quilt3.Package, LatestPointer]:
+    base = get_latest_pointer(registry, name)
+    if patch.parent is not None and patch.parent != base.top_hash:
+        # Fail before hashing; the write of `latest` is guarded again.
+        raise PkgpushException("ParentNotLatest", {"parent": patch.parent, "latest": base.top_hash})
+    if base.top_hash is None:
+        return quilt3.Package(), base
+    top_hash = base.top_hash
     try:
         pkg = quilt3.Package.browse(name, registry=registry, top_hash=top_hash)
     except botocore.exceptions.ClientError as e:
@@ -883,7 +942,7 @@ def load_patch_parent(registry: S3PackageRegistryV1, name: str, patch: PackagePa
             continue
         if isinstance(node, quilt3.Package) is is_dir:
             pkg.delete(path)
-    return pkg
+    return pkg, base
 
 
 def construct_package(
@@ -902,10 +961,11 @@ def construct_package(
         package_registry = get_registry(registry_url)
 
         quilt3.util.validate_package_name(params.name)
+        base = None
         if params.patch is None:
             pkg = quilt3.Package()
         else:
-            pkg = load_patch_parent(package_registry, params.name, params.patch)
+            pkg, base = load_patch_parent(package_registry, params.name, params.patch)
         if params.user_meta is not None:
             pkg.set_meta(params.user_meta)
 
@@ -1015,16 +1075,18 @@ def construct_package(
 
     calculate_pkg_hashes(pkg, params.scratch_buckets, checksum_algorithms)
 
-    if params.patch is not None and params.patch.parent is not None:
-        check_parent_is_latest(package_registry, params.name, params.patch.parent)
-
     try:
         logger.info("[PERF] pkg._build START")
-        top_hash = pkg._build(
-            name=params.name,
-            registry=registry_url,
-            message=params.message,
-        )
+        if base is None:
+            top_hash = pkg._build(
+                name=params.name,
+                registry=registry_url,
+                message=params.message,
+            )
+        else:
+            # Hashing can take minutes: skip the manifest write if `latest` has already moved.
+            check_latest_unchanged(package_registry, params.name, base)
+            top_hash = push_patch_manifest(pkg, package_registry, params.name, params.message, base)
         logger.info(f"[PERF] pkg._build END: top_hash={top_hash}")
     except botocore.exceptions.ClientError as boto_error:
         raise PkgpushException.from_boto_error(boto_error)
