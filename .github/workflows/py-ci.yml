@@ -237,6 +237,7 @@ jobs:
           - tabular_preview
           - thumbnail
           - transcode
+          - s3native
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true

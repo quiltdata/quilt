@@ -1,0 +1,20 @@
+[project]
+name = "t4_lambda_s3native"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "boto3~=1.40",
+]
+
+[build-system]
+requires = ["uv_build==0.9.*"]
+build-backend = "uv_build"
+
+[dependency-groups]
+test = [
+    "pytest~=9.1",
+    "pytest-cov~=7.0",
+]
+
+[tool.uv]
+default-groups = ["test"]

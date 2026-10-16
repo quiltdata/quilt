@@ -1,0 +1,302 @@
+[
+ {
+  "version": "0",
+  "id": "c30a6af1-e91b-b5a3-a0aa-f8af9bdd01b1",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:50Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "dir/copy.txt",
+    "size": 1,
+    "etag": "9dd4e461268c8034f5c8564e155c67a6",
+    "version-id": "onHbK2aU1VPpitPQAEJnteUV3O2XalGN",
+    "sequencer": "006AC529BADDCBEE96",
+    "has-object-annotation": false
+   },
+   "request-id": "MABJ7TVNNAYQXSZY",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "CopyObject"
+  }
+ },
+ {
+  "version": "0",
+  "id": "7e7db36c-ac74-44a2-b4aa-e482f029dcc4",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:50Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "dir/a b+c%2Fd \u00e9.txt",
+    "size": 1,
+    "etag": "9dd4e461268c8034f5c8564e155c67a6",
+    "version-id": "Cs6sc0V9D9MQ4iBsupmJPS1WTze1lDeo",
+    "sequencer": "006AC529BA89FBD5C3"
+   },
+   "request-id": "MABP84ZFGDZM3EAX",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "PutObject"
+  }
+ },
+ {
+  "version": "0",
+  "id": "ce94e2f2-ff88-adda-3a64-ee21e449019e",
+  "detail-type": "Object Deleted",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:51Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "plain.txt",
+    "etag": "d41d8cd98f00b204e9800998ecf8427e",
+    "version-id": "fxfhavirH8K7qQK4WiemrQO9FGfdvEi0",
+    "sequencer": "006AC529BBEAA0F8BD"
+   },
+   "request-id": "RNF0B8MHFAY67E3T",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "DeleteObject",
+   "deletion-type": "Delete Marker Created"
+  }
+ },
+ {
+  "version": "0",
+  "id": "d35036de-2660-0169-a190-90b06f551240",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:50Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": ".quilt/packages/1220abc",
+    "size": 1,
+    "etag": "9dd4e461268c8034f5c8564e155c67a6",
+    "version-id": "czwa6yguKrrmD2mqWD86kQcXwt.FH_Ht",
+    "sequencer": "006AC529BAB4DD5B10"
+   },
+   "request-id": "MABNVW8H9AE3YS2D",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "PutObject"
+  }
+ },
+ {
+  "version": "0",
+  "id": "0ce5f923-e463-3950-f585-e82456990cf2",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:50Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "plain.txt",
+    "size": 1,
+    "etag": "9dd4e461268c8034f5c8564e155c67a6",
+    "version-id": "Sy7URm4UTuXrB0LEdlhXf3_UyruYZApw",
+    "sequencer": "006AC529BA57A7A945"
+   },
+   "request-id": "MABYNG3FPM3CFQMS",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "PutObject"
+  }
+ },
+ {
+  "version": "0",
+  "id": "28e6e131-b729-6a3a-1e36-49278e070772",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:51Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "posted.txt",
+    "size": 1,
+    "etag": "fbade9e36a3f36d3d676c1b808451dd7",
+    "version-id": "4hu2Vd5Qmmdp8W3VPPqFcuFCY9WZ_W1m",
+    "sequencer": "006AC529BBCC81CA17"
+   },
+   "request-id": "RNF01SBQPRNF9DDC",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "POST Object"
+  }
+ },
+ {
+  "version": "0",
+  "id": "4e823796-fc76-f292-e8c5-fcd67683d900",
+  "detail-type": "Object Created",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:51Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "mpu.bin",
+    "size": 1,
+    "etag": "4d89a60918a5fbad2c4d805d98c1384d-1",
+    "version-id": "UJVzovMpCal7VxrcxCsoN8pjG.be5ujT",
+    "sequencer": "006AC529BB131E93D7"
+   },
+   "request-id": "RNF8KCNSNF3S86GT",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "CompleteMultipartUpload"
+  }
+ },
+ {
+  "version": "0",
+  "id": "e2986933-843d-a6f2-0d2e-03bf70acde38",
+  "detail-type": "Object Deleted",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:52Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "dir/copy.txt",
+    "etag": "d41d8cd98f00b204e9800998ecf8427e",
+    "version-id": "LYmruHa1s.K6XuVbXPzNKsXj2R6VNQ2k",
+    "sequencer": "006AC529BC4199B53A"
+   },
+   "request-id": "TXW1KWARXGHE3YMG",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "DeleteObject",
+   "deletion-type": "Delete Marker Created"
+  }
+ },
+ {
+  "version": "0",
+  "id": "975d2e0a-f4dc-52ec-6ca0-7a8bfd88cb3e",
+  "detail-type": "Object Deleted",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:52Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "posted.txt",
+    "etag": "d41d8cd98f00b204e9800998ecf8427e",
+    "version-id": "C7caAmMAr_wRlrGWikfoPliUV6wSa8bc",
+    "sequencer": "006AC529BC46ADC4B8"
+   },
+   "request-id": "TXW1KWARXGHE3YMG",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "DeleteObject",
+   "deletion-type": "Delete Marker Created"
+  }
+ },
+ {
+  "version": "0",
+  "id": "53fc4865-7eef-d6ac-2f12-be0d5cbddb18",
+  "detail-type": "Object Deleted",
+  "source": "aws.s3",
+  "account": "123456789012",
+  "time": "2026-10-06T17:02:52Z",
+  "region": "us-east-1",
+  "resources": [
+   "arn:aws:s3:::example-bucket"
+  ],
+  "detail": {
+   "version": "0",
+   "event-version": "1.2",
+   "bucket": {
+    "name": "example-bucket"
+   },
+   "object": {
+    "key": "mpu.bin",
+    "version-id": "UJVzovMpCal7VxrcxCsoN8pjG.be5ujT",
+    "sequencer": "006AC529BC2372B2B5"
+   },
+   "request-id": "TXW3EMYC2JV7F08V",
+   "requester": "123456789012",
+   "source-ip-address": "192.0.2.1",
+   "reason": "DeleteObject",
+   "deletion-type": "Permanently Deleted"
+  }
+ }
+]

@@ -39,6 +39,7 @@ jobs:
           - status_reports
           - manifest_indexer
           - transcode
+          - s3native
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
