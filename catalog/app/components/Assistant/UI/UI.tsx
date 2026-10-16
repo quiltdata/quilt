@@ -325,6 +325,7 @@ function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
             state={api.state}
             dispatch={api.dispatch}
             devTools={api.devTools}
+            sessions={api.sessions}
             connectors={api.connectors}
             instructions={api.instructions}
             model={api.model}
