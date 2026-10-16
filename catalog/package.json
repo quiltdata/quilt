@@ -95,7 +95,7 @@
     "jsoneditor-react": "^3.1.2",
     "jsonpath-plus": "^10.4.0",
     "jss": "10.10.0",
-    "katex": "^0.16.8",
+    "katex": "^0.18.0",
     "lodash": "^4.17.21",
     "loglevel": "^1.9.1",
     "markdown-it": "^14.1.1",
