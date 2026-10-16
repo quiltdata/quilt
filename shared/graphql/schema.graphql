@@ -1147,8 +1147,9 @@ input PackagePatchEntry {
 input PackagePatchSource {
   # Concurrency guard: the top hash the caller read. The patch fails with
   # ParentNotLatest unless it is still the latest revision when the patch is written.
-  # Omitted: the latest revision when the patch runs (a package that doesn't exist yet
-  # starts empty), and the write is guarded against that revision instead.
+  # Omitted: the patch applies to whichever revision is latest when it is written, and
+  # is re-applied if another writer moves latest first. A package with no revisions
+  # starts empty.
   parent: String
   # entries to add or replace, applied after delete
   set: [PackagePatchEntry!]
