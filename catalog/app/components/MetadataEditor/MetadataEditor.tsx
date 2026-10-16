@@ -32,6 +32,8 @@ const useStyles = M.makeStyles((t) => ({
 
 interface MetadataEditorProps {
   isRaw: boolean
+  /** Whether the raw JSON text currently parses; the last valid value is all `onChange` saw. */
+  onTextValid?: (valid: boolean) => void
   multiColumned: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
@@ -42,6 +44,7 @@ export default function MetadataEditor({
   isRaw,
   multiColumned,
   onChange,
+  onTextValid,
   schema,
   value,
 }: MetadataEditorProps) {
@@ -69,6 +72,15 @@ export default function MetadataEditor({
           mode="code"
           navigationBar={false}
           onChange={onChange}
+          // jsoneditor only reports parseable text through onChange; a broken edit is silent
+          onChangeText={(text: string) => {
+            try {
+              JSON.parse(text)
+              onTextValid?.(true)
+            } catch {
+              onTextValid?.(false)
+            }
+          }}
           onError={(e) => setErrors([e])}
           onValidationError={setErrors}
           schema={schema}

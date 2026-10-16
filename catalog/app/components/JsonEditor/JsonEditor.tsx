@@ -11,7 +11,14 @@ import illustrationEnterValues from './enter-values.webm'
 import illustrationObjectExpand from './object-expand.webm'
 import Column from './Column'
 import State, { StateRenderProps } from './State'
-import { JsonValue, RowData, ValidationErrors } from './constants'
+import {
+  EditorMode,
+  JsonValue,
+  RenderEmptyValue,
+  RowData,
+  ValidationErrors,
+} from './constants'
+import { EmptyValueSlot } from './EmptyValueSlot'
 
 const useEmptyStateCaseStyles = M.makeStyles((t) => ({
   icon: {
@@ -183,6 +190,7 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
 interface JsonEditorProps extends StateRenderProps {
   className?: string
   disabled?: boolean
+  mode?: EditorMode
   multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
 }
@@ -197,6 +205,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     fieldPath,
     jsonDict,
     menuFieldPath,
+    mode,
     multiColumned,
     onChange,
     removeField,
@@ -268,6 +277,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               hasSiblingColumn={multiColumned}
               jsonDict={jsonDict}
               key={columnPath.join(',')}
+              mode={mode}
               onAddRow={handleRowAdd}
               onBreadcrumb={setFieldPath}
               onChange={handleValueChange}
@@ -294,34 +304,52 @@ interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
   errors: ValidationErrors
+  mode?: EditorMode
   multiColumned?: boolean
   onChange: (value: JsonValue) => void
+  /** Property mode only: the cell slot for an empty value (AI suggestions as grey text). */
+  renderEmptyValue?: RenderEmptyValue
   schema?: JsonSchema
   value: JsonValue
 }
 
 export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
   function JsonEditorWrapper(
-    { className, disabled, errors, multiColumned, onChange, schema: optSchema, value },
+    {
+      className,
+      disabled,
+      errors,
+      mode,
+      multiColumned,
+      onChange,
+      renderEmptyValue,
+      schema: optSchema,
+      value,
+    },
     ref,
   ) {
     const schema = optSchema || EMPTY_SCHEMA
 
     return (
-      <State errors={errors} jsonObject={value} schema={schema}>
-        {(stateProps: StateRenderProps) => (
-          <JsonEditor
-            {...{
-              className,
-              disabled,
-              onChange,
-              multiColumned: !!multiColumned,
-              ref,
-            }}
-            {...stateProps}
-          />
-        )}
-      </State>
+      <EmptyValueSlot.Provider
+        value={mode === 'property' ? renderEmptyValue || null : null}
+      >
+        <State errors={errors} jsonObject={value} schema={schema}>
+          {(stateProps: StateRenderProps) => (
+            <JsonEditor
+              {...{
+                className,
+                disabled,
+                mode,
+                onChange,
+                multiColumned: !!multiColumned,
+                ref,
+              }}
+              {...stateProps}
+            />
+          )}
+        </State>
+      </EmptyValueSlot.Provider>
     )
   },
 )
