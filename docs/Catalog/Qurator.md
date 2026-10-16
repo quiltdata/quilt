@@ -48,19 +48,39 @@ The Developer Tools menu (upper right of the Qurator chat window) provides:
 
 ### Approving Actions
 
-Qurator runs tools that only read (search, browse, preview) on its
-own. Before it runs a tool that changes data, such as creating or updating a
-package, writing an S3 object, or changing a Tabulator table, it shows what it
-wants to do and waits:
+Qurator runs read-only tools on its own: the catalog's own tools (navigation,
+which can move you to another page, plus preview and summarize) and any tool its
+server declares read-only (search, browse, Athena). Before it runs any other
+tool, such as one that creates or updates a package, writes an S3 object, or
+changes a Tabulator table, it shows what it wants to do and waits:
 
-- **Run** — the tool runs under your own permissions.
-- **Don't run** — nothing is written; Qurator is told you declined.
+- **Run** — the tool runs under your own permissions. If its description, input
+  schema or declared effect changed while it waited, or it is no longer offered
+  (for example after switching to Ask mode), Qurator says so and does not run it.
+- **Don't run** — the tool does not run; Qurator is told you declined.
 
-Tools their server marks destructive carry a warning. Approval is
-asked for each call, and only you can give it: content Qurator reads cannot.
+Approval is asked for each call, including a repeat of one you already ran, and
+only you can give it: content Qurator reads cannot.
 
-Athena queries run without asking because they can only read: the Platform
-MCP Server refuses statements that create, change or delete tables or data.
+The prompt rests on what each tool's server declares:
+
+- A tool declared read-only gets no prompt, in Agent or Ask mode. A server that
+  calls a write tool read-only can therefore write without asking, and Ask mode,
+  which offers only read-only tools, does not stop it.
+- Any other tool asks first, with a warning that it can replace or delete
+  existing data, unless its server marks it non-destructive. The Platform MCP
+  Server marks package patches, S3 object writes and Tabulator table changes
+  that way, even though they can remove entries, overwrite an object or delete a
+  table.
+- A server tool declared read-only is retried once when its connection fails,
+  even if the server already ran it, so it can run twice.
+
+Athena queries run without asking because the Platform MCP Server declares them
+read-only. A server that includes the read-only SQL guard refuses statements
+that do not start as a read, such as `CREATE`, `INSERT` or `DROP`, and refuses
+`EXPLAIN ANALYZE`. On a stack whose server predates the guard those statements
+run, still without asking. Either way, keep Athena write access out of roles
+that should only read.
 
 ### Connector Status
 
