@@ -9,6 +9,8 @@ import { CredentialsError } from 'utils/AWS/Credentials'
 import logout from 'utils/logout'
 import mkStorage from 'utils/storage'
 
+import { reloadIfStaleChunk } from './staleChunk'
+
 const storage = mkStorage({
   reloadAttempt: 'RELOAD_ATTEMPT',
 })
@@ -154,7 +156,7 @@ const FallbackComponent = ({ error }: FallbackProps) => (
 )
 
 const FinalBoundary = ({ children }: React.PropsWithChildren<{}>) => (
-  <ErrorBoundary {...{ children, FallbackComponent }} />
+  <ErrorBoundary {...{ children, FallbackComponent, onError: reloadIfStaleChunk }} />
 )
 
 export default FinalBoundary
