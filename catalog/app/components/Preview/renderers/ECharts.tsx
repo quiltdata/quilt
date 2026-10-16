@@ -1,6 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as echarts from 'echarts'
+import type * as echarts from 'echarts'
 
 const useStyles = M.makeStyles({
   root: {
@@ -24,17 +24,25 @@ function ECharts({ option, ...props }: EChartsProps) {
   const classes = useStyles()
 
   React.useEffect(() => {
-    if (!containerRef.current) return
-    try {
-      const chart = echarts.init(containerRef.current)
-      chart.setOption(option)
-      return () => chart.dispose()
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e)
-      if (e instanceof Error) setError(e)
-      // XXX: should NOT set state in dispose callback
-      return () => setError(null)
+    const el = containerRef.current
+    if (!el) return
+    let chart: echarts.ECharts | undefined
+    let disposed = false
+    // Loaded on first render so echarts stays out of the bucket tabs' bundle.
+    import('echarts')
+      .then((lib) => {
+        if (disposed) return
+        chart = lib.init(el)
+        chart.setOption(option)
+      })
+      .catch((e) => {
+        // eslint-disable-next-line no-console
+        console.error(e)
+        if (!disposed && e instanceof Error) setError(e)
+      })
+    return () => {
+      disposed = true
+      chart?.dispose()
     }
   }, [containerRef, option])
 
