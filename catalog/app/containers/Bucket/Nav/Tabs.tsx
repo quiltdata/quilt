@@ -55,11 +55,7 @@ function TabsList({ bucket, preferences, section = false }: TabsListProps) {
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
       )}
       {preferences.workflows && (
-        <NavTab
-          label="Workflows"
-          value="workflows"
-          to={urls.bucketWorkflowList(bucket)}
-        />
+        <NavTab label="Flows" value="workflows" to={urls.bucketWorkflowList(bucket)} />
       )}
     </M.Tabs>
   )

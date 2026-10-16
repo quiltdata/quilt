@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest'
 import * as Request from 'utils/useRequest'
 import * as Workflows from 'utils/workflows'
 
+import { FileNotFound } from 'containers/Bucket/errors'
+
 import * as checks from './checks'
 
 const workflow = (patch: Partial<Workflows.Workflow> = {}): Workflows.Workflow => ({
@@ -16,6 +18,25 @@ const workflow = (patch: Partial<Workflows.Workflow> = {}): Workflows.Workflow =
 })
 
 describe('containers/Bucket/Workflows/checks', () => {
+  describe('schemaReadError', () => {
+    const url = 's3://b/s.json'
+    const sdk = (statusCode: number, code: string) =>
+      Object.assign(new Error(), { message: null as unknown as string, statusCode, code })
+
+    it('never prints a null S3 HEAD message', () => {
+      const e = checks.schemaReadError(sdk(403, 'Forbidden'), url)
+      expect(e.kind).toBe('denied')
+      expect(e.text).toContain(url)
+      expect(e.text).not.toContain('null')
+      expect(checks.schemaReadError(sdk(500, 'X'), url).text).not.toContain('null')
+    })
+
+    it('names missing and unparseable schemas', () => {
+      expect(checks.schemaReadError(new FileNotFound('x'), url).kind).toBe('missing')
+      expect(checks.schemaReadError(new SyntaxError('bad'), url).kind).toBe('invalid')
+    })
+  })
+
   describe('checkSchema', () => {
     it('accepts a plain draft-07 schema', () => {
       expect(

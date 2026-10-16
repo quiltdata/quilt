@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
+import { FlowsLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
 import useId from 'utils/useId'
 import * as workflows from 'utils/workflows'
@@ -30,6 +30,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface SelectWorkflowProps {
+  bucket: string
   disabled?: boolean
   error?: React.ReactNode
   items: workflows.Workflow[]
@@ -38,6 +39,7 @@ interface SelectWorkflowProps {
 }
 
 function SelectWorkflow({
+  bucket,
   disabled,
   error,
   items,
@@ -53,7 +55,7 @@ function SelectWorkflow({
   return (
     <M.FormControl disabled={disabled || noChoice} fullWidth size="small" error={!!error}>
       <M.InputLabel id={labelId} shrink>
-        Workflow
+        Flow
       </M.InputLabel>
       <M.Select
         labelId={labelId}
@@ -82,16 +84,17 @@ function SelectWorkflow({
       </M.Select>
       <M.FormHelperText>
         {!!error && <span className={classes.error}>{error}</span>}
+        <FlowsLink bucket={bucket}>Manage this bucket&apos;s flows</FlowsLink> or{' '}
         <M.Link href={`${docs}/workflows`} target="_blank">
-          Learn about data quality workflows
+          learn about flows
         </M.Link>
-        , or edit <WorkflowsConfigLink>your workflows config file</WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
   )
 }
 
 interface InputWorkflowProps {
+  bucket: string
   formStatus: FormStatus
   schema: SchemaStatus
   state: WorkflowState
@@ -105,6 +108,7 @@ interface InputWorkflowProps {
  * and metadata schemas for the package.
  */
 export default function InputWorkflow({
+  bucket,
   formStatus,
   schema,
   state: { status, value, onChange },
@@ -119,6 +123,7 @@ export default function InputWorkflow({
   if (config._tag === 'loading') return <WorkflowsInputSkeleton />
   return (
     <SelectWorkflow
+      bucket={bucket}
       disabled={schema._tag === 'loading' || formStatus._tag === 'submitting'}
       error={error}
       items={config.config.workflows}
