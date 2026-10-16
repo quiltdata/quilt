@@ -297,6 +297,8 @@ export interface BucketConfig {
   readonly lastIndexed: Maybe<Scalars['Datetime']['output']>
   readonly linkedData: Maybe<Scalars['Json']['output']>
   readonly name: Scalars['String']['output']
+  /** YAML mapping of package metadata onto S3 object tags; null when the bucket maps none */
+  readonly objectTagsConfig: Maybe<Scalars['String']['output']>
   readonly overviewUrl: Maybe<Scalars['String']['output']>
   readonly prefixes: ReadonlyArray<Scalars['String']['output']>
   readonly relevanceScore: Scalars['Int']['output']
@@ -328,6 +330,11 @@ export interface BucketNotFound {
   readonly _: Maybe<Scalars['Boolean']['output']>
 }
 
+export interface BucketObjectTagsConfigInvalid {
+  readonly __typename: 'BucketObjectTagsConfigInvalid'
+  readonly message: Scalars['String']['output']
+}
+
 export interface BucketPermission {
   readonly bucket: BucketConfig
   readonly level: BucketPermissionLevel
@@ -354,6 +361,8 @@ export interface BucketUpdateInput {
   readonly iconUrl: InputMaybe<Scalars['String']['input']>
   readonly indexContentBytes: InputMaybe<Scalars['Int']['input']>
   readonly linkedData: InputMaybe<Scalars['Json']['input']>
+  /** Omit to keep the current mapping; null or empty to remove it */
+  readonly objectTagsConfig: InputMaybe<Scalars['String']['input']>
   readonly overviewUrl: InputMaybe<Scalars['String']['input']>
   readonly prefixes: InputMaybe<ReadonlyArray<Scalars['String']['input']>>
   readonly relevanceScore: InputMaybe<Scalars['Int']['input']>
@@ -368,6 +377,7 @@ export type BucketUpdateResult =
   | BucketFileExtensionsToIndexInvalid
   | BucketIndexContentBytesInvalid
   | BucketNotFound
+  | BucketObjectTagsConfigInvalid
   | BucketUpdateSuccess
   | InsufficientPermissions
   | NotificationConfigurationError

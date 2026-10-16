@@ -48,6 +48,8 @@ class BucketUpdateInput(BaseModel):
     index_content_bytes: Optional[int] = Field(alias="indexContentBytes", default=None)
     browsable: Optional[bool] = None
     prefixes: Optional[List[str]] = None
+    object_tags_config: Optional[str] = Field(alias="objectTagsConfig", default=None)
+    "Omit to keep the current mapping; null or empty to remove it"
 
 
 class PermissionInput(BaseModel):

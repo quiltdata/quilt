@@ -13,4 +13,5 @@ fragment BucketConfigSelection on BucketConfig {
   skipMetaDataIndexing
   lastIndexed
   browsable
+  objectTagsConfig
 }
