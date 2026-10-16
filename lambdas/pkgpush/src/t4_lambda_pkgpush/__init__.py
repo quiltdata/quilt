@@ -955,7 +955,11 @@ def push_patch_manifest(
         if latest != top_hash:
             raise PkgpushException("ParentNotLatest", {"parent": base.top_hash, "latest": latest})
 
-    quilt3.data_transfer.put_bytes(top_hash.encode(), registry.pointer_pk(name, str(int(time.time()))))
+    # Pointers are named by the second, and a re-applied patch can follow its winner within one:
+    # never overwrite another revision's pointer.
+    timestamp = int(time.time())
+    while put_if(s3_client, registry.pointer_pk(name, str(timestamp)), top_hash.encode(), IfNoneMatch="*"):
+        timestamp += 1
     return top_hash
 
 
@@ -977,10 +981,13 @@ def load_patch_parent(
     if patch.parent is not None and patch.parent != base.top_hash:
         # Fail before hashing; the write of `latest` is guarded again.
         raise PkgpushException("ParentNotLatest", {"parent": patch.parent, "latest": base.top_hash})
-    if base.top_hash is None:
-        if has_revisions(registry, name):
+    if base.top_hash is None and has_revisions(registry, name):
+        # A first revision may have landed since `latest` was read.
+        base = get_latest_pointer(registry, name)
+        if base.top_hash is None:
             # Revisions without `latest` (a manual or half-finished delete): starting empty would drop them.
             raise PkgpushException("LatestMissing", {"package": name})
+    if base.top_hash is None:
         return quilt3.Package(), base
     try:
         pkg = quilt3.Package.browse(name, registry=registry, top_hash=base.top_hash)

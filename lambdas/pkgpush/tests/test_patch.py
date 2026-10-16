@@ -84,12 +84,12 @@ def env(mocker):
 
     # Every object write, in order: (key, body, precondition).
     writes = []
-    # Manifests in the registry, by key.
-    manifests = {}
+    # Registry objects other than `latest` (manifests, revision pointers), by key.
+    objects = {}
 
     def put_object(Bucket, Key, Body, **precondition):
         assert Bucket == BUCKET
-        exists = latest["value"] is not None if Key == LATEST_KEY else Key in manifests
+        exists = latest["value"] is not None if Key == LATEST_KEY else Key in objects
         if precondition.get("IfNoneMatch") == "*" and exists:
             raise client_error("PreconditionFailed", "PutObject")
         if "IfMatch" in precondition and (Key != LATEST_KEY or not exists or precondition["IfMatch"] != etag()):
@@ -98,11 +98,7 @@ def env(mocker):
         if Key == LATEST_KEY:
             latest["value"] = Body.decode()
         else:
-            manifests[Key] = Body
-
-    def put_bytes(data, pk):
-        assert pk.bucket == BUCKET
-        writes.append((pk.path, data, None))
+            objects[Key] = Body
 
     # Revisions that can be browsed, by top hash.
     revisions = {PARENT_HASH: PARENT}
@@ -128,7 +124,6 @@ def env(mocker):
     session = mocker.MagicMock()
     session.client.return_value = user_s3
 
-    mocker.patch("quilt3.data_transfer.put_bytes", side_effect=put_bytes)
     browse_mock = mocker.patch.object(quilt3.Package, "browse", side_effect=browse)
     mocker.patch.object(
         t4_lambda_pkgpush, "get_checksum_algorithms", return_value=[t4_lambda_pkgpush.ChecksumAlgorithm.SHA256_CHUNKED]
@@ -140,8 +135,8 @@ def env(mocker):
     def built():
         """The revision `latest` now names, loaded from its manifest."""
         key = f".quilt/packages/{latest['value']}"
-        assert key in manifests, "`latest` names a revision with no manifest"
-        return quilt3.Package.load(io.BytesIO(manifests[key]))
+        assert key in objects, "`latest` names a revision with no manifest"
+        return quilt3.Package.load(io.BytesIO(objects[key]))
 
     def run(*lines, max_files_to_hash=10**9):
         with t4_lambda_pkgpush.setup_user_boto_session(session):
@@ -156,7 +151,7 @@ def env(mocker):
         user_s3=user_s3,
         browse=browse_mock,
         writes=writes,
-        manifests=manifests,
+        objects=objects,
         revisions=revisions,
         session=session,
         sleep=sleep,
@@ -323,9 +318,19 @@ def test_latest_write_is_conditional_and_precedes_revision_pointer(env, mocker):
     assert [(key, precondition) for key, _, precondition in env.writes] == [
         (f".quilt/packages/{top_hash}", {"IfNoneMatch": "*"}),
         (LATEST_KEY, {"IfMatch": f'"{PARENT_HASH}"'}),
-        (f".quilt/named_packages/{NAME}/1700000000", None),
+        (f".quilt/named_packages/{NAME}/1700000000", {"IfNoneMatch": "*"}),
     ]
     assert env.writes[-1][1] == top_hash.encode()
+
+
+def test_revision_pointer_never_overwrites_another_in_the_same_second(env, mocker):
+    mocker.patch("time.time", return_value=1_700_000_000)
+    env.objects[f".quilt/named_packages/{NAME}/1700000000"] = b"the other writer's revision"
+
+    pkg = env.run(header(), new_entry("new.txt"))
+
+    assert env.objects[f".quilt/named_packages/{NAME}/1700000000"] == b"the other writer's revision"
+    assert env.objects[f".quilt/named_packages/{NAME}/1700000001"] == pkg.top_hash.encode()
 
 
 def test_latest_moved_by_own_retried_write_completes_revision(env, mocker):
@@ -342,7 +347,7 @@ def test_latest_moved_by_own_retried_write_completes_revision(env, mocker):
     pkg = env.run(header(parent=PARENT_HASH), new_entry("new.txt"))
 
     assert env.latest["value"] == pkg.top_hash
-    assert env.writes[-1] == (f".quilt/named_packages/{NAME}/1700000000", pkg.top_hash.encode(), None)
+    assert env.objects[f".quilt/named_packages/{NAME}/1700000000"] == pkg.top_hash.encode()
 
 
 def test_existing_manifest_is_not_rewritten(env):
@@ -378,7 +383,7 @@ def conflict_on_puts(env, conflicts, key_prefix, on_conflict=lambda key: None):
 def test_manifest_retried_after_concurrent_creation(env, other_lands):
     def other_writer(key):
         if other_lands:
-            env.manifests[key] = b"the other writer's manifest"
+            env.objects[key] = b"the other writer's manifest"
 
     conflict_on_puts(env, 1, ".quilt/packages/", other_writer)
     with t4_lambda_pkgpush.setup_user_boto_session(env.session):
@@ -388,8 +393,8 @@ def test_manifest_retried_after_concurrent_creation(env, other_lands):
 
     # The other writer's manifest stands; if it never landed, this patch's own does.
     assert env.latest["value"] == top_hash
-    assert f".quilt/packages/{top_hash}" in env.manifests
-    assert (env.manifests[f".quilt/packages/{top_hash}"] == b"the other writer's manifest") is other_lands
+    assert f".quilt/packages/{top_hash}" in env.objects
+    assert (env.objects[f".quilt/packages/{top_hash}"] == b"the other writer's manifest") is other_lands
 
 
 def test_persistent_manifest_conflict_leaves_latest(env):
@@ -420,6 +425,18 @@ def test_unpinned_patch_refuses_revisions_without_latest(env):
         Bucket=BUCKET, Prefix=f".quilt/named_packages/{NAME}/", MaxKeys=1
     )
     assert env.writes == []
+
+
+def test_first_revision_landing_before_the_pointer_listing_is_patched(env):
+    env.latest["value"] = None
+
+    def first_revision_lands(**kwargs):
+        env.latest["value"] = PARENT_HASH
+        return {"KeyCount": 1}
+
+    env.user_s3.list_objects_v2.side_effect = first_revision_lands
+    pkg = env.run(header(), new_entry("new.txt"))
+    assert keys(pkg) == ["a.txt", "dir/b.txt", "dir/c.txt", "new.txt"]
 
 
 def test_unlistable_revisions_are_forbidden(env):
