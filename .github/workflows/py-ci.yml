@@ -232,6 +232,7 @@ jobs:
           - pkgpush
           - preview
           - s3hash
+          - s3tags
           - shared
           - status_reports
           - tabular_preview
