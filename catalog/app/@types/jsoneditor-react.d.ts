@@ -10,6 +10,8 @@ declare module 'jsoneditor-react' {
     mode?: 'tree' | 'view' | 'form' | 'code' | 'text'
     navigationBar?: boolean
     onChange: (value: $TSFixMe) => void
+    // forwarded to jsoneditor; called on every edit, parseable or not
+    onChangeText?: (text: string) => void
     onError: (errors: Error) => void
     onValidate?: () => [{ path: string[]; message: string }]
     onValidationError: (errors: Error[]) => void

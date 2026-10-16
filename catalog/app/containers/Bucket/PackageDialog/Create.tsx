@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
@@ -5,6 +6,7 @@ import * as M from '@material-ui/core'
 import * as Intercom from 'components/Intercom'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
+import useDragging from 'utils/dragging'
 import assertNever from 'utils/assertNever'
 import * as workflows from 'utils/workflows'
 
@@ -16,6 +18,7 @@ import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as Inputs from './Inputs'
+import { useGuardedInputs } from './State/meta'
 import * as Layout from './Layout'
 import * as PDModel from './State'
 import { FormSkeleton } from './Skeleton'
@@ -181,6 +184,36 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
+  guidedLeft: {
+    [t.breakpoints.up('sm')]: {
+      flexBasis: '36%',
+      maxWidth: `calc(36% - ${t.spacing(1.5)}px)`,
+    },
+  },
+  guidedRight: {
+    [t.breakpoints.up('sm')]: {
+      flexBasis: '64%',
+      maxWidth: `calc(64% - ${t.spacing(1.5)}px)`,
+    },
+  },
+  paneTabs: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    flexShrink: 0,
+    minHeight: 40,
+    '& .MuiTab-root': {
+      minHeight: 40,
+      minWidth: 120,
+    },
+  },
+  pane: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minHeight: 0,
+  },
+  paneHidden: {
+    display: 'none',
+  },
 }))
 
 interface PackageCreationFormProps {
@@ -222,11 +255,96 @@ function PackageCreationForm({
 }: PackageCreationFormProps) {
   const classes = useStyles()
 
+  const { canChange, guardedWorkflow, guardedSetSrc } = useGuardedInputs(
+    meta.pending,
+    workflow,
+    setSrc,
+  )
+
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
-  const dialogContentClasses = Layout.useContentStyles({ metaHeight })
+  // guided: the metadata pane flex-grows beside the inputs, so feeding its measured height
+  // back would grow the dialog each time it is re-measured; take the available height
+  const dialogContentClasses = Layout.useContentStyles({
+    metaHeight: meta.guided ? Infinity : metaHeight,
+  })
 
   const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
+
+  // Guided metadata gets the wide pane; files share it behind a tab.
+  const [pane, setPane] = React.useState<'metadata' | 'files'>('metadata')
+
+  const fileKeys = React.useMemo(() => {
+    const { added, deleted, existing } = files.value
+    return Array.from(
+      new Set([
+        ...Object.keys(added),
+        ...Object.keys(existing).filter((k) => !deleted[k]),
+      ]),
+    )
+  }, [files.value])
+  const fileCount = fileKeys.length
+
+  const openMeta = React.useCallback(() => setPane('metadata'), [])
+  const dragging = useDragging(meta.guided)
+  const paneRef = React.useRef(pane)
+  paneRef.current = pane
+  const beforeDrag = React.useRef<typeof pane | null>(null)
+  const dropped = React.useRef(false)
+  React.useEffect(() => {
+    if (!meta.guided) return
+    const onDrop = () => {
+      dropped.current = true
+    }
+    document.addEventListener('drop', onDrop, true)
+    return () => document.removeEventListener('drop', onDrop, true)
+  }, [meta.guided])
+  React.useEffect(() => {
+    if (!meta.guided) return
+    if (dragging) {
+      beforeDrag.current ??= paneRef.current
+      dropped.current = false
+      setPane('files')
+      return
+    }
+    const was = beforeDrag.current
+    beforeDrag.current = null
+    // a cancelled drag returns the user; a drop stays on Files while its files load
+    if (was && !dropped.current) setPane(was)
+  }, [dragging, meta.guided])
+
+  // a new rejected submit shows the pane that holds the reason, once
+  const statusTags = React.useRef({ files: files.status._tag, meta: meta.status._tag })
+  statusTags.current = { files: files.status._tag, meta: meta.status._tag }
+  React.useEffect(() => {
+    if (!meta.guided || formStatus._tag !== 'error') return
+    // the rejection's own field first; a leftover status error elsewhere must not win
+    if (formStatus.fields?.userMeta) setPane('metadata')
+    else if (formStatus.fields?.files) setPane('files')
+    else if (statusTags.current.meta === 'error') setPane('metadata')
+    else if (statusTags.current.files === 'error') setPane('files')
+  }, [formStatus]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filesInput = (
+    <Inputs.Files
+      formStatus={formStatus}
+      schema={entriesSchema}
+      state={files}
+      progress={progress}
+      delayHashing={delayHashing}
+      bucket={src?.bucket || dst.bucket}
+    />
+  )
+
+  const suggest = React.useMemo(() => {
+    const slug = workflow.value?.slug
+    return {
+      bucket: dst.bucket,
+      files: fileKeys,
+      name: name.value,
+      workflow: typeof slug === 'string' ? slug : undefined,
+    }
+  }, [dst.bucket, fileKeys, name.value, workflow.value])
 
   const handleSubmit = React.useCallback(
     (event) => {
@@ -237,7 +355,7 @@ function PackageCreationForm({
   )
 
   return (
-    <>
+    <Inputs.MetaPaneOpener.Provider value={meta.guided ? openMeta : null}>
       {formStatus._tag === 'emptyFiles' && (
         <M.Dialog open fullWidth maxWidth="sm">
           <ConfirmReadme close={onAddReadme} />
@@ -249,38 +367,72 @@ function PackageCreationForm({
         <Successors.Dropdown
           bucket={dst.bucket || ''}
           successor={successor}
-          onChange={(s) => setDst((d) => ({ ...d, bucket: s.slug }))}
+          onChange={(s) =>
+            canChange('the bucket') && setDst((d) => ({ ...d, bucket: s.slug }))
+          }
         />{' '}
         bucket
       </M.DialogTitle>
       <M.DialogContent classes={dialogContentClasses}>
         <form className={classes.form} onSubmit={handleSubmit}>
           <Layout.Container>
-            <Layout.LeftColumn>
+            <Layout.LeftColumn className={cx({ [classes.guidedLeft]: meta.guided })}>
               <Inputs.Workflow
                 formStatus={formStatus}
                 schema={metadataSchema}
-                state={workflow}
+                state={guardedWorkflow}
                 config={workflowsConfig}
               />
-              <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
+              <Inputs.Name formStatus={formStatus} state={name} setSrc={guardedSetSrc} />
               <Inputs.Message formStatus={formStatus} state={message} />
               <Inputs.Meta
                 formStatus={formStatus}
                 schema={metadataSchema}
                 state={meta}
                 ref={setEditorElement}
+                suggest={suggest}
               />
             </Layout.LeftColumn>
-            <Layout.RightColumn>
-              <Inputs.Files
-                formStatus={formStatus}
-                schema={entriesSchema}
-                state={files}
-                progress={progress}
-                delayHashing={delayHashing}
-                bucket={src?.bucket || dst.bucket}
-              />
+            <Layout.RightColumn className={cx({ [classes.guidedRight]: meta.guided })}>
+              {meta.guided && (
+                <M.Tabs
+                  className={classes.paneTabs}
+                  indicatorColor="primary"
+                  onChange={(_e, v) => setPane(v)}
+                  textColor="primary"
+                  value={pane}
+                >
+                  <M.Tab label="Metadata" value="metadata" />
+                  <M.Tab
+                    label={`Files${fileCount ? ` (${fileCount})` : ''}`}
+                    value="files"
+                  />
+                </M.Tabs>
+              )}
+              {meta.guided && (
+                <div
+                  className={cx(classes.pane, {
+                    [classes.paneHidden]: pane !== 'metadata',
+                  })}
+                >
+                  <Inputs.MetaPane
+                    formStatus={formStatus}
+                    schema={metadataSchema}
+                    state={meta}
+                    ref={setEditorElement}
+                    suggest={suggest}
+                  />
+                </div>
+              )}
+              {meta.guided ? (
+                <div
+                  className={cx(classes.pane, { [classes.paneHidden]: pane !== 'files' })}
+                >
+                  {filesInput}
+                </div>
+              ) : (
+                filesInput
+              )}
             </Layout.RightColumn>
           </Layout.Container>
 
@@ -308,7 +460,7 @@ function PackageCreationForm({
           {ui.submit || 'Create'}
         </M.Button>
       </M.DialogActions>
-    </>
+    </Inputs.MetaPaneOpener.Provider>
   )
 }
 

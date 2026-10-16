@@ -2,6 +2,7 @@ import type { JSONType } from 'ajv'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import useResizeObserver from 'use-resize-observer'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
@@ -16,14 +17,47 @@ import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
 import * as Toolbar from './Toolbar'
-import { COLUMN_IDS, JsonValue, RowData } from './constants'
+import { COLUMN_IDS, EditorMode, JsonValue, RowData } from './constants'
+
+// four columns stop fitting here; a phone-width pane gets one card per field
+const CARDS_BELOW = 520
 
 const useStyles = M.makeStyles((t) => ({
+  head: {
+    ...t.typography.caption,
+    background: t.palette.background.default,
+    border: `1px solid ${t.palette.grey[400]}`,
+    color: t.palette.text.secondary,
+    fontWeight: t.typography.fontWeightMedium,
+    padding: t.spacing(0.5, 1),
+  },
   root: {
     flex: 'none',
     padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
+  },
+  // property mode in a narrow column: each row becomes a card (name + type, value, about)
+  cards: {
+    '& table, & tbody': { display: 'block' },
+    '& thead': { display: 'none' },
+    '& tbody > tr': {
+      border: `1px solid ${t.palette.grey[400]}`,
+      borderRadius: t.shape.borderRadius,
+      display: 'grid',
+      gridTemplateAreas: '"key type" "value value" "about about"',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      marginBottom: t.spacing(1),
+    },
+    '& tbody > tr > td': { border: 0, width: 'auto' },
+    '& tbody > tr > td:nth-child(1)': { gridArea: 'key' },
+    '& tbody > tr > td:nth-child(2)': {
+      gridArea: 'value',
+      // a finger edits here: Touch Floor Rule
+      minHeight: 44,
+    },
+    '& tbody > tr > td:nth-child(3)': { gridArea: 'type' },
+    '& tbody > tr > td:nth-child(4)': { gridArea: 'about' },
   },
   breadcrumbs: {
     alignItems: 'center',
@@ -130,6 +164,7 @@ interface ColumnProps {
     parent?: JsonValue
   }
   jsonDict: Record<string, JsonValue>
+  mode?: EditorMode
   onAddRow: (path: JSONPointer.Path, key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: JSONPointer.Path) => void
   onChange: (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => void
@@ -146,6 +181,7 @@ export default function Column({
   data,
   hasSiblingColumn,
   jsonDict,
+  mode = 'default',
   onAddRow,
   onBreadcrumb,
   onChange,
@@ -168,6 +204,10 @@ export default function Column({
   )
 
   const classes = useStyles()
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const { width = 0 } = useResizeObserver({ ref: rootRef })
+  // the column's own width, not the viewport (DESIGN.md Column Rule)
+  const cards = mode === 'property' && width > 0 && width < CARDS_BELOW
 
   const [hasNewRow, setHasNewRow] = React.useState(false)
   // TODO: rename to less tutorial-ish name
@@ -202,7 +242,14 @@ export default function Column({
   const toolbar = Toolbar.use()
 
   return (
-    <div className={cx(classes.root, { [classes.sibling]: hasSiblingColumn }, className)}>
+    <div
+      className={cx(
+        classes.root,
+        { [classes.sibling]: hasSiblingColumn, [classes.cards]: cards },
+        className,
+      )}
+      ref={rootRef}
+    >
       {!!columnPath.length && (
         <div className={classes.breadcrumbs}>
           <Breadcrumbs
@@ -220,6 +267,17 @@ export default function Column({
 
       <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>
         <M.Table {...getTableProps({ className: classes.table })}>
+          {mode === 'property' && (
+            <M.TableHead>
+              <M.TableRow>
+                {['Field', 'Value', 'Type', 'About'].map((h) => (
+                  <M.TableCell className={classes.head} key={h}>
+                    {h}
+                  </M.TableCell>
+                ))}
+              </M.TableRow>
+            </M.TableHead>
+          )}
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
               const isLastRow = index === rows.length - 1
@@ -231,6 +289,7 @@ export default function Column({
                 columnPath,
                 contextMenuPath,
                 fresh: isLastRow && hasNewRow,
+                mode,
                 onContextMenu,
                 onExpand,
                 onRemove,

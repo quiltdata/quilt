@@ -29,10 +29,15 @@ export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: strin
   return null
 }
 
-export const getMetaValue = (value: unknown, optSchema?: JsonSchema) =>
-  value
+export const getMetaValue = (
+  value: unknown,
+  optSchema?: JsonSchema,
+  { keepSet = false }: { keepSet?: boolean } = {},
+) =>
+  // keepSet (guided) validates `value || {}`, so submit must apply defaults to {} too
+  value || keepSet
     ? pipeThru(value || {})(
-        makeSchemaDefaultsSetter(optSchema),
+        makeSchemaDefaultsSetter(optSchema, { keepSet }),
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
         R.fromPairs,

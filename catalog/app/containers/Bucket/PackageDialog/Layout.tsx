@@ -89,7 +89,10 @@ const useLeftColumnStyles = M.makeStyles((t) => ({
  * Reusable layout component shared between Create and Copy dialogs
  * with responsive spacing and overflow handling.
  */
-export function LeftColumn(props: React.PropsWithChildren<{}>) {
+export function LeftColumn({
+  className,
+  ...props
+}: React.PropsWithChildren<{ className?: string }>) {
   const classes = useLeftColumnStyles()
-  return <Column className={classes.root} {...props} />
+  return <Column className={cx(classes.root, className)} {...props} />
 }

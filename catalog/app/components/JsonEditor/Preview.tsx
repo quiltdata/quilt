@@ -15,6 +15,7 @@ import {
   JsonValue,
   RowData,
 } from './constants'
+import { EmptyValueSlot } from './EmptyValueSlot'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -92,6 +93,8 @@ export default function Preview({
 
   const requiredKey = data.required && columnId === COLUMN_IDS.KEY
   const isEmpty = React.useMemo(() => value === EMPTY_VALUE, [value])
+  const renderEmpty = React.useContext(EmptyValueSlot)
+  const slot = isEmpty && columnId === COLUMN_IDS.VALUE && renderEmpty?.(data.address)
 
   return (
     <div className={classes.root} onContextMenu={onContextMenu}>
@@ -104,7 +107,7 @@ export default function Preview({
             [classes.placeholder]: isEmpty,
           })}
         >
-          {isEmpty ? placeholder : <PreviewValue value={value} />}
+          {slot || (isEmpty ? placeholder : <PreviewValue value={value} />)}
         </span>
       </div>
 

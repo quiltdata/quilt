@@ -15,6 +15,7 @@ import {
   COLUMN_IDS,
   EMPTY_VALUE,
   JSON_POINTER_PLACEHOLDER,
+  EditorMode,
   JsonValue,
   RowData,
 } from './constants'
@@ -36,11 +37,15 @@ const cellPlaceholders = {
   [COLUMN_IDS.VALUE]: 'Value',
 }
 
+/** Address of the cell that should take focus once a commit or cancel has re-rendered. */
+let pendingFocus: string | null = null
+
 interface CellProps {
   column: RTable.Column<{ id: 'key' | 'value' }>
   columnPath: JSONPointer.Path
   contextMenuPath: JSONPointer.Path
   editing: boolean
+  mode?: EditorMode
   onContextMenu: (path: JSONPointer.Path) => void
   onExpand: (path: JSONPointer.Path) => void
   onRemove: (path: JSONPointer.Path) => void
@@ -54,6 +59,7 @@ export default function Cell({
   columnPath,
   contextMenuPath,
   editing: editingInitial,
+  mode = 'default',
   onContextMenu,
   onExpand,
   onRemove,
@@ -62,6 +68,9 @@ export default function Cell({
   value: initialValue,
 }: CellProps) {
   const classes = useStyles()
+  // property mode is a keyboard grid: after Enter or Esc the cell keeps focus, so Tab
+  // goes on to the next cell instead of starting over from the dialog
+  const keyboard = mode === 'property'
 
   const [value, setValue] = React.useState(initialValue)
 
@@ -69,6 +78,11 @@ export default function Cell({
 
   const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
+  // by address, not ref: a committed value changes the row's key and remounts the cell
+  const cellId = `${JSONPointer.stringify(fieldPath)}|${column.id}`
+  const refocus = React.useCallback(() => {
+    if (keyboard) pendingFocus = cellId
+  }, [cellId, keyboard])
   const hasKey = React.useMemo(() => key !== EMPTY_VALUE, [key])
 
   const onChange = React.useCallback(
@@ -76,9 +90,15 @@ export default function Cell({
       setValue(newValue)
       updateMyData(fieldPath, column.id as 'key' | 'value', newValue)
       setEditing(false)
+      refocus()
     },
-    [column.id, fieldPath, updateMyData],
+    [column.id, fieldPath, refocus, updateMyData],
   )
+  const onCancel = React.useCallback(() => {
+    setValue(initialValue)
+    setEditing(false)
+    refocus()
+  }, [initialValue, refocus])
 
   const isKeyCell = column.id === COLUMN_IDS.KEY
   const isValueCell = column.id === COLUMN_IDS.VALUE
@@ -145,6 +165,13 @@ export default function Cell({
 
   const addressPath = React.useMemo(() => [...columnPath, key], [columnPath, key])
   const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null)
+  // whichever cell renders at that address next takes focus: the old one or its remount
+  React.useEffect(() => {
+    if (!editing && anchorEl && pendingFocus === cellId) {
+      pendingFocus = null
+      anchorEl.focus()
+    }
+  })
   const handleContextMenu = React.useCallback(
     (event) => {
       event.preventDefault()
@@ -167,6 +194,7 @@ export default function Cell({
           columnId: column.id as 'key' | 'value',
           data: row.original,
           onChange,
+          onCancel: keyboard ? onCancel : undefined,
           onContextMenu: handleContextMenu,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
