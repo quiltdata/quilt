@@ -605,6 +605,41 @@ export default {
             ],
           },
           {
+            name: 'slackInstallComplete',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'SlackInstallCompleteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'code',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'state',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'user',
             type: {
               kind: 'NON_NULL',
@@ -680,6 +715,15 @@ export default {
                 name: 'QuratorConfig',
                 ofType: null,
               },
+            },
+            args: [],
+          },
+          {
+            name: 'slackInstallAuthorizeUrl',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
             },
             args: [],
           },
@@ -7174,6 +7218,60 @@ export default {
             name: 'SsoConfig',
           },
         ],
+      },
+      {
+        kind: 'UNION',
+        name: 'SlackInstallCompleteResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'SlackWorkspaceInstall',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SlackWorkspaceInstall',
+        fields: [
+          {
+            name: 'installedAt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'teamId',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'teamName',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',
