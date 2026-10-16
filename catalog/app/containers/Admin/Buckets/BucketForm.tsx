@@ -11,8 +11,10 @@ import * as Dialog from 'components/Dialog'
 import type * as Model from 'model'
 import type FormSpec from 'utils/FormSpec'
 import assertNever from 'utils/assertNever'
+import * as S3Tags from 'utils/s3Tags'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
+import * as YAML from 'utils/yaml'
 
 import * as Form from '../Form'
 
@@ -50,11 +52,16 @@ const bucketToPreviewValues = (bucket: BucketConfig) => ({
   browsable: bucket.browsable ?? false,
 })
 
+const bucketToObjectTagsValues = (bucket: BucketConfig) => ({
+  objectTagsConfig: bucket.objectTagsConfig ?? '',
+})
+
 export const bucketToFormValues = (bucket: BucketConfig) => ({
   ...bucketToPrimaryValues(bucket),
   ...bucketToMetadataValues(bucket),
   ...bucketToIndexingAndNotificationsValues(bucket),
   ...bucketToPreviewValues(bucket),
+  ...bucketToObjectTagsValues(bucket),
 })
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
@@ -281,10 +288,17 @@ export const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
   prefixes: R.pipe(R.prop('prefixes'), normalizePrefixes),
+  objectTagsConfig: R.pipe(
+    R.prop('objectTagsConfig'),
+    Types.decode(Types.fromNullable(IO.string, '')),
+    R.trim,
+    (s) => s || null,
+  ),
 }
 
 export const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
-  ...editFormSpec,
+  // BucketAddInput has no objectTagsConfig: a bucket is mapped after it is added.
+  ...R.omit(['objectTagsConfig'], editFormSpec),
   name: R.pipe(
     R.prop('name'),
     Types.decode(IO.string),
@@ -685,6 +699,36 @@ export function PreviewForm() {
   return <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
 }
 
+/** Same rules the registry enforces on save. */
+export function validateObjectTagsConfig(v: string | null | undefined) {
+  if (!v?.trim()) return undefined
+  try {
+    const parsed = YAML.parseStrict(v)
+    if (parsed instanceof Error) throw parsed
+    S3Tags.parseConfig(parsed)
+  } catch (e) {
+    return e instanceof Error ? e.message : `${e}`
+  }
+}
+
+export function ObjectTagsForm() {
+  return (
+    <RF.Field
+      component={Form.Field}
+      name="objectTagsConfig"
+      label="Package metadata written as S3 object tags"
+      placeholder={'tags:\n  project: /project\n  retention: /lifecycle/retention'}
+      helperText="YAML: S3 tag key → JSON pointer into package metadata. Packages created or revised in the catalog get these tags. Leave empty to write none."
+      validate={validateObjectTagsConfig}
+      fullWidth
+      margin="normal"
+      multiline
+      rows={4}
+      rowsMax={12}
+    />
+  )
+}
+
 export function parseResponseError(
   r:
     | Exclude<Model.GQLTypes.BucketAddResult, Model.GQLTypes.BucketAddSuccess>
@@ -717,6 +761,8 @@ export function parseResponseError(
       return { fileExtensionsToIndex: 'validExtensions' }
     case 'BucketNotFound':
       return { [FF.FORM_ERROR]: 'bucketNotFound' }
+    case 'BucketObjectTagsConfigInvalid':
+      return { objectTagsConfig: r.message }
     default:
       return assertNever(r)
   }

@@ -10,5 +10,8 @@ mutation ($name: String!, $input: BucketUpdateInput!) {
     ... on InsufficientPermissions {
       message
     }
+    ... on BucketObjectTagsConfigInvalid {
+      message
+    }
   }
 }

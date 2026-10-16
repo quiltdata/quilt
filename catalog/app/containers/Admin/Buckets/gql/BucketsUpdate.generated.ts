@@ -15,6 +15,8 @@ export interface BucketUpdateInput {
   readonly iconUrl: string | null | undefined
   readonly indexContentBytes: number | null | undefined
   readonly linkedData: Json | null | undefined
+  /** Omit to keep the current mapping; null or empty to remove it */
+  readonly objectTagsConfig: string | null | undefined
   readonly overviewUrl: string | null | undefined
   readonly prefixes: Array<string> | null | undefined
   readonly relevanceScore: number | null | undefined
@@ -36,6 +38,7 @@ export interface containers_Admin_Buckets_gql_BucketsUpdateMutation {
     | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
     | { readonly __typename: 'BucketIndexContentBytesInvalid' }
     | { readonly __typename: 'BucketNotFound' }
+    | { readonly __typename: 'BucketObjectTagsConfigInvalid'; readonly message: string }
     | {
         readonly __typename: 'BucketUpdateSuccess'
         readonly bucketConfig: {
@@ -54,6 +57,7 @@ export interface containers_Admin_Buckets_gql_BucketsUpdateMutation {
           readonly skipMetaDataIndexing: boolean | null
           readonly lastIndexed: Date | null
           readonly browsable: boolean
+          readonly objectTagsConfig: string | null
         }
       }
     | { readonly __typename: 'InsufficientPermissions'; readonly message: string }
@@ -149,6 +153,19 @@ export const containers_Admin_Buckets_gql_BucketsUpdateDocument = {
                     ],
                   },
                 },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'BucketObjectTagsConfigInvalid' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                    ],
+                  },
+                },
               ],
             },
           },
@@ -176,6 +193,7 @@ export const containers_Admin_Buckets_gql_BucketsUpdateDocument = {
           { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },
           { kind: 'Field', name: { kind: 'Name', value: 'lastIndexed' } },
           { kind: 'Field', name: { kind: 'Name', value: 'browsable' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'objectTagsConfig' } },
         ],
       },
     },
