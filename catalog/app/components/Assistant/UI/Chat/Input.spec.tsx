@@ -142,3 +142,51 @@ describe('components/Assistant/UI/Chat/Input ModelPicker', () => {
     expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0)
   })
 })
+
+describe('components/Assistant/UI/Chat/Input toolbar', () => {
+  afterEach(cleanup)
+
+  const HAIKU = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+  const skills = {
+    all: [
+      { name: 'qc', description: 'Checks data', runClass: 'guide' as const, files: [] },
+      {
+        name: 'rnaseq',
+        description: 'Runs a pipeline',
+        runClass: 'shell' as const,
+        files: [],
+      },
+    ],
+    disabled: new Set(['rnaseq']),
+    toggle: vi.fn(),
+  }
+  const model = {
+    allowlist: [HAIKU],
+    names: {},
+    readFailed: false,
+    current: HAIKU,
+    select: vi.fn(),
+  }
+
+  it('keeps the pickers out of the text field, and Send in it', () => {
+    render(
+      <Input
+        onSubmit={noop}
+        model={model}
+        skills={skills}
+        toolbarEnd={<button type="button">extra</button>}
+      />,
+    )
+    const field = screen.getByRole('textbox', { name: 'Ask Qurator' })
+    const fieldRoot = field.closest('.MuiInputBase-root')!
+    expect(fieldRoot.contains(screen.getByRole('button', { name: 'Send' }))).toBe(true)
+    expect(fieldRoot.contains(screen.getByLabelText('Skills, 1 of 2 on'))).toBe(false)
+    expect(fieldRoot.contains(screen.getByLabelText(/^Model:/))).toBe(false)
+    expect(fieldRoot.contains(screen.getByText('extra'))).toBe(false)
+  })
+
+  it('counts the skills that are on', () => {
+    render(<Input onSubmit={noop} skills={skills} />)
+    expect(screen.getByLabelText('Skills, 1 of 2 on').textContent).toContain('Skills 1/2')
+  })
+})

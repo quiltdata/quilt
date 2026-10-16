@@ -19,6 +19,7 @@ import FeatureSettings, { HAS_PREVIEW_FEATURES } from './FeatureSettings'
 import PackagerSettings from './PackagerSettings'
 import QuratorModelSettings from './QuratorModelSettings'
 import QuratorSettings from './QuratorSettings'
+import QuratorSkillsSettings from './QuratorSkillsSettings'
 import SearchSettings from './SearchSettings'
 import SupportDiagnostics from './SupportDiagnostics'
 import TabulatorSettings from './TabulatorSettings'
@@ -456,6 +457,7 @@ const GROUPS: { name: string; items: { id: string; title: string }[] }[] = [
       { id: 'search', title: 'Default search mode' },
       { id: 'qurator', title: 'Qurator instructions' },
       { id: 'qurator-models', title: 'Qurator models' },
+      { id: 'qurator-skills', title: 'Qurator skills' },
     ],
   },
   {
@@ -556,6 +558,13 @@ export default function Settings() {
           hint="Which models Qurator may run on this stack, and the one it starts on."
         >
           <QuratorModelSettings />
+        </Section>
+        <Section
+          id="qurator-skills"
+          title="Qurator skills"
+          hint="Instruction bundles Qurator can follow, kept in a package only admins can change."
+        >
+          <QuratorSkillsSettings />
         </Section>
 
         <M.Typography className={classes.groupHeading}>Data</M.Typography>

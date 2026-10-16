@@ -58,11 +58,22 @@ class PermissionInput(BaseModel):
 class UnmanagedRoleInput(BaseModel):
     name: str
     arn: str
+    default_bucket: Optional[str] = Field(alias="defaultBucket", default=None)
+    signup: Optional["RoleSignupInput"] = None
 
 
 class ManagedRoleInput(BaseModel):
     name: str
     policies: List[str]
+    default_bucket: Optional[str] = Field(alias="defaultBucket", default=None)
+    signup: Optional["RoleSignupInput"] = None
+
+
+class RoleSignupInput(BaseModel):
+    page: str
+    access_code: str = Field(alias="accessCode")
+    title: Optional[str] = None
+    description: Optional[str] = None
 
 
 class ManagedPolicyInput(BaseModel):
@@ -84,4 +95,6 @@ class UserInput(BaseModel):
     extra_roles: Optional[List[str]] = Field(alias="extraRoles", default=None)
 
 
+UnmanagedRoleInput.model_rebuild()
+ManagedRoleInput.model_rebuild()
 ManagedPolicyInput.model_rebuild()

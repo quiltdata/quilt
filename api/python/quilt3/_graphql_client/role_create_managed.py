@@ -16,6 +16,7 @@ class RoleCreateManaged(BaseModel):
         "RoleCreateManagedRoleCreateManagedRoleNameExists",
         "RoleCreateManagedRoleCreateManagedRoleNameInvalid",
         "RoleCreateManagedRoleCreateManagedRoleHasTooManyPoliciesToAttach",
+        "RoleCreateManagedRoleCreateManagedRoleSignupPageConflict",
     ] = Field(alias="roleCreateManaged", discriminator="typename__")
 
 
@@ -49,6 +50,10 @@ class RoleCreateManagedRoleCreateManagedRoleNameInvalid(BaseModel):
 
 class RoleCreateManagedRoleCreateManagedRoleHasTooManyPoliciesToAttach(BaseModel):
     typename__: Literal["RoleHasTooManyPoliciesToAttach"] = Field(alias="__typename")
+
+
+class RoleCreateManagedRoleCreateManagedRoleSignupPageConflict(BaseModel):
+    typename__: Literal["RoleSignupPageConflict"] = Field(alias="__typename")
 
 
 RoleCreateManaged.model_rebuild()

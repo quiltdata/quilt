@@ -19,4 +19,8 @@ export const actions = createActions(
   'REFRESH_RESULT',
   'AUTH_LOST',
   'GET_CODE',
+  // quilt-specs changes/access-code-signup#catalog-work
+  'GET_SIGNUP_PAGE',
+  'CODE_SIGNUP_REDEEM',
+  'CODE_SIGNUP_COMPLETE',
 )

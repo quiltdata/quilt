@@ -53,9 +53,11 @@ export function Root({ dark = false, ...props }: RootProps) {
 // v4 `down('sm')` is max-width 959.95px -- i.e. everything below the `md`
 // breakpoint, not just the `sm` band. The viewport, not the column: the rail
 // sits outside the column it would be measuring, so it cannot key on it.
-const useCompactShell = () => {
+// `noSsr`: the first render must already know, or a phone paints the wide
+// layout for a frame.
+export const useCompactShell = () => {
   const t = M.useTheme()
-  return M.useMediaQuery(t.breakpoints.down('sm'))
+  return M.useMediaQuery(t.breakpoints.down('sm'), { noSsr: true })
 }
 
 const useShellStyles = M.makeStyles((t) => ({
@@ -165,7 +167,7 @@ export function Layout({
           <Column.Provider target={mainEl}>
             {/* The menu button exists only in the compact shell: on a wide
                 viewport the rail is always on screen, so it would toggle nothing. */}
-            <ContentBar onMenu={compact ? openNav : undefined} />
+            <ContentBar onMenu={compact ? openNav : undefined} compact={compact} />
             <div className={cx(classes.content, !flush && classes.padded)}>
               <Container.FullWidthProvider>
                 {!!pre && pre}

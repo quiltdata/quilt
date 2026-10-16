@@ -16,6 +16,7 @@ class RoleCreateUnmanaged(BaseModel):
         "RoleCreateUnmanagedRoleCreateUnmanagedRoleNameExists",
         "RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid",
         "RoleCreateUnmanagedRoleCreateUnmanagedRoleHasTooManyPoliciesToAttach",
+        "RoleCreateUnmanagedRoleCreateUnmanagedRoleSignupPageConflict",
     ] = Field(alias="roleCreateUnmanaged", discriminator="typename__")
 
 
@@ -49,6 +50,10 @@ class RoleCreateUnmanagedRoleCreateUnmanagedRoleNameInvalid(BaseModel):
 
 class RoleCreateUnmanagedRoleCreateUnmanagedRoleHasTooManyPoliciesToAttach(BaseModel):
     typename__: Literal["RoleHasTooManyPoliciesToAttach"] = Field(alias="__typename")
+
+
+class RoleCreateUnmanagedRoleCreateUnmanagedRoleSignupPageConflict(BaseModel):
+    typename__: Literal["RoleSignupPageConflict"] = Field(alias="__typename")
 
 
 RoleCreateUnmanaged.model_rebuild()

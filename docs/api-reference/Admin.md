@@ -8,10 +8,14 @@
 ## PolicySummary(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission]) -> None  {#PolicySummary}
 Policy without back-references to roles (avoids circular nesting).
 
-## ManagedRole(id: str, name: str, arn: str, policies: list[quilt3.admin.types.PolicySummary], permissions: list[quilt3.admin.types.Permission], typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
+## RoleSignup(page: str, access\_code: str, title: str | None = None, description: str | None = None) -> None  {#RoleSignup}
+A role's access-code signup page: visitors who enter `access_code` on `/signup/<page>`
+sign up straight into the role.
+
+## ManagedRole(id: str, name: str, arn: str, policies: list[quilt3.admin.types.PolicySummary], permissions: list[quilt3.admin.types.Permission], typename\_\_: Literal['ManagedRole'], default\_bucket: str | None = None, signup: quilt3.admin.types.RoleSignup | None = None) -> None  {#ManagedRole}
 
 
-## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
+## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole'], default\_bucket: str | None = None, signup: quilt3.admin.types.RoleSignup | None = None) -> None  {#UnmanagedRole}
 
 
 ## Policy(id: str, title: str, arn: str, managed: bool, permissions: list[quilt3.admin.types.Permission], roles: list[quilt3.admin.types.ManagedRole]) -> None  {#Policy}
@@ -267,7 +271,7 @@ Get the default role from the registry. Return `None` if no default role is set.
 Get a list of all roles in the registry.
 
 
-## create\_managed(name: str, policies: list[str] = ()) -> quilt3.admin.types.ManagedRole  {#create\_managed}
+## create\_managed(name: str, policies: list[str] = (), \*, default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.ManagedRole  {#create\_managed}
 
 Create a managed role in the registry.
 
@@ -275,9 +279,11 @@ __Arguments__
 
 * __name__:  Role name.
 * __policies__:  Policy IDs to attach to the role.
+* __default_bucket__:  Bucket the role's users land on after login.
+* __signup__:  Access-code signup page for the role.
 
 
-## create\_unmanaged(name: str, arn: str) -> quilt3.admin.types.UnmanagedRole  {#create\_unmanaged}
+## create\_unmanaged(name: str, arn: str, \*, default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.UnmanagedRole  {#create\_unmanaged}
 
 Create an unmanaged role in the registry.
 
@@ -285,31 +291,41 @@ __Arguments__
 
 * __name__:  Role name.
 * __arn__:  Existing IAM role ARN.
+* __default_bucket__:  Bucket the role's users land on after login.
+* __signup__:  Access-code signup page for the role.
 
 
-## update\_managed(id\_or\_name: str, \*, name: str, policies: list[str]) -> quilt3.admin.types.ManagedRole  {#update\_managed}
+## update\_managed(id\_or\_name: str, \*, name: str, policies: list[str], default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.ManagedRole  {#update\_managed}
 
-Update a managed role in the registry (full replacement).
+Update a managed role in the registry (full replacement of name and policies).
 
 __Arguments__
 
 * __id_or_name__:  Role ID or name.
 * __name__:  New role name.
 * __policies__:  Policy IDs to attach to the role.
+* __default_bucket__:  Bucket the role's users land on after login. Keeps the current value
+    if not specified; `None` clears it.
+* __signup__:  Access-code signup page for the role. Keeps the current page if not
+    specified; `None` removes it.
 
 
-## update\_unmanaged(id\_or\_name: str, \*, name: str, arn: str) -> quilt3.admin.types.UnmanagedRole  {#update\_unmanaged}
+## update\_unmanaged(id\_or\_name: str, \*, name: str, arn: str, default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.UnmanagedRole  {#update\_unmanaged}
 
-Update an unmanaged role in the registry (full replacement).
+Update an unmanaged role in the registry (full replacement of name and ARN).
 
 __Arguments__
 
 * __id_or_name__:  Role ID or name.
 * __name__:  New role name.
 * __arn__:  Existing IAM role ARN.
+* __default_bucket__:  Bucket the role's users land on after login. Keeps the current value
+    if not specified; `None` clears it.
+* __signup__:  Access-code signup page for the role. Keeps the current page if not
+    specified; `None` removes it.
 
 
-## patch\_managed(id\_or\_name: str, \*, name: str | None = None, policies: list[str] | None = None) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
+## patch\_managed(id\_or\_name: str, \*, name: str | None = None, policies: list[str] | None = None, default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.ManagedRole  {#patch\_managed}
 
 Partially update a managed role — only specified fields are changed.
 
@@ -318,9 +334,13 @@ __Arguments__
 * __id_or_name__:  Role ID or name.
 * __name__:  New role name (keeps current if not specified).
 * __policies__:  Policy IDs to attach (keeps current if not specified).
+* __default_bucket__:  Bucket the role's users land on after login (keeps current if not
+    specified; `None` clears it).
+* __signup__:  Access-code signup page for the role (keeps current if not specified;
+    `None` removes it).
 
 
-## patch\_unmanaged(id\_or\_name: str, \*, name: str | None = None, arn: str | None = None) -> quilt3.admin.types.UnmanagedRole  {#patch\_unmanaged}
+## patch\_unmanaged(id\_or\_name: str, \*, name: str | None = None, arn: str | None = None, default\_bucket: str | None | quilt3.admin.roles.\_Unset = UNSET, signup: quilt3.admin.types.RoleSignup | None | quilt3.admin.roles.\_Unset = UNSET) -> quilt3.admin.types.UnmanagedRole  {#patch\_unmanaged}
 
 Partially update an unmanaged role — only specified fields are changed.
 
@@ -329,6 +349,10 @@ __Arguments__
 * __id_or_name__:  Role ID or name.
 * __name__:  New role name (keeps current if not specified).
 * __arn__:  New IAM role ARN (keeps current if not specified).
+* __default_bucket__:  Bucket the role's users land on after login (keeps current if not
+    specified; `None` clears it).
+* __signup__:  Access-code signup page for the role (keeps current if not specified;
+    `None` removes it).
 
 
 ## delete(id\_or\_name: str) -> None  {#delete}

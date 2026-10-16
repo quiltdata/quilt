@@ -38,6 +38,11 @@ vi.mock('components/SearchBar/State', () => ({
 // agreement unfalsifiable.
 vi.mock('utils/Buckets', () => ({ useCurrentBucket: () => null }))
 
+// The bar only places Qurator's door; when it shows is the Trigger's own spec.
+vi.mock('components/Assistant', () => ({
+  UI: { Trigger: () => <button type="button" aria-label="Ask Qurator" /> },
+}))
+
 import { ContentBar } from './ContentBar'
 import { SearchInputProvider, useSearchInput } from './SearchInput'
 
@@ -180,6 +185,26 @@ describe('components/Layout/ContentBar (header field registration)', () => {
     // Reachable by keyboard, not just present: this is the sole path to the nav.
     ;(button as HTMLElement).focus()
     expect(document.activeElement).toBe(button)
+  })
+
+  it('swaps the URI and docs links for Ask Qurator in the compact shell', () => {
+    const wide = renderBoth()
+    expect(wide.container.querySelector('a[href="https://docs.quilt.bio"]')).toBeTruthy()
+    expect(wide.container.querySelector('[aria-label="Ask Qurator"]')).toBeNull()
+    cleanup()
+    const compact = render(
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <MemoryRouter>
+          <NamedRoutes.Provider routes={{ uriResolver }}>
+            <SearchInputProvider>
+              <ContentBar onMenu={() => {}} compact />
+            </SearchInputProvider>
+          </NamedRoutes.Provider>
+        </MemoryRouter>
+      </M.MuiThemeProvider>,
+    )
+    expect(compact.container.querySelectorAll('a')).toHaveLength(0)
+    expect(compact.container.querySelector('[aria-label="Ask Qurator"]')).toBeTruthy()
   })
 
   it('names the highlighted row, and that row is the one marked selected', () => {

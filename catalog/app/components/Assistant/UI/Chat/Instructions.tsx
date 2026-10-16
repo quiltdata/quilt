@@ -74,6 +74,10 @@ const useStyles = M.makeStyles((t) => ({
     gap: t.spacing(2),
     padding: t.spacing(0, 2, 1.5),
   },
+  // Headerless, so the body needs its own top inset.
+  panelBody: {
+    paddingTop: t.spacing(1.5),
+  },
   section: {
     display: 'flex',
     flexDirection: 'column',
@@ -140,6 +144,14 @@ interface SectionProps {
   instructions: UserInstructions.Instructions
 }
 
+type Editor = ReturnType<typeof UserInstructions.useInstructionsEditor>
+
+/** A Section that owns its draft, for hosts that keep every layer on screen. */
+function OwnSection(props: SectionProps) {
+  const editor = UserInstructions.useInstructionsEditor(props.instructions)
+  return <Section {...props} editor={editor} />
+}
+
 function Section({
   label,
   fieldLabel,
@@ -148,11 +160,11 @@ function Section({
   emptyReadOnly,
   readOnlyHint,
   instructions,
-}: SectionProps) {
+  editor,
+}: SectionProps & { editor: Editor }) {
   const classes = useStyles()
   const { text, enabled, canEdit } = instructions
-  const { draft, setDraft, dirty, pending, error, save, toggle, onClear } =
-    UserInstructions.useInstructionsEditor(instructions)
+  const { draft, setDraft, dirty, pending, error, save, toggle, onClear } = editor
 
   return (
     <div className={classes.section}>
@@ -222,6 +234,176 @@ function Section({
   )
 }
 
+export type Layer = 'global' | 'personal'
+
+const LAYERS: Record<
+  Layer,
+  { icon: string; name: string } & Omit<SectionProps, 'instructions'>
+> = {
+  global: {
+    icon: 'public',
+    name: 'Global instructions',
+    label: 'Global — this stack',
+    fieldLabel: 'Global Qurator instructions',
+    placeholder: GLOBAL_PLACEHOLDER,
+    hint: HINT_GLOBAL_ADMIN,
+    emptyReadOnly: EMPTY_GLOBAL_READ_ONLY,
+    readOnlyHint: HINT_GLOBAL_READ_ONLY,
+  },
+  personal: {
+    icon: 'person',
+    name: 'Personal notes',
+    label: 'Personal — my notes',
+    fieldLabel: 'Personal Qurator notes',
+    placeholder: PERSONAL_PLACEHOLDER,
+    hint: HINT_PERSONAL,
+    // Personal notes are always editable, so these never render.
+    emptyReadOnly: '',
+    readOnlyHint: '',
+  },
+}
+
+type LayerState = 'on' | 'muted' | 'not set'
+
+const layerState = ({ active, text }: UserInstructions.Instructions): LayerState =>
+  active ? 'on' : text.trim() ? 'muted' : 'not set'
+
+const useTogglesStyles = M.makeStyles((t) => ({
+  // The shape carries the state (filled, slashed, hollow); color only reinforces
+  // it. Each shade clears 3:1 on the light toolbar: these are enabled buttons.
+  'not set': {
+    color: t.palette.text.secondary,
+  },
+  muted: {
+    color: t.palette.text.primary,
+  },
+  // The Indicator Rule: amber marks a layer that rides along with every message,
+  // in its darker shade, since the indicator's own amber is below 3:1 on light.
+  on: {
+    color: t.palette.secondary.dark,
+  },
+  open: {
+    backgroundColor: t.palette.action.selected,
+  },
+}))
+
+const glyph = (icon: string, state: LayerState) =>
+  state === 'muted' ? (
+    <M.Icon fontSize="small">{`${icon}_off`}</M.Icon>
+  ) : (
+    <M.Icon
+      className={state === 'not set' ? 'material-icons-outlined' : undefined}
+      fontSize="small"
+    >
+      {icon}
+    </M.Icon>
+  )
+
+interface InstructionsTogglesProps {
+  instructions: UserInstructions.DualInstructions
+  open: Layer | null
+  onToggle: (layer: Layer) => void
+  /** Layers whose editor holds a draft that differs from what's stored. */
+  unsaved?: Partial<Record<Layer, boolean>>
+  /** The InstructionsPanel's id, which the toggles control. */
+  panelId?: string
+}
+
+/** One icon per layer for the docked composer's toolbar. */
+export function InstructionsToggles({
+  instructions,
+  open,
+  onToggle,
+  unsaved = {},
+  panelId,
+}: InstructionsTogglesProps) {
+  const classes = useTogglesStyles()
+  return (
+    <>
+      {(Object.keys(LAYERS) as Layer[]).map((layer) => {
+        const { icon, name } = LAYERS[layer]
+        const state = layerState(instructions[layer])
+        const label = `${name}: ${state}${unsaved[layer] ? ', unsaved changes' : ''}`
+        return (
+          <M.Tooltip key={layer} title={label}>
+            <M.IconButton
+              className={cx(classes[state], open === layer && classes.open)}
+              aria-label={label}
+              aria-expanded={open === layer}
+              aria-controls={panelId}
+              onClick={() => onToggle(layer)}
+              size="small"
+            >
+              <M.Badge variant="dot" color="primary" invisible={!unsaved[layer]}>
+                {glyph(icon, state)}
+              </M.Badge>
+            </M.IconButton>
+          </M.Tooltip>
+        )
+      })}
+    </>
+  )
+}
+
+interface InstructionsPanelProps {
+  className?: string
+  instructions: UserInstructions.DualInstructions
+  open: Layer | null
+  onDirtyChange?: (layer: Layer, dirty: boolean) => void
+  id?: string
+}
+
+/** The editor for the layer picked in InstructionsToggles; nothing while none is. */
+export function InstructionsPanel({
+  className,
+  instructions,
+  open,
+  onDirtyChange,
+  id,
+}: InstructionsPanelProps) {
+  const classes = useStyles()
+  // The panel holds both drafts, so switching layers keeps one, and a pending
+  // save's error, while only the open layer's editor is on screen.
+  const editors: Record<Layer, Editor> = {
+    global: UserInstructions.useInstructionsEditor(instructions.global),
+    personal: UserInstructions.useInstructionsEditor(instructions.personal),
+  }
+  const globalDirty = editors.global.dirty
+  const personalDirty = editors.personal.dirty
+  // Cleared on the way out, so an unmounted panel leaves no unsaved mark behind.
+  React.useEffect(() => {
+    onDirtyChange?.('global', globalDirty)
+    return () => onDirtyChange?.('global', false)
+  }, [onDirtyChange, globalDirty])
+  React.useEffect(() => {
+    onDirtyChange?.('personal', personalDirty)
+    return () => onDirtyChange?.('personal', false)
+  }, [onDirtyChange, personalDirty])
+  // Keep the closing layer's editor on screen while the panel collapses.
+  const lastOpen = React.useRef<Layer>('global')
+  if (open) lastOpen.current = open
+  const shown = open ?? lastOpen.current
+  return (
+    // The hairline lives inside the Collapse, so a closed panel leaves no line behind.
+    <M.Collapse in={!!open} className={className}>
+      <div
+        className={cx(classes.root, classes.body, classes.panelBody)}
+        id={id}
+        role="region"
+        aria-label={LAYERS[shown].name}
+      >
+        <Section
+          // One field per layer, so one layer's undo history never reaches the other.
+          key={shown}
+          {...LAYERS[shown]}
+          instructions={instructions[shown]}
+          editor={editors[shown]}
+        />
+      </div>
+    </M.Collapse>
+  )
+}
+
 interface InstructionsProps {
   className?: string
   instructions: UserInstructions.DualInstructions
@@ -234,8 +416,8 @@ export default function Instructions({ className, instructions }: InstructionsPr
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((prev) => !prev), [])
 
-  const globalMuted = !global.enabled && !!global.text.trim()
-  const personalMuted = !personal.enabled && !!personal.text.trim()
+  const globalMuted = layerState(global) === 'muted'
+  const personalMuted = layerState(personal) === 'muted'
 
   return (
     <div className={cx(classes.root, className)}>
@@ -278,25 +460,8 @@ export default function Instructions({ className, instructions }: InstructionsPr
       </M.ButtonBase>
       <M.Collapse in={expanded}>
         <div className={classes.body}>
-          <Section
-            label="Global — this stack"
-            fieldLabel="Global Qurator instructions"
-            placeholder={GLOBAL_PLACEHOLDER}
-            hint={HINT_GLOBAL_ADMIN}
-            emptyReadOnly={EMPTY_GLOBAL_READ_ONLY}
-            readOnlyHint={HINT_GLOBAL_READ_ONLY}
-            instructions={global}
-          />
-          <Section
-            label="Personal — my notes"
-            fieldLabel="Personal Qurator notes"
-            placeholder={PERSONAL_PLACEHOLDER}
-            hint={HINT_PERSONAL}
-            // Personal notes are always editable, so these never render.
-            emptyReadOnly=""
-            readOnlyHint=""
-            instructions={personal}
-          />
+          <OwnSection {...LAYERS.global} instructions={global} />
+          <OwnSection {...LAYERS.personal} instructions={personal} />
         </div>
       </M.Collapse>
     </div>

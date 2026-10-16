@@ -79,6 +79,13 @@ class RoleBucketPermissionSelectionBucket(BaseModel):
     name: str
 
 
+class RoleSignupSelection(BaseModel):
+    page: str
+    title: Optional[str]
+    description: Optional[str]
+    access_code: str = Field(alias="accessCode")
+
+
 class ManagedRoleSelection(BaseModel):
     typename__: str = Field(alias="__typename")
     id: str
@@ -86,6 +93,8 @@ class ManagedRoleSelection(BaseModel):
     arn: str
     policies: List["ManagedRoleSelectionPolicies"]
     permissions: List["ManagedRoleSelectionPermissions"]
+    default_bucket: Optional[str] = Field(alias="defaultBucket")
+    signup: Optional["ManagedRoleSelectionSignup"]
 
 
 class ManagedRoleSelectionPolicies(PolicySummarySelection):
@@ -93,6 +102,10 @@ class ManagedRoleSelectionPolicies(PolicySummarySelection):
 
 
 class ManagedRoleSelectionPermissions(RoleBucketPermissionSelection):
+    pass
+
+
+class ManagedRoleSelectionSignup(RoleSignupSelection):
     pass
 
 
@@ -124,6 +137,12 @@ class UnmanagedRoleSelection(BaseModel):
     id: str
     name: str
     arn: str
+    default_bucket: Optional[str] = Field(alias="defaultBucket")
+    signup: Optional["UnmanagedRoleSelectionSignup"]
+
+
+class UnmanagedRoleSelectionSignup(RoleSignupSelection):
+    pass
 
 
 class UserSelection(BaseModel):
@@ -184,6 +203,7 @@ InvalidInputSelection.model_rebuild()
 PermissionSelection.model_rebuild()
 PolicySummarySelection.model_rebuild()
 RoleBucketPermissionSelection.model_rebuild()
+RoleSignupSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
 PolicySelection.model_rebuild()

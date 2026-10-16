@@ -12,6 +12,7 @@ export type RoleSelection_ManagedRole_Fragment = {
   readonly id: string
   readonly name: string
   readonly arn: string
+  readonly defaultBucket: string | null
   readonly permissions: ReadonlyArray<{
     readonly __typename: 'RoleBucketPermission'
     readonly level: Types.BucketPermissionLevel
@@ -32,6 +33,13 @@ export type RoleSelection_ManagedRole_Fragment = {
       readonly id: string
     }>
   }>
+  readonly signup: {
+    readonly __typename: 'RoleSignup'
+    readonly page: string
+    readonly accessCode: string
+    readonly title: string | null
+    readonly description: string | null
+  } | null
 }
 
 export type RoleSelection_UnmanagedRole_Fragment = {
@@ -39,12 +47,47 @@ export type RoleSelection_UnmanagedRole_Fragment = {
   readonly id: string
   readonly name: string
   readonly arn: string
+  readonly defaultBucket: string | null
+  readonly signup: {
+    readonly __typename: 'RoleSignup'
+    readonly page: string
+    readonly accessCode: string
+    readonly title: string | null
+    readonly description: string | null
+  } | null
 }
 
 export type RoleSelectionFragment =
   | RoleSelection_ManagedRole_Fragment
   | RoleSelection_UnmanagedRole_Fragment
 
+export type RoleSignupSelectionFragment = {
+  readonly __typename: 'RoleSignup'
+  readonly page: string
+  readonly accessCode: string
+  readonly title: string | null
+  readonly description: string | null
+}
+
+export const RoleSignupSelectionFragmentDoc = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'RoleSignupSelection' },
+      typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'RoleSignup' } },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'page' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'accessCode' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<RoleSignupSelectionFragment, unknown>
 export const RoleSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [
@@ -68,6 +111,20 @@ export const RoleSelectionFragmentDoc = {
                 { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'arn' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'defaultBucket' } },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'signup' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'FragmentSpread',
+                        name: { kind: 'Name', value: 'RoleSignupSelection' },
+                      },
+                    ],
+                  },
+                },
               ],
             },
           },
@@ -148,9 +205,37 @@ export const RoleSelectionFragmentDoc = {
                     ],
                   },
                 },
+                { kind: 'Field', name: { kind: 'Name', value: 'defaultBucket' } },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'signup' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'FragmentSpread',
+                        name: { kind: 'Name', value: 'RoleSignupSelection' },
+                      },
+                    ],
+                  },
+                },
               ],
             },
           },
+        ],
+      },
+    },
+    {
+      kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'RoleSignupSelection' },
+      typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'RoleSignup' } },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'page' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'accessCode' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'description' } },
         ],
       },
     },
