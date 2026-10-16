@@ -26,6 +26,7 @@ import {
   parseResponseError,
   SubPageHeader,
 } from './BucketForm'
+import EventWiring from './EventWiring'
 import { Delete } from './List'
 import * as OnDirty from './OnDirty'
 import Reindex from './ReindexDialog'
@@ -190,8 +191,17 @@ function State({ bucket }: StateProps) {
     ? bucket.snsNotificationArn !== 'DO_NOT_SUBSCRIBE'
     : null
   const scope = (bucket.prefixes || []).filter((p) => p)
+  const [wiringOpen, setWiringOpen] = React.useState(false)
   return (
     <M.Paper className={classes.root} variant="outlined">
+      {wiringOpen && (
+        <EventWiring
+          bucket={bucket.name}
+          prefixes={bucket.prefixes ?? null}
+          snsNotificationArn={bucket.snsNotificationArn ?? null}
+          onClose={() => setWiringOpen(false)}
+        />
+      )}
       <Readout
         label="Last indexed"
         value={
@@ -215,13 +225,22 @@ function State({ bucket }: StateProps) {
       <Readout
         label="Notifications"
         value={
-          subscribed === null ? (
-            <span className={classes.stale}>Not configured</span>
-          ) : subscribed ? (
-            'Subscribed'
-          ) : (
-            <span className={classes.stale}>Skipped</span>
-          )
+          <>
+            {subscribed === null ? (
+              <span className={classes.stale}>Not configured</span>
+            ) : subscribed ? (
+              'Subscribed'
+            ) : (
+              <span className={classes.stale}>Skipped</span>
+            )}{' '}
+            <M.Link
+              component="button"
+              variant="body2"
+              onClick={() => setWiringOpen(true)}
+            >
+              Event wiring (preview)
+            </M.Link>
+          </>
         }
         note={
           subscribed
