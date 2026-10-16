@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 
 from quilt3 import _graphql_client, admin
+from quilt3._graphql_client import exceptions as gql_exceptions
 
 from .utils import as_dataclass_kwargs
 
@@ -1564,3 +1565,26 @@ def test_api_keys_revoke_errors(data, error_type):
     ):
         with pytest.raises(error_type):
             admin.api_keys.revoke("key-123")
+
+
+@pytest.mark.parametrize(
+    "message, error_type",
+    [
+        ("Cannot query field 'defaultBucket' on type 'Role'.", admin.RegistryTooOldError),
+        ("Unknown argument 'signupPage' on field 'Mutation.login'.", admin.RegistryTooOldError),
+        ("Unknown type 'RoleSignupInput'.", admin.RegistryTooOldError),
+        ("Internal server error", gql_exceptions.GraphQLClientGraphQLMultiError),
+    ],
+)
+def test_registry_too_old_on_schema_mismatch(message, error_type):
+    """A registry older than this quilt3 version's admin schema answers with a GraphQL schema
+    validation error; quilt3 translates that into a clean RegistryTooOldError instead of letting
+    the raw GraphQLClientGraphQLMultiError escape. Any other GraphQL error passes through unchanged."""
+    gql_error = gql_exceptions.GraphQLClientGraphQLMultiError.from_errors_dicts([{"message": message}])
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE):
+            with mock.patch("quilt3._graphql_client.Client.get_data", side_effect=gql_error):
+                with pytest.raises(error_type) as exc_info:
+                    admin.roles.list()
+    if error_type is admin.RegistryTooOldError:
+        assert message in str(exc_info.value)

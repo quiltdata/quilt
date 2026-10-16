@@ -1,7 +1,15 @@
+import re
 import typing as T
 
 from .. import _graphql_client
+from .._graphql_client import exceptions as _gql_exceptions
 from . import exceptions, types
+
+# Standard graphql-core validation wording for a query referencing a field, argument, or type
+# the registry's schema doesn't have -- the signature of talking to a registry too old for this
+# quilt3 version's admin API. graphql-core carries no structured error code for this, so matching
+# on its English wording is a stopgap tied to its exact phrasing across versions.
+_SCHEMA_MISMATCH_RE = re.compile(r"Cannot query field |Unknown argument |Unknown type ")
 
 
 def handle_errors(result: _graphql_client.BaseModel) -> _graphql_client.BaseModel:
@@ -33,5 +41,18 @@ def raise_operation_error(error: _graphql_client.OperationErrorSelection) -> T.N
     raise exceptions.OperationError(error)
 
 
+class _AdminClient(_graphql_client.Client):
+    """GraphQL client for the admin API that gives a clean error against a registry too old to
+    support the admin schema this quilt3 version expects, instead of a raw GraphQLClientGraphQLMultiError."""
+
+    def get_data(self, response):
+        try:
+            return super().get_data(response)
+        except _gql_exceptions.GraphQLClientGraphQLMultiError as ex:
+            if any(_SCHEMA_MISMATCH_RE.search(str(error)) for error in ex.errors):
+                raise exceptions.RegistryTooOldError(ex) from ex
+            raise
+
+
 def get_client():
-    return _graphql_client.Client()
+    return _AdminClient()

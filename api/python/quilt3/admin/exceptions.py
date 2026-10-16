@@ -4,6 +4,16 @@ class Quilt3AdminError(Exception):
         self.details = details
 
 
+class RegistryTooOldError(Quilt3AdminError):
+    """Raised when the registry's GraphQL schema is missing fields this quilt3 version expects."""
+
+    def __str__(self):
+        return (
+            "This registry does not support this operation. "
+            f"Please upgrade the registry or use an older version of quilt3. ({self.details})"
+        )
+
+
 class UserNotFoundError(Quilt3AdminError):
     def __init__(self):
         super().__init__(None)
