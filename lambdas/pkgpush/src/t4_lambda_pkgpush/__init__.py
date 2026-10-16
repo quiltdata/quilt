@@ -34,12 +34,12 @@ from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.data_transfer import CHECKSUM_MAX_PARTS, get_checksum_chunksize, is_mpu
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import LAMBDA_READ_TIMEOUT
+from quilt_shared.const import LAMBDA_READ_TIMEOUT, LAMBDA_TMP_SPACE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
     VersionId,
-    large_request_handler,
+    request_from_file,
 )
 from quilt_shared.pkgpush import (
     Checksum,
@@ -830,27 +830,48 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
     return result
 
 
+class PatchRequest(pydantic.v1.BaseModel, extra=pydantic.v1.Extra.forbid):
+    # Version of a "patch-package" request file in the service bucket.
+    patch_request: VersionId
+
+
+def run_request(
+    version_id: str,
+    *,
+    patch: bool,
+    max_files_to_hash: float,
+    max_bytes_to_hash: float,
+) -> PackagePushResult:
+    with request_from_file(
+        bucket=SERVICE_BUCKET,
+        request_type="patch-package" if patch else "create-package",
+        version_id=version_id,
+        s3=s3,
+        max_size=LAMBDA_TMP_SPACE,
+        logger=logger,
+    ) as req_file:
+        return construct_package(
+            req_file,
+            patch=patch,
+            max_files_to_hash=max_files_to_hash,
+            max_bytes_to_hash=max_bytes_to_hash,
+        )
+
+
 @exception_handler
 @auth
 @setup_telemetry
-@large_request_handler(
-    request_type="create-package",
-    bucket=SERVICE_BUCKET,
-    s3=s3,
-    logger=logger,
-)
-def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
-    return construct_package(req_file, max_files_to_hash=MAX_FILES_TO_HASH, max_bytes_to_hash=MAX_BYTES_TO_HASH)
-
-
-@large_request_handler(
-    request_type="patch-package",
-    bucket=SERVICE_BUCKET,
-    s3=s3,
-    logger=logger,
-)
-def patch_package(req_file: T.IO[bytes]) -> PackagePushResult:
-    return construct_package(req_file, max_files_to_hash=math.inf, max_bytes_to_hash=math.inf)
+@pydantic.v1.validate_arguments
+def create_package(params: VersionId | PatchRequest) -> PackagePushResult:
+    # A patch comes as `{"patch_request": ...}`, which an engine without patches rejects
+    # rather than building a revision from the patch's entries alone.
+    patch = isinstance(params, PatchRequest)
+    return run_request(
+        params.patch_request if patch else params,
+        patch=patch,
+        max_files_to_hash=MAX_FILES_TO_HASH,
+        max_bytes_to_hash=MAX_BYTES_TO_HASH,
+    )
 
 
 class LatestPointer(T.NamedTuple):
@@ -889,25 +910,39 @@ def push_patch_manifest(
     top_hash = pkg.top_hash
     manifest = io.BytesIO()
     pkg._dump(manifest)
-    quilt3.data_transfer.put_bytes(manifest.getvalue(), registry.manifest_pk(name, top_hash))
+    s3_client = get_user_s3_client()
+    # 412: the precondition failed; 409: another conditional write to the key is in flight.
+    conflicts = ("PreconditionFailed", "ConditionalRequestConflict")
+
+    manifest_pk = registry.manifest_pk(name, top_hash)
+    try:
+        # The top hash does not cover physical keys, so never rewrite an existing revision's manifest.
+        s3_client.put_object(
+            Bucket=manifest_pk.bucket,
+            Key=manifest_pk.path,
+            Body=manifest.getvalue(),
+            IfNoneMatch="*",
+        )
+    except botocore.exceptions.ClientError as e:
+        if e.response.get("Error", {}).get("Code") not in conflicts:
+            raise PkgpushException.from_boto_error(e)
 
     latest_pk = registry.pointer_latest_pk(name)
     precondition = {"IfNoneMatch": "*"} if base.etag is None else {"IfMatch": base.etag}
     try:
-        get_user_s3_client().put_object(
+        s3_client.put_object(
             Bucket=latest_pk.bucket,
             Key=latest_pk.path,
             Body=top_hash.encode(),
             **precondition,
         )
     except botocore.exceptions.ClientError as e:
-        # 412 when another writer moved `latest` first; 409 when one is moving it concurrently.
-        if e.response.get("Error", {}).get("Code") in ("PreconditionFailed", "ConditionalRequestConflict"):
-            raise PkgpushException(
-                "ParentNotLatest",
-                {"parent": base.top_hash, "latest": get_latest_pointer(registry, name).top_hash},
-            )
-        raise PkgpushException.from_boto_error(e)
+        if e.response.get("Error", {}).get("Code") not in conflicts:
+            raise PkgpushException.from_boto_error(e)
+        # The write that moved `latest` may be this one: a retried PUT, or a redelivered run.
+        latest = get_latest_pointer(registry, name).top_hash
+        if latest != top_hash:
+            raise PkgpushException("ParentNotLatest", {"parent": base.top_hash, "latest": latest})
 
     quilt3.data_transfer.put_bytes(top_hash.encode(), registry.pointer_pk(name, str(int(time.time()))))
     return top_hash
@@ -947,10 +982,16 @@ def load_patch_parent(
 def construct_package(
     req_file: T.IO[bytes],
     *,
+    patch: bool,
     max_files_to_hash: float,
     max_bytes_to_hash: float,
 ) -> PackagePushResult:
     params = PackageConstructParams.parse_raw(next(req_file))
+    if (params.patch is not None) != patch:
+        raise PkgpushException(
+            "InvalidPatchRequest",
+            {"details": "a patch-package request needs `patch` in its header, and a create-package one takes none"},
+        )
     checksum_algorithms = get_checksum_algorithms()
     logger.info(f"[PERF] create_package START: {params.bucket}/{params.name}")
     logger.info(f"[PERF] Using checksum algorithms: {format_checksum_algorithms(checksum_algorithms)}")
@@ -1199,7 +1240,7 @@ def list_prefix_latest_versions(bucket: str, prefix: str, s3_client=None):
 def package_prefix(event, context):
     params = PackagerEvent.parse_raw(event)
     if params.patch_request is not None:
-        result = patch_package(params.patch_request)
+        result = run_request(params.patch_request, patch=True, max_files_to_hash=math.inf, max_bytes_to_hash=math.inf)
         logger.info(f"[PERF] package_prefix END: patch top_hash={result.top_hash}")
         return
 

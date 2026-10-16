@@ -77,15 +77,21 @@ def env(mocker):
 
     # Every object write, in order: (key, body, precondition).
     writes = []
+    # Manifests in the registry, by key.
+    manifests = {}
 
     def put_object(Bucket, Key, Body, **precondition):
-        assert (Bucket, Key) == (BUCKET, LATEST_KEY)
-        if precondition.get("IfNoneMatch") == "*" and latest["value"] is not None:
+        assert Bucket == BUCKET
+        exists = latest["value"] is not None if Key == LATEST_KEY else Key in manifests
+        if precondition.get("IfNoneMatch") == "*" and exists:
             raise client_error("PreconditionFailed", "PutObject")
-        if "IfMatch" in precondition and (latest["value"] is None or precondition["IfMatch"] != etag()):
+        if "IfMatch" in precondition and (Key != LATEST_KEY or not exists or precondition["IfMatch"] != etag()):
             raise client_error("PreconditionFailed", "PutObject")
         writes.append((Key, Body, precondition))
-        latest["value"] = Body.decode()
+        if Key == LATEST_KEY:
+            latest["value"] = Body.decode()
+        else:
+            manifests[Key] = Body
 
     def put_bytes(data, pk):
         assert pk.bucket == BUCKET
@@ -122,14 +128,13 @@ def env(mocker):
     mocker.patch("quilt3.Package._validate_with_workflow")
 
     def built():
-        """The revision `latest` now names, loaded from the manifest that was written."""
-        (manifest,) = [body for key, body, _ in writes if key == f".quilt/packages/{latest['value']}"]
-        return quilt3.Package.load(io.BytesIO(manifest))
+        """The revision `latest` now names, loaded from its manifest."""
+        return quilt3.Package.load(io.BytesIO(manifests[f".quilt/packages/{latest['value']}"]))
 
     def run(*lines, max_files_to_hash=10**9):
         with t4_lambda_pkgpush.setup_user_boto_session(session):
             t4_lambda_pkgpush.construct_package(
-                request(*lines), max_files_to_hash=max_files_to_hash, max_bytes_to_hash=10**9
+                request(*lines), patch=True, max_files_to_hash=max_files_to_hash, max_bytes_to_hash=10**9
             )
         return built()
 
@@ -139,6 +144,7 @@ def env(mocker):
         user_s3=user_s3,
         browse=browse_mock,
         writes=writes,
+        manifests=manifests,
         session=session,
         built=built,
         run=run,
@@ -249,11 +255,41 @@ def test_latest_write_is_conditional_and_precedes_revision_pointer(env, mocker):
 
     top_hash = pkg.top_hash
     assert [(key, precondition) for key, _, precondition in env.writes] == [
-        (f".quilt/packages/{top_hash}", None),
+        (f".quilt/packages/{top_hash}", {"IfNoneMatch": "*"}),
         (LATEST_KEY, {"IfMatch": f'"{PARENT_HASH}"'}),
         (f".quilt/named_packages/{NAME}/1700000000", None),
     ]
     assert env.writes[-1][1] == top_hash.encode()
+
+
+def test_latest_moved_by_own_retried_write_completes_revision(env, mocker):
+    # The PUT of `latest` commits, but its response is lost and the retry fails the precondition.
+    put_object = env.user_s3.put_object.side_effect
+
+    def commit_then_precondition_failed(**kwargs):
+        put_object(**kwargs)
+        if kwargs["Key"] == LATEST_KEY:
+            raise client_error("PreconditionFailed", "PutObject")
+
+    env.user_s3.put_object.side_effect = commit_then_precondition_failed
+    mocker.patch("time.time", return_value=1_700_000_000)
+    pkg = env.run(header(parent=PARENT_HASH), new_entry("new.txt"))
+
+    assert env.latest["value"] == pkg.top_hash
+    assert env.writes[-1] == (f".quilt/named_packages/{NAME}/1700000000", pkg.top_hash.encode(), None)
+
+
+def test_existing_manifest_is_not_rewritten(env):
+    # Physical keys are outside the top hash: the same revision can be rebuilt pointing elsewhere.
+    entry = {"size": 1, "hash": {"type": "SHA256", "value": "1" * 64}}
+    first = env.run(header(), new_entry("new.txt", f"s3://{BUCKET}/new.txt?versionId=v1", **entry))
+    env.latest["value"] = PARENT_HASH
+
+    again = env.run(header(), new_entry("new.txt", f"s3://{BUCKET}/new.txt?versionId=v2", **entry))
+
+    assert again.top_hash == first.top_hash
+    assert env.latest["value"] == first.top_hash
+    assert again["new.txt"].physical_key == PhysicalKey(BUCKET, "new.txt", "v1")
 
 
 def test_new_package_latest_write_requires_absence(env):
@@ -290,21 +326,92 @@ def test_missing_package_without_parent_starts_empty(env):
     env.browse.assert_not_called()
 
 
-def test_async_patch_request(env, mocker):
-    body = request(header(delete=["a.txt"]), new_entry("new.txt")).getvalue()
-    # The request file is read and removed with the lambda's own client, not the user's.
-    service_s3 = t4_lambda_pkgpush.s3
-    head = mocker.patch.object(service_s3, "head_object", return_value={"ContentLength": len(body)})
-    mocker.patch.object(service_s3, "download_fileobj", side_effect=lambda bucket, key, f, ExtraArgs: f.write(body))
-    delete = mocker.patch.object(service_s3, "delete_object")
-    mocker.patch.object(t4_lambda_pkgpush, "get_user_boto_session", return_value=env.session)
+def request_file_key(request_type):
+    return {"Bucket": "service-bucket", "Key": f"user-requests/{request_type}", "VersionId": "req-v1"}
 
-    t4_lambda_pkgpush.package_prefix_sqs({"Records": [{"body": json.dumps({"patch_request": "req-v1"})}]}, None)
 
-    request_key = {"Bucket": "service-bucket", "Key": "user-requests/patch-package", "VersionId": "req-v1"}
-    head.assert_called_once_with(**request_key)
-    delete.assert_called_once_with(**request_key)
+@pytest.fixture
+def request_file(env, mocker):
+    """Serve a request file from the service bucket; return the mocks that read and remove it."""
+
+    def serve(*lines):
+        body = request(*lines).getvalue()
+        # The request file is read and removed with the lambda's own client, not the user's.
+        service_s3 = t4_lambda_pkgpush.s3
+        head = mocker.patch.object(service_s3, "head_object", return_value={"ContentLength": len(body)})
+        mocker.patch.object(
+            service_s3, "download_fileobj", side_effect=lambda bucket, key, f, ExtraArgs: f.write(body)
+        )
+        delete = mocker.patch.object(service_s3, "delete_object")
+        mocker.patch.object(t4_lambda_pkgpush, "get_user_boto_session", return_value=env.session)
+        return head, delete
+
+    return serve
+
+
+def invoke_create_package(params):
+    credentials = {"key": "key", "secret": "secret", "token": "token"}
+    return t4_lambda_pkgpush.create_package({"credentials": credentials, "params": params}, None)
+
+
+def error_name(result):
+    return result.get("error", {}).get("name")
+
+
+def invoke_packager(event):
+    t4_lambda_pkgpush.package_prefix_sqs({"Records": [{"body": json.dumps(event)}]}, None)
+
+
+def test_async_patch_request(env, request_file):
+    head, delete = request_file(header(delete=["a.txt"]), new_entry("new.txt"))
+
+    invoke_packager({"patch_request": "req-v1"})
+
+    head.assert_called_once_with(**request_file_key("patch-package"))
+    delete.assert_called_once_with(**request_file_key("patch-package"))
     assert keys(env.built()) == ["dir/b.txt", "dir/c.txt", "new.txt"]
+
+
+def test_sync_patch_request(env, request_file):
+    head, _ = request_file(header(delete=["a.txt"]), new_entry("new.txt"))
+
+    result = invoke_create_package({"patch_request": "req-v1"})
+
+    head.assert_called_once_with(**request_file_key("patch-package"))
+    assert result == {"result": {"top_hash": env.latest["value"]}}
+    assert keys(env.built()) == ["dir/b.txt", "dir/c.txt", "new.txt"]
+
+
+def test_sync_patch_request_has_hashing_limits(env, request_file, mocker):
+    mocker.patch.object(t4_lambda_pkgpush, "MAX_FILES_TO_HASH", 0)
+    request_file(header(), new_entry("new.txt"))
+
+    result = invoke_create_package({"patch_request": "req-v1"})
+
+    assert error_name(result) == "TooManyFilesToHash"
+    assert env.writes == []
+
+
+def test_patch_request_without_patch_is_rejected(env, request_file):
+    plain_header = {k: v for k, v in header().items() if k != "patch"}
+    request_file(plain_header, new_entry("new.txt"))
+    assert error_name(invoke_create_package({"patch_request": "req-v1"})) == "InvalidPatchRequest"
+
+    request_file(plain_header, new_entry("new.txt"))
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        invoke_packager({"patch_request": "req-v1"})
+    assert exc.value.name == "InvalidPatchRequest"
+    assert env.writes == []
+
+
+def test_create_package_request_with_patch_is_rejected(env, request_file):
+    head, _ = request_file(header(), new_entry("new.txt"))
+
+    result = invoke_create_package("req-v1")
+
+    head.assert_called_once_with(**request_file_key("create-package"))
+    assert error_name(result) == "InvalidPatchRequest"
+    assert env.writes == []
 
 
 @pytest.mark.parametrize(
