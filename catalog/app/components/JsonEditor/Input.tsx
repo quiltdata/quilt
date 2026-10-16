@@ -88,6 +88,8 @@ interface InputProps {
   columnId: 'key' | 'value'
   data: RowData
   onChange: OnChange
+  /** Property mode: Esc drops the edit instead of only stopping the dialog closing. */
+  onCancel?: () => void
   onContextMenu: React.MouseEventHandler<HTMLElement>
   placeholder: string
   value: JsonValue
@@ -97,6 +99,7 @@ export default function Input({
   columnId,
   data,
   onChange,
+  onCancel,
   onContextMenu,
   placeholder,
   value: originalValue,
@@ -145,6 +148,8 @@ export default function Input({
       switch (event.key) {
         case 'Escape':
           event.stopPropagation() // avoid closing the dialog
+          // unmounts this input, so no blur follows to commit the dropped text
+          onCancel?.()
           break
         case 'Enter':
           event.preventDefault() // avoid submitting the form
@@ -153,7 +158,7 @@ export default function Input({
         // no default
       }
     },
-    [onBlur],
+    [onBlur, onCancel],
   )
 
   const handleContextMenu = (event: React.MouseEvent<HTMLElement>) => {

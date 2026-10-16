@@ -2,7 +2,14 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { describe, it, expect, vi } from 'vitest'
 
 import noop from 'utils/noop'
-import { mkMetaValidator, useMetadataSchema, useEntriesSchema, Ready } from './schema'
+import { makeSchemaDefaultsSetter } from 'utils/JSONSchema'
+import {
+  mkMetaValidator,
+  mkSubmitValidator,
+  useMetadataSchema,
+  useEntriesSchema,
+  Ready,
+} from './schema'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
@@ -105,5 +112,91 @@ describe('containers/Bucket/PackageDialog/State/schema', () => {
       })
       unmount()
     })
+  })
+})
+
+describe('mkMetaValidator formats option', () => {
+  const anyOfDate = {
+    type: 'object',
+    properties: {
+      when: { anyOf: [{ type: 'string', format: 'date' }, { type: 'number' }] },
+    },
+  }
+
+  it('reports a format failure inside anyOf when formats are on', () => {
+    expect(mkMetaValidator(anyOfDate)({ when: 'last tuesday' })).toBeTruthy()
+  })
+
+  it('does not block on it when formats are off', () => {
+    expect(
+      mkMetaValidator(anyOfDate, { formats: false })({ when: 'last tuesday' }),
+    ).toBeUndefined()
+  })
+})
+
+describe('mkMetaValidator keepSet', () => {
+  const required = {
+    type: 'object',
+    required: ['paired'],
+    properties: { paired: { type: 'boolean', default: false } },
+  }
+
+  it('validates the same object submit sends: a false default is materialized', () => {
+    const setDefaults = makeSchemaDefaultsSetter(required, { keepSet: true })
+    expect(setDefaults({})).toEqual({ paired: false })
+    expect(mkMetaValidator(required, { keepSet: true })({})).toBeUndefined()
+  })
+
+  it('does not pass on a default Ajv would add only to its own copy', () => {
+    const viaRef = {
+      type: 'object',
+      required: ['lane'],
+      allOf: [{ properties: { lane: { type: 'number', default: 1 } } }],
+    }
+    expect(mkMetaValidator(viaRef, { keepSet: true })({})).toBeTruthy()
+  })
+})
+
+describe('mkSubmitValidator', () => {
+  const either = {
+    type: 'object',
+    properties: {
+      when: {
+        oneOf: [
+          { type: 'string', format: 'date' },
+          { type: 'string', format: 'uri' },
+        ],
+      },
+    },
+  }
+
+  it('blocks a value the server rejects: without formats both oneOf branches match', () => {
+    expect(mkSubmitValidator(either)({ when: '2026-10-07' }).length).toBeGreaterThan(0)
+  })
+
+  it('still relaxes a failure that is only about format', () => {
+    const dated = {
+      type: 'object',
+      properties: { when: { type: 'string', format: 'date' } },
+    }
+    expect(mkSubmitValidator(dated)({ when: 'last tuesday' })).toEqual([])
+  })
+
+  it('ignores annotation keywords the server ignores', () => {
+    const annotated = {
+      type: 'object',
+      properties: { note: { type: 'string', 'x-ui': 'textarea' } },
+    }
+    expect(mkSubmitValidator(annotated)({ note: 'hi' })).toEqual([])
+  })
+
+  it('still rejects a non-finite number', () => {
+    const num = { type: 'object', properties: { n: { type: 'number' } } }
+    expect(mkSubmitValidator(num)({ n: Infinity }).length).toBeGreaterThan(0)
+  })
+
+  it('still blocks a real type error', () => {
+    const num = { type: 'object', properties: { n: { type: 'number' } } }
+    expect(mkSubmitValidator(num)({ n: 'x' }).length).toBeGreaterThan(0)
   })
 })

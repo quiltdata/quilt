@@ -51,6 +51,11 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
     value: { title: 'Test Package' },
     status: Meta.Ok,
     onChange,
+    guided: false,
+    touched: false,
+    warnings: [],
+    pending: [],
+    setPending: vi.fn(),
   }
 
   const useParamsWith = (overrides: Partial<FormInputs> = {}) =>
@@ -85,6 +90,11 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: {},
         status: Meta.Ok,
         onChange,
+        guided: false,
+        touched: false,
+        warnings: [],
+        pending: [],
+        setPending: vi.fn(),
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: emptyMeta }))
@@ -108,6 +118,11 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: { title: 'Custom Title' },
         status: Meta.Ok,
         onChange,
+        guided: false,
+        touched: false,
+        warnings: [],
+        pending: [],
+        setPending: vi.fn(),
       }
 
       const { result } = renderHook(() =>
@@ -249,6 +264,11 @@ describe('containers/Bucket/PackageDialog/State/params', () => {
         value: { title: 'Test' },
         status: Meta.Err(new Error('Meta validation error')),
         onChange,
+        guided: false,
+        touched: false,
+        warnings: [],
+        pending: [],
+        setPending: vi.fn(),
       }
 
       const { result } = renderHook(() => useParamsWith({ meta: metaError }))

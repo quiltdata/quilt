@@ -1,0 +1,869 @@
+import type { ErrorObject } from 'ajv'
+import cx from 'classnames'
+import * as R from 'ramda'
+import * as React from 'react'
+import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
+
+import type { JsonSchema } from 'utils/JSONSchema'
+import type * as Types from 'utils/types'
+
+import { fieldMessage, hasValue, isFilled, pointer } from '../State/metaGuide'
+import { NEW_FIELD } from '../State/meta'
+import {
+  allExact,
+  hasLossyToken,
+  isExactNumber,
+  isIntegralText,
+} from '../State/metaSuggest'
+import type { Suggestions } from '../State/metaSuggest'
+
+import { SuggestFieldRow } from './Suggest'
+
+type Widget = 'enum' | 'boolean' | 'integer' | 'number' | 'date' | 'string' | 'complex'
+
+const COMPOSED = ['anyOf', 'oneOf', 'allOf', 'not', '$ref', 'if'] as const
+
+function widgetFor(prop: JsonSchema = {}, value?: unknown): Widget {
+  if (Array.isArray(prop.enum)) return 'enum'
+  // a typed input would turn an object or number in such a field into a string
+  if (COMPOSED.some((k) => prop[k] !== undefined)) return 'complex'
+  const types: unknown[] = (Array.isArray(prop.type) ? prop.type : [prop.type]).filter(
+    (x) => x !== 'null',
+  )
+  if (types.length > 1) return 'complex'
+  const type = types[0]
+  if (type === 'boolean') return 'boolean'
+  if (type === 'integer') return 'integer'
+  if (type === 'number') return 'number'
+  if (type === 'string') return prop.format === 'date' ? 'date' : 'string'
+  if (type === undefined && !prop.properties && !prop.items) {
+    return value === undefined || value === null || typeof value === 'string'
+      ? 'string'
+      : 'complex'
+  }
+  return 'complex'
+}
+
+const isEmpty = (v: unknown) => !isFilled(v)
+
+const display = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v))
+
+/** An enum option's label; quoted JSON when plain text would make two options look alike. */
+function enumLabel(v: Types.Json, all: Types.Json[]) {
+  const plain = display(v)
+  if (plain === '') return '""'
+  return all.filter((o) => display(o) === plain).length > 1 ? JSON.stringify(v) : plain
+}
+
+/** Errors that belong to `key`, including "required" reported on the root. */
+function errorsFor(key: string, errors: (Error | ErrorObject)[]) {
+  const at = pointer(key)
+  return errors.filter((e) => {
+    if (!('keyword' in e)) return false
+    if (e.keyword === 'required' && !e.instancePath) {
+      return e.params?.missingProperty === key
+    }
+    return e.instancePath === at || e.instancePath.startsWith(`${at}/`)
+  })
+}
+
+let fieldIds = 0
+
+const NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i
+const DATE = /^\d{4}-\d{2}-\d{2}$/
+/** What a date input can show: a real calendar day ("2026-02-30" displays as empty). */
+const isCalendarDate = (s: string) => {
+  if (!DATE.test(s)) return false
+  const d = new Date(`${s}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+}
+
+const useFieldStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+  },
+  wide: {
+    gridColumn: '1 / -1',
+  },
+  boolLabel: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
+    marginBottom: t.spacing(0.5),
+  },
+  boolGroup: {
+    '& .MuiToggleButton-root': {
+      ...t.typography.body2,
+      minWidth: 64,
+      padding: t.spacing(0.5, 2),
+      textTransform: 'none',
+    },
+    '& .MuiToggleButton-root.Mui-selected': {
+      background: t.palette.action.selected,
+      color: t.palette.text.primary,
+    },
+  },
+}))
+
+interface FieldProps {
+  disabled: boolean
+  errors: (Error | ErrorObject)[]
+  name: string
+  onChange: (key: string, value: Types.Json | undefined) => void
+  onShowTable: () => void
+  prop: JsonSchema
+  required: boolean
+  suggestion?: { value: Types.Json; reason?: string }
+  onUseSuggestion: (key: string, value: Types.Json) => void
+  setPending?: (key: string, isPending: boolean) => void
+  value: Types.Json | undefined
+}
+
+function Field({
+  disabled,
+  errors,
+  name,
+  onChange,
+  onShowTable,
+  prop,
+  required,
+  suggestion,
+  onUseSuggestion,
+  setPending,
+  value,
+}: FieldProps) {
+  const classes = useFieldStyles()
+  const typed = widgetFor(prop, value)
+  // a date input shows a stored value it cannot parse as empty
+  const widget =
+    typed === 'date' && !isEmpty(value) && !isCalendarDate(String(value))
+      ? 'string'
+      : typed
+  const label = prop.title || name
+  const error = errors[0]
+  const enumIndex =
+    widget === 'enum' && value !== undefined
+      ? prop.enum.findIndex(
+          // structural: {"b":2,"a":1} is the enum's {"a":1,"b":2}
+          (v: Types.Json) => R.equals(v, value),
+        )
+      : -1
+  // A schema default is applied on save; show it so what is pushed is what is seen.
+  const hasDefault = value === undefined && prop.default !== undefined
+  const more = errors.length > 1 ? ` (+${errors.length - 1} more)` : ''
+  let helper = error ? `${fieldMessage(error)}${more}` : prop.description
+  if (!error && hasDefault) {
+    helper = `Default: ${display(prop.default)}${prop.description ? ` · ${prop.description}` : ''}`
+  }
+  // a counter, not the key: "a.b" and "a_b" would collide once sanitized
+  const [id] = React.useState(() => `meta-field-${(fieldIds += 1)}`)
+
+  const numeric = widget === 'integer' || widget === 'number'
+  const [numError, setNumError] = React.useState<string | null>(null)
+  const [numText, setNumText] = React.useState(() =>
+    isEmpty(value) ? '' : display(value),
+  )
+  const numTextRef = React.useRef(numText)
+  numTextRef.current = numText
+  React.useEffect(() => {
+    if (!numeric) return
+    const t = numTextRef.current
+    if (NUMBER.test(t.trim()) && Number(t) === value) return
+    setNumText(isEmpty(value) ? '' : display(value))
+    setNumError(null)
+    setPending?.(name, false)
+  }, [name, numeric, setPending, value])
+  // an outside value (import, suggestion, Expand) replaces a half-typed date
+  React.useEffect(() => {
+    if (widget === 'date') setPending?.(name, false)
+  }, [name, setPending, value, widget])
+  React.useEffect(() => () => setPending?.(name, false), [name, setPending])
+
+  const set = React.useCallback(
+    (raw: string, badInput?: boolean) => {
+      if (numeric && raw.trim() === '') {
+        setNumText(raw)
+        setNumError(null)
+        setPending?.(name, false)
+        return onChange(name, undefined)
+      }
+      if (widget === 'date') {
+        // a half-typed date reads as "" with badInput: hold it, don't delete the value
+        setPending?.(name, !!badInput)
+        if (badInput) return
+      }
+      if (raw === '') return onChange(name, undefined)
+      if (widget === 'enum') return onChange(name, prop.enum[Number(raw)])
+      if (widget === 'integer' || widget === 'number') {
+        // the text is the source of truth while typing; "1." or "0.50" stay as typed
+        setNumText(raw)
+        const n = Number(raw)
+        const complete = raw.trim() !== '' && !Number.isNaN(n) && NUMBER.test(raw.trim())
+        // Number() already rounded: "1e-400" became 0, "1.0000000000000001" became 1
+        const lossy =
+          (n === 0 && /[1-9]/.test(raw.trim().split(/e/i)[0])) ||
+          // either widget: "1.0000000000000001" would be saved as 1
+          (Number.isInteger(n) && !isIntegralText(raw.trim()))
+        const unsafe = complete && (!isExactNumber(n) || lossy)
+        setNumError(
+          unsafe
+            ? lossy
+              ? 'Cannot be stored exactly; use fewer digits'
+              : Number.isFinite(n)
+                ? 'Too large to store exactly; use a string field for IDs'
+                : 'Too large to store'
+            : null,
+        )
+        setPending?.(name, !complete || unsafe)
+        if (complete && !unsafe) onChange(name, n)
+        return
+      }
+      onChange(name, raw)
+    },
+    [name, numeric, onChange, prop.enum, setPending, widget],
+  )
+
+  let input: React.ReactNode
+  switch (widget) {
+    case 'boolean': {
+      const shown = value === undefined ? prop.default : value
+      input = (
+        <M.FormControl error={!!error} disabled={disabled} component="fieldset">
+          <M.FormLabel component="legend" className={classes.boolLabel}>
+            {required ? `${label} *` : label}
+          </M.FormLabel>
+          <Lab.ToggleButtonGroup
+            aria-label={label}
+            className={classes.boolGroup}
+            exclusive
+            // deselecting clears an optional field; a required one keeps its answer
+            onChange={(_e, v) => {
+              if (v === null) return required ? undefined : onChange(name, undefined)
+              onChange(name, v === 'yes')
+            }}
+            size="small"
+            value={shown === true ? 'yes' : shown === false ? 'no' : null}
+          >
+            <Lab.ToggleButton value="yes" id={id} disabled={disabled}>
+              Yes
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value="no" disabled={disabled}>
+              No
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
+          {helper && <M.FormHelperText>{helper}</M.FormHelperText>}
+        </M.FormControl>
+      )
+      break
+    }
+    case 'complex':
+      input = (
+        <M.FormControl error={!!error}>
+          <M.FormLabel>{required ? `${label} *` : label}</M.FormLabel>
+          <M.FormHelperText>
+            {isEmpty(value) ? 'Not set.' : `${display(value).slice(0, 80)}`}{' '}
+            <M.Link component="button" type="button" onClick={onShowTable}>
+              Edit in table view
+            </M.Link>
+          </M.FormHelperText>
+          {errors.map((e, i) => {
+            const at =
+              'instancePath' in e ? e.instancePath.slice(pointer(name).length) : ''
+            return (
+              <M.FormHelperText key={i}>
+                {at ? `${at.slice(1).replace(/\//g, '.')}: ` : ''}
+                {fieldMessage(e)}
+              </M.FormHelperText>
+            )
+          })}
+        </M.FormControl>
+      )
+      break
+    default:
+      input = (
+        <M.TextField
+          disabled={disabled}
+          error={!!error || !!numError}
+          fullWidth
+          helperText={numError || helper}
+          id={id}
+          InputLabelProps={widget === 'date' ? { shrink: true } : undefined}
+          // no native `required`: a schema default satisfies it, and Enter must not disagree with Create
+          label={required ? `${label} *` : label}
+          onChange={(e) =>
+            set(e.target.value, (e.target as HTMLInputElement).validity?.badInput)
+          }
+          select={widget === 'enum'}
+          size="small"
+          // numbers use a text input: a number input reports "" for a partial "-" or "1e"
+          inputProps={{
+            'aria-required': required,
+            ...(widget === 'integer' || widget === 'number'
+              ? { inputMode: widget === 'integer' ? 'numeric' : 'decimal' }
+              : {}),
+          }}
+          type={widget === 'date' ? 'date' : 'text'}
+          value={
+            // eslint-disable-next-line no-nested-ternary
+            numeric
+              ? numText
+              : widget === 'enum'
+                ? value === undefined
+                  ? ''
+                  : enumIndex === -1
+                    ? 'current'
+                    : String(enumIndex)
+                : isEmpty(value)
+                  ? ''
+                  : display(value)
+          }
+          variant="outlined"
+        >
+          {widget === 'enum' && [
+            <M.MenuItem key="" value="">
+              <em>Not set</em>
+            </M.MenuItem>,
+            ...(enumIndex === -1 && value !== undefined
+              ? [
+                  <M.MenuItem key="__current" value="current" disabled>
+                    {display(value)} (not an allowed value)
+                  </M.MenuItem>,
+                ]
+              : []),
+            ...prop.enum.map((v: Types.Json, i: number) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <M.MenuItem key={i} value={String(i)}>
+                {enumLabel(v, prop.enum)}
+              </M.MenuItem>
+            )),
+          ]}
+        </M.TextField>
+      )
+  }
+
+  return (
+    <div className={cx(classes.root, { [classes.wide]: widget === 'complex' })}>
+      {input}
+      <SuggestFieldRow
+        disabled={disabled}
+        fieldId={id}
+        label={label}
+        name={name}
+        onUse={onUseSuggestion}
+        suggestion={suggestion}
+        value={value}
+      />
+    </div>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
+  section: {
+    marginBottom: t.spacing(2),
+    padding: t.spacing(2, 2, 2.5),
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(1.5, 1.5, 2),
+    },
+  },
+  sectionHeader: {
+    alignItems: 'baseline',
+    display: 'flex',
+    gap: t.spacing(1),
+    marginBottom: t.spacing(2),
+    minHeight: 30,
+  },
+  sectionTitle: {
+    ...t.typography.subtitle2,
+    fontSize: 15,
+  },
+  sectionMeta: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+  },
+  count: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    fontVariantNumeric: 'tabular-nums',
+    marginLeft: 'auto',
+  },
+  countDone: {
+    color: t.palette.success.dark,
+  },
+  progress: {
+    background: t.palette.action.hover,
+    borderRadius: 2,
+    height: 4,
+    marginBottom: t.spacing(2.5),
+    marginTop: t.spacing(-1),
+  },
+  progressBar: {
+    background: t.palette.primary.main,
+    borderRadius: 2,
+  },
+  progressDone: {
+    background: t.palette.success.main,
+  },
+  grid: {
+    alignItems: 'start',
+    display: 'grid',
+    gap: t.spacing(2.5, 2),
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    [t.breakpoints.down('xs')]: {
+      gridTemplateColumns: '1fr',
+    },
+  },
+  optionalToggle: {
+    alignSelf: 'center',
+    marginLeft: 'auto',
+  },
+}))
+
+interface MetaFormProps {
+  disabled: boolean
+  errors: (Error | ErrorObject)[]
+  onChange: (value: Types.JsonRecord) => void
+  onShowTable: () => void
+  onUseSuggestion: (key: string, value: Types.Json) => void
+  schema: JsonSchema
+  setPending?: (key: string, isPending: boolean) => void
+  suggestions?: Suggestions
+  value?: Types.JsonRecord
+}
+
+/**
+ * The workflow schema's top-level fields as a form: required ones first, with
+ * progress, then optional ones. Anything the form cannot express (nested
+ * objects, arrays, keys outside the schema) stays editable in table view.
+ */
+export default function MetaForm({
+  disabled,
+  errors,
+  onChange,
+  onShowTable,
+  onUseSuggestion,
+  schema,
+  setPending,
+  suggestions,
+  value,
+}: MetaFormProps) {
+  const classes = useStyles()
+  const properties: Record<string, JsonSchema> = schema.properties || {}
+  const required: string[] = React.useMemo(
+    () =>
+      (Array.isArray(schema.required) ? schema.required : []).filter(
+        (k: unknown) => typeof k === 'string',
+      ),
+    [schema.required],
+  )
+  const optional = Object.keys(properties).filter((k) => !required.includes(k))
+  const [showOptional, setShowOptional] = React.useState(true)
+
+  const setField = React.useCallback(
+    (key: string, v: Types.Json | undefined) => {
+      // entries, not assignment: a "__proto__" key must become an own property
+      const rest = Object.entries(value || {}).filter(([k]) => k !== key)
+      onChange(Object.fromEntries(v === undefined ? rest : [...rest, [key, v]]))
+    },
+    [onChange, value],
+  )
+
+  const filled = required.filter(
+    (k) =>
+      hasValue(
+        value && Object.hasOwn(value, k) ? value[k] : properties[k]?.default,
+        properties[k],
+      ) && !errorsFor(k, errors).length,
+  ).length
+
+  const field = (key: string, isRequired: boolean) => (
+    <Field
+      disabled={disabled}
+      errors={errorsFor(key, errors)}
+      key={key}
+      name={key}
+      onChange={setField}
+      onShowTable={onShowTable}
+      onUseSuggestion={onUseSuggestion}
+      prop={properties[key] || {}}
+      setPending={setPending}
+      required={isRequired}
+      // own keys only: "constructor" would otherwise read Object's function
+      suggestion={
+        suggestions && Object.hasOwn(suggestions, key) ? suggestions[key] : undefined
+      }
+      value={value && Object.hasOwn(value, key) ? value[key] : undefined}
+    />
+  )
+
+  return (
+    <>
+      {!!required.length && (
+        <M.Paper variant="outlined" className={classes.section} data-section="required">
+          <div className={classes.sectionHeader}>
+            <span className={classes.sectionTitle}>Required</span>
+            <span
+              className={cx(classes.count, {
+                [classes.countDone]: filled === required.length,
+              })}
+              role="status"
+            >
+              {filled} of {required.length} complete
+            </span>
+          </div>
+          <M.LinearProgress
+            aria-label={`${filled} of ${required.length} required fields complete`}
+            className={classes.progress}
+            classes={{
+              bar: cx(classes.progressBar, {
+                [classes.progressDone]: filled === required.length,
+              }),
+            }}
+            variant="determinate"
+            value={(filled / required.length) * 100}
+          />
+          <div className={classes.grid}>{required.map((k) => field(k, true))}</div>
+        </M.Paper>
+      )}
+      {!!optional.length && (
+        <M.Paper variant="outlined" className={classes.section} data-section="optional">
+          <div className={classes.sectionHeader}>
+            <span className={classes.sectionTitle}>Optional</span>
+            <span className={classes.sectionMeta}>{optional.length}</span>
+            <M.Button
+              className={classes.optionalToggle}
+              size="small"
+              onClick={() => setShowOptional((x) => !x)}
+              aria-expanded={showOptional}
+            >
+              {showOptional ? 'Hide' : 'Show'}
+            </M.Button>
+          </div>
+          <M.Collapse in={showOptional}>
+            <div className={classes.grid}>{optional.map((k) => field(k, false))}</div>
+          </M.Collapse>
+        </M.Paper>
+      )}
+    </>
+  )
+}
+
+const useFreeStyles = M.makeStyles((t) => ({
+  row: {
+    alignItems: 'flex-start',
+    display: 'grid',
+    gap: t.spacing(1.5),
+    gridTemplateColumns: 'minmax(120px, 2fr) minmax(160px, 3fr) auto',
+    [t.breakpoints.down('xs')]: {
+      gap: t.spacing(1),
+      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto',
+    },
+    '& + &': {
+      marginTop: t.spacing(1.5),
+    },
+  },
+  remove: {
+    marginTop: t.spacing(0.5),
+  },
+  add: {
+    marginTop: t.spacing(1.5),
+  },
+  empty: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginBottom: t.spacing(1),
+  },
+}))
+
+interface FreeFieldsProps {
+  setPending?: (key: string, isPending: boolean) => void
+  description: string
+  disabled: boolean
+  /** Keys the schema form already shows. */
+  exclude?: readonly string[]
+  onChange: (value: Types.JsonRecord) => void
+  title: string
+  value?: Types.JsonRecord
+}
+
+/**
+ * Metadata keys without a schema field, as name/value rows. Values that were
+ * not strings round-trip as JSON; anything typed into a new row is a string.
+ */
+interface FreeRowProps {
+  disabled: boolean
+  setPending?: (key: string, isPending: boolean) => void
+  name: string
+  onRemove: () => void
+  onRename: (to: string) => string | null
+  onValue: (v: Types.Json) => void
+  value: Types.Json
+}
+
+/**
+ * One name/value row. The name and the text of a non-string value are drafts
+ * kept locally, so an invalid rename or half-typed JSON never reaches metadata.
+ */
+function FreeRow({
+  disabled,
+  name,
+  onRemove,
+  onRename,
+  onValue,
+  setPending,
+  value,
+}: FreeRowProps) {
+  const free = useFreeStyles()
+  // MUI v4 links helper text (rename and JSON errors) to the input only through an id
+  const [rowId] = React.useState(() => `meta-row-${(fieldIds += 1)}`)
+  const typed = typeof value !== 'string'
+  const [nameDraft, setNameDraft] = React.useState(name)
+  const [nameError, setNameError] = React.useState<string | null>(null)
+  const [text, setText] = React.useState(() =>
+    value === undefined ? '' : display(value),
+  )
+  const [textError, setTextError] = React.useState<string | null>(null)
+  React.useEffect(() => setNameDraft(name), [name])
+  React.useEffect(() => {
+    setText((t) => {
+      if (!typed) return value === undefined ? '' : display(value)
+      try {
+        // the text already means this value; keep its spacing and caret
+        if (JSON.stringify(JSON.parse(t)) === JSON.stringify(value)) return t
+      } catch {
+        // not parseable: an outside change replaces it
+      }
+      return value === undefined ? '' : display(value)
+    })
+    setTextError(null)
+  }, [typed, value])
+
+  const commitName = () => {
+    // untouched: tabbing through must not trim an imported " lab " key into "lab"
+    if (nameDraft === name) return setNameError(null)
+    const to = nameDraft.trim()
+    if (to === name) return setNameError(null)
+    // rename only a row whose value is saved, so the two never land half-applied
+    if (textError) return setNameError('Finish the value first')
+    setNameError(onRename(to))
+  }
+  const changeText = (raw: string) => {
+    setText(raw)
+    if (!typed) return onValue(raw)
+    try {
+      const parsed = JSON.parse(raw)
+      if (!allExact(parsed) || hasLossyToken(raw)) {
+        return setTextError(
+          'A number is too large to store exactly; use a string for IDs',
+        )
+      }
+      onValue(parsed)
+      setTextError(null)
+    } catch {
+      setTextError('Not valid JSON yet. Finish it, or undo the change, before saving')
+    }
+  }
+  const unresolved = !!nameError || !!textError
+  React.useEffect(() => {
+    setPending?.(name, unresolved)
+    return () => setPending?.(name, false)
+  }, [name, setPending, unresolved])
+  return (
+    <div className={free.row}>
+      <M.TextField
+        disabled={disabled}
+        error={!!nameError}
+        helperText={nameError || undefined}
+        id={`${rowId}-name`}
+        inputProps={{ 'aria-label': `Name of field ${name}` }}
+        label="Name"
+        onBlur={commitName}
+        onChange={(e) => setNameDraft(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitName())}
+        size="small"
+        value={nameDraft}
+        variant="outlined"
+      />
+      <M.TextField
+        disabled={disabled}
+        error={!!textError}
+        helperText={textError || (typed ? 'JSON value' : undefined)}
+        id={`${rowId}-value`}
+        inputProps={{ 'aria-label': `Value of ${name}` }}
+        label="Value"
+        multiline={typed && typeof value === 'object' && value !== null}
+        onChange={(e) => changeText(e.target.value)}
+        size="small"
+        value={text}
+        variant="outlined"
+      />
+      <M.IconButton
+        aria-label={`Remove ${name}`}
+        className={free.remove}
+        disabled={disabled}
+        onClick={onRemove}
+        // keep focus on the name: its blur would rename the row and unmount this button
+        onMouseDown={(e) => e.preventDefault()}
+        size="small"
+      >
+        <M.Icon fontSize="small">close</M.Icon>
+      </M.IconButton>
+    </div>
+  )
+}
+
+export function FreeFields({
+  description,
+  disabled,
+  exclude = [],
+  onChange,
+  setPending,
+  title,
+  value,
+}: FreeFieldsProps) {
+  const classes = useStyles()
+  const free = useFreeStyles()
+  const entries = Object.entries(value || {}).filter(([k]) => !exclude.includes(k))
+  const [draft, setDraft] = React.useState<{ key: string; value: string } | null>(null)
+  // MUI v4 links label and helper text to the input only through an id
+  const [draftId] = React.useState(() => `meta-new-field-${(fieldIds += 1)}`)
+  const draftRef = React.useRef<HTMLDivElement>(null)
+
+  // "__proto__" is reserved: submit cannot store it as a field
+  const taken = (k: string) =>
+    k === '__proto__' || Object.hasOwn(value || {}, k) || exclude.includes(k)
+  // row identity survives a rename, so the row is not remounted and keyboard focus stays
+  const rowIds = React.useRef(new Map<string, string>())
+  const rowId = (k: string) => {
+    let id = rowIds.current.get(k)
+    if (!id) {
+      id = `row-${(fieldIds += 1)}`
+      rowIds.current.set(k, id)
+    }
+    return id
+  }
+  const rename = (from: string, to: string): string | null => {
+    if (!to) return 'Enter a name'
+    if (to === '__proto__') return 'Reserved name'
+    if (taken(to)) return 'Already used'
+    rowIds.current.set(to, rowId(from))
+    rowIds.current.delete(from)
+    onChange(
+      Object.fromEntries(
+        Object.entries(value || {}).map(([k, v]) => (k === from ? [to, v] : [k, v])),
+      ),
+    )
+    return null
+  }
+  const remove = (key: string) => {
+    const next = { ...value }
+    delete next[key]
+    onChange(next)
+  }
+  // Commit only when focus leaves the whole draft row, so Tab from Name to Value keeps it.
+  const commitDraft = (e?: React.FocusEvent) => {
+    if (e && draftRef.current?.contains(e.relatedTarget as Node)) return
+    if (disabled) return
+    const key = draft?.key.trim()
+    if (!draft || !key || taken(key)) return
+    onChange({ ...value, [key]: draft.value })
+    setDraft(null)
+  }
+  // metadata replaced from outside (Import file, full-screen editor) while a draft was open
+  const draftKey = draft?.key.trim()
+  const valueRef = React.useRef(value)
+  React.useEffect(() => {
+    const before = valueRef.current
+    valueRef.current = value
+    // only when the change added the key: a draft already in conflict stays until discarded
+    const added =
+      !!draftKey &&
+      Object.hasOwn(value || {}, draftKey) &&
+      !Object.hasOwn(before || {}, draftKey)
+    if (added) setDraft(null)
+  }, [draftKey, value])
+  const draftError = !!draft?.key.trim() && taken(draft.key.trim())
+  // a draft that cannot be saved as it stands holds the submit until fixed or discarded
+  const draftStuck =
+    !!draft && (draftError || (!draft.key.trim() && !!draft.value.trim()))
+  React.useEffect(() => {
+    setPending?.(NEW_FIELD, draftStuck)
+    return () => setPending?.(NEW_FIELD, false)
+  }, [draftStuck, setPending])
+
+  return (
+    <M.Paper variant="outlined" className={classes.section} data-section="other">
+      <div className={classes.sectionHeader}>
+        <span className={classes.sectionTitle}>{title}</span>
+      </div>
+      {!entries.length && !draft && <div className={free.empty}>{description}</div>}
+      {entries.map(([k, v]) => (
+        <FreeRow
+          disabled={disabled}
+          key={rowId(k)}
+          name={k}
+          onRemove={() => remove(k)}
+          onRename={(to) => rename(k, to)}
+          onValue={(next) => onChange({ ...value, [k]: next })}
+          setPending={setPending}
+          value={v}
+        />
+      ))}
+      {draft && (
+        <div className={free.row} ref={draftRef} onBlur={commitDraft}>
+          <M.TextField
+            autoFocus
+            disabled={disabled}
+            error={draftError}
+            helperText={
+              draftError
+                ? draft.key.trim() === '__proto__'
+                  ? 'Reserved name'
+                  : 'Already used'
+                : undefined
+            }
+            label="Name"
+            id={`${draftId}-name`}
+            onChange={(e) => setDraft({ ...draft, key: e.target.value })}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
+            size="small"
+            value={draft.key}
+            variant="outlined"
+          />
+          <M.TextField
+            disabled={disabled}
+            label="Value"
+            id={`${draftId}-value`}
+            onChange={(e) => setDraft({ ...draft, value: e.target.value })}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), commitDraft())}
+            size="small"
+            value={draft.value}
+            variant="outlined"
+          />
+          <M.IconButton
+            aria-label="Discard new field"
+            className={free.remove}
+            disabled={disabled}
+            onClick={() => setDraft(null)}
+            // keep focus in the row, so the blur that would save the draft never fires
+            onMouseDown={(e) => e.preventDefault()}
+            size="small"
+          >
+            <M.Icon fontSize="small">close</M.Icon>
+          </M.IconButton>
+        </div>
+      )}
+      <M.Button
+        className={free.add}
+        color="primary"
+        disabled={disabled || !!draft}
+        onClick={() => setDraft({ key: '', value: '' })}
+        size="small"
+        startIcon={<M.Icon fontSize="small">add</M.Icon>}
+      >
+        Add field
+      </M.Button>
+    </M.Paper>
+  )
+}

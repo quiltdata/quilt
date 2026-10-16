@@ -320,6 +320,92 @@ describe('utils/JSONSchema', () => {
       })
     })
 
+    it('with keepSet, defaults a missing field named after an Object member', () => {
+      const schema = {
+        type: 'object',
+        properties: { constructor: { type: 'string', default: 'sample' } },
+      }
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({})).toEqual({
+        constructor: 'sample',
+      })
+    })
+
+    it('with keepSet, keeps explicit false, 0 and null instead of applying defaults', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          on: { type: 'boolean', default: true },
+          n: { type: 'number', default: 5 },
+          lab: {
+            type: ['object', 'null'],
+            properties: { pi: { type: 'string', default: 'x' } },
+          },
+        },
+      }
+      expect(
+        makeSchemaDefaultsSetter(schema, { keepSet: true })({
+          on: false,
+          n: 0,
+          lab: null,
+        }),
+      ).toEqual({ on: false, n: 0, lab: null })
+      // without keepSet, falsy primitives still get the default, as before
+      expect(makeSchemaDefaultsSetter(schema)({ on: false, n: 0 })).toMatchObject({
+        on: true,
+        n: 5,
+      })
+    })
+
+    it('with keepSet, keeps an explicit empty string', () => {
+      const schema = {
+        type: 'object',
+        properties: { assay: { enum: ['', 'RNA'], default: 'RNA' } },
+      }
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({ assay: '' })).toEqual({
+        assay: '',
+      })
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({})).toEqual({
+        assay: 'RNA',
+      })
+    })
+
+    it('without keepSet, still replaces a falsy primitive under an object property', () => {
+      const schema = {
+        type: 'object',
+        properties: { obj: { properties: { a: { default: 1 } } } },
+      }
+      expect(makeSchemaDefaultsSetter(schema)({ obj: 0 })).toEqual({ obj: { a: 1 } })
+    })
+
+    it('keeps a null object value in both modes instead of crashing or defaulting it', () => {
+      const schema = {
+        type: 'object',
+        properties: { lab: { properties: { pi: { type: 'string', default: 'x' } } } },
+      }
+      expect(makeSchemaDefaultsSetter(schema)({ lab: null })).toEqual({ lab: null })
+      expect(makeSchemaDefaultsSetter(schema, { keepSet: true })({ lab: null })).toEqual({
+        lab: null,
+      })
+    })
+
+    it('leaves null array items alone', () => {
+      const schema = {
+        type: 'object',
+        properties: {
+          samples: {
+            type: 'array',
+            items: {
+              type: ['object', 'null'],
+              properties: { id: { type: 'number', default: 1 } },
+            },
+          },
+        },
+      }
+      expect(makeSchemaDefaultsSetter(schema)({ samples: [null, {}] })).toEqual({
+        samples: [null, { id: 1 }],
+      })
+    })
+
     it('should return the same value if no schema', () => {
       const obj = { a: 1 }
       expect(makeSchemaDefaultsSetter()(obj)).toBe(obj)
