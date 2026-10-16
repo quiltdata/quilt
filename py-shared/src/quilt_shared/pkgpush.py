@@ -276,8 +276,17 @@ class PackagePromoteParams(PackagePushParams):
     src: PackagePromoteSource
 
 
+class PackagePatchBase(pydantic.v1.BaseModel):
+    # None: the latest revision when the patch runs.
+    parent: TopHash | None = None
+    # Applied before the request's entries; a key ending in "/" removes that directory.
+    delete: list[NonEmptyStr] = []
+
+
 class PackageConstructParams(PackagePushParams):
     scratch_buckets: dict[str, str]
+    # None: build from the request's entries alone.
+    patch: PackagePatchBase | None = None
 
 
 class PackageConstructEntry(pydantic.v1.BaseModel):
