@@ -39,6 +39,27 @@ class PolicySummary:
 
 
 @pydantic.dataclasses.dataclass
+class RoleSignup:
+    """
+    A role's access-code signup page: visitors who enter `access_code` on `/signup/<page>`
+    sign up straight into the role.
+    """
+
+    page: str
+    access_code: str
+    title: str | None = None
+    description: str | None = None
+
+    def _to_gql(self) -> _graphql_client.RoleSignupInput:
+        return _graphql_client.RoleSignupInput(
+            page=self.page,
+            access_code=self.access_code,
+            title=self.title,
+            description=self.description,
+        )
+
+
+@pydantic.dataclasses.dataclass
 class ManagedRole:
     id: str
     name: str
@@ -46,6 +67,8 @@ class ManagedRole:
     policies: list[PolicySummary]
     permissions: list[Permission]
     typename__: T.Literal["ManagedRole"]
+    default_bucket: str | None = None
+    signup: RoleSignup | None = None
 
 
 @pydantic.dataclasses.dataclass
@@ -54,6 +77,8 @@ class UnmanagedRole:
     name: str
     arn: str
     typename__: T.Literal["UnmanagedRole"]
+    default_bucket: str | None = None
+    signup: RoleSignup | None = None
 
 
 Role = ManagedRole | UnmanagedRole

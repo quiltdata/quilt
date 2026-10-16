@@ -41,6 +41,14 @@ export const signOut = route('/signout')
 
 export const signUp = route('/signup', (next?: string) => `/signup${mkSearch({ next })}`)
 
+// quilt-specs changes/access-code-signup#catalog-work. A role-owned cohort landing page,
+// distinct from the plain /signup above (unchanged). `?code=` prefills the field for links
+// sent by email or printed on a QR poster.
+export const codeSignup = route(
+  '/signup/:page',
+  (page: string, code?: string) => `/signup/${page}${mkSearch({ code })}`,
+)
+
 export const passReset = route('/reset_password')
 
 export const passChange = route(
@@ -54,6 +62,9 @@ export const activationError = route('/activation_error')
 
 // Connect OAuth
 export const connectAuthorize = route('/connect/authorize')
+
+// Qurator full-page chat; the start URL of the installable app
+export const qurator = route('/qurator')
 
 // Profile
 export const profile = route('/profile')
@@ -79,6 +90,9 @@ export const search = route(
 // Queries (workspace-global query consoles; the bucket is a parameter of the
 // console, never part of the mount point)
 export const queries = route('/queries')
+
+// Chat-primary peer of the catalog, behind the `qurator-mode` preview feature
+export const quratorMode = route('/qurator-mode')
 
 export type QueriesArgs = Parameters<typeof queries.url>
 

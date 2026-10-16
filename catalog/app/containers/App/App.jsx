@@ -1,12 +1,13 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import { Switch, Route, Redirect, useLocation, useParams } from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
 import cfg from 'constants/config'
 import * as URLS from 'constants/urls'
-import { isAdmin } from 'containers/Auth/selectors'
+import { authenticated, defaultBucket, isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { NotFoundPage } from 'containers/NotFound'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -68,6 +69,10 @@ const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Place
 const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
+// quilt-specs changes/access-code-signup#catalog-work: unconditional, unlike the gate on
+// AuthSignUp below -- a code-signup page is inert on its own (404s via api_signup_page)
+// unless a role actually declares a code, independent of the stack's general signup config.
+const AuthCodeSignUp = RT.mkLazy(() => import('containers/Auth/CodeSignUp'), Placeholder)
 const ConnectAuthorize = requireAuth()(
   RT.mkLazy(() => import('containers/Connect'), Placeholder),
 )
@@ -102,11 +107,22 @@ function DataProductsRoute() {
   )
 }
 const Queries = requireAuth()(RT.mkLazy(() => import('containers/Queries'), Placeholder))
+const Qurator = requireAuth()(RT.mkLazy(() => import('containers/Qurator'), Placeholder))
 const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
   RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
 )
+const QuratorMode = requireAuth()(
+  RT.mkLazy(() => import('containers/QuratorMode'), Placeholder),
+)
+
+// Read ahead of `requireAuth` and under its own Suspense, as `DataProductsRoute`.
+function QuratorModeGate() {
+  const { urls } = NamedRoutes.use()
+  if (!useFeature('qurator-mode')) return <Redirect to={urls.home()} />
+  return <QuratorMode />
+}
 
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
@@ -118,7 +134,20 @@ const BucketList = protect(
   RT.mkLazy(() => import('website/pages/Landing/BucketList'), Placeholder),
 )
 
-const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
+const HomePage = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
+
+/**
+ * `/` lands a signed-in user on their active role's default bucket when the role sets
+ * one (quilt-specs changes/access-code-signup). An explicit `next=` on sign-in never
+ * reaches `/`, so it still wins; everyone else gets the landing page as before.
+ */
+function Home() {
+  const { urls } = NamedRoutes.use()
+  const isAuthenticated = redux.useSelector(authenticated)
+  const bucket = redux.useSelector(defaultBucket)
+  if (isAuthenticated && bucket) return <Redirect to={urls.bucketRoot(bucket)} />
+  return <HomePage />
+}
 
 export default function App() {
   const { paths, urls } = NamedRoutes.use()
@@ -165,6 +194,9 @@ export default function App() {
           <AuthSignUp />
         </Route>
       )}
+      <Route path={paths.codeSignup} exact>
+        <AuthCodeSignUp />
+      </Route>
       {!!cfg.passwordAuth && (
         <Route path={paths.passReset} exact>
           <AuthPassReset />
@@ -180,12 +212,22 @@ export default function App() {
         <AuthCode />
       </Route>
 
+      <Route path={paths.quratorMode} exact>
+        <React.Suspense fallback={<Placeholder />}>
+          <QuratorModeGate />
+        </React.Suspense>
+      </Route>
+
       <Route path={paths.activationError} exact>
         <AuthActivationError />
       </Route>
 
       <Route path={paths.connectAuthorize} exact>
         <ConnectAuthorize />
+      </Route>
+
+      <Route path={paths.qurator} exact>
+        <Qurator />
       </Route>
 
       <Route path={paths.profile} exact>

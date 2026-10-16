@@ -30,6 +30,7 @@ es = [
 
 [dependency-groups]
 test = [
+    "duckdb~=1.5",
     "pytest~=9.1",
     "pytest-cov~=6.2",
     "pytest-env~=1.1",

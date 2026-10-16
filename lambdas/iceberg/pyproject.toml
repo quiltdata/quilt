@@ -17,6 +17,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 test = [
+    "duckdb~=1.5",
     "pytest~=9.1",
     "pytest-cov~=7.0",
     "pytest-env~=1.1",
@@ -27,4 +28,4 @@ test = [
 default-groups = ["test"]
 
 [tool.uv.sources]
-quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/9945d782967c4f07e245d06df6d5738a39c0c91c.zip", subdirectory = "py-shared" }
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/32cb093209cad95b5ad658e3a468969a07ad1849.zip", subdirectory = "py-shared" }

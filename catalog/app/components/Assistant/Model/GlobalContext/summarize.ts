@@ -355,5 +355,6 @@ export function useCatalogSummarize(llm: Eff.Layer.Layer<LLM.LLM>) {
         Eff.Effect.map(Eff.Option.some),
       ),
     [s3Client, llm],
+    'read',
   )
 }

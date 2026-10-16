@@ -2,10 +2,12 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as HubSpot from 'components/HubSpot'
 import * as style from 'constants/style'
 
 import * as Model from '../Model'
 import Chat from './Chat'
+import Help from './Help'
 import * as InlinePresence from './InlinePresence'
 import {
   DRAGGING,
@@ -76,9 +78,10 @@ function usePanelWidth() {
 
 // The left rail drops to an overlay at the same threshold: under 960px a
 // 40rem panel would leave no content column to reflow.
+// `noSsr`, as the shell's: both must agree from the first render.
 const useCompact = () => {
   const t = M.useTheme()
-  return M.useMediaQuery(t.breakpoints.down('sm'))
+  return M.useMediaQuery(t.breakpoints.down('sm'), { noSsr: true })
 }
 
 // The overlay's Slide gets its transition inline from JS, which no media query
@@ -253,10 +256,14 @@ function Resizer({ className, width, onResize }: ResizerProps) {
   )
 }
 
+type HelpChat = NonNullable<ReturnType<typeof HubSpot.useChat>>
+
 interface PanelProps {
-  api: NonNullable<ReturnType<typeof Model.useAssistantAPI>>
+  api: ReturnType<typeof Model.useAssistantAPI> | null
+  help: HelpChat | null
+  // Which face the panel shows; `null` is the collapsed rail.
+  mode: 'qurator' | 'help' | null
   compact: boolean
-  open: boolean
   width: number | null
   onResize: (px: number, persist?: boolean) => void
 }
@@ -264,24 +271,35 @@ interface PanelProps {
 // A drag re-renders the panel on every move; the conversation needn't follow.
 const MemoChat = React.memo(Chat)
 
-function Panel({ api, compact, open, width, onResize }: PanelProps) {
+const noop = () => {}
+
+function Panel({ api, help, mode, compact, width, onResize }: PanelProps) {
   const classes = usePanelStyles()
   const instant = useInstant()
-  const railRef = React.useRef<HTMLButtonElement>(null)
-  useEscapeToCollapse(open && !compact, api.hide)
+  const quratorRef = React.useRef<HTMLButtonElement>(null)
+  const helpRef = React.useRef<HTMLButtonElement>(null)
+  // Collapsing hands focus back to the rail button of the face that was open.
+  const lastMode = React.useRef(mode)
+  if (mode) lastMode.current = mode
+  // The compact overlay stays expanded while it slides shut: keep the face that
+  // was open, or closing Help would flash Qurator (and focus its input).
+  const face = mode ?? (compact ? lastMode.current : null)
+  const open = mode != null
+  const hide = (mode === 'help' ? help?.hide : api?.hide) ?? noop
+  useEscapeToCollapse(open && !compact, hide)
   // Above the breakpoint Qurator is furniture like the left rail: `permanent`
   // renders no Slide and ignores `open`, so the panel narrows to a rail
   // instead of leaving. Below it, a rail plus a 40rem panel both lose, so the
   // old overlay stands.
   const expanded = compact || open
-  useFocusRail(!compact, open, railRef)
+  useFocusRail(!compact, open, lastMode.current === 'help' ? helpRef : quratorRef)
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer
         anchor="right"
         variant={compact ? 'temporary' : 'permanent'}
         open={open}
-        onClose={api.hide}
+        onClose={hide}
         PaperProps={{
           id: PANEL_ID,
           style: open && !compact ? { width: widthCss(width) } : undefined,
@@ -300,7 +318,9 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
         {open && !compact && (
           <Resizer className={classes.resizer} width={width} onResize={onResize} />
         )}
-        {expanded ? (
+        {expanded && face === 'help' && help ? (
+          <Help onClose={help.hide} />
+        ) : expanded && api ? (
           <MemoChat
             state={api.state}
             dispatch={api.dispatch}
@@ -308,6 +328,7 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
             connectors={api.connectors}
             instructions={api.instructions}
             model={api.model}
+            skills={api.skills}
             busy={api.busy}
             onClose={api.hide}
           />
@@ -315,17 +336,32 @@ function Panel({ api, compact, open, width, onResize }: PanelProps) {
           <div className={classes.rail}>
             {/* One string for both, as the rail's own rows do: the tooltip is
                 the sighted user's copy of the accessible name. */}
-            <M.Tooltip title="Ask Qurator" placement="left">
-              <M.IconButton
-                ref={railRef}
-                onClick={api.show}
-                aria-label="Ask Qurator"
-                aria-expanded={false}
-                aria-controls={PANEL_ID}
-              >
-                <M.Icon>auto_awesome</M.Icon>
-              </M.IconButton>
-            </M.Tooltip>
+            {api && (
+              <M.Tooltip title="Ask Qurator" placement="left">
+                <M.IconButton
+                  ref={quratorRef}
+                  onClick={api.show}
+                  aria-label="Ask Qurator"
+                  aria-expanded={false}
+                  aria-controls={PANEL_ID}
+                >
+                  <M.Icon>auto_awesome</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            )}
+            {help && (
+              <M.Tooltip title="Help" placement="left">
+                <M.IconButton
+                  ref={helpRef}
+                  onClick={help.show}
+                  aria-label="Help"
+                  aria-expanded={false}
+                  aria-controls={PANEL_ID}
+                >
+                  <M.Icon>support_agent</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            )}
           </div>
         )}
       </M.Drawer>
@@ -339,35 +375,69 @@ function Host({ children }: React.PropsWithChildren<{}>) {
   const api = Model.useAssistantAPI()
   const inlined = InlinePresence.useInlined()
   const compact = useCompact()
-  // An inlined chat replaces the panel outright -- a docked rail would take a
-  // gutter for a second copy of the same conversation.
-  const present = !!api && !inlined
-  const open = present && !!api?.visible
+  // Help (HubSpot chat) is the panel's second face: one dock, one width, one
+  // face at a time -- opening either closes the other.
+  const help = HubSpot.useChat()
+  const helpOpen = !!help?.open
+  const visible = !!api?.visible
+  // An inlined chat replaces docked Qurator -- a docked rail would take a gutter
+  // for a second copy of the same conversation. Help still docks beside it.
+  const qurator = !!api && !inlined
+  // Layout effects, so the face being closed never paints for a frame. Only the
+  // docked Qurator competes for the panel: an inline chat leaves Help alone.
+  React.useLayoutEffect(() => {
+    if (helpOpen && visible && qurator) api?.hide()
+  }, [helpOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  React.useLayoutEffect(() => {
+    if (visible && qurator) help?.hide()
+  }, [visible, qurator]) // eslint-disable-line react-hooks/exhaustive-deps
+  // A full-page chat takes over the conversation, so the dock stays closed when
+  // the user leaves it by any route (close, Back, a link).
+  React.useLayoutEffect(() => {
+    if (inlined && visible) api?.hide()
+  }, [inlined, visible]) // eslint-disable-line react-hooks/exhaustive-deps
+  const present = qurator || !!help
+  const mode = helpOpen ? 'help' : qurator && visible ? 'qurator' : null
   const [width, resize] = usePanelWidth()
   return (
     <ReflowContext.Provider
-      value={present && !compact ? (open ? widthCss(width) : RAIL_WIDTH) : null}
+      value={present && !compact ? (mode ? widthCss(width) : RAIL_WIDTH) : null}
     >
       {children}
-      {!inlined && api && (
-        <Panel api={api} compact={compact} open={open} width={width} onResize={resize} />
+      {present && (
+        <Panel
+          api={qurator ? api : null}
+          help={help}
+          mode={mode}
+          compact={compact}
+          width={width}
+          onResize={resize}
+        />
       )}
     </ReflowContext.Provider>
   )
 }
 
-export function Trigger() {
+/**
+ * Opens the docked chat. Absent where a page renders the chat inline, since the
+ * dock refuses to open over it; kept while the dock is open, so a modal dock
+ * returns focus here on close.
+ */
+export function Trigger({ className }: { className?: string }) {
   const api = Model.useAssistantAPI()
   const inlined = InlinePresence.useInlined()
-  if (!api || inlined || api.visible) return null
+  if (!api || inlined) return null
   return (
-    <M.IconButton
-      color="inherit"
-      onClick={api.show}
-      aria-label="Open Qurator AI assistant"
-    >
-      <M.Icon>auto_awesome</M.Icon>
-    </M.IconButton>
+    <M.Tooltip arrow title="Ask Qurator">
+      <M.IconButton
+        className={className}
+        color="inherit"
+        onClick={api.show}
+        aria-label="Ask Qurator"
+      >
+        <M.Icon className="material-icons-outlined">assistant</M.Icon>
+      </M.IconButton>
+    </M.Tooltip>
   )
 }
 

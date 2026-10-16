@@ -13,6 +13,8 @@ UNMANAGED_ROLE = {
     "id": "d7d15bef-c482-4086-ae6b-d0372b6145d2",
     "name": "UnmanagedRole",
     "arn": "arn:aws:iam::000000000000:role/UnmanagedRole",
+    "defaultBucket": None,
+    "signup": None,
 }
 MANAGED_ROLE = {
     "__typename": "ManagedRole",
@@ -29,6 +31,19 @@ MANAGED_ROLE = {
         }
     ],
     "permissions": [{"bucket": {"name": "example-bucket"}, "level": "READ"}],
+    "defaultBucket": None,
+    "signup": None,
+}
+SIGNUP = {
+    "page": "benchtalk",
+    "title": "BenchTalk",
+    "description": "Five minutes of your attention.",
+    "accessCode": "BENCHTALK26",
+}
+SIGNUP_ROLE = {
+    **MANAGED_ROLE,
+    "defaultBucket": "quilt-benchtalk",
+    "signup": SIGNUP,
 }
 PERMISSION = {
     "bucket": {
@@ -57,6 +72,22 @@ EXPECTED_UNMANAGED_ROLE = admin.UnmanagedRole(
     name="UnmanagedRole",
     arn="arn:aws:iam::000000000000:role/UnmanagedRole",
     typename__="UnmanagedRole",
+)
+EXPECTED_SIGNUP = admin.RoleSignup(
+    page="benchtalk",
+    access_code="BENCHTALK26",
+    title="BenchTalk",
+    description="Five minutes of your attention.",
+)
+EXPECTED_SIGNUP_ROLE = admin.ManagedRole(
+    id=MANAGED_ROLE["id"],
+    name="ManagedRole",
+    arn="arn:aws:iam::000000000000:role/ManagedRole",
+    policies=[EXPECTED_POLICY_SUMMARY],
+    permissions=[EXPECTED_PERMISSION],
+    typename__="ManagedRole",
+    default_bucket="quilt-benchtalk",
+    signup=EXPECTED_SIGNUP,
 )
 POLICY = {
     "__typename": "Policy",
@@ -150,6 +181,7 @@ ROLE_CREATE_ERRORS = (
     ({"__typename": "RoleNameExists"}, admin.RoleNameExistsError),
     ({"__typename": "RoleNameInvalid"}, admin.RoleNameInvalidError),
     ({"__typename": "RoleHasTooManyPoliciesToAttach"}, admin.RoleTooManyPoliciesError),
+    ({"__typename": "RoleSignupPageConflict"}, admin.RoleSignupPageConflictError),
 )
 ROLE_UPDATE_ERRORS = (
     *ROLE_CREATE_ERRORS,
@@ -523,6 +555,183 @@ def test_patch_managed_role():
     ):
         result = admin.roles.patch_managed(MANAGED_ROLE["id"], name="NewName")
         assert result.name == "NewName"
+
+
+def test_get_role_with_signup():
+    with mock_client({"role": SIGNUP_ROLE}, "roleGet", variables={"id": SIGNUP_ROLE["id"]}):
+        assert admin.roles.get(SIGNUP_ROLE["id"]) == EXPECTED_SIGNUP_ROLE
+
+
+def test_create_managed_role_with_signup():
+    with mock_client(
+        {"role_create_managed": {"__typename": "RoleCreateSuccess", "role": SIGNUP_ROLE}},
+        "roleCreateManaged",
+        variables={
+            "input": _graphql_client.ManagedRoleInput(
+                name="ManagedRole",
+                policies=[],
+                default_bucket="quilt-benchtalk",
+                signup=_graphql_client.RoleSignupInput(
+                    page="benchtalk",
+                    access_code="BENCHTALK26",
+                    title="BenchTalk",
+                    description="Five minutes of your attention.",
+                ),
+            )
+        },
+    ):
+        assert (
+            admin.roles.create_managed("ManagedRole", [], default_bucket="quilt-benchtalk", signup=EXPECTED_SIGNUP)
+            == EXPECTED_SIGNUP_ROLE
+        )
+
+
+def test_create_unmanaged_role_with_default_bucket():
+    role = {**UNMANAGED_ROLE, "defaultBucket": "quilt-benchtalk"}
+    with mock_client(
+        {"role_create_unmanaged": {"__typename": "RoleCreateSuccess", "role": role}},
+        "roleCreateUnmanaged",
+        variables={
+            "input": _graphql_client.UnmanagedRoleInput(
+                name="UnmanagedRole",
+                arn=UNMANAGED_ROLE["arn"],
+                default_bucket="quilt-benchtalk",
+                signup=None,
+            )
+        },
+    ):
+        result = admin.roles.create_unmanaged("UnmanagedRole", UNMANAGED_ROLE["arn"], default_bucket="quilt-benchtalk")
+        assert result.default_bucket == "quilt-benchtalk"
+        assert result.signup is None
+
+
+def test_update_managed_role_removes_signup():
+    """An explicit None clears signup/default_bucket (the registry treats null as clear)."""
+    with mock_client_multi(
+        ({"role": SIGNUP_ROLE}, "roleGet", {"id": SIGNUP_ROLE["id"]}),
+        (
+            {"role_update_managed": {"__typename": "RoleUpdateSuccess", "role": MANAGED_ROLE}},
+            "roleUpdateManaged",
+            {
+                "id": SIGNUP_ROLE["id"],
+                "input": _graphql_client.ManagedRoleInput(
+                    name="ManagedRole", policies=[], default_bucket=None, signup=None
+                ),
+            },
+        ),
+    ):
+        assert (
+            admin.roles.update_managed(
+                SIGNUP_ROLE["id"], name="ManagedRole", policies=[], default_bucket=None, signup=None
+            )
+            == EXPECTED_MANAGED_ROLE
+        )
+
+
+def test_update_and_patch_omit_unspecified_signup_fields():
+    """Not passing signup/default_bucket leaves the keys out of the input, which the registry
+    treats as keep. Checked on the serialized variables: pydantic equality ignores fields_set."""
+    sent = []
+
+    def capture(_self, *, input, **_kwargs):
+        sent.append(input.model_dump(by_alias=True, exclude_unset=True))
+        return _graphql_client.RoleUpdateManaged.model_validate(
+            {"roleUpdateManaged": {"__typename": "RoleUpdateSuccess", "role": SIGNUP_ROLE}}
+        ).role_update_managed
+
+    with (
+        mock.patch.object(_graphql_client.Client, "role_update_managed", capture),
+        mock_client({"role": SIGNUP_ROLE}, "roleGet", variables={"id": SIGNUP_ROLE["id"]}),
+    ):
+        admin.roles.update_managed(SIGNUP_ROLE["id"], name="ManagedRole", policies=[])
+    with (
+        mock.patch.object(_graphql_client.Client, "role_update_managed", capture),
+        mock_client({"role": SIGNUP_ROLE}, "roleGet", variables={"id": SIGNUP_ROLE["id"]}),
+    ):
+        admin.roles.patch_managed(SIGNUP_ROLE["id"], name="Renamed")
+    assert sent == [
+        {"name": "ManagedRole", "policies": []},
+        {"name": "Renamed", "policies": [MANAGED_ROLE["policies"][0]["id"]]},
+    ]
+
+
+def test_patch_managed_role_sets_signup():
+    with mock_client_multi(
+        ({"role": MANAGED_ROLE}, "roleGet", {"id": MANAGED_ROLE["id"]}),
+        (
+            {"role_update_managed": {"__typename": "RoleUpdateSuccess", "role": SIGNUP_ROLE}},
+            "roleUpdateManaged",
+            {
+                "id": MANAGED_ROLE["id"],
+                "input": _graphql_client.ManagedRoleInput(
+                    name="ManagedRole",
+                    policies=[MANAGED_ROLE["policies"][0]["id"]],
+                    default_bucket="quilt-benchtalk",
+                    signup=_graphql_client.RoleSignupInput(
+                        page="benchtalk",
+                        access_code="BENCHTALK26",
+                        title="BenchTalk",
+                        description="Five minutes of your attention.",
+                    ),
+                ),
+            },
+        ),
+    ):
+        result = admin.roles.patch_managed(
+            MANAGED_ROLE["id"], default_bucket="quilt-benchtalk", signup=EXPECTED_SIGNUP
+        )
+        assert result == EXPECTED_SIGNUP_ROLE
+
+
+def test_role_input_sends_explicit_nulls():
+    """The registry keeps a role's default_bucket/signup when the input key is omitted and
+    clears them on an explicit null; the generated client serializes exactly the fields set."""
+
+    def serialize(model):
+        return model.model_dump(by_alias=True, exclude_unset=True)
+
+    cleared = _graphql_client.ManagedRoleInput(name="r", policies=[], default_bucket=None, signup=None)
+    assert serialize(cleared) == {"name": "r", "policies": [], "defaultBucket": None, "signup": None}
+    kept = _graphql_client.ManagedRoleInput(name="r", policies=[])
+    assert serialize(kept) == {"name": "r", "policies": []}
+    assert serialize(EXPECTED_SIGNUP._to_gql()) == {
+        "page": "benchtalk",
+        "accessCode": "BENCHTALK26",
+        "title": "BenchTalk",
+        "description": "Five minutes of your attention.",
+    }
+
+
+def test_create_managed_role_omits_unset_signup_fields():
+    """Fixed per code review: create_managed/create_unmanaged defaulted default_bucket/signup
+    to None instead of _UNSET, so a caller who never mentioned them got defaultBucket: null,
+    signup: null on the wire instead of the keys being omitted entirely. A regression here is
+    invisible to test_create_managed_role/test_create_unmanaged_role's own mock_client check:
+    pydantic's `==` compares field values, not which fields were actually set, so this inspects
+    the real call's `input` object's own exclude_unset serialization instead."""
+
+    def serialize(model):
+        return model.model_dump(by_alias=True, exclude_unset=True)
+
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
+            with mock.patch(
+                "quilt3._graphql_client.Client.get_data",
+                return_value={"role_create_managed": {"__typename": "RoleCreateSuccess", "role": MANAGED_ROLE}},
+            ):
+                admin.roles.create_managed("ManagedRole")
+    sent_input = execute_mock.call_args.kwargs["variables"]["input"]
+    assert serialize(sent_input) == {"name": "ManagedRole", "policies": []}
+
+    with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
+        with mock.patch("quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE) as execute_mock:
+            with mock.patch(
+                "quilt3._graphql_client.Client.get_data",
+                return_value={"role_create_unmanaged": {"__typename": "RoleCreateSuccess", "role": UNMANAGED_ROLE}},
+            ):
+                admin.roles.create_unmanaged("UnmanagedRole", UNMANAGED_ROLE["arn"])
+    sent_input = execute_mock.call_args.kwargs["variables"]["input"]
+    assert serialize(sent_input) == {"name": "UnmanagedRole", "arn": UNMANAGED_ROLE["arn"]}
 
 
 def test_patch_managed_role_type_mismatch():

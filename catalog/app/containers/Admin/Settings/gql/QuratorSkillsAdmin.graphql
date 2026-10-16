@@ -1,0 +1,15 @@
+query {
+  config {
+    quratorSkills {
+      topHash
+      skills {
+        name
+        description
+        license
+        runClass
+        source
+        files
+      }
+    }
+  }
+}

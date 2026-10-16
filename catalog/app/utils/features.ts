@@ -33,6 +33,16 @@ export const FEATURES = {
     description:
       'Replace the volume list at / with the unified search bar and tiles. Off, / is the volume list, unchanged.',
   },
+  'qurator-composer-next': {
+    label: 'Qurator composer: upcoming rows',
+    description:
+      'Show the Files and context row in the Qurator mode + menu, marked "Soon". Off, the menu lists only what works today.',
+  },
+  'qurator-mode': {
+    label: 'Qurator mode',
+    description:
+      'Add a "Qurator mode" row to the left rail: the chat takes the main column, with what the session touched beside it and a button to save the session as a package. Off, Qurator is only the side panel.',
+  },
   'elasticsearch-queries': {
     label: 'ElasticSearch query console',
     description:

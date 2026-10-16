@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Assistant from 'components/Assistant'
 import * as Column from 'components/Layout/Column'
 import * as Pointer from 'components/Layout/Pointer'
 import Suggestions, { suggestionOptionId } from 'components/SearchBar/Suggestions'
@@ -130,9 +131,12 @@ export interface ContentBarProps {
   // button is the way to reach it. Absent on wide viewports, where the rail is
   // always on screen and a menu button would toggle nothing.
   onMenu?: () => void
+  // The compact shell has no Qurator rail, so the bar's actions give way to
+  // Qurator's door there.
+  compact?: boolean
 }
 
-export function ContentBar({ onMenu }: ContentBarProps = {}) {
+export function ContentBar({ onMenu, compact = false }: ContentBarProps = {}) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const bucket = Buckets.useCurrentBucket()
@@ -255,28 +259,34 @@ export function ContentBar({ onMenu }: ContentBarProps = {}) {
               </div>
             </M.Popper>
           </div>
-          <div className={classes.actions}>
-            <M.Tooltip arrow title="Resolve a Quilt URI">
-              <M.IconButton
-                className={classes.action}
-                component={Link}
-                to={urls.uriResolver('')}
-              >
-                <M.Icon className="material-icons-outlined">link</M.Icon>
-              </M.IconButton>
-            </M.Tooltip>
-            <M.Tooltip arrow title="Documentation">
-              <M.IconButton
-                className={classes.action}
-                component="a"
-                href={URLS.docs}
-                target="_blank"
-                rel="noopener"
-              >
-                <M.Icon className="material-icons-outlined">menu_book</M.Icon>
-              </M.IconButton>
-            </M.Tooltip>
-          </div>
+          {compact ? (
+            <div className={classes.actions}>
+              <Assistant.UI.Trigger className={classes.action} />
+            </div>
+          ) : (
+            <div className={classes.actions}>
+              <M.Tooltip arrow title="Resolve a Quilt URI">
+                <M.IconButton
+                  className={classes.action}
+                  component={Link}
+                  to={urls.uriResolver('')}
+                >
+                  <M.Icon className="material-icons-outlined">link</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+              <M.Tooltip arrow title="Documentation">
+                <M.IconButton
+                  className={classes.action}
+                  component="a"
+                  href={URLS.docs}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <M.Icon className="material-icons-outlined">menu_book</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            </div>
+          )}
         </M.Toolbar>
       </M.AppBar>
     </M.MuiThemeProvider>

@@ -295,6 +295,157 @@ describe('Conversation actor — connector gating', () => {
    * from the React context only. Every connector tool round-tripped as a
    * synthetic "Tool ... not found" without ever hitting the wire.
    */
+  /**
+   * qhq-62tw: a tool executor that throws (a defect, not Effect.fail) must
+   * not leave its toolUseId stuck in `calls` forever. Before the fix,
+   * nothing observed the forked call fiber's outcome, so a defect here hung
+   * the conversation in ToolUse with no error ever surfaced.
+   */
+  it('a tool executor that throws still resolves and settles the conversation', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const responded = yield* Eff.Ref.make(false)
+
+          const throwingTool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () => {
+              throw new Error('boom')
+            },
+          }
+          const connectorsStub: Connectors.ConnectorsService = {
+            ...makeConnectorsStub(isBlockedRef),
+            contextContribution: Eff.Effect.succeed({
+              tools: { bad__tool: throwingTool },
+              messages: [],
+            }),
+          }
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                if (yield* Eff.Ref.getAndSet(responded, true)) {
+                  return { content: Eff.Option.some([]), backendResponse: {} as never }
+                }
+                return {
+                  content: Eff.Option.some([
+                    Content.ResponseMessageContentBlock.ToolUse({
+                      toolUseId: 'tu1',
+                      name: 'bad__tool',
+                      input: {},
+                    }),
+                  ]),
+                  backendResponse: {} as never,
+                }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, connectorsStub),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'use bad tool' }))
+          // Without the fix, this hangs past the vitest timeout: the call
+          // fiber dies on the thrown error and nothing ever dispatches
+          // ToolResult for 'tu1', so the actor never leaves ToolUse.
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(final._tag).toBe('Idle')
+          const event = final.events.find(
+            (e) => e._tag === 'ToolUse' && e.toolUseId === 'tu1',
+          )
+          expect(event?._tag).toBe('ToolUse')
+          if (event?._tag !== 'ToolUse') return
+          expect(event.result.status).toBe('error')
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
+  /**
+   * Smoke test: Abort on a call fiber still mid-executor reaches Idle
+   * cleanly with no stray ToolUse event. Note this passes under both
+   * catchAllDefect and catchAllCause (interruptFork's own interruption
+   * happens upstream of either handler in this exact timing), so it does
+   * NOT discriminate forkCall's catchAllDefect choice from catchAllCause --
+   * that choice is justified by effect's own documented contract
+   * (catchAllDefect "does not handle ... execution interruptions"), traced
+   * against the library's actual compiled dispatch, not proven by this test.
+   */
+  it('Abort on a running tool call fiber reaches Idle with no stray ToolUse event', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const executorRan = yield* Eff.Deferred.make<void>()
+          const neverFinish = yield* Eff.Deferred.make<void>()
+
+          const hangingTool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(executorRan, undefined)
+                // Never resolves on its own -- only interruption ends this.
+                yield* Eff.Deferred.await(neverFinish)
+                return Eff.Option.some(Tool.succeed())
+              }),
+          }
+          const connectorsStub: Connectors.ConnectorsService = {
+            ...makeConnectorsStub(isBlockedRef),
+            contextContribution: Eff.Effect.succeed({
+              tools: { hang__tool: hangingTool },
+              messages: [],
+            }),
+          }
+          // One LLM round that returns the hanging tool-use, no settling round
+          // needed -- the test ends at Idle via Abort, not via a second converse.
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.succeed({
+                content: Eff.Option.some([
+                  Content.ResponseMessageContentBlock.ToolUse({
+                    toolUseId: 'tu1',
+                    name: 'hang__tool',
+                    input: {},
+                  }),
+                ]),
+                backendResponse: {} as never,
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, connectorsStub),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'use hanging tool' }))
+          yield* awaitState(actor, (s) => s._tag === 'ToolUse')
+          // Make sure the call fiber is actually inside the tool executor
+          // (past Tool.execute, mid-await) before we abort it.
+          yield* Eff.Deferred.await(executorRan)
+
+          yield* actor.dispatch(Conversation.Action.Abort())
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(final._tag).toBe('Idle')
+          // No ToolResult was ever dispatched for the interrupted call --
+          // if catchAllDefect regressed back to catchAllCause, the fiber
+          // would run to completion once unblocked and append a ToolUse
+          // event even after the actor moved on.
+          yield* Eff.Deferred.succeed(neverFinish, undefined)
+          yield* TestClock.adjust(Eff.Duration.millis(10))
+          const latest = yield* Eff.SubscriptionRef.get(actor.state)
+          expect(latest.events.some((e) => e._tag === 'ToolUse')).toBe(false)
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+
   it('LLMResponse executes connector-contributed tools', () =>
     Eff.Effect.runPromise(
       Eff.Effect.scoped(
@@ -304,6 +455,7 @@ describe('Conversation actor — connector gating', () => {
           const responded = yield* Eff.Ref.make(false)
 
           const connectorTool: Tool.Descriptor<Record<string, unknown>> = {
+            effect: 'read',
             schema: {} as Eff.JSONSchema.JsonSchema7Root,
             executor: () =>
               Eff.Effect.gen(function* () {
@@ -370,6 +522,365 @@ describe('Conversation actor — connector gating', () => {
           expect(event?._tag).toBe('ToolUse')
           if (event?._tag !== 'ToolUse') return
           expect(event.result.status).toBe('success')
+        }),
+      ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
+    ))
+})
+
+describe('write approval', () => {
+  /**
+   * One LLM round asking for `toolUses`, then a settling round with none.
+   * `runs` counts executions per tool name.
+   */
+  const setup = (
+    toolUses: { id: string; name: string; effect: Tool.Effect }[],
+    awaitPending = true,
+  ) =>
+    Eff.Effect.gen(function* () {
+      const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+      const runs = yield* Eff.Ref.make<Record<string, number>>({})
+      const responded = yield* Eff.Ref.make(false)
+      const tools: Tool.Collection = Object.fromEntries(
+        toolUses.map(({ name, effect }) => [
+          name,
+          {
+            effect,
+            schema: {} as Eff.JSONSchema.JsonSchema7Root,
+            executor: () =>
+              Eff.Ref.update(runs, (r) => ({ ...r, [name]: (r[name] ?? 0) + 1 })).pipe(
+                Eff.Effect.as(
+                  Eff.Option.some(
+                    Tool.succeed(Content.ToolResultContentBlock.Text({ text: 'ran' })),
+                  ),
+                ),
+              ),
+          },
+        ]),
+      )
+      const llm: LLM.LLM['Type'] = {
+        converse: () =>
+          Eff.Effect.gen(function* () {
+            if (yield* Eff.Ref.getAndSet(responded, true)) {
+              return { content: Eff.Option.some([]), backendResponse: {} as never }
+            }
+            return {
+              content: Eff.Option.some(
+                toolUses.map(({ id, name }) =>
+                  Content.ResponseMessageContentBlock.ToolUse({
+                    toolUseId: id,
+                    name,
+                    input: { bucket: 'b' },
+                  }),
+                ),
+              ),
+              backendResponse: {} as never,
+            }
+          }),
+      }
+      const layer = Eff.Layer.mergeAll(
+        Eff.Layer.succeed(Connectors.Connectors, {
+          ...makeConnectorsStub(isBlockedRef),
+          contextContribution: Eff.Effect.succeed({ tools, messages: [] }),
+        }),
+        Eff.Layer.succeed(LLM.LLM, llm),
+        Eff.Layer.succeed(Context.ConversationContext, makeContextStub()),
+      )
+      const definition = yield* Conversation.ConversationActor
+      const actor = yield* Actor.start(
+        definition,
+        yield* Conversation.init,
+        Eff.Effect.succeed(layer),
+      )
+      yield* actor.dispatch(Conversation.Action.Ask({ content: 'go' }))
+      const pending = awaitPending
+        ? yield* awaitState(
+            actor,
+            (s) => s._tag === 'ToolUse' && Object.values(s.calls).some((c) => c.approval),
+          )
+        : yield* Eff.SubscriptionRef.get(actor.state)
+      const keyOf = (id: string) =>
+        (pending._tag === 'ToolUse' && pending.calls[id]?.key) || ''
+      return { actor, runs, pending, tools, keyOf }
+    })
+
+  const run = (test: Eff.Effect.Effect<void, never, Eff.Scope.Scope>) =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(test).pipe(
+        Eff.Effect.provide(TestContext.TestContext),
+      ) as Eff.Effect.Effect<void>,
+    )
+
+  const settled = (s: Conversation.State) => s._tag === 'Idle'
+
+  it('holds a write until approved, then runs it once', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, pending, keyOf } = yield* setup([
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        expect(pending._tag === 'ToolUse' && pending.calls.w.approval).toBe('write')
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
+        yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({ put: 1 })
+      }),
+    ))
+
+  it('a repeated tool-use id runs nothing', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup(
+          [
+            { id: 'x', name: 'list', effect: 'read' },
+            { id: 'x', name: 'put', effect: 'write' },
+          ],
+          false,
+        )
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        if (final._tag !== 'Idle') throw new Error('not idle')
+        expect(Eff.Option.getOrThrow(final.error).message).toMatch(
+          /unusable tool-call id/,
+        )
+      }),
+    ))
+
+  it.each(['__proto__', 'constructor'])('a tool-use id of %s runs nothing', (id) =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup(
+          [{ id, name: 'put', effect: 'write' }],
+          false,
+        )
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        if (final._tag !== 'Idle') throw new Error('not idle')
+        expect(Eff.Option.getOrThrow(final.error).message).toMatch(
+          /unusable tool-call id/,
+        )
+      }),
+    ),
+  )
+
+  it('an answer for another card (wrong key) does nothing', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, keyOf } = yield* setup([
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: 'stale' }))
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: 'stale' }))
+        const still = yield* awaitState(actor, (s) => s._tag === 'ToolUse')
+        expect(still._tag === 'ToolUse' && still.calls.w.approval).toBe('write')
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: keyOf('w') }))
+        yield* awaitState(actor, settled)
+      }),
+    ))
+
+  it('a denied write never runs and the model is told why', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, keyOf } = yield* setup([
+          { id: 'w', name: 'create', effect: 'destructive' },
+        ])
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: keyOf('w') }))
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        const event = final.events.find((e) => e._tag === 'ToolUse')
+        if (event?._tag !== 'ToolUse') throw new Error('no ToolUse event')
+        expect(event.result.status).toBe('error')
+        expect(JSON.stringify(event.result.content)).toContain('Declined by the user')
+      }),
+    ))
+
+  it.each([
+    [
+      'changed',
+      (t: Tool.Collection) => (t.put = { ...t.put, effect: 'read' }),
+      'changed',
+    ],
+    ['gone', (t: Tool.Collection) => delete t.put, "isn't available"],
+  ])('a tool %s while pending is not run on approval', (_, mutate, reason) =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, tools, keyOf } = yield* setup([
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        mutate(tools)
+        yield* actor.dispatch(Conversation.Action.Approve({ id: 'w', key: keyOf('w') }))
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        const event = final.events.find((e) => e._tag === 'ToolUse')
+        if (event?._tag !== 'ToolUse') throw new Error('no ToolUse event')
+        expect(event.result.status).toBe('error')
+        expect(JSON.stringify(event.result.content)).toContain(reason)
+      }),
+    ),
+  )
+
+  it('a tool name inherited from Object.prototype is not a tool', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const result = yield* Tool.execute({}, 'toString', {})
+        expect(Eff.Option.getOrThrow(result).status).toBe('error')
+      }),
+    ))
+
+  it('Abort drops a pending write without running it', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs } = yield* setup([{ id: 'w', name: 'put', effect: 'write' }])
+        yield* actor.dispatch(Conversation.Action.Abort())
+        const final = yield* awaitState(actor, settled)
+        expect(yield* Eff.Ref.get(runs)).toEqual({})
+        expect(final.events.some((e) => e._tag === 'ToolUse')).toBe(false)
+      }),
+    ))
+
+  it('reads in the same batch run without waiting', () =>
+    run(
+      Eff.Effect.gen(function* () {
+        const { actor, runs, keyOf } = yield* setup([
+          { id: 'r', name: 'list', effect: 'read' },
+          { id: 'w', name: 'put', effect: 'write' },
+        ])
+        yield* awaitState(
+          actor,
+          (s) => s._tag === 'ToolUse' && !('r' in s.calls) && 'w' in s.calls,
+        )
+        expect(yield* Eff.Ref.get(runs)).toEqual({ list: 1 })
+        yield* actor.dispatch(Conversation.Action.Deny({ id: 'w', key: keyOf('w') }))
+        yield* awaitState(actor, settled)
+      }),
+    ))
+})
+
+describe('trimEventsToBudget', () => {
+  // No Event.Message/ToolUse construction precedent elsewhere in this file
+  // (events are only ever observed as actor output), but Event is a plain
+  // Eff.Data.taggedEnum export, so building fixtures directly is the
+  // simplest way to exercise a pure function in isolation.
+  const makeMessage = (id: string, text: string): Conversation.Event =>
+    Conversation.Event.Message({
+      id,
+      timestamp: new Date(),
+      role: 'user',
+      content: Content.text(text),
+    })
+
+  it('leaves events untouched when under budget', () => {
+    const events = [makeMessage('1', 'hi'), makeMessage('2', 'there')]
+    expect(Conversation.trimEventsToBudget(events, 10_000)).toEqual(events)
+  })
+
+  it('drops the oldest events first when over budget, keeping the most recent', () => {
+    const events = [
+      makeMessage('1', 'x'.repeat(100)),
+      makeMessage('2', 'y'.repeat(100)),
+      makeMessage('3', 'z'.repeat(100)),
+    ]
+    // Budget fits roughly the last event's serialized size, not all three.
+    const trimmed = Conversation.trimEventsToBudget(events, 150)
+    expect(trimmed.length).toBeLessThan(events.length)
+    expect(trimmed[trimmed.length - 1].id).toBe('3')
+    expect(trimmed.some((e) => e.id === '1')).toBe(false)
+  })
+
+  it('keeps at least the single most recent event even if it alone exceeds budget', () => {
+    const events = [makeMessage('1', 'short'), makeMessage('2', 'z'.repeat(1000))]
+    const trimmed = Conversation.trimEventsToBudget(events, 10)
+    expect(trimmed).toHaveLength(1)
+    expect(trimmed[0].id).toBe('2')
+  })
+
+  /**
+   * /code-review on #5475: JSON.stringify on a Blob emits `{}`, so a
+   * multi-MB image event would read as near-free and never get trimmed --
+   * reproducing the exact stuck-retry bug this function fixes, just via
+   * attachment size instead of conversation length. eventSize must size a
+   * Blob-backed Image/Document block by its real byte size, not its
+   * stringified shape.
+   */
+  it('sizes a Blob-backed image by its real byte size, not JSON.stringify({})', () => {
+    const bigImage: Conversation.Event = Conversation.Event.Message({
+      id: 'img',
+      timestamp: new Date(),
+      role: 'user',
+      content: Content.MessageContentBlock.Image({
+        format: 'png',
+        source: new Blob([new Uint8Array(10_000)]),
+      }),
+    })
+    const smallText = makeMessage('text', 'hi')
+    // A budget well under the image's real size but well over its
+    // JSON.stringify({}) size (which rounds to ~0) -- if the image were
+    // still mis-sized as near-free, both events would survive untrimmed.
+    const trimmed = Conversation.trimEventsToBudget([smallText, bigImage], 500)
+    expect(trimmed).toHaveLength(1)
+    expect(trimmed[0].id).toBe('img')
+  })
+})
+
+describe('llmRequest -- single-turn context overflow', () => {
+  /**
+   * Live incident, 2026-10-15: opening a package with a long README/AGENTS.md
+   * directory chain (loaded into context.messages, not events) overflowed on
+   * the very first Ask, before trimEventsToBudget ever had multiple events to
+   * drop -- trimEventsToBudget can only shrink `events`; it has no lever over
+   * context.messages/tools, which are owned by hooks outside this file. This
+   * confirms llmRequest fails fast with an actionable message instead of
+   * sending a doomed prompt and letting the model's own 424 be the only
+   * signal.
+   */
+  it('fails fast when context.messages alone fills the budget, before calling the LLM', () =>
+    Eff.Effect.runPromise(
+      Eff.Effect.scoped(
+        Eff.Effect.gen(function* () {
+          const isBlockedRef = yield* Eff.SubscriptionRef.make(false)
+          const llmCalled = yield* Eff.Deferred.make<void>()
+          const hugeContextStub = {
+            context: Eff.Effect.succeed({
+              tools: {},
+              // One huge "README" message, simulating a package's long
+              // directory chain of context files -- big enough alone to
+              // exceed MAX_PROMPT_CHARS (120_000) once JSON.stringify'd.
+              messages: ['x'.repeat(130_000)],
+              markers: {},
+            }),
+          }
+          const llm: LLM.LLM['Type'] = {
+            converse: () =>
+              Eff.Effect.gen(function* () {
+                yield* Eff.Deferred.succeed(llmCalled, undefined)
+                yield* Eff.Effect.never
+                return { content: Eff.Option.some([]), backendResponse: {} as never }
+              }),
+          }
+          const layer = Eff.Layer.mergeAll(
+            Eff.Layer.succeed(Connectors.Connectors, makeConnectorsStub(isBlockedRef)),
+            Eff.Layer.succeed(LLM.LLM, llm),
+            Eff.Layer.succeed(Context.ConversationContext, hugeContextStub),
+          )
+          const initial = yield* Conversation.init
+          const definition = yield* Conversation.ConversationActor
+          const actor = yield* Actor.start(definition, initial, Eff.Effect.succeed(layer))
+
+          yield* actor.dispatch(Conversation.Action.Ask({ content: 'hi' }))
+          const final = yield* awaitState(actor, (s) => s._tag === 'Idle')
+          expect(final._tag).toBe('Idle')
+          if (final._tag !== 'Idle') return
+          expect(Eff.Option.isSome(final.error)).toBe(true)
+          const errorDetails = Eff.Option.getOrThrow(final.error).details
+          expect(errorDetails).toMatch(/too much fixed context/)
+
+          // The point of failing fast: never actually called the LLM with a
+          // doomed-from-construction prompt.
+          const llmFired = yield* Eff.Deferred.isDone(llmCalled)
+          expect(llmFired).toBe(false)
         }),
       ).pipe(Eff.Effect.provide(TestContext.TestContext)) as Eff.Effect.Effect<void>,
     ))

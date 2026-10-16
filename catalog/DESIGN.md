@@ -387,7 +387,9 @@ Every control uses the same vocabulary on every screen.
   reads as natural language, an **Ask Qurator** row leads the list (amber glyph
   as a mark, a Divider rule below it, `natural language` as its trailing
   scope-note), with the search destinations one arrow-press beneath; keyword
-  queries show search rows only.
+  queries show search rows only. The band's trailing actions are the URI
+  resolver and documentation links; the compact shell, which has no Qurator
+  rail, gives that slot to a single Ask Qurator button instead.
 - **Bare pages:** sign-in and terminal errors wear the bare header — a static
   64px Midnight Chassis band carrying only the mark as a home link — with the
   page content centered beneath. No nav, no search, no marketing (One-Register

@@ -146,6 +146,9 @@ export interface AdminMutations {
   /** @deprecated Field no longer supported */
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly packager: PackagerAdminMutations
+  readonly quratorSkillRemove: QuratorSkillsResult
+  /** Adds a skill, or replaces the one with its name, and publishes a new revision. */
+  readonly quratorSkillSet: QuratorSkillsResult
   readonly setQuratorConfig: SetQuratorConfigResult
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
@@ -162,6 +165,14 @@ export interface AdminMutationsbucketSetTabulatorTableArgs {
   bucketName: Scalars['String']['input']
   config: InputMaybe<Scalars['String']['input']>
   tableName: Scalars['String']['input']
+}
+
+export interface AdminMutationsquratorSkillRemoveArgs {
+  name: Scalars['String']['input']
+}
+
+export interface AdminMutationsquratorSkillSetArgs {
+  input: QuratorSkillInput
 }
 
 export interface AdminMutationssetQuratorConfigArgs {
@@ -404,6 +415,8 @@ export interface Config {
    * Nullable so a refused read nulls this field alone rather than all of `config`.
    */
   readonly quratorModels: Maybe<QuratorModelConfig>
+  /** The admin-approved Qurator skills. Nullable for the same reason as quratorModels. */
+  readonly quratorSkills: Maybe<QuratorSkills>
 }
 
 export interface ContentIndexingSettings {
@@ -502,15 +515,19 @@ export interface ManagedPolicyInput {
 export interface ManagedRole {
   readonly __typename: 'ManagedRole'
   readonly arn: Scalars['String']['output']
+  readonly defaultBucket: Maybe<Scalars['String']['output']>
   readonly id: Scalars['ID']['output']
   readonly name: Scalars['String']['output']
   readonly permissions: ReadonlyArray<RoleBucketPermission>
   readonly policies: ReadonlyArray<Policy>
+  readonly signup: Maybe<RoleSignup>
 }
 
 export interface ManagedRoleInput {
+  readonly defaultBucket: InputMaybe<Scalars['String']['input']>
   readonly name: Scalars['String']['input']
   readonly policies: ReadonlyArray<Scalars['ID']['input']>
+  readonly signup: InputMaybe<RoleSignupInput>
 }
 
 export interface Me {
@@ -1137,6 +1154,8 @@ export interface Query {
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
   readonly potentialCollaborators: ReadonlyArray<Collaborator>
+  /** A file of an approved Qurator skill, as text; null when there is no such skill or file. */
+  readonly quratorSkillFile: Maybe<Scalars['String']['output']>
   readonly role: Maybe<Role>
   readonly roles: ReadonlyArray<Role>
   readonly searchMoreObjects: ObjectsSearchMoreResult
@@ -1178,6 +1197,11 @@ export interface QuerypackagesArgs {
 
 export interface QuerypolicyArgs {
   id: Scalars['ID']['input']
+}
+
+export interface QueryquratorSkillFileArgs {
+  name: Scalars['String']['input']
+  path: Scalars['String']['input']
 }
 
 export interface QueryroleArgs {
@@ -1294,6 +1318,44 @@ export interface QuratorModelNameInput {
   readonly name: Scalars['String']['input']
 }
 
+export interface QuratorSkill {
+  readonly __typename: 'QuratorSkill'
+  readonly description: Scalars['String']['output']
+  /** Paths inside the skill, SKILL.md among them. */
+  readonly files: ReadonlyArray<Scalars['String']['output']>
+  readonly license: Maybe<Scalars['String']['output']>
+  readonly name: Scalars['String']['output']
+  readonly runClass: QuratorSkillRunClass
+  /** Where an admin took it from, trimmed; null when none was given. */
+  readonly source: Maybe<Scalars['String']['output']>
+}
+
+export interface QuratorSkillFileInput {
+  readonly path: Scalars['String']['input']
+  readonly text: Scalars['String']['input']
+}
+
+export interface QuratorSkillInput {
+  readonly files: ReadonlyArray<QuratorSkillFileInput>
+  readonly source: InputMaybe<Scalars['String']['input']>
+}
+
+export enum QuratorSkillRunClass {
+  /** Qurator can follow it with its own tools. */
+  GUIDE = 'GUIDE',
+  /** It expects a shell, scripts or local compute; Qurator explains the steps instead. */
+  SHELL = 'SHELL',
+}
+
+export interface QuratorSkills {
+  readonly __typename: 'QuratorSkills'
+  readonly skills: ReadonlyArray<QuratorSkill>
+  /** The reserved package revision these skills were published as; null with none. */
+  readonly topHash: Maybe<Scalars['String']['output']>
+}
+
+export type QuratorSkillsResult = InvalidInput | OperationError | QuratorSkills
+
 export type RestoreObjectResult = InvalidInput | OperationError | RestoreObjectSuccess
 
 export interface RestoreObjectSuccess {
@@ -1321,6 +1383,7 @@ export type RoleCreateResult =
   | RoleNameExists
   | RoleNameInvalid
   | RoleNameReserved
+  | RoleSignupPageConflict
 
 export interface RoleCreateSuccess {
   readonly __typename: 'RoleCreateSuccess'
@@ -1395,6 +1458,26 @@ export interface RoleSetDefaultSuccess {
   readonly role: Role
 }
 
+export interface RoleSignup {
+  readonly __typename: 'RoleSignup'
+  readonly accessCode: Scalars['String']['output']
+  readonly description: Maybe<Scalars['String']['output']>
+  readonly page: Scalars['String']['output']
+  readonly title: Maybe<Scalars['String']['output']>
+}
+
+export interface RoleSignupInput {
+  readonly accessCode: Scalars['String']['input']
+  readonly description: InputMaybe<Scalars['String']['input']>
+  readonly page: Scalars['String']['input']
+  readonly title: InputMaybe<Scalars['String']['input']>
+}
+
+export interface RoleSignupPageConflict {
+  readonly __typename: 'RoleSignupPageConflict'
+  readonly _: Maybe<Scalars['Boolean']['output']>
+}
+
 export type RoleUpdateResult =
   | RoleHasTooManyPoliciesToAttach
   | RoleIsManaged
@@ -1403,6 +1486,7 @@ export type RoleUpdateResult =
   | RoleNameInvalid
   | RoleNameReserved
   | RoleNameUsedBySsoConfig
+  | RoleSignupPageConflict
   | RoleUpdateSuccess
 
 export interface RoleUpdateSuccess {
@@ -1604,13 +1688,17 @@ export interface UnmanagedPolicyInput {
 export interface UnmanagedRole {
   readonly __typename: 'UnmanagedRole'
   readonly arn: Scalars['String']['output']
+  readonly defaultBucket: Maybe<Scalars['String']['output']>
   readonly id: Scalars['ID']['output']
   readonly name: Scalars['String']['output']
+  readonly signup: Maybe<RoleSignup>
 }
 
 export interface UnmanagedRoleInput {
   readonly arn: Scalars['String']['input']
+  readonly defaultBucket: InputMaybe<Scalars['String']['input']>
   readonly name: Scalars['String']['input']
+  readonly signup: InputMaybe<RoleSignupInput>
 }
 
 export interface User {
