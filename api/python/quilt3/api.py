@@ -1,4 +1,5 @@
 from .backends import get_package_registry
+from .backends.base import explain_access_denied
 from .data_transfer import copy_file
 from .search_util import search_api
 from .telemetry import ApiTelemetry
@@ -46,9 +47,12 @@ def delete_package(name, registry=None, top_hash=None):
     validate_package_name(name)
     registry = get_package_registry(registry)
     if top_hash is None:
-        registry.delete_package(name)
+        with explain_access_denied(name):
+            registry.delete_package(name)
     else:
-        registry.delete_package_version(name, registry.resolve_top_hash(name, top_hash))
+        top_hash = registry.resolve_top_hash(name, top_hash)
+        with explain_access_denied(name):
+            registry.delete_package_version(name, top_hash)
 
 
 @ApiTelemetry("api.list_packages")
