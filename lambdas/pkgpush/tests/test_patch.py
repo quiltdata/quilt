@@ -291,6 +291,21 @@ def test_unpinned_patch_reapplies_to_new_latest(env, mocker):
     assert [key for key, _, _ in env.writes if key.startswith(f".quilt/named_packages/{NAME}/1")] != []
 
 
+def test_unreadable_new_latest_is_a_patch_error(env, mocker):
+    move_latest_while_hashing(env, mocker, 1)
+    browse = env.browse.side_effect
+
+    def browse_only_parent(name, registry, top_hash):
+        if top_hash != PARENT_HASH:
+            raise quilt3.util.QuiltException("unreadable manifest")
+        return browse(name, registry, top_hash)
+
+    env.browse.side_effect = browse_only_parent
+    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
+        env.run(header(), new_entry("new.txt"))
+    assert exc.value.name == "QuiltException"
+
+
 def test_unpinned_patch_gives_up_after_three_lost_races(env, mocker):
     move_latest_while_hashing(env, mocker, 3)
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:

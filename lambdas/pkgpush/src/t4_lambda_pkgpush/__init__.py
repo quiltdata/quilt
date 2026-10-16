@@ -1126,6 +1126,8 @@ def construct_package(
         logger.info(f"[PERF] pkg._build END: top_hash={top_hash}")
     except botocore.exceptions.ClientError as boto_error:
         raise PkgpushException.from_boto_error(boto_error)
+    except quilt3.util.QuiltException as qe:
+        raise PkgpushException.from_quilt_exception(qe)
 
     # XXX: return mtime?
     logger.info(f"[PERF] create_package END: {params.bucket}/{params.name}")
