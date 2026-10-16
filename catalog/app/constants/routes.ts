@@ -386,3 +386,4 @@ export const adminBucketEdit = route(
 
 export const adminSettings = route('/admin/settings')
 export const adminStatus = route('/admin/status')
+export const adminGxp = route('/admin/gxp')

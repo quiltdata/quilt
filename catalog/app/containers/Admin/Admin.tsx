@@ -15,6 +15,7 @@ const UsersAndRoles = RT.mkLazy(() => import('./UsersAndRoles'), SuspensePlaceho
 const Buckets = RT.mkLazy(() => import('./Buckets'), SuspensePlaceholder)
 const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 const Status = RT.mkLazy(() => import('./Status'), SuspensePlaceholder)
+const GxP = RT.mkLazy(() => import('./GxP'), SuspensePlaceholder)
 
 const AdminErrorFallback = () => (
   <M.Box my={4}>
@@ -59,6 +60,7 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
               <NavTab label="Status" value="status" to={urls.adminStatus()} />
+              <NavTab label="GxP" value="gxp" to={urls.adminGxp()} />
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
           </M.Paper>
@@ -82,6 +84,7 @@ export default function Admin() {
     buckets: { path: paths.adminBuckets },
     settings: { path: paths.adminSettings, exact: true },
     status: { path: paths.adminStatus, exact: true },
+    gxp: { path: paths.adminGxp, exact: true },
   }
 
   const getSection = (pathname: string) => {
@@ -115,6 +118,9 @@ export default function Admin() {
           </RR.Route>
           <RR.Route path={paths.adminStatus} exact>
             <Status />
+          </RR.Route>
+          <RR.Route path={paths.adminGxp} exact>
+            <GxP />
           </RR.Route>
           <RR.Route path={paths.adminBuckets}>
             <Buckets />
