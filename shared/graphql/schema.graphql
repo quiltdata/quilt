@@ -1164,6 +1164,39 @@ union PackageConstructResult =
 
 union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 
+input PackagePatchEntry {
+  logicalKey: String!
+  # s3:// URI of one object, or of a prefix ending in "/" (no versionId). A prefix sets
+  # every latest object version under it at logicalKey + the key's remainder; logicalKey
+  # must then end in "/". An entry listed explicitly wins over the same key from a prefix.
+  physicalKey: String!
+  # full entry metadata (same shape as PackageConstructEntry.meta); a prefix entry's meta
+  # applies to every entry it sets
+  meta: JsonRecord
+}
+
+input PackagePatchSource {
+  # Concurrency guard: the top hash the caller read. The patch fails with
+  # ParentNotLatest unless it is still the latest revision when the patch is written.
+  # Omitted: the patch applies to whichever revision is latest when it is written, and
+  # is re-applied if another writer moves latest first. A package with no revisions
+  # starts empty.
+  parent: String
+  # entries to add or replace, applied after delete
+  set: [PackagePatchEntry!]
+  # logical keys to remove, applied before set; a key ending in "/" removes that
+  # directory, and a key that is absent or names the other kind is ignored
+  delete: [String!]
+}
+
+type PackagePatchQueued {
+  bucket: String!
+  name: String!
+  parent: String
+}
+
+union PackagePatchAsyncResult = PackagePatchQueued | InvalidInput | OperationError
+
 union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
   | OperationError
@@ -1330,6 +1363,14 @@ type Mutation {
     src: PackagePromoteSource!
     destPrefix: String
   ): PackagePromoteResult!
+  # Patch a package, keeping every entry of the parent the patch doesn't name.
+  # params.userMeta omitted or null keeps the parent's metadata, {} clears it, and any
+  # other value replaces it; params.workflow omitted uses the bucket's default workflow.
+  packagePatch(params: PackagePushParams!, src: PackagePatchSource!): PackageConstructResult!
+  # packagePatch, queued; it runs later. Confirm by reading the package's latest revision.
+  # A failed patch leaves latest unchanged, unless it failed after moving latest but
+  # before recording the revision.
+  packagePatchAsync(params: PackagePushParams!, src: PackagePatchSource!): PackagePatchAsyncResult!
   packageRevisionDelete(
     bucket: String!
     name: String!
