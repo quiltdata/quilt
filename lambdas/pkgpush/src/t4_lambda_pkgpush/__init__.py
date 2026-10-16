@@ -894,6 +894,18 @@ def get_latest_pointer(registry: S3PackageRegistryV1, name: str) -> LatestPointe
     return LatestPointer(resp["Body"].read().decode(), resp["ETag"])
 
 
+def put_if(s3_client, pk: PhysicalKey, body: bytes, **precondition) -> bool:
+    """Put `body` at `pk` under an S3 precondition; return whether it was written."""
+    try:
+        s3_client.put_object(Bucket=pk.bucket, Key=pk.path, Body=body, **precondition)
+    except botocore.exceptions.ClientError as e:
+        # 412: the precondition failed; 409: another conditional write to the key is in flight.
+        if e.response.get("Error", {}).get("Code") not in ("PreconditionFailed", "ConditionalRequestConflict"):
+            raise PkgpushException.from_boto_error(e)
+        return False
+    return True
+
+
 def push_patch_manifest(
     pkg: quilt3.Package,
     registry: S3PackageRegistryV1,
@@ -911,34 +923,12 @@ def push_patch_manifest(
     manifest = io.BytesIO()
     pkg._dump(manifest)
     s3_client = get_user_s3_client()
-    # 412: the precondition failed; 409: another conditional write to the key is in flight.
-    conflicts = ("PreconditionFailed", "ConditionalRequestConflict")
 
-    manifest_pk = registry.manifest_pk(name, top_hash)
-    try:
-        # The top hash does not cover physical keys, so never rewrite an existing revision's manifest.
-        s3_client.put_object(
-            Bucket=manifest_pk.bucket,
-            Key=manifest_pk.path,
-            Body=manifest.getvalue(),
-            IfNoneMatch="*",
-        )
-    except botocore.exceptions.ClientError as e:
-        if e.response.get("Error", {}).get("Code") not in conflicts:
-            raise PkgpushException.from_boto_error(e)
+    # The top hash does not cover physical keys, so never rewrite an existing revision's manifest.
+    put_if(s3_client, registry.manifest_pk(name, top_hash), manifest.getvalue(), IfNoneMatch="*")
 
-    latest_pk = registry.pointer_latest_pk(name)
     precondition = {"IfNoneMatch": "*"} if base.etag is None else {"IfMatch": base.etag}
-    try:
-        s3_client.put_object(
-            Bucket=latest_pk.bucket,
-            Key=latest_pk.path,
-            Body=top_hash.encode(),
-            **precondition,
-        )
-    except botocore.exceptions.ClientError as e:
-        if e.response.get("Error", {}).get("Code") not in conflicts:
-            raise PkgpushException.from_boto_error(e)
+    if not put_if(s3_client, registry.pointer_latest_pk(name), top_hash.encode(), **precondition):
         # The write that moved `latest` may be this one: a retried PUT, or a redelivered run.
         latest = get_latest_pointer(registry, name).top_hash
         if latest != top_hash:

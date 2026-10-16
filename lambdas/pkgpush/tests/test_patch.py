@@ -144,7 +144,6 @@ def env(mocker):
         user_s3=user_s3,
         browse=browse_mock,
         writes=writes,
-        manifests=manifests,
         session=session,
         built=built,
         run=run,
@@ -396,8 +395,6 @@ def test_patch_request_without_patch_is_rejected(env, request_file):
     plain_header = {k: v for k, v in header().items() if k != "patch"}
     request_file(plain_header, new_entry("new.txt"))
     assert error_name(invoke_create_package({"patch_request": "req-v1"})) == "InvalidPatchRequest"
-
-    request_file(plain_header, new_entry("new.txt"))
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
         invoke_packager({"patch_request": "req-v1"})
     assert exc.value.name == "InvalidPatchRequest"
