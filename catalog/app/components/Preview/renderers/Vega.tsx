@@ -1,5 +1,5 @@
 import * as React from 'react'
-import embed, { VisualizationSpec } from 'vega-embed'
+import type { VisualizationSpec } from 'vega-embed'
 import * as M from '@material-ui/core'
 
 const VEGA_OPTIONS = {
@@ -45,7 +45,17 @@ function Vega({ spec, ...props }: VegaProps) {
 
   React.useEffect(() => {
     if (!el) return
-    embed(el, spec, VEGA_OPTIONS)
+    let cancelled = false
+    // Loaded on first render so vega/vega-lite stay out of the bucket tabs' bundle.
+    import('vega-embed')
+      .then(({ default: embed }) =>
+        cancelled ? undefined : embed(el, spec, VEGA_OPTIONS),
+      )
+      // eslint-disable-next-line no-console
+      .catch((e) => console.error(e))
+    return () => {
+      cancelled = true
+    }
   }, [el, spec])
 
   return <div className={classes.root} ref={setEl} {...props} />
