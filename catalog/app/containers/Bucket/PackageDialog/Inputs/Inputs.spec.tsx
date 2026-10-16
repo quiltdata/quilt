@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('constants/config', () => ({ default: {} }))
 vi.mock('components/FileEditor/HelpLinks', () => ({
+  FlowsLink: ({ children }: React.PropsWithChildren<{}>) => children,
   WorkflowsConfigLink: ({ children }: React.PropsWithChildren<{}>) => children,
 }))
 
@@ -36,7 +37,7 @@ describe('containers/Bucket/PackageDialog/Inputs', () => {
     expect(getByLabelText('Message').tagName).toBe('INPUT')
   })
 
-  it('names the workflow select by its label and value', () => {
+  it('names the flow select by its label and value', () => {
     const wf = {
       name: 'Standard',
       slug: 'standard',
@@ -44,6 +45,7 @@ describe('containers/Bucket/PackageDialog/Inputs', () => {
     } as workflows.Workflow
     const { getByRole } = render(
       <Workflow
+        bucket="b"
         formStatus={{ _tag: 'ready' }}
         schema={{ _tag: 'ready' } as React.ComponentProps<typeof Workflow>['schema']}
         state={{ value: wf, status: { _tag: 'ok' }, onChange: noop }}
@@ -55,6 +57,6 @@ describe('containers/Bucket/PackageDialog/Inputs', () => {
         }
       />,
     )
-    expect(getByRole('button', { name: 'Workflow Standard' })).toBeTruthy()
+    expect(getByRole('button', { name: 'Flow Standard' })).toBeTruthy()
   })
 })

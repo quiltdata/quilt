@@ -146,6 +146,7 @@ function PackageCopyForm({ close, successor, state }: PackageCopyFormProps) {
       <M.DialogContent classes={dialogContentClasses}>
         <form className={classes.form} onSubmit={handleCopy}>
           <Inputs.Workflow
+            bucket={successor.slug}
             formStatus={formStatus}
             schema={metadataSchema}
             state={guardedWorkflow}
@@ -201,6 +202,7 @@ function DialogError({ bucket, error }: DialogErrorProps) {
 
   return (
     <PDDialogError
+      bucket={bucket}
       error={error}
       skeletonElement={<FormSkeleton animate={false} />}
       title={

@@ -71,6 +71,10 @@ export interface Workflow {
   name?: string
   packageNamePattern: RegExp | null
   packageNamePatternError?: string
+  // Python's `re` rejects the pattern, so every push through this flow fails
+  packageNamePatternInvalid?: string
+  // `handle_pattern` as written, for display; the compiled pattern may be a translation
+  handlePattern?: string
   undefinedSchemas?: string[]
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
@@ -153,57 +157,289 @@ const parseSchemaRef = (
       }
     : undefined
 
-// Python `re` classes are Unicode-aware on str; JS ones are ASCII-only unless spelled out.
-const PY_CLASSES: Record<string, [string, string]> = {
-  // [outside a class, inside a class]
-  w: ['[\\p{L}\\p{N}_]', '\\p{L}\\p{N}_'],
-  W: ['[^\\p{L}\\p{N}_]', ''],
-  d: ['\\p{Nd}', '\\p{Nd}'],
-  D: ['\\P{Nd}', '\\P{Nd}'],
+export type PatternAnalysis =
+  | { _tag: 'ok'; regex: RegExp }
+  // Valid for Python, but the browser can't reproduce it exactly; the push enforces it
+  | { _tag: 'uncheckable'; reason: string }
+  // Python's `re` would reject it, so every push through the flow would fail
+  | { _tag: 'invalid'; reason: string }
+
+const PY_KNOWN_LETTER_ESCAPES = new Set('abBAZdDsSwWfnrtvxuUN'.split(''))
+
+// Python `\w` and `\d` are Unicode-aware on str patterns; JS needs them spelled out.
+const CLASS_OUT: Record<string, string> = {
+  w: '[\\p{L}\\p{N}_]',
+  W: '[^\\p{L}\\p{N}_]',
+  d: '\\p{Nd}',
+  D: '\\P{Nd}',
+  s: '\\s',
+  S: '\\S',
+}
+const CLASS_IN: Record<string, string | null> = {
+  w: '\\p{L}\\p{N}_',
+  W: null,
+  d: '\\p{Nd}',
+  D: '\\P{Nd}',
+  s: '\\s',
+  S: '\\S',
+}
+const SIMPLE: Record<string, string> = {
+  n: '\\n',
+  r: '\\r',
+  t: '\\t',
+  f: '\\f',
+  v: '\\v',
+  a: '\\x07',
 }
 
-// Rewrites a Python pattern into an equivalent JS `u` source, or explains why it can't.
-export function translatePattern(src: string): { source: string } | { error: string } {
-  let out = ''
-  let inClass = false
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i]
-    if (c === '\\') {
-      const n = src[++i] ?? ''
-      if ('AZbBNU'.includes(n)) return { error: `Python-only \\${n} semantics` }
-      const cls = PY_CLASSES[n]
-      if (cls) {
-        if (inClass && !cls[1]) return { error: `\\${n} inside [...]` }
-        out += inClass ? cls[1] : cls[0]
-      } else {
-        out += c + n
-      }
-    } else {
-      if (c === '[' && !inClass) inClass = true
-      else if (c === ']' && inClass && src[i - 1] !== '[') inClass = false
-      out += c
-    }
+const hex = (cp: number) =>
+  cp < 0x100 ? `\\x${cp.toString(16).padStart(2, '0')}` : `\\u{${cp.toString(16)}}`
+
+const CLASS_ESCAPE = -1
+
+const SIMPLE_CP: Record<string, number> = { n: 10, r: 13, t: 9, f: 12, v: 11, a: 7, b: 8 }
+
+// Code point an escape inside a class stands for, or CLASS_ESCAPE for a class like \w.
+function escapedCodePoint(cs: string[], i: number): number {
+  const n = cs[i]
+  if (n in CLASS_OUT) return CLASS_ESCAPE
+  if (n in SIMPLE_CP) return SIMPLE_CP[n]
+  if (n === 'x') return parseInt(cs.slice(i + 1, i + 3).join(''), 16)
+  if (n === 'u') return parseInt(cs.slice(i + 1, i + 5).join(''), 16)
+  if (n === 'U') return parseInt(cs.slice(i + 1, i + 9).join(''), 16)
+  return n.codePointAt(0)!
+}
+
+// The upper end of a class range starting at cs[i].
+function rangeEnd(
+  cs: string[],
+  i: number,
+): { cp?: number; js?: string; next: number; error?: string } {
+  if (cs[i] !== '\\')
+    return { cp: cs[i].codePointAt(0)!, js: hex(cs[i].codePointAt(0)!), next: i + 1 }
+  const n = cs[i + 1]
+  if (n === undefined) return { next: i + 1, error: 'Ends with a lone backslash' }
+  if (n in CLASS_OUT)
+    return { next: i + 2, error: "A range can't end at \\w, \\d or \\s" }
+  const len = n === 'x' ? 2 : n === 'u' ? 4 : n === 'U' ? 8 : 0
+  if (
+    len &&
+    !new RegExp(`^[0-9a-fA-F]{${len}}$`).test(cs.slice(i + 2, i + 2 + len).join(''))
+  ) {
+    return { next: i + 2, error: `\\${n} needs ${len} hex digits` }
   }
-  return { source: out }
+  if (/[A-Za-z]/.test(n) && !len && !(n in SIMPLE_CP)) {
+    return { next: i + 2, error: `\\${n} isn't valid in a range` }
+  }
+  const cp = escapedCodePoint(cs, i + 1)
+  return { cp, js: hex(cp), next: i + 2 + len }
 }
 
-// quilt3 compiles `handle_pattern` with Python `re`, so a valid pattern may use syntax the
-// browser can't reproduce, e.g. `(?P<name>...)`. The push still enforces it; the catalog skips it.
+// Reads a `handle_pattern` the way quilt3's `re` does. Only constructs with an exact
+// JS (`u` flag) equivalent are translated; anything else is left to the push.
+export function analyzePattern(src: string): PatternAnalysis {
+  if (/\(\?[aiLmsu-]*x/.test(src))
+    return { _tag: 'uncheckable', reason: 'verbose mode (?x)' }
+  const cs = Array.from(src)
+  let out = ''
+  let depth = 0
+  let inClass = false
+  let classFirst = -1
+  // Code point of the last single class member, or CLASS_ESCAPE for \w, \d, \s
+  let classItem: number | null = null
+  // What a quantifier here would repeat; Python rejects repeating nothing or a repeat
+  let prev: 'none' | 'atom' | 'quant' | 'mod' = 'none'
+  let uncheckable: string | null = null
+  const skip = (why: string) => {
+    if (!uncheckable) uncheckable = why
+  }
+  const invalid = (reason: string): PatternAnalysis => ({ _tag: 'invalid', reason })
+  const quantify = (q: string, js: string): PatternAnalysis | null => {
+    if (prev === 'none') return invalid(`Nothing for ${q} to repeat`)
+    if (prev === 'quant' && (q === '?' || q === '+')) {
+      if (q === '+') skip('possessive quantifier')
+      prev = 'mod'
+    } else if (prev !== 'atom') {
+      return invalid(`${q} repeats a repeat`)
+    } else prev = 'quant'
+    out += js
+    return null
+  }
+  for (let i = 0; i < cs.length; i++) {
+    const c = cs[i]
+    if (c === '\\') {
+      const n = cs[++i]
+      if (n === undefined) return invalid('Ends with a lone backslash')
+      if (/[A-Za-z]/.test(n) && !PY_KNOWN_LETTER_ESCAPES.has(n)) {
+        return invalid(`\\${n} isn't a valid escape for pushes`)
+      }
+      prev = 'atom'
+      if (inClass) classItem = n in CLASS_OUT ? CLASS_ESCAPE : escapedCodePoint(cs, i)
+      if (inClass && 'AZB'.includes(n))
+        return invalid(`\\${n} isn't allowed inside [...]`)
+      if (n === 'x' && !/^[0-9a-fA-F]{2}$/.test(cs.slice(i + 1, i + 3).join(''))) {
+        return invalid('\\x needs two hex digits')
+      }
+      if (n === 'u' && !/^[0-9a-fA-F]{4}$/.test(cs.slice(i + 1, i + 5).join(''))) {
+        return invalid('\\u needs four hex digits')
+      }
+      if (n === 'U' && !/^[0-9a-fA-F]{8}$/.test(cs.slice(i + 1, i + 9).join(''))) {
+        return invalid('\\U needs eight hex digits')
+      }
+      if (inClass && n === 'b') out += '\\x08'
+      else if ('AZbB'.includes(n)) {
+        skip(`\\${n}`)
+        prev = 'none'
+      } else if (n in SIMPLE) out += SIMPLE[n]
+      else if (n in CLASS_OUT) {
+        if (
+          inClass &&
+          cs[i + 1] === '-' &&
+          cs[i + 2] !== undefined &&
+          cs[i + 2] !== ']'
+        ) {
+          return invalid("A range can't start at \\w, \\d or \\s")
+        }
+        const t = inClass ? CLASS_IN[n] : CLASS_OUT[n]
+        if (t === null) skip(`\\${n} inside [...]`)
+        else out += t
+      } else if (n === 'x' && /^[0-9a-fA-F]{2}$/.test(cs.slice(i + 1, i + 3).join(''))) {
+        out += `\\x${cs.slice(i + 1, i + 3).join('')}`
+        i += 2
+      } else if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(cs.slice(i + 1, i + 5).join(''))) {
+        out += `\\u${cs.slice(i + 1, i + 5).join('')}`
+        i += 4
+      } else if (/[A-Za-z0-9]/.test(n)) skip(`\\${n}`)
+      // Any other escaped character is that character
+      else out += hex(n.codePointAt(0)!)
+      continue
+    }
+    if (inClass) {
+      if (c === ']' && i !== classFirst) {
+        inClass = false
+        prev = 'atom'
+        out += ']'
+        continue
+      }
+      // A range: Python rejects one whose ends are reversed or a class like \w
+      if (
+        c === '-' &&
+        classItem !== null &&
+        cs[i + 1] !== undefined &&
+        cs[i + 1] !== ']'
+      ) {
+        const end = rangeEnd(cs, i + 1)
+        if (end.error) return invalid(end.error)
+        if (classItem === CLASS_ESCAPE)
+          return invalid("A range can't start at \\w, \\d or \\s")
+        if (end.cp! < classItem) return invalid('A character range runs backwards')
+        out += `-${end.js}`
+        i = end.next - 1
+        classItem = null
+        continue
+      }
+      classItem = c.codePointAt(0)!
+      out += c === ']' || c === '[' || c === '-' ? `\\${c}` : c
+      continue
+    }
+    if (c === '[') {
+      classItem = null
+      inClass = true
+      classFirst = cs[i + 1] === '^' ? i + 2 : i + 1
+      out += c
+      if (cs[i + 1] === '^') out += cs[++i]
+      continue
+    }
+    if (c === '(') {
+      const rest = cs.slice(i + 2).join('')
+      if (cs[i + 1] === '?' && rest.startsWith('#')) {
+        const end = cs.indexOf(')', i)
+        if (end < 0) return invalid('Missing )')
+        i = end
+        continue
+      }
+      depth++
+      prev = 'none'
+      if (cs[i + 1] !== '?') {
+        out += c
+        continue
+      }
+      if (/^[:=!]/.test(rest)) {
+        out += `(?${rest[0]}`
+        i += 2
+      } else if (rest.startsWith('P<')) {
+        out += '(?<'
+        i += 3
+      } else if (/^<[=!]/.test(rest)) {
+        // Python only allows fixed-width look-behind; JS allows any
+        skip('look-behind')
+        out += `(?${rest.slice(0, 2)}`
+        i += 3
+      } else if (/^(P=|>|\(|[aiLmsux-]+[:)])/.test(rest)) {
+        skip(`(?${rest.slice(0, 2)}`)
+        out += '(?'
+        i += 1
+      } else if (rest.startsWith('<')) {
+        return invalid('Named groups are written (?P<name>...) for pushes')
+      } else return invalid(`Unknown group (?${rest.slice(0, 1)}`)
+      continue
+    }
+    if (c === ')') {
+      if (!depth) return invalid('Unbalanced )')
+      depth--
+      prev = 'atom'
+      out += c
+      continue
+    }
+    if (c === '|' || c === '^' || c === '$') {
+      prev = 'none'
+      out += c
+      continue
+    }
+    if (c === '*' || c === '+' || c === '?') {
+      const r = quantify(c, c)
+      if (r) return r
+      continue
+    }
+    if (c === '{') {
+      // Python reads `{` as a repeat only in `{m}`, `{m,}`, `{,n}`, `{m,n}`, `{,}`
+      const m = /^\{(\d*)(,(\d*))?\}/.exec(cs.slice(i, i + 40).join(''))
+      if (m && m[0] !== '{}') {
+        const lo = m[1]
+        const hi = m[2] ? m[3] : m[1]
+        if (lo && hi && Number(lo) > Number(hi))
+          return invalid('Repeat minimum is above maximum')
+        const r = quantify(m[0], `{${lo || '0'}${m[2] ? `,${hi}` : ''}}`)
+        if (r) return r
+        i += m[0].length - 1
+        continue
+      }
+    }
+    prev = 'atom'
+    out += c === ']' || c === '{' || c === '}' ? `\\${c}` : c
+  }
+  if (inClass) return invalid('Missing ]')
+  if (depth) return invalid('Missing )')
+  if (uncheckable) return { _tag: 'uncheckable', reason: uncheckable }
+  try {
+    return { _tag: 'ok', regex: new RegExp(out, 'u') }
+  } catch (e) {
+    return { _tag: 'uncheckable', reason: 'syntax the browser reads differently' }
+  }
+}
+
 function compilePattern(
   src?: string,
-): Pick<Workflow, 'packageNamePattern' | 'packageNamePatternError'> {
+): Pick<
+  Workflow,
+  'packageNamePattern' | 'packageNamePatternError' | 'packageNamePatternInvalid'
+> {
   if (!src) return { packageNamePattern: null }
-  const t = translatePattern(src)
-  if ('error' in t) return { packageNamePattern: null, packageNamePatternError: t.error }
-  try {
-    // `u` rejects identity escapes like `\\-`, so only use it when the classes need it.
-    return { packageNamePattern: new RegExp(t.source, t.source === src ? '' : 'u') }
-  } catch (e) {
-    return {
-      packageNamePattern: null,
-      packageNamePatternError: e instanceof Error ? e.message : String(e),
-    }
-  }
+  const a = analyzePattern(src)
+  if (a._tag === 'ok') return { packageNamePattern: a.regex }
+  return a._tag === 'invalid'
+    ? { packageNamePattern: null, packageNamePatternInvalid: a.reason }
+    : { packageNamePattern: null, packageNamePatternError: a.reason }
 }
 
 function parseWorkflow(
@@ -223,6 +459,7 @@ function parseWorkflow(
       workflow.catalog?.package_handle,
     ),
     ...compilePattern(workflow.handle_pattern),
+    handlePattern: workflow.handle_pattern,
     // quilt3 rejects every push through such a workflow ("There is no ... in schemas").
     undefinedSchemas: Array.from(
       new Set(
@@ -329,7 +566,14 @@ export function parse(
   bucket: string,
   { strict = false }: { strict?: boolean } = {},
 ): WorkflowsConfig {
-  const rawData = YAML.parse(workflowsYaml)
+  // quilt3 rejects a push when this file doesn't parse, so the catalog must not read it
+  // as "no flows" (that would also offer to create flows over it).
+  const rawData = YAML.parseStrict(workflowsYaml)
+  if (rawData instanceof Error) {
+    throw new bucketErrors.WorkflowsConfigInvalid({
+      errors: [new Error(`The file isn't valid YAML: ${rawData.message.split('\n')[0]}`)],
+    })
+  }
   if (!rawData) return strict ? nullConfig : emptyConfig(bucket)
 
   const data = prepareData(rawData)

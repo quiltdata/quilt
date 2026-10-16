@@ -132,6 +132,7 @@ const routes = {
   bucketPackageCompare: mkRoute('compare'),
   bucketWorkflowList: mkRoute('workflows'),
   bucketWorkflowDetail: mkRoute('workflow'),
+  legacyBucketWorkflows: mkRoute('legacy-workflows'),
   adminBucketEdit: mkRoute('admin'),
   queriesAthena: {
     path: '/never/athena',
