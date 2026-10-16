@@ -34,13 +34,12 @@ from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.data_transfer import CHECKSUM_MAX_PARTS, get_checksum_chunksize, is_mpu
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import LAMBDA_READ_TIMEOUT, LAMBDA_TMP_SPACE
+from quilt_shared.const import LAMBDA_READ_TIMEOUT
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
     VersionId,
     large_request_handler,
-    request_from_file,
 )
 from quilt_shared.pkgpush import (
     Checksum,
@@ -844,6 +843,16 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     return construct_package(req_file, max_files_to_hash=MAX_FILES_TO_HASH, max_bytes_to_hash=MAX_BYTES_TO_HASH)
 
 
+@large_request_handler(
+    request_type="patch-package",
+    bucket=SERVICE_BUCKET,
+    s3=s3,
+    logger=logger,
+)
+def patch_package(req_file: T.IO[bytes]) -> PackagePushResult:
+    return construct_package(req_file, max_files_to_hash=math.inf, max_bytes_to_hash=math.inf)
+
+
 class LatestPointer(T.NamedTuple):
     # None when the package has no revision yet.
     top_hash: str | None
@@ -864,12 +873,6 @@ def get_latest_pointer(registry: S3PackageRegistryV1, name: str) -> LatestPointe
     return LatestPointer(resp["Body"].read().decode(), resp["ETag"])
 
 
-def check_latest_unchanged(registry: S3PackageRegistryV1, name: str, base: LatestPointer):
-    latest = get_latest_pointer(registry, name)
-    if latest.top_hash != base.top_hash:
-        raise PkgpushException("ParentNotLatest", {"parent": base.top_hash, "latest": latest.top_hash})
-
-
 def push_patch_manifest(
     pkg: quilt3.Package,
     registry: S3PackageRegistryV1,
@@ -878,11 +881,8 @@ def push_patch_manifest(
     base: LatestPointer,
 ) -> str:
     """
-    Like `Package._build`, but advance `latest` only if it still holds `base`.
-
-    The manifest is content-addressed, so writing it first is harmless if the guarded write loses.
-    The timestamped pointer, whose creation emits the package-revision event, is written only after
-    the guarded write wins, so a lost race leaves no revision behind.
+    Like `Package._build`, but advance `latest` only if it still holds `base`, and only then write
+    the timestamped pointer that emits the package-revision event, so a lost race publishes nothing.
     """
     pkg._set_commit_message(message)
     pkg._calculate_missing_hashes()
@@ -924,9 +924,8 @@ def load_patch_parent(
         raise PkgpushException("ParentNotLatest", {"parent": patch.parent, "latest": base.top_hash})
     if base.top_hash is None:
         return quilt3.Package(), base
-    top_hash = base.top_hash
     try:
-        pkg = quilt3.Package.browse(name, registry=registry, top_hash=top_hash)
+        pkg = quilt3.Package.browse(name, registry=registry, top_hash=base.top_hash)
     except botocore.exceptions.ClientError as e:
         raise PkgpushException.from_boto_error(e)
     except quilt3.data_transfer.S3NoValidClientError as e:
@@ -1084,8 +1083,6 @@ def construct_package(
                 message=params.message,
             )
         else:
-            # Hashing can take minutes: skip the manifest write if `latest` has already moved.
-            check_latest_unchanged(package_registry, params.name, base)
             top_hash = push_patch_manifest(pkg, package_registry, params.name, params.message, base)
         logger.info(f"[PERF] pkg._build END: top_hash={top_hash}")
     except botocore.exceptions.ClientError as boto_error:
@@ -1112,14 +1109,12 @@ class PackagerEvent(pydantic.v1.BaseModel):
         metadata, metadata_uri = values["metadata"], values["metadata_uri"]
         if metadata is not None and metadata_uri is not None:
             raise ValueError("metadata and metadata_uri are mutually exclusive")
-        if (values.get("source_prefix") is None) == (values.get("patch_request") is None):
-            raise ValueError("exactly one of source_prefix and patch_request must be set")
-        # A patch request carries its own parameters in the request file.
-        if values.get("patch_request") is not None and any(
-            values.get(f) is not None
-            for f in ("registry", "package_name", "metadata", "metadata_uri", "workflow", "commit_message")
-        ):
-            raise ValueError("patch_request takes no other fields")
+        if values.get("patch_request") is not None:
+            # A patch request carries its own parameters in the request file.
+            if any(v is not None for k, v in values.items() if k != "patch_request"):
+                raise ValueError("patch_request takes no other fields")
+        elif values.get("source_prefix") is None:
+            raise ValueError("source_prefix or patch_request is required")
         return values
 
     def get_source_prefix_pk(self) -> PhysicalKey:
@@ -1204,15 +1199,7 @@ def list_prefix_latest_versions(bucket: str, prefix: str, s3_client=None):
 def package_prefix(event, context):
     params = PackagerEvent.parse_raw(event)
     if params.patch_request is not None:
-        with request_from_file(
-            bucket=SERVICE_BUCKET,
-            request_type="patch-package",
-            version_id=params.patch_request,
-            s3=s3,
-            max_size=LAMBDA_TMP_SPACE,
-            logger=logger,
-        ) as req_file:
-            result = construct_package(req_file, max_files_to_hash=math.inf, max_bytes_to_hash=math.inf)
+        result = patch_package(params.patch_request)
         logger.info(f"[PERF] package_prefix END: patch top_hash={result.top_hash}")
         return
 

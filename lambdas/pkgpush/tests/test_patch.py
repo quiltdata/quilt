@@ -1,6 +1,6 @@
-import contextlib
 import io
 import json
+import types
 
 import botocore.exceptions
 import pydantic.v1
@@ -121,19 +121,6 @@ def env(mocker):
     mocker.patch.object(t4_lambda_pkgpush, "calculate_pkg_hashes", side_effect=calculate_pkg_hashes)
     mocker.patch("quilt3.Package._validate_with_workflow")
 
-    class Env:
-        pass
-
-    e = Env()
-    e.latest, e.hashed, e.user_s3, e.browse, e.writes, e.session = (
-        latest,
-        hashed,
-        user_s3,
-        browse_mock,
-        writes,
-        session,
-    )
-
     def built():
         """The revision `latest` now names, loaded from the manifest that was written."""
         (manifest,) = [body for key, body, _ in writes if key == f".quilt/packages/{latest['value']}"]
@@ -146,8 +133,16 @@ def env(mocker):
             )
         return built()
 
-    e.built, e.run = built, run
-    return e
+    return types.SimpleNamespace(
+        latest=latest,
+        hashed=hashed,
+        user_s3=user_s3,
+        browse=browse_mock,
+        writes=writes,
+        session=session,
+        built=built,
+        run=run,
+    )
 
 
 def keys(pkg):
@@ -228,27 +223,16 @@ def test_parent_not_latest_fails_before_hashing(env):
     assert env.writes == []
 
 
-def test_parent_not_latest_rechecked_before_build(env, mocker):
-    # The latest pointer moves while the patch is hashing.
-    mocker.patch.object(
-        t4_lambda_pkgpush, "calculate_pkg_hashes", side_effect=lambda *_: env.latest.update(value=OTHER_HASH)
-    )
-    with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
-        env.run(header(parent=PARENT_HASH))
-    assert exc.value.name == "ParentNotLatest"
-    assert env.writes == []
-
-
 @pytest.mark.parametrize("parent", [PARENT_HASH, None])
-def test_latest_moved_after_last_check_is_parent_not_latest(env, mocker, parent):
-    # Another writer wins between the final read of `latest` and the guarded write.
-    check = t4_lambda_pkgpush.check_latest_unchanged
+def test_latest_moved_during_patch_is_parent_not_latest(env, mocker, parent):
+    # Another writer moves `latest` while the patch is hashing.
+    hash_entries = t4_lambda_pkgpush.calculate_pkg_hashes
 
-    def check_then_lose_race(*args):
-        check(*args)
+    def hash_while_latest_moves(*args):
+        hash_entries(*args)
         env.latest.update(value=OTHER_HASH)
 
-    mocker.patch.object(t4_lambda_pkgpush, "check_latest_unchanged", side_effect=check_then_lose_race)
+    mocker.patch.object(t4_lambda_pkgpush, "calculate_pkg_hashes", side_effect=hash_while_latest_moves)
     params = header() if parent is None else header(parent=parent)
     with pytest.raises(t4_lambda_pkgpush.PkgpushException) as exc:
         env.run(params, new_entry("new.txt"))
@@ -307,23 +291,19 @@ def test_missing_package_without_parent_starts_empty(env):
 
 
 def test_async_patch_request(env, mocker):
-    request_file = mocker.patch.object(
-        t4_lambda_pkgpush,
-        "request_from_file",
-        return_value=contextlib.nullcontext(request(header(delete=["a.txt"]), new_entry("new.txt"))),
-    )
+    body = request(header(delete=["a.txt"]), new_entry("new.txt")).getvalue()
+    # The request file is read and removed with the lambda's own client, not the user's.
+    service_s3 = t4_lambda_pkgpush.s3
+    head = mocker.patch.object(service_s3, "head_object", return_value={"ContentLength": len(body)})
+    mocker.patch.object(service_s3, "download_fileobj", side_effect=lambda bucket, key, f, ExtraArgs: f.write(body))
+    delete = mocker.patch.object(service_s3, "delete_object")
     mocker.patch.object(t4_lambda_pkgpush, "get_user_boto_session", return_value=env.session)
 
     t4_lambda_pkgpush.package_prefix_sqs({"Records": [{"body": json.dumps({"patch_request": "req-v1"})}]}, None)
 
-    request_file.assert_called_once_with(
-        bucket="service-bucket",
-        request_type="patch-package",
-        version_id="req-v1",
-        s3=t4_lambda_pkgpush.s3,
-        max_size=t4_lambda_pkgpush.LAMBDA_TMP_SPACE,
-        logger=t4_lambda_pkgpush.logger,
-    )
+    request_key = {"Bucket": "service-bucket", "Key": "user-requests/patch-package", "VersionId": "req-v1"}
+    head.assert_called_once_with(**request_key)
+    delete.assert_called_once_with(**request_key)
     assert keys(env.built()) == ["dir/b.txt", "dir/c.txt", "new.txt"]
 
 
