@@ -1,21 +1,28 @@
 """Project package metadata onto S3 object tags.
 
 Consumes `com.quiltdata` `package-revision` events (from lambdas/pkgevents) via SQS.
-A bucket opts in with `.quilt/s3_tags.yml`: `tags: {<tag key>: <JSON pointer into user_meta>}`.
+Admins map buckets in the registry: `{<tag key>: <JSON pointer into user_meta>}`, read from a
+registry endpoint that verifies the request against the stack's S3 tags KMS key.
 """
 
+import base64
 import concurrent.futures
+import hashlib
 import json
 import logging
+import os
 import re
 import urllib.parse
+import urllib.request
 
 import boto3
 import botocore.config
 import botocore.exceptions
-import yaml
 
-CONFIG_KEY = '.quilt/s3_tags.yml'
+# e.g. http://registry.<stack>:8080/s3tags/
+REGISTRY_ENDPOINT = os.environ.get('REGISTRY_ENDPOINT', '')
+KMS_KEY_ID = os.environ.get('KMS_KEY_ID', '')
+REGISTRY_TIMEOUT = 30
 MANIFESTS_PREFIX = '.quilt/packages/'
 NAMED_PACKAGES_PREFIX = '.quilt/named_packages/'
 POINTER_RE = re.compile(r'[0-9]{10}')
@@ -29,17 +36,26 @@ FINAL_OUTCOMES = {'tagged', 'unchanged', 'too-many-tags', 'other-bucket', 'NoSuc
 
 logger = logging.getLogger(__name__)
 s3 = boto3.client('s3', config=botocore.config.Config(max_pool_connections=TAGGING_CONCURRENCY))
+kms = boto3.client('kms')
 
 
 def load_config(bucket: str) -> dict[str, str] | None:
-    try:
-        body = s3.get_object(Bucket=bucket, Key=CONFIG_KEY)['Body'].read()
-    except s3.exceptions.NoSuchKey:
-        return None
-    tags = (yaml.safe_load(body) or {}).get('tags')
-    if not isinstance(tags, dict) or not all(isinstance(p, str) and p.startswith('/') for p in tags.values()):
-        raise ValueError(f'{CONFIG_KEY} in {bucket} needs a `tags` map of JSON pointers')
-    return tags
+    """The bucket's mapping, validated by the registry on save; None when it maps nothing."""
+    body = b'{}'
+    signature = kms.sign(
+        KeyId=KMS_KEY_ID,
+        Message=hashlib.sha512(body).digest(),
+        MessageType='DIGEST',
+        SigningAlgorithm='RSASSA_PSS_SHA_512',
+    )['Signature']
+    req = urllib.request.Request(
+        f'{REGISTRY_ENDPOINT}buckets/{urllib.parse.quote(bucket, safe="")}',
+        data=body,
+        method='POST',
+        headers={'Content-Type': 'application/json', 'x-quilt-signature': base64.b64encode(signature).decode()},
+    )
+    with urllib.request.urlopen(req, timeout=REGISTRY_TIMEOUT) as resp:
+        return json.load(resp)['tags']
 
 
 def get_pointer(meta: dict, pointer: str):

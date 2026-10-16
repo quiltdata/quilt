@@ -4,7 +4,6 @@ version = "0.1.0"
 requires-python = "==3.13.*"
 dependencies = [
     "boto3~=1.40",
-    "pyyaml~=6.0",
 ]
 
 [build-system]
