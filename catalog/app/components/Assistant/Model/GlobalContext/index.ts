@@ -23,8 +23,8 @@ export function useGlobalContext(llm: Eff.Layer.Layer<LLM.LLM>) {
     [prompt, preview, summarize],
   )
   Context.usePushContext({
-    prompt: prompt ?? undefined,
-    markers: { [Context.PROMPT_SETTLED]: !pending },
+    prompt,
+    markers: { [PromptContract.SETTLED]: !pending },
     tools: { navigate: useNavigate(), ...documentTools },
     messages: [
       useStackInfo(),

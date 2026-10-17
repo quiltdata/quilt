@@ -7,26 +7,20 @@ import * as Context from './Context'
 
 vi.mock('constants/config', () => ({ default: {} }))
 
-function Grab({
-  onLayer,
-}: {
-  onLayer: (l: ReturnType<typeof Context.useLayer>) => void
-}) {
-  onLayer(Context.useLayer())
+const MARKER = 'ready'
+
+let layer: ReturnType<typeof Context.useLayer> | undefined
+
+function Grab() {
+  layer = Context.useLayer({ marker: MARKER, timeoutMs: 60_000 })
   return null
 }
 
-function Probe({
-  pending,
-  onLayer,
-}: {
-  pending: boolean
-  onLayer: (l: ReturnType<typeof Context.useLayer>) => void
-}) {
+function Probe({ ready }: { ready: boolean }) {
   return (
     <Context.ContextAggregatorProvider>
-      <Context.Push markers={{ [Context.PROMPT_SETTLED]: !pending }} messages={['ctx']} />
-      <Grab onLayer={onLayer} />
+      <Context.Push markers={{ [MARKER]: ready }} messages={['ctx']} />
+      <Grab />
     </Context.ContextAggregatorProvider>
   )
 }
@@ -36,12 +30,8 @@ const tick = () => act(() => new Promise((r) => setTimeout(r, 20)))
 describe('components/Assistant/Model/Context', () => {
   afterEach(cleanup)
 
-  it('makes a turn wait until the prompt contract settles, then reads the context', async () => {
-    let layer: ReturnType<typeof Context.useLayer> | undefined
-    const onLayer = (l: ReturnType<typeof Context.useLayer>) => {
-      layer = l
-    }
-    const { rerender } = render(<Probe pending onLayer={onLayer} />)
+  it('makes a read wait until its marker is set, then reads the context', async () => {
+    const { rerender } = render(<Probe ready={false} />)
     let read: Context.ContextShape | undefined
     Eff.Effect.runPromise(
       Eff.Effect.flatMap(Context.ConversationContext, (s) => s.context).pipe(
@@ -53,9 +43,9 @@ describe('components/Assistant/Model/Context', () => {
     await tick()
     expect(read).toBeUndefined()
 
-    rerender(<Probe pending={false} onLayer={onLayer} />)
+    rerender(<Probe ready />)
     await tick()
     expect(read?.messages).toEqual(['ctx'])
-    expect(read?.markers[Context.PROMPT_SETTLED]).toBe(true)
+    expect(read?.markers[MARKER]).toBe(true)
   })
 })

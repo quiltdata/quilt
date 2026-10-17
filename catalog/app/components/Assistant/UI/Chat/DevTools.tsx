@@ -366,16 +366,14 @@ export default function DevTools({
   // Shows the error in place of the prompt while the contract is not served.
   const prompt = React.useMemo(
     () =>
-      Eff.Either.match(
-        Eff.Effect.runSync(
-          Eff.Effect.either(
-            Model.Conversation.constructPrompt(
-              state.events.filter((e) => !e.discarded),
-              context,
-            ),
+      Eff.Effect.runSync(
+        Eff.Effect.match(
+          Model.Conversation.constructPrompt(
+            state.events.filter((e) => !e.discarded),
+            context,
           ),
+          { onFailure: (e) => ({ error: e.message }), onSuccess: (p) => p },
         ),
-        { onLeft: (e) => ({ error: e.message }), onRight: (p) => p },
       ),
     [state, context],
   )

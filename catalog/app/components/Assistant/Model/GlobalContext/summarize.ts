@@ -45,10 +45,11 @@ const SYSTEM = [
 
 // Decodes the tool's input. Its description and input schema are served by the
 // registry (PromptContract), which names this file's size limits: change both together.
+// A property the registry's schema adds before this decoder learns it is dropped.
 export const SummarizeSchema = S.Struct({
   s3_uri: S.String,
   focus: S.optional(S.String),
-})
+}).annotations({ parseOptions: { onExcessProperty: 'ignore' } })
 
 const formatBytes = (n: number) => {
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
@@ -340,6 +341,5 @@ export function useCatalogSummarize(llm: Eff.Layer.Layer<LLM.LLM>) {
       ),
     [s3Client, llm],
     'read',
-    'ignore',
   )
 }

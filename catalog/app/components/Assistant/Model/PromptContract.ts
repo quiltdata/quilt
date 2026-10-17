@@ -33,29 +33,34 @@ export interface PromptContract {
 export const UNAVAILABLE =
   'Qurator could not load its instructions from the registry. Reload the page; if it keeps happening, ask an admin to check that the registry is up to date.'
 
+/**
+ * The context marker set once the first read of the contract settles. A turn
+ * waits for it, up to WAIT_MS, instead of failing while the contract loads.
+ * Contributions register after the first render, so readiness has to be a
+ * positive signal: the absence of a "loading" marker would read as ready.
+ */
+export const SETTLED = 'promptSettled'
+export const WAIT_MS = 15_000
+
 export interface Served {
-  /** The contract, or null when the registry did not serve it. */
-  readonly contract: PromptContract | null
-  /** True until the first read settles, so a turn can wait instead of failing. */
+  /** The contract; undefined when the registry did not serve it. */
+  readonly contract?: PromptContract
+  /** True until the first read settles. */
   readonly pending: boolean
 }
 
-/** The served contract. A failed read is logged and reported, then reads as null. */
+/** The served contract. A failed read is logged and reported, then reads as absent. */
 export function useServed(): Served {
   const query = GQL.useQuery(QURATOR_PROMPT_QUERY)
   return React.useMemo(() => {
-    if (query.fetching && !query.data) return { contract: null, pending: true }
     try {
-      return {
-        contract: GQL.fold(query, {
-          data: (d) => d.config.quratorPrompt ?? null,
-          fetching: () => null,
-        }),
-        pending: false,
-      }
+      return GQL.fold(query, {
+        data: (d) => ({ contract: d.config.quratorPrompt ?? undefined, pending: false }),
+        fetching: (r) => ({ pending: !!r.fetching && !r.data }),
+      })
     } catch {
       // fold has logged the error and sent it to Sentry before throwing it.
-      return { contract: null, pending: false }
+      return { pending: false }
     }
   }, [query])
 }
@@ -75,7 +80,7 @@ export const fixedLength = (c: PromptContract) =>
  * decoder still checks every input.
  */
 export function servedTools(
-  contract: PromptContract | null,
+  contract: PromptContract | undefined,
   executors: Record<string, Tool.Descriptor<any>>,
 ): Tool.Collection {
   if (!contract) return {}

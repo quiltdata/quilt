@@ -168,9 +168,8 @@ export const init = Eff.Effect.gen(function* () {
 // just enough to break the stuck-retry loop below before the model errors.
 const MAX_PROMPT_CHARS = 120_000
 
-// Floor for "room for one small event plus the prompt contract's fixed text"
-// (system, task context and description, conversation markers, immediate
-// task; none individually counted) -- generous on purpose.
+// Floor for room for one small event -- generous on purpose. The prompt
+// contract's fixed text is counted in reservedChars, not here.
 const MIN_EVENT_ROOM = 3_000
 
 /**

@@ -36,7 +36,11 @@ describe('components/Assistant/Model/PromptContract', () => {
     ] as const)('accept exactly what the served %s schema describes', (name, schema) => {
       const served = FIXTURE.tools.find((t) => t.name === name)
       expect(served).toBeDefined()
-      const { description: _, ...local } = Tool.makeJSONSchema(schema)
+      const local = Tool.make(
+        schema,
+        () => Eff.Effect.succeed(Eff.Option.none()),
+        'read',
+      ).schema
       expect(local).toEqual(withoutDescriptions(served!.inputSchema))
     })
   })
@@ -61,9 +65,9 @@ describe('components/Assistant/Model/PromptContract', () => {
     })
 
     it('offers nothing before the contract is served', () => {
-      expect(PromptContract.servedTools(null, { catalog_preview: executor() })).toEqual(
-        {},
-      )
+      expect(
+        PromptContract.servedTools(undefined, { catalog_preview: executor() }),
+      ).toEqual({})
     })
   })
 
@@ -126,7 +130,6 @@ describe('a tool whose schema is served', () => {
         return Eff.Effect.succeed(Eff.Option.none())
       },
       'read',
-      'ignore',
     )
     // What a model following a newer served schema would send.
     const input: unknown = { s3_uri: 's3://b/k', pages: 3 }

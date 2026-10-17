@@ -3,10 +3,10 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import DistributedContext from 'utils/DistributedContext'
-import defer from 'utils/defer'
 import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
+import useSettledGate from 'utils/useSettledGate'
 
 import type * as PromptContract from './PromptContract'
 import * as Tool from './Tool'
@@ -43,16 +43,6 @@ const aggregateContext = (contexts: Partial<ContextShape>[]) =>
   )
 
 export const merge = (...contexts: Partial<ContextShape>[]) => aggregateContext(contexts)
-
-/**
- * Set once the first read of the prompt contract settles. A turn waits for it,
- * up to PROMPT_WAIT_MS, instead of failing while the contract is still loading.
- * Contributions register after the first render, so readiness has to be a
- * positive signal: the absence of a "loading" marker would read as ready.
- */
-export const PROMPT_SETTLED = 'promptSettled'
-
-const PROMPT_WAIT_MS = 15_000
 
 /** Set by Ask mode: the model is offered read tools only. */
 export const ASK_MODE = 'askMode'
@@ -100,27 +90,24 @@ export class ConversationContext extends Eff.Context.Tag('ConversationContext')<
   }
 >() {}
 
-export function useLayer() {
+/**
+ * The conversation's view of the aggregated context. With `wait`, a read
+ * waits until a contribution sets `wait.marker`, for up to `wait.timeoutMs`,
+ * so a turn does not start before a contribution it needs has loaded.
+ */
+export function useLayer(wait?: { marker: string; timeoutMs: number }) {
   const contextObj = useAggregatedContext()
   const ref = React.useRef(contextObj)
   if (ref.current !== contextObj) ref.current = contextObj
-  const ready = useConst(() => defer<void>())
-  const settled = !!contextObj.markers[PROMPT_SETTLED]
-  React.useEffect(() => {
-    if (settled) ready.resolver.resolve()
-  }, [settled, ready])
-  const context = React.useMemo(
-    () =>
-      Eff.Effect.promise(() => ready.promise).pipe(
-        Eff.Effect.timeoutTo({
-          duration: Eff.Duration.millis(PROMPT_WAIT_MS),
-          onSuccess: () => undefined,
-          onTimeout: () => undefined,
-        }),
-        Eff.Effect.map(() => ref.current),
-      ),
-    [ready, ref],
-  )
+  const gate = useSettledGate(!wait || !!contextObj.markers[wait.marker])
+  const timeoutMs = wait?.timeoutMs
+  const context = React.useMemo(() => {
+    const read = Eff.Effect.sync(() => ref.current)
+    if (timeoutMs === undefined) return read
+    return Eff.Effect.timeoutOption(gate, Eff.Duration.millis(timeoutMs)).pipe(
+      Eff.Effect.andThen(read),
+    )
+  }, [gate, ref, timeoutMs])
   return Eff.Layer.succeed(ConversationContext, { context })
 }
 
