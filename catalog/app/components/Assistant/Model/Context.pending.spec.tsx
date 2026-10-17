@@ -27,25 +27,44 @@ function Probe({ ready }: { ready: boolean }) {
 
 const tick = () => act(() => new Promise((r) => setTimeout(r, 20)))
 
+function startRead() {
+  const out: { read?: Context.ContextShape } = {}
+  Eff.Effect.runPromise(
+    Eff.Effect.flatMap(Context.ConversationContext, (s) => s.context).pipe(
+      Eff.Effect.provide(layer!),
+    ),
+  ).then((c) => {
+    out.read = c
+  })
+  return out
+}
+
 describe('components/Assistant/Model/Context', () => {
   afterEach(cleanup)
 
   it('makes a read wait until its marker is set, then reads the context', async () => {
     const { rerender } = render(<Probe ready={false} />)
-    let read: Context.ContextShape | undefined
-    Eff.Effect.runPromise(
-      Eff.Effect.flatMap(Context.ConversationContext, (s) => s.context).pipe(
-        Eff.Effect.provide(layer!),
-      ),
-    ).then((c) => {
-      read = c
-    })
+    const out = startRead()
     await tick()
-    expect(read).toBeUndefined()
+    expect(out.read).toBeUndefined()
 
     rerender(<Probe ready />)
     await tick()
-    expect(read?.messages).toEqual(['ctx'])
-    expect(read?.markers[MARKER]).toBe(true)
+    expect(out.read?.messages).toEqual(['ctx'])
+    expect(out.read?.markers[MARKER]).toBe(true)
+  })
+
+  it('makes a read wait again once its marker is cleared', async () => {
+    const { rerender } = render(<Probe ready />)
+    await tick()
+    rerender(<Probe ready={false} />)
+    await tick()
+    const out = startRead()
+    await tick()
+    expect(out.read).toBeUndefined()
+
+    rerender(<Probe ready />)
+    await tick()
+    expect(out.read?.markers[MARKER]).toBe(true)
   })
 })

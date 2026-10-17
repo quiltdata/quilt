@@ -1,5 +1,14 @@
 import * as Eff from 'effect'
-import { describe, expect, it, vi } from 'vitest'
+import * as React from 'react'
+import { cleanup, render } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const query = vi.hoisted(() => ({ current: {} as any }))
+
+vi.mock('utils/GraphQL', async (importActual) => ({
+  ...(await importActual<typeof import('utils/GraphQL')>()),
+  useQuery: () => query.current,
+}))
 
 import * as Context from './Context'
 import * as Conversation from './Conversation'
@@ -20,7 +29,8 @@ const withoutDescriptions = (schema: unknown): unknown => {
   if (!schema || typeof schema !== 'object') return schema
   return Object.fromEntries(
     Object.entries(schema)
-      .filter(([k]) => k !== 'description')
+      // An annotation, not an input property that happens to be named `description`.
+      .filter(([k, v]) => !(k === 'description' && typeof v === 'string'))
       .map(([k, v]) => [k, withoutDescriptions(v)]),
   )
 }
@@ -42,6 +52,34 @@ describe('components/Assistant/Model/PromptContract', () => {
         'read',
       ).schema
       expect(local).toEqual(withoutDescriptions(served!.inputSchema))
+    })
+  })
+
+  describe('useServed', () => {
+    afterEach(cleanup)
+
+    const readServed = () => {
+      let out: PromptContract.Served | undefined
+      function Harness() {
+        out = PromptContract.useServed()
+        return null
+      }
+      render(React.createElement(Harness))
+      return out!
+    }
+
+    it('serves the contract once the read completes', () => {
+      query.current = { fetching: false, data: { config: { quratorPrompt: FIXTURE } } }
+      expect(readServed()).toEqual({ contract: FIXTURE, pending: false })
+    })
+
+    it('stays pending on a partial cached result, which lacks the contract', () => {
+      query.current = {
+        fetching: false,
+        data: { config: { quratorPrompt: null } },
+        operation: { context: { meta: { cacheOutcome: 'partial' } } },
+      }
+      expect(readServed().pending).toBe(true)
     })
   })
 

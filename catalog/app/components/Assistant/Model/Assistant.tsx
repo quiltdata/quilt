@@ -10,7 +10,6 @@ import useConst from 'utils/useConstant'
 import cfg from 'constants/config'
 import * as authActions from 'containers/Auth/actions'
 import defer from 'utils/defer'
-import useSettledGate from 'utils/useSettledGate'
 
 import * as Relay from './Relay'
 import * as Connectors from './Connectors'
@@ -206,9 +205,15 @@ export function useModelIdOverride() {
   const currentPassThru = usePassThru(current)
   // A turn waits for the governed read: sent before it settles, a stored model
   // the admin has since disallowed would reach the relay and be refused.
-  const ready = useSettledGate(settled)
+  const ready = useConst(() => defer<void>())
+  React.useEffect(() => {
+    if (settled) ready.resolver.resolve()
+  }, [settled, ready])
   const modelIdEff = React.useMemo(
-    () => ready.pipe(Eff.Effect.map(() => currentPassThru.current)),
+    () =>
+      Eff.Effect.promise(() => ready.promise).pipe(
+        Eff.Effect.map(() => currentPassThru.current),
+      ),
     [ready, currentPassThru],
   )
 

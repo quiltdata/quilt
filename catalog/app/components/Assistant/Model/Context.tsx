@@ -6,7 +6,6 @@ import DistributedContext from 'utils/DistributedContext'
 import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
-import useSettledGate from 'utils/useSettledGate'
 
 import type * as PromptContract from './PromptContract'
 import * as Tool from './Tool'
@@ -92,22 +91,26 @@ export class ConversationContext extends Eff.Context.Tag('ConversationContext')<
 
 /**
  * The conversation's view of the aggregated context. With `wait`, a read
- * waits until a contribution sets `wait.marker`, for up to `wait.timeoutMs`,
- * so a turn does not start before a contribution it needs has loaded.
+ * waits until `wait.marker` is set, for up to `wait.timeoutMs`, so a turn
+ * does not start while a contribution it needs is loading.
  */
 export function useLayer(wait?: { marker: string; timeoutMs: number }) {
   const contextObj = useAggregatedContext()
   const ref = React.useRef(contextObj)
   if (ref.current !== contextObj) ref.current = contextObj
-  const gate = useSettledGate(!wait || !!contextObj.markers[wait.marker])
+  const markers = useMarkersRef()
+  const marker = wait?.marker
   const timeoutMs = wait?.timeoutMs
   const context = React.useMemo(() => {
     const read = Eff.Effect.sync(() => ref.current)
-    if (timeoutMs === undefined) return read
-    return Eff.Effect.timeoutOption(gate, Eff.Duration.millis(timeoutMs)).pipe(
+    if (marker === undefined || timeoutMs === undefined) return read
+    return markers.changes.pipe(
+      Eff.Stream.takeUntil((m) => !!m[marker]),
+      Eff.Stream.runDrain,
+      Eff.Effect.timeoutOption(Eff.Duration.millis(timeoutMs)),
       Eff.Effect.andThen(read),
     )
-  }, [gate, ref, timeoutMs])
+  }, [markers, marker, ref, timeoutMs])
   return Eff.Layer.succeed(ConversationContext, { context })
 }
 
