@@ -11,7 +11,7 @@ import { useStackInfo } from './stack'
 import { useCatalogSummarize } from './summarize'
 
 export function useGlobalContext(llm: Eff.Layer.Layer<LLM.LLM>) {
-  const prompt = PromptContract.useServed()
+  const { contract: prompt, pending } = PromptContract.useServed()
   const preview = useCatalogPreview()
   const summarize = useCatalogSummarize(llm)
   const documentTools = React.useMemo(
@@ -24,6 +24,7 @@ export function useGlobalContext(llm: Eff.Layer.Layer<LLM.LLM>) {
   )
   Context.usePushContext({
     prompt: prompt ?? undefined,
+    markers: { [Context.PROMPT_SETTLED]: !pending },
     tools: { navigate: useNavigate(), ...documentTools },
     messages: [
       useStackInfo(),

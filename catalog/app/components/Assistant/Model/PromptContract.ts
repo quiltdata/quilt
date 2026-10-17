@@ -33,19 +33,41 @@ export interface PromptContract {
 export const UNAVAILABLE =
   'Qurator could not load its instructions from the registry. Reload the page; if it keeps happening, ask an admin to check that the registry is up to date.'
 
-/** The served contract, or null while it loads or when it cannot be read. */
-export function useServed(): PromptContract | null {
-  const query = GQL.useQuery(QURATOR_PROMPT_QUERY)
-  return React.useMemo(
-    () =>
-      GQL.fold(query, {
-        data: (d) => d.config.quratorPrompt ?? null,
-        fetching: () => null,
-        error: () => null,
-      }),
-    [query],
-  )
+export interface Served {
+  /** The contract, or null when the registry did not serve it. */
+  readonly contract: PromptContract | null
+  /** True until the first read settles, so a turn can wait instead of failing. */
+  readonly pending: boolean
 }
+
+/** The served contract. A failed read is logged and reported, then reads as null. */
+export function useServed(): Served {
+  const query = GQL.useQuery(QURATOR_PROMPT_QUERY)
+  return React.useMemo(() => {
+    if (query.fetching && !query.data) return { contract: null, pending: true }
+    try {
+      return {
+        contract: GQL.fold(query, {
+          data: (d) => d.config.quratorPrompt ?? null,
+          fetching: () => null,
+        }),
+        pending: false,
+      }
+    } catch {
+      // fold has logged the error and sent it to Sentry before throwing it.
+      return { contract: null, pending: false }
+    }
+  }, [query])
+}
+
+/** Characters of fixed text the contract adds to every prompt. */
+export const fixedLength = (c: PromptContract) =>
+  c.system.length +
+  c.taskContext.length +
+  c.taskDescription.length +
+  c.conversationStart.length +
+  c.conversationEnd.length +
+  c.immediateTask.length
 
 /**
  * The tools the contract describes that this client can run: each local

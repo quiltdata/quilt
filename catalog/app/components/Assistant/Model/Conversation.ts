@@ -279,7 +279,9 @@ const llmRequest = (events: Event[]) =>
       // not just events -- a workspace with many connectors or long
       // guidance text can be a large, mostly-fixed share of it on its own.
       const reservedChars =
-        JSON.stringify(ctx.messages).length + JSON.stringify(ctx.tools).length
+        JSON.stringify(ctx.messages).length +
+        JSON.stringify(ctx.tools).length +
+        (ctx.prompt ? PromptContract.fixedLength(ctx.prompt) : 0)
       // trimEventsToBudget can only shrink `events`, never ctx.messages/
       // tools -- so if reservedChars alone leaves less than MIN_EVENT_ROOM,
       // the always-keep-one-event guarantee still sends a doomed prompt.

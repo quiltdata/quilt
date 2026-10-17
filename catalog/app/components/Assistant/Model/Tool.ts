@@ -86,10 +86,17 @@ export function makeJSONSchema(schema: Eff.Schema.Schema<any, any>) {
   return out
 }
 
+/**
+ * `excess`: what decoding does with a property the schema does not name. A
+ * tool whose schema the registry serves passes `'ignore'`, so a property the
+ * registry adds before this decoder learns it is dropped rather than failing
+ * every call.
+ */
 export function make<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
   effect: Effect = 'write',
+  excess: 'error' | 'ignore' = 'error',
 ): Descriptor<A> {
   // Lift `description` out of the schema body so Bedrock doesn't ship
   // it twice (once as `toolSpec.description`, once inside
@@ -98,7 +105,7 @@ export function make<A, I>(
 
   const decode = Eff.Schema.decodeUnknown(schema, {
     errors: 'all',
-    onExcessProperty: 'error',
+    onExcessProperty: excess,
   })
 
   const wrappedFn = (params: unknown) =>
@@ -135,10 +142,14 @@ export function useMakeTool<A, I>(
   fn: Executor<A>,
   deps: React.DependencyList = EMPTY_DEPS,
   effect: Effect = 'write',
+  excess: 'error' | 'ignore' = 'error',
 ): Descriptor<A> {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fnMemo = React.useCallback(fn, deps)
-  return React.useMemo(() => make(schema, fnMemo, effect), [schema, fnMemo, effect])
+  return React.useMemo(
+    () => make(schema, fnMemo, effect, excess),
+    [schema, fnMemo, effect, excess],
+  )
 }
 
 export const execute = (tools: Collection, name: string, input: unknown) =>

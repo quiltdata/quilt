@@ -340,5 +340,6 @@ export function useCatalogSummarize(llm: Eff.Layer.Layer<LLM.LLM>) {
       ),
     [s3Client, llm],
     'read',
+    'ignore',
   )
 }

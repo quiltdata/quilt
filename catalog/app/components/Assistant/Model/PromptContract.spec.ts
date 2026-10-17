@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import * as Context from './Context'
 import * as Conversation from './Conversation'
-import { PreviewSchema } from './GlobalContext/preview'
+import { PreviewSchema, THRESHOLD } from './GlobalContext/preview'
 import { SummarizeSchema } from './GlobalContext/summarize'
 import * as LLM from './LLM'
 import * as PromptContract from './PromptContract'
@@ -103,5 +103,34 @@ describe('components/Assistant/Model/PromptContract', () => {
       expect(result.left).toBeInstanceOf(LLM.LLMError)
       expect(result.left.message).toBe(PromptContract.UNAVAILABLE)
     })
+  })
+})
+
+describe('the served text', () => {
+  it("names catalog_preview's size limit as the executor enforces it", () => {
+    const limit = `${THRESHOLD / 1024} KiB`
+    expect(FIXTURE.readingGuidance).toContain(limit)
+    expect(
+      FIXTURE.tools.find((t) => t.name === 'catalog_preview')!.description,
+    ).toContain(limit)
+  })
+})
+
+describe('a tool whose schema is served', () => {
+  it('drops a property its decoder does not know instead of failing', async () => {
+    let seen: unknown
+    const tool = Tool.make(
+      PreviewSchema,
+      (input) => {
+        seen = input
+        return Eff.Effect.succeed(Eff.Option.none())
+      },
+      'read',
+      'ignore',
+    )
+    // What a model following a newer served schema would send.
+    const input: unknown = { s3_uri: 's3://b/k', pages: 3 }
+    await Eff.Effect.runPromise(tool.executor(input as { s3_uri: string }))
+    expect(seen).toEqual({ s3_uri: 's3://b/k' })
   })
 })
