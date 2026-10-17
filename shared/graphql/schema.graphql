@@ -132,6 +132,40 @@ type Config {
   quratorModels: QuratorModelConfig @authenticated
   "The admin-approved Qurator skills. Nullable for the same reason as quratorModels."
   quratorSkills: QuratorSkills @authenticated
+  "Qurator's prompt contract. Nullable for the same reason as quratorModels."
+  quratorPrompt: QuratorPrompt @authenticated
+}
+
+"""
+The fixed text a Qurator client frames each conversation with, and the schemas of the
+catalog's document tools. The client fills the slots between the text (stack and page
+context, skills, instructions, the current time, the conversation) and runs every tool.
+"""
+type QuratorPrompt {
+  "Changes whenever anything below does, so a client or a test run can record what it used."
+  version: String!
+  system: String!
+  "Opens the first user message, before the context."
+  taskContext: String!
+  "Follows taskContext."
+  taskDescription: String!
+  "Follows the context and the current time, and precedes the conversation's messages."
+  conversationStart: String!
+  "Follows the conversation's messages, before immediateTask."
+  conversationEnd: String!
+  "Follows conversationEnd, and precedes the conversation's tool uses and their results."
+  immediateTask: String!
+  "One entry of the context: how to choose a tool for reading an S3 object."
+  readingGuidance: String!
+  "The catalog's document tools."
+  tools: [QuratorPromptTool!]!
+}
+
+type QuratorPromptTool {
+  name: String!
+  description: String!
+  "A JSON Schema (draft 2020-12) for the tool's input."
+  inputSchema: JsonRecord!
 }
 
 enum QuratorSkillRunClass {
