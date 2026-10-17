@@ -7,6 +7,7 @@ import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 
+import type * as PromptContract from './PromptContract'
 import * as Tool from './Tool'
 import useIsEnabled from './enabled'
 
@@ -14,6 +15,8 @@ export interface ContextShape {
   messages: string[]
   tools: Tool.Collection
   markers: Record<string, boolean>
+  /** Qurator's prompt contract, once the registry has served it. */
+  prompt?: PromptContract.PromptContract
 }
 
 const ContextAggregator = DistributedContext<Partial<ContextShape>>()
@@ -33,6 +36,7 @@ const aggregateContext = (contexts: Partial<ContextShape>[]) =>
       tools: { ...acc.tools, ...next.tools },
       messages: acc.messages.concat(next.messages || []),
       markers: { ...acc.markers, ...next.markers },
+      prompt: next.prompt ?? acc.prompt,
     }),
     ROOT_CONTEXT,
   )
