@@ -9,6 +9,7 @@ import * as Connectors from './Connectors'
 import * as Content from './Content'
 import * as Context from './Context'
 import * as LLM from './LLM'
+import * as PromptContract from './PromptContract'
 import * as Tool from './Tool'
 
 const MODULE = 'Conversation'
@@ -167,9 +168,8 @@ export const init = Eff.Effect.gen(function* () {
 // just enough to break the stuck-retry loop below before the model errors.
 const MAX_PROMPT_CHARS = 120_000
 
-// Floor for "room for one small event plus constructPrompt's own fixed
-// text" (SYSTEM/TASK_CONTEXT/TASK_DESCRIPTION/IMMEDIATE_TASK/CONVERSATION_
-// START/END, none individually counted) -- generous on purpose.
+// Floor for room for one small event -- generous on purpose. The prompt
+// contract's fixed text is counted in reservedChars, not here.
 const MIN_EVENT_ROOM = 3_000
 
 /**
@@ -278,7 +278,9 @@ const llmRequest = (events: Event[]) =>
       // not just events -- a workspace with many connectors or long
       // guidance text can be a large, mostly-fixed share of it on its own.
       const reservedChars =
-        JSON.stringify(ctx.messages).length + JSON.stringify(ctx.tools).length
+        JSON.stringify(ctx.messages).length +
+        JSON.stringify(ctx.tools).length +
+        (ctx.prompt ? PromptContract.fixedLength(ctx.prompt) : 0)
       // trimEventsToBudget can only shrink `events`, never ctx.messages/
       // tools -- so if reservedChars alone leaves less than MIN_EVENT_ROOM,
       // the always-keep-one-event guarantee still sends a doomed prompt.
@@ -645,62 +647,25 @@ export const ConversationActor = Eff.Effect.succeed(
   ),
 )
 
-const NAME = 'Qurator'
-
-const SYSTEM = `
-You are ${NAME}, an AI assistant created by Quilt Data.
-Your primary purpose is assisting users of Quilt Data products.
-Persona: conservative and creative scientist.
-`
-
-// TODO: mention the client company?
-const TASK_CONTEXT = XML.tag(
-  'task-context',
-  {},
-  'You act as a chatbot deployed on the Quilt Catalog web app.',
-  'You have access to the the Quilt Catalog UI via context and tools.',
-).toString()
-
-// detailed task description and rules
-const TASK_DESCRIPTION = XML.tag(
-  'task-description',
-  {},
-  'When asked a question about Quilt or Quilt Data, refer to the documentation at https://docs.quilt.bio.',
-).toString()
-
-const CONVERSATION_START = `
-Following is the conversation history:
-### CONVERSATION START ###
-`
-
-const CONVERSATION_END = `
-### CONVERSATION END ###
-`
-
-const IMMEDIATE_TASK = `
-Advance the provided conversation in the most helpful way possible.
-Use tools proactively, but don't mention that unnecessarily, so that it feels transparent.
-
-Think step by step and carefully analyze the provided context to prevent giving
-incomplete or inaccurate information.
-
-Never make things up, always double-check your responses and use the context
-to your advantage.
-
-Use GitHub Flavored Markdown syntax for formatting when appropriate.
-`
-
+/**
+ * Frame the conversation with the registry's prompt contract, filling its
+ * slots from the context; fails when the contract has not been served.
+ */
 export const constructPrompt = (
   events: Event[],
   context: Context.ContextShape,
-): Eff.Effect.Effect<LLM.Prompt> =>
+): Eff.Effect.Effect<LLM.Prompt, LLM.LLMError> =>
   Log.scoped({
     name: `${MODULE}.constructPrompt`,
     enter: [Log.br, 'events:', events, Log.br, 'context:', context],
   })(
     Eff.Effect.gen(function* () {
-      // XXX: add context about quilt products?
-      // XXX: add context about catalog structure and features?
+      const contract = context.prompt
+      if (!contract) {
+        return yield* Eff.Effect.fail(
+          new LLM.LLMError({ message: PromptContract.UNAVAILABLE }),
+        )
+      }
 
       const [msgEvents, toolEvents] = Eff.Array.partitionMap(
         events,
@@ -740,20 +705,20 @@ export const constructPrompt = (
       const messages: Eff.Array.NonEmptyArray<LLM.PromptMessage> = [
         LLM.userMessage(
           Content.text(
-            TASK_CONTEXT,
-            TASK_DESCRIPTION,
+            contract.taskContext,
+            contract.taskDescription,
             XML.tag('context', {}, ...context.messages).toString(),
             XML.tag('current-time', {}, currentTime).toString(),
-            CONVERSATION_START,
+            contract.conversationStart,
           ),
         ),
         ...msgEvents.map(({ role, content }) => LLM.PromptMessage({ role, content })),
-        LLM.userMessage(Content.text(CONVERSATION_END, IMMEDIATE_TASK)),
+        LLM.userMessage(Content.text(contract.conversationEnd, contract.immediateTask)),
         ...toolMessages,
       ]
 
       return {
-        system: SYSTEM,
+        system: contract.system,
         messages,
         toolConfig: { tools: context.tools },
       }

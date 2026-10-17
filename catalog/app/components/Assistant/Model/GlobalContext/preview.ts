@@ -92,30 +92,10 @@ export const normalizeDocumentName = (name: string) =>
 
 export const THRESHOLD = 500 * 1024 // 500 KiB
 
-const PreviewSchema = S.Struct({
+// Decodes the tool's input. Its description and input schema are served by the
+// registry (PromptContract), which names THRESHOLD as 500 KiB: change both together.
+export const PreviewSchema = S.Struct({
   s3_uri: S.String,
-}).annotations({
-  description: [
-    'Render an S3 object as content this model can natively interpret —',
-    'thumbnail-resized images, native Document blocks for PDFs / Office docs,',
-    'language-tagged text. Use when the goal is for the model to *understand*',
-    'the content (summarize, describe, extract).',
-    'For raw bytes, scripting, or files where the model only needs the bytes,',
-    'use platform__object_read instead.',
-    '',
-    'Always call platform__s3_object_info first to check size and content-type',
-    'before invoking this tool.',
-    'When ContentLength > 500 KiB and the content is a document, use',
-    'catalog_summarize instead: it summarizes as much as it can and says how much it read.',
-    'Skip the preview and fall back to platform__object_read when:',
-    '- content-type is outside {image/*, application/pdf, application/msword,',
-    '  application/vnd.openxmlformats-officedocument.*, text/*,',
-    '  application/json, application/x-yaml}',
-    '- the task only needs raw bytes (downloads, scripted parsing).',
-    '',
-    'Input is a single s3:// URI; versionId may be passed as a query parameter:',
-    'e.g. s3://bucket/path/key?versionId=abc.',
-  ].join(' '),
 })
 
 export const parseS3Uri = (s3_uri: string): Eff.Effect.Effect<S3ObjectLocation, Error> =>

@@ -19,6 +19,7 @@ import * as Content from './Content'
 import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as LLM from './LLM'
+import FIXTURE from './PromptContract.fixture.json'
 import * as Tool from './Tool'
 
 vi.mock('constants/config', () => ({ default: {} }))
@@ -48,7 +49,7 @@ const makeConnectorsStub = (
 const makeContextStub = (): {
   context: Eff.Effect.Effect<Context.ContextShape>
 } => ({
-  context: Eff.Effect.succeed({ tools: {}, messages: [], markers: {} }),
+  context: Eff.Effect.succeed({ tools: {}, messages: [], markers: {}, prompt: FIXTURE }),
 })
 
 /**

@@ -43,27 +43,11 @@ const SYSTEM = [
   'Keep names, numbers, dates and conclusions accurate.',
 ].join(' ')
 
-const SummarizeSchema = S.Struct({
+// Decodes the tool's input. Its description and input schema are served by the
+// registry (PromptContract), which names this file's size limits: change both together.
+export const SummarizeSchema = S.Struct({
   s3_uri: S.String,
-  focus: S.optional(
-    S.String.annotations({
-      description: 'What the user wants to learn from the document, if anything specific',
-    }),
-  ),
-}).annotations({
-  description: [
-    'Summarize a document in S3: PDFs, Office documents, HTML, text,',
-    'Markdown and CSV. Use it for documents too large for catalog_preview',
-    '(over 500 KiB), or whenever a summary of a whole document is wanted.',
-    'Limits: PDF, Office and HTML up to 4 MiB (a text-heavy PDF or HTML file over',
-    'about 1 MiB may still be too long for one pass); text, Markdown and CSV are',
-    'summarized from their first 2 MiB.',
-    'The document is read by a separate model call and only the summary is',
-    'returned; the result states how much of the document was read.',
-    'Pass `focus` to say what the user wants to learn from it.',
-    'Input is a single s3:// URI; versionId may be passed as a query parameter:',
-    'e.g. s3://bucket/path/key?versionId=abc.',
-  ].join(' '),
+  focus: S.optional(S.String),
 })
 
 const formatBytes = (n: number) => {

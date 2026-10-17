@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Qurator reads the fixed text of its prompt, and the descriptions and input schemas of its document tools, from the registry's `config.quratorPrompt` instead of keeping its own copy; Qurator needs a registry that serves it ([#5484](https://github.com/quiltdata/quilt/pull/5484))
 - [Added] The `packagePatch` and `packagePatchAsync` GraphQL mutations let API clients change a package without resending its unchanged entries; the catalog UI does not use them ([#5453](https://github.com/quiltdata/quilt/pull/5453))
 - [Added] After an access code is accepted, `/signup/<page>` offers the stack's SSO providers, which grant the code's role, and shows the email form only where password signup is enabled ([#5478](https://github.com/quiltdata/quilt/pull/5478))
 - [Fixed] Qurator fails fast with an actionable message when a page's fixed context (package files, instructions, enabled connectors) alone leaves no room for conversation, instead of silently sending a doomed prompt and surfacing only the model's own context-length error ([#5477](https://github.com/quiltdata/quilt/pull/5477))

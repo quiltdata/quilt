@@ -30,6 +30,7 @@ vi.mock('react-redux', () => ({
 
 import * as Context from './Context'
 import * as Conversation from './Conversation'
+import FIXTURE from './PromptContract.fixture.json'
 import * as UserInstructions from './UserInstructions'
 
 /**
@@ -364,7 +365,7 @@ describe('components/Assistant/Model/UserInstructions', () => {
   describe('prompt injection', () => {
     const promptText = async (ctx: Partial<Context.ContextShape>) => {
       const prompt = await Eff.Effect.runPromise(
-        Conversation.constructPrompt([], Context.merge(ctx)),
+        Conversation.constructPrompt([], Context.merge({ prompt: FIXTURE }, ctx)),
       )
       const first = prompt.messages[0]
       expect(first.role).toBe('user')

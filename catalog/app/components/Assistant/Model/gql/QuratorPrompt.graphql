@@ -1,0 +1,19 @@
+query {
+  config {
+    quratorPrompt {
+      version
+      system
+      taskContext
+      taskDescription
+      conversationStart
+      conversationEnd
+      immediateTask
+      readingGuidance
+      tools {
+        name
+        description
+        inputSchema
+      }
+    }
+  }
+}

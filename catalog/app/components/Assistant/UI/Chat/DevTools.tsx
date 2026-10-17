@@ -363,12 +363,16 @@ export default function DevTools({
 
   const context = Model.Context.useAggregatedContext()
 
+  // Shows the error in place of the prompt while the contract is not served.
   const prompt = React.useMemo(
     () =>
       Eff.Effect.runSync(
-        Model.Conversation.constructPrompt(
-          state.events.filter((e) => !e.discarded),
-          context,
+        Eff.Effect.match(
+          Model.Conversation.constructPrompt(
+            state.events.filter((e) => !e.discarded),
+            context,
+          ),
+          { onFailure: (e) => ({ error: e.message }), onSuccess: (p) => p },
         ),
       ),
     [state, context],
