@@ -34,7 +34,7 @@ export const UNAVAILABLE =
   'Qurator could not load its instructions from the registry. Reload the page; if it keeps happening, ask an admin to check that the registry is up to date.'
 
 /**
- * The context marker set while the read of the contract has settled. A turn
+ * The context marker set once the first read of the contract settles. A turn
  * waits for it, up to WAIT_MS, instead of failing while the contract loads.
  * Contributions register after the first render, so readiness has to be a
  * positive signal: the absence of a "loading" marker would read as ready.
