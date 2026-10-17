@@ -94,10 +94,9 @@ export const THRESHOLD = 500 * 1024 // 500 KiB
 
 // Decodes the tool's input. Its description and input schema are served by the
 // registry (PromptContract), which names THRESHOLD as 500 KiB: change both together.
-// A property the registry's schema adds before this decoder learns it is dropped.
 export const PreviewSchema = S.Struct({
   s3_uri: S.String,
-}).annotations({ parseOptions: { onExcessProperty: 'ignore' } })
+})
 
 export const parseS3Uri = (s3_uri: string): Eff.Effect.Effect<S3ObjectLocation, Error> =>
   Eff.Effect.try({

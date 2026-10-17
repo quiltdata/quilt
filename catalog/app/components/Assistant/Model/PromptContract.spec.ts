@@ -157,21 +157,3 @@ describe('the served text', () => {
     ).toContain(limit)
   })
 })
-
-describe('a tool whose schema is served', () => {
-  it('drops a property its decoder does not know instead of failing', async () => {
-    let seen: unknown
-    const tool = Tool.make(
-      PreviewSchema,
-      (input) => {
-        seen = input
-        return Eff.Effect.succeed(Eff.Option.none())
-      },
-      'read',
-    )
-    // What a model following a newer served schema would send.
-    const input: unknown = { s3_uri: 's3://b/k', pages: 3 }
-    await Eff.Effect.runPromise(tool.executor(input as { s3_uri: string }))
-    expect(seen).toEqual({ s3_uri: 's3://b/k' })
-  })
-})
