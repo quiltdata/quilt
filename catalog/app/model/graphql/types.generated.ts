@@ -415,10 +415,7 @@ export interface Config {
    * Nullable so a refused read nulls this field alone rather than all of `config`.
    */
   readonly quratorModels: Maybe<QuratorModelConfig>
-  /**
-   * Qurator's prompt contract, which every Qurator client reads instead of holding its
-   * own copy. Nullable for the same reason as quratorModels.
-   */
+  /** Qurator's prompt contract. Nullable for the same reason as quratorModels. */
   readonly quratorPrompt: Maybe<QuratorPrompt>
   /** The admin-approved Qurator skills. Nullable for the same reason as quratorModels. */
   readonly quratorSkills: Maybe<QuratorSkills>
@@ -1367,17 +1364,16 @@ export interface QuratorPrompt {
   readonly conversationEnd: Scalars['String']['output']
   /** Follows the context and the current time, and precedes the conversation's messages. */
   readonly conversationStart: Scalars['String']['output']
-  /** Closes the prompt, after conversationEnd and before any pending tool results. */
+  /** Follows conversationEnd, and precedes the conversation's tool uses and their results. */
   readonly immediateTask: Scalars['String']['output']
   /** One entry of the context: how to choose a tool for reading an S3 object. */
   readonly readingGuidance: Scalars['String']['output']
-  /** The system prompt. */
   readonly system: Scalars['String']['output']
   /** Opens the first user message, before the context. */
   readonly taskContext: Scalars['String']['output']
   /** Follows taskContext. */
   readonly taskDescription: Scalars['String']['output']
-  /** The catalog's document tools; a client offers each under its name and runs it itself. */
+  /** The catalog's document tools. */
   readonly tools: ReadonlyArray<QuratorPromptTool>
   /** Changes whenever anything below does, so a client or a test run can record what it used. */
   readonly version: Scalars['String']['output']
