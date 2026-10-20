@@ -157,8 +157,22 @@ other noise out of your packages:
 - The package view also lets you toggle visibility of unmodified and ignored
   entries so only the files relevant to your next commit stay on screen
 
-Use `.quiltignore` for transient outputs (e.g., `*.tmp`, `.DS_Store`,
-`node_modules/`) that shouldn't end up in committed revisions.
+Use `.quiltignore` for transient outputs (e.g., `*.tmp`, `build/`) that
+shouldn't end up in committed revisions.
+
+QuiltSync also keeps common clutter out of new files without a
+`.quiltignore`: hidden folders such as `.git/`, OS files such as `.DS_Store`,
+secrets such as `.env`, and caches such as `node_modules/`. Rules of your own
+for every package go in a `.quiltignore` in the app's data folder.
+
+- With **New design preview** on, the **Ignore rules** card in Settings opens
+  your rules file (**Open file**) and lists the built-in rules (**Review…**),
+  where you can turn one off
+- **Stop ignoring** on an ignored row brings it back for **This package** or
+  for **All packages**
+
+See [.quiltignore](../advanced-features/.quiltignore.md) for how the rules
+combine.
 
 ### Creating Local Packages
 
