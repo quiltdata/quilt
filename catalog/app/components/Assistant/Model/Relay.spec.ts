@@ -369,6 +369,21 @@ describe('Relay', () => {
     expect(auth).toEqual(['Bearer jwt-2', 'Bearer jwt-3'])
   })
 
+  it.each([
+    ['a null body', 'null'],
+    ['an empty body', ''],
+    ['an array body', '[]'],
+  ])(
+    'fails with a typed error on a 200 with %s, instead of throwing a defect, and does not retry',
+    async (_name, body) => {
+      const spy = install(async () => new Response(body, { status: 200 }))
+      await expect(
+        run(layer(), { system: 's', messages: [userText('x')] }),
+      ).rejects.toThrow(/invalid response body/)
+      expect(spy).toHaveBeenCalledOnce()
+    },
+  )
+
   it('fails without a session and never fetches', async () => {
     const spy = install(async () => new Response(okBody('no'), { status: 200 }))
     await expect(

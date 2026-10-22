@@ -263,7 +263,30 @@ export function LLMRelay(options: RelayOptions) {
               )
               const text = await r.text()
               if (!r.ok) throw classifyFailure(r, text)
-              return JSON.parse(text) as BedrockRuntime.ConverseResponse
+              // `JSON.parse` on `""`/`"null"`/`"[]"` throws or succeeds with
+              // a value that isn't a `ConverseResponse`, so it would flow
+              // through as one silently; raise a typed, non-retriable
+              // Failure instead ('never': a 200 won't self-heal on retry).
+              let parsed: unknown
+              let parseError: string | undefined
+              try {
+                parsed = JSON.parse(text)
+              } catch (e) {
+                parseError = e instanceof Error ? e.message : String(e)
+              }
+              if (
+                parseError !== undefined ||
+                typeof parsed !== 'object' ||
+                parsed === null ||
+                Array.isArray(parsed)
+              ) {
+                throw new Failure(
+                  `Inference error (HTTP ${r.status}): invalid response body` +
+                    (parseError ? ` (${parseError})` : ' (empty or non-object)'),
+                  'never',
+                )
+              }
+              return parsed as BedrockRuntime.ConverseResponse
             },
             catch: (e) =>
               e instanceof Failure
