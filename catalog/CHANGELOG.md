@@ -21,6 +21,7 @@ complete sentence without it.
 
 ## Changes
 
+- [Changed] Metadata, tags, and other JSON values display as labeled fields and cards instead of a bracket-and-brace tree, so they read less like code to non-developer users
 - [Fixed] Qurator sends a token budget with every chat request, so a reasoning model can no longer spend it all on hidden reasoning and answer with nothing ([#5471](https://github.com/quiltdata/quilt/pull/5471))
 - [Changed] Qurator: a model served from a SageMaker endpoint is listed by its endpoint name instead of its ARN, and the admin model box says how to enter one ([#5401](https://github.com/quiltdata/quilt/pull/5401))
 - [Fixed] Qurator waits up to a minute for a free slot when other asks keep the stack busy, saying so while it waits, instead of failing with an HTTP 429 error, and reports an unavailable AI gateway at once instead of retrying it ([#5405](https://github.com/quiltdata/quilt/pull/5405))

@@ -452,17 +452,18 @@ describe('containers/DataProducts', () => {
         dataProductContents.url('datazone:dzd-61b4n7ubllnqlj/46g5jnuhfnucyv'),
       )
       fireEvent.click(getByText('results.json'))
-      // JsonDisplay renders asynchronously -- it shows "rendering..." first, which
+      // JsonDisplay renders asynchronously -- it shows "Loading..." first, which
       // a synchronous getByText catches instead of the content. Awaiting is the
       // point rather than an inconvenience: it proves the viewer mounted and
       // settled, where a <pre> dump would have been there immediately.
-      // Structured keys, not a text dump. `mean: 4.206` proves the viewer parsed
-      // and rendered the object; a <pre> would show the raw JSON braces instead.
-      expect(await findByText(/mean/)).toBeTruthy()
+      // Structured, humanized keys, not a text dump. "Mean" + "4.206" proves the
+      // viewer parsed and rendered the object as a label/value form; a <pre>
+      // would show the raw `mean: 4.206` JSON text instead.
+      expect(await findByText(/mean/i)).toBeTruthy()
       expect(getByText(/4\.206/)).toBeTruthy()
-      // The nested array stays collapsed at defaultExpanded={1}, which is why this
-      // asserts a top-level key rather than a value inside `arms`.
-      expect(getByText(/<…2>/)).toBeTruthy()
+      // `arms` (an array of strings) renders as a chip row, not `[a, b]` text.
+      expect(getByText(/arms/i)).toBeTruthy()
+      expect(getByText('treatment')).toBeTruthy()
     })
 
     it('admits it cannot preview a file rather than showing an empty pane', () => {
