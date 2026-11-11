@@ -270,6 +270,31 @@ CloudFormation console as follows.
 1. Enter the Amazon S3 URL for your template
 1. Click Next (several times) and proceed to apply the update
 
+### AWS Partner Revenue Measurement tag
+
+Stacks licensed through AWS Marketplace tag their search domain, RDS database,
+NAT gateways and ECS task definitions with
+`aws-apn-id-730278974607` = `pc:<product code>`, naming Quilt's AWS Partner
+Central account and the stack's Marketplace product code. The stack's Fargate
+tasks inherit the tag from their task definitions. AWS
+[Partner Revenue Measurement](https://docs.aws.amazon.com/PRM/latest/aws-prm-onboarding-guide/manual-tagging.html)
+uses the tag to attribute those resources' usage to Quilt. Stacks licensed
+directly from Quilt are not tagged.
+
+A stack update adds the tag without replacing these resources; tasks already
+running carry it once they restart. It needs no new permissions: the
+[example service role](../cfn-service-role.yaml) already grants `es:AddTags`,
+`rds:AddTagsToResource`, `ec2:CreateTags` and `ecs:TagResource`. The update
+fails if:
+
+* a tag policy or service control policy (SCP) denies this tag on these
+resources; or
+* one of these resources already carries 50 tags, counting tags copied from
+the stack.
+
+The tag is part of the stack's template, so removing it by hand causes stack
+drift.
+
 ### Terraform updates
 
 1. Obtain the latest Terraform-compatible CloudFormation template from Quilt
