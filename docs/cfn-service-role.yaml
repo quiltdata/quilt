@@ -152,6 +152,7 @@ Resources:
                   - glue:CreateTable
                   - glue:DeleteDatabase
                   - glue:DeleteTable
+                  - glue:GetDatabase
                   - glue:TagResource
                   - iam:AddRoleToInstanceProfile
                   - iam:AttachRolePolicy
@@ -176,6 +177,8 @@ Resources:
                   - iam:RemoveRoleFromInstanceProfile
                   - iam:TagRole
                   - iam:TagPolicy
+                  - iam:UntagRole
+                  - iam:UpdateAssumeRolePolicy
                   - kms:CreateGrant
                   - kms:CreateKey
                   - kms:Decrypt
@@ -188,34 +191,44 @@ Resources:
                   - kms:PutKeyPolicy
                   - kms:ScheduleKeyDeletion
                   - kms:TagResource
+                  - lakeformation:DescribeLakeFormationIdentityCenterConfiguration
+                  - lakeformation:DescribeResource
+                  - lakeformation:ListResources
                   - lambda:AddPermission
                   - lambda:CreateEventSourceMapping
                   - lambda:CreateFunction
                   - lambda:DeleteEventSourceMapping
                   - lambda:DeleteFunction
+                  - lambda:DeleteFunctionEventInvokeConfig
                   - lambda:DeleteLayerVersion
                   - lambda:GetEventSourceMapping
                   - lambda:GetFunction
                   - lambda:GetFunctionCodeSigningConfig
                   - lambda:GetFunctionConfiguration
+                  - lambda:GetFunctionEventInvokeConfig
+                  - lambda:GetFunctionRecursionConfig
                   - lambda:GetLayerVersion
                   - lambda:GetRuntimeManagementConfig
                   - lambda:InvokeFunction
                   - lambda:PublishLayerVersion
                   - lambda:PublishVersion
                   - lambda:PutFunctionConcurrency
+                  - lambda:PutFunctionEventInvokeConfig
                   - lambda:RemovePermission
                   - lambda:TagResource
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
+                  - lambda:UpdateFunctionEventInvokeConfig
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:DeleteLogGroup
                   - logs:DeleteLogStream
                   - logs:DeleteResourcePolicy
+                  - logs:DescribeIndexPolicies
                   - logs:DescribeLogGroups
                   - logs:DescribeLogStreams
                   - logs:DescribeResourcePolicies
+                  - logs:GetDataProtectionPolicy
                   - logs:PutResourcePolicy
                   - logs:PutRetentionPolicy
                   - logs:TagResource
@@ -234,7 +247,11 @@ Resources:
                   - route53:CreateHostedZone
                   - s3:*  # Stack has this anyway; Canary buckets get Access Denied even with GetObject
                   - secretsmanager:CreateSecret
+                  - secretsmanager:DeleteSecret
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:PutSecretValue
                   - secretsmanager:TagResource
+                  - secretsmanager:UpdateSecret
                   - servicediscovery:CreatePrivateDnsNamespace
                   - servicediscovery:CreateService
                   - servicediscovery:DeleteNamespace
