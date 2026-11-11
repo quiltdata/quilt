@@ -289,6 +289,35 @@ See the Terraform module's
 [routine update instructions](https://github.com/quiltdata/iac#routine-updates)
 for the complete workflow.
 
+### AWS Partner Revenue Measurement tag
+
+Every Quilt stack carries the tag
+`aws-apn-id-730278974607` = `pc:<product code>` on the resources below, so that
+[AWS Partner Revenue Measurement](https://docs.aws.amazon.com/PRM/latest/aws-prm-onboarding-guide/manual-tagging.html)
+attributes their usage to Quilt. The product code is that of the stack's AWS
+Marketplace listing, or of pay-as-you-go (`1xn1f7bxkj2dc16ak28s0dbgk`) when
+the stack has none. It names a Quilt product, not a customer or a license key.
+
+* **CloudFormation**: the template tags the search domain, RDS database, NAT
+gateways and ECS task definitions it creates. Fargate tasks inherit the tag
+from their task definitions.
+* **Terraform**: the module tags the CloudFormation stack, whose resources
+inherit the tag, and every resource the module creates, such as the VPC,
+database and search domain. Its `marketplace_product_code` sets the code,
+pay-as-you-go by default; set it to your listing's code so that it matches the
+template. Do not set this key in the provider's `default_tags`. See the
+module's
+[Partner Revenue Measurement tag](https://github.com/quiltdata/iac#partner-revenue-measurement-tag)
+section.
+
+The tag needs no new permissions: deployers already add tags to these
+resources. An update that adds the tag fails if a tag policy or service control
+policy (SCP) restricts tag keys, or if a resource is already at its tag limit.
+Removing the tag by hand is drift, which the next `terraform apply` reverts on
+the resources the module creates.
+
+Customer data buckets are not created by the stack, so they are not tagged.
+
 ## Upgrading from network 1.0 to network 2.0
 
 Upgrading to the Quilt 2.0 network configuration provides improved security by means
