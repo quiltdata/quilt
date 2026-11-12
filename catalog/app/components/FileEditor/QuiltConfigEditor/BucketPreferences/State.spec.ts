@@ -257,6 +257,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
     files: false
     workflows: false
     packages: false
+    tables: false
     queries: false
   sourceBuckets:
     s3://a: {}
@@ -315,6 +316,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         'ui.nav.files': false,
         'ui.nav.workflows': false,
         'ui.nav.packages': false,
+        'ui.nav.tables': false,
         'ui.nav.queries': false,
 
         'ui.package_description': {

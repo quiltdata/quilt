@@ -42,6 +42,7 @@ const expectedDefaults = {
       files: true,
       workflows: true,
       packages: true,
+      tables: true,
       queries: true,
     },
     packageDescription: {

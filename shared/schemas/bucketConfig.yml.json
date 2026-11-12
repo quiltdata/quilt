@@ -28,6 +28,12 @@
               "type": "boolean",
               "examples": [true, false]
             },
+            "tables": {
+              "default": true,
+              "description": "Hides Tables tab",
+              "type": "boolean",
+              "examples": [true, false]
+            },
             "queries": {
               "default": true,
               "description": "Hides Queries tab",

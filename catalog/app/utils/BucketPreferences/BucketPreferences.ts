@@ -64,7 +64,7 @@ interface BlocksPreferences {
 }
 
 export type NavPreferences = Record<
-  'files' | 'packages' | 'workflows' | 'queries',
+  'files' | 'packages' | 'tables' | 'workflows' | 'queries',
   boolean
 >
 
@@ -175,6 +175,9 @@ function getDefaultPreferences(bucket?: string): BucketPreferences {
         files: true,
         workflows: true,
         packages: true,
+        // The tables layer (table-support v1). Default-on like its peers; hide
+        // per-bucket via `ui.nav.tables: false`.
+        tables: true,
         queries: true,
       },
       packageDescription: {

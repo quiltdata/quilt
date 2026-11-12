@@ -66,6 +66,7 @@ function parseUser(config: string) {
     'ui.nav.files': childOfBool(json?.ui?.nav, 'files'),
     'ui.nav.workflows': childOfBool(json?.ui?.nav, 'workflows'),
     'ui.nav.packages': childOfBool(json?.ui?.nav, 'packages'),
+    'ui.nav.tables': childOfBool(json?.ui?.nav, 'tables'),
     'ui.nav.queries': childOfBool(json?.ui?.nav, 'queries'),
 
     'ui.package_description': json?.ui?.package_description,
@@ -112,6 +113,7 @@ const sys: Defaults = {
   'ui.nav.files': true,
   'ui.nav.workflows': true,
   'ui.nav.packages': true,
+  'ui.nav.tables': true,
   'ui.nav.queries': true,
 
   'ui.package_description': {
@@ -179,6 +181,7 @@ export function parse(config: string, ext: Partial<Defaults>) {
     'ui.nav.files': val('ui.nav.files', user, ext),
     'ui.nav.workflows': val('ui.nav.workflows', user, ext),
     'ui.nav.packages': val('ui.nav.packages', user, ext),
+    'ui.nav.tables': val('ui.nav.tables', user, ext),
     'ui.nav.queries': val('ui.nav.queries', user, ext),
 
     'ui.sourceBuckets': val('ui.sourceBuckets', user, ext),

@@ -197,6 +197,7 @@ const I18N_FIELDS = {
   'ui.nav.files': '"BUCKET"',
   'ui.nav.workflows': '"WORKFLOWS"',
   'ui.nav.packages': '"PACKAGES"',
+  'ui.nav.tables': '"TABLES"',
   'ui.nav.queries': '"QUERIES"',
 
   'ui.package_description_multiline':
