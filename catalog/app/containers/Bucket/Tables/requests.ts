@@ -66,6 +66,10 @@ function parseFormat(params: Record<string, string> | undefined): TableFormat {
   return 'other'
 }
 
+// Glue reports epoch-0 timestamps for tables that never recorded an update;
+// show nothing rather than "57 years ago".
+const realDate = (d?: Date) => (d && d.getTime() > 0 ? d : undefined)
+
 function parseSummary(
   catalog: string,
   database: string,
@@ -76,7 +80,7 @@ function parseSummary(
     database,
     name: t.Name,
     format: parseFormat(t.Parameters),
-    updatedAt: t.LastAccessTime || t.CreateTime,
+    updatedAt: realDate(t.LastAccessTime) || realDate(t.CreateTime),
     columnCount: (t.Columns || []).length,
   }
 }

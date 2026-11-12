@@ -9,6 +9,7 @@ import * as M from '@material-ui/core'
 
 import * as requests from 'containers/Bucket/Tables/requests'
 import * as Model from './model'
+import * as storage from './model/storage'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -37,7 +38,7 @@ const quoteIdent = (s: string) => s.replace(/"/g, '""')
 
 export default function GlueTables() {
   const classes = useStyles()
-  const { queryBody, catalogName, database } = Model.use()
+  const { queryBody, catalogName, catalogNames, database } = Model.use()
   const groups = requests.useTables()
 
   const handleSelect = React.useCallback(
@@ -46,6 +47,11 @@ export default function GlueTables() {
         db,
       )}"."${quoteIdent(table)}" LIMIT 10`
       queryBody.setValue(sql)
+      // Write-through to the console's storage as well: the catalog/database
+      // lists reload asynchronously and their settling effects restore from
+      // storage, which would otherwise clobber a selection made mid-load.
+      storage.setCatalog(catalog)
+      storage.setDatabase(db)
       catalogName.setValue(catalog)
       database.setValue(db)
     },
@@ -60,6 +66,11 @@ export default function GlueTables() {
   const appliedRef = React.useRef(false)
   React.useEffect(() => {
     if (appliedRef.current) return
+    // Wait for the console model to settle: its own effects (queryBody /
+    // catalog / database restores) run as the lists load and would clobber
+    // values applied too early.
+    if (!Model.hasData(catalogNames.data)) return
+    if (!Model.isReady(queryBody.value)) return
     const params = new URLSearchParams(location.search)
     const catalog = params.get('catalog')
     const db = params.get('db')
@@ -76,7 +87,15 @@ export default function GlueTables() {
     params.delete('db')
     params.delete('table')
     history.replace({ ...location, search: params.toString() })
-  }, [location, history, handleSelect, catalogName, database])
+  }, [
+    location,
+    history,
+    handleSelect,
+    catalogName,
+    catalogNames.data,
+    database,
+    queryBody.value,
+  ])
 
   if (!Model.hasData(groups.data) || !groups.data.length) return null
 
