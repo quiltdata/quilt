@@ -309,10 +309,8 @@ not set this key in the provider's `default_tags`. See the module's
 [Partner Revenue Measurement tag](https://github.com/quiltdata/iac#partner-revenue-measurement-tag)
 section.
 
-Deployers already add tags to these resources. The one exception: a
-CloudFormation service role copied from an earlier version of the
-[example](../cfn-service-role.yaml) needs `apigateway:TagResource` before you
-upgrade. An update that adds the tag fails if a tag policy or service control
+It needs no new permissions: deployers already add tags to these resources.
+An update that adds the tag fails if a tag policy or service control
 policy (SCP) restricts tag keys, or if a resource is already at its tag limit.
 Removing the tag by hand is drift, which the next `terraform apply` reverts on
 the resources the module creates.

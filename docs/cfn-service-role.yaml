@@ -23,7 +23,6 @@ Resources:
                   - apigateway:POST
                   - apigateway:PUT
                   - apigateway:SetWebACL
-                  - apigateway:TagResource
                   - apigateway:UpdateRestApiPolicy
                   - appsync:SetWebACL
                   - apprunner:AssociateWebAcl
