@@ -4,7 +4,7 @@ import { matchPath, useLocation } from 'react-router-dom'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import type { RouteMap } from '../Routes'
 
-export type Section = 'overview' | 'packages' | 'tree' | 'workflows'
+export type Section = 'overview' | 'packages' | 'tables' | 'tree' | 'workflows'
 
 export function useBucketSection() {
   const location = useLocation()
@@ -15,6 +15,9 @@ export function useBucketSection() {
     }
     if (matchPath(location.pathname, { path: paths.bucketPackageList })) {
       return 'packages'
+    }
+    if (matchPath(location.pathname, { path: paths.bucketTableList })) {
+      return 'tables'
     }
     if (
       matchPath(location.pathname, { path: paths.bucketFile, exact: true, strict: true })

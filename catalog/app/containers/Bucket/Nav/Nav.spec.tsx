@@ -20,7 +20,13 @@ vi.mock('utils/BucketPreferences', async () => ({
   use: () => ({
     prefs: BucketPreferences.Result.Ok({
       ui: {
-        nav: { files: true, packages: true, workflows: false, queries: false },
+        nav: {
+          files: true,
+          packages: true,
+          tables: false,
+          workflows: false,
+          queries: false,
+        },
       },
     } as unknown as BucketPreferences.BucketPreferences),
   }),
@@ -39,6 +45,10 @@ const routes = {
   bucketPackageList: {
     path: '/b/:bucket/packages/',
     url: (bucket: string) => `/b/${bucket}/packages/`,
+  },
+  bucketTableList: {
+    path: '/b/:bucket/tables/',
+    url: (bucket: string) => `/b/${bucket}/tables/`,
   },
   bucketFile: {
     path: '/b/:bucket/tree/:path(.*[^/])',

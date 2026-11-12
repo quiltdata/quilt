@@ -54,6 +54,9 @@ function TabsList({ bucket, preferences, section = false }: TabsListProps) {
       {preferences.packages && (
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
       )}
+      {preferences.tables && (
+        <NavTab label="Tables" value="tables" to={urls.bucketTableList(bucket)} />
+      )}
       {preferences.workflows && (
         <NavTab
           label="Workflows"

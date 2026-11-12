@@ -99,16 +99,20 @@ export type QueriesArgs = Parameters<typeof queries.url>
 // The Athena console's search, shared by the three routes that render it, so
 // they cannot disagree about which params survive a redirect between them.
 // `table` (together with the `bucket` hosting it) deep-links a Tabulator table
-// to autofill the query editor.
+// to autofill the query editor. `catalog` + `db` (+ `table`) deep-link a Glue
+// table instead: the console pre-scopes its catalog/database selects and
+// drafts a SELECT (tables layer, "Query this table").
 interface AthenaConsoleOpts {
   bucket?: string
   table?: string
+  catalog?: string
+  db?: string
 }
 
 export const queriesAthena = route(
   '/queries/athena',
-  ({ bucket, table }: AthenaConsoleOpts = {}) =>
-    `/queries/athena${mkSearch({ bucket, table })}`,
+  ({ bucket, table, catalog, db }: AthenaConsoleOpts = {}) =>
+    `/queries/athena${mkSearch({ bucket, table, catalog, db })}`,
 )
 
 export type QueriesAthenaArgs = Parameters<typeof queriesAthena.url>
@@ -117,8 +121,8 @@ export type QueriesAthenaArgs = Parameters<typeof queriesAthena.url>
 // not have to hand-build a search string to keep the bucket scope across one.
 export const queriesAthenaWorkgroup = route(
   '/queries/athena/:workgroup',
-  (workgroup: string, { bucket, table }: AthenaConsoleOpts = {}) =>
-    `/queries/athena/${workgroup}${mkSearch({ bucket, table })}`,
+  (workgroup: string, { bucket, table, catalog, db }: AthenaConsoleOpts = {}) =>
+    `/queries/athena/${workgroup}${mkSearch({ bucket, table, catalog, db })}`,
 )
 
 export type QueriesAthenaWorkgroupArgs = Parameters<typeof queriesAthenaWorkgroup.url>
@@ -335,6 +339,29 @@ export const bucketAthenaExecution = route(
   (bucket: string, workgroup: string, queryExecutionId: string) =>
     `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
 )
+
+// Tables layer of the volume (quilt-specs table-support, v1 prototype). A
+// table is addressed by the Athena coordinates that query it — catalog,
+// database, name — so the detail route carries all three. The catalog and
+// database stay search params (they are query coordinates, not hierarchy; the
+// honest-coordinates principle) while the table name is the path segment.
+export const bucketTableList = route(
+  '/b/:bucket/tables/',
+  (bucket: string) => `/b/${bucket}/tables/`,
+)
+
+export type BucketTableListArgs = Parameters<typeof bucketTableList.url>
+
+export const bucketTableDetail = route(
+  '/b/:bucket/tables/:table',
+  (bucket: string, table: string, opts: { catalog?: string; database?: string } = {}) =>
+    `/b/${bucket}/tables/${encodeURIComponent(table)}${mkSearch({
+      catalog: opts.catalog,
+      database: opts.database,
+    })}`,
+)
+
+export type BucketTableDetailArgs = Parameters<typeof bucketTableDetail.url>
 
 export const bucketWorkflowList = route(
   '/b/:bucket/workflows/',

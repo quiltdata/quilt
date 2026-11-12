@@ -31,6 +31,12 @@ function NavList({ bucket, preferences, section }: NavListProps) {
       show: preferences.packages,
     },
     {
+      value: 'tables',
+      label: 'Tables',
+      to: urls.bucketTableList(bucket),
+      show: preferences.tables,
+    },
+    {
       value: 'workflows',
       label: 'Workflows',
       to: urls.bucketWorkflowList(bucket),

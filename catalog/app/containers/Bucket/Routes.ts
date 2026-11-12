@@ -17,6 +17,8 @@ export interface RouteMap {
   bucketPackageRevisions: routes.BucketPackageRevisionsArgs
   bucketPackageCompare: routes.BucketPackageCompareArgs
   bucketPackageTree: routes.BucketPackageTreeArgs
+  bucketTableDetail: routes.BucketTableDetailArgs
+  bucketTableList: routes.BucketTableListArgs
   bucketWorkflowDetail: routes.BucketWorkflowDetailArgs
   bucketWorkflowList: routes.BucketWorkflowListArgs
 }
