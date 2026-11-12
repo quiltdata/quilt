@@ -116,7 +116,7 @@ export function Provider({ children }: ProviderProps) {
     queryRun,
   }
 
-  const { bucket, table } = parseSearch(location.search, true)
+  const { bucket, table, catalog, db } = parseSearch(location.search, true)
 
   if (Model.hasData(queryRun) && queryExecutionId !== queryRun.id) {
     return (
@@ -129,7 +129,7 @@ export function Provider({ children }: ProviderProps) {
   if (Model.hasData(workgroup.data) && !workgroupId) {
     return (
       <RRDom.Redirect
-        to={urls.queriesAthenaWorkgroup(workgroup.data, { bucket, table })}
+        to={urls.queriesAthenaWorkgroup(workgroup.data, { bucket, table, catalog, db })}
       />
     )
   }
