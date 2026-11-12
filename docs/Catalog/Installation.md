@@ -298,20 +298,21 @@ attributes their usage to Quilt. The product code is that of the stack's AWS
 Marketplace listing, or of pay-as-you-go (`1xn1f7bxkj2dc16ak28s0dbgk`) when
 the stack has none. It names a Quilt product, not a customer or a license key.
 
-* **CloudFormation**: the template tags the search domain, RDS database, NAT
-gateways and ECS task definitions it creates. Fargate tasks inherit the tag
-from their task definitions.
-* **Terraform**: the module tags the CloudFormation stack, whose resources
-inherit the tag, and every resource the module creates, such as the VPC,
-database and search domain. Its `marketplace_product_code` sets the code,
-pay-as-you-go by default; set it to your listing's code so that it matches the
-template. Do not set this key in the provider's `default_tags`. See the
-module's
+* **CloudFormation**: the template tags every resource it creates that takes
+tags. Fargate tasks inherit the tag from their task definitions; running tasks
+pick it up when their service next deploys.
+* **Terraform**: the module tags the resources it creates, such as the VPC,
+database and search domain, but not the CloudFormation stack itself. Its
+`marketplace_product_code` sets the code (bare, without `pc:`), pay-as-you-go
+by default; set it to your listing's code so that it matches the template. Do
+not set this key in the provider's `default_tags`. See the module's
 [Partner Revenue Measurement tag](https://github.com/quiltdata/iac#partner-revenue-measurement-tag)
 section.
 
-The tag needs no new permissions: deployers already add tags to these
-resources. An update that adds the tag fails if a tag policy or service control
+Deployers already add tags to these resources. The one exception: a
+CloudFormation service role copied from an earlier version of the
+[example](../cfn-service-role.yaml) needs `apigateway:TagResource` before you
+upgrade. An update that adds the tag fails if a tag policy or service control
 policy (SCP) restricts tag keys, or if a resource is already at its tag limit.
 Removing the tag by hand is drift, which the next `terraform apply` reverts on
 the resources the module creates.
