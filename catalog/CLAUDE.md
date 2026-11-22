@@ -1,5 +1,10 @@
 # Quilt Catalog
 
+> [!IMPORTANT]
+> **Read-only.** The catalog is developed in
+> [quiltdata/deployment](https://github.com/quiltdata/deployment)'s
+> `catalog/`; do not change it here. See the root [README](../README.md).
+
 React + Material-UI v4 (JSS) frontend for the Quilt data platform. See
 [README.md](./README.md) for configuration and running it locally.
 

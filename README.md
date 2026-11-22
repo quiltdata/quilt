@@ -1,5 +1,17 @@
 # Quilt: Scientific Data Management on AWS
 
+> [!IMPORTANT]
+> **This repository is read-only for development.** All new work on Quilt,
+> including the `quilt3` Python package, the catalog and the lambdas, happens
+> in [quiltdata/deployment](https://github.com/quiltdata/deployment), a private
+> repository. Do not open pull requests here. Where this repository's code
+> lives in deployment:
+>
+> - `api/python/` (quilt3, with the root `CHANGELOG.md`) is `quilt3/`.
+> - `catalog/`, `docs/`, `gendocs/`, `lambdas/`, `py-shared/`, `s3-proxy/`,
+>   `shared/` and `testdocs/` keep their names at the root.
+> - `quilt3_local/` was not carried over.
+
 [![Docs](https://img.shields.io/badge/Docs-docs.quilt.bio-0B5FFF?style=for-the-badge)](https://docs.quilt.bio/)
 [![Join Office Hours](https://img.shields.io/badge/Join%20Office%20Hours-Live%20Friday-00875A?style=for-the-badge)](https://riverside.com/webinar/registration/eyJzbHVnIjoic2ltb24ta29obnN0YW1tcy1zdHVkaW8iLCJldmVudElkIjoiNjk5Y2M5MDI4YjVkM2Y2MjFjYTk5MzgzIiwicHJvamVjdElkIjoiNjk5Y2M5MDI1OTE5NDU0YmNlOWEzZDVmIn0=)
 [![Book an Intro](https://img.shields.io/badge/Book%20an%20Intro-Meet%20the%20Team-5E4AE3?style=for-the-badge)](https://www.quilt.bio/meetings/simon-kohnstamm/quilt-introduction)
