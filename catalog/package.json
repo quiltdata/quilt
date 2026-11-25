@@ -77,7 +77,7 @@
     "diff": "^8.0.2",
     "dompurify": "^3.4.13",
     "echarts": "^6.0.0",
-    "effect": "^3.21.4",
+    "effect": "^3.22.5",
     "final-form": "^4.20.9",
     "fontfaceobserver": "^2.3.0",
     "fp-ts": "^2.16.1",
