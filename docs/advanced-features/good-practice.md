@@ -885,7 +885,7 @@ Example query result:
 |`eventtime`|`eventname`|`useragent`|`sourceipaddress`|`requestparameters`|`responseelements`|`additionaleventdata`|`errorcode`|
 |-----------|-----------|-----------|-----------------|-------------------|------------------|---------------------|-----------|
 |`2023-06-14 11:33:00.000`|`Auth.Login`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{"password":"***","username":"nl0"}`|`{"access_token":"***","refresh_token":"***","exp":"2023-09-12T11:33:00Z"}`|`{"method":"password"}`||
-|`2023-06-14 11:33:02.000`|`Auth.GetAWSCredentials`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{}`|`{"secretkey":"***","sessiontoken":"***","accesskeyid":"ASIA2LR7MUT63B7CE5WE"}`|`{}`||
+|`2023-06-14 11:33:02.000`|`Auth.GetAWSCredentials`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{}`|`{"secretkey":"***","sessiontoken":"***","accesskeyid":"*REDACTED*"}`|`{}`||
 |`2023-06-14 11:33:07.000`|`Users.List`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{}`|`{"results":[*REDACTED*]}`|`{}`||
 |`2023-06-14 11:33:16.000`|`Users.Disable`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{"username":"*REDACTED*"}`||`{}`||
 |`2023-06-14 11:33:42.000`|`Users.GrantAdmin`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{"username":"*REDACTED*"}`||`{}`||
