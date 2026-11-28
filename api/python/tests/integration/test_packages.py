@@ -2251,14 +2251,11 @@ class PackageTest(QuiltTestCase):
         def copy_with_checksum(file_list, callback=None, message=None):
             return [(destination, 'c' * 64) for _source, destination, _size in file_list]
 
-        with (
-            patch('quilt3.packages.copy_file_list', copy_with_checksum),
-            patch('quilt3.Package._push_manifest') as push_manifest,
-        ):
+        def push(source=src_dir, destination=registry):
             quilt3.main.cmd_push(
                 name=pkg_name,
-                dir=str(src_dir),
-                registry=registry,
+                dir=str(source),
+                registry=destination,
                 dest=None,
                 message=None,
                 meta=None,
@@ -2268,9 +2265,131 @@ class PackageTest(QuiltTestCase):
                 no_copy=False,
             )
 
-        push_manifest.assert_called_once()
-        pushed_hash = push_manifest.call_args[0][-1]
-        self.assertNotEqual(pushed_hash, parent_hash)
+        with (
+            patch('quilt3.packages.copy_file_list', copy_with_checksum),
+            patch('quilt3.Package._push_manifest') as push_manifest,
+        ):
+            push()
+            push_manifest.assert_called_once()
+            pushed_hash = push_manifest.call_args[0][-1]
+            self.assertNotEqual(pushed_hash, parent_hash)
+
+            # A different source or registry has no claim on this revision.
+            other_src = Path('other_src')
+            other_src.mkdir()
+            for source, destination in [(other_src, registry), (src_dir, 's3://other-bucket')]:
+                other_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(destination))
+                self.setup_s3_stubber_resolve_pointer(other_registry, pkg_name, pointer='latest', top_hash=pushed_hash)
+                with pytest.raises(QuiltConflictException):
+                    push(source, destination)
+
+            # A fresh command can build on its own previous push without changing the local manifest.
+            for _ in range(2):
+                self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=pushed_hash)
+            (src_dir / 'another.txt').write_text('another')
+            push()
+            self.assertNotEqual(push_manifest.call_args[0][-1], pushed_hash)
+            self.assertEqual(Package.browse(pkg_name).top_hash, parent_hash)
+
+            # The original installed revision remains a valid parent after a rollback.
+            for _ in range(2):
+                self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=parent_hash)
+            push()
+            self.assertEqual(push_manifest.call_count, 3)
+
+            # A revision outside the installed and remembered parents must still conflict.
+            foreign_hash = 'f' * 64
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=foreign_hash)
+            with pytest.raises(QuiltConflictException, match=foreign_hash):
+                push()
+            self.assertEqual(push_manifest.call_count, 3)
+
+        # A new local baseline invalidates the previous directory's push record.
+        last_published = push_manifest.call_args.args[-1]
+        new_parent = Package().build(pkg_name)
+        self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=last_published)
+        with pytest.raises(QuiltConflictException, match=f"expected {new_parent!r}"):
+            push()
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_cli_push_cannot_read_revision(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        name = 'Quilt/test'
+        parent_hash = Package().build(name)
+        Path('empty').mkdir()
+        args = ['push', name, '--dir', 'empty', '--registry', registry, '--meta', '{"edit": 1}']
+        self.patch_s3_registry('shorten_top_hash', return_value='123456')
+        for _ in range(2):
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, name, pointer='latest', top_hash=parent_hash)
+
+        with (
+            patch.object(Path, 'read_text', side_effect=PermissionError('permission denied')),
+            patch('quilt3.Package._push_manifest') as publish,
+            redirect_stderr(io.StringIO()) as stderr,
+        ):
+            self.assertEqual(quilt3.main.main(args) or 0, 0)
+            self.assertIn('permission denied', stderr.getvalue())
+            publish.assert_called_once()
+            foreign_hash = 'f' * 64
+            self.assertNotIn(foreign_hash, (parent_hash, publish.call_args.args[-1]))
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, name, pointer='latest', top_hash=foreign_hash)
+            self.assertEqual(quilt3.main.main(args), 1)
+            self.assertIn(foreign_hash, stderr.getvalue())
+            publish.assert_called_once()
+
+            self.assertEqual(quilt3.main.main([*args, '--force']) or 0, 0)
+            self.assertEqual(publish.call_count, 2)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_cli_push_with_undecodable_revision(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        name = 'Quilt/test'
+        parent_hash = Package().build(name)
+        Path('empty').mkdir()
+        foreign_hash = 'f' * 64
+        state = Path('revision')
+        state.write_bytes(b'\xff')
+        args = ['push', name, '--dir', 'empty', '--registry', registry]
+        self.setup_s3_stubber_resolve_pointer(pkg_registry, name, pointer='latest', top_hash=foreign_hash)
+        with (
+            patch('quilt3.main._cli_push_state_path', return_value=state),
+            patch('quilt3.Package._push_manifest') as publish,
+            redirect_stderr(io.StringIO()) as stderr,
+        ):
+            self.assertEqual(quilt3.main.main(args), 1)
+            self.assertIn('Could not read', stderr.getvalue())
+            self.assertIn(foreign_hash, stderr.getvalue())
+            self.assertIn(f"expected {parent_hash!r}", stderr.getvalue())
+            publish.assert_not_called()
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_cli_push_cannot_save_revision(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        name = 'Quilt/test'
+        parent_hash = Package().build(name)
+        Path('empty').mkdir()
+        args = ['push', name, '--dir', 'empty', '--registry', registry, '--meta', '{"edit": 1}']
+        self.patch_s3_registry('shorten_top_hash', return_value='123456')
+        for _ in range(2):
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, name, pointer='latest', top_hash=parent_hash)
+
+        stderr = io.StringIO()
+        with patch('quilt3.Package._push_manifest') as publish, redirect_stderr(stderr):
+            with patch.object(Path, 'replace', side_effect=PermissionError('read-only')):
+                self.assertEqual(quilt3.main.main(args) or 0, 0)
+            self.assertNotIn('Could not read', stderr.getvalue())
+            self.assertIn('could not save the revision', stderr.getvalue())
+            publish.assert_called_once()
+            published_hash = publish.call_args.args[-1]
+            self.assertNotEqual(published_hash, parent_hash)
+
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, name, pointer='latest', top_hash=published_hash)
+            self.assertEqual(quilt3.main.main(args), 1)
+            self.assertIn(f"expected {parent_hash!r}", stderr.getvalue())
+            publish.assert_called_once()
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_push_conflicts(self):

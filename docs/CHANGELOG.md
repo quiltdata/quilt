@@ -41,6 +41,7 @@ Entries inside each section should be ordered by type:
 ### CLI
 
 * [Added] `quilt3 install --uri 'quilt+s3://BUCKET#package=USER/PACKAGE&path=PATH'` installs a package, directory, or entry directly from a quoted Catalog URI ([#5255](https://github.com/quiltdata/quilt/pull/5255))
+* [Fixed] `quilt3 push` accepts the installed revision or the last revision pushed from the same directory to the same registry. An unrelated revision still causes a conflict ([#5526](https://github.com/quiltdata/quilt/pull/5526))
 
 ## 8.0.0 - 2026-08-04
 
