@@ -5,9 +5,12 @@ Parses the command-line arguments and runs a command.
 import _thread
 import argparse
 import functools
+import hashlib
 import json
 import sys
+import tempfile
 import time
+from pathlib import Path
 
 import requests
 
@@ -209,14 +212,40 @@ def _selector_fn_no_copy(*args):
     return False
 
 
+def _cli_push_state_path(name, source, registry):
+    """Locate the push record for this local package, source directory and destination."""
+    local = get_package_registry()
+    remote = registry if registry is not None else get_from_config('default_remote_registry')
+    if remote is None or not local.is_local:
+        return None
+
+    pointer = local.pointer_latest_pk(name)
+    destination = util.PhysicalKey.from_url(util.fix_url(remote))
+    scope = json.dumps([pointer.path, source.bucket, source.path.rstrip('/'), source.version_id, str(destination)])
+    return util.BASE_PATH / 'cli-push' / hashlib.sha256(scope.encode()).hexdigest()
+
+
 def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy):
-    if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
+    source = util.PhysicalKey.from_url(util.fix_url(dir))
+    if source.is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
     try:
         pkg = Package.browse(name, None)
     except FileNotFoundError:
         pkg = Package()
+
+    local_hash = pkg._last_recorded_hash or ''
+    state = _cli_push_state_path(name, source, registry)
+    if state is not None:
+        try:
+            saved_local_hash, _, revision = state.read_text().partition('\n')
+        except FileNotFoundError:
+            pass
+        else:
+            if saved_local_hash == local_hash:
+                # Retain the installed revision as a valid parent at every destination.
+                pkg._record_revision(name, revision)
 
     pkg.set_dir('.', dir, meta=meta)
     pkg.push(
@@ -229,6 +258,15 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
         dedupe=dedupe,
         **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
     )
+    if state is not None:
+        try:
+            state.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryDirectory(dir=state.parent) as tmp:
+                record = Path(tmp) / 'revision'
+                record.write_text(f'{local_hash}\n{pkg._last_recorded_hash}')
+                record.replace(state)
+        except OSError as exc:
+            print(f"Package pushed, but could not save the revision for the next CLI push: {exc}", file=sys.stderr)
 
 
 def cmd_install(name, uri, registry, top_hash, dest, dest_registry, path):

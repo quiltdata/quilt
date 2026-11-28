@@ -412,6 +412,10 @@ class ManifestJSONDecoder(json.JSONDecoder):
 class Package:
     """In-memory representation of a package"""
 
+    # browse records the installed baseline for the CLI. push records the exact published
+    # or deduplicated hash, even when the source object's local entries lack checksums.
+    _last_recorded_hash: str | None = None
+
     def __init__(self):
         self._children = {}
         self._meta = {'version': 'v0'}
@@ -424,6 +428,7 @@ class Package:
     def _record_revision(self, name, top_hash):
         """Remember `top_hash` as a revision of `name` that this package is a valid successor to."""
         self._parent_top_hashes.setdefault(name, set()).add(top_hash)
+        self._last_recorded_hash = top_hash
 
     @ApiTelemetry("package.__repr__")
     def __repr__(self, max_lines=20):

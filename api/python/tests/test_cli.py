@@ -96,6 +96,20 @@ class QuiltCLITestCase(CommandLineTestCase):
             )
 
 
+@pytest.mark.parametrize('local, remote', [(True, None), (False, 's3://test-bucket')])
+def test_push_skips_record_without_local_and_remote_registries(local, remote, tmp_path):
+    with (
+        patch_package_class as packages,
+        patch.object(main, 'get_package_registry') as registry,
+        patch.object(main, 'get_from_config', return_value=remote),
+        patch.object(main.util, 'BASE_PATH', tmp_path),
+    ):
+        registry.return_value.is_local = local
+        main.main(('push', 'test/name', '--dir', '.'))
+        packages.browse.return_value.push.assert_called_once()
+        assert not (tmp_path / 'cli-push').exists()
+
+
 @pytest.mark.parametrize(
     'meta_data, expected_meta',
     [
