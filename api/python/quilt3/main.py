@@ -239,9 +239,11 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     state = _cli_push_state_path(name, source, registry)
     if state is not None:
         try:
-            saved_local_hash, _, revision = state.read_text().partition('\n')
+            saved_local_hash, _, revision = state.read_text(encoding='utf-8').partition('\n')
         except FileNotFoundError:
             pass
+        except (OSError, UnicodeDecodeError) as exc:
+            print(f"Could not read the saved CLI push revision from {state}: {exc}", file=sys.stderr)
         else:
             if saved_local_hash == local_hash:
                 # Retain the installed revision as a valid parent at every destination.
